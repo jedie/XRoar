@@ -1,0 +1,49 @@
+Changes from v0.10 to v0.11
+
+	* Modularised almost everything.  Binary can contain multiple drivers
+	  for video, sound and ui.  User can pick one on startup and,
+	  hopefully, switch between them on the fly.
+	* Added resizable SDL-YUV (Xv-accelerated where possible) video module.
+	* Added JACK sound module.
+	* Added NULL sound module (Linux-only: uses /dev/rtc to sync).
+	* Eliminated busy-wait from SDL sound module.
+	* Unified Unix and GP32 Makefiles.
+	* Added ability to simulate NTSC video artifacts for hi-res graphics.
+	* Sound fixes for unsigned audio interferes less with other audio.
+	* GP32 chatboard support (thanks to Mirko's SDK).
+
+Changes from v0.9 to v0.10
+
+	* Fixed Sun audio code broken by v0.9.
+	* Fix SEX bug.  Pretty much everything runs correctly now (including
+	  Racer Ball, Rommel 3D, Android Attack).
+	* Stopped using GP32 SDK sound code, adapted some of Jouni 'Mr.Spiv'
+	  Korhonen's code.
+	* Refactored code to something a little more logical.
+	* MacOS X 'Carbon' UI contributed by Stuart Teasdale.
+	* Use C99 types instead of SDL ones except in SDL-based drivers.
+	* Wrote faster GP32-specific VDG routines.
+
+Changes from v0.8 to v0.9
+
+	* More timing fixes.
+	* Video rendering optimisations.
+	* s/LICENCE/COPYING/
+	* Basic GP32 menu system added.
+	* Ability to switch between Dragon and CoCo ROMs and keymaps.
+	* Can insert disks (but still only into drive 1).
+
+Changes from v0.7 to v0.8
+
+	* Added GTK interface option (default) to Unix build.
+	* Timing fixes - most things play at a better speed now.
+
+Changes from v0.7-pre1 to v0.7
+
+	* Added basic Unix joystick support (using SDL).
+	* PIA0 addressing more specific (D64-style), OS-9 boots!
+	* PIA implementation simplified.
+	* Debug level configurable at build time (defaults to "not too much").
+	* Keyboard handling changed; GP32 version will be easier to switch to
+	  Coco mode when the time comes.
+

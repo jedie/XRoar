@@ -1,0 +1,4 @@
+#ifdef HAVE_SDL_VIDEO
+# define HAVE_SDL_KEYBOARD
+# define HAVE_SDL_JOYSTICK
+#endif

@@ -1,0 +1,20 @@
+A probably-incomplete list of things left to do.
+
+General
+
+* Disk writing, drive selection, track read. Maybe Coco standard
+  disk interface, as it's different to the standard one used
+  with the Dragon.
+
+
+GP32
+
+* Need to be able to enter your own filename using the virtual
+  keyboard.
+* Need ability to save a snapshot.  Mostly held up by needing a way to
+  enter filenames.
+
+
+Unix
+
+* Proper menu, probably brought up with right-click.

@@ -1,0 +1,154 @@
+XRoar - a Dragon/Tandy Coco emulator
+Copyright (C) 2003-2004 Ciaran Anscomb <xroar@6809.org.uk>
+
+
+Homepage: http://www.6809.org.uk/dragon/xroar.shtml
+
+
+The aim of this project is to develop a fully usable Dragon emulator for
+Unix-like operating systems and the GP32 handheld device.  Because the
+architecture of the Tandy CoCo 2 was very similar to the Dragon, it is
+also possible to use it to emulate those machines too (the only major
+differences are: ROM BASIC, keyboard layout).
+
+
+ACKNOWLEDGEMENTS
+
+The macros for manipulating the condition code register are based on those
+used in the MAME 6809 core (in particular, those involved with calculating
+the 'V' bit).  The rest is the result of reading too many datasheets.
+
+
+COMPILING
+
+Edit 'Makefile' and uncomment whichever BUILD_* lines are relevant
+to you.  To build a GP32 binary, uncomment the line 'BUILD_GP32 = 1'.
+This assumes that the cross-compiler tool prefix is 'arm-elf-'.
+
+Type 'make'.  This should build a binary called 'xroar', or 'xroar.fxe' if
+building for the GP32.
+
+
+INSTALLATION
+
+You will need a Dragon or CoCo ROM.  If you don't have the tools
+to transfer this from your original Dragon or CoCo, you may find one
+somewhere on the web - typically called 'dragrom' or 'd32rom'.  Although I
+personally think that such ROMs should be freely available, the copyright
+holders may think differently (and given that Microsoft wrote the BASIC
+ROM, it's quite likely they do), so I don't feel comfortable offering
+them up myself.
+
+If you want to use the disk support, you will also need a DOS ROM.
+I've only tested so far with SuperDOS E6, but others should work fine.
+
+This release should support .DGN format ROMs as used in the PC Dragon
+and T3 emulators for DOS by Paul Burgin.
+
+To include the DOS ROM, strip off any leader bytes so you just have the
+raw ROM data, then append it to your normal Dragon ROM.  The resulting
+file should be 24KiB.  DeltaDOS and CoCo disks are not yet implemented
+(they used different controller chips).
+
+The Dragon ROM image may be named 'dragon.rom', 'dragon.dgn',
+'d32rom.dgn' or 'dragrom.dgn'.  The CoCo ROM image may be named
+'coco.rom', 'coco_pa.rom', 'cocodisk.rom' or 'coco.dgn'.
+
+Unix:
+
+Copy the file 'xroar' to somewhere in your path.  The ROM files are
+assumed to be in the current working directory when you start xroar.
+
+GP32:
+
+Upload the file 'xroar.fxe' to gp:/gpmm/.  The ROM files, all cassette
+images, snapshots and disk images should be in gp:/gpmm/dragon/.
+
+
+UNIX CONTROLS
+
+Full keyboard support plus:
+Ctrl+A	......	Cycle through artifacted video modes (hi-res only).
+Ctrl+S	......	Save a snapshot.
+Ctrl+L	......	Load a snapshot.
+Ctrl+R	......	Reset emulated machine.  Hold shift as well for hard reset.
+Ctrl+E	......	Toggle DOS emulation on/off - reset to take effect.
+Ctrl+D	......	Insert disk (load a virtual disk file).
+Ctrl+M	......	Toggle between Dragon and CoCo emulation (resets machine).
+Ctrl+K	......	Toggle between Dragon and CoCo keyboard layout.
+Ctrl+C	......	Quit emulator.
+
+Joystick support is very basic and unconfigurable at the moment, and is
+based on using a PS2 controller through a PS2-USB converter (although
+any joystick supported by the OS should work).
+
+
+GP32 CONTROLS
+
+The controller can be cycled through four modes by pressing the left
+shoulder button.  These modes are:
+
+ * KEYBOARD - D-pad selects a key, B presses a key, hold down right shoulder
+              button to press shift.
+ * CURSORS  - D-pad map to Dragon cursor keys.  B is shift, A is space, right
+              shoulder button is enter.
+ * RIGHT JOYSTICK - D-pad controls right joystick motion.  B is fire button.
+                    A is space, right shoulder button is enter.
+ * LEFT JOYSTICK - D-pad controls left joystick motion, with other controls
+                   as with right joystick mode.
+
+At any time, pressing select will bring up a menu allowing you to load
+a snapshot, toggle DOS emulation, insert a disk, switch between Dragon &
+CoCo, switch keymaps and reset the machine.  At present, there is no way
+to save a snapshot, but you can generate them with the Unix version and
+upload them.
+
+If the tape is accessed (eg, you typed 'CLOADM' or 'CLOAD'), a list
+of cassette files (ending in '.CAS') will be shown to choose from.
+
+
+CASSETTE IMAGES
+
+Tools exist online to generate .CAS cassette images, but they only
+work under DOS (or presumably Windows).  Check the software section of
+http://www.dragon-archive.co.uk/ for details.  That site also includes
+quite a few titles that have already been converted for your convenience.
+If you wish to play the game 'Buzzard Bait' (an excellent Joust clone),
+you'll *have* to download the version there, because the original
+required a dongle to be inserted, and obviously I don't emulate that.
+Please note that site's usage requirements, and don't abuse the archive.
+
+
+SNAPSHOTS
+
+Snapshot files are *not* compatible with the traditional .PAK files used
+in other emulators.  I may support them in future, but the file format
+looks pretty horrible.  This snapshot format is subject to change,
+but a snapshot made in this release may well work fine in later ones.
+At the moment, the most reliable way of loading programs is to use
+cassette images or virtual disks, but if you have a Unix-like box,
+you'll probably want to generate snapshots for your own convenience.
+
+
+BUGS
+
+None known at time of release!
+
+
+COPYING
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+See the file 'COPYING' for the full terms.
