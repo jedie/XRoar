@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2004  Ciaran Anscomb
+ *  Copyright (C) 2003-2005  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,10 +30,6 @@
 #include "fs.h"
 #include "types.h"
 
-/* in case something else vaguely compatible pops up */
-#define NUM_MACHINES 2
-#define NUM_KEYMAPS 2
-
 /* machine_romtype indicates which ROM to try and load (Dragon or Coco),
  * and which cassette breakpoints to set (at the moment, this is also used
  * to choose between some hardware configs).  machine_keymap tracks which
@@ -45,6 +41,7 @@ Keymap keymap;
 uint8_t ram0[0x8000];
 uint8_t ram1[0x8000];
 uint8_t rom0[0x8000];
+uint8_t rom1[0x8000];
 
 static Keymap dragon_keymap = {
 	{7,6}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0 - 7 */
@@ -87,16 +84,19 @@ static Keymap coco_keymap = {
 	{0,3}, {1,3}, {2,3}, {8,8}, {8,8}, {8,8}, {8,8}, {1,6}, /* 120 - 127 */
 };
 
-char *rom_names[2][4] = {
-	{ "dragon.rom", "dragon.dgn", "d32rom.dgn", "dragrom.dgn" },
+char *rom_names[3][4] = {
+	{ "d64rom1.dgn", "d64rom1.rom", "dragrom.dgn", "dragon.rom" },
 	{ "coco.rom", "coco_pa.rom", "cocodisk.rom", "coco.dgn" },
+	{ "dragon32.rom", "d32rom.dgn", "dragon.rom", "dragrom.dgn" },
 };
+char *d64_rom2_names[4] =
+	{ "d64rom2.rom", "d64rom2.dgn", "d64_2.rom", "d64_2.dgn" };
 
 static int load_rom(char *filename, uint8_t *dest, size_t max_size);
 
 void machine_init(void) {
-	machine_set_romtype(DRAGON);
-	machine_set_keymap(DRAGON);
+	machine_set_romtype(DRAGON64);
+	machine_set_keymap(DRAGON_KEYBOARD);
 	dragondos_enabled = 1;
 	sam_init();
 	pia_init();
@@ -113,6 +113,7 @@ void machine_reset(int hard) {
 		memset(ram0, 0, sizeof(ram0));
 		memset(ram1, 0, sizeof(ram1));
 		memset(rom0, 0, sizeof(rom0));
+		memset(rom1, 0, sizeof(rom1));
 		if (machine_romtype == COCO) {
 			brk_csrdon = 0xa77c; brk_bitin = 0xa755;
 			dragondos_enabled = 0;
@@ -121,8 +122,16 @@ void machine_reset(int hard) {
 		}
 		romsize = dragondos_enabled ? sizeof(rom0) : 0x4000;
 		for (i=0; load_rom(rom_names[machine_romtype][i], rom0, romsize) && i<4; i++);
+		if (IS_DRAGON64) {
+			for (i=0; load_rom(d64_rom2_names[i], rom1, 0x4000) && i<4; i++);
+			memcpy(rom0+0x4000, rom1+0x4000, 0x4000);
+		}
 	}
 	pia_reset();
+	if (IS_DRAGON64) {
+		PIA_1B.port_input |= (1<<2);
+		PIA_UPDATE_OUTPUT(PIA_1B);
+	}
 	wd2797_reset();
 	sam_reset();
 	m6809_reset();
@@ -138,14 +147,14 @@ void machine_set_romtype(int mode) {
 
 /* Setting keymap takes effect immediately */
 void machine_set_keymap(int mode) {
-	if (mode >= NUM_KEYMAPS) mode = 0;
+	if (mode >= NUM_KEYBOARDS) mode = 0;
 	machine_keymap = mode;
 	switch (mode) {
 		default:
-		case DRAGON:
+		case DRAGON_KEYBOARD:
 			memcpy(keymap, dragon_keymap, sizeof(keymap));
 			break;
-		case COCO:
+		case COCO_KEYBOARD:
 			memcpy(keymap, coco_keymap, sizeof(keymap));
 			break;
 	}
@@ -159,6 +168,7 @@ static int load_rom(char *filename, uint8_t *dest, size_t max_size) {
 		fs_close(fd);
 		return -1;
 	}
+	fprintf(stderr, "Loading %s\n", filename);
 	if (dest[0] == 0xa1) {
 		fs_read(fd, dest, max_size);
 	} else {

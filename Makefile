@@ -12,7 +12,7 @@ CFLAGS  = -g -Wall
 
 # Uncomment this if you're building a GP32 binary.  This overrides all the
 # other options, as it's a very specific target.
-BUILD_GP32 = 1
+#BUILD_GP32 = 1
 
 # Build for a little-endian machine, eg x86.  This should be commented out
 # for big-endian architectures, eg Sparc.
@@ -25,7 +25,7 @@ BUILD_SDL_VIDEO = 1	# 'sdl' (fixed) and 'sdlyuv' (should be accelerated)
 # Which audio drivers?
 BUILD_SDL_AUDIO = 1	# Use the SDL's callback-based audio
 BUILD_OSS_AUDIO = 1	# OSS blocking audio
-BUILD_JACK_AUDIO = 1	# Connects to JACK audio server
+#BUILD_JACK_AUDIO = 1	# Connects to JACK audio server
 #BUILD_SUN_AUDIO = 1	# Sun audio.  Might suit *BSD too, don't know
 BUILD_NULL_AUDIO = 1	# Requires Linux RTC as sound is used to sync
 

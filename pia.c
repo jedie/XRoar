@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2004  Ciaran Anscomb
+ *  Copyright (C) 2003-2005  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,43 +18,46 @@
 
 #include <string.h>
 
+#include "config.h"
+#include "types.h"
+#include "logging.h"
 #include "xroar.h"
 #include "pia.h"
-#include "logging.h"
-#include "types.h"
 
 pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 
 void pia_init(void) {
+	/*
 	memset(&PIA_0A, 0, sizeof(pia_port));
 	memset(&PIA_0B, 0, sizeof(pia_port));
 	memset(&PIA_1A, 0, sizeof(pia_port));
 	memset(&PIA_1B, 0, sizeof(pia_port));
 	PIA_0A.tied_low = PIA_0B.tied_low = PIA_1A.tied_low =
 		PIA_1B.tied_low = 0xff;
+		*/
 }
 
 void pia_reset(void) {
-	PIA_0A.control_register = PIA_0A.direction_register =
-		PIA_0A.output_register = 0;
-	PIA_0B.control_register = PIA_0B.direction_register =
-		PIA_0B.output_register = 0;
-	PIA_1A.control_register = PIA_1A.direction_register =
-		PIA_1A.output_register = 0;
-	PIA_1B.control_register = PIA_1B.direction_register =
-		PIA_1B.output_register = 0;
-	PIA_0A.port_output = PIA_0B.port_output = PIA_1A.port_output =
-		PIA_1B.port_output = 0;
-	PIA_0A.port_input = PIA_0B.port_input = PIA_1A.port_input =
-		PIA_1B.port_input = 0;
-	PIA_0A.tied_low = PIA_0B.tied_low = PIA_1A.tied_low =
-		PIA_1B.tied_low = 0xff;
-	PIA_0A.interrupt_enable = PIA_0A.interrupt_transition =
-		PIA_1A.interrupt_enable = PIA_1A.interrupt_transition =
-		PIA_0B.interrupt_enable = PIA_0B.interrupt_transition =
-		PIA_1B.interrupt_enable = PIA_1B.interrupt_transition = 0;
-	PIA_0A.interrupt_transition = PIA_0A.register_select =
-		PIA_1A.interrupt_transition = PIA_1A.register_select =
-		PIA_0B.interrupt_transition = PIA_0B.register_select =
-		PIA_1B.interrupt_transition = PIA_1B.register_select = 0;
+	/* Side A */
+	PIA_0A.control_register		= PIA_1A.control_register	= 0;
+	PIA_0A.direction_register	= PIA_1A.direction_register	= 0;
+	PIA_0A.output_register		= PIA_1A.output_register	= 0;
+	PIA_0A.port_input		= PIA_1A.port_input		= 0xff;
+	PIA_0A.tied_low			= PIA_1A.tied_low		= 0xff;
+	PIA_0A.interrupt_enable		= PIA_1A.interrupt_enable	= 0;
+	PIA_0A.interrupt_transition	= PIA_1A.interrupt_transition	= 0;
+	PIA_0A.register_select		= PIA_1A.register_select	= 0;
+	PIA_UPDATE_OUTPUT(PIA_0A);
+	PIA_UPDATE_OUTPUT(PIA_1A);
+	/* Side B */
+	PIA_0B.control_register		= PIA_1B.control_register	= 0;
+	PIA_0B.direction_register	= PIA_1B.direction_register	= 0;
+	PIA_0B.output_register		= PIA_1B.output_register	= 0;
+	PIA_0B.port_input		= PIA_1B.port_input		= 0;
+	PIA_0B.tied_low			= PIA_1B.tied_low		= 0xff;
+	PIA_0B.interrupt_enable		= PIA_1B.interrupt_enable	= 0;
+	PIA_0B.interrupt_transition	= PIA_1B.interrupt_transition	= 0;
+	PIA_0B.register_select		= PIA_1B.register_select	= 0;
+	PIA_UPDATE_OUTPUT(PIA_0B);
+	PIA_UPDATE_OUTPUT(PIA_1B);
 }

@@ -145,8 +145,9 @@ static MenuPickint artifact_menuopt = {
 static MenuPickint machine_options = {
 	"Emulated machine",
 	&machine_romtype, machine_callback, 0,
-	2, {
-		{ "Dragon", DRAGON },
+	3, {
+		{ "Dragon 64", DRAGON64 },
+		{ "Dragon 32", DRAGON32 },
 		{ "Tandy CoCo", COCO },
 	}
 };
@@ -154,8 +155,8 @@ static MenuPickint keymap_options = {
 	"Keymap",
 	&machine_keymap, keymap_callback, 0,
 	2, {
-		{ "Dragon", DRAGON },
-		{ "Tandy CoCo", COCO },
+		{ "Dragon", DRAGON_KEYBOARD },
+		{ "Tandy CoCo", COCO_KEYBOARD },
 	}
 };
 static MenuPickint dragondos_options = {

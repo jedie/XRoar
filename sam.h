@@ -8,8 +8,10 @@
 
 #include "types.h"
 
+/*
 #define sam_read_byte(a) _sam_read_byte(a)
 #define sam_store_byte(a,v) _sam_store_byte(a,v)
+*/
 /*
 #define sam_read_byte(a) (((a)&0xffff) < 0x8000 ? addrptr_low[((a)&0xffff)] : ( ((a)&0xffff) < 0xff00 ? addrptr_high[((a)&0xffff)-0x8000] : _sam_read_byte(((a)&0xffff))))
 #define sam_store_byte(a,v) \
@@ -68,8 +70,8 @@ extern uint_fast8_t  sam_vdg_ycount;
 
 void sam_init(void);
 void sam_reset(void);
-uint_fast8_t _sam_read_byte(uint_fast16_t addr);
-void _sam_store_byte(uint_fast16_t addr, uint_fast8_t octet);
+uint_fast8_t sam_read_byte(uint_fast16_t addr);
+void sam_store_byte(uint_fast16_t addr, uint_fast8_t octet);
 void sam_update_from_register(void);
 
 #endif  /* __SAM_H__ */

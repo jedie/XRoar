@@ -31,8 +31,23 @@
 #define CPU_RATE_DIVISOR 16
 #define CPU_RATE (OSCILLATOR_RATE / CPU_RATE_DIVISOR)
 
-#define DRAGON 0
+#define NUM_MACHINES 3
+#define DRAGON64 0
 #define COCO 1
+#define DRAGON32 2
+
+#define IS_DRAGON64 (machine_romtype == DRAGON64)
+#define IS_DRAGON32 (machine_romtype == DRAGON32)
+/* Quicker test, but may need changing if there are more machines: */
+#define IS_DRAGON (!IS_COCO)
+#define IS_COCO (machine_romtype == COCO)
+
+#define NUM_KEYBOARDS 2
+#define DRAGON_KEYBOARD 0
+#define COCO_KEYBOARD 1
+
+#define IS_DRAGON_KEYBOARD (machine_keyboard == DRAGON_KEYBOARD)
+#define IS_COCO_KEYBOARD (machine_keyboard == COCO_KEYBOARD)
 
 typedef struct { uint_fast8_t col, row; } Key;
 typedef Key Keymap[128];
@@ -44,6 +59,7 @@ extern Keymap keymap;
 extern uint8_t ram0[0x8000];
 extern uint8_t ram1[0x8000];
 extern uint8_t rom0[0x8000];
+extern uint8_t rom1[0x8000];
 
 void machine_init(void);
 void machine_reset(int hard);
