@@ -47,6 +47,7 @@ static void render_cg1(void);
 static void render_rg1(void);
 static void render_cg2(void);
 static void render_rg6(void);
+static void render_border(void);
 
 extern KeyboardModule keyboard_sdl_module;
 extern JoystickModule joystick_sdl_module;
@@ -60,7 +61,8 @@ VideoModule video_sdl_module = {
 	NULL, NULL, NULL,
 	vdg_reset, vdg_vsync, vdg_set_mode,
 	render_sg4, render_sg4 /* 6 */, render_cg1,
-	render_rg1, render_cg2, render_rg6
+	render_rg1, render_cg2, render_rg6,
+	render_border
 };
 
 typedef Uint8 Pixel;
@@ -70,7 +72,7 @@ typedef Uint8 Pixel;
 #define XSTEP 1
 #define NEXTLINE 0
 #define VIDEO_TOPLEFT (VIDEO_SCREENBASE)
-#define VIDEO_VIEWPORT_YOFFSET (320 * 24)
+#define VIDEO_VIEWPORT_YOFFSET (0)
 #define LOCK_SURFACE SDL_LockSurface(screen)
 #define UNLOCK_SURFACE SDL_UnlockSurface(screen)
 extern uint_fast8_t vdg_alpha[768];
