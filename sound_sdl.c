@@ -50,7 +50,7 @@ typedef uint_fast8_t Sample_f;  /* Fastest for manipulating above */
 #define FORMAT AFMT_U8
 #define FRAGMENTS 2
 #define FRAME_SIZE 512
-#define SAMPLE_CYCLES ((uint32_t)(OSCILLATOR_RATE / SAMPLE_RATE))
+#define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
 static SDL_AudioSpec audiospec;
@@ -166,6 +166,7 @@ static void update(void) {
 }
 
 static void callback(void *userdata, Uint8 *stream, int len) {
+	(void)userdata;  /* unused */
 	if (len == FRAME_SIZE) {
 		memcpy(stream, buffer, len);
 		memset(buffer, 0x80, len);

@@ -46,7 +46,7 @@ SoundModule sound_null_module = {
 };
 
 #define SAMPLE_RATE 64
-#define FRAME_CYCLES ((uint32_t)(OSCILLATOR_RATE / SAMPLE_RATE))
+#define FRAME_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
 
 static Cycle frame_cycle_base;
 int fd;

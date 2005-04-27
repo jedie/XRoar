@@ -53,7 +53,7 @@ typedef uint_fast8_t Sample_f;  /* Fastest for manipulating above */
 #define FORMAT AFMT_U8
 #define FRAGMENTS 2
 #define FRAME_SIZE 512
-#define SAMPLE_CYCLES ((uint32_t)(OSCILLATOR_RATE / SAMPLE_RATE))
+#define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
 static int sound_fd;
@@ -74,7 +74,7 @@ static int init(void) {
 	int buffer_size = FRAME_SIZE;
 	int num_fragments = FRAGMENTS;
 	int tmp, fragment_param;
-	char *device = "/dev/dsp";
+	const char *device = "/dev/dsp";
 
 	LOG_DEBUG(2,"Initialising OSS audio driver\n");
 	channels = CHANNELS;

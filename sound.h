@@ -11,8 +11,8 @@
 typedef struct SoundModule SoundModule;
 struct SoundModule {
 	SoundModule *next;
-	char *name;
-	char *help;
+	const char *name;
+	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
 	void (*reset)(void);
