@@ -44,7 +44,8 @@ void tape_reset(void) {
  * bufferful of data.  Tries to guess the filetype.  Returns -1 on error,
  * 0 for a BASIC program, 1 for data and 2 for M/C. */
 int tape_attach(char *filename) {
-	int b, state, reload, type;
+	int state, reload, type;
+	size_t b;
 	if (filename == NULL)
 		return -1;
 	tape_detach();

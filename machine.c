@@ -84,15 +84,15 @@ static Keymap coco_keymap = {
 	{0,3}, {1,3}, {2,3}, {8,8}, {8,8}, {8,8}, {8,8}, {1,6}, /* 120 - 127 */
 };
 
-char *rom_names[3][4] = {
+const char *rom_names[3][4] = {
 	{ "d64rom1.dgn", "d64rom1.rom", "dragrom.dgn", "dragon.rom" },
 	{ "coco.rom", "coco_pa.rom", "cocodisk.rom", "coco.dgn" },
 	{ "dragon32.rom", "d32rom.dgn", "dragon.rom", "dragrom.dgn" },
 };
-char *d64_rom2_names[4] =
+const char *d64_rom2_names[4] =
 	{ "d64rom2.rom", "d64rom2.dgn", "d64_2.rom", "d64_2.dgn" };
 
-static int load_rom(char *filename, uint8_t *dest, size_t max_size);
+static int load_rom(const char *filename, uint8_t *dest, size_t max_size);
 
 void machine_init(void) {
 	machine_set_romtype(DRAGON64);
@@ -160,7 +160,7 @@ void machine_set_keymap(int mode) {
 	}
 }
 
-static int load_rom(char *filename, uint8_t *dest, size_t max_size) {
+static int load_rom(const char *filename, uint8_t *dest, size_t max_size) {
 	FS_FILE fd;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;

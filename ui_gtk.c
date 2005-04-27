@@ -33,7 +33,7 @@
 static int init(void);
 static void shutdown(void);
 static void menu(void);
-static char *get_filename(char **extensions);
+static char *get_filename(const char **extensions);
 
 UIModule ui_gtk_module = {
 	NULL,
@@ -57,12 +57,14 @@ static void shutdown(void) {
 }
 
 static gboolean cancel(GtkWidget *w) {
+	(void)w;  /* unused */
 	gtk_main_quit();
 	return FALSE;
 }
 
 static void file_selected(GtkWidget *w, GtkFileSelection *fs) {
 	char *fn = gtk_file_selection_get_filename(GTK_FILE_SELECTION(w));
+	(void)fs;  /* unused */
 	if (filename)
 		free(filename);
 	filename = (char *)malloc(strlen(fn)+1);
@@ -73,8 +75,9 @@ static void file_selected(GtkWidget *w, GtkFileSelection *fs) {
 static void menu(void) {
 }
 
-static char *get_filename(char **extensions) {
+static char *get_filename(const char **extensions) {
 	GtkWidget *fs = gtk_file_selection_new("Select file");
+	(void)extensions;  /* unused */
 	if (filename)
 		free(filename);
 	filename = NULL;

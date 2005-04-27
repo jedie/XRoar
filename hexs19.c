@@ -22,6 +22,7 @@
 #include "fs.h"
 #include "ui.h"
 #include "m6809.h"
+#include "hexs19.h"
 
 static uint8_t read_nibble(FS_FILE fd) {
 	uint8_t in;

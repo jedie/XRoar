@@ -82,7 +82,7 @@ void keyboard_row_update(void) {
 	PIA_0B.port_input = col;
 }
 
-void keyboard_queue_string(char *s) {
+void keyboard_queue_string(const char *s) {
 	for (; *s; s++) {
 		KEYBOARD_QUEUE(*s);
 	}

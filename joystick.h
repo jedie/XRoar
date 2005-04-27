@@ -11,8 +11,8 @@
 typedef struct JoystickModule JoystickModule;
 struct JoystickModule {
 	JoystickModule *next;
-	char *name;
-	char *help;
+	const char *name;
+	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
 	void (*poll)(void);

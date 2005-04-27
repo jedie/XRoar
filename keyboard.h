@@ -11,8 +11,8 @@
 typedef struct KeyboardModule KeyboardModule;
 struct KeyboardModule {
 	KeyboardModule *next;
-	char *name;
-	char *help;
+	const char *name;
+	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
 	void (*poll)(void);
@@ -65,6 +65,6 @@ void keyboard_shutdown(void);
 void keyboard_reset(void);
 void keyboard_column_update(void);
 void keyboard_row_update(void);
-void keyboard_queue_string(char *s);
+void keyboard_queue_string(const char *s);
 
 #endif  /* __KEYBOARD_H__ */

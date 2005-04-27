@@ -110,14 +110,14 @@ static void key_press(SDLKey sym) {
 		KEYBOARD_PRESS(0); break;
 	default: if (sym == SDLK_c && control) exit(0);
 		if (sym == SDLK_s && control) {
-			char *snap_exts[] = { "SNA", NULL };
+			const char *snap_exts[] = { "SNA", NULL };
 			char *filename = ui_module->get_filename(snap_exts);
 			if (filename)
 				write_snapshot(filename);
 			break;
 		}
 		if (sym == SDLK_l && control) {
-			char *snap_exts[] = { "SNA", NULL };
+			const char *snap_exts[] = { "SNA", NULL };
 			char *filename = ui_module->get_filename(snap_exts);
 			if (filename)
 				read_snapshot(filename);
@@ -130,7 +130,7 @@ static void key_press(SDLKey sym) {
 
 		if (sym == SDLK_e && control) { dragondos_enabled = !dragondos_enabled; break; }
 		if (sym == SDLK_d && control) {
-			char *disk_exts[] = { "VDK", NULL };
+			const char *disk_exts[] = { "VDK", NULL };
 			char *filename = ui_module->get_filename(disk_exts);
 			if (filename)
 				wd2797_load_disk(filename, 0);
@@ -150,7 +150,7 @@ static void key_press(SDLKey sym) {
 		//if (sym == SDLK_t && control) { trace ^= 1; break; }
 #endif
 		if (sym == SDLK_t && control) {
-			char *tape_exts[] = { "CAS", NULL };
+			const char *tape_exts[] = { "CAS", NULL };
 			char *filename = ui_module->get_filename(tape_exts);
 			if (filename) {
 				if (shift)
@@ -161,14 +161,14 @@ static void key_press(SDLKey sym) {
 			break;
 		}
 		if (sym == SDLK_h && control) {
-			char *hex_exts[] = { "HEX", NULL };
+			const char *hex_exts[] = { "HEX", NULL };
 			char *filename = ui_module->get_filename(hex_exts);
 			if (filename)
 				intel_hex_read(filename);
 			return;
 		}
 		if (sym == SDLK_b && control) {
-			char *bin_exts[] = { "BIN", NULL };
+			const char *bin_exts[] = { "BIN", NULL };
 			char *filename = ui_module->get_filename(bin_exts);
 			if (filename)
 				coco_bin_read(filename);

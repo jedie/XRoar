@@ -9,12 +9,12 @@
 typedef struct UIModule UIModule;
 struct UIModule {
 	UIModule *next;
-	char *name;
-	char *help;
+	const char *name;
+	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
 	void (*menu)(void);
-	char *(*get_filename)(char **extensions);
+	char *(*get_filename)(const char **extensions);
 };
 
 extern UIModule *ui_module;

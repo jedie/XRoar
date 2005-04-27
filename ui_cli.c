@@ -31,7 +31,7 @@
 static int init(void);
 static void shutdown(void);
 static void menu(void);
-static char *get_filename(char **extensions);
+static char *get_filename(const char **extensions);
 
 UIModule ui_cli_module = {
 	NULL,
@@ -55,8 +55,9 @@ static void shutdown(void) {
 static void menu(void) {
 }
 
-static char *get_filename(char **extensions) {
+static char *get_filename(const char **extensions) {
 	char *cr;
+	(void)extensions;  /* unused */
 	printf("Filename? ");
 	fgets(fnbuf, sizeof(fnbuf), stdin);
 	cr = strrchr(fnbuf, '\n');

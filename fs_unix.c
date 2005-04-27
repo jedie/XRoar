@@ -32,7 +32,7 @@ static const char *fs_error = "";
 void fs_init(void) {
 }
 
-FS_FILE fs_open(char *filename, int flags) {
+FS_FILE fs_open(const char *filename, int flags) {
 	int fd;
 	if (flags & FS_WRITE)
 		fd = open(filename, O_CREAT|O_WRONLY, 0644);
@@ -64,10 +64,10 @@ ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
 	return count;
 }
 
-ssize_t fs_write(FS_FILE fd, void *buffer, size_t size) {
+ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size) {
 	int count = 0, tries = 3;
 	ssize_t r;
-	unsigned char *buf = (unsigned char *)buffer;
+	const unsigned char *buf = (const unsigned char *)buffer;
 	do {
 		do {
 			r = write(fd, buf, size);
