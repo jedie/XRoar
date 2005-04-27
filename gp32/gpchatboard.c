@@ -34,6 +34,7 @@
 #include "gp32.h"
 #include "keydefines.h"
 #include "../types.h"
+#include "gpchatboard.h"
 
 
 #define CHA_KEY_NUMBER (sizeof(cha01KeyMap) / sizeof(struct threeMap))
@@ -45,8 +46,8 @@ static volatile unsigned int  chatboard_buffer_pos=0;
 static volatile unsigned char chatboard_tx[32];
 static volatile int seq_ok;
 
-static void ChatBoardSendOKIRQ() {
-	char *send = "OK\015\012", *s = send;
+static void ChatBoardSendOKIRQ(void) {
+	const char *s = "OK\015\012";
 	while (*s) {
 		while (rUFSTAT0 & 0x100);
 		rUTXH0 = *(s++);
@@ -124,7 +125,7 @@ void gpchatboard_shutdown(void) {
 }
 
 unsigned char gpchatboard_scan(void) {
-	int x = 0, mark;
+	unsigned int x = 0, mark;
 	unsigned char search[256];
 	unsigned char seq[] = "AT+CKPD=\"";
 
@@ -140,7 +141,7 @@ unsigned char gpchatboard_scan(void) {
 		if (!strncmp(seq,search,sizeof(seq))) return 0;
 
 		mark = x;
-		for (x=0;x<CHA_KEY_NUMBER;x++) {
+		for (x = 0; x < CHA_KEY_NUMBER; x++) {
 			if (!strncmp(cha01KeyMap[x].map1,search,mark+1))
 				return (cha01KeyMap[x].key);
 			if (!strncmp(cha01KeyMap[x].map2,search,mark+1))

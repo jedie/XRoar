@@ -25,5 +25,6 @@ extern volatile uint_fast8_t playing_frame;
 void gpsound_init(uint32_t pclk, uint32_t *rate);
 uint16_t **gpsound_buffers(int size);
 void gpsound_start(void);
+void gpsound_stop(void);
 
 #endif  /* __GPSOUND_H__ */

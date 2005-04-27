@@ -34,7 +34,7 @@ static uint32_t u_deemph;
 static uint32_t u_mute;
 
 /* Delay macro - inserts a bunch of NOPs */
-#define NOP(r) { int i; for (i = (r); i; i--) { asm ("nop"); } }
+#define NOP(r) { int ii; for (ii = (r); ii; ii--) { asm ("nop"); } }
 
 static void l3_init(void) {
 	/* IO Port E, PE9-PE11 are used to send data over L3 bus */

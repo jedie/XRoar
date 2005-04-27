@@ -162,8 +162,8 @@ static uint_fast8_t skip_register_push;
 static inline uint32_t sex(uint_fast8_t reg);
 
 static inline void switched_block(void);
-static inline void switched_block_page2(void);
-static inline void switched_block_page3(void);
+static void switched_block_page2(void);
+static void switched_block_page3(void);
 
 /* ------------------------------------------------------------------------- */
 
@@ -388,8 +388,8 @@ void m6809_jump(uint_fast16_t pc) {
 
 /* ------------------------------------------------------------------------- */
 
-static inline void op_exg(void);
-static inline void op_tfr(void);
+static void op_exg(void);
+static void op_tfr(void);
 
 static inline void switched_block(void) {
 	uint_fast8_t op;
@@ -931,7 +931,7 @@ static inline void switched_block(void) {
 	}
 }
 
-static inline void switched_block_page2(void) {
+static void switched_block_page2(void) {
 	uint_fast8_t op;
 	BYTE_IMMEDIATE(0,op);
 	switch(op) {
@@ -1049,7 +1049,7 @@ static inline void switched_block_page2(void) {
 	}
 }
 
-static inline void switched_block_page3(void) {
+static void switched_block_page3(void) {
 	uint_fast8_t op;
 	BYTE_IMMEDIATE(0,op);
 	switch(op) {
@@ -1098,7 +1098,7 @@ static inline void switched_block_page3(void) {
 /* ------------------------------------------------------------------------- */
 
 /* 0x1E EXG immediate */
-static inline void op_exg(void) {
+static void op_exg(void) {
 	uint_fast8_t postbyte;
 	uint_fast16_t source = 0xffff, dest = 0xffff;
 	BYTE_IMMEDIATE(0,postbyte);
@@ -1145,7 +1145,7 @@ static inline void op_exg(void) {
 }
 
 /* 0x1F TFR immediate */
-static inline void op_tfr(void) {
+static void op_tfr(void) {
 	uint_fast8_t postbyte;
 	uint_fast16_t source = 0xffff;
 	BYTE_IMMEDIATE(0,postbyte);

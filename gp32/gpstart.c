@@ -2,8 +2,6 @@
 #include <gpstdlib.h>
 #include <initval_port.h>
 
-#include "gpmain.h"
-
 #ifdef USE_GP_MEM
 #include <gpmem.h>
 #endif
@@ -12,9 +10,15 @@ unsigned int HEAPSTART;
 unsigned int HEAPEND;
 
 extern void GpKeyPollingTimeSet(int loop_cnt);
+
+/* No need for a prototype for Main in a header file as it's called by crt0.s,
+ * but will put one here to avoid compiler warnings. */
+void Main(int arg_len, char *arg_v);
+
 void Main(int arg_len, char *arg_v) {
-	
 	GM_HEAP_DEF gm_heap_def;
+	(void)arg_len;  /* unused */
+	(void)arg_v;  /* unused */
 	
 	_gp_sdk_init();
 	

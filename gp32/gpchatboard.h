@@ -15,4 +15,5 @@
 // later...  volatile int gpchatboard_present;
 
 int gpchatboard_init(void);
+void gpchatboard_shutdown(void);
 unsigned char gpchatboard_scan(void);

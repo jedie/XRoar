@@ -31,6 +31,7 @@
 #include "ui.h"
 #include "machine.h"
 #include "snapshot.h"
+#include "sound.h"
 #include "tape.h"
 #include "wd2797.h"
 #include "vdg.h"
@@ -43,7 +44,7 @@
 static int init(void);
 static void shutdown(void);
 static void menu(void);
-static char *get_filename(char **extensions);
+static char *get_filename(const char **extensions);
 
 UIModule ui_gp32_module = {
 	NULL,
@@ -71,26 +72,26 @@ typedef struct Menu Menu;
 typedef enum { MENU_SELECT, MENU_PICKLIST, MENU_PICKINT, MENU_SUBMENU } Menu_t;
 
 typedef struct {
-	char *label;
+	const char *label;
 	int *var;
 	void (*callback)(int opt);
-	int cur;
-	int numopt;
+	unsigned int cur;
+	unsigned int numopt;
 	struct {
-		char *label;
+		const char *label;
 		int value;
 	} options[];
 } MenuPickint;
 
 typedef struct {
-	char *label;
+	const char *label;
 	void (*callback)(int opt);
 	int numopt;
 	char *options[];
 } MenuPicklist;
 
 typedef struct {
-	char *label;
+	const char *label;
 	void (*callback)(int num);
 } MenuSelect;
 
@@ -98,6 +99,8 @@ typedef struct {
 	Menu_t type;
 	int hx, hw;  /* highlight x-offset and width */
 	union {
+		void *dummy;  /* gcc doesn't compare against all these
+				 prototypes before warning. */
 		MenuPickint *pickint;
 		MenuSelect *select;
 		MenuPicklist *picklist;
@@ -106,7 +109,7 @@ typedef struct {
 } MenuOption;
 
 struct Menu {
-	char *label;
+	const char *label;
 	int numopt;
 	MenuOption options[];
 };
@@ -203,7 +206,6 @@ static Menu main_menu = {
 
 extern GPDRAWSURFACE screen;
 extern uint8_t vdg_alpha_gp32[2][3][8192];
-extern void sound_silence(void);
 
 static int init(void) {
 	return 0;
@@ -237,7 +239,7 @@ static void draw_char(int x, int y, char c) {
 	}
 }
 
-static void draw_string(int x, int y, char *s, int w) {
+static void draw_string(int x, int y, const char *s, int w) {
 	if (s == NULL)
 		return;
 	for (; *s && w; w--) {
@@ -245,7 +247,7 @@ static void draw_string(int x, int y, char *s, int w) {
 	}
 }
 
-static void highlight_line(int x, int y, int w) {
+static void highlight_line(unsigned int x, unsigned int y, unsigned int w) {
 	uint32_t *dest = (uint32_t *)screen.ptbuffer + (57-(y*3)) + x*8*60;
 	uint_fast16_t i;
 	for (i = 0; i < w*8; i++) {
@@ -256,7 +258,7 @@ static void highlight_line(int x, int y, int w) {
 	}
 }
 
-static void notify_box(char *msg) {
+static void notify_box(const char *msg) {
 	int newkey;
 	int x = (40 - strlen(msg)) / 2;
 	video_module->backup();
@@ -375,10 +377,10 @@ static char *dirent_as_string(void *data, int n) {
 	return result;
 }
 
-static char **valid_exts;
+static const char **valid_exts;
 
 static int valid_extension(struct dirent *ent) {
-	char **e = valid_exts;
+	const char **e = valid_exts;
 	char *entext;
 	if (!e)
 		return 1;
@@ -398,8 +400,8 @@ static int valid_extension(struct dirent *ent) {
 }
 
 static int dirsort(const void *a, const void *b) {
-	struct dirent *aa = *(struct dirent **)a;
-	struct dirent *bb = *(struct dirent **)b;
+	const struct dirent *aa = *(const struct dirent **)a;
+	const struct dirent *bb = *(const struct dirent **)b;
 	if ((aa->attr & FS_ATTR_DIRECTORY) && !(bb->attr & FS_ATTR_DIRECTORY))
 		return -1;
 	if (!(aa->attr & FS_ATTR_DIRECTORY) && (bb->attr & FS_ATTR_DIRECTORY))
@@ -407,7 +409,7 @@ static int dirsort(const void *a, const void *b) {
 	return strncmp(aa->d_name, bb->d_name, 16);
 }
 
-static char *get_filename(char **extensions) {
+static char *get_filename(const char **extensions) {
 	int num, sel;
 	static char result[16];
 	struct dirent **dir;
@@ -436,7 +438,7 @@ static char *get_filename(char **extensions) {
 	}
 }
 
-static void menu_show(Menu *menu, int x, int y, int w, int h);
+static void menu_show(Menu *m, int x, int y, int w, int h);
 static void menu(void) {
 	sound_silence();
 	video_module->backup();
@@ -449,7 +451,7 @@ static void menu(void) {
 static void show_option(int x, int y, int w, MenuOption *opt) {
 	if (opt->type == MENU_PICKINT) {
 		MenuPickint *data = opt->data.pickint;
-		int i, x2 = x + strlen(data->label) + 1, w2 = 0;
+		unsigned int i, x2 = x + strlen(data->label) + 1, w2 = 0;
 		data->cur = 0;
 		for (i = 0; i < data->numopt; i++) {
 			if (data->var && *(data->var) == data->options[i].value)
@@ -487,9 +489,10 @@ static int edit_option(int x, int y, int w, MenuOption *opt, int num, int newkey
 		int x2 = opt->hx, w2 = opt->hw;
 		if (rkey & GPC_VK_LEFT) {
 			video_module->fillrect(x2*8, y*12, w2*8, 12, BG);
-			data->cur--;
-			if (data->cur < 0)
+			if (data->cur == 0)
 				data->cur = data->numopt-1;
+			else
+				data->cur--;
 			draw_string(x2, y, data->options[data->cur].label, w2);
 			highlight_line(x2, y, w2);
 			return 0;
@@ -535,35 +538,35 @@ static int edit_option(int x, int y, int w, MenuOption *opt, int num, int newkey
 	return 0;
 }
 
-static void menu_show(Menu *menu, int x, int y, int w, int h) {
+static void menu_show(Menu *m, int x, int y, int w, int h) {
 	int newkey, rkey;
 	int base = 0, cur = 0, oldbase = -1, oldcur = -1, i;
 	int step = h / 2;
 	int done = 0;
-	if (menu->numopt < 1) return;
+	if (m->numopt < 1) return;
 	video_module->fillrect(x*8, y*12, w*8, h*12, BG);
 	do {
 		if (base != oldbase) {
 			video_module->fillrect(x*8, y*12, w*8, h*12, BG);
-			for (i = 0; i < h && (base+i) < menu->numopt; i++) {
-				show_option(x, y+i, w, &menu->options[base+i]);
+			for (i = 0; i < h && (base+i) < m->numopt; i++) {
+				show_option(x, y+i, w, &m->options[base+i]);
 			}
 			oldbase = base;
 		}
 		if (cur != oldcur) {
-			highlight_line(menu->options[cur].hx, y+(cur-base), menu->options[cur].hw);
+			highlight_line(m->options[cur].hx, y+(cur-base), m->options[cur].hw);
 			oldcur = cur;
 		}
 		gpkeypad_poll(NULL, &newkey, &rkey);
-		done = edit_option(x, y+(cur-base), w, &menu->options[cur], cur, newkey, rkey);
+		done = edit_option(x, y+(cur-base), w, &m->options[cur], cur, newkey, rkey);
 		if (rkey & GPC_VK_UP) cur--;
 		if (rkey & GPC_VK_DOWN) cur++;
 		if (rkey & GPC_VK_FL) cur -= step;
 		if (rkey & GPC_VK_FR) cur += step;
 		if (cur < 0) cur = 0;
-		if (cur >= menu->numopt) cur = menu->numopt - 1;
+		if (cur >= m->numopt) cur = m->numopt - 1;
 		if (cur != oldcur)
-			highlight_line(menu->options[oldcur].hx, y+(oldcur-base), menu->options[oldcur].hw);
+			highlight_line(m->options[oldcur].hx, y+(oldcur-base), m->options[oldcur].hw);
 		base = cur - (cur % h);
 		if (newkey & GPC_VK_START)
 			done = 1;
@@ -571,7 +574,7 @@ static void menu_show(Menu *menu, int x, int y, int w, int h) {
 }
 
 static void tape_callback(int num) {
-	char *tape_exts[] = { "CAS", NULL };
+	const char *tape_exts[] = { "CAS", NULL };
 	char *filename;
 	video_module->restore();
 	filename = get_filename(tape_exts);
@@ -596,8 +599,9 @@ static void keymap_callback(int num) {
 	machine_set_keymap(num);
 }
 static void snapshot_load_callback(int num) {
-	char *snap_exts[] = { "SNA", NULL };
+	const char *snap_exts[] = { "SNA", NULL };
 	char *filename;
+	(void)num;  /* unused */
 	video_module->restore();
 	filename = get_filename(snap_exts);
 	if (filename)
@@ -606,13 +610,15 @@ static void snapshot_load_callback(int num) {
 static void snapshot_save_callback(int num) {
 	//char *snap_exts[] = { "SNA", NULL };
 	//char *filename;
+	(void)num;  /* unused */
 	video_module->restore();
 	notify_box("SNAPSHOT SAVING NOT YET SUPPORTED");
 	// filename = get_filename(snap_exts);
 }
 static void binary_load_callback(int num) {
-	char *bin_exts[] = { "BIN", NULL };
+	const char *bin_exts[] = { "BIN", NULL };
 	char *filename;
+	(void)num;  /* unused */
 	video_module->restore();
 	if (machine_romtype != COCO)
 		notify_box("WARNING: USUALLY FOR COCO BINARIES");
@@ -621,10 +627,11 @@ static void binary_load_callback(int num) {
 		coco_bin_read(filename);
 }
 static void artifact_callback(int num) {
+	(void)num;  /* unused */
 	vdg_set_mode();
 }
 static void disk_callback(int num) {
-	char *disk_exts[] = { "VDK", NULL };
+	const char *disk_exts[] = { "VDK", NULL };
 	char *filename;
 	video_module->restore();
 	filename = get_filename(disk_exts);

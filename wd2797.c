@@ -59,39 +59,39 @@
 
 typedef struct Sector Sector;
 struct Sector {
-	uint_fast16_t size;
-	uint_fast8_t track_number;
-	uint_fast8_t sector_number;
-	uint_fast8_t side_number;
+	unsigned int size;
+	unsigned int track_number;
+	unsigned int sector_number;
+	unsigned int side_number;
 	uint8_t *data;
 	Sector *next;
 };
 
 typedef struct {
 	char *disk_name;
-	uint_fast8_t num_tracks;
-	int_fast8_t head_position;
-	uint_fast8_t head_loaded;
+	unsigned int num_tracks;
+	int head_position;
+	unsigned int head_loaded;
 	Sector **track;
 } Disk;
 
 static Disk *current_disk;
 static Disk disk[4];
 
-static uint_fast8_t ic1_drive_select;
-static uint_fast8_t ic1_motor_enable;
-static uint_fast8_t ic1_precomp_enable;
-static uint_fast8_t ic1_density;
-static uint_fast8_t ic1_nmi_enable;
+static unsigned int ic1_drive_select;
+static unsigned int ic1_motor_enable;
+static unsigned int ic1_precomp_enable;
+static unsigned int ic1_density;
+static unsigned int ic1_nmi_enable;
 
-static uint_fast8_t status_register;
-static uint_fast8_t track_register;
-static uint_fast8_t sector_register;
-static uint_fast8_t data_register;
-static uint_fast8_t mode;
-static int_fast8_t step_direction;
+static unsigned int status_register;
+static unsigned int track_register;
+static unsigned int sector_register;
+static unsigned int data_register;
+static unsigned int mode;
+static int step_direction;
 
-static uint_fast16_t data_left;
+static unsigned int data_left;
 static uint8_t *data_ptr;
 
 void wd2797_init(void) {
@@ -115,7 +115,7 @@ void wd2797_reset(void) {
 
 static void wd2797_remove_disk(int drive) {
 	Sector *sector, *cur;
-	uint_fast8_t i;
+	unsigned int i;
 	drive &= 3;
 	if (disk[drive].disk_name == NULL)
 		return;
@@ -140,8 +140,8 @@ static void wd2797_remove_disk(int drive) {
 int wd2797_load_disk(char *filename, int drive) {
 	FS_FILE fd;
 	Sector *track, **sector;
-	uint_fast16_t skip;
-	uint_fast8_t it, is;
+	unsigned int skip;
+	int it, is;
 	uint8_t junk[64];
 	int tracks, sectors;
 	drive &= 3;
@@ -158,16 +158,16 @@ int wd2797_load_disk(char *filename, int drive) {
 	}
 	if (skip) fs_read(fd, junk, skip);
 	disk[drive].num_tracks = tracks;
-	disk[drive].track = (Sector **)malloc(tracks * sizeof(Sector *));
+	disk[drive].track = malloc(tracks * sizeof(Sector *));
 	for (it = 0; it < tracks; it++) {
 		sector = &track;
 		for (is = 1; is <= sectors; is++) {
-			*sector = (Sector *)malloc(sizeof(Sector));
+			*sector = malloc(sizeof(Sector));
 			(*sector)->size = 256;
 			(*sector)->track_number = it;
 			(*sector)->sector_number = is;
 			(*sector)->side_number = 0;
-			(*sector)->data = (uint8_t *)malloc(256);
+			(*sector)->data = malloc(256);
 			fs_read(fd, (*sector)->data, 256);
 			(*sector)->next = NULL;
 			sector = &(*sector)->next;
@@ -178,7 +178,7 @@ int wd2797_load_disk(char *filename, int drive) {
 	return 0;
 }
 
-static void wd2797_step(uint_fast8_t flags) {
+static void wd2797_step(unsigned int flags) {
 	current_disk->head_position += step_direction;
 	if (flags & 0x10)
 		track_register += step_direction;
@@ -189,13 +189,13 @@ static void wd2797_step(uint_fast8_t flags) {
 		if (flags & 0x10)
 			track_register = 0;
 	}
-	if ((flags & 0x04) && (current_disk->head_position != track_register)) {
+	if ((flags & 0x04) && ((unsigned int)current_disk->head_position != track_register)) {
 		status_register |= STATUS_SEEK_ERROR;
 	}
 	LOG_DEBUG(4, "WD2797: HEAD POS = %02x, TRACK REG = %02x\n", current_disk->head_position, track_register);
 }
 
-void wd2797_command_write(uint_fast8_t octet) {
+void wd2797_command_write(unsigned int octet) {
 	/* RESTORE */
 	if ((octet & 0xf0) == 0) {
 		LOG_DEBUG(4, "WD2797: CMD: Restore to track 00\n");
@@ -257,7 +257,7 @@ void wd2797_command_write(uint_fast8_t octet) {
 		Sector *sector;
 		LOG_DEBUG(4, "WD2797: CMD: Read sector, Track = %02x, Sector = %02x\n",
 		           track_register, sector_register);
-		if (current_disk->head_position > current_disk->num_tracks) {
+		if ((unsigned int)current_disk->head_position > current_disk->num_tracks) {
 			LOG_DEBUG(4, "WD2797: HEAD POS > NUM TRACKS\n");
 			status_register = STATUS_RNF;
 			SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
@@ -269,7 +269,7 @@ void wd2797_command_write(uint_fast8_t octet) {
 			SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
 			return;
 		}
-		if (current_disk->head_position < current_disk->num_tracks) {
+		if ((unsigned int)current_disk->head_position < current_disk->num_tracks) {
 			sector = current_disk->track[current_disk->head_position];
 			while (sector != NULL) {
 				if ((sector_register == sector->sector_number) &&
@@ -308,17 +308,17 @@ void wd2797_command_write(uint_fast8_t octet) {
 	return;
 }
 
-void wd2797_track_register_write(uint_fast8_t octet) {
+void wd2797_track_register_write(unsigned int octet) {
 	LOG_DEBUG(4, "WD2797: Set track_register = %02x\n", octet);
 	track_register = octet;
 }
 
-void wd2797_sector_register_write(uint_fast8_t octet) {
+void wd2797_sector_register_write(unsigned int octet) {
 	LOG_DEBUG(4, "WD2797: Set sector_register = %02x\n", octet);
 	sector_register = octet;
 }
 
-void wd2797_data_register_write(uint_fast8_t octet) {
+void wd2797_data_register_write(unsigned int octet) {
 	data_register = octet;
 	if (mode == MODE_TYPE_2) {
 		if (data_left) {
@@ -340,22 +340,22 @@ void wd2797_data_register_write(uint_fast8_t octet) {
 	}
 }
 
-uint_fast8_t wd2797_status_read(void) {
+unsigned int wd2797_status_read(void) {
 	LOG_DEBUG(4, "WD2797: Read %02x from status_register\n", status_register);
 	return status_register;
 }
 
-uint_fast8_t wd2797_track_register_read(void) {
+unsigned int wd2797_track_register_read(void) {
 	LOG_DEBUG(4, "WD2797: Read %02x from track_register\n", track_register);
 	return track_register;
 }
 
-uint_fast8_t wd2797_sector_register_read(void) {
+unsigned int wd2797_sector_register_read(void) {
 	LOG_DEBUG(4, "WD2797: Read %02x from sector_register\n", sector_register);
 	return sector_register;
 }
 
-uint_fast8_t wd2797_data_register_read(void) {
+unsigned int wd2797_data_register_read(void) {
 	if (mode == MODE_TYPE_2) {
 		if (data_left) {
 			data_register = *(data_ptr++);
@@ -400,7 +400,7 @@ void wd2797_generate_interrupt(void) {
 }
 
 /* Not strictly WD2797 accesses here, this is DOS cartridge circuitry */
-void wd2797_ff48_write(uint_fast8_t octet) {
+void wd2797_ff48_write(unsigned int octet) {
 	LOG_DEBUG(4, "WD2797: Write to FF48: ");
 	if ((octet & 0x03) != ic1_drive_select)
 		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
@@ -421,7 +421,7 @@ void wd2797_ff48_write(uint_fast8_t octet) {
 	ic1_nmi_enable = octet & 0x20;
 }
 
-uint_fast8_t wd2797_ff48_read(void) {
+unsigned int wd2797_ff48_read(void) {
 	return ic1_nmi_enable | ic1_precomp_enable | ic1_motor_enable |
 	       ic1_drive_select;
 }

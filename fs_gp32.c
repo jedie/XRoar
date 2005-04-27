@@ -80,7 +80,7 @@ int fs_chdir(char *path) {
 	return 0;
 }
 
-FS_FILE fs_open(char *filename, int flags) {
+FS_FILE fs_open(const char *filename, int flags) {
 	F_HANDLE fd;
 	if (flags & FS_WRITE) {
 		if (GpFileCreate(filename, ALWAYS_CREATE, &fd) != SM_OK)
@@ -95,20 +95,21 @@ FS_FILE fs_open(char *filename, int flags) {
 ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
 	unsigned long count;
 	int rbytes = 0;
+	unsigned char *buf = (unsigned char *)buffer;
 	ERR_CODE err;
 	/* Read in 512 byte chunks, or the GP32 crashes! */
 	do {
-		err = GpFileRead(fd, buffer, size>512?512:size, &count);
+		err = GpFileRead(fd, buf, size>512?512:size, &count);
 		if (err != SM_OK && err != ERR_EOF)
 			return -1;
 		size -= count;
-		buffer += count;
+		buf += count;
 		rbytes += count;
 	} while (err == SM_OK && size > 0);
 	return rbytes;
 }
 
-ssize_t fs_write(FS_FILE fd, void *buffer, size_t size) {
+ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size) {
 	ERR_CODE err;
 	/* Haven't done any file writing yet, so don't know if similar
 	 * contortions are required */
@@ -122,7 +123,7 @@ void fs_close(FS_FILE fd) {
 	GpFileClose(fd);
 }
 
-int fs_scandir(char *dir, struct dirent ***namelist,
+int fs_scandir(const char *dir, struct dirent ***namelist,
 		int (*filter)(struct dirent *),
 		int (*compar)(const void *, const void *)) {
 	struct dirent **array;

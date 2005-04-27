@@ -47,6 +47,7 @@ ifdef BUILD_GP32
 	OBJCOPY = arm-elf-objcopy
 
 	CFLAGS = -O3 -DHAVE_GP32 -Wall -funroll-loops -finline-functions -mcpu=arm9tdmi -mstructure-size-boundary=32 -finline-limit=320000
+	CFLAGS += -W -Wstrict-prototypes -Wpointer-arith -Wcast-align -Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline -Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes -Wredundant-decls
 	LDFLAGS = -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
 	TARGET_BIN = xroar.fxe
 	TARGET_SRC = main_gp32.c fs_gp32.c copyright.c cmode_bin.c kbd_graphics.c video_gp32.c sound_gp32.c ui_gp32.c keyboard_gp32.c

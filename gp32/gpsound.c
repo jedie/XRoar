@@ -1,6 +1,7 @@
 #include <gpmem.h>
 #include "gp32.h"
 #include "udaiis.h"
+#include "gpsound.h"
 #include "../types.h"
 
 static void playbuffer(uint8_t *src, uint32_t size);
@@ -69,4 +70,5 @@ void gpsound_stop(void) {
 }
 
 /* Make the SDK happy */
+void GpProcSound(void);
 void GpProcSound(void) { }

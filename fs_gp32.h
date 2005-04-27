@@ -20,7 +20,7 @@ struct dirent {
 
 typedef F_HANDLE FS_FILE;
 
-int fs_scandir(char *dir, struct dirent ***namelist,
+int fs_scandir(const char *dir, struct dirent ***namelist,
 		int (*filter)(struct dirent *),
 		int (*compar)(const void *, const void *));
 void fs_freedir(struct dirent ***namelist);

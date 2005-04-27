@@ -18,6 +18,9 @@
 
 /* This GTK code is probably all wrong, but it does seem to work */
 
+/* The GTK+ function prototypes function 'index' from string.h in many places,
+ * so expect lots of compiler warnings about that */
+
 #include "config.h"
 
 #ifdef HAVE_GTK_UI
