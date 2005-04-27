@@ -27,7 +27,7 @@
 #include "fs.h"
 #include "types.h"
 
-static char *fs_error = "";
+static const char *fs_error = "";
 
 void fs_init(void) {
 }
@@ -48,16 +48,17 @@ FS_FILE fs_open(char *filename, int flags) {
 ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
 	int count = 0, tries = 3;
 	ssize_t r;
+	unsigned char *buf = (unsigned char *)buffer;
 	do {
 		do {
-			r = read(fd, buffer, size);
+			r = read(fd, buf, size);
 		} while (r == -1 && errno == EINTR && --tries);
 		if (r == -1) {
 			fs_error = strerror(errno);
 			return -1;
 		}
 		size -= r;
-		buffer += r;
+		buf += r;
 		count += r;
 	} while (r && size > 0);
 	return count;
@@ -66,16 +67,17 @@ ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
 ssize_t fs_write(FS_FILE fd, void *buffer, size_t size) {
 	int count = 0, tries = 3;
 	ssize_t r;
+	unsigned char *buf = (unsigned char *)buffer;
 	do {
 		do {
-			r = write(fd, buffer, size);
+			r = write(fd, buf, size);
 		} while (r == -1 && errno == EINTR && --tries);
 		if (r == -1) {
 			fs_error = strerror(errno);
 			return -1;
 		}
 		size -= r;
-		buffer += r;
+		buf += r;
 		count += r;
 	} while (r && size > 0);
 	return count;
