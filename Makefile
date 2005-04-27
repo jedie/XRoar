@@ -2,6 +2,7 @@ CC = gcc
 
 #CFLAGS  = -O3 -Wall
 CFLAGS  = -g -Wall
+CFLAGS += -W -Wstrict-prototypes -Wpointer-arith -Wcast-align -Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline -Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes -Wredundant-decls
 
 #CFLAGS += -DAUTOSNAP_HACK=\"snaps/frogger.sna\"
 
