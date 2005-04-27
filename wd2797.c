@@ -113,7 +113,7 @@ void wd2797_reset(void) {
 	step_direction = -1;
 }
 
-void wd2797_remove_disk(int drive) {
+static void wd2797_remove_disk(int drive) {
 	Sector *sector, *cur;
 	uint_fast8_t i;
 	drive &= 3;
