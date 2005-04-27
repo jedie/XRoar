@@ -150,7 +150,11 @@ static void fillrect(uint_fast16_t x, uint_fast16_t y, uint_fast16_t w, uint_fas
 	}
 }
 
-static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src) { }
+static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src) {
+	(void)x;  /* unused */
+	(void)y;  /* unused */
+	(void)src;  /* unused */
+}
 
 static void vdg_reset(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;

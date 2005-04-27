@@ -17,8 +17,8 @@ typedef struct {
 typedef struct VideoModule VideoModule;
 struct VideoModule {
 	VideoModule *next;
-	char *name;
-	char *help;
+	const char *name;
+	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
 	void (*fillrect)(uint_fast16_t x, uint_fast16_t y,

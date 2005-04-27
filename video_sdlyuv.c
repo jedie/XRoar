@@ -89,13 +89,13 @@ SDL_Overlay *overlay;
 static SDL_Rect dstrect;
 
 static Uint32 map_colour(int r, int g, int b) {
-	Uint32 pixel;
-	uint8_t *d = (uint8_t *)&pixel;
+	Uint32 colour;
+	uint8_t *d = (uint8_t *)&colour;
 	/* From SDL example code */
 	d[0] = d[2] = 0.299*r + 0.587*g + 0.114*b;
 	d[1] = (b-d[0])*0.565 + 128;
 	d[3] = (r-d[0])*0.713 + 128;
-	return pixel;
+	return colour;
 }
 
 static int init(void) {
@@ -170,7 +170,11 @@ static void fillrect(uint_fast16_t x, uint_fast16_t y, uint_fast16_t w, uint_fas
 	}
 }
 
-static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src) { }
+static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src) {
+	(void)x;  /* unused */
+	(void)y;  /* unused */
+	(void)src;  /* unused */
+}
 
 static void resize(uint_fast16_t w, uint_fast16_t h) {
 	if (w < 640) w = 640;
