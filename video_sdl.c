@@ -67,7 +67,6 @@ VideoModule video_sdl_module = {
 
 typedef Uint8 Pixel;
 #define MAPCOLOUR(r,g,b) SDL_MapRGB(screen->format, r, g, b)
-#define VIDEO_UPDATE SDL_UpdateRect(screen, 0,0,320,240)
 #define VIDEO_SCREENBASE ((Pixel *)screen->pixels)
 #define XSTEP 1
 #define NEXTLINE 0
@@ -162,7 +161,7 @@ static void vdg_reset(void) {
 }
 
 static void vdg_vsync(void) {
-	VIDEO_UPDATE;
+	SDL_UpdateRect(screen, 0, 0, 320, 240);
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	subline = 0;
 }
@@ -172,13 +171,13 @@ static void vdg_set_mode(uint_fast8_t mode) {
 		/* Graphics modes */
 		if (((mode & 0x70) == 0x70) && video_artifact_mode) {
 			cg_colours = &vdg_colour[4 + video_artifact_mode * 4];
-			border_colour = vdg_colour[(mode & 0x08) >> 1];
+			fg_colour = vdg_colour[(mode & 0x08) >> 1];
 		} else {
 			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
-			border_colour = cg_colours[0];
+			fg_colour = cg_colours[0];
 		}
 		bg_colour = black;
-		fg_colour = border_colour;
+		border_colour = fg_colour;
 	} else {
 		bg_colour = darkgreen;
 		border_colour = black;
