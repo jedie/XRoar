@@ -28,6 +28,9 @@ extern UIModule ui_gtk_module;
 #ifdef HAVE_CARBON_UI
 extern UIModule ui_carbon_module;
 #endif
+#ifdef WINDOWS32
+extern UIModule ui_windows32_module;
+#endif
 #ifdef HAVE_CLI_UI
 extern UIModule ui_cli_module;
 #endif
@@ -108,6 +111,9 @@ void ui_getargs(int argc, char **argv) {
 #endif
 #ifdef HAVE_CARBON_UI
 	module_add(&ui_carbon_module);
+#endif
+#ifdef WINDOWS32
+	module_add(&ui_windows32_module);
 #endif
 #ifdef HAVE_CLI_UI
 	module_add(&ui_cli_module);

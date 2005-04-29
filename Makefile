@@ -72,7 +72,7 @@ UNIX_TARGET = xroar
 UNIX_SOURCES_H = fs_unix.h
 UNIX_SOURCES_C = fs_unix.c joystick_sdl.c keyboard_sdl.c main_unix.c \
 	sound_jack.c sound_null.c sound_oss.c sound_sdl.c sound_sun.c \
-	ui_carbon.c ui_cli.c ui_gtk.c video_sdl.c video_sdlyuv.c
+	ui_carbon.c ui_cli.c ui_gtk.c ui_windows32.c video_sdl.c video_sdlyuv.c
 UNIX_SOURCES = $(UNIX_SOURCES_H) $(UNIX_SOURCES_C)
 UNIX_OBJECTS = $(UNIX_SOURCES_C:.c=.o)
 
