@@ -1,136 +1,168 @@
-CC = gcc
+### These settings set what compiler to use.  Note that when building for
+### GP32, certain intermediate tools are built using CC_UNIX, so that still
+### needs to be set correctly.
 
-#CFLAGS  = -O3 -Wall
-CFLAGS  = -g -Wall
-CFLAGS += -W -Wstrict-prototypes -Wpointer-arith -Wcast-align -Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline -Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes -Wredundant-decls
+CC_UNIX = gcc
 
-#CFLAGS += -DAUTOSNAP_HACK=\"snaps/frogger.sna\"
+# If you want to build a GP32 binary ('make xroar.fxe'), make sure these
+# are set to point to the appropriate arm-elf build tools (and that b2fxec
+# is in your path).
+CC_GP32 = arm-elf-gcc
+AS_GP32= arm-elf-as
+OBJCOPY_GP32 = arm-elf-objcopy
 
-# Uncomment this to enable tracing
-#CFLAGS += -DTRACE
+# If you want to build a Windows32 binary ('make xroar.exe'), make sure
+# CC_WINDOWS32 is set to the right cross-compiler, and WINDOWS32_PREFIX
+# points to the top of your MinGW32 install (currently only used to find
+# sdl-config).
+CC_WINDOWS32 = i586-mingw32msvc-gcc
+WINDOWS32_PREFIX = /usr/i586-mingw32msvc
 
-# Choose what you're building for and uncomment the relevant lines:
+CFLAGS_GP32 = -O3 -funroll-loops -finline-functions -mcpu=arm9tdmi \
+	-mstructure-size-boundary=32 -finline-limit=320000
 
-# Uncomment this if you're building a GP32 binary.  This overrides all the
-# other options, as it's a very specific target.
-#BUILD_GP32 = 1
+CFLAGS_UNIX = -O3 -g -std=c99 -finline-limit=32000
+
+CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
+	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
+	-Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes \
+	-Wredundant-decls
+
+### Specify the features you want by uncommenting (or re-commenting) lines
+### from the following.  Note that these do not affect the specialised GP32
+### build.
+
+# Video, audio and user-interface modules:
+USE_SDL = 1		# SDL video and audio modules
+#USE_OSS_AUDIO = 1	# OSS blocking audio
+#USE_JACK_AUDIO = 1	# Connects to JACK audio server
+#USE_SUN_AUDIO = 1	# Sun audio.  Might suit *BSD too, don't know
+#USE_NULL_AUDIO = 1	# Requires Linux RTC as sound is used to sync
+#USE_GTK_UI = 1		# Simple GTK+ file-requester
+USE_CLI_UI = 1		# Prompt for filenames on command line
+#USE_CARBON_UI = 1	# MacOS X Carbon UI
 
 # Build for a little-endian machine, eg x86.  This should be commented out
 # for big-endian architectures, eg Sparc.
-CFLAGS += -DWRONG_ENDIAN
-
-# Which video drivers to compile in?
-BUILD_SDL_VIDEO = 1	# 'sdl' (fixed) and 'sdlyuv' (should be accelerated)
-#BUILD_X11_VIDEO = 1	# Should write a raw X11 driver.  Haven't yet.
-
-# Which audio drivers?
-BUILD_SDL_AUDIO = 1	# Use the SDL's callback-based audio
-BUILD_OSS_AUDIO = 1	# OSS blocking audio
-#BUILD_JACK_AUDIO = 1	# Connects to JACK audio server
-#BUILD_SUN_AUDIO = 1	# Sun audio.  Might suit *BSD too, don't know
-BUILD_NULL_AUDIO = 1	# Requires Linux RTC as sound is used to sync
-
-# And which user-interfaces?
-BUILD_GTK_UI = 1	# Simple GTK+ file-requester
-BUILD_CLI_UI = 1	# Prompt for filenames on command line
-#BUILD_CARBON_UI = 1	# MacOS X Carbon UI
+CFLAGS_UNIX += -DWRONG_ENDIAN
 
 # Comment this out if your system doesn't have int_fastN_t (eg, Solaris)
-CFLAGS += -DHAVE_FASTINT
+CFLAGS_UNIX += -DHAVE_FASTINT
 
-# ----- You shouldn't need to change anything under this line ------ #
+# Uncomment this to enable tracing
+#CFLAGS_UNIX += -DTRACE
 
-ifdef BUILD_GP32
-	HOST_CC = gcc
-	CC = arm-elf-gcc
-	AS = arm-elf-as
-	OBJCOPY = arm-elf-objcopy
+# Uncomment this to default to building a GP32 binary (you can
+# 'make xroar.fxe' manually anyway).
+#BUILD_GP32 = 1
 
-	CFLAGS = -O3 -DHAVE_GP32 -Wall -funroll-loops -finline-functions -mcpu=arm9tdmi -mstructure-size-boundary=32 -finline-limit=320000
-	CFLAGS += -W -Wstrict-prototypes -Wpointer-arith -Wcast-align -Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline -Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes -Wredundant-decls
-	LDFLAGS = -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
-	TARGET_BIN = xroar.fxe
-	TARGET_SRC = main_gp32.c fs_gp32.c copyright.c cmode_bin.c kbd_graphics.c video_gp32.c sound_gp32.c ui_gp32.c keyboard_gp32.c
-	TARGET_OBJ = gp32/crt0.o gp32/gpstart.o gp32/udaiis.o gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o
-	CLEAN_SUPP = xroar.bin xroar.elf xroar.map vdg_bitmaps_gp32.c img2c prerender copyright.c cmode_bin.c kbd_graphics.
-else
-	ifdef BUILD_SDL_VIDEO
-		CFLAGS += -DHAVE_SDL_VIDEO
-		CFLAGS_SDL = $(shell sdl-config --cflags)
-		LDFLAGS_SDL = $(shell sdl-config --libs)
-	endif
+###
+### ----- You shouldn't need to change anything under this line ------ ###
+###
 
-	ifdef BUILD_SDL_AUDIO
-		CFLAGS += -DHAVE_SDL_AUDIO
-		CFLAGS_SDL = $(shell sdl-config --cflags)
-		LDFLAGS_SDL = $(shell sdl-config --libs)
-	endif
-	ifdef BUILD_OSS_AUDIO
-		CFLAGS += -DHAVE_OSS_AUDIO
-	endif
-	ifdef BUILD_JACK_AUDIO
-		CFLAGS += -DHAVE_JACK_AUDIO
-		LDFLAGS_JACK = -ljack -lpthread
-	endif
-	ifdef BUILD_SUN_AUDIO
-		CFLAGS += -DHAVE_SUN_AUDIO
-	endif
-	ifdef BUILD_NULL_AUDIO
-		CFLAGS += -DHAVE_NULL_AUDIO
-	endif
+COMMON_SOURCES_H = config.h fs.h hexs19.h joystick.h keyboard.h logging.h \
+	m6809.h machine.h pia.h sam.h snapshot.h sound.h tape.h types.h ui.h \
+	vdg.h video.h wd2797.h xroar.h
+COMMON_SOURCES_C = xroar.c snapshot.c tape.c hexs19.c machine.c m6809.c sam.c \
+	pia.c wd2797.c vdg.c video.c sound.c ui.c keyboard.c joystick.c
+COMMON_SOURCES = $(COMMON_SOURCES_H) $(COMMON_SOURCES_C)
+COMMON_OBJECTS = $(COMMON_SOURCES_C:.c=.o)
 
-	ifdef BUILD_GTK_UI
-		CFLAGS += -DHAVE_GTK_UI
-		CFLAGS_GTK = $(shell gtk-config --cflags)
-		LDFLAGS_GTK = $(shell gtk-config --libs)
-	endif
-	ifdef BUILD_CLI_UI
-		CFLAGS += -DHAVE_CLI_UI
-	endif
-	ifdef BUILD_CARBON_UI
-		CFLAGS += -DHAVE_CARBON_UI
-		LDFLAGS_CARBON = -framework Carbon
-	endif
+UNIX_TARGET = xroar
+UNIX_SOURCES_H = fs_unix.h
+UNIX_SOURCES_C = fs_unix.c joystick_sdl.c keyboard_sdl.c main_unix.c \
+	sound_jack.c sound_null.c sound_oss.c sound_sdl.c sound_sun.c \
+	ui_carbon.c ui_cli.c ui_gtk.c video_sdl.c video_sdlyuv.c
+UNIX_SOURCES = $(UNIX_SOURCES_H) $(UNIX_SOURCES_C)
+UNIX_OBJECTS = $(UNIX_SOURCES_C:.c=.o)
 
-	CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GTK)
-	LDFLAGS = $(LDFLAGS_SDL) $(LDFLAGS_JACK) $(LDFLAGS_GTK) $(LDFLAGS_CARBON)
-	TARGET_BIN = xroar
-	TARGET_SRC = main_unix.c fs_unix.c \
-		video_sdl.c video_sdlyuv.c \
-		sound_sdl.c sound_oss.c sound_jack.c sound_sun.c sound_null.c \
-		ui_gtk.c ui_cli.c ui_carbon.c \
-		keyboard_sdl.c joystick_sdl.c
+WINDOWS32_TARGET = xroar.exe
+
+GP32_TARGET = xroar.fxe
+GP32_SOURCES_H = fs_gp32.h video_gp32.h
+GP32_SOURCES_C = fs_gp32.c keyboard_gp32.c main_gp32.c sound_gp32.c ui_gp32.c \
+	video_gp32.c gp32/gpstart.c gp32/udaiis.c gp32/gpsound.c \
+	gp32/gpkeypad.c gp32/gpchatboard.c
+GP32_SOURCES_S = gp32/crt0.s
+GP32_SOURCES = $(GP32_SOURCES_H) $(GP32_SOURCES_C)
+GP32_BUILD_SOURCES_C = cmode_bin.c copyright.c kbd_graphics.c
+GP32_OBJECTS = $(GP32_SOURCES_S:.s=.o) $(GP32_SOURCES_C:.c=.o) \
+	$(GP32_BUILD_SOURCES_C:.c=.o)
+
+EXTRA_SOURCES = img2c.c prerender.c vdg_bitmaps.c
+EXTRA_CLEAN = xroar.bin xroar.elf img2c prerender vdg_bitmaps_gp32.c
+
+CLEAN = $(COMMON_OBJECTS) $(UNIX_OBJECTS) $(GP32_OBJECTS) \
+	$(UNIX_TARGET) $(GP32_TARGET) $(WINDOWS32_TARGET) \
+	$(GP32_BUILD_SOURCES_C) $(EXTRA_CLEAN)
+
+SDL_CONFIG = sdl-config
+xroar.exe: SDL_CONFIG = $(WINDOWS32_PREFIX)/bin/sdl-config
+
+ifdef USE_SDL
+	CFLAGS_UNIX += -DHAVE_SDL_VIDEO -DHAVE_SDL_AUDIO
+	CFLAGS_SDL = $(shell $(SDL_CONFIG) --cflags)
+	LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
 endif
 
-SRCS = $(TARGET_SRC) xroar.c \
-	snapshot.c tape.c hexs19.c \
-	machine.c m6809.c sam.c pia.c wd2797.c vdg.c \
-	video.c sound.c ui.c keyboard.c joystick.c
+ifdef USE_OSS_AUDIO
+	CFLAGS_UNIX += -DHAVE_OSS_AUDIO
+endif
+ifdef USE_JACK_AUDIO
+	CFLAGS_UNIX += -DHAVE_JACK_AUDIO
+	LDFLAGS_JACK = -ljack -lpthread
+endif
+ifdef USE_SUN_AUDIO
+	CFLAGS_UNIX += -DHAVE_SUN_AUDIO
+endif
+ifdef USE_NULL_AUDIO
+	CFLAGS_UNIX += -DHAVE_NULL_AUDIO
+endif
 
-OBJS = $(TARGET_OBJ) $(SRCS:.c=.o)
+ifdef USE_GTK_UI
+	CFLAGS_UNIX += -DHAVE_GTK_UI
+	CFLAGS_GTK = $(shell gtk-config --cflags)
+	LDFLAGS_GTK = $(shell gtk-config --libs)
+endif
+ifdef USE_CLI_UI
+	CFLAGS_UNIX += -DHAVE_CLI_UI
+endif
+ifdef USE_CARBON_UI
+	CFLAGS_UNIX += -DHAVE_CARBON_UI
+	LDFLAGS_CARBON = -framework Carbon
+endif
 
-all: $(TARGET_BIN)
+CFLAGS_UNIX += $(CFLAGS_SDL) $(CFLAGS_GTK)
+LDFLAGS_UNIX = $(LDFLAGS_SDL) $(LDFLAGS_JACK) $(LDFLAGS_GTK) $(LDFLAGS_CARBON)
+CFLAGS_GP32 += -DHAVE_GP32
+LDFLAGS_GP32 = -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
 
-xroar: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+all: xroar
 
-xroar.elf: $(OBJS)
-	$(CC) $(CFLAGS) -nostartfiles -Wl,-Map,xroar.map -o $@ -T gp32/lnkscript $(OBJS) $(LDFLAGS)
+xroar: CC = $(CC_UNIX)
+xroar: CFLAGS = $(CFLAGS_UNIX) $(CFLAGS_COMMON)
+xroar.exe: CC = $(CC_WINDOWS32)
+xroar.exe: CFLAGS = -DWINDOWS32 $(CFLAGS_UNIX) $(CFLAGS_COMMON)
+xroar xroar.exe: $(UNIX_OBJECTS) $(COMMON_OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $(UNIX_OBJECTS) $(COMMON_OBJECTS) $(LDFLAGS_UNIX)
 
-xroar.bin: xroar.elf
-	$(OBJCOPY) -O binary $< $@
-
-xroar.fxe: xroar.bin
-	b2fxec -t "XRoar" -a "Ciaran Anscomb" -b gp32/icon.bmp -f $< $@
+xroar.fxe: CC = $(CC_GP32)
+xroar.fxe: AS = $(AS_GP32)
+xroar.fxe: OBJCOPY = $(OBJCOPY_GP32)
+xroar.fxe: CFLAGS = $(CFLAGS_GP32) $(CFLAGS_COMMON)
+xroar.fxe: $(GP32_OBJECTS) $(COMMON_OBJECTS)
+	$(CC_GP32) $(CFLAGS) -nostartfiles -o xroar.elf -T gp32/lnkscript $(GP32_OBJECTS) $(COMMON_OBJECTS) $(LDFLAGS_GP32)
+	$(OBJCOPY) -O binary xroar.elf xroar.bin
+	b2fxec -t "XRoar" -a "Ciaran Anscomb" -b gp32/icon.bmp -f xroar.bin $@
 
 IMG2C = $(CURDIR)/img2c
 PRERENDER = $(CURDIR)/prerender
 
 $(IMG2C): img2c.c
-	$(HOST_CC) $(shell sdl-config --cflags) -o $@ img2c.c $(shell sdl-config --libs) -lSDL_image
+	$(CC_UNIX) $(shell $(SDL_CONFIG) --cflags) -o $@ img2c.c $(shell $(SDL_CONFIG) --libs) -lSDL_image
 
 $(PRERENDER): prerender.c
-	$(HOST_CC) -o $@ prerender.c
+	$(CC_UNIX) -o $@ prerender.c
 
 vdg_bitmaps_gp32.c: $(PRERENDER) vdg_bitmaps.c
 	$(PRERENDER) > $@
@@ -148,4 +180,4 @@ kbd_graphics.c: $(IMG2C) gp32/kbd.png gp32/kbd_shift.png
 	$(IMG2C) kbd_bin gp32/kbd.png gp32/kbd_shift.png > $@
 
 clean:
-	rm -f $(TARGET_BIN) $(CLEAN_SUPP) $(OBJS)
+	rm -f $(CLEAN)

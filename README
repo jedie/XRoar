@@ -1,5 +1,5 @@
 XRoar - a Dragon/Tandy Coco emulator
-Copyright (C) 2003-2004 Ciaran Anscomb <xroar@6809.org.uk>
+Copyright (C) 2003-2005 Ciaran Anscomb <xroar@6809.org.uk>
 
 
 Homepage: http://www.6809.org.uk/dragon/xroar.shtml
@@ -21,12 +21,19 @@ the 'V' bit).  The rest is the result of reading too many datasheets.
 
 COMPILING
 
-Edit 'Makefile' and uncomment whichever BUILD_* lines are relevant
-to you.  To build a GP32 binary, uncomment the line 'BUILD_GP32 = 1'.
-This assumes that the cross-compiler tool prefix is 'arm-elf-'.
+To build the Unix version, edit 'Makefile' and uncomment whichever USE_*
+lines are relevant to you.  Then type 'make'.
 
-Type 'make'.  This should build a binary called 'xroar', or 'xroar.fxe' if
-building for the GP32.
+To build the GP32 version, edit 'Makefile' and make sure CC_GP32, AS_GP32
+and OBJCOPY_GP32 are set appropriately.  Then type 'make xroar.fxe'.
+
+To build the Windows32 version, edit 'Makefile' and make sure CC_WINDOWS32
+refers to the correct cross-compiler and that WINDOWS32_PREFIX points to
+your MinGW32 prefix.  Then type 'make xroar.exe'.
+
+When building more than one version, be sure to type 'make clean' in
+between builds, or else object files will remain that have been compiled
+for a different platform.
 
 
 INSTALLATION
