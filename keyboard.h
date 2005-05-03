@@ -13,6 +13,7 @@ struct KeyboardModule {
 	KeyboardModule *next;
 	const char *name;
 	const char *help;
+	void (*getargs)(int argc, char **argv);
 	int (*init)(void);
 	void (*shutdown)(void);
 	void (*poll)(void);
@@ -60,6 +61,7 @@ extern unsigned int keyboard_row[9];
 extern unsigned int keyboard_buffer[256];
 extern unsigned int *keyboard_bufcur, *keyboard_buflast;
 
+void keyboard_getargs(int argc, char **argv);
 int keyboard_init(void);
 void keyboard_shutdown(void);
 void keyboard_reset(void);

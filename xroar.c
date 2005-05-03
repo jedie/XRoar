@@ -48,6 +48,7 @@ void xroar_init(int argc, char **argv) {
 	video_getargs(argc, argv);
 	sound_getargs(argc, argv);
 	ui_getargs(argc, argv);
+	keyboard_getargs(argc, argv);
 	/* Initialise everything */
 	if (video_init()) {
 		LOG_ERROR("No video module initialised.\n");

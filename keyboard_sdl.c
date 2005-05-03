@@ -36,6 +36,7 @@
 #include "xroar.h"
 #include "keyboard.h"
 
+static void getargs(int argc, char **argv);
 static int init(void);
 static void shutdown(void);
 static void poll(void);
@@ -44,7 +45,7 @@ KeyboardModule keyboard_sdl_module = {
 	NULL,
 	"sdl",
 	"SDL keyboard driver",
-	init, shutdown,
+	getargs, init, shutdown,
 	poll
 };
 
@@ -138,6 +139,7 @@ static int init(void) {
 		}
 		if (keymap_option && !strcmp(keymap_option, mappings[i].name)) {
 			selected_keymap = mappings[i].raw;
+			LOG_DEBUG(2,"\tSelecting '%s' keymap\n",keymap_option);
 		}
 	}
 	map_keyboard(selected_keymap);

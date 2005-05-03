@@ -12,6 +12,7 @@ Changes from v0.10 to v0.11
 	* Sound fixes for unsigned audio interferes less with other audio.
 	* GP32 chatboard support (thanks to Mirko's SDK).
 	* Added 'translation' mode to SDL keyboard driver.
+	* Added French & German keyboard mappings for 'raw' mode to SDL driver.
 	* Ctrl+D (insert disk) replaced with Ctrl+[1-4] in SDL interface.
 
 Changes from v0.9 to v0.10

@@ -48,7 +48,7 @@ KeyboardModule keyboard_gp32_module = {
 	NULL,
 	"gp32",
 	"GP32 virtual keyboard driver",
-	init, shutdown,
+	NULL, init, shutdown,
 	poll
 };
 

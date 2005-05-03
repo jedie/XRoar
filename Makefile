@@ -86,7 +86,7 @@ GP32_BUILD_SOURCES_C = cmode_bin.c copyright.c kbd_graphics.c
 GP32_OBJECTS = $(GP32_SOURCES_S:.s=.o) $(GP32_SOURCES_C:.c=.o) \
 	$(GP32_BUILD_SOURCES_C:.c=.o)
 
-EXTRA_SOURCES = img2c.c prerender.c vdg_bitmaps.c
+EXTRA_SOURCES = img2c.c prerender.c vdg_bitmaps.c keyboard_sdl_mappings.c
 EXTRA_CLEAN = xroar.bin xroar.elf img2c prerender vdg_bitmaps_gp32.c
 
 CLEAN = $(COMMON_OBJECTS) $(UNIX_OBJECTS) $(GP32_OBJECTS) \

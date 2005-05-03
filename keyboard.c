@@ -29,6 +29,8 @@ extern KeyboardModule keyboard_gp32_module;
 #endif
 
 KeyboardModule *keyboard_module;
+static int local_argc;
+static char **local_argv;
 
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
@@ -39,10 +41,18 @@ unsigned int keyboard_row[9];
 unsigned int keyboard_buffer[256];
 unsigned int *keyboard_bufcur, *keyboard_buflast;
 
+void keyboard_getargs(int argc, char **argv) {
+	/* Preserve args info for passing to modules getargs later */
+	local_argc = argc;
+	local_argv = argv;
+}
+
 int keyboard_init(void) {
 	/* A video module should have set keyboard_module by this point */
 	if (keyboard_module == NULL)
 		return 1;
+	if (keyboard_module->getargs)
+		keyboard_module->getargs(local_argc, local_argv);
 	keyboard_bufcur = keyboard_buflast = keyboard_buffer;
 	return keyboard_module->init();
 }
