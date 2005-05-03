@@ -16,26 +16,25 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
-
-#ifdef HAVE_SDL_KEYBOARD
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 
+#include "config.h"
 #include "types.h"
-#include "keyboard.h"
+#include "hexs19.h"
+#include "joystick.h"
+#include "logging.h"
+#include "machine.h"
 #include "pia.h"
 #include "snapshot.h"
-#include "video.h"
-#include "xroar.h"
-#include "logging.h"
-#include "ui.h"
 #include "tape.h"
+#include "ui.h"
+#include "video.h"
 #include "wd2797.h"
-#include "hexs19.h"
+#include "xroar.h"
+#include "keyboard.h"
 
 static int init(void);
 static void shutdown(void);
@@ -49,107 +48,196 @@ KeyboardModule keyboard_sdl_module = {
 	poll
 };
 
-static uint_fast8_t control = 0, shift = 0;
-
-/* Mostly identical positioning (deliberately so), but doing this lets
- * us be more clever and maybe queue shift+key in "translation mode" when
- * I implement that */
-static uint_fast8_t sdl_to_keymap[256] = {
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, /* 0 - 7 */
-	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, /* 8 - 15 */
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, /* 16 - 23 */
-	0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, /* 24 - 31 */
-	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0xb7/**/, /* 32 - 39 */
-	0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x3a, 0x2e, 0x2f, /* 40 - 47 */
-	0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, /* 48 - 55 */
-	0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x2d, 0x3e, 0x3f, /* 56 - 63 */
-	0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, /* 64 - 71 */
-	0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, /* 72 - 79 */
-	0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, /* 80 - 87 */
-	0x58, 0x59, 0x5a, 0x40, 0x5c, 0x5d, 0x5e, 0x5f, /* 88 - 95 */
-	0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, /* 96 - 103 */
-	0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, /* 104 - 111 */
-	0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, /* 112 - 119 */
-	0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f, /* 120 - 127 */
-	/* Shifted set - only used in 'translation' mode */
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-	0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0xb2/**/,
-	0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-	0x30, 0x31, 0x40, 0x33, 0x34, 0x35, 0x36, 0x37,
-	0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-	0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
-	0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-	0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
-	0x58, 0x59, 0x5a, 0x40, 0x5c, 0x5d, 0x5e, 0x5f,
-	0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
-	0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f,
-	0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
-	0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f
+struct keymap {
+	const char *name;
+	unsigned int *raw;
 };
 
+#include "keyboard_sdl_mappings.c"
+
+static unsigned int control = 0, shift = 0;
+
+static uint_least16_t sdl_to_keymap[768];
+
+#define HSHIFT (0x100)
+#define HALTGR (0x200)
+#define DSHIFT (0x100)
+#define DUNSHIFT (0x200)
+
+static uint_least16_t unicode_to_dragon[128] = {
+	0,            0,            0,            0,
+	0,            0,            0,            0,
+	DUNSHIFT+8,   DUNSHIFT+9,   DUNSHIFT+10,  0,
+	DUNSHIFT+12,  DUNSHIFT+13,  0,            0,
+	0,            0,            0,            0,
+	0,            0,            0,            0,
+	0,            0,            0,            DUNSHIFT+27,
+	0,            0,            0,            0,
+	DUNSHIFT+' ', DSHIFT+'1',   DSHIFT+'2',   DSHIFT+'3',
+	DSHIFT+'4',   DSHIFT+'5',   DSHIFT+'6',   DSHIFT+'7',
+	DSHIFT+'8',   DSHIFT+'9',   DSHIFT+':',   DSHIFT+';',
+	DUNSHIFT+',', DUNSHIFT+'-', DUNSHIFT+'.', DUNSHIFT+'/', 
+	DUNSHIFT+'0', DUNSHIFT+'1', DUNSHIFT+'2', DUNSHIFT+'3', 
+	DUNSHIFT+'4', DUNSHIFT+'5', DUNSHIFT+'6', DUNSHIFT+'7', 
+	DUNSHIFT+'8', DUNSHIFT+'9', DUNSHIFT+':', DUNSHIFT+';', 
+	DSHIFT+',',   DSHIFT+'-',   DSHIFT+'.',   DSHIFT+'/',
+	DUNSHIFT+'@', DSHIFT+'a',   DSHIFT+'b',   DSHIFT+'c',
+	DSHIFT+'d',   DSHIFT+'e',   DSHIFT+'f',   DSHIFT+'g',
+	DSHIFT+'h',   DSHIFT+'i',   DSHIFT+'j',   DSHIFT+'k',
+	DSHIFT+'l',   DSHIFT+'m',   DSHIFT+'n',   DSHIFT+'o',
+	DSHIFT+'p',   DSHIFT+'q',   DSHIFT+'r',   DSHIFT+'s',
+	DSHIFT+'t',   DSHIFT+'u',   DSHIFT+'v',   DSHIFT+'w',
+	DSHIFT+'x',   DSHIFT+'y',   DSHIFT+'z',   DSHIFT+10,
+	DSHIFT+12,    DSHIFT+9,     DUNSHIFT+'^', DSHIFT+'^',
+	DUNSHIFT+12,  DUNSHIFT+'a', DUNSHIFT+'b', DUNSHIFT+'c',
+	DUNSHIFT+'d', DUNSHIFT+'e', DUNSHIFT+'f', DUNSHIFT+'g',
+	DUNSHIFT+'h', DUNSHIFT+'i', DUNSHIFT+'j', DUNSHIFT+'k',
+	DUNSHIFT+'l', DUNSHIFT+'m', DUNSHIFT+'n', DUNSHIFT+'o',
+	DUNSHIFT+'p', DUNSHIFT+'q', DUNSHIFT+'r', DUNSHIFT+'s',
+	DUNSHIFT+'t', DUNSHIFT+'u', DUNSHIFT+'v', DUNSHIFT+'w',
+	DUNSHIFT+'x', DUNSHIFT+'y', DUNSHIFT+'z', 0,
+	0,            0,            DUNSHIFT+12,  DUNSHIFT+8
+};
+
+static char *keymap_option;
+static unsigned int *selected_keymap;
+static int translated_keymap;
+//extern joystick_t *sdl_joystick_right, *sdl_joystick_left;
+
+static void map_keyboard(unsigned int *map) {
+	int i;
+	for (i = 0; i < 256; i++)
+		sdl_to_keymap[i] = i & 0x7f;
+	if (map == NULL)
+		return;
+	while (*map) {
+		unsigned int sdlkey = *(map++);
+		unsigned int dgnkey = *(map++);
+		sdl_to_keymap[sdlkey & 0xff] = dgnkey & 0x7f;
+	}
+}
+
+static void getargs(int argc, char **argv) {
+	int i;
+	keymap_option = NULL;
+	for (i = 1; i < (argc-1); i++) {
+		if (!strcmp(argv[i], "-keymap")) {
+			i++;
+			keymap_option = argv[i];
+		}
+	}
+}
+
 static int init(void) {
+	int i;
+	selected_keymap = NULL;
+	for (i = 0; mappings[i].name; i++) {
+		if (selected_keymap == NULL
+				&& !strcmp("uk", mappings[i].name)) {
+			selected_keymap = mappings[i].raw;
+		}
+		if (keymap_option && !strcmp(keymap_option, mappings[i].name)) {
+			selected_keymap = mappings[i].raw;
+		}
+	}
+	map_keyboard(selected_keymap);
+	translated_keymap = 0;
+	SDL_EnableUNICODE(translated_keymap);
 	return 0;
 }
 
 static void shutdown(void) {
 }
 
-static void key_press(SDLKey sym) {
-	switch (sym) {
-	case SDLK_UP: KEYBOARD_PRESS(94); break;
-	case SDLK_DOWN: KEYBOARD_PRESS(10); break;
-	case SDLK_LEFT: KEYBOARD_PRESS(8); break;
-	case SDLK_RIGHT: KEYBOARD_PRESS(9); break;
-	case SDLK_LCTRL: case SDLK_RCTRL:
-		control = 1; break;
-	case SDLK_LSHIFT: case SDLK_RSHIFT:
-		shift = 0x80;
-		KEYBOARD_PRESS(0); break;
-	default: if (sym == SDLK_c && control) exit(0);
-		if (sym == SDLK_s && control) {
-			const char *snap_exts[] = { "SNA", NULL };
-			char *filename = ui_module->get_filename(snap_exts);
+static void keypress(SDL_keysym *keysym) {
+	SDLKey sym = keysym->sym;
+	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
+		shift = 1;
+		KEYBOARD_PRESS(0);
+		return;
+	}
+	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 1; return; }
+	if (control) {
+		switch (sym) {
+		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
+			{
+			const char *disk_exts[] = { "VDK", NULL };
+			char *filename = ui_module->get_filename(disk_exts);
 			if (filename)
-				write_snapshot(filename);
+				wd2797_load_disk(filename, sym - SDLK_1);
+			}
 			break;
-		}
-		if (sym == SDLK_l && control) {
+		case SDLK_a:
+			video_artifact_mode++;
+			if (video_artifact_mode > 2)
+				video_artifact_mode = 0;
+			vdg_set_mode();
+			break;
+		case SDLK_b:
+			{
+			const char *bin_exts[] = { "BIN", NULL };
+			char *filename = ui_module->get_filename(bin_exts);
+			if (filename)
+				coco_bin_read(filename);
+			}
+			break;
+		case SDLK_c:
+			exit(0);
+			break;
+		case SDLK_e:
+			dragondos_enabled = !dragondos_enabled;
+			break;
+		case SDLK_h:
+			{
+			const char *hex_exts[] = { "HEX", NULL };
+			char *filename = ui_module->get_filename(hex_exts);
+			if (filename)
+				intel_hex_read(filename);
+			}
+			break;
+			/*
+		case SDLK_j:
+			{
+			joystick_t *tmp = sdl_joystick_right;
+			sdl_joystick_right = sdl_joystick_left;
+			sdl_joystick_left = tmp;
+			}
+			break;
+			*/
+		case SDLK_k:
+			machine_set_keymap(machine_keymap+1);
+			break;
+		case SDLK_l:
+			{
 			const char *snap_exts[] = { "SNA", NULL };
 			char *filename = ui_module->get_filename(snap_exts);
 			if (filename)
 				read_snapshot(filename);
+			}
 			break;
-		}
-		if (sym == SDLK_r && control) {
-			xroar_reset(shift ? RESET_HARD : RESET_SOFT);
-			break;
-		}
-
-		if (sym == SDLK_e && control) { dragondos_enabled = !dragondos_enabled; break; }
-		if (sym == SDLK_d && control) {
-			const char *disk_exts[] = { "VDK", NULL };
-			char *filename = ui_module->get_filename(disk_exts);
-			if (filename)
-				wd2797_load_disk(filename, 0);
-			break;
-		}
-		if (sym == SDLK_m && control) {
+		case SDLK_m:
 			machine_set_keymap(machine_keymap+1);
 			machine_set_romtype(machine_romtype+1);
 			xroar_reset(RESET_HARD);
 			break;
-		}
-		if (sym == SDLK_k && control) {
-			machine_set_keymap(machine_keymap+1);
+			/*
+		case SDLK_n:
+			video_next();
 			break;
-		}
-#ifdef TRACE
-		//if (sym == SDLK_t && control) { trace ^= 1; break; }
-#endif
-		if (sym == SDLK_t && control) {
+			*/
+		case SDLK_r:
+			xroar_reset(shift ? RESET_HARD : RESET_SOFT);
+			break;
+		case SDLK_s:
+			{
+			const char *snap_exts[] = { "SNA", NULL };
+			char *filename = ui_module->get_filename(snap_exts);
+			if (filename)
+				write_snapshot(filename);
+			}
+			break;
+		case SDLK_t:
+			{
 			const char *tape_exts[] = { "CAS", NULL };
 			char *filename = ui_module->get_filename(tape_exts);
 			if (filename) {
@@ -159,53 +247,69 @@ static void key_press(SDLKey sym) {
 					tape_attach(filename);
 			}
 			break;
-		}
-		if (sym == SDLK_h && control) {
-			const char *hex_exts[] = { "HEX", NULL };
-			char *filename = ui_module->get_filename(hex_exts);
-			if (filename)
-				intel_hex_read(filename);
-			return;
-		}
-		if (sym == SDLK_b && control) {
-			const char *bin_exts[] = { "BIN", NULL };
-			char *filename = ui_module->get_filename(bin_exts);
-			if (filename)
-				coco_bin_read(filename);
-			return;
-		}
-		if (sym == SDLK_n && control) { video_next(); return; }
-		if (sym == SDLK_a && control) { video_artifact_mode++; if (video_artifact_mode > 2) video_artifact_mode = 0; vdg_set_mode(); break; }
-		if (sym < 128) {
-			sym = sdl_to_keymap[sym|shift];
-			if (sym & 0x80) {
-				KEYBOARD_QUEUE(sym);
-			} else {
-				KEYBOARD_PRESS(sym);
 			}
+		case SDLK_z: // running out of letters...
+			translated_keymap = !translated_keymap;
+			/* UNICODE translation only used in
+			 * translation mode */
+			SDL_EnableUNICODE(translated_keymap);
+			break;
+		default:
+			break;
 		}
-		break;
+		return;
+	}
+	if (sym == SDLK_UP) { KEYBOARD_PRESS(94); return; }
+	if (sym == SDLK_DOWN) { KEYBOARD_PRESS(10); return; }
+	if (sym == SDLK_LEFT) { KEYBOARD_PRESS(8); return; }
+	if (sym == SDLK_RIGHT) { KEYBOARD_PRESS(9); return; }
+	if (sym == SDLK_HOME) { KEYBOARD_PRESS(12); return; }
+	if (translated_keymap) {
+		if (keysym->unicode == '\\') {
+			/* CoCo and Dragon 64 in 64K mode have a different way
+			 * of scanning for '\' */
+			if (IS_COCO_KEYBOARD || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04)))
+				keyboard_queue(0x100+12);
+			else
+				keyboard_queue(0x300+'/');
+			return;
+		}
+		if ((keysym->unicode == 8 || keysym->unicode == 127) && shift) {
+			keyboard_queue(DSHIFT+8);
+			return;
+		}
+		if (keysym->unicode == 163) {
+			keyboard_queue(DSHIFT+'3');
+			return;
+		}
+		if (keysym->unicode < 128)
+			keyboard_queue(unicode_to_dragon[keysym->unicode]);
+		return;
+	}
+	if (sym < 256) {
+		unsigned int mapped = sdl_to_keymap[sym];
+		KEYBOARD_PRESS(mapped);
 	}
 }
 
-static void key_release(SDLKey sym) {
+static void keyrelease(SDL_keysym *keysym) {
+	SDLKey sym = keysym->sym;
 	switch (sym) {
-	case SDLK_UP: KEYBOARD_RELEASE(94); break;
-	case SDLK_DOWN: KEYBOARD_RELEASE(10); break;
-	case SDLK_LEFT: KEYBOARD_RELEASE(8); break;
-	case SDLK_RIGHT: KEYBOARD_RELEASE(9); break;
+	case 0: break;
 	case SDLK_LCTRL: case SDLK_RCTRL:
 		control = 0; break;
 	case SDLK_LSHIFT: case SDLK_RSHIFT:
 		shift = 0;
 		KEYBOARD_RELEASE(0); break;
+	case SDLK_UP: KEYBOARD_RELEASE(94); break;
+	case SDLK_DOWN: KEYBOARD_RELEASE(10); break;
+	case SDLK_LEFT: KEYBOARD_RELEASE(8); break;
+	case SDLK_RIGHT: KEYBOARD_RELEASE(9); break;
+	case SDLK_HOME: KEYBOARD_RELEASE(12); break;
 	default:
-		if (sym < 128) {
-			/* Here we don't care about shifted keys - releasing
-			 * a key that hasn't been pressed isn't a problem */
-			sym = sdl_to_keymap[sym];
-			if (!(sym & 0x80))
-				KEYBOARD_RELEASE(sym);
+		if (sym < 256) {
+			unsigned int mapped = sdl_to_keymap[sym];
+			KEYBOARD_RELEASE(mapped);
 		}
 		break;
 	}
@@ -214,7 +318,7 @@ static void key_release(SDLKey sym) {
 static void poll(void) {
 	SDL_Event event;
 	while (SDL_PollEvent(&event) == 1) {
-		switch(event.type) {
+		switch(event.type) { 
 			case SDL_VIDEORESIZE:
 				if (video_module->resize) {
 					video_module->resize(event.resize.w, event.resize.h);
@@ -223,17 +327,13 @@ static void poll(void) {
 			case SDL_QUIT:
 				exit(0); break;
 			case SDL_KEYDOWN:
-				key_press(event.key.keysym.sym);
+				keypress(&event.key.keysym);
 				break;
 			case SDL_KEYUP:
-				key_release(event.key.keysym.sym);
+				keyrelease(&event.key.keysym);
 				break;
 			default:
 				break;
 		}
 	}
-	keyboard_column_update();
-	keyboard_row_update();
 }
-
-#endif  /* HAVE_SDL_KEYBOARD */

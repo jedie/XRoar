@@ -46,15 +46,15 @@
 #define DRAGON_KEYBOARD 0
 #define COCO_KEYBOARD 1
 
-#define IS_DRAGON_KEYBOARD (machine_keyboard == DRAGON_KEYBOARD)
-#define IS_COCO_KEYBOARD (machine_keyboard == COCO_KEYBOARD)
+#define IS_DRAGON_KEYBOARD (machine_keymap == DRAGON_KEYBOARD)
+#define IS_COCO_KEYBOARD (machine_keymap == COCO_KEYBOARD)
 
-typedef struct { uint_fast8_t col, row; } Key;
+typedef struct { unsigned int col, row; } Key;
 typedef Key Keymap[128];
 
 extern int machine_romtype, machine_keymap;
 extern int dragondos_enabled;
-extern int_fast32_t brk_csrdon, brk_bitin;
+extern uint_least16_t brk_csrdon, brk_bitin;
 extern Keymap keymap;
 extern uint8_t ram0[0x8000];
 extern uint8_t ram1[0x8000];

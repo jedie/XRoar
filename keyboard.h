@@ -25,8 +25,8 @@ extern KeyboardModule *keyboard_module;
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
  * be applied on column reads */
-extern uint_fast8_t keyboard_column[9];
-extern uint_fast8_t keyboard_row[9];
+extern unsigned int keyboard_column[9];
+extern unsigned int keyboard_row[9];
 
 #define KEYBOARD_PRESS(s) { \
 		keyboard_column[keymap[s].col] &= ~(1<<keymap[s].row); \
@@ -57,8 +57,8 @@ extern uint_fast8_t keyboard_row[9];
 		} \
 	}
 
-extern uint_fast8_t keyboard_buffer[256];
-extern uint_fast8_t *keyboard_bufcur, *keyboard_buflast;
+extern unsigned int keyboard_buffer[256];
+extern unsigned int *keyboard_bufcur, *keyboard_buflast;
 
 int keyboard_init(void);
 void keyboard_shutdown(void);
@@ -66,5 +66,6 @@ void keyboard_reset(void);
 void keyboard_column_update(void);
 void keyboard_row_update(void);
 void keyboard_queue_string(const char *s);
+void keyboard_queue(uint_least16_t c);
 
 #endif  /* __KEYBOARD_H__ */
