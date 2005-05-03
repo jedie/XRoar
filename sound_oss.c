@@ -46,7 +46,7 @@ SoundModule sound_oss_module = {
 };
 
 typedef uint8_t Sample;  /* 8-bit mono */
-typedef uint_fast8_t Sample_f;  /* Fastest for manipulating above */
+typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 
 #define SAMPLE_RATE 44100
 #define CHANNELS 1

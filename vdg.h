@@ -8,7 +8,7 @@
 
 #include "types.h"
 
-extern uint_fast8_t vdg_alpha[768];
+extern unsigned int vdg_alpha[768];
 
 extern void (*vdg_render_scanline)(void);
 

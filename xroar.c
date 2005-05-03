@@ -36,8 +36,8 @@
 Cycle current_cycle;
 static Cycle next_hsync, next_keyboard_poll;
 Cycle next_sound_update, next_disk_interrupt;
-int_fast8_t enable_disk_interrupt;
-static int_fast16_t vdg_call;
+int enable_disk_interrupt;
+static int_least16_t vdg_call;
 
 #ifdef TRACE
 int trace = 0;
@@ -140,7 +140,7 @@ void xroar_mainloop(void) {
 		if ((int)(current_cycle - next_keyboard_poll) >= 0) {
 			next_keyboard_poll += 141050;
 			if (KEYBOARD_HASQUEUE) {
-				uint_fast8_t k;
+				unsigned int k;
 				next_keyboard_poll += 141050;
 				KEYBOARD_DEQUEUE(k);
 				if (k & 0x80) {

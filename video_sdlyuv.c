@@ -31,15 +31,15 @@
 
 static int init(void);
 static void shutdown(void);
-static void fillrect(uint_fast16_t x, uint_fast16_t y,
-		uint_fast16_t w, uint_fast16_t h, uint32_t colour);
-static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src);
+static void fillrect(uint_least16_t x, uint_least16_t y,
+		uint_least16_t w, uint_least16_t h, uint32_t colour);
+static void blit(uint_least16_t x, uint_least16_t y, Sprite *src);
 /* static void backup(void);
 static void restore(void); */
-static void resize(uint_fast16_t w, uint_fast16_t h);
+static void resize(uint_least16_t w, uint_least16_t h);
 static void reset(void);
 static void vsync(void);
-static void set_mode(uint_fast8_t mode);
+static void set_mode(unsigned int mode);
 static void render_sg4(void);
 /* static void render_sg6(void); */
 static void render_cg1(void);
@@ -73,9 +73,9 @@ typedef Uint32 Pixel;
 #define VIDEO_VIEWPORT_YOFFSET (0)
 #define LOCK_SURFACE SDL_LockYUVOverlay(overlay)
 #define UNLOCK_SURFACE SDL_UnlockYUVOverlay(overlay)
-extern uint_fast8_t vdg_alpha[768];
+extern unsigned int vdg_alpha[768];
 
-static uint_fast8_t subline;
+static unsigned int subline;
 static Pixel *pixel;
 static Pixel darkgreen, black;
 static Pixel bg_colour;
@@ -156,12 +156,12 @@ static void shutdown(void) {
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-static void fillrect(uint_fast16_t x, uint_fast16_t y, uint_fast16_t w, uint_fast16_t h, uint32_t colour) {
+static void fillrect(uint_least16_t x, uint_least16_t y, uint_least16_t w, uint_least16_t h, uint32_t colour) {
 	Pixel *p1 = VIDEO_SCREENBASE + (239 - y) * 320 + x;
 	Pixel c = MAPCOLOUR(colour >> 24, (colour >> 16) & 0xff,
 			(colour >> 8) & 0xff);
 	int skip = -320 - w;
-	uint_fast16_t i;
+	uint_least16_t i;
 	for (; h; h--) {
 		for (i = w; i; i--) {
 			*(p1++) = c;
@@ -170,13 +170,13 @@ static void fillrect(uint_fast16_t x, uint_fast16_t y, uint_fast16_t w, uint_fas
 	}
 }
 
-static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src) {
+static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
 	(void)x;  /* unused */
 	(void)y;  /* unused */
 	(void)src;  /* unused */
 }
 
-static void resize(uint_fast16_t w, uint_fast16_t h) {
+static void resize(uint_least16_t w, uint_least16_t h) {
 	if (w < 640) w = 640;
 	if (h < 480) h = 480;
 	if (((float)w/(float)h)>(320.0/240.0)) {
@@ -204,7 +204,7 @@ static void vsync(void) {
 	subline = 0;
 }
 
-static void set_mode(uint_fast8_t mode) {
+static void set_mode(unsigned int mode) {
 	if (mode & 0x80) {
 		/* Graphics modes */
 		if (((mode & 0x70) == 0x70) && video_artifact_mode) {

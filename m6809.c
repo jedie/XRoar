@@ -66,15 +66,17 @@
 #define EA_INDEXED(a)	{ a = addr_indexed(); }
 #define EA_EXTENDED(a)	{ a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; if (trace) { LOG_DEBUG(0, "%04x", a); } }
 
+/* These macros are designed to be "passed as an argument" to the op-code
+ * macros.  Must be used carefully, as some of them declare an 'addr' variable
+ */
 #define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); reg_pc++; if (trace) { LOG_DEBUG(0, "%02x", v); } }
-#define BYTE_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a); }
-#define BYTE_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a); }
-#define BYTE_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a); }
-
+#define BYTE_DIRECT(a,v)	uint_least16_t addr; { EA_DIRECT(a); v = fetch_byte(a); }
+#define BYTE_INDEXED(a,v)	uint_least16_t addr; { EA_INDEXED(a); v = fetch_byte(a); }
+#define BYTE_EXTENDED(a,v)	uint_least16_t addr; { EA_EXTENDED(a); v = fetch_byte(a); }
 #define WORD_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; if (trace) { LOG_DEBUG(0, "%04x", v); } }
-#define WORD_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
-#define WORD_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
-#define WORD_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
+#define WORD_DIRECT(a,v)	uint_least16_t addr; { EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
+#define WORD_INDEXED(a,v)	uint_least16_t addr; { EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
+#define WORD_EXTENDED(a,v)	uint_least16_t addr; { EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 
 #define SHORT_RELATIVE(r)	{ BYTE_IMMEDIATE(0,r); r = sex(r); }
 #define LONG_RELATIVE(r)	WORD_IMMEDIATE(0,r)
@@ -85,8 +87,8 @@
 #define PULLWORD(s,r)	{ r = fetch_byte(s) << 8; r |= fetch_byte(s+1); s += 2; }
 
 #define PUSHR(s,a) { \
-		uint_fast8_t postbyte; \
-		uint_fast16_t cyc = 5; \
+		unsigned int postbyte; \
+		uint_least16_t cyc = 5; \
 		BYTE_IMMEDIATE(0,postbyte); \
 		if (postbyte & 0x80) { PUSHWORD(s, reg_pc); cyc += 2; } \
 		if (postbyte & 0x40) { PUSHWORD(s, a); cyc += 2; } \
@@ -100,8 +102,8 @@
 	}
 
 #define PULLR(s,a) { \
-		uint_fast8_t postbyte; \
-		uint_fast16_t cyc = 5; \
+		unsigned int postbyte; \
+		uint_least16_t cyc = 5; \
 		BYTE_IMMEDIATE(0,postbyte); \
 		if (postbyte & 0x01) { PULLBYTE(s, reg_cc); cyc++; } \
 		if (postbyte & 0x02) { PULLBYTE(s, reg_a); cyc++; } \
@@ -154,12 +156,12 @@ static uint16_t	reg_pc;
 static accumulator_t reg_accum;
 
 /* MPU interrupt state variables */
-uint_fast8_t nmi, firq, irq;
-static uint_fast8_t wait_for_interrupt;
-static uint_fast8_t skip_register_push;
+unsigned int nmi, firq, irq;
+static unsigned int wait_for_interrupt;
+static unsigned int skip_register_push;
 
 #define sex5(v) (uint32_t)((((v)&0x10)?0xfffffff0:0x00000000)|((v)&0x0f))
-static inline uint32_t sex(uint_fast8_t reg);
+static inline uint32_t sex(unsigned int reg);
 
 static inline void switched_block(void);
 static void switched_block_page2(void);
@@ -167,9 +169,9 @@ static void switched_block_page3(void);
 
 /* ------------------------------------------------------------------------- */
 
-static uint_fast16_t addr_indexed(void) {
-	uint_fast8_t postbyte;
-	uint_fast16_t ead, tmp_word;
+static uint_least16_t addr_indexed(void) {
+	unsigned int postbyte;
+	uint_least16_t ead, tmp_word;
 	uint16_t *word_ptr;
 	BYTE_IMMEDIATE(0,postbyte);
 	switch ((postbyte & 0x60)>>5) {
@@ -254,7 +256,7 @@ static uint_fast16_t addr_indexed(void) {
 
 /* ------------------------------------------------------------------------- */
 
-static inline uint32_t sex(uint_fast8_t reg) {
+static inline uint32_t sex(unsigned int reg) {
 	return ((reg&0x80)?0xffffff80:0x00000000)|(reg&0x7f);
 }
 
@@ -323,7 +325,7 @@ void m6809_set_registers(uint8_t *regs) {
 	reg_pc = regs[12] << 8 | regs[13];
 }
 
-void m6809_jump(uint_fast16_t pc) {
+void m6809_jump(uint_least16_t pc) {
 	reg_pc = pc & 0xffff;
 	//wait_for_interrupt = 0;
 	//irq = firq = nmi = 0;
@@ -333,55 +335,55 @@ void m6809_jump(uint_fast16_t pc) {
 
 /* Operation templates */
 
-#define OP_NEG(a) { uint_fast16_t addr, octet, result; a(addr,octet); result = ~(octet) + 1; CLR_NZVC; SET_NZVC8(0, octet, result); store_byte(addr,result); }
-#define OP_COM(a) { uint_fast16_t addr, octet; a(addr,octet); octet = ~(octet); CLR_NZV; SET_NZ8(octet); reg_cc |= CC_C; store_byte(addr,octet); }
-#define OP_LSR(a) { uint_fast16_t addr, octet; a(addr,octet); CLR_NZC; reg_cc |= (octet & CC_C); octet &= 0xff; octet >>= 1; SET_Z(octet); store_byte(addr,octet); }
-#define OP_ROR(a) { uint_fast16_t addr, octet, result; a(addr,octet); result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= octet & CC_C; result |= (octet & 0xff) >> 1; SET_NZ8(result); store_byte(addr,result); }
-#define OP_ASR(a) { uint_fast16_t addr, octet; CLR_NZC; a(addr,octet); reg_cc |= (octet & CC_C); octet = (octet & 0x80) | ((octet & 0xff) >> 1); SET_NZ8(octet); store_byte(addr,octet); }
-#define OP_ASL(a) { uint_fast16_t addr, octet,result; a(addr,octet); result = octet << 1; CLR_NZVC; SET_NZVC8(octet, octet, result); store_byte(addr,result); }
-#define OP_ROL(a) { uint_fast16_t addr, octet,result; a(addr,octet); result = (octet<<1)|(reg_cc & 1); CLR_NZVC; SET_NZVC8(octet, octet, result); store_byte(addr,result); }
-#define OP_DEC(a) { uint_fast16_t addr, octet; a(addr,octet); octet--; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x7f) reg_cc |= CC_V; store_byte(addr,octet); }
-#define OP_INC(a) { uint_fast16_t addr, octet; a(addr,octet); octet++; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x80) reg_cc |= CC_V; store_byte(addr,octet); }
-#define OP_TST(a) { uint_fast16_t addr, octet; a(addr,octet); CLR_NZV; SET_NZ8(octet); }
-#define OP_JMP(a) { uint_fast16_t addr; a(addr); reg_pc = addr; }
-#define OP_CLR(a) { uint_fast16_t addr, octet; a(addr,octet); store_byte(addr,0); CLR_NVC; reg_cc |= CC_Z; }
+#define OP_NEG(a) { uint_least16_t octet, result; a(addr,octet); result = ~(octet) + 1; CLR_NZVC; SET_NZVC8(0, octet, result); store_byte(addr,result); }
+#define OP_COM(a) { uint_least16_t octet; a(addr,octet); octet = ~(octet); CLR_NZV; SET_NZ8(octet); reg_cc |= CC_C; store_byte(addr,octet); }
+#define OP_LSR(a) { uint_least16_t octet; a(addr,octet); CLR_NZC; reg_cc |= (octet & CC_C); octet &= 0xff; octet >>= 1; SET_Z(octet); store_byte(addr,octet); }
+#define OP_ROR(a) { uint_least16_t octet, result; a(addr,octet); result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= octet & CC_C; result |= (octet & 0xff) >> 1; SET_NZ8(result); store_byte(addr,result); }
+#define OP_ASR(a) { uint_least16_t octet; CLR_NZC; a(addr,octet); reg_cc |= (octet & CC_C); octet = (octet & 0x80) | ((octet & 0xff) >> 1); SET_NZ8(octet); store_byte(addr,octet); }
+#define OP_ASL(a) { uint_least16_t octet,result; a(addr,octet); result = octet << 1; CLR_NZVC; SET_NZVC8(octet, octet, result); store_byte(addr,result); }
+#define OP_ROL(a) { uint_least16_t octet,result; a(addr,octet); result = (octet<<1)|(reg_cc & 1); CLR_NZVC; SET_NZVC8(octet, octet, result); store_byte(addr,result); }
+#define OP_DEC(a) { uint_least16_t octet; a(addr,octet); octet--; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x7f) reg_cc |= CC_V; store_byte(addr,octet); }
+#define OP_INC(a) { uint_least16_t octet; a(addr,octet); octet++; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x80) reg_cc |= CC_V; store_byte(addr,octet); }
+#define OP_TST(a) { uint_least16_t octet; a(addr,octet); CLR_NZV; SET_NZ8(octet); }
+#define OP_JMP(a) { uint_least16_t addr; a(addr); reg_pc = addr; }
+#define OP_CLR(a) { uint_least16_t octet; a(addr,octet); store_byte(addr,0); CLR_NVC; reg_cc |= CC_Z; }
 
-#define OP_NEGR(r) { uint_fast16_t result = ~(r) + 1; CLR_NZVC; SET_NZVC8(0, r, result); r = result; }
+#define OP_NEGR(r) { uint_least16_t result = ~(r) + 1; CLR_NZVC; SET_NZVC8(0, r, result); r = result; }
 #define OP_COMR(r) { r = ~(r); CLR_NZV; SET_NZ8(r); reg_cc |= CC_C; }
 #define OP_LSRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r >>= 1; SET_Z(r); }
-#define OP_RORR(r) { uint_fast16_t result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= r & CC_C; result |= (r & 0xff) >> 1; SET_NZ8(result); r = result; }
+#define OP_RORR(r) { uint_least16_t result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= r & CC_C; result |= (r & 0xff) >> 1; SET_NZ8(result); r = result; }
 #define OP_ASRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r = (r & 0x80) | ((r & 0xff) >> 1); SET_NZ8(r); }
-#define OP_ASLR(r) { uint_fast16_t result = r << 1; CLR_NZVC; SET_NZVC8(r, r, result); r = result; }
-#define OP_ROLR(r) { uint_fast16_t result = (reg_cc & CC_C) | (r << 1); CLR_NZVC; SET_NZVC8(r, r, result); r = result; }
+#define OP_ASLR(r) { uint_least16_t result = r << 1; CLR_NZVC; SET_NZVC8(r, r, result); r = result; }
+#define OP_ROLR(r) { uint_least16_t result = (reg_cc & CC_C) | (r << 1); CLR_NZVC; SET_NZVC8(r, r, result); r = result; }
 #define OP_DECR(r) { r--; r &= 0xff; CLR_NZV; SET_NZ8(r); if (r == 0x7f) reg_cc |= CC_V; }
 #define OP_INCR(r) { r++; r &= 0xff; CLR_NZV; SET_NZ8(r); if (r == 0x80) reg_cc |= CC_V; }
 #define OP_TSTR(r) { CLR_NZV; SET_NZ8(r); }
 #define OP_CLRR(r) { r = 0; CLR_NVC; reg_cc |= CC_Z; }
 
-#define OP_SUB16(r,a) { uint_fast16_t addr; uint_fast32_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; }
-#define OP_ADD16(r,a) { uint_fast16_t addr; uint_fast32_t octet, result; a(addr,octet); result = r + octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; }
-#define OP_CMP16(r,a) { uint_fast16_t addr; uint_fast32_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); }
-#define OP_LD16(r,a) { uint_fast16_t addr; a(addr,r); CLR_NZV; SET_NZ16(r); }
-#define OP_ST16(r,a) { uint_fast16_t addr; a(addr); store_byte(addr, r >> 8); store_byte(addr+1, r & 0xff); CLR_NZV; SET_NZ16(r); }
-#define OP_JSR(a) { uint_fast16_t addr; a(addr); PUSHWORD(reg_s, reg_pc); reg_pc = addr; }
+#define OP_SUB16(r,a) { uint_least32_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; }
+#define OP_ADD16(r,a) { uint_least32_t octet, result; a(addr,octet); result = r + octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; }
+#define OP_CMP16(r,a) { uint_least32_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); }
+#define OP_LD16(r,a) { a(addr,r); CLR_NZV; SET_NZ16(r); }
+#define OP_ST16(r,a) { uint_least16_t addr; a(addr); store_byte(addr, r >> 8); store_byte(addr+1, r & 0xff); CLR_NZV; SET_NZ16(r); }
+#define OP_JSR(a) { uint_least16_t addr; a(addr); PUSHWORD(reg_s, reg_pc); reg_pc = addr; }
 
-#define OP_SUB(r,a) { uint_fast16_t addr, octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
-#define OP_CMP(r,a) { uint_fast16_t addr, octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); }
-#define OP_SBC(r,a) { uint_fast16_t addr, octet, result; a(addr,octet); result = r - octet - (reg_cc & CC_C); CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
-#define OP_AND(r,a) { uint_fast16_t addr, octet; a(addr,octet); r &= octet; CLR_NZV; SET_NZ8(r); }
-#define OP_BIT(r,a) { uint_fast16_t addr, octet, result; a(addr,octet); result = r & octet; CLR_NZV; SET_NZ8(result); }
-#define OP_LD(r,a) { uint_fast16_t addr; a(addr,r); CLR_NZV; SET_NZ8(r); }
-#define OP_ST(r,a) { uint_fast16_t addr; a(addr); store_byte(addr, r); CLR_NZV; SET_NZ8(r); }
-#define OP_EOR(r,a) { uint_fast16_t addr, octet; a(addr,octet); r ^= octet; CLR_NZV; SET_NZ8(r); }
-#define OP_ADC(r,a) { uint_fast16_t addr, octet, result; a(addr,octet); result = r + octet + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
-#define OP_OR(r,a) { uint_fast16_t addr, octet; a(addr,octet); r |= octet; CLR_NZV; SET_NZ8(r); }
-#define OP_ADD(r,a) { uint_fast16_t addr, octet, result; a(addr,octet); result = r + octet; CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
+#define OP_SUB(r,a) { uint_least16_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
+#define OP_CMP(r,a) { uint_least16_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); }
+#define OP_SBC(r,a) { uint_least16_t octet, result; a(addr,octet); result = r - octet - (reg_cc & CC_C); CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
+#define OP_AND(r,a) { uint_least16_t octet; a(addr,octet); r &= octet; CLR_NZV; SET_NZ8(r); }
+#define OP_BIT(r,a) { uint_least16_t octet, result; a(addr,octet); result = r & octet; CLR_NZV; SET_NZ8(result); }
+#define OP_LD(r,a) { a(addr,r); CLR_NZV; SET_NZ8(r); }
+#define OP_ST(r,a) { uint_least16_t addr; a(addr); store_byte(addr, r); CLR_NZV; SET_NZ8(r); }
+#define OP_EOR(r,a) { uint_least16_t octet; a(addr,octet); r ^= octet; CLR_NZV; SET_NZ8(r); }
+#define OP_ADC(r,a) { uint_least16_t octet, result; a(addr,octet); result = r + octet + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
+#define OP_OR(r,a) { uint_least16_t octet; a(addr,octet); r |= octet; CLR_NZV; SET_NZ8(r); }
+#define OP_ADD(r,a) { uint_least16_t octet, result; a(addr,octet); result = r + octet; CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
 
-#define BRANCHS(cond) { uint_fast16_t RA; SHORT_RELATIVE(RA); \
+#define BRANCHS(cond) { uint_least16_t RA; SHORT_RELATIVE(RA); \
 		if (cond) { reg_pc += RA; TAKEN_CYCLES(3); } \
 		return; \
 	}
-#define BRANCHL(cond,cyc) { uint_fast16_t RA; LONG_RELATIVE(RA); \
+#define BRANCHL(cond,cyc) { uint_least16_t RA; LONG_RELATIVE(RA); \
 		if (cond) { reg_pc += RA; TAKEN_CYCLES(cyc+1); return; } \
 		TAKEN_CYCLES(cyc); return; \
 	}
@@ -392,7 +394,7 @@ static void op_exg(void);
 static void op_tfr(void);
 
 static inline void switched_block(void) {
-	uint_fast8_t op;
+	unsigned int op;
 	BYTE_IMMEDIATE(0,op);
 	switch(op) {
 		/* 0x00 NEG direct */
@@ -438,10 +440,10 @@ static inline void switched_block(void) {
 		/* 0x13 SYNC inherent */
 		case 0x13: wait_for_interrupt = 1; TOOK_CYCLES(3); break;
 		/* 0x16 LBRA relative */
-		case 0x16: { uint_fast16_t RA; LONG_RELATIVE(RA); reg_pc += RA; TOOK_CYCLES(5); } break;
+		case 0x16: { uint_least16_t RA; LONG_RELATIVE(RA); reg_pc += RA; TOOK_CYCLES(5); } break;
 		/* 0x17 LBSR relative */
 		case 0x17:
-			   { uint_fast16_t RA; LONG_RELATIVE(RA);
+			   { uint_least16_t RA; LONG_RELATIVE(RA);
 			   PUSHWORD(reg_s, reg_pc);
 			   reg_pc += RA;
 			   TOOK_CYCLES(9);
@@ -449,7 +451,7 @@ static inline void switched_block(void) {
 			   break;
 		/* 0x19 DAA inherent */
 		case 0x19: {
-			uint_fast16_t result = 0;
+			uint_least16_t result = 0;
 			if ((reg_a&0x0f) >= 0x0a || reg_cc & CC_H) result |= 0x06;
 			if (reg_a >= 0x90 && (reg_a&0x0f) >= 0x0a) result |= 0x60;
 			if (reg_a >= 0xa0 || reg_cc & CC_C) result |= 0x60;
@@ -460,9 +462,9 @@ static inline void switched_block(void) {
 			TAKEN_CYCLES(2);
 			return; } break;
 		/* 0x1A ORCC immediate */
-		case 0x1a: { uint_fast8_t v; BYTE_IMMEDIATE(0,v); reg_cc |= v; TOOK_CYCLES(3); return; } break;
+		case 0x1a: { unsigned int v; BYTE_IMMEDIATE(0,v); reg_cc |= v; TOOK_CYCLES(3); return; } break;
 		/* 0x1C ANDCC immediate */
-		case 0x1c: { uint_fast8_t v; BYTE_IMMEDIATE(0,v); reg_cc &= v; TOOK_CYCLES(3); return; } break;
+		case 0x1c: { unsigned int v; BYTE_IMMEDIATE(0,v); reg_cc &= v; TOOK_CYCLES(3); return; } break;
 		/* 0x1D SEX inherent */
 		case 0x1d:
 			reg_d = sex(reg_b);
@@ -555,7 +557,7 @@ static inline void switched_block(void) {
 			}
 			break;
 		/* 0x3C CWAI immediate */
-		case 0x3c: { uint_fast8_t v; BYTE_IMMEDIATE(0,v); reg_cc &= v;
+		case 0x3c: { unsigned int v; BYTE_IMMEDIATE(0,v); reg_cc &= v;
 			INTERRUPT_REGISTER_PUSH(1);
 			wait_for_interrupt = 1;
 			skip_register_push = 1;
@@ -701,7 +703,7 @@ static inline void switched_block(void) {
 		/* 0x8C CMPX immediate */
 		case 0x8c: OP_CMP16(reg_x, WORD_IMMEDIATE); TOOK_CYCLES(4); break;
 		/* 0x8D BSR relative */
-		case 0x8d: { uint_fast16_t RA; SHORT_RELATIVE(RA);
+		case 0x8d: { uint_least16_t RA; SHORT_RELATIVE(RA);
 			   PUSHWORD(reg_s, reg_pc);
 			   reg_pc += RA;
 			   TOOK_CYCLES(7);
@@ -932,11 +934,11 @@ static inline void switched_block(void) {
 }
 
 static void switched_block_page2(void) {
-	uint_fast8_t op;
+	unsigned int op;
 	BYTE_IMMEDIATE(0,op);
 	switch(op) {
 		/* 0x1021 LBRN relative */
-		case 0x21: { uint_fast16_t RA; LONG_RELATIVE(RA); TAKEN_CYCLES(5); return; } break;
+		case 0x21: { uint_least16_t RA; LONG_RELATIVE(RA); TAKEN_CYCLES(5); return; } break;
 		/* 0x1022 LBHI relative */
 		case 0x22: BRANCHL(!(reg_cc & (CC_Z|CC_C)),5); break;
 		/* 0x1023 LBLS relative */
@@ -1050,7 +1052,7 @@ static void switched_block_page2(void) {
 }
 
 static void switched_block_page3(void) {
-	uint_fast8_t op;
+	unsigned int op;
 	BYTE_IMMEDIATE(0,op);
 	switch(op) {
 		/* 0x113F SWI3 inherent */
@@ -1099,8 +1101,8 @@ static void switched_block_page3(void) {
 
 /* 0x1E EXG immediate */
 static void op_exg(void) {
-	uint_fast8_t postbyte;
-	uint_fast16_t source = 0xffff, dest = 0xffff;
+	unsigned int postbyte;
+	uint_least16_t source = 0xffff, dest = 0xffff;
 	BYTE_IMMEDIATE(0,postbyte);
 	switch ((postbyte & 0xf0) >> 4) {
 		case 0x00: source = reg_d; break;
@@ -1146,8 +1148,8 @@ static void op_exg(void) {
 
 /* 0x1F TFR immediate */
 static void op_tfr(void) {
-	uint_fast8_t postbyte;
-	uint_fast16_t source = 0xffff;
+	unsigned int postbyte;
+	uint_least16_t source = 0xffff;
 	BYTE_IMMEDIATE(0,postbyte);
 	switch ((postbyte & 0xf0) >> 4) {
 		case 0x00: source = reg_d; break;

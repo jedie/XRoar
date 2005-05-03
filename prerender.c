@@ -6,15 +6,15 @@
 
 #define MAPCOLOUR(r,g,b) ((r & 0xc0) | (g & 0xe0) >> 2 | (b & 0xe0) >> 5)
 
-uint_fast8_t bitmaps[2][8 * 12 * 256];
+unsigned int bitmaps[2][8 * 12 * 256];
 
 uint8_t vdg_colour[8];
 uint8_t fg, fg2, bg, black;
 
 int main(int argc, char **argv) {
 	int i,j,k,l;
-	uint_fast8_t *s = vdg_alpha;
-	uint_fast8_t c;
+	unsigned int *s = vdg_alpha;
+	unsigned int c;
 
 	memset(bitmaps, 0, sizeof(bitmaps));
 

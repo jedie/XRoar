@@ -47,15 +47,15 @@ SoundModule sound_gp32_module = {
 };
 
 typedef uint16_t Sample;  /* 8-bit stereo */
-typedef uint_fast16_t Sample_f;
+typedef uint_least16_t Sample_f;
 
-uint_fast32_t sample_rate;
+uint_least32_t sample_rate;
 Cycle sample_cycles;
-uint_fast32_t frame_size;
-uint_fast32_t frame_cycles;
+int_least32_t frame_size;
+uint_least32_t frame_cycles;
 
 static Cycle frame_cycle_base;
-uint_fast8_t writing_frame;
+unsigned int writing_frame;
 static Sample **buffer;
 static Sample *wrptr;
 static Sample lastsample;

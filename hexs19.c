@@ -101,7 +101,7 @@ int intel_hex_read(char *filename) {
 int coco_bin_read(char *filename) {
 	FS_FILE fd;
 	uint8_t tmp;
-	uint_fast16_t length, load, exec;
+	uint_least16_t length, load, exec;
 	int r;
 	if (filename == NULL)
 		return -1;

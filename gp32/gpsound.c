@@ -6,7 +6,7 @@
 
 static void playbuffer(uint8_t *src, uint32_t size);
 
-static uint_fast32_t frame_bytes;
+static uint_least32_t frame_bytes;
 static uint16_t *buffer[2];
 
 void gpsound_init(uint32_t pclk, uint32_t *rate) {
@@ -18,17 +18,28 @@ void gpsound_init(uint32_t pclk, uint32_t *rate) {
 /* Returns 2 element array of pointers to buffers, where to write audio data */
 /* TODO: Cope with 16-bit audio */
 uint16_t **gpsound_buffers(int size) {
-	size *= 2;  /* Always stereo, 8-bit */
 	/* Buffer should be on 4k boundary so we can turn off writeback
 	 * for it */
-	uint_fast32_t bytes = ((size*2) + 0xfff) & ~0xfff;
-	uint8_t *tmp = (uint8_t *)malloc((size*2) + 0xfff);
+	uint_least32_t bytes = ((size*4) + 0xfff) & ~0xfff;
+	uint8_t *tmp = (uint8_t *)malloc((size*4) + 0xfff);
 	buffer[0] = (uint16_t *)(((uint32_t)tmp + 0xfff) & ~0xfff);
-	buffer[1] = (uint16_t *)((uint8_t *)buffer[0] + size);
+	buffer[1] = buffer[0] + size;
 	swi_mmu_change(buffer[0], buffer[0] + bytes - 1, MMU_NCB);
-	frame_bytes = size * 2;
+	frame_bytes = size * 4;
 	return buffer;
 }
+//uint16_t **gpsound_buffers(int size) {
+//	size *= 2;  /* Always stereo, 8-bit */
+//	/* Buffer should be on 4k boundary so we can turn off writeback
+//	 * for it */
+//	uint_least32_t bytes = ((size*2) + 0xfff) & ~0xfff;
+//	uint8_t *tmp = (uint8_t *)malloc((size*2) + 0xfff);
+//	buffer[0] = (uint16_t *)(((uint32_t)tmp + 0xfff) & ~0xfff);
+//	buffer[1] = (uint16_t *)((uint8_t *)buffer[0] + size);
+//	swi_mmu_change(buffer[0], buffer[0] + bytes - 1, MMU_NCB);
+//	frame_bytes = size * 2;
+//	return buffer;
+//}
 
 /* Sets up a DMA to send data from a buffer (src) to the IIS fifo (which
  * feeds the DAC). */

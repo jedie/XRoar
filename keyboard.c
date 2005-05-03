@@ -83,7 +83,7 @@ void keyboard_row_update(void) {
 }
 
 void keyboard_queue_string(const char *s) {
-	uint_fast16_t c;
+	uint_least16_t c;
 	while ( (c = *(s++)) ) {
 		*(keyboard_buflast++) = (~c)&0x80; /* shift/unshift */
 		*(keyboard_buflast++) = c & 0x7f;

@@ -116,6 +116,7 @@ static void shutdown(void) {
 	buffer = NULL;
 }
 static void jack_shutdown(void *arg) {
+	(void)arg;  /* unused */
 	shutdown();
 }
 
@@ -154,7 +155,7 @@ static void update(void) {
 	pthread_mutex_lock(&haltflag);
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	if ((fill_to - buffer) >= frame_size) {
+	if ((unsigned int)(fill_to - buffer) >= frame_size) {
 		frame_cycle_base += frame_cycles;
 		next_sound_update = frame_cycle_base + frame_cycles;
 		wrptr = buffer;
@@ -168,6 +169,7 @@ static void update(void) {
 static int jack_callback(jack_nframes_t nframes, void *arg) {
 	int i;
 	jack_default_audio_sample_t *out;
+	(void)arg;  /* unused */
 	for (i = 0; i < num_output_ports; i++) {
 		out = (jack_default_audio_sample_t *)jack_port_get_buffer(output_port[i], nframes);
 		memcpy(out, buffer, sizeof(Sample) * nframes);

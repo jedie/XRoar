@@ -218,7 +218,7 @@ static void draw_char(int x, int y, char c) {
 	uint32_t *dest = (uint32_t *)screen.ptbuffer + (59-(y*3)) + x*8*60;
 	uint8_t *charset = (uint8_t *)vdg_alpha_gp32[1];
 	uint32_t out;
-	uint_fast8_t i, j;
+	unsigned int i, j;
 	c &= 0x7f;
 	if (c >= 'a' && c <= 'z') {
 		c -= 32;
@@ -249,7 +249,7 @@ static void draw_string(int x, int y, const char *s, int w) {
 
 static void highlight_line(unsigned int x, unsigned int y, unsigned int w) {
 	uint32_t *dest = (uint32_t *)screen.ptbuffer + (57-(y*3)) + x*8*60;
-	uint_fast16_t i;
+	uint_least16_t i;
 	for (i = 0; i < w*8; i++) {
 		*(dest++) ^= ~0;
 		*(dest++) ^= ~0;

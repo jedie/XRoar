@@ -25,11 +25,11 @@
 #include "logging.h"
 
 static FS_FILE tapefd;
-static uint_fast8_t count = 0;
-static uint_fast8_t tape_byte = 0;
+static unsigned int count = 0;
+static unsigned int tape_byte = 0;
 static int isopen = 0;
 static char buffer[512];
-static uint_fast32_t bufferpos;
+static uint_least16_t bufferpos;
 
 void tape_init(void) {
 	isopen = 0;
@@ -116,8 +116,8 @@ int tape_autorun(char *filename) {
 	}
 }
 
-uint_fast8_t tape_read_bit(void) {
-	uint_fast8_t ret;
+unsigned int tape_read_bit(void) {
+	unsigned int ret;
 	if (!isopen)
 		return 0;
 	if (!count) {

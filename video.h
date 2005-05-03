@@ -9,8 +9,8 @@
 #include "types.h"
 
 typedef struct {
-	uint_fast16_t w;
-	uint_fast16_t h;
+	uint_least16_t w;
+	uint_least16_t h;
 	void *data;
 } Sprite;
 
@@ -21,15 +21,15 @@ struct VideoModule {
 	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
-	void (*fillrect)(uint_fast16_t x, uint_fast16_t y,
-			uint_fast16_t w, uint_fast16_t h, uint32_t colour);
-	void (*blit)(uint_fast16_t x, uint_fast16_t y, Sprite *src);
+	void (*fillrect)(uint_least16_t x, uint_least16_t y,
+			uint_least16_t w, uint_least16_t h, uint32_t colour);
+	void (*blit)(uint_least16_t x, uint_least16_t y, Sprite *src);
 	void (*backup)(void);
 	void (*restore)(void);
-	void (*resize)(uint_fast16_t w, uint_fast16_t h);
+	void (*resize)(uint_least16_t w, uint_least16_t h);
 	void (*vdg_reset)(void);
 	void (*vdg_vsync)(void);
-	void (*vdg_set_mode)(uint_fast8_t mode);
+	void (*vdg_set_mode)(unsigned int mode);
 	void (*vdg_render_sg4)(void);
 	void (*vdg_render_sg6)(void);
 	void (*vdg_render_cg1)(void);

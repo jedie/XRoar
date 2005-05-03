@@ -72,8 +72,8 @@ extern Sprite cmode_bin[4];
  * correspond to. */
 
 typedef struct {
-	uint_fast16_t xoffset, width;
-	uint_fast8_t sym;
+	uint_least16_t xoffset, width;
+	unsigned int sym;
 } keydata;
 
 static keydata keys[5][14] = {
@@ -84,11 +84,11 @@ static keydata keys[5][14] = {
 	{ {0,0,0}, {5,7,49}, {13,7,50}, {21,7,51}, {29,7,52}, {37,7,53}, {45,7,54}, {53,7,55}, {61,7,56}, {69,7,57}, {77,7,48}, {85,7,45}, {93,7,61}, {101,7,27} }
 };
 
-static uint_fast8_t keyx = 1, keyy = 4;
+static unsigned int keyx = 1, keyy = 4;
 static keydata *current;
 //static uint32_t oldkey = ~0;
-static uint_fast8_t keyboard_mode;
-static uint_fast8_t displayed_keyboard;
+static unsigned int keyboard_mode;
+static unsigned int displayed_keyboard;
 
 static void highlight_key(void);
 
@@ -112,7 +112,7 @@ static void shutdown(void) {
 }
 
 static void highlight_key(void) {
-	uint_fast16_t i;
+	uint_least16_t i;
 	uint8_t *p = (uint8_t *)screen.ptbuffer + KEYBOARD_OFFSET
 		+ current->xoffset*240 + keyy * 8;
 	for (i = 0; i < current->width; i++) {
@@ -123,7 +123,7 @@ static void highlight_key(void) {
 }
 
 static void poll(void) {
-	uint_fast8_t newkeyx = keyx, newkeyy = keyy;
+	unsigned int newkeyx = keyx, newkeyy = keyy;
 	int key, newkey, rkey;
 	gpkeypad_poll(&key, &newkey, &rkey);
 	if (newkey & GPC_VK_FL) {

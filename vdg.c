@@ -44,7 +44,7 @@ void vdg_vsync(void) {
 }
 
 void vdg_set_mode(void) {
-	uint_fast8_t mode = PIA_1B.port_output;
+	unsigned int mode = PIA_1B.port_output;
 	/* Update video module */
 	video_module->vdg_set_mode(mode);
 	switch ((mode & 0xf0) >> 4) {

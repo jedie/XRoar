@@ -30,23 +30,23 @@
 
 uint8_t *addrptr_low;
 uint8_t *addrptr_high;
-uint_fast16_t mapped_ram;
-uint_fast16_t sam_page1;
+uint_least16_t mapped_ram;
+uint_least16_t sam_page1;
 
-uint_fast16_t sam_register;
+uint_least16_t sam_register;
 
-uint_fast16_t sam_vdg_base;
-uint_fast8_t  sam_vdg_mode;
-uint_fast16_t sam_vdg_address;
-uint_fast8_t  sam_vdg_mod_xdiv;
-uint_fast8_t  sam_vdg_mod_ydiv;
-uint_fast16_t sam_vdg_mod_clear;
-uint_fast8_t  sam_vdg_xcount;
-uint_fast8_t  sam_vdg_ycount;
+uint_least16_t sam_vdg_base;
+unsigned int  sam_vdg_mode;
+uint_least16_t sam_vdg_address;
+unsigned int  sam_vdg_mod_xdiv;
+unsigned int  sam_vdg_mod_ydiv;
+uint_least16_t sam_vdg_mod_clear;
+unsigned int  sam_vdg_xcount;
+unsigned int  sam_vdg_ycount;
 
-static uint_fast8_t vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
-static uint_fast8_t vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
-static uint_fast16_t vdg_mod_clear[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
+static unsigned int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
+static unsigned int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
+static uint_least16_t vdg_mod_clear[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
 
 void sam_init(void) {
 }
@@ -57,7 +57,7 @@ void sam_reset(void) {
 	sam_vdg_fsync();
 }
 
-uint_fast8_t sam_read_byte(uint_fast16_t addr) {
+unsigned int sam_read_byte(uint_least16_t addr) {
 	addr &= 0xffff;
 	if (addr < 0x8000) { return addrptr_low[addr]; }
 	if (addr < 0xff00) {
@@ -105,7 +105,7 @@ uint_fast8_t sam_read_byte(uint_fast16_t addr) {
 	return 0x7f;
 }
 
-void sam_store_byte(uint_fast16_t addr, uint_fast8_t octet) {
+void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	addr &= 0xffff;
 	if (addr < 0x8000) { addrptr_low[addr] = octet; return; }
 	if (addr < 0xff00) {

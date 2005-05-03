@@ -57,21 +57,21 @@
 
 extern uint8_t *addrptr_low;
 extern uint8_t *addrptr_high;
-extern uint_fast16_t mapped_ram;
-extern uint_fast16_t sam_register;
-extern uint_fast16_t sam_vdg_base;
-extern uint_fast8_t  sam_vdg_mode;
-extern uint_fast16_t sam_vdg_address;
-extern uint_fast8_t  sam_vdg_mod_xdiv;
-extern uint_fast8_t  sam_vdg_mod_ydiv;
-extern uint_fast16_t sam_vdg_mod_clear;
-extern uint_fast8_t  sam_vdg_xcount;
-extern uint_fast8_t  sam_vdg_ycount;
+extern uint_least16_t mapped_ram;
+extern uint_least16_t sam_register;
+extern uint_least16_t sam_vdg_base;
+extern unsigned int  sam_vdg_mode;
+extern uint_least16_t sam_vdg_address;
+extern unsigned int  sam_vdg_mod_xdiv;
+extern unsigned int  sam_vdg_mod_ydiv;
+extern uint_least16_t sam_vdg_mod_clear;
+extern unsigned int  sam_vdg_xcount;
+extern unsigned int  sam_vdg_ycount;
 
 void sam_init(void);
 void sam_reset(void);
-uint_fast8_t sam_read_byte(uint_fast16_t addr);
-void sam_store_byte(uint_fast16_t addr, uint_fast8_t octet);
+unsigned int sam_read_byte(uint_least16_t addr);
+void sam_store_byte(uint_least16_t addr, unsigned int octet);
 void sam_update_from_register(void);
 
 #endif  /* __SAM_H__ */

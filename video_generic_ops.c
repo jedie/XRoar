@@ -11,7 +11,7 @@
  * line, so need to be handled together) */
 static void render_sg4(void) {
 	uint8_t *vram_ptr;
-	uint_fast8_t i, j, octet;
+	unsigned int i, j, octet;
 	Pixel tmp;
 	LOCK_SURFACE;
 	for (i = 32; i; i--) {
@@ -74,8 +74,8 @@ static void render_sg4(void) {
 /* Render a 16-byte colour graphics line (CG1) */
 static void render_cg1(void) {
 	uint32_t *vram_ptr;
-	uint_fast8_t i;
-	uint_fast32_t octet;
+	unsigned int i;
+	uint_least32_t octet;
 	LOCK_SURFACE;
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
@@ -119,8 +119,8 @@ static void render_cg1(void) {
 /* Render a 16-byte resolution graphics line (RG1,RG2,RG3) */
 static void render_rg1(void) {
 	uint32_t *vram_ptr;
-	uint_fast8_t i;
-	uint_fast32_t octet;
+	unsigned int i;
+	uint_least32_t octet;
 	LOCK_SURFACE;
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
@@ -160,8 +160,8 @@ static void render_rg1(void) {
 /* Render a 32-byte colour graphics line (CG2,CG3,CG6) */
 static void render_cg2(void) {
 	uint32_t *vram_ptr;
-	uint_fast8_t i, j;
-	uint_fast32_t octet;
+	unsigned int i, j;
+	uint_least32_t octet;
 	LOCK_SURFACE;
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
@@ -207,8 +207,8 @@ static void render_cg2(void) {
 /* Render a 32-byte resolution graphics line (RG6) */
 static void render_rg6(void) {
 	uint32_t *vram_ptr;
-	uint_fast8_t i, j;
-	uint_fast32_t octet;
+	unsigned int i, j;
+	uint_least32_t octet;
 	LOCK_SURFACE;
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
@@ -244,7 +244,7 @@ static void render_rg6(void) {
 
 /* Render a line of border (top/bottom) */
 static void render_border(void) {
-	uint_fast16_t i;
+	unsigned int i;
 	LOCK_SURFACE;
 	for (i = 320; i; i--) {
 		*pixel = border_colour;

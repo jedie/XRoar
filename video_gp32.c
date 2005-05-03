@@ -31,14 +31,14 @@
 
 static int init(void);
 static void shutdown(void);
-static void fillrect(uint_fast16_t x, uint_fast16_t y,
-		uint_fast16_t w, uint_fast16_t h, uint32_t colour);
-static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src);
+static void fillrect(uint_least16_t x, uint_least16_t y,
+		uint_least16_t w, uint_least16_t h, uint32_t colour);
+static void blit(uint_least16_t x, uint_least16_t y, Sprite *src);
 static void backup(void);
 static void restore(void);
 static void vdg_reset(void);
 static void vdg_vsync(void);
-static void vdg_set_mode(uint_fast8_t mode);
+static void vdg_set_mode(unsigned int mode);
 static void vdg_render_sg4(void);
 /* static void vdg_render_sg6(void); */
 static void vdg_render_cg1(void);
@@ -68,7 +68,7 @@ VideoModule video_gp32_module = {
 #define LOCK_SURFACE
 #define UNLOCK_SURFACE
 
-static uint_fast8_t subline;
+static unsigned int subline;
 static uint32_t *pixel;
 static uint32_t darkgreen, black;
 static uint8_t bg_colour;
@@ -119,12 +119,12 @@ static int init(void) {
 static void shutdown(void) {
 }
 
-static void fillrect(uint_fast16_t x, uint_fast16_t y, uint_fast16_t w, uint_fast16_t h, uint32_t colour) {
+static void fillrect(uint_least16_t x, uint_least16_t y, uint_least16_t w, uint_least16_t h, uint32_t colour) {
 	uint8_t *d = (uint8_t *)screen.ptbuffer + (x*240) + (240-y) - h;
 	uint8_t c = MAPCOLOUR(colour >> 24, (colour >> 16) & 0xff,
 			(colour >> 8) & 0xff);
-	uint_fast16_t skip = 240 - h;
-	uint_fast16_t j;
+	uint_least16_t skip = 240 - h;
+	uint_least16_t j;
 	for (; w; w--) {
 		for (j = h; j; j--) {
 			*(d++) = c;
@@ -133,11 +133,11 @@ static void fillrect(uint_fast16_t x, uint_fast16_t y, uint_fast16_t w, uint_fas
 	}
 }
 
-static void blit(uint_fast16_t x, uint_fast16_t y, Sprite *src) {
+static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
 	uint8_t *s = src->data;
 	uint8_t *d = (uint8_t *)screen.ptbuffer + (x*240) + (240-y) - src->h;
-	uint_fast16_t skip = 240 - src->h;
-	uint_fast16_t j, w = src->w;
+	uint_least16_t skip = 240 - src->h;
+	uint_least16_t j, w = src->w;
 	for (; w; w--) {
 		for (j = src->h; j; j--) {
 			*(d++) = *(s++);
@@ -490,7 +490,7 @@ static void vdg_render_rg6(void) {
 	if (subline > 2) subline = 0;
 }
 
-static void vdg_set_mode(uint_fast8_t mode) {
+static void vdg_set_mode(unsigned int mode) {
 	if (mode & 0x80) {
 		/* Graphics modes */
 		if (((mode & 0x70) == 0x70) && video_artifact_mode) {

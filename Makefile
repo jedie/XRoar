@@ -21,7 +21,7 @@ WINDOWS32_PREFIX = /usr/i586-mingw32msvc
 CFLAGS_GP32 = -O3 -funroll-loops -finline-functions -mcpu=arm9tdmi \
 	-mstructure-size-boundary=32 -finline-limit=320000
 
-CFLAGS_UNIX = -O3 -g -std=c99 -finline-limit=32000
+CFLAGS_UNIX = -O3 -g -std=c99 -finline-limit=63000
 
 CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
@@ -45,9 +45,6 @@ USE_CLI_UI = 1		# Prompt for filenames on command line
 # Build for a little-endian machine, eg x86.  This should be commented out
 # for big-endian architectures, eg Sparc.
 CFLAGS_UNIX += -DWRONG_ENDIAN
-
-# Comment this out if your system doesn't have int_fastN_t (eg, Solaris)
-CFLAGS_UNIX += -DHAVE_FASTINT
 
 # Uncomment this to enable tracing
 #CFLAGS_UNIX += -DTRACE

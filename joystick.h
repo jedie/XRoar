@@ -22,8 +22,8 @@ struct JoystickModule {
  * so will set this: */
 extern JoystickModule *joystick_module;
 
-extern uint_fast8_t joystick_leftx, joystick_lefty;
-extern uint_fast8_t joystick_rightx, joystick_righty;
+extern unsigned int joystick_leftx, joystick_lefty;
+extern unsigned int joystick_rightx, joystick_righty;
 
 int joystick_init(void);
 void joystick_shutdown(void);

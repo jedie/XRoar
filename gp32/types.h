@@ -30,12 +30,12 @@ typedef char int8_t;
 typedef short int16_t;
 typedef int int32_t;
 
-typedef unsigned int uint_fast8_t __attribute__ ((aligned (4)));
-typedef unsigned int uint_fast16_t __attribute__ ((aligned (4)));
-typedef unsigned int uint_fast32_t __attribute__ ((aligned (4)));
-typedef int int_fast8_t __attribute__ ((aligned (4)));
-typedef int int_fast16_t __attribute__ ((aligned (4)));
-typedef int int_fast32_t __attribute__ ((aligned (4)));
+typedef unsigned int uint_least8_t __attribute__ ((aligned (4)));
+typedef unsigned int uint_least16_t __attribute__ ((aligned (4)));
+typedef unsigned int uint_least32_t __attribute__ ((aligned (4)));
+typedef int int_least8_t __attribute__ ((aligned (4)));
+typedef int int_least16_t __attribute__ ((aligned (4)));
+typedef int int_least32_t __attribute__ ((aligned (4)));
 
 typedef int ssize_t;
 

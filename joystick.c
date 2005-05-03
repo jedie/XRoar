@@ -27,8 +27,8 @@ extern JoystickModule joystick_sdl_module;
 
 JoystickModule *joystick_module;
 
-uint_fast8_t joystick_leftx, joystick_lefty;
-uint_fast8_t joystick_rightx, joystick_righty;
+unsigned int joystick_leftx, joystick_lefty;
+unsigned int joystick_rightx, joystick_righty;
 
 int joystick_init(void) {
 	if (joystick_module == NULL)
@@ -48,7 +48,7 @@ void joystick_reset(void) {
 
 void joystick_update(void) {
 	int xcompare, ycompare;
-	uint_fast8_t octet = PIA_1A.port_output & 0xfc;
+	unsigned int octet = PIA_1A.port_output & 0xfc;
 	if (PIA_0B.control_register & 0x08) {
 		xcompare = (joystick_leftx >= octet);
 		ycompare = (joystick_lefty >= octet);

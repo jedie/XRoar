@@ -36,7 +36,7 @@
  * keymap is in use (good to be able to set it separately). */
 int machine_romtype, machine_keymap;
 int dragondos_enabled;
-int_fast32_t brk_csrdon, brk_bitin;
+uint_least16_t brk_csrdon, brk_bitin;
 Keymap keymap;
 uint8_t ram0[0x8000];
 uint8_t ram1[0x8000];
@@ -107,8 +107,8 @@ void machine_init(void) {
 }
 
 void machine_reset(int hard) {
-	uint_fast16_t romsize;
-	uint_fast8_t i;
+	uint_least16_t romsize;
+	unsigned int i;
 	if (hard) {
 		memset(ram0, 0, sizeof(ram0));
 		memset(ram1, 0, sizeof(ram1));

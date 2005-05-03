@@ -20,7 +20,7 @@
 
 #include "../types.h"
 
-extern volatile uint_fast8_t playing_frame;
+extern volatile unsigned int playing_frame;
 
 void gpsound_init(uint32_t pclk, uint32_t *rate);
 uint16_t **gpsound_buffers(int size);

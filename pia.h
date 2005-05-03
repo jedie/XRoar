@@ -16,16 +16,16 @@
 #define MAX_WRFUNCS 4
 
 typedef struct {
-	uint_fast8_t control_register;
-	uint_fast8_t direction_register;
-	uint_fast8_t output_register;
-	uint_fast8_t port_output;
-	uint_fast8_t port_input;
-	uint_fast8_t tied_low;
+	unsigned int control_register;
+	unsigned int direction_register;
+	unsigned int output_register;
+	unsigned int port_output;
+	unsigned int port_input;
+	unsigned int tied_low;
 	/* Convenience flags split out from control_register above */
-	uint_fast8_t interrupt_enable;
-	uint_fast8_t interrupt_transition;
-	uint_fast8_t register_select;  /* 0 = DDR, SET = OR */
+	unsigned int interrupt_enable;
+	unsigned int interrupt_transition;
+	unsigned int register_select;  /* 0 = DDR, SET = OR */
 	/* ignore Cx2 stuff for now */
 } pia_port;
 

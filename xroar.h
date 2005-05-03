@@ -13,7 +13,7 @@
 
 extern Cycle current_cycle;
 extern Cycle next_sound_update, next_disk_interrupt;
-extern int_fast8_t enable_disk_interrupt;
+extern int enable_disk_interrupt;
 
 #ifdef TRACE
 extern int trace;
