@@ -24,12 +24,13 @@
 #include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
 
+#include "logging.h"
 #include "ui.h"
 
 static int init(void);
 static void shutdown(void);
 static void menu(void);
-static char *get_filename(char *extension);
+static char *get_filename(const char **extensions);
 
 UIModule ui_carbon_module = {
 	NULL,
@@ -51,7 +52,7 @@ static void shutdown(void) {
 static void menu(void) {
 }
 
-static char *get_filename(char *extension){
+static char *get_filename(const char **extensions) {
 	NavDialogCreationOptions options;
 	NavDialogRef mydialog;
         
@@ -59,29 +60,27 @@ static char *get_filename(char *extension){
         NavReplyRecord filespec; 
         AEDesc filedesc;
         FSRef fileref;
-        UInt8* filename;
+        UInt8 *filename = NULL;
         int le, length=0; 
 
-       	status = NavGetDefaultDialogCreationOptions (&options);
-       	status = NavCreateChooseFileDialog ( &options, NULL, NULL, \
-                NULL, NULL, NULL, &mydialog);
-     status = NavDialogRun( mydialog );
-        status = NavDialogGetReply ( mydialog, &filespec );
-        status = AEGetNthDesc (&filespec.selection, 1, typeWildCard, \
-                NULL, &filedesc);
-        status = NavDisposeReply (&filespec);
-       status = AEGetDescData (&filedesc, &fileref, sizeof(FSRef));
-       le = FALSE;
-        while( ! le ){   
-        if (FSRefMakePath(&fileref, filename, length) == pathTooLongErr){
-                length +=1;
-                filename = (UInt8 *) malloc(length);
-                }
-        else
-                {
-                le = TRUE;
-                }
-        }
+	(void)extensions;  /* unused */
+       	status = NavGetDefaultDialogCreationOptions(&options);
+       	status = NavCreateChooseFileDialog(&options, NULL, NULL, NULL, NULL, NULL, &mydialog);
+	status = NavDialogRun(mydialog);
+        status = NavDialogGetReply(mydialog, &filespec);
+        status = AEGetNthDesc(&filespec.selection, 1, typeWildCard, NULL, &filedesc);
+	status = NavDisposeReply(&filespec);
+	status = AEGetDescData(&filedesc, &fileref, sizeof(FSRef));
+	le = FALSE;
+	while(!le) {   
+		if (FSRefMakePath(&fileref, filename, length)
+				== pathTooLongErr) {
+			length++;
+			filename = malloc(length);
+		} else {
+			le = TRUE;
+		}
+	}
 	return (char *)filename;
 }
 

@@ -18,6 +18,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_SDL_VIDEO
+# include <SDL.h>
+#endif
 
 #include "xroar.h"
 #include "logging.h"
