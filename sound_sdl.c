@@ -49,7 +49,13 @@ typedef uint_fast8_t Sample_f;  /* Fastest for manipulating above */
 #define CHANNELS 1
 #define FORMAT AFMT_U8
 #define FRAGMENTS 2
-#define FRAME_SIZE 512
+/* The lower the FRAME_SIZE, the better.  Windows32 seems to have problems
+ * with very small frame sizes though. */
+#ifdef WINDOWS32
+# define FRAME_SIZE 1024
+#else
+# define FRAME_SIZE 512
+#endif
 #define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
