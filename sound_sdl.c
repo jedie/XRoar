@@ -52,7 +52,7 @@ typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 /* The lower the FRAME_SIZE, the better.  Windows32 seems to have problems
  * with very small frame sizes though. */
 #ifdef WINDOWS32
-# define FRAME_SIZE 1024
+# define FRAME_SIZE 2048
 #else
 # define FRAME_SIZE 512
 #endif
