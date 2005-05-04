@@ -89,6 +89,10 @@ SDL_Surface *screen;
 
 static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL video driver\n");
+#ifdef WINDOWS32
+	if (!getenv("SDL_VIDEODRIVER"))
+		putenv("SDL_VIDEODRIVER=windib");
+#endif
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 			LOG_ERROR("Failed to initialiase SDL\n");

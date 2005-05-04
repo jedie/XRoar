@@ -21,7 +21,7 @@ WINDOWS32_PREFIX = /usr/i586-mingw32msvc
 CFLAGS_GP32 = -O3 -funroll-loops -finline-functions -mcpu=arm9tdmi \
 	-mstructure-size-boundary=32 -finline-limit=320000
 
-CFLAGS_UNIX = -O3 -g -std=c99 -finline-limit=63000
+CFLAGS_UNIX = -O3 -g -finline-limit=63000
 
 CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
