@@ -120,7 +120,7 @@ void machine_reset(int hard) {
 		for (i=0; load_rom(rom_names[machine_romtype][i], rom0, romsize) && i<4; i++);
 		if (IS_DRAGON64) {
 			for (i=0; load_rom(d64_rom2_names[i], rom1, 0x4000) && i<4; i++);
-			memcpy(rom0+0x4000, rom1+0x4000, 0x4000);
+			memcpy(rom1+0x4000, rom0+0x4000, 0x4000);
 		}
 	}
 	pia_reset();
