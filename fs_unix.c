@@ -27,6 +27,14 @@
 #include "fs.h"
 #include "types.h"
 
+#ifdef WINDOWS32
+# define WRFLAGS (O_CREAT|O_WRONLY|O_BINARY)
+# define RDFLAGS (O_RDONLY|O_BINARY)
+#else
+# define WRFLAGS (O_CREAT|O_WRONLY)
+# define RDFLAGS (O_RDONLY)
+#endif
+
 static const char *fs_error = "";
 
 void fs_init(void) {
@@ -35,9 +43,9 @@ void fs_init(void) {
 FS_FILE fs_open(const char *filename, int flags) {
 	int fd;
 	if (flags & FS_WRITE)
-		fd = open(filename, O_CREAT|O_WRONLY, 0644);
+		fd = open(filename, WRFLAGS, 0644);
 	else
-		fd = open(filename, O_RDONLY);
+		fd = open(filename, RDFLAGS);
 	if (fd == -1) {
 		fs_error = strerror(errno);
 		return -1;

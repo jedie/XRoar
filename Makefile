@@ -15,8 +15,8 @@ OBJCOPY_GP32 = arm-elf-objcopy
 # CC_WINDOWS32 is set to the right cross-compiler, and WINDOWS32_PREFIX
 # points to the top of your MinGW32 install (currently only used to find
 # sdl-config).
-CC_WINDOWS32 = i586-mingw32msvc-gcc
-WINDOWS32_PREFIX = /usr/i586-mingw32msvc
+CC_WINDOWS32 = i586-mingw32-gcc
+WINDOWS32_PREFIX = /usr/local/i586-mingw32
 
 CFLAGS_GP32 = -O3 -funroll-loops -finline-functions -mcpu=arm9tdmi \
 	-mstructure-size-boundary=32 -finline-limit=320000
