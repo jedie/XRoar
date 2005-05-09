@@ -57,6 +57,10 @@ CFLAGS_UNIX += -DWRONG_ENDIAN
 ### ----- You shouldn't need to change anything under this line ------ ###
 ###
 
+version = 0.12pre1
+
+distname = xroar-$(version)
+
 COMMON_SOURCES_H = config.h fs.h hexs19.h joystick.h keyboard.h logging.h \
 	m6809.h machine.h pia.h sam.h snapshot.h sound.h tape.h types.h ui.h \
 	vdg.h video.h wd2797.h xroar.h
@@ -129,7 +133,7 @@ ifdef USE_CARBON_UI
 	LDFLAGS_CARBON = -framework Carbon
 endif
 
-CFLAGS_UNIX += $(CFLAGS_SDL) $(CFLAGS_GTK)
+CFLAGS_UNIX += -DVERSION=\"$(version)\" $(CFLAGS_SDL) $(CFLAGS_GTK)
 LDFLAGS_UNIX = $(LDFLAGS_SDL) $(LDFLAGS_JACK) $(LDFLAGS_GTK) $(LDFLAGS_CARBON)
 CFLAGS_GP32 += -DHAVE_GP32
 LDFLAGS_GP32 = -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
@@ -175,6 +179,10 @@ cmode_bin.c: $(IMG2C) gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png 
 
 kbd_graphics.c: $(IMG2C) gp32/kbd.png gp32/kbd_shift.png
 	$(IMG2C) kbd_bin gp32/kbd.png gp32/kbd_shift.png > $@
+
+dist:
+	darcs dist --dist-name $(distname)
+	mv $(distname).tar.gz ..
 
 clean:
 	rm -f $(CLEAN)
