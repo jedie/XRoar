@@ -60,6 +60,7 @@ UIModule ui_gp32_module = {
 static void tape_callback(int);
 static void machine_callback(int);
 static void keymap_callback(int);
+static void dragondos_callback(int);
 static void artifact_callback(int);
 static void snapshot_load_callback(int);
 static void snapshot_save_callback(int);
@@ -164,7 +165,7 @@ static MenuPickint keymap_options = {
 };
 static MenuPickint dragondos_options = {
 	"DragonDOS",
-	&dragondos_enabled, NULL, 0,
+	&dragondos_enabled, dragondos_callback, 0,
 	2, {
 		{ "Disabled", 0 },
 		{ "Enabled", 1 },
@@ -174,10 +175,10 @@ static MenuPickint disk_options = {
 	"Insert disk into drive",
 	NULL, disk_callback, 0,
 	4, {
-		{ "1", 1 },
-		{ "2", 2 },
-		{ "3", 3 },
-		{ "4", 4 },
+		{ "1", 0 },
+		{ "2", 1 },
+		{ "3", 2 },
+		{ "4", 3 },
 	}
 };
 static MenuPickint reset_options = {
@@ -483,6 +484,7 @@ static void show_option(int x, int y, int w, MenuOption *opt) {
 		draw_string(x, y, data->label, w);
 	}
 }
+
 static int edit_option(int x, int y, int w, MenuOption *opt, int num, int newkey, int rkey) {
 	if (opt->type == MENU_PICKINT) {
 		MenuPickint *data = opt->data.pickint;
@@ -507,8 +509,6 @@ static int edit_option(int x, int y, int w, MenuOption *opt, int num, int newkey
 			return 0;
 		}
 		if (newkey & (GPC_VK_SELECT|GPC_VK_FA|GPC_VK_FB)) {
-			if (data->var)
-				*(data->var) = data->options[data->cur].value;
 			if (data->callback)
 				data->callback(data->options[data->cur].value);
 			return 1;
@@ -591,12 +591,14 @@ static void tape_callback(int num) {
 static void machine_callback(int num) {
 	if (num != machine_romtype) {
 		machine_set_romtype(num);
-		machine_set_keymap(num);
 		xroar_reset(RESET_HARD);
 	}
 }
 static void keymap_callback(int num) {
 	machine_set_keymap(num);
+}
+static void dragondos_callback(int num) {
+	dragondos_enabled = num;
 }
 static void snapshot_load_callback(int num) {
 	const char *snap_exts[] = { "SNA", NULL };
@@ -627,7 +629,7 @@ static void binary_load_callback(int num) {
 		coco_bin_read(filename);
 }
 static void artifact_callback(int num) {
-	(void)num;  /* unused */
+	video_artifact_mode = num;
 	vdg_set_mode();
 }
 static void disk_callback(int num) {

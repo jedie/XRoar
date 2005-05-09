@@ -59,6 +59,7 @@ int fs_chdir(char *path) {
 		GpRelativePathSet(cwd);
 		return 0;
 	}
+	/* Translate / into \ */
 	for (p = path; *p; p++) {
 		if (*p == '/')
 			*p = '\\';
@@ -71,22 +72,37 @@ int fs_chdir(char *path) {
 	if (path[0] == '\\') {
 		strcpy(cwd, "gp:");
 		strcat(cwd, path);
+		if (*(p-1) != '\\') strcat(cwd, "\\");
 		GpRelativePathSet(cwd);
 		return 0;
 	}
 	strcat(cwd, path);
-	strcat(cwd, "\\");
+	if (*(p-1) != '\\') strcat(cwd, "\\");
 	GpRelativePathSet(cwd);
 	return 0;
 }
 
 FS_FILE fs_open(const char *filename, int flags) {
 	F_HANDLE fd;
+	char *basename;
+	if ((basename = strrchr(filename, '\\'))
+			|| (basename = strrchr(filename, '/'))) {
+		int length = (basename - filename) + 1;
+		char *dir = malloc(length+1);
+		if (!dir) return -1;
+		strncpy(dir, filename, length);
+		dir[length] = 0;
+		fs_chdir(dir);
+		free(dir);
+		basename++;
+	} else {
+		basename = filename;
+	}
 	if (flags & FS_WRITE) {
-		if (GpFileCreate(filename, ALWAYS_CREATE, &fd) != SM_OK)
+		if (GpFileCreate(basename, ALWAYS_CREATE, &fd) != SM_OK)
 			return -1;
 	} else {
-		if (GpFileOpen(filename, OPEN_R, &fd) != SM_OK)
+		if (GpFileOpen(basename, OPEN_R, &fd) != SM_OK)
 			return -1;
 	}
 	return fd;
@@ -135,6 +151,7 @@ int fs_scandir(const char *dir, struct dirent ***namelist,
 	if (!strcmp(dir, ".")) {
 		dir = cwd;
 	}
+	fs_chdir(dir);
 	GpDirEnumNum(dir, &p_num);
 	array = (struct dirent **)malloc((p_num+1) * sizeof(struct dirent *));
 	if (array == NULL)

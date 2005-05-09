@@ -1,3 +1,6 @@
+### Install under this prefix:
+prefix = /usr/local
+
 ### These settings set what compiler to use.  Note that when building for
 ### GP32, certain intermediate tools are built using CC_UNIX, so that still
 ### needs to be set correctly.
@@ -49,10 +52,6 @@ CFLAGS_UNIX += -DWRONG_ENDIAN
 # Uncomment this to enable tracing
 #CFLAGS_UNIX += -DTRACE
 
-# Uncomment this to default to building a GP32 binary (you can
-# 'make xroar.fxe' manually anyway).
-#BUILD_GP32 = 1
-
 ###
 ### ----- You shouldn't need to change anything under this line ------ ###
 ###
@@ -98,7 +97,7 @@ CLEAN = $(COMMON_OBJECTS) $(UNIX_OBJECTS) $(GP32_OBJECTS) \
 	$(GP32_BUILD_SOURCES_C) $(EXTRA_CLEAN)
 
 SDL_CONFIG = sdl-config
-xroar.exe: SDL_CONFIG = $(WINDOWS32_PREFIX)/bin/sdl-config
+$(WINDOWS32_TARGET): SDL_CONFIG = $(WINDOWS32_PREFIX)/bin/sdl-config
 
 ifdef USE_SDL
 	CFLAGS_UNIX += -DHAVE_SDL_VIDEO -DHAVE_SDL_AUDIO
@@ -130,7 +129,10 @@ ifdef USE_CLI_UI
 endif
 ifdef USE_CARBON_UI
 	CFLAGS_UNIX += -DHAVE_CARBON_UI
+	ROMPATH_UNIX = -DROMPATH=\":/Library/XRoar/Roms:~/Library/XRoar/Roms\"
 	LDFLAGS_CARBON = -framework Carbon
+else
+	ROMPATH_UNIX = -DROMPATH=\"~:$(prefix)/share/xroar/roms\"
 endif
 
 CFLAGS_UNIX += -DVERSION=\"$(version)\" $(CFLAGS_SDL) $(CFLAGS_GTK)
@@ -140,18 +142,18 @@ LDFLAGS_GP32 = -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
 
 all: xroar
 
-xroar: CC = $(CC_UNIX)
-xroar: CFLAGS = $(CFLAGS_UNIX) $(CFLAGS_COMMON)
-xroar.exe: CC = $(CC_WINDOWS32)
-xroar.exe: CFLAGS = -DWINDOWS32 $(CFLAGS_UNIX) $(CFLAGS_COMMON)
-xroar xroar.exe: $(UNIX_OBJECTS) $(COMMON_OBJECTS)
+$(UNIX_TARGET): CC = $(CC_UNIX)
+$(UNIX_TARGET): CFLAGS = $(ROMPATH_UNIX) $(CFLAGS_UNIX) $(CFLAGS_COMMON)
+$(WINDOWS32_TARGET): CC = $(CC_WINDOWS32)
+$(WINDOWS32_TARGET): CFLAGS = -DWINDOWS32 -DROMPATH=\"\" $(CFLAGS_UNIX) $(CFLAGS_COMMON)
+$(UNIX_TARGET) $(WINDOWS32_TARGET): $(UNIX_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $(UNIX_OBJECTS) $(COMMON_OBJECTS) $(LDFLAGS_UNIX)
 
-xroar.fxe: CC = $(CC_GP32)
-xroar.fxe: AS = $(AS_GP32)
-xroar.fxe: OBJCOPY = $(OBJCOPY_GP32)
-xroar.fxe: CFLAGS = $(CFLAGS_GP32) $(CFLAGS_COMMON)
-xroar.fxe: $(GP32_OBJECTS) $(COMMON_OBJECTS)
+$(GP32_TARGET): CC = $(CC_GP32)
+$(GP32_TARGET): AS = $(AS_GP32)
+$(GP32_TARGET): OBJCOPY = $(OBJCOPY_GP32)
+$(GP32_TARGET): CFLAGS = -DROMPATH=\"/gpmm/dragon\" $(CFLAGS_GP32) $(CFLAGS_COMMON)
+$(GP32_TARGET): $(GP32_OBJECTS) $(COMMON_OBJECTS)
 	$(CC_GP32) $(CFLAGS) -nostartfiles -o xroar.elf -T gp32/lnkscript $(GP32_OBJECTS) $(COMMON_OBJECTS) $(LDFLAGS_GP32)
 	$(OBJCOPY) -O binary xroar.elf xroar.bin
 	b2fxec -t "XRoar" -a "Ciaran Anscomb" -b gp32/icon.bmp -f xroar.bin $@

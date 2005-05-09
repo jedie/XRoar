@@ -16,6 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "machine.h"
@@ -81,14 +82,16 @@ static Keymap coco_keymap = {
 };
 
 const char *rom_names[3][4] = {
-	{ "d64rom1.dgn", "d64rom1.rom", "dragrom.dgn", "dragon.rom" },
-	{ "coco.rom", "coco_pa.rom", "cocodisk.rom", "coco.dgn" },
-	{ "dragon32.rom", "d32rom.dgn", "dragon.rom", "dragrom.dgn" },
+	{ "d64rom1", "dragrom", "dragon", NULL },
+	{ "coco", "coco_pa", "cocodisk", "coco" },
+	{ "dragon32", "d32rom", "dragon", "dragrom" },
 };
 const char *d64_rom2_names[4] =
-	{ "d64rom2.rom", "d64rom2.dgn", "d64_2.rom", "d64_2.dgn" };
+	{ "d64rom2", "d64_2", NULL, NULL };
+const char *dragondos_rom_names[4] =
+	{ "sdose6", "ddos10", NULL, NULL };
 
-static int load_rom(const char *filename, uint8_t *dest, size_t max_size);
+static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
 
 void machine_init(void) {
 	machine_set_romtype(DRAGON64);
@@ -117,10 +120,13 @@ void machine_reset(int hard) {
 			brk_csrdon = 0xbde7; brk_bitin = 0xbda5;
 		}
 		romsize = dragondos_enabled ? sizeof(rom0) : 0x4000;
-		for (i=0; load_rom(rom_names[machine_romtype][i], rom0, romsize) && i<4; i++);
+		for (i=0; i<4 && load_rom(rom_names[machine_romtype][i], rom0, romsize); i++);
 		if (IS_DRAGON64) {
-			for (i=0; load_rom(d64_rom2_names[i], rom1, 0x4000) && i<4; i++);
+			for (i=0; i<4 && load_rom(d64_rom2_names[i], rom1, 0x4000); i++);
 			memcpy(rom1+0x4000, rom0+0x4000, 0x4000);
+		}
+		if (dragondos_enabled) {
+			for (i=0; i<4 && load_rom(dragondos_rom_names[i], &rom0[0x4000], 0x4000); i++);
 		}
 	}
 	pia_reset();
@@ -137,15 +143,17 @@ void machine_reset(int hard) {
 
 /* Setting romtype takes effect on next reset */
 void machine_set_romtype(int mode) {
-	if (mode >= NUM_MACHINES) mode = 0;
-	machine_romtype = mode;
+	machine_romtype = mode % NUM_MACHINES;
+	if (IS_DRAGON)
+		machine_set_keymap(DRAGON_KEYBOARD);
+	else
+		machine_set_keymap(COCO_KEYBOARD);
 }
 
 /* Setting keymap takes effect immediately */
 void machine_set_keymap(int mode) {
-	if (mode >= NUM_KEYBOARDS) mode = 0;
-	machine_keymap = mode;
-	switch (mode) {
+	machine_keymap = mode % NUM_KEYBOARDS;
+	switch (machine_keymap) {
 		default:
 		case DRAGON_KEYBOARD:
 			memcpy(keymap, dragon_keymap, sizeof(keymap));
@@ -156,15 +164,25 @@ void machine_set_keymap(int mode) {
 	}
 }
 
-static int load_rom(const char *filename, uint8_t *dest, size_t max_size) {
+/* load_rom searches a path (specified in ROMPATH macro at compile time) to
+ * find roms.  It searches each element in the (colon separated) path for
+ * the supplied rom name with ".rom" or ".dgn" as a suffix.  load_rom_f does
+ * the actual loading. */
+
+#ifndef ROMPATH
+# define ROMPATH ":/usr/local/share/xroar/roms"
+#endif
+
+static int load_rom_f(const char *filename, uint8_t *dest, size_t max_size) {
 	FS_FILE fd;
+	LOG_DEBUG(4,"Checking for %s\n", filename);
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
 	if (fs_read(fd, dest, 16) < 0) {
 		fs_close(fd);
 		return -1;
 	}
-	fprintf(stderr, "Loading %s\n", filename);
+	LOG_DEBUG(3, "Loading ROM: %s\n", filename);
 	if (dest[0] == 0xa1) {
 		fs_read(fd, dest, max_size);
 	} else {
@@ -172,4 +190,67 @@ static int load_rom(const char *filename, uint8_t *dest, size_t max_size) {
 	}
 	fs_close(fd);
 	return 0;
+}
+
+static char *construct_path(const char *path, const char *filename) {
+	char *buf;
+	char *until = strchr(path, ':');
+	char *home = NULL;
+	int path_length, extra;
+	if (!until)
+		path_length = strlen(path);
+	else
+		path_length = until - path;
+	extra = strlen(filename);
+	if (path[0] == '~') {
+		home = getenv("HOME");
+		if (home) {
+			extra += strlen(home);
+			path_length--;
+		}
+	}
+	buf = malloc(path_length + extra + 3);
+	if (!buf)
+		return NULL;
+	strncpy(buf, path, path_length);
+	if (path_length)
+		buf[path_length++] = '/';
+	buf[path_length] = 0;
+	if (home) {
+		strcat(buf, home);
+		strcat(buf, "/");
+	}
+	strcat(buf, filename);
+	return buf;
+}
+
+static int load_rom(const char *romname, uint8_t *dest, size_t max_size) {
+	const char *exts[2] = { ".rom", ".dgn" };
+	const char *path = ROMPATH;
+	char *filename;
+	char buf[13];
+	unsigned int i;
+	if (!romname)
+		return -1;
+	if (strlen(romname) > 12)
+		return -1;
+	while (*path) {
+		for (i = 0; i < 2; i++) {
+			int ret;
+			strcpy(buf, romname);
+			strcat(buf, exts[i]);
+			filename = construct_path(path, buf);
+			if (filename == NULL)
+				return -1;
+			ret = load_rom_f(filename, dest, max_size);
+			free(filename);
+			if (ret == 0)
+				return 0;
+		}
+		while (*path && *path != ':')
+			path++;
+		if (*path == ':')
+			path++;
+	}
+	return -1;
 }
