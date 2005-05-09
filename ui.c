@@ -22,20 +22,20 @@
 #include "ui.h"
 #include "logging.h"
 
-#ifdef HAVE_GTK_UI
-extern UIModule ui_gtk_module;
-#endif
 #ifdef HAVE_CARBON_UI
 extern UIModule ui_carbon_module;
 #endif
 #ifdef WINDOWS32
 extern UIModule ui_windows32_module;
 #endif
-#ifdef HAVE_CLI_UI
-extern UIModule ui_cli_module;
+#ifdef HAVE_GTK_UI
+extern UIModule ui_gtk_module;
 #endif
 #ifdef HAVE_GP32
 extern UIModule ui_gp32_module;
+#endif
+#ifdef HAVE_CLI_UI
+extern UIModule ui_cli_module;
 #endif
 
 static char *module_option;
@@ -106,20 +106,20 @@ static int module_init_by_name(char *name) {
 void ui_getargs(int argc, char **argv) {
 	int i;
 	modules_head = ui_module = NULL;
-#ifdef HAVE_GTK_UI
-	module_add(&ui_gtk_module);
-#endif
 #ifdef HAVE_CARBON_UI
 	module_add(&ui_carbon_module);
 #endif
 #ifdef WINDOWS32
 	module_add(&ui_windows32_module);
 #endif
-#ifdef HAVE_CLI_UI
-	module_add(&ui_cli_module);
+#ifdef HAVE_GTK_UI
+	module_add(&ui_gtk_module);
 #endif
 #ifdef HAVE_GP32
 	module_add(&ui_gp32_module);
+#endif
+#ifdef HAVE_CLI_UI
+	module_add(&ui_cli_module);
 #endif
 	module_option = NULL;
 	for (i = 1; i < (argc-1); i++) {
