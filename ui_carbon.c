@@ -60,8 +60,7 @@ static char *get_filename(const char **extensions) {
         NavReplyRecord filespec; 
         AEDesc filedesc;
         FSRef fileref;
-        UInt8 *filename = NULL;
-        int le, length=0; 
+        static UInt8 filename[768];
 
 	(void)extensions;  /* unused */
        	status = NavGetDefaultDialogCreationOptions(&options);
@@ -71,17 +70,9 @@ static char *get_filename(const char **extensions) {
         status = AEGetNthDesc(&filespec.selection, 1, typeWildCard, NULL, &filedesc);
 	status = NavDisposeReply(&filespec);
 	status = AEGetDescData(&filedesc, &fileref, sizeof(FSRef));
-	le = FALSE;
-	while(!le) {   
-		if (FSRefMakePath(&fileref, filename, length)
-				== pathTooLongErr) {
-			length++;
-			filename = malloc(length);
-		} else {
-			le = TRUE;
-		}
-	}
-	return (char *)filename;
+	if (FSRefMakePath(&fileref, filename, sizeof(filename)) == noErr)
+		return (char *)filename;
+	return NULL;
 }
 
 #endif  /* HAVE_CARBON_UI */

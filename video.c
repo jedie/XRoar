@@ -102,8 +102,13 @@ void video_getargs(int argc, char **argv) {
 	int i;
 	modules_head = video_module = NULL;
 #ifdef HAVE_SDL_VIDEO
+# ifdef PREFER_NOYUV
+	module_add(&video_sdl_module);
+	module_add(&video_sdlyuv_module);
+# else
 	module_add(&video_sdlyuv_module);
 	module_add(&video_sdl_module);
+# endif
 #endif
 #ifdef HAVE_GP32
 	module_add(&video_gp32_module);
