@@ -56,7 +56,7 @@ CFLAGS_UNIX += -DWRONG_ENDIAN
 ### ----- You shouldn't need to change anything under this line ------ ###
 ###
 
-version = 0.12pre1
+version = 0.12pre2
 
 distname = xroar-$(version)
 
