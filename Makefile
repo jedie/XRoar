@@ -132,7 +132,7 @@ ifdef USE_CARBON_UI
 	ROMPATH_UNIX = -DROMPATH=\":/Library/XRoar/Roms:~/Library/XRoar/Roms\"
 	LDFLAGS_CARBON = -framework Carbon
 else
-	ROMPATH_UNIX = -DROMPATH=\"~:$(prefix)/share/xroar/roms\"
+	ROMPATH_UNIX = -DROMPATH=\":$(prefix)/share/xroar/roms\"
 endif
 
 CFLAGS_UNIX += -DVERSION=\"$(version)\" $(CFLAGS_SDL) $(CFLAGS_GTK)
