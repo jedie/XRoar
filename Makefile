@@ -186,5 +186,21 @@ dist:
 	darcs dist --dist-name $(distname)
 	mv $(distname).tar.gz ..
 
+dist-gp32: $(GP32_TARGET)
+	mkdir $(distname)-gp32
+	cp COPYING ChangeLog README TODO $(GP32_TARGET) $(distname)-gp32/
+	rm -f ../$(distname)-gp32.zip
+	zip -r ../$(distname)-gp32.zip $(distname)-gp32
+	rm -rf $(distname)-gp32/
+
+dist-windows32: $(WINDOWS32_TARGET)
+	mkdir $(distname)-windows32
+	cp COPYING ChangeLog README TODO $(WINDOWS32_TARGET) /usr/local/i586-mingw32/bin/SDL.dll $(distname)-windows32/
+	i586-mingw32-strip $(distname)-windows32/$(WINDOWS32_TARGET)
+	i586-mingw32-strip $(distname)-windows32/SDL.dll
+	rm -f ../$(distname)-windows32.zip
+	zip -r ../$(distname)-windows32.zip $(distname)-windows32
+	rm -rf $(distname)-windows32/
+
 clean:
 	rm -f $(CLEAN)
