@@ -196,29 +196,30 @@ static char *construct_path(const char *path, const char *filename) {
 	char *buf;
 	char *until = strchr(path, ':');
 	char *home = NULL;
-	int path_length, extra;
+	int path_length, home_length = 0;
 	if (!until)
 		path_length = strlen(path);
 	else
 		path_length = until - path;
-	extra = strlen(filename);
-	if (path[0] == '~') {
+	if (path[0] == '~' && (path[1] == '/' || path[1] == '\\')) {
 		home = getenv("HOME");
-		if (home) {
-			extra += strlen(home);
-			path_length--;
-		}
+		if (home)
+			home_length = strlen(home)+1;
+		path += 2;
+		path_length -= 2;
 	}
-	buf = malloc(path_length + extra + 3);
+	buf = malloc(home_length + path_length + strlen(filename) + 2);
 	if (!buf)
 		return NULL;
-	strncpy(buf, path, path_length);
-	if (path_length)
-		buf[path_length++] = '/';
-	buf[path_length] = 0;
-	if (home) {
-		strcat(buf, home);
+	buf[0] = 0;
+	if (home_length) {
+		strcpy(buf, home);
 		strcat(buf, "/");
+	}
+	if (path_length) {
+		strncat(buf, path, path_length);
+		buf[home_length + path_length] = '/';
+		buf[home_length + path_length + 1] = 0;
 	}
 	strcat(buf, filename);
 	return buf;
