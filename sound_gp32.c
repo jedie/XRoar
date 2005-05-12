@@ -27,10 +27,11 @@
 #include <gpstdio.h>
 #include <gpfont.h>
 
+#include "types.h"
+#include "events.h"
 #include "sound.h"
 #include "pia.h"
 #include "xroar.h"
-#include "types.h"
 #include "gp32/gpsound.h"
 #include "gp32/gp32.h"
 
@@ -38,6 +39,7 @@ static int init(void);
 static void shutdown(void);
 static void reset(void);
 static void update(void);
+static void flush_frame(void);
 
 SoundModule sound_gp32_module = {
 	NULL,
@@ -60,6 +62,9 @@ static Sample **buffer;
 static Sample *wrptr;
 static Sample lastsample;
 
+static void flush_frame(void);
+static event_t flush_event;
+
 static int init(void) {
 	sample_rate = 22050;
 	gpsound_init(PCLK, &sample_rate);
@@ -68,6 +73,9 @@ static int init(void) {
 	frame_cycles = sample_cycles * frame_size;
 	buffer = gpsound_buffers(frame_size);
 	gpsound_start();
+	/* Replace this with a generic event_new() */
+	flush_event.scheduled = 0;
+	flush_event.next = NULL;
 	return 0;
 }
 
@@ -80,7 +88,9 @@ static void reset(void) {
 	wrptr = buffer[1];
 	writing_frame = 1;
 	frame_cycle_base = current_cycle;
-	next_sound_update = frame_cycle_base + frame_cycles;
+	flush_event.at_cycle = frame_cycle_base + frame_cycles;
+	flush_event.dispatch = flush_frame;
+	event_schedule(&flush_event);
 	lastsample = 0x80;
 }
 
@@ -110,19 +120,23 @@ static void update(void) {
 	}
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	if ((fill_to - buffer[writing_frame]) >= frame_size) {
-		frame_cycle_base += frame_cycles;
-		next_sound_update = frame_cycle_base + frame_cycles;
-		writing_frame ^= 1;
-		wrptr = buffer[writing_frame];
-		/* In theory, setting bit 2 of CLKCON sends the CPU into
-		 * IDLE mode, which turns off the clock until an interrupt
-		 * is raised. */
-		while ((rDCSRC2 >= (unsigned)buffer[1]) == writing_frame);
-			//rCLKCON |= (1<<2);
-	}
 	lastsample = (fill_with << 8) | fill_with;
-	return;
+}
+
+static void flush_frame(void) {
+	Sample *fill_to = buffer[writing_frame] + frame_size;
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
+	frame_cycle_base += frame_cycles;
+	flush_event.at_cycle = frame_cycle_base + frame_cycles;
+	event_schedule(&flush_event);
+	writing_frame ^= 1;
+	wrptr = buffer[writing_frame];
+	/* In theory, setting bit 2 of CLKCON sends the CPU into
+	 * IDLE mode, which turns off the clock until an interrupt
+	 * is raised. */
+	while ((rDCSRC2 >= (unsigned)buffer[1]) == writing_frame);
+		//rCLKCON |= (1<<2);
 }
 
 void sound_silence(void) {
