@@ -202,5 +202,18 @@ dist-windows32: $(WINDOWS32_TARGET)
 	zip -r ../$(distname)-windows32.zip $(distname)-windows32
 	rm -rf $(distname)-windows32/
 
+dist-macos: $(UNIX_TARGET)
+	mkdir XRoar-$(version)
+	mkdir -p XRoar-$(version)/XRoar.app/Contents/MacOS XRoar-$(version)/XRoar.app/Contents/Frameworks XRoar-$(version)/XRoar.app/Contents/Resources
+	cp $(UNIX_TARGET) XRoar-$(version)/XRoar.app/Contents/MacOS/
+	cp /usr/local/lib/libSDL-1.2.0.dylib XRoar-$(version)/XRoar.app/Contents/Frameworks/
+	install_name_tool -change /usr/local/lib/libSDL-1.2.0.dylib @executable_path/../Frameworks/libSDL-1.2.0.dylib XRoar-$(version)/XRoar.app/Contents/MacOS/xroar
+	sed -e "s!@VERSION@!$(version)!g" macos/Info.plist.in > XRoar-$(version)/XRoar.app/Contents/Info.plist
+	cp macos/xroar.icns XRoar-$(version)/XRoar.app/Contents/Resources/
+	cp README COPYING ChangeLog TODO XRoar-$(version)/
+	chmod -R o+rX,g+rX XRoar-$(version)/
+	hdiutil create -srcfolder XRoar-$(version) -uid 99 -gid 99 ../XRoar-$(version).dmg
+	rm -rf XRoar-$(version)/
+
 clean:
 	rm -f $(CLEAN)
