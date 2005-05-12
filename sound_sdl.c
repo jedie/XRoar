@@ -24,11 +24,12 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 
+#include "types.h"
+#include "events.h"
 #include "sound.h"
 #include "pia.h"
 #include "xroar.h"
 #include "logging.h"
-#include "types.h"
 
 static int init(void);
 static void shutdown(void);
@@ -68,9 +69,10 @@ static SDL_mutex *halt_mutex;
 static SDL_cond *halt_cv;
 static int haltflag;
 
-static void callback(void *userdata, Uint8 *stream, int len);
+static void flush_frame(void);
+static event_t flush_event = {0, flush_frame, 0, NULL };
 
-extern JoystickModule joystick_sdl_module;
+static void callback(void *userdata, Uint8 *stream, int len);
 
 static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL audio driver\n");
@@ -96,10 +98,10 @@ static int init(void) {
 		return 1;
 	}
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
-	/* Set preferred joystick driver */
-	joystick_module = &joystick_sdl_module;
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
+	flush_event.scheduled = 0;
+	flush_event.next = NULL;
 	return 0;
 }
 
@@ -116,9 +118,10 @@ static void shutdown(void) {
 static void reset(void) {
 	memset(buffer, 0x80, FRAME_SIZE * sizeof(Sample));
 	SDL_PauseAudio(0);
-	frame_cycle_base = current_cycle;
-	next_sound_update = frame_cycle_base + FRAME_CYCLES;
 	wrptr = buffer;
+	frame_cycle_base = current_cycle;
+	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_schedule(&flush_event);
 	lastsample = 0;
 }
 
@@ -126,6 +129,12 @@ static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
 	Sample_f fill_with;
 	Sample *fill_to;
+	if (elapsed_cycles >= FRAME_CYCLES) {
+		fill_to = buffer + FRAME_SIZE;
+		LOG_WARN("sdl_sound.c: Got to end of buffer\n");
+	} else {
+		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
+	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
 		fill_with = ((PIA_1B.port_output & 0x02) << 5) ^ 0x80;
@@ -138,37 +147,24 @@ static void update(void) {
 			fill_with = ((PIA_1A.port_output & 0xfc) >> 1) ^ 0x80;
 		}
 	}
-	if (elapsed_cycles >= (FRAME_CYCLES*2)) {
-		LOG_ERROR("Eek!  Sound buffer overrun!\n");
-		frame_cycle_base = current_cycle;
-		next_sound_update = frame_cycle_base + FRAME_CYCLES;
-		wrptr = buffer;
-		lastsample = fill_with;
-		return;
-	} else {
-		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
-	}
-	while (wrptr < fill_to && wrptr < (buffer + FRAME_SIZE))
+	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		SDL_LockMutex(halt_mutex);
-		haltflag = 1;
-		while (haltflag) {
-			SDL_CondWait(halt_cv, halt_mutex);
-		}
-		SDL_UnlockMutex(halt_mutex);
-		frame_cycle_base += FRAME_CYCLES;
-		next_sound_update = frame_cycle_base + FRAME_CYCLES;
-		wrptr -= FRAME_SIZE;
-		fill_to -= FRAME_SIZE;
-		if (wrptr < fill_to) {
-			LOG_WARN("Buffer overrun\n");
-		}
-		while (wrptr < fill_to)
-			*(wrptr++) = lastsample;
-	}
 	lastsample = fill_with;
-	return;
+}
+
+void flush_frame(void) {
+	Sample *fill_to = buffer + FRAME_SIZE;
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
+	frame_cycle_base += FRAME_CYCLES;
+	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_schedule(&flush_event);
+	wrptr = buffer;
+	SDL_LockMutex(halt_mutex);
+	haltflag = 1;
+	while (haltflag)
+		SDL_CondWait(halt_cv, halt_mutex);
+	SDL_UnlockMutex(halt_mutex);
 }
 
 static void callback(void *userdata, Uint8 *stream, int len) {

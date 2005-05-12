@@ -39,7 +39,6 @@ static int init(void);
 static void shutdown(void);
 static void reset(void);
 static void update(void);
-static void flush_frame(void);
 
 SoundModule sound_gp32_module = {
 	NULL,
