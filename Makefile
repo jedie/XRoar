@@ -60,11 +60,12 @@ version = 0.12pre2
 
 distname = xroar-$(version)
 
-COMMON_SOURCES_H = config.h fs.h hexs19.h joystick.h keyboard.h logging.h \
-	m6809.h machine.h pia.h sam.h snapshot.h sound.h tape.h types.h ui.h \
-	vdg.h video.h wd2797.h xroar.h
+COMMON_SOURCES_H = config.h events.h fs.h hexs19.h joystick.h keyboard.h \
+	logging.h m6809.h machine.h pia.h sam.h snapshot.h sound.h tape.h \
+	types.h ui.h vdg.h video.h wd2797.h xroar.h
 COMMON_SOURCES_C = xroar.c snapshot.c tape.c hexs19.c machine.c m6809.c sam.c \
-	pia.c wd2797.c vdg.c video.c sound.c ui.c keyboard.c joystick.c
+	pia.c wd2797.c vdg.c video.c sound.c ui.c keyboard.c joystick.c \
+	events.c
 COMMON_SOURCES = $(COMMON_SOURCES_H) $(COMMON_SOURCES_C)
 COMMON_OBJECTS = $(COMMON_SOURCES_C:.c=.o)
 
