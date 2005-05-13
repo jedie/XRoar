@@ -19,13 +19,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "xroar.h"
-#include "wd2797.h"
-#include "m6809.h"
-#include "pia.h"
+#include "types.h"
+#include "events.h"
 #include "fs.h"
 #include "logging.h"
-#include "types.h"
+#include "m6809.h"
+#include "pia.h"
+#include "wd2797.h"
+#include "xroar.h"
 
 #define MODE_NORMAL (0)
 #define MODE_TYPE_1 (1)
@@ -45,12 +46,27 @@
 #define STATUS_DRQ           (1<<1)
 #define STATUS_BUSY          (1<<0)
 
+#define MILLISEC(ms) ((OSCILLATOR_RATE*(ms))/1000)
+#define MICROSEC(us) ((OSCILLATOR_RATE*(us))/1000000)
+
 #define INTERRUPT_DISABLE (0)
 #define INTERRUPT_DRQ     (1)
 #define INTERRUPT_INTRQ   (2)
 
-#define SCHEDULE_INTERRUPT(i,c) enable_disk_interrupt = (i); next_disk_interrupt = current_cycle + (c); if (!(c)) { wd2797_generate_interrupt(); }
 #define WD2797_INTRQ if (ic1_nmi_enable) nmi = 1
+#define SCHEDULE_DRQ(c) do { \
+		drq_event.at_cycle = current_cycle + (c); \
+		event_schedule(&drq_event); \
+	} while (0)
+#define SCHEDULE_INTRQ(c) do { \
+		intrq_event.at_cycle = current_cycle + (c); \
+		event_schedule(&intrq_event); \
+	} while (0)
+
+static void generate_drq(void);
+static void generate_intrq(void);
+static event_t drq_event;
+static event_t intrq_event;
 
 /* Disks are implemented as an array of tracks, each track being a pointer to a
  * linked lists of disk sectors.  This is because technically, a track can have
@@ -89,6 +105,7 @@ static unsigned int track_register;
 static unsigned int sector_register;
 static unsigned int data_register;
 static unsigned int mode;
+static int writing; /* Set when writing a sector/track */
 static int step_direction;
 
 static unsigned int data_left;
@@ -96,6 +113,10 @@ static uint8_t *data_ptr;
 
 void wd2797_init(void) {
 	memset(disk, 0, sizeof(disk));
+	drq_event.dispatch = generate_drq;
+	drq_event.scheduled = 0;
+	intrq_event.dispatch = generate_intrq;
+	intrq_event.scheduled = 0;
 }
 
 void wd2797_reset(void) {
@@ -205,7 +226,7 @@ void wd2797_command_write(unsigned int octet) {
 		track_register = 0;
 		current_disk->head_position = 0;
 		/* XXX: should technically verify here if v flag set */
-		SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+		SCHEDULE_INTRQ(2000);
 		return;
 	}
 	/* SEEK */
@@ -226,14 +247,14 @@ void wd2797_command_write(unsigned int octet) {
 				current_disk->head_position = 0;
 			}
 		}
-		SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+		SCHEDULE_INTRQ(2000);
 		return;
 	}
 	/* STEP */
 	if ((octet & 0xe0) == 0x20) {
 		LOG_DEBUG(4, "WD2797: CMD: Step (%d)\n", step_direction);
 		wd2797_step(octet & 0x1c);
-		SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+		SCHEDULE_INTRQ(2000);
 		return;
 	}
 	/* STEP-IN */
@@ -241,7 +262,7 @@ void wd2797_command_write(unsigned int octet) {
 		LOG_DEBUG(4, "WD2797: CMD: Step-in\n");
 		step_direction = 1;
 		wd2797_step(octet & 0x1c);
-		SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+		SCHEDULE_INTRQ(2000);
 		return;
 	}
 	/* STEP-OUT */
@@ -249,7 +270,7 @@ void wd2797_command_write(unsigned int octet) {
 		LOG_DEBUG(4, "WD2797: CMD: Step-out\n");
 		step_direction = -1;
 		wd2797_step(octet & 0x1c);
-		SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+		SCHEDULE_INTRQ(2000);
 		return;
 	}
 	/* READ SECTOR */
@@ -260,13 +281,13 @@ void wd2797_command_write(unsigned int octet) {
 		if ((unsigned int)current_disk->head_position > current_disk->num_tracks) {
 			LOG_DEBUG(4, "WD2797: HEAD POS > NUM TRACKS\n");
 			status_register = STATUS_RNF;
-			SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+			SCHEDULE_INTRQ(2000);
 			return;
 		}
 		if (octet & 0x10) {
 			LOG_WARN("WD2797: M FLAG UNSUPPORTED\n");
 			status_register = STATUS_RNF;
-			SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+			SCHEDULE_INTRQ(2000);
 			return;
 		}
 		if ((unsigned int)current_disk->head_position < current_disk->num_tracks) {
@@ -275,10 +296,11 @@ void wd2797_command_write(unsigned int octet) {
 				if ((sector_register == sector->sector_number) &&
 				    (track_register == sector->track_number)) {
 					mode = MODE_TYPE_2;
+					writing = octet & 0x20;
 					data_left = sector->size;
 					data_ptr = sector->data;
 					status_register = STATUS_BUSY;
-					SCHEDULE_INTERRUPT(INTERRUPT_DRQ, 300);
+					SCHEDULE_DRQ(300);
 					return;
 				}
 				sector = sector->next;
@@ -286,7 +308,7 @@ void wd2797_command_write(unsigned int octet) {
 		}
 		LOG_DEBUG(4, "WD2797: RECORD NOT FOUND\n");
 		status_register = STATUS_RNF;
-		SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+		SCHEDULE_INTRQ(2000);
 		return;
 	}
 	/* FORCE INTERRUPT */
@@ -300,7 +322,7 @@ void wd2797_command_write(unsigned int octet) {
 		}
 		mode = MODE_NORMAL;
 		if (octet & 0x08) {
-			SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 1);
+			SCHEDULE_INTRQ(1);
 		}
 		return;
 	}
@@ -320,16 +342,16 @@ void wd2797_sector_register_write(unsigned int octet) {
 
 void wd2797_data_register_write(unsigned int octet) {
 	data_register = octet;
-	if (mode == MODE_TYPE_2) {
+	if (mode == MODE_TYPE_2 && writing) {
 		if (data_left) {
 			*(data_ptr++) = octet;
 			data_left--;
 		}
 		if (data_left) {
-			SCHEDULE_INTERRUPT(INTERRUPT_DRQ, 300);
+			SCHEDULE_DRQ(300);
 			status_register = STATUS_BUSY;
 		} else {
-			SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+			SCHEDULE_INTRQ(2000);
 			status_register = 0;
 		}
 		return;
@@ -356,10 +378,9 @@ unsigned int wd2797_sector_register_read(void) {
 }
 
 unsigned int wd2797_data_register_read(void) {
-	if (mode == MODE_TYPE_2) {
+	if (mode == MODE_TYPE_2 && !writing) {
 		if (data_left) {
 			data_register = *(data_ptr++);
-			//LOG_DEBUG(2, "%02x ", data_register);
 			data_left--;
 			if (data_left) {
 				/* DRQs have to be sufficiently far apart to
@@ -367,19 +388,34 @@ unsigned int wd2797_data_register_read(void) {
 				 * instruction.  This is an artifact of
 				 * providing the data "on demand", which is
 				 * unrealistic. */
-				SCHEDULE_INTERRUPT(INTERRUPT_DRQ, 300);
+				SCHEDULE_DRQ(300);
 				status_register = STATUS_BUSY;
 			} else {
 				LOG_DEBUG(4, "WD2797: FINISHED READ SECTOR\n");
 				status_register = STATUS_BUSY;
 				mode = MODE_NORMAL;
-				SCHEDULE_INTERRUPT(INTERRUPT_INTRQ, 2000);
+				SCHEDULE_INTRQ(2000);
 			}
 		} else {
 			mode = MODE_NORMAL;
 		}
 	}
 	return data_register;
+}
+
+static void generate_drq(void) {
+	status_register = STATUS_BUSY | STATUS_DRQ;
+	PIA_SET_P1CB1;
+}
+
+static void generate_intrq(void) {
+	status_register = 0;
+	if (mode == MODE_TYPE_1) {
+		if (current_disk->head_position == 0)
+			status_register |= STATUS_TRACK_0;
+	}
+	WD2797_INTRQ;
+	mode = MODE_NORMAL;
 }
 
 void wd2797_generate_interrupt(void) {

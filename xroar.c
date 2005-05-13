@@ -37,7 +37,6 @@
 
 Cycle current_cycle;
 static Cycle next_hsync, next_keyboard_poll;
-Cycle /*next_sound_update, */next_disk_interrupt;
 int enable_disk_interrupt;
 static int_least16_t vdg_call;
 
@@ -96,13 +95,6 @@ void xroar_reset(int hard) {
 	machine_reset(hard);
 }
 
-/*
- * First step to making a proper 'event queue':
-typedef enum {
-	EVENT_HSYNC, EVENT_FSYNC, EVENT_SOUND, EVENT_KEYBOARD, EVENT_DISK
-} event_t;
-*/
-
 void xroar_mainloop(void) {
 	while (1) {
 		Cycle until;
@@ -158,12 +150,6 @@ void xroar_mainloop(void) {
 			joystick_module->poll();
 #endif
 		}
-		//if ((int)(current_cycle - next_sound_update) >= 0) {
-			//sound_module->update();
-		//}
-		if (enable_disk_interrupt && (int)(current_cycle - next_disk_interrupt) >= 0) {
-			wd2797_generate_interrupt();
-		}
 		while (EVENT_PENDING)
 			DISPATCH_NEXT_EVENT;
 		if (EVENT_EXISTS)
@@ -172,8 +158,6 @@ void xroar_mainloop(void) {
 			until = next_hsync;
 		if (next_hsync < until) until = next_hsync;
 		if (next_keyboard_poll < until) until = next_keyboard_poll;
-		if (enable_disk_interrupt && next_disk_interrupt < until)
-			until = next_disk_interrupt;
 		m6809_cycle(until);
 	}
 }
