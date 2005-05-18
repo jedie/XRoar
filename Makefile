@@ -42,8 +42,8 @@ USE_SDL = 1		# SDL video and audio modules
 #USE_SUN_AUDIO = 1	# Sun audio.  Might suit *BSD too, don't know
 #USE_NULL_AUDIO = 1	# Requires Linux RTC as sound is used to sync
 USE_GTK_UI = 1		# Simple GTK+ file-requester
+#USE_CARBON_UI = 1	# MacOS X Carbon UI (also CoreAudio)
 USE_CLI_UI = 1		# Prompt for filenames on command line
-#USE_CARBON_UI = 1	# MacOS X Carbon UI
 
 # Build for a little-endian machine, eg x86.  This should be commented out
 # for big-endian architectures, eg Sparc.
@@ -73,7 +73,8 @@ UNIX_TARGET = xroar
 UNIX_SOURCES_H = fs_unix.h
 UNIX_SOURCES_C = fs_unix.c joystick_sdl.c keyboard_sdl.c main_unix.c \
 	sound_jack.c sound_null.c sound_oss.c sound_sdl.c sound_sun.c \
-	ui_carbon.c ui_cli.c ui_gtk.c ui_windows32.c video_sdl.c video_sdlyuv.c
+	sound_macosx.c ui_carbon.c ui_cli.c ui_gtk.c ui_windows32.c \
+	video_sdl.c video_sdlyuv.c
 UNIX_SOURCES = $(UNIX_SOURCES_H) $(UNIX_SOURCES_C)
 UNIX_OBJECTS = $(UNIX_SOURCES_C:.c=.o)
 
@@ -129,9 +130,9 @@ ifdef USE_CLI_UI
 	CFLAGS_UNIX += -DHAVE_CLI_UI
 endif
 ifdef USE_CARBON_UI
-	CFLAGS_UNIX += -DHAVE_CARBON_UI -DPREFER_NOYUV
+	CFLAGS_UNIX += -DHAVE_CARBON_UI -DHAVE_MACOSX_AUDIO -DPREFER_NOYUV
 	ROMPATH_UNIX = -DROMPATH=\"~/Library/XRoar/Roms::/Library/XRoar/Roms\"
-	LDFLAGS_CARBON = -framework Carbon
+	LDFLAGS_CARBON = -framework Carbon -framework CoreAudio
 else
 	ROMPATH_UNIX = -DROMPATH=\":$(prefix)/share/xroar/roms\"
 endif

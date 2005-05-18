@@ -22,6 +22,9 @@
 #include "sound.h"
 #include "logging.h"
 
+#ifdef HAVE_MACOSX_AUDIO
+extern SoundModule sound_macosx_module;
+#endif
 #ifdef HAVE_SDL_AUDIO
 extern SoundModule sound_sdl_module;
 #endif
@@ -111,6 +114,9 @@ static int module_init_by_name(char *name) {
 void sound_getargs(int argc, char **argv) {
 	int i;
 	modules_head = sound_module = NULL;
+#ifdef HAVE_MACOSX_AUDIO
+	module_add(&sound_macosx_module);
+#endif
 #ifdef HAVE_SDL_AUDIO
 	module_add(&sound_sdl_module);
 #endif
