@@ -37,6 +37,7 @@ CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 
 # Video, audio and user-interface modules:
 USE_SDL = 1		# SDL video and audio modules
+USE_SDLGL = 1		# Use OpenGL with SDL
 #USE_OSS_AUDIO = 1	# OSS blocking audio
 #USE_JACK_AUDIO = 1	# Connects to JACK audio server
 #USE_SUN_AUDIO = 1	# Sun audio.  Might suit *BSD too, don't know
@@ -74,7 +75,7 @@ UNIX_SOURCES_H = fs_unix.h
 UNIX_SOURCES_C = fs_unix.c joystick_sdl.c keyboard_sdl.c main_unix.c \
 	sound_jack.c sound_null.c sound_oss.c sound_sdl.c sound_sun.c \
 	sound_macosx.c ui_carbon.c ui_cli.c ui_gtk.c ui_windows32.c \
-	video_sdl.c video_sdlyuv.c
+	video_sdl.c video_sdlyuv.c video_sdlgl.c
 UNIX_SOURCES = $(UNIX_SOURCES_H) $(UNIX_SOURCES_C)
 UNIX_OBJECTS = $(UNIX_SOURCES_C:.c=.o)
 
@@ -106,6 +107,10 @@ ifdef USE_SDL
 	CFLAGS_SDL = $(shell $(SDL_CONFIG) --cflags)
 	LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
 endif
+ifdef USE_SDLGL
+	LDFLAGS_GL = -lGL
+	LDFLAGS_SDL += $(LDFLAGS_GL)
+endif
 
 ifdef USE_OSS_AUDIO
 	CFLAGS_UNIX += -DHAVE_OSS_AUDIO
@@ -133,6 +138,7 @@ ifdef USE_CARBON_UI
 	CFLAGS_UNIX += -DHAVE_CARBON_UI -DHAVE_MACOSX_AUDIO -DPREFER_NOYUV
 	ROMPATH_UNIX = -DROMPATH=\"~/Library/XRoar/Roms::/Library/XRoar/Roms\"
 	LDFLAGS_CARBON = -framework Carbon -framework CoreAudio
+	LDFLAGS_GL = -framework OpenGL
 else
 	ROMPATH_UNIX = -DROMPATH=\":$(prefix)/share/xroar/roms\"
 endif
@@ -147,6 +153,7 @@ all: xroar
 $(UNIX_TARGET): CC = $(CC_UNIX)
 $(UNIX_TARGET): CFLAGS = $(ROMPATH_UNIX) $(CFLAGS_UNIX) $(CFLAGS_COMMON)
 $(WINDOWS32_TARGET): CC = $(CC_WINDOWS32)
+$(WINDOWS32_TARGET): LDFLAGS_GL = -lopengl32
 $(WINDOWS32_TARGET): CFLAGS = -DWINDOWS32 -DPREFER_NOYUV -DROMPATH=\".\" $(CFLAGS_UNIX) $(CFLAGS_COMMON)
 $(UNIX_TARGET) $(WINDOWS32_TARGET): $(UNIX_OBJECTS) $(COMMON_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $(UNIX_OBJECTS) $(COMMON_OBJECTS) $(LDFLAGS_UNIX)

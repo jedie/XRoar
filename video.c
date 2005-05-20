@@ -23,6 +23,7 @@
 #include "vdg.h"
 #include "logging.h"
 
+extern VideoModule video_sdlgl_module;
 #ifdef HAVE_SDL_VIDEO
 extern VideoModule video_sdlyuv_module;
 extern VideoModule video_sdl_module;
@@ -101,6 +102,7 @@ static int module_init_by_name(char *name) {
 void video_getargs(int argc, char **argv) {
 	int i;
 	modules_head = video_module = NULL;
+	module_add(&video_sdlgl_module);
 #ifdef HAVE_SDL_VIDEO
 # ifdef PREFER_NOYUV
 	module_add(&video_sdl_module);
