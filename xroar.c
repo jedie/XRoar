@@ -51,6 +51,8 @@ void xroar_init(int argc, char **argv) {
 	ui_getargs(argc, argv);
 	keyboard_getargs(argc, argv);
 	/* Initialise everything */
+	current_cycle = 0;
+	event_init();
 	if (video_init()) {
 		LOG_ERROR("No video module initialised.\n");
 		exit(1);
@@ -71,7 +73,6 @@ void xroar_init(int argc, char **argv) {
 		LOG_WARN("No joystick module initialised.\n");
 	}
 	fs_init();
-	current_cycle = 0;
 	machine_init();
 	xroar_reset(RESET_HARD);
 }

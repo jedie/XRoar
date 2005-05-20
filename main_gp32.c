@@ -29,6 +29,6 @@ void GpMain(void *arg) {
 	SPEED_FAST;
 	xroar_init(1, NULL);
 	video_module->blit(198, 204, &copyright_bin);
-	xroar_reset(RESET_HARD);
+	//xroar_reset(RESET_HARD);
 	xroar_mainloop();
 }

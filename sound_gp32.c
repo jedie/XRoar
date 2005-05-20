@@ -73,6 +73,7 @@ static int init(void) {
 	buffer = gpsound_buffers(frame_size);
 	gpsound_start();
 	/* Replace this with a generic event_new() */
+	flush_event.dispatch = flush_frame;
 	flush_event.scheduled = 0;
 	flush_event.next = NULL;
 	return 0;
@@ -88,7 +89,6 @@ static void reset(void) {
 	writing_frame = 1;
 	frame_cycle_base = current_cycle;
 	flush_event.at_cycle = frame_cycle_base + frame_cycles;
-	flush_event.dispatch = flush_frame;
 	event_schedule(&flush_event);
 	lastsample = 0x80;
 }
