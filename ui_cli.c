@@ -38,7 +38,7 @@ UIModule ui_cli_module = {
 	"cli",
 	"Command-line interface",
 	init, shutdown,
-	menu, get_filename
+	menu, get_filename, get_filename
 };
 
 static char fnbuf[256];

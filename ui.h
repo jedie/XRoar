@@ -14,7 +14,8 @@ struct UIModule {
 	int (*init)(void);
 	void (*shutdown)(void);
 	void (*menu)(void);
-	char *(*get_filename)(const char **extensions);
+	char *(*load_filename)(const char **extensions);
+	char *(*save_filename)(const char **extensions);
 };
 
 extern UIModule *ui_module;

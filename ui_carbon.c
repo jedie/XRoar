@@ -30,14 +30,15 @@
 static int init(void);
 static void shutdown(void);
 static void menu(void);
-static char *get_filename(const char **extensions);
+static char *load_filename(const char **extensions);
+static char *save_filename(const char **extensions);
 
 UIModule ui_carbon_module = {
 	NULL,
 	"carbon",
 	"MacOS X Carbon interface",
 	init, shutdown,
-	menu, get_filename
+	menu, load_filename, save_filename
 };
 
 static int init(void){
@@ -52,26 +53,59 @@ static void shutdown(void) {
 static void menu(void) {
 }
 
-static char *get_filename(const char **extensions) {
+static char *load_filename(const char **extensions) {
 	NavDialogCreationOptions options;
-	NavDialogRef mydialog;
+	NavDialogRef load_dialog;
         
 	OSStatus status;
-        NavReplyRecord filespec; 
+        NavReplyRecord replyrecord; 
         AEDesc filedesc;
         FSRef fileref;
         static UInt8 filename[768];
 
 	(void)extensions;  /* unused */
        	status = NavGetDefaultDialogCreationOptions(&options);
-       	status = NavCreateChooseFileDialog(&options, NULL, NULL, NULL, NULL, NULL, &mydialog);
-	status = NavDialogRun(mydialog);
-        status = NavDialogGetReply(mydialog, &filespec);
-        status = AEGetNthDesc(&filespec.selection, 1, typeWildCard, NULL, &filedesc);
-	status = NavDisposeReply(&filespec);
+       	status = NavCreateChooseFileDialog(&options, NULL, NULL, NULL, NULL, NULL, &load_dialog);
+	status = NavDialogRun(load_dialog);
+        status = NavDialogGetReply(load_dialog, &replyrecord);
+	NavDialogDispose(load_dialog);
+        status = AEGetNthDesc(&replyrecord.selection, 1, typeWildCard, NULL, &filedesc);
+	status = NavDisposeReply(&replyrecord);
 	status = AEGetDescData(&filedesc, &fileref, sizeof(FSRef));
 	if (FSRefMakePath(&fileref, filename, sizeof(filename)) == noErr)
 		return (char *)filename;
+	return NULL;
+}
+
+static char *save_filename(const char **extensions) {
+	NavDialogCreationOptions options;
+	NavDialogRef save_dialog;
+        NavReplyRecord replyrecord; 
+        AEDesc filedesc;
+        FSRef fileref;
+        static char savename[768];
+        static char filename[768];
+
+	(void)extensions;  /* unused */
+       	NavGetDefaultDialogCreationOptions(&options);
+       	NavCreatePutFileDialog(&options, 0, 0, NULL, NULL, &save_dialog);
+	NavDialogRun(save_dialog);
+        NavDialogGetReply(save_dialog, &replyrecord);
+	NavDialogDispose(save_dialog);
+	if (!replyrecord.validRecord) {
+		NavDisposeReply(&replyrecord);
+		return NULL;
+	}
+        AEGetNthDesc(&replyrecord.selection, 1, typeWildCard, NULL, &filedesc);
+	AEGetDescData(&filedesc, &fileref, sizeof(FSRef));
+	filename[0] = 0;
+	CFStringGetCString(replyrecord.saveFileName, savename, sizeof(savename), kCFStringEncodingUTF8);
+	NavDisposeReply(&replyrecord);
+	if (FSRefMakePath(&fileref, (UInt8 *)filename, sizeof(filename)) == noErr) {
+		strcat(filename, "/");
+		strcat(filename, savename);
+		return (char *)filename;
+	}
 	return NULL;
 }
 

@@ -43,7 +43,7 @@ UIModule ui_gtk_module = {
 	"gtk",
 	"GTK+ user-interface",
 	init, shutdown,
-	menu, get_filename
+	menu, get_filename, get_filename
 };
 
 static char *filename = NULL;

@@ -615,7 +615,7 @@ static void snapshot_save_callback(int num) {
 	(void)num;  /* unused */
 	video_module->restore();
 	notify_box("SNAPSHOT SAVING NOT YET SUPPORTED");
-	// filename = get_filename(snap_exts);
+	// filename = save_filename(snap_exts);
 }
 static void binary_load_callback(int num) {
 	const char *bin_exts[] = { "BIN", NULL };
