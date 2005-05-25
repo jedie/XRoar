@@ -23,7 +23,9 @@
 #include "vdg.h"
 #include "logging.h"
 
+#ifdef HAVE_SDLGL_VIDEO
 extern VideoModule video_sdlgl_module;
+#endif
 #ifdef HAVE_SDL_VIDEO
 extern VideoModule video_sdlyuv_module;
 extern VideoModule video_sdl_module;

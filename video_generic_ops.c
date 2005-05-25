@@ -14,11 +14,18 @@ static void render_sg4(void) {
 	unsigned int i, j, octet;
 	Pixel tmp;
 	LOCK_SURFACE;
+#ifdef SEPARATE_BORDER
+	LOCK_BORDER;
+	*(bpixel++) = border_colour;
+	*(bpixel++) = border_colour;
+	UNLOCK_BORDER;
+#else
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
 		*(pixel + 288 * XSTEP) = border_colour;
 		pixel += XSTEP;
 	}
+#endif
 	for (i = 0; i < 2; i++) {
 		vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
 		for (j = 16; j; j--) {
@@ -77,11 +84,18 @@ static void render_cg1(void) {
 	unsigned int i;
 	uint_least32_t octet;
 	LOCK_SURFACE;
+#ifdef SEPARATE_BORDER
+	LOCK_BORDER;
+	*(bpixel++) = border_colour;
+	*(bpixel++) = border_colour;
+	UNLOCK_BORDER;
+#else
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
 		*(pixel + 288 * XSTEP) = border_colour;
 		pixel += XSTEP;
 	}
+#endif
 	vram_ptr = (uint32_t *)sam_vram_ptr(sam_vdg_address);
 	for (i = 4; i; i--) {
 		octet = *(vram_ptr++);
@@ -122,11 +136,18 @@ static void render_rg1(void) {
 	unsigned int i;
 	uint_least32_t octet;
 	LOCK_SURFACE;
+#ifdef SEPARATE_BORDER
+	LOCK_BORDER;
+	*(bpixel++) = border_colour;
+	*(bpixel++) = border_colour;
+	UNLOCK_BORDER;
+#else
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
 		*(pixel + 288 * XSTEP) = border_colour;
 		pixel += XSTEP;
 	}
+#endif
 	vram_ptr = (uint32_t *)sam_vram_ptr(sam_vdg_address);
 	for (i = 4; i; i--) {
 		octet = *(vram_ptr++);
@@ -163,11 +184,18 @@ static void render_cg2(void) {
 	unsigned int i, j;
 	uint_least32_t octet;
 	LOCK_SURFACE;
+#ifdef SEPARATE_BORDER
+	LOCK_BORDER;
+	*(bpixel++) = border_colour;
+	*(bpixel++) = border_colour;
+	UNLOCK_BORDER;
+#else
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
 		*(pixel + 288 * XSTEP) = border_colour;
 		pixel += XSTEP;
 	}
+#endif
 	for (i = 0; i < 2; i++) {
 		vram_ptr = (uint32_t *)sam_vram_ptr(sam_vdg_address);
 		for (j = 4; j; j--) {
@@ -210,11 +238,18 @@ static void render_rg6(void) {
 	unsigned int i, j;
 	uint_least32_t octet;
 	LOCK_SURFACE;
+#ifdef SEPARATE_BORDER
+	LOCK_BORDER;
+	*(bpixel++) = border_colour;
+	*(bpixel++) = border_colour;
+	UNLOCK_BORDER;
+#else
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
 		*(pixel + 288 * XSTEP) = border_colour;
 		pixel += XSTEP;
 	}
+#endif
 	for (i = 0; i < 2; i++) {
 		vram_ptr = (uint32_t *)sam_vram_ptr(sam_vdg_address);
 		for (j = 4; j; j--) {
@@ -245,6 +280,12 @@ static void render_rg6(void) {
 /* Render a line of border (top/bottom) */
 static void render_border(void) {
 	unsigned int i;
+#ifdef SEPARATE_BORDER
+	LOCK_BORDER;
+	*(bpixel++) = border_colour;
+	*(bpixel++) = border_colour;
+	UNLOCK_BORDER;
+#endif
 	LOCK_SURFACE;
 	for (i = 320; i; i--) {
 		*pixel = border_colour;

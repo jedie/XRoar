@@ -18,19 +18,19 @@
 
 #include "config.h"
 
-#ifdef HAVE_SDL_VIDEO
+#ifdef HAVE_SDLGL_VIDEO
 
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
 
-#include "video.h"
-#include "keyboard.h"
-#include "joystick.h"
-#include "sam.h"
 #include "types.h"
+#include "joystick.h"
+#include "keyboard.h"
 #include "logging.h"
+#include "sam.h"
+#include "video.h"
 
 static int init(void);
 static void shutdown(void);
@@ -66,18 +66,22 @@ VideoModule video_sdlgl_module = {
 };
 
 typedef Uint16 Pixel;
-#define MAPCOLOUR(r,g,b) SDL_MapRGB(texture->format, r, g, b)
-#define VIDEO_SCREENBASE ((Pixel *)texture->pixels)
+#define MAPCOLOUR(r,g,b) SDL_MapRGB(screen_tex->format, r, g, b)
+#define VIDEO_SCREENBASE ((Pixel *)screen_tex->pixels)
 #define XSTEP 1
-#define NEXTLINE 0
+#define NEXTLINE (-32)
 #define VIDEO_TOPLEFT (VIDEO_SCREENBASE)
 #define VIDEO_VIEWPORT_YOFFSET (0)
-#define LOCK_SURFACE SDL_LockSurface(texture)
-#define UNLOCK_SURFACE SDL_UnlockSurface(texture)
+#define LOCK_SURFACE SDL_LockSurface(screen_tex)
+#define UNLOCK_SURFACE SDL_UnlockSurface(screen_tex)
+#define SEPARATE_BORDER
+#define LOCK_BORDER SDL_LockSurface(border_tex)
+#define UNLOCK_BORDER SDL_UnlockSurface(border_tex)
 extern unsigned int vdg_alpha[768];
 
 static unsigned int subline;
 static Pixel *pixel;
+static Pixel *bpixel;
 static Pixel darkgreen, black;
 static Pixel bg_colour;
 static Pixel fg_colour;
@@ -86,8 +90,10 @@ static Pixel *cg_colours;
 static Pixel border_colour;
 
 static SDL_Surface *screen;
-static SDL_Surface *texture;
-static GLuint texture_num;
+static SDL_Surface *screen_tex;
+static SDL_Surface *border_tex;
+static GLuint texnum;
+static GLuint border_texnum;
 static GLint xoffset, yoffset;
 
 static int init(void) {
@@ -112,9 +118,18 @@ static int init(void) {
 		return 1;
 	}
 
-	texture = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
-	if (texture == NULL) {
-		LOG_ERROR("Failed to create texture surface\n");
+	/* A simple 320x240 texture worked fine on a 6800GT under Linux,
+	   but trying on a Mac with GeForce FX Go5200 failed, hence these
+	   odd, but powers-of-two-dimensioned separate surfaces for screen
+	   and border */
+	screen_tex = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 256, 16, 0, 0, 0, 0);
+	if (screen_tex == NULL) {
+		LOG_ERROR("Failed to create surface for screen texture\n");
+		return 1;
+	}
+	border_tex = SDL_CreateRGBSurface(SDL_SWSURFACE, 2, 256, 16, 0, 0, 0, 0);
+	if (border_tex == NULL) {
+		LOG_ERROR("Failed to create surface for border texture\n");
 		return 1;
 	}
 
@@ -125,14 +140,23 @@ static int init(void) {
 	glOrtho(0.0, screen->w, screen->h, 0.0, -1.0, 1.0);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
 	glClearDepth(1.0f);
+	xoffset = 64;
+	yoffset = 0;
 
-	glGenTextures(1, &texture_num);
-	glBindTexture(GL_TEXTURE_2D, texture_num);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 320, 240, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glGenTextures(1, &texnum);
+	glBindTexture(GL_TEXTURE_2D, texnum);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-	xoffset = yoffset = 0;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glGenTextures(1, &border_texnum);
+	glBindTexture(GL_TEXTURE_2D, border_texnum);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 2, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	vdg_colour[0] = MAPCOLOUR(0x00, 0xff, 0x00);
 	vdg_colour[1] = MAPCOLOUR(0xff, 0xff, 0x00);
@@ -160,7 +184,8 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL OpenGL driver\n");
-	SDL_FreeSurface(texture);
+	SDL_FreeSurface(screen_tex);
+	SDL_FreeSurface(border_tex);
 	SDL_FreeSurface(screen);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
@@ -186,18 +211,18 @@ static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
 }
 
 static void resize(uint_least16_t w, uint_least16_t h) {
-	uint_least16_t width, height;
+	uint_least16_t width, height, viewoffx, viewoffy;
 	if (w < 320) w = 320;
 	if (h < 240) h = 240;
-	if (((float)w/(float)h)>(320.0/240.0)) {
-		width = ((float)h/240.0)*320;
+	if (((float)w/(float)h)>(4.0/3.0)) {
+		width = ((float)h/3.0)*4;
 		height = h;
-		xoffset = (w - width)/2;
+		xoffset = ((w - width) / 2) + (width / 10);
 		yoffset = 0;
 	} else {
 		width = w;
-		height = ((float)w/320.0)*240;
-		xoffset = 0;
+		height = ((float)w/4.0)*3;
+		xoffset = width / 10;
 		yoffset = (h - height)/2;
 	}
 	screen = SDL_SetVideoMode(w, h, 0, SDL_OPENGL|SDL_RESIZABLE);
@@ -209,28 +234,46 @@ static void resize(uint_least16_t w, uint_least16_t h) {
 
 static void vdg_reset(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
+	bpixel = border_tex->pixels;
 	subline = 0;
 }
 
 static void vdg_vsync(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
-	glBindTexture(GL_TEXTURE_2D, texture_num);
+	/* Draw border */
+	glBindTexture(GL_TEXTURE_2D, border_texnum);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-			texture->w, texture->h, GL_RGB,
-			GL_UNSIGNED_SHORT_5_6_5, texture->pixels);
+			2, 256, GL_RGB,
+			GL_UNSIGNED_SHORT_5_6_5, border_tex->pixels);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0);
+	glVertex3i(0, 0, 0);
+	glTexCoord2f(0.0, 0.9375);
+	glVertex3i(0, screen->h, 0);
+	glTexCoord2f(1.0, 0.9375);
+	glVertex3i(screen->w, screen->h, 0);
+	glTexCoord2f(1.0, 0.0);
+	glVertex3i(screen->w, 0, 0);
+	glEnd();
+	/* Draw main window */
+	glBindTexture(GL_TEXTURE_2D, texnum);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+			256, 256, GL_RGB,
+			GL_UNSIGNED_SHORT_5_6_5, screen_tex->pixels);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, 0.0);
 	glVertex3i(xoffset, yoffset, 0);
-	glTexCoord2f(0.0, 1.0);
+	glTexCoord2f(0.0, 0.9375);
 	glVertex3i(xoffset, screen->h - yoffset, 0);
-	glTexCoord2f(1.0, 1.0);
+	glTexCoord2f(1.0, 0.9375);
 	glVertex3i(screen->w - xoffset, screen->h - yoffset, 0);
 	glTexCoord2f(1.0, 0.0);
 	glVertex3i(screen->w - xoffset, yoffset, 0);
 	glEnd();
 	SDL_GL_SwapBuffers();
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
+	bpixel = border_tex->pixels;
 	subline = 0;
 }
 
@@ -258,4 +301,4 @@ static void vdg_set_mode(unsigned int mode) {
 
 #include "video_generic_ops.c"
 
-#endif  /* HAVE_SDL_VIDEO */
+#endif  /* HAVE_SDLGL_VIDEO */

@@ -1,3 +1,7 @@
+Changed from v0.11 to v0.12
+	* New OpenGL video driver.  Allows architectures without Xv extension
+	  but with fast 3D graphics card to do hardware scaling.
+
 Changes from v0.10 to v0.11
 
 	* Modularised almost everything.  Binary can contain multiple drivers
