@@ -103,7 +103,6 @@ static uint_least16_t unicode_to_dragon[128] = {
 static char *keymap_option;
 static unsigned int *selected_keymap;
 static int translated_keymap;
-//extern joystick_t *sdl_joystick_right, *sdl_joystick_left;
 
 static void map_keyboard(unsigned int *map) {
 	int i;
@@ -164,7 +163,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 			{
 			const char *disk_exts[] = { "VDK", NULL };
-			char *filename = ui_module->get_filename(disk_exts);
+			char *filename = ui_module->load_filename(disk_exts);
 			if (filename)
 				wd2797_load_disk(filename, sym - SDLK_1);
 			}
@@ -178,7 +177,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_b:
 			{
 			const char *bin_exts[] = { "BIN", NULL };
-			char *filename = ui_module->get_filename(bin_exts);
+			char *filename = ui_module->load_filename(bin_exts);
 			if (filename)
 				coco_bin_read(filename);
 			}
@@ -192,7 +191,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_h:
 			{
 			const char *hex_exts[] = { "HEX", NULL };
-			char *filename = ui_module->get_filename(hex_exts);
+			char *filename = ui_module->load_filename(hex_exts);
 			if (filename)
 				intel_hex_read(filename);
 			}
@@ -212,7 +211,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_l:
 			{
 			const char *snap_exts[] = { "SNA", NULL };
-			char *filename = ui_module->get_filename(snap_exts);
+			char *filename = ui_module->load_filename(snap_exts);
 			if (filename)
 				read_snapshot(filename);
 			}
@@ -233,7 +232,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_s:
 			{
 			const char *snap_exts[] = { "SNA", NULL };
-			char *filename = ui_module->get_filename(snap_exts);
+			char *filename = ui_module->save_filename(snap_exts);
 			if (filename)
 				write_snapshot(filename);
 			}
@@ -241,7 +240,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_t:
 			{
 			const char *tape_exts[] = { "CAS", NULL };
-			char *filename = ui_module->get_filename(tape_exts);
+			char *filename = ui_module->load_filename(tape_exts);
 			if (filename) {
 				if (shift)
 					tape_autorun(filename);
@@ -330,9 +329,13 @@ static void poll(void) {
 				exit(0); break;
 			case SDL_KEYDOWN:
 				keypress(&event.key.keysym);
+				keyboard_column_update();
+				keyboard_row_update();
 				break;
 			case SDL_KEYUP:
 				keyrelease(&event.key.keysym);
+				keyboard_column_update();
+				keyboard_row_update();
 				break;
 			default:
 				break;
