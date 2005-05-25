@@ -211,7 +211,7 @@ static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
 }
 
 static void resize(uint_least16_t w, uint_least16_t h) {
-	uint_least16_t width, height, viewoffx, viewoffy;
+	uint_least16_t width, height;
 	if (w < 320) w = 320;
 	if (h < 240) h = 240;
 	if (((float)w/(float)h)>(4.0/3.0)) {
