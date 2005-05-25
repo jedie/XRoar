@@ -71,7 +71,6 @@ static void module_delete(SoundModule *module) {
 	for (m = modules_head; m; m = m->next) {
 		if (m->next == module) {
 			m->next = module->next;
-			free(module);
 			return;
 		}
 	}
