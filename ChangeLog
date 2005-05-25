@@ -1,6 +1,7 @@
 Changed from v0.11 to v0.12
 	* New OpenGL video driver.  Allows architectures without Xv extension
 	  but with fast 3D graphics card to do hardware scaling.
+	* Disk writing (in memory only).
 
 Changes from v0.10 to v0.11
 

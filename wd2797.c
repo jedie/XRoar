@@ -274,9 +274,9 @@ void wd2797_command_write(unsigned int octet) {
 		return;
 	}
 	/* READ SECTOR */
-	if ((octet & 0xe1) == 0x80) {
+	if ((octet & 0xc0) == 0x80) {
 		Sector *sector;
-		LOG_DEBUG(4, "WD2797: CMD: Read sector, Track = %02x, Sector = %02x\n",
+		LOG_DEBUG(4, "WD2797: CMD: Read/write sector, Track = %02x, Sector = %02x\n",
 		           track_register, sector_register);
 		if ((unsigned int)current_disk->head_position > current_disk->num_tracks) {
 			LOG_DEBUG(4, "WD2797: HEAD POS > NUM TRACKS\n");
