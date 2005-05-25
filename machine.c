@@ -82,9 +82,9 @@ static Keymap coco_keymap = {
 };
 
 const char *rom_names[3][4] = {
-	{ "d64rom1", "dragrom", "dragon", NULL },
+	{ "d64rom1", "d64_1", "dragrom", "dragon" },
 	{ "coco", "coco_pa", "cocodisk", "coco" },
-	{ "dragon32", "d32rom", "dragon", "dragrom" },
+	{ "dragon32", "d32", "d32rom", "dragon" },
 };
 const char *d64_rom2_names[4] =
 	{ "d64rom2", "d64_2", NULL, NULL };
