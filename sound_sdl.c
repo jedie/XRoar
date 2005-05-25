@@ -46,7 +46,7 @@ SoundModule sound_sdl_module = {
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 
-#define SAMPLE_RATE 22050
+#define SAMPLE_RATE 44100
 #define CHANNELS 1
 #define FORMAT AFMT_U8
 #define FRAGMENTS 2

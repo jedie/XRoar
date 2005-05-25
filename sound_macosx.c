@@ -45,7 +45,7 @@ SoundModule sound_macosx_module = {
 
 typedef float Sample;
 
-#define FRAME_SIZE 512
+#define FRAME_SIZE 256
 #define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / sample_rate))
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
@@ -95,6 +95,7 @@ static int init(void) {
 				kAudioDevicePropertyBufferSize, count,
 				&buffer_bytes) != kAudioHardwareNoError)
 		goto failed;
+	LOG_DEBUG(2, "\t%d channel%s, %dHz\n", channels, channels > 1 ? "s" : "", sample_rate);
 	buffer = malloc(FRAME_SIZE * sizeof(Sample) * channels);
 	memset(buffer, 0, FRAME_SIZE * sizeof(Sample) * channels);
 	pthread_mutex_init(&haltflag, NULL);
@@ -150,7 +151,7 @@ static void update(void) {
 	lastsample = fill_with;
 }
 
-void flush_frame(void) {
+static void flush_frame(void) {
 	Sample *fill_to = buffer + FRAME_SIZE;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
