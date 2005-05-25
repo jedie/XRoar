@@ -35,36 +35,36 @@
 #define CC_C 0x01
 #define N_EOR_V	((reg_cc & CC_N)^((reg_cc & CC_V)<<2))
 
-#define CLR_HNZVC	reg_cc &= ~(CC_H|CC_N|CC_Z|CC_V|CC_C)
-#define CLR_NZV		reg_cc &= ~(CC_N|CC_Z|CC_V)
-#define CLR_NZVC	reg_cc &= ~(CC_N|CC_Z|CC_V|CC_C)
-#define CLR_Z		reg_cc &= ~(CC_Z)
-#define CLR_NZC		reg_cc &= ~(CC_N|CC_Z|CC_C)
-#define CLR_NVC		reg_cc &= ~(CC_N|CC_V|CC_C)
-#define CLR_ZC		reg_cc &= ~(CC_Z|CC_C)
+#define CLR_HNZVC	do { reg_cc &= ~(CC_H|CC_N|CC_Z|CC_V|CC_C); } while (0)
+#define CLR_NZV		do { reg_cc &= ~(CC_N|CC_Z|CC_V); } while (0)
+#define CLR_NZVC	do { reg_cc &= ~(CC_N|CC_Z|CC_V|CC_C); } while (0)
+#define CLR_Z		do { reg_cc &= ~(CC_Z); } while (0)
+#define CLR_NZC		do { reg_cc &= ~(CC_N|CC_Z|CC_C); } while (0)
+#define CLR_NVC		do { reg_cc &= ~(CC_N|CC_V|CC_C); } while (0)
+#define CLR_ZC		do { reg_cc &= ~(CC_Z|CC_C); } while (0)
 
-#define SET_Z(a)	if (!(a)) reg_cc |= CC_Z;
-#define SET_N8(a)	reg_cc |= (a&0x80)>>4;
-#define SET_N16(a)	reg_cc |= (a&0x8000)>>12;
-#define SET_H(a,b,r)	reg_cc |= ((a^b^r)&0x10)<<1;
-#define SET_C8(a)	reg_cc |= (a&0x100)>>8;
-#define SET_C16(a)	reg_cc |= (a&0x10000)>>16;
-#define SET_V8(a,b,r)	reg_cc |= ((a^b^r^(r>>1))&0x80)>>6;
-#define SET_V16(a,b,r)  reg_cc |= ((a^b^r^(r>>1))&0x8000)>>14;
-#define SET_NZ8(a)		{ SET_N8(a); SET_Z(a&0xff); }
-#define SET_NZ16(a)		{ SET_N16(a);SET_Z(a&0xffff); }
-#define SET_NZC8(a)		{ SET_N8(a); SET_Z(a&0xff);SET_C8(a); }
-#define SET_NZVC8(a,b,r)	{ SET_N8(r); SET_Z(r&0xff);SET_V8(a,b,r);SET_C8(r); }
-#define SET_NZVC16(a,b,r)	{ SET_N16(r);SET_Z(r&0xffff);SET_V16(a,b,r);SET_C16(r); }
+#define SET_Z(a)	do { if (!(a)) reg_cc |= CC_Z; } while (0)
+#define SET_N8(a)	do { reg_cc |= (a&0x80)>>4; } while (0)
+#define SET_N16(a)	do { reg_cc |= (a&0x8000)>>12; } while (0)
+#define SET_H(a,b,r)	do { reg_cc |= ((a^b^r)&0x10)<<1; } while (0)
+#define SET_C8(a)	do { reg_cc |= (a&0x100)>>8; } while (0)
+#define SET_C16(a)	do { reg_cc |= (a&0x10000)>>16; } while (0)
+#define SET_V8(a,b,r)	do { reg_cc |= ((a^b^r^(r>>1))&0x80)>>6; } while (0)
+#define SET_V16(a,b,r)  do { reg_cc |= ((a^b^r^(r>>1))&0x8000)>>14; } while (0)
+#define SET_NZ8(a)		do { SET_N8(a); SET_Z(a&0xff); } while (0)
+#define SET_NZ16(a)		do { SET_N16(a);SET_Z(a&0xffff); } while (0)
+#define SET_NZC8(a)		do { SET_N8(a); SET_Z(a&0xff);SET_C8(a); } while (0)
+#define SET_NZVC8(a,b,r)	do { SET_N8(r); SET_Z(r&0xff);SET_V8(a,b,r);SET_C8(r); } while (0)
+#define SET_NZVC16(a,b,r)	do { SET_N16(r);SET_Z(r&0xffff);SET_V16(a,b,r);SET_C16(r); } while (0)
 
 /* CPU fetch/store goes via SAM */
 #define fetch_byte(a) sam_read_byte(((a)&0xffff))
 #define fetch_word(a) (fetch_byte(a) << 8 | fetch_byte((a)+1))
-#define store_byte(a,v) sam_store_byte(((a)&0xffff),(v))
+#define store_byte(a,v) do { sam_store_byte(((a)&0xffff),(v)); } while (0)
 
-#define EA_DIRECT(a)	{ a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; if (trace) { LOG_DEBUG(0, "%02x", (a) & 0xff); } }
-#define EA_INDEXED(a)	{ a = addr_indexed(); }
-#define EA_EXTENDED(a)	{ a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; if (trace) { LOG_DEBUG(0, "%04x", a); } }
+#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; if (trace) { LOG_DEBUG(0, "%02x", (a) & 0xff); } } while (0)
+#define EA_INDEXED(a)	do { a = addr_indexed(); } while (0)
+#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; if (trace) { LOG_DEBUG(0, "%04x", a); } } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
  * macros.  Must be used carefully, as some of them declare an 'addr' variable
@@ -139,7 +139,6 @@
 		i = 0; \
 		if (!skip_register_push) \
 			wait_for_interrupt = 0; \
-		if (v == 0xfffc) LOG_DEBUG(4,"M6809: Interrupt: %s\n", nom); \
 		if (!(reg_cc & m)) { \
 			wait_for_interrupt = 0; \
 			if (!skip_register_push) INTERRUPT_REGISTER_PUSH(e); \
@@ -296,9 +295,6 @@ void m6809_cycle(Cycle until) {
 		switched_block();
 		if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 	}
-	if (wait_for_interrupt) {
-		LOG_DEBUG(4,"M6809: Waiting for interrupt\n");
-	}
 }
 
 void m6809_get_registers(uint8_t *regs) {
@@ -398,9 +394,10 @@ static inline void switched_block(void) {
 	BYTE_IMMEDIATE(0,op);
 	switch(op) {
 		/* 0x00 NEG direct */
-		case 0x00: OP_NEG(BYTE_DIRECT); TAKEN_CYCLES(6); return; break;
+		case 0x00:
+		case 0x01: OP_NEG(BYTE_DIRECT); TAKEN_CYCLES(6); return; break;
 		/* 0x01 NEGCOM direct (illegal) */
-		case 0x01:
+		case 0x02:
 			   if (reg_cc & CC_C) {
 				   OP_COM(BYTE_DIRECT);
 				   TOOK_CYCLES(6);
@@ -412,7 +409,8 @@ static inline void switched_block(void) {
 		/* 0x03 COM direct */
 		case 0x03: OP_COM(BYTE_DIRECT); TOOK_CYCLES(6); break;
 		/* 0x04 LSR direct */
-		case 0x04: OP_LSR(BYTE_DIRECT); TOOK_CYCLES(6); break;
+		case 0x04:
+		case 0x05: OP_LSR(BYTE_DIRECT); TOOK_CYCLES(6); break;
 		/* 0x06 ROR direct */
 		case 0x06: OP_ROR(BYTE_DIRECT); TOOK_CYCLES(6); break;
 		/* 0x07 ASR direct */
@@ -422,7 +420,8 @@ static inline void switched_block(void) {
 		/* 0x09 ROL direct */
 		case 0x09: OP_ROL(BYTE_DIRECT); TOOK_CYCLES(6); break;
 		/* 0x0A DEC direct */
-		case 0x0A: OP_DEC(BYTE_DIRECT); TOOK_CYCLES(6); break;
+		case 0x0A:
+		case 0x0B: OP_DEC(BYTE_DIRECT); TOOK_CYCLES(6); break;
 		/* 0x0C INC direct */
 		case 0x0C: OP_INC(BYTE_DIRECT); TOOK_CYCLES(6); break;
 		/* 0x0D TST direct */
@@ -561,7 +560,6 @@ static inline void switched_block(void) {
 			INTERRUPT_REGISTER_PUSH(1);
 			wait_for_interrupt = 1;
 			skip_register_push = 1;
-			LOG_DEBUG(4,"M6809: CWAI\n");
 			TOOK_CYCLES(11);
 			return; } break;
 		/* 0x3D MUL inherent */
@@ -571,6 +569,11 @@ static inline void switched_block(void) {
 			if (reg_d & 0x80)
 				reg_cc |= CC_C;
 			TOOK_CYCLES(11);
+			break;
+		/* 0x3E RESET (undocumented) */
+		case 0x3e:
+			m6809_reset();
+			TOOK_CYCLES(3);
 			break;
 		/* 0x3F SWI inherent */
 		case 0x3f: reg_cc |= CC_E;
@@ -587,11 +590,14 @@ static inline void switched_block(void) {
 			TOOK_CYCLES(19);
 			break;
 		/* 0x40 NEGA inherent */
-		case 0x40: OP_NEGR(reg_a); TOOK_CYCLES(2); break;
+		case 0x40:
+		case 0x41: OP_NEGR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x43 COMA inherent */
+		case 0x42:
 		case 0x43: OP_COMR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x44 LSRA inherent */
-		case 0x44: OP_LSRR(reg_a); TOOK_CYCLES(2); break;
+		case 0x44:
+		case 0x45: OP_LSRR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x46 RORA inherent */
 		case 0x46: OP_RORR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x47 ASRA inherent */
@@ -601,7 +607,8 @@ static inline void switched_block(void) {
 		/* 0x49 ROLA inherent */
 		case 0x49: OP_ROLR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x4A DECA inherent */
-		case 0x4a: OP_DECR(reg_a); TOOK_CYCLES(2); break;
+		case 0x4a:
+		case 0x4b: OP_DECR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x4C INCA inherent */
 		case 0x4c: OP_INCR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x4D TSTA inherent */
@@ -609,11 +616,14 @@ static inline void switched_block(void) {
 		/* 0x4F CLRA inherent */
 		case 0x4f: OP_CLRR(reg_a); TOOK_CYCLES(2); break;
 		/* 0x50 NEGB inherent */
-		case 0x50: OP_NEGR(reg_b); TOOK_CYCLES(2); break;
+		case 0x50:
+		case 0x51: OP_NEGR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x53 COMB inherent */
+		case 0x52:
 		case 0x53: OP_COMR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x54 LSRB inherent */
-		case 0x54: OP_LSRR(reg_b); TOOK_CYCLES(2); break;
+		case 0x54:
+		case 0x55: OP_LSRR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x56 RORB inherent */
 		case 0x56: OP_RORR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x57 ASRB inherent */
@@ -623,19 +633,24 @@ static inline void switched_block(void) {
 		/* 0x59 ROLB inherent */
 		case 0x59: OP_ROLR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x5A DECB inherent */
-		case 0x5a: OP_DECR(reg_b); TOOK_CYCLES(2); break;
+		case 0x5a:
+		case 0x5b: OP_DECR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x5C INCB inherent */
 		case 0x5c: OP_INCR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x5D TSTB inherent */
 		case 0x5d: OP_TSTR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x5F CLRB inherent */
+		case 0x5e:
 		case 0x5f: OP_CLRR(reg_b); TOOK_CYCLES(2); break;
 		/* 0x60 NEG indexed */
-		case 0x60: OP_NEG(BYTE_INDEXED); TOOK_CYCLES(6); break;
+		case 0x60:
+		case 0x61: OP_NEG(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x63 COM indexed */
+		case 0x62:
 		case 0x63: OP_COM(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x64 LSR indexed */
-		case 0x64: OP_LSR(BYTE_INDEXED); TOOK_CYCLES(6); break;
+		case 0x64:
+		case 0x65: OP_LSR(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x66 ROR indexed */
 		case 0x66: OP_ROR(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x67 ASR indexed */
@@ -645,7 +660,8 @@ static inline void switched_block(void) {
 		/* 0x69 ROL indexed */
 		case 0x69: OP_ROL(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x6A DEC indexed */
-		case 0x6a: OP_DEC(BYTE_INDEXED); TOOK_CYCLES(6); break;
+		case 0x6a:
+		case 0x6b: OP_DEC(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x6C INC indexed */
 		case 0x6c: OP_INC(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x6D TST indexed */
@@ -655,11 +671,14 @@ static inline void switched_block(void) {
 		/* 0x6F CLR indexed */
 		case 0x6f: OP_CLR(BYTE_INDEXED); TOOK_CYCLES(6); break;
 		/* 0x70 NEG extended */
-		case 0x70: OP_NEG(BYTE_EXTENDED); TOOK_CYCLES(7); break;
+		case 0x70:
+		case 0x71: OP_NEG(BYTE_EXTENDED); TOOK_CYCLES(7); break;
 		/* 0x73 COM extended */
+		case 0x72:
 		case 0x73: OP_COM(BYTE_EXTENDED); TOOK_CYCLES(7); break;
 		/* 0x74 LSR extended */
-		case 0x74: OP_LSR(BYTE_EXTENDED); TOOK_CYCLES(7); break;
+		case 0x74:
+		case 0x75: OP_LSR(BYTE_EXTENDED); TOOK_CYCLES(7); break;
 		/* 0x76 ROR extended */
 		case 0x76: OP_ROR(BYTE_EXTENDED); TOOK_CYCLES(7); break;
 		/* 0x77 ASR extended */
@@ -669,7 +688,8 @@ static inline void switched_block(void) {
 		/* 0x79 ROL extended */
 		case 0x79: OP_ROL(BYTE_EXTENDED); TOOK_CYCLES(7); break;
 		/* 0x7A DEC extended */
-		case 0x7a: OP_DEC(BYTE_EXTENDED); TOOK_CYCLES(7); break;
+		case 0x7a:
+		case 0x7b: OP_DEC(BYTE_EXTENDED); TOOK_CYCLES(7); break;
 		/* 0x7C INC extended */
 		case 0x7c: OP_INC(BYTE_EXTENDED); TOOK_CYCLES(7); break;
 		/* 0x7D TST extended */
