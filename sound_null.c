@@ -27,16 +27,20 @@
 #include <sys/ioctl.h>
 #include <linux/rtc.h>
 
-#include "sound.h"
+#include "types.h"
+#include "events.h"
 #include "pia.h"
+#include "sound.h"
 #include "xroar.h"
 #include "logging.h"
-#include "types.h"
 
 static int init(void);
 static void shutdown(void);
 static void reset(void);
 static void update(void);
+
+static void flush_frame(void);
+static event_t flush_event = {0, flush_frame, 0, NULL };
 
 SoundModule sound_null_module = {
 	NULL,
@@ -52,6 +56,7 @@ static Cycle frame_cycle_base;
 int fd;
 
 static int init(void) {
+	LOG_DEBUG(2,"Initialising null audio driver\n");
 	if ((fd = open ("/dev/rtc", O_RDONLY)) == -1) {
 		LOG_ERROR("Couldn't open /dev/rtc\n");
 		return 1;
@@ -66,10 +71,13 @@ static int init(void) {
 		close(fd);
 		return 1;
 	}
+	flush_event.scheduled = 0;
+	flush_event.next = NULL;
 	return 0;
 }
 
 static void shutdown(void) {
+	event_delete(&flush_event);
 	if (ioctl(fd, RTC_PIE_OFF, 0) == -1) {
 		LOG_WARN("Couldn't disable periodic interrupts\n");
 	}
@@ -78,18 +86,19 @@ static void shutdown(void) {
 
 static void reset(void) {
 	frame_cycle_base = current_cycle;
-	next_sound_update = frame_cycle_base + CYCLES_PER_FRAME;
+	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_schedule(&flush_event);
 }
 
 static void update(void) {
-	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
+}
+
+static void flush_frame(void) {
 	unsigned long data;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		frame_cycle_base += FRAME_CYCLES;
-		next_sound_update = frame_cycle_base + FRAME_CYCLES;
-		read(fd, &data, sizeof(unsigned long));
-	}
-	return;
+	frame_cycle_base += FRAME_CYCLES;
+	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_schedule(&flush_event);
+	read(fd, &data, sizeof(unsigned long));
 }
 
 #endif  /* HAVE_NULL_AUDIO */
