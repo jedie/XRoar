@@ -104,7 +104,9 @@ static int module_init_by_name(char *name) {
 void video_getargs(int argc, char **argv) {
 	int i;
 	modules_head = video_module = NULL;
+#ifdef HAVE_SDLGL_VIDEO
 	module_add(&video_sdlgl_module);
+#endif
 #ifdef HAVE_SDL_VIDEO
 # ifdef PREFER_NOYUV
 	module_add(&video_sdl_module);
