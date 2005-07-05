@@ -26,16 +26,20 @@
 #include <jack/jack.h>
 #include <pthread.h>
 
-#include "sound.h"
+#include "types.h"
+#include "events.h"
 #include "pia.h"
+#include "sound.h"
+#include "types.h"
 #include "xroar.h"
 #include "logging.h"
-#include "types.h"
 
 static int init(void);
 static void shutdown(void);
 static void reset(void);
 static void update(void);
+
+static void flush_frame(void);
 static void jack_shutdown(void *arg);
 static int jack_callback(jack_nframes_t nframes, void *arg);
 
@@ -62,6 +66,8 @@ static Sample *buffer = NULL;
 static Sample *wrptr;
 static Sample lastsample;
 static pthread_mutex_t haltflag;
+
+static event_t flush_event = {0, flush_frame, 0, NULL };
 
 static int init(void) {
 	const char **ports;
@@ -108,6 +114,7 @@ static int init(void) {
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down JACK audio driver\n");
 	pthread_mutex_destroy(&haltflag);
+	event_delete(&flush_event);
 	if (client)
 		jack_client_close(client);
 	client = NULL;
@@ -117,15 +124,17 @@ static void shutdown(void) {
 }
 static void jack_shutdown(void *arg) {
 	(void)arg;  /* unused */
-	shutdown();
+	client = NULL;
+	sound_next();
 }
 
 static void reset(void) {
 	memset(buffer, 0x00, frame_size * sizeof(Sample));
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
-	next_sound_update = frame_cycle_base + frame_cycles;
-	lastsample = 0;
+	flush_event.at_cycle = frame_cycle_base + frame_cycles;
+	event_schedule(&flush_event);
+	lastsample = 0.;
 }
 
 static void update(void) {
@@ -134,15 +143,15 @@ static void update(void) {
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
 		fill_to = buffer + frame_size;
+		LOG_WARN("sound_jack.c: Got to end of buffer\n");
 	} else {
 		fill_to = buffer + (elapsed_cycles/sample_cycles);
 	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		//fill_with = ((Sample)((PIA_1B.port_output & 0x02) << 6) / 300.) - 0.5;
-		fill_with = 0.;
+		fill_with = ((Sample)((PIA_1B.port_output & 0x02) << 6) / 300.) - 0.5;
 	} else  {
-		if (PIA_0B.control_register & 0x08 || PIA_0A.control_register & 0x08) {
+		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
 			fill_with = 0.;
 		} else {
@@ -152,18 +161,22 @@ static void update(void) {
 			fill_with = ((Sample)(PIA_1A.port_output & 0xfc) / 300.) - 0.5;
 		}
 	}
-	pthread_mutex_lock(&haltflag);
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	if ((unsigned int)(fill_to - buffer) >= frame_size) {
-		frame_cycle_base += frame_cycles;
-		next_sound_update = frame_cycle_base + frame_cycles;
-		wrptr = buffer;
-		pthread_mutex_lock(&haltflag);
-	}
 	lastsample = fill_with;
+}
+
+void flush_frame(void) {
+	Sample *fill_to = buffer + frame_size;
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
+	frame_cycle_base += frame_cycles;
+	flush_event.at_cycle = frame_cycle_base + frame_cycles;
+	event_schedule(&flush_event);
+	wrptr = buffer;
+	pthread_mutex_lock(&haltflag);
+	pthread_mutex_lock(&haltflag);
 	pthread_mutex_unlock(&haltflag);
-	return;
 }
 
 static int jack_callback(jack_nframes_t nframes, void *arg) {
