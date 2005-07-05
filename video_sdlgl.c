@@ -188,6 +188,8 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL OpenGL driver\n");
+	glDeleteTextures(1, &texnum);
+	glDeleteTextures(1, &border_texnum);
 	SDL_FreeSurface(screen_tex);
 	SDL_FreeSurface(border_tex);
 	SDL_FreeSurface(screen);
