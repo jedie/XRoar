@@ -22,21 +22,26 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/audioio.h>
 #include <sys/stropts.h>
 
-#include "sound.h"
+#include "types.h"
+#include "events.h"
+#include "logging.h"
 #include "pia.h"
 #include "xroar.h"
-#include "logging.h"
-#include "types.h"
+#include "sound.h"
 
 static int init(void);
 static void shutdown(void);
 static void reset(void);
 static void update(void);
+
+static void flush_frame(void);
+static event_t flush_event = { 0, flush_frame, 0, NULL };
 
 SoundModule sound_sun_module = {
 	NULL,
@@ -55,8 +60,8 @@ typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 #define FRAME_CYCLES ((OSCILLATOR_RATE / SAMPLE_RATE) * FRAME_SIZE)
 
 static int sound_fd;
-static int channels = CHANNELS;
-static uint_t samples_start;
+static unsigned int channels = CHANNELS;
+static uint_t samples_written;
 
 static Cycle frame_cycle_base;
 static Sample *buffer;
@@ -64,9 +69,9 @@ static Sample *wrptr;
 static Sample_f lastsample;
 
 static int init(void) {
-	int rate = SAMPLE_RATE;
+	unsigned int rate = SAMPLE_RATE;
 	audio_info_t device_info;
-	char *device = "/dev/audio";
+	const char *device = "/dev/audio";
 
 	LOG_DEBUG(2,"Initialising Sun audio driver\n");
 	channels = CHANNELS;
@@ -104,6 +109,7 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
+	event_delete(&flush_event);
 	close(sound_fd);
 	free(buffer);
 }
@@ -113,18 +119,18 @@ static void reset(void) {
 	memset(buffer, 0x80, FRAME_SIZE);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
-	next_sound_update = frame_cycle_base + FRAME_CYCLES;
+	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_schedule(&flush_event);
 	lastsample = 0x00;
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
-	samples_start = device_info.play.samples;
+	samples_written = device_info.play.samples;
 }
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
 	Sample_f fill_with;
 	Sample *fill_to;
-	audio_info_t device_info;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
 	} else {
@@ -146,19 +152,38 @@ static void update(void) {
 		}
 	}
 	while (wrptr < fill_to)
-		*(wrptr++) = fill_with;
-	if ((fill_to - buffer) >= FRAME_SIZE) {
-		frame_cycle_base += FRAME_CYCLES;
-		next_sound_update = frame_cycle_base + FRAME_CYCLES;
-		wrptr = buffer;
-		do {
-			ioctl(sound_fd, AUDIO_GETINFO, &device_info);
-		} while ((int)(device_info.play.samples - samples_start) < 0);
-		write(sound_fd, buffer, FRAME_SIZE);
-		samples_start += FRAME_SIZE;
-	}
+		*(wrptr++) = lastsample;
 	lastsample = fill_with;
-	return;
+}
+
+static void flush_frame(void) {
+	audio_info_t device_info;
+	int samples_left;
+	Sample *fill_to = buffer + FRAME_SIZE;
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
+	frame_cycle_base += FRAME_CYCLES;
+	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_schedule(&flush_event);
+	wrptr = buffer;
+	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
+	samples_left = samples_written - device_info.play.samples;
+	if (samples_left > FRAME_SIZE) {
+		int sleep_ms = ((samples_left - FRAME_SIZE) * 1000)/SAMPLE_RATE;
+		struct timespec elapsed, tv;
+		int errcode;
+		sleep_ms -= 10;
+		elapsed.tv_sec = sleep_ms / 1000;
+		elapsed.tv_nsec = (sleep_ms % 1000) * 1000000;
+		do {
+			errno = 0;
+			tv.tv_sec = elapsed.tv_sec;
+			tv.tv_nsec = elapsed.tv_nsec;
+			errcode = nanosleep(&tv, &elapsed);
+		} while ( errcode && (errno == EINTR) );
+	}
+	write(sound_fd, buffer, FRAME_SIZE);
+	samples_written += FRAME_SIZE;
 }
 
 #endif  /* HAVE_SUN_AUDIO */
