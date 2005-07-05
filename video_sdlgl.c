@@ -133,6 +133,10 @@ static int init(void) {
 		return 1;
 	}
 
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glDisable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 	glViewport(0, 0, screen->w, screen->h);
 	glMatrixMode(GL_PROJECTION);
