@@ -57,6 +57,7 @@ struct keymap {
 #include "keyboard_sdl_mappings.c"
 
 static unsigned int control = 0, shift = 0;
+static unsigned int emulate_joystick = 0;
 
 static uint_least16_t sdl_to_keymap[768];
 
@@ -152,6 +153,20 @@ static void shutdown(void) {
 
 static void keypress(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
+	if (emulate_joystick == 1) {
+		if (sym == SDLK_UP) { joystick_lefty = 0; return; }
+		if (sym == SDLK_DOWN) { joystick_lefty = 255; return; }
+		if (sym == SDLK_LEFT) { joystick_leftx = 0; return; }
+		if (sym == SDLK_RIGHT) { joystick_leftx = 255; return; }
+		if (sym == SDLK_LALT) { PIA_0A.tied_low &= 0xfd; return; }
+	}
+	if (emulate_joystick == 2) {
+		if (sym == SDLK_UP) { joystick_righty = 0; return; }
+		if (sym == SDLK_DOWN) { joystick_righty = 255; return; }
+		if (sym == SDLK_LEFT) { joystick_rightx = 0; return; }
+		if (sym == SDLK_RIGHT) { joystick_rightx = 255; return; }
+		if (sym == SDLK_LALT) { PIA_0A.tied_low &= 0xfe; return; }
+	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 1;
 		KEYBOARD_PRESS(0);
@@ -196,15 +211,11 @@ static void keypress(SDL_keysym *keysym) {
 				intel_hex_read(filename);
 			}
 			break;
-			/*
 		case SDLK_j:
-			{
-			joystick_t *tmp = sdl_joystick_right;
-			sdl_joystick_right = sdl_joystick_left;
-			sdl_joystick_left = tmp;
-			}
+			emulate_joystick++;
+			if (emulate_joystick > 2)
+				emulate_joystick = 0;
 			break;
-			*/
 		case SDLK_k:
 			machine_set_keymap(machine_keymap+1);
 			break;
@@ -221,11 +232,9 @@ static void keypress(SDL_keysym *keysym) {
 			machine_set_romtype(machine_romtype+1);
 			xroar_reset(RESET_HARD);
 			break;
-			/*
 		case SDLK_n:
-			video_next();
+			sound_next();
 			break;
-			*/
 		case SDLK_r:
 			xroar_reset(shift ? RESET_HARD : RESET_SOFT);
 			break;
@@ -295,6 +304,20 @@ static void keypress(SDL_keysym *keysym) {
 
 static void keyrelease(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
+	if (emulate_joystick == 1) {
+		if (sym == SDLK_UP && joystick_lefty < 127) { joystick_lefty = 127; return; }
+		if (sym == SDLK_DOWN && joystick_lefty > 128) { joystick_lefty = 128; return; }
+		if (sym == SDLK_LEFT && joystick_leftx < 127) { joystick_leftx = 127; return; }
+		if (sym == SDLK_RIGHT && joystick_leftx > 128) { joystick_leftx = 128; return; }
+		if (sym == SDLK_LALT) { PIA_0A.tied_low |= 0x02; return; }
+	}
+	if (emulate_joystick == 2) {
+		if (sym == SDLK_UP && joystick_righty < 127) { joystick_righty = 127; return; }
+		if (sym == SDLK_DOWN && joystick_righty > 128) { joystick_righty = 128; return; }
+		if (sym == SDLK_LEFT && joystick_rightx < 127) { joystick_rightx = 127; return; }
+		if (sym == SDLK_RIGHT && joystick_rightx > 128) { joystick_rightx = 128; return; }
+		if (sym == SDLK_LALT) { PIA_0A.tied_low |= 0x01; return; }
+	}
 	switch (sym) {
 	case 0: break;
 	case SDLK_LCTRL: case SDLK_RCTRL:
