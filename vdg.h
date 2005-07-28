@@ -10,11 +10,8 @@
 
 extern unsigned int vdg_alpha[768];
 
-extern void (*vdg_render_scanline)(void);
-
 void vdg_init(void);
 void vdg_reset(void);
-void vdg_vsync(void);
 void vdg_set_mode(void);
 
 #endif  /* __VDG_H__ */

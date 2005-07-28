@@ -17,9 +17,11 @@
  */
 
 #include "types.h"
+#include "events.h"
 #include "keyboard.h"
-#include "pia.h"
 #include "logging.h"
+#include "pia.h"
+#include "xroar.h"
 
 #ifdef HAVE_SDL_KEYBOARD
 extern KeyboardModule keyboard_sdl_module;
@@ -41,6 +43,9 @@ unsigned int keyboard_row[9];
 unsigned int keyboard_buffer[256];
 unsigned int *keyboard_bufcur, *keyboard_buflast;
 
+static void keyboard_poll(void);
+static event_t *poll_event;
+
 void keyboard_getargs(int argc, char **argv) {
 	/* Preserve args info for passing to modules getargs later */
 	local_argc = argc;
@@ -49,6 +54,8 @@ void keyboard_getargs(int argc, char **argv) {
 
 int keyboard_init(void) {
 	/* A video module should have set keyboard_module by this point */
+	poll_event = event_new();
+	poll_event->dispatch = keyboard_poll;
 	if (keyboard_module == NULL)
 		return 1;
 	if (keyboard_module->getargs)
@@ -68,6 +75,8 @@ void keyboard_reset(void) {
 		keyboard_column[i] = ~0;
 		keyboard_row[i] = ~0;
 	}
+	poll_event->at_cycle = current_cycle + 141050;
+	event_queue(poll_event);
 }
 
 void keyboard_column_update(void) {
@@ -122,4 +131,24 @@ void keyboard_queue(uint_least16_t c) {
 	*(keyboard_buflast++) = (c & 0x7f) | 0x80;
 	if ((c>>8) == 3) *(keyboard_buflast++) = 0x8c;  /* unclear */
 	*(keyboard_buflast++) = shift_state ? 0x80 : 0; /* last shift state */
+}
+
+static void keyboard_poll(void) {
+	poll_event->at_cycle = current_cycle + 141050;
+	if (KEYBOARD_HASQUEUE) {
+		unsigned int k;
+		poll_event->at_cycle += 141050;
+		KEYBOARD_DEQUEUE(k);
+		if (k & 0x80) {
+			KEYBOARD_RELEASE(k & 0x7f);
+		} else {
+			KEYBOARD_PRESS(k);
+		}
+	} else {
+		keyboard_module->poll();
+	}
+#ifndef HAVE_GP32
+	joystick_module->poll();
+#endif
+	event_queue(poll_event);
 }

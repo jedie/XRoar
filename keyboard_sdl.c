@@ -233,7 +233,8 @@ static void keypress(SDL_keysym *keysym) {
 			xroar_reset(RESET_HARD);
 			break;
 		case SDLK_n:
-			sound_next();
+			if (shift) video_next();
+			else sound_next();
 			break;
 		case SDLK_r:
 			xroar_reset(shift ? RESET_HARD : RESET_SOFT);
@@ -258,6 +259,11 @@ static void keypress(SDL_keysym *keysym) {
 			}
 			break;
 			}
+#ifdef TRACE
+		case SDLK_v:
+			trace = !trace;
+			break;
+#endif
 		case SDLK_z: // running out of letters...
 			translated_keymap = !translated_keymap;
 			/* UNICODE translation only used in

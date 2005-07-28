@@ -20,7 +20,7 @@ void gpsound_init(uint32_t pclk, uint32_t *rate) {
 uint16_t **gpsound_buffers(int size) {
 	/* Buffer should be on 4k boundary so we can turn off writeback
 	 * for it */
-	uint_least32_t bytes = ((size*4) + 0xfff) & ~0xfff;
+	uint32_t bytes = ((size*4) + 0xfff) & ~0xfff;
 	uint8_t *tmp = (uint8_t *)malloc((size*4) + 0xfff);
 	buffer[0] = (uint16_t *)(((uint32_t)tmp + 0xfff) & ~0xfff);
 	buffer[1] = buffer[0] + size;

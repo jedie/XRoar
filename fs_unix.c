@@ -95,6 +95,15 @@ void fs_close(FS_FILE fd) {
 	close(fd);
 }
 
+ssize_t fs_size(const char *filename) {
+	struct stat sb;
+	int ret;
+	ret = stat(filename, &sb);
+	if (ret == 0)
+		return (ssize_t)sb.st_size;
+	return -1;
+}
+
 ssize_t fs_load_file(char *filename, void *buf, size_t size) {
 	ssize_t count;
 	FS_FILE fd;

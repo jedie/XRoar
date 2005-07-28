@@ -27,6 +27,7 @@ FS_FILE fs_open(const char *filename, int flags);
 ssize_t fs_read(FS_FILE fd, void *buffer, size_t size);
 ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size);
 void fs_close(FS_FILE fd);
+ssize_t fs_size(const char *filename);
 
 ssize_t fs_load_file(char *filename, void *buf, size_t size);
 int fs_write_byte(FS_FILE fd, uint8_t octet);

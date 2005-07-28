@@ -26,6 +26,7 @@
 #include "sound.h"
 #include "vdg.h"
 #include "wd2797.h"
+#include "xroar.h"
 #include "sam.h"
 
 uint8_t *addrptr_low;
@@ -43,6 +44,7 @@ unsigned int  sam_vdg_mod_ydiv;
 uint_least16_t sam_vdg_mod_clear;
 unsigned int  sam_vdg_xcount;
 unsigned int  sam_vdg_ycount;
+unsigned int sam_topaddr_cycles;
 
 static unsigned int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
 static unsigned int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
@@ -59,14 +61,16 @@ void sam_reset(void) {
 
 unsigned int sam_read_byte(uint_least16_t addr) {
 	addr &= 0xffff;
-	if (addr < 0x8000) { return addrptr_low[addr]; }
+	if (addr < 0x8000) { current_cycle += CPU_SLOW_DIVISOR; return addrptr_low[addr]; }
 	if (addr < 0xff00) {
+		current_cycle += sam_topaddr_cycles;
 		if (mapped_ram) return ram1[addr-0x8000];
 		if (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))
 			return rom1[addr-0x8000];
 		return rom0[addr-0x8000];
 	}
 	if (addr < 0xff20) {
+		current_cycle += CPU_SLOW_DIVISOR;
 		if (IS_COCO) {
 			if ((addr & 3) == 0) return PIA_READ(PIA_0A);
 			if ((addr & 3) == 1) return PIA_CONTROL_READ(PIA_0A);
@@ -86,6 +90,7 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 		}
 		return 0x7f;
 	}
+	current_cycle += sam_topaddr_cycles;
 	if (addr < 0xff40) {
 		if ((addr & 3) == 0) return PIA_READ(PIA_1A);
 		if ((addr & 3) == 1) return PIA_CONTROL_READ(PIA_1A);
@@ -107,12 +112,14 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 
 void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	addr &= 0xffff;
-	if (addr < 0x8000) { addrptr_low[addr] = octet; return; }
+	if (addr < 0x8000) { current_cycle += CPU_SLOW_DIVISOR; addrptr_low[addr] = octet; return; }
 	if (addr < 0xff00) {
+		current_cycle += sam_topaddr_cycles;
 		if (mapped_ram) ram1[addr-0x8000] = octet;
 		return;
 	}
 	if (addr < 0xff20) {
+		current_cycle += CPU_SLOW_DIVISOR;
 		if (IS_COCO) {
 			if ((addr & 3) == 0) PIA_WRITE_P0DA(octet);
 			if ((addr & 3) == 1) PIA_CONTROL_WRITE(PIA_0A, octet);
@@ -132,6 +139,7 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 		}
 		return;
 	}
+	current_cycle += sam_topaddr_cycles;
 	if (addr < 0xff40) {
 		if ((addr & 3) == 0) PIA_WRITE_P1DA(octet);
 		if ((addr & 3) == 1) PIA_CONTROL_WRITE(PIA_1A, octet);
@@ -168,13 +176,15 @@ void sam_update_from_register(void) {
 		addrptr_low = ram1;
 		addrptr_high = rom0;
 		mapped_ram = 0;
+		sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
 	} else {
 		addrptr_low = ram0;
-		if ((mapped_ram = sam_register & 0x8000))
+		if ((mapped_ram = sam_register & 0x8000)) {
 			addrptr_high = ram1;
-		else
+			sam_topaddr_cycles = CPU_SLOW_DIVISOR;
+		} else {
 			addrptr_high = rom0;
+			sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
+		}
 	}
-	//addrptr_low = ram0;
-	return;
 }

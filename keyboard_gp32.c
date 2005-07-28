@@ -31,14 +31,14 @@
 #include "gp32/gpchatboard.h"
 
 #include "types.h"
-#include "xroar.h"
-#include "pia.h"
-#include "keyboard.h"
-#include "snapshot.h"
-#include "logging.h"
-#include "video.h"
 #include "joystick.h"
+#include "keyboard.h"
+#include "logging.h"
+#include "pia.h"
+#include "snapshot.h"
 #include "ui.h"
+#include "video.h"
+#include "xroar.h"
 
 static int init(void);
 static void shutdown(void);
@@ -52,15 +52,7 @@ KeyboardModule keyboard_gp32_module = {
 	poll
 };
 
-#define KEY_PRESSED(s) { \
-		keyboard_column[keymap[s].col] &= ~(1<<keymap[s].row); \
-		keyboard_row[keymap[s].row] &= ~(1<<keymap[s].col); \
-	}
-#define KEY_RELEASED(s) { \
-		keyboard_column[keymap[s].col] |= 1<<keymap[s].row; \
-		keyboard_row[keymap[s].row] |= 1<<keymap[s].col; \
-	}
-#define KEY_UPDATE(t,s) if (t) { KEY_PRESSED(s); } else { KEY_RELEASED(s); }
+#define KEY_UPDATE(t,s) if (t) { KEYBOARD_PRESS(s); } else { KEYBOARD_RELEASE(s); }
 
 #define KEYBOARD_OFFSET (64*240)
 
@@ -200,7 +192,7 @@ static void poll(void) {
 				newkeyx--;
 			if (newkeyx != keyx || newkeyy != keyy) {
 				highlight_key();
-				KEY_RELEASED(current->sym);
+				KEYBOARD_RELEASE(current->sym);
 				keyx = newkeyx; keyy = newkeyy;
 				current = &keys[keyy][keyx];
 				highlight_key();

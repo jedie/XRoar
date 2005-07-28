@@ -59,7 +59,7 @@ static Sample lastsample;
 static pthread_mutex_t haltflag;
 
 static void flush_frame(void);
-static event_t flush_event = {0, flush_frame, 0, NULL };
+static event_t *flush_event;
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		const AudioBufferList *inInputData, 
@@ -101,8 +101,8 @@ static int init(void) {
 	pthread_mutex_init(&haltflag, NULL);
 	AudioDeviceAddIOProc(device, callback, NULL);
 	AudioDeviceStart(device, callback);
-	flush_event.scheduled = 0;
-	flush_event.next = NULL;
+	flush_event = event_new();
+	flush_event->dispatch = flush_frame;
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialiase Mac OS X CoreAudio driver\n");
@@ -119,8 +119,8 @@ static void reset(void) {
 	memset(buffer, 0, FRAME_SIZE * sizeof(Sample) * channels);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	lastsample = 0;
 }
 
@@ -130,7 +130,6 @@ static void update(void) {
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
-		LOG_WARN("sound_macosx.c: Got to end of buffer\n");
 	} else {
 		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
 	}
@@ -156,8 +155,8 @@ static void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	wrptr = buffer;
 	pthread_mutex_lock(&haltflag);
 	pthread_mutex_lock(&haltflag);

@@ -41,7 +41,7 @@ static void reset(void);
 static void update(void);
 
 static void flush_frame(void);
-static event_t flush_event = { 0, flush_frame, 0, NULL };
+static event_t *flush_event;
 
 SoundModule sound_sun_module = {
 	NULL,
@@ -104,12 +104,14 @@ static int init(void) {
 	}
 	LOG_DEBUG(0,"Set up audio device at %dHz, %d channels.\n", rate, channels);
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
+	flush_event = event_new();
+	flush_event->dispatch = flush_frame;
 	return 0;
 }
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
-	event_delete(&flush_event);
+	event_dequeue(flush_event);
 	close(sound_fd);
 	free(buffer);
 }
@@ -119,8 +121,8 @@ static void reset(void) {
 	memset(buffer, 0x80, FRAME_SIZE);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	lastsample = 0x00;
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
@@ -163,8 +165,8 @@ static void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	wrptr = buffer;
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
 	samples_left = samples_written - device_info.play.samples;

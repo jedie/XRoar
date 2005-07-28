@@ -45,7 +45,7 @@ void pia_reset(void) {
 	PIA_0A.port_input		= PIA_1A.port_input		= 0xff;
 	PIA_0A.tied_low			= PIA_1A.tied_low		= 0xff;
 	PIA_0A.interrupt_enable		= PIA_1A.interrupt_enable	= 0;
-	PIA_0A.interrupt_transition	= PIA_1A.interrupt_transition	= 0;
+	//PIA_0A.interrupt_transition	= PIA_1A.interrupt_transition	= 0;
 	PIA_0A.register_select		= PIA_1A.register_select	= 0;
 	PIA_UPDATE_OUTPUT(PIA_0A);
 	PIA_UPDATE_OUTPUT(PIA_1A);
@@ -56,7 +56,7 @@ void pia_reset(void) {
 	PIA_0B.port_input		= PIA_1B.port_input		= 0;
 	PIA_0B.tied_low			= PIA_1B.tied_low		= 0xff;
 	PIA_0B.interrupt_enable		= PIA_1B.interrupt_enable	= 0;
-	PIA_0B.interrupt_transition	= PIA_1B.interrupt_transition	= 0;
+	//PIA_0B.interrupt_transition	= PIA_1B.interrupt_transition	= 0;
 	PIA_0B.register_select		= PIA_1B.register_select	= 0;
 	PIA_UPDATE_OUTPUT(PIA_0B);
 	PIA_UPDATE_OUTPUT(PIA_1B);

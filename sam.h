@@ -8,35 +8,15 @@
 
 #include "types.h"
 
-/*
-#define sam_read_byte(a) _sam_read_byte(a)
-#define sam_store_byte(a,v) _sam_store_byte(a,v)
-*/
-/*
-#define sam_read_byte(a) (((a)&0xffff) < 0x8000 ? addrptr_low[((a)&0xffff)] : ( ((a)&0xffff) < 0xff00 ? addrptr_high[((a)&0xffff)-0x8000] : _sam_read_byte(((a)&0xffff))))
-#define sam_store_byte(a,v) \
-	{ if (((a)&0xffff) < 0x8000) { addrptr_low[((a)&0xffff)] = v; } \
-	else { \
-		if (((a)&0xffff) < 0xff00) { \
-			if (mapped_ram) \
-				addrptr_high[((a)&0xffff)-0x8000] = v; \
-		} else { \
-			_sam_store_byte(((a)&0xffff),v); \
-		} \
-	} }
-*/
-
-#define sam_read_word(a) (sam_read_byte(a)<<8 | sam_read_byte(a+1))
-
-#define sam_vdg_xstep(b) { \
+#define sam_vdg_xstep(b) do { \
 		sam_vdg_xcount++; \
 		if (sam_vdg_xcount >= sam_vdg_mod_xdiv) { \
 			sam_vdg_xcount = 0; \
 			sam_vdg_address += b; \
 		} \
-	}
+	} while(0)
 
-#define sam_vdg_hsync(bpl,a,p) { \
+#define sam_vdg_hsync(bpl,a,p) do { \
 		sam_vdg_ycount++; \
 		if (sam_vdg_ycount >= sam_vdg_mod_ydiv) { \
 			sam_vdg_ycount = 0; \
@@ -45,15 +25,25 @@
 		} \
 		sam_vdg_xstep(sam_vdg_mode == 7 ? a : p); \
 		sam_vdg_address &= sam_vdg_mod_clear; \
-	}
+	} while(0)
 
-#define sam_vdg_fsync() { \
+#define sam_vdg_fsync() do { \
 		sam_vdg_address = sam_vdg_base; \
 		sam_vdg_xcount = 0; \
 		sam_vdg_ycount = 0; \
-	}
+	} while(0)
 
 #define sam_vram_ptr(a) (a<0x8000 ? &addrptr_low[a] : &addrptr_high[a-0x8000])
+
+/* Simple macro for use in place of sam_read_byte() when the result isn't
+ * required, just appropriate timing.  Side-effects of reads obviously won't
+ * happen, but in practice that should almost certainly never matter. */
+#define sam_peek_byte(a) do { \
+		if (((a)&0xffff) < 0x8000 || ((a)&0xffff) > 0xff00) \
+			current_cycle += CPU_SLOW_DIVISOR; \
+		else \
+			current_cycle += sam_topaddr_cycles; \
+	} while(0)
 
 extern uint8_t *addrptr_low;
 extern uint8_t *addrptr_high;
@@ -67,6 +57,7 @@ extern unsigned int  sam_vdg_mod_ydiv;
 extern uint_least16_t sam_vdg_mod_clear;
 extern unsigned int  sam_vdg_xcount;
 extern unsigned int  sam_vdg_ycount;
+extern unsigned int sam_topaddr_cycles;
 
 void sam_init(void);
 void sam_reset(void);

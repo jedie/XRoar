@@ -10,13 +10,18 @@
 
 /* Dragon 64s and later Dragon 32s used a 14.218MHz crystal
  * (ref: "Dragon 64 differences", Graham E. Kinns and then a motherboard) */
-#define OSCILLATOR_RATE 14218000
+//#define OSCILLATOR_RATE 14218000
+#define OSCILLATOR_RATE 14318180
 
 /* NTSC timings: */
 #define CYCLES_PER_SCANLINE 910
-#define ACTIVE_SCANLINES_PER_FRAME 256
+#define ACTIVE_SCANLINES_PER_FRAME 243
 #define TOTAL_SCANLINES_PER_FRAME 262
-#define TOP_BORDER_OFFSET 14
+#define TOP_BORDER_OFFSET 21
+//#define CYCLES_PER_SCANLINE 910
+//#define ACTIVE_SCANLINES_PER_FRAME 256
+//#define TOTAL_SCANLINES_PER_FRAME 262
+//#define TOP_BORDER_OFFSET 14
 
 /* NTSC kludged timings: */
 /*
@@ -28,8 +33,8 @@
 
 #define CYCLES_PER_FRAME (CYCLES_PER_SCANLINE * TOTAL_SCANLINES_PER_FRAME)
 
-#define CPU_RATE_DIVISOR 16
-#define CPU_RATE (OSCILLATOR_RATE / CPU_RATE_DIVISOR)
+#define CPU_SLOW_DIVISOR 16
+#define CPU_FAST_DIVISOR 8
 
 #define NUM_MACHINES 3
 #define DRAGON64 0

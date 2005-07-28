@@ -24,7 +24,8 @@ WINDOWS32_PREFIX = /usr/local/i586-mingw32
 CFLAGS_GP32 = -O3 -funroll-loops -finline-functions -mcpu=arm9tdmi \
 	-mstructure-size-boundary=32 -finline-limit=320000
 
-CFLAGS_UNIX = -O3 -g -finline-limit=63000
+CFLAGS_UNIX = -O3 -g
+#CFLAGS_UNIX = -O3 -g -finline-limit=63000
 
 CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
@@ -37,12 +38,12 @@ CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 
 # Video, audio and user-interface modules:
 USE_SDL = 1		# SDL video and audio modules
-USE_SDLGL = 1		# Use OpenGL with SDL
+#USE_SDLGL = 1		# Use OpenGL with SDL
 #USE_OSS_AUDIO = 1	# OSS blocking audio
 #USE_JACK_AUDIO = 1	# Connects to JACK audio server
 #USE_SUN_AUDIO = 1	# Sun audio.  Might suit *BSD too, don't know
 #USE_NULL_AUDIO = 1	# Requires Linux RTC as sound is used to sync
-USE_GTK_UI = 1		# Simple GTK+ file-requester
+#USE_GTK_UI = 1		# Simple GTK+ file-requester
 #USE_CARBON_UI = 1	# MacOS X Carbon UI (also CoreAudio)
 USE_CLI_UI = 1		# Prompt for filenames on command line
 

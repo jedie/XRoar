@@ -16,31 +16,71 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "video.h"
+#include "types.h"
+#include "events.h"
+#include "logging.h"
 #include "m6809.h"
+#include "pia.h"
 #include "sam.h"
 #include "vdg.h"
-#include "pia.h"
-#include "logging.h"
-#include "types.h"
+#include "video.h"
+#include "xroar.h"
 
 #include "vdg_bitmaps.c"
 
-void (*vdg_render_scanline)(void);
+static void (*vdg_render_scanline)(void);
+static void vdg_hsync(void);
+static event_t *hsync_event;
+static int_least16_t scanline;
 
 void vdg_init(void) {
 	video_artifact_mode = 0;
 	vdg_render_scanline = video_module->vdg_render_sg4;
+	hsync_event = event_new();
+	hsync_event->dispatch = vdg_hsync;
 }
 
 void vdg_reset(void) {
 	video_module->vdg_reset();
 	vdg_set_mode();
+	scanline = 0;
+	hsync_event->at_cycle = current_cycle + CYCLES_PER_SCANLINE;
+	event_queue(hsync_event);
 }
 
-void vdg_vsync(void) {
-	video_module->vdg_vsync();
-	sam_vdg_fsync();
+static void vdg_hsync(void) {
+	if (scanline >= TOP_BORDER_OFFSET) {
+		if (scanline < (TOP_BORDER_OFFSET + 24)) {
+#ifndef HAVE_GP32
+			video_module->render_border();
+#endif
+		} else {
+			if (scanline < (216 + TOP_BORDER_OFFSET)) {
+#ifdef HAVE_GP32
+				if ((scanline & 3) == 0)
+#endif
+					vdg_render_scanline();
+			} else {
+				if (scanline < (240 + TOP_BORDER_OFFSET)) {
+#ifndef HAVE_GP32
+					video_module->render_border();
+#endif
+				}
+			}
+		}
+	}
+	PIA_SET_P0CA1;
+	scanline++;
+	if (scanline == ACTIVE_SCANLINES_PER_FRAME) {
+		PIA_SET_P0CB1;
+	}
+	if (scanline >= TOTAL_SCANLINES_PER_FRAME) {
+		sam_vdg_fsync();
+		video_module->vdg_vsync();  // XXX
+		scanline = 0;
+	}
+	hsync_event->at_cycle += CYCLES_PER_SCANLINE;
+	event_queue(hsync_event);
 }
 
 void vdg_set_mode(void) {

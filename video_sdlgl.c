@@ -254,13 +254,13 @@ static void vdg_vsync(void) {
 			GL_UNSIGNED_SHORT_5_6_5, border_tex->pixels);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, 0.0);
-	glVertex3i(0, 0, 0);
+	glVertex3i(0, yoffset, 0);
 	glTexCoord2f(0.0, 0.9375);
-	glVertex3i(0, screen->h, 0);
+	glVertex3i(0, screen->h - yoffset, 0);
 	glTexCoord2f(1.0, 0.9375);
-	glVertex3i(screen->w, screen->h, 0);
+	glVertex3i(screen->w, screen->h - yoffset, 0);
 	glTexCoord2f(1.0, 0.0);
-	glVertex3i(screen->w, 0, 0);
+	glVertex3i(screen->w, yoffset, 0);
 	glEnd();
 	/* Draw main window */
 	glBindTexture(GL_TEXTURE_2D, texnum);

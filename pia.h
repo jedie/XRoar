@@ -24,24 +24,29 @@ typedef struct {
 	unsigned int tied_low;
 	/* Convenience flags split out from control_register above */
 	unsigned int interrupt_enable;
-	unsigned int interrupt_transition;
+	/*unsigned int interrupt_transition;*/
 	unsigned int register_select;  /* 0 = DDR, SET = OR */
+	unsigned int interrupt_flag;
 	/* ignore Cx2 stuff for now */
 } pia_port;
 
 extern pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 
-#define PIA_SET_P0CA1 do { PIA_0A.control_register |= 0x80; if (PIA_0A.interrupt_enable) irq = 1; } while (0)
-#define PIA_SET_P0CB1 do { PIA_0B.control_register |= 0x80; if (PIA_0B.interrupt_enable) irq = 1; } while (0)
-#define PIA_SET_P1CA1 do { PIA_1A.control_register |= 0x80; if (PIA_1A.interrupt_enable) firq = 1; } while (0)
-#define PIA_SET_P1CB1 do { PIA_1B.control_register |= 0x80; if (PIA_1B.interrupt_enable) firq = 1; } while (0)
+//#define PIA_SET_P0CA1 do { PIA_0A.control_register |= 0x80; if (PIA_0A.interrupt_enable) irq = 1; } while (0)
+//#define PIA_SET_P0CB1 do { PIA_0B.control_register |= 0x80; if (PIA_0B.interrupt_enable) irq = 1; } while (0)
+//#define PIA_SET_P1CA1 do { PIA_1A.control_register |= 0x80; if (PIA_1A.interrupt_enable) firq = 1; } while (0)
+//#define PIA_SET_P1CB1 do { PIA_1B.control_register |= 0x80; if (PIA_1B.interrupt_enable) firq = 1; } while (0)
+#define PIA_SET_P0CA1 do { if (!(PIA_0A.control_register & 0x80) && PIA_0A.interrupt_enable) PIA_0A.control_register |= 0x80; if (PIA_0A.interrupt_enable) irq = 1; } while (0)
+#define PIA_SET_P0CB1 do { if (!(PIA_0B.control_register & 0x80) && PIA_0B.interrupt_enable) PIA_0B.control_register |= 0x80; if (PIA_0B.interrupt_enable) irq = 1; } while (0)
+#define PIA_SET_P1CA1 do { if (!(PIA_0B.control_register & 0x80) && PIA_0B.interrupt_enable) PIA_0B.control_register |= 0x80; if (PIA_0B.interrupt_enable) irq = 1; } while (0)
+#define PIA_SET_P1CB1 do { if (!(PIA_1B.control_register & 0x80) && PIA_1B.interrupt_enable) PIA_1B.control_register |= 0x80; if (PIA_1B.interrupt_enable) irq = 1; } while (0)
 
 #define PIA_CONTROL_READ(p) (p.control_register)
 
 #define PIA_CONTROL_WRITE(p,v) do { \
-		p.control_register = v; \
+		p.control_register = (v & 0x7f) | p.interrupt_flag; \
 		p.interrupt_enable = v & 0x01; \
-		p.interrupt_transition = v & 0x02; \
+		/*p.interrupt_transition = v & 0x02;*/ \
 		p.register_select = v & 0x04; \
 	} while (0)
 

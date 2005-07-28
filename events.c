@@ -24,18 +24,26 @@
 
 #include "events.h"
 
-event_t *event_list;
+event_t *event_list = NULL;
 
-void event_init(void) {
-	event_list = NULL;
+event_t *event_new(void) {
+	event_t *new = malloc(sizeof(event_t));
+	if (new == NULL)
+		return NULL;
+	new->at_cycle = 0;
+	new->dispatch = NULL;
+	new->queued = 0;
+	new->next = NULL;
+	return new;
 }
-void event_schedule(event_t *event) {
+
+void event_queue(event_t *event) {
 	event_t **entry;
-	if (event->scheduled)
-		event_delete(event);
-	event->scheduled = 1;
+	if (event->queued)
+		event_dequeue(event);
+	event->queued = 1;
 	for (entry = &event_list; *entry; entry = &((*entry)->next)) {
-		if (((*entry)->at_cycle - event->at_cycle) > 0) {
+		if ((int)((*entry)->at_cycle - event->at_cycle) > 0) {
 			event->next = *entry;
 			*entry = event;
 			return;
@@ -44,9 +52,10 @@ void event_schedule(event_t *event) {
 	*entry = event;
 	event->next = NULL;
 }
-void event_delete(event_t *event) {
+
+void event_dequeue(event_t *event) {
 	event_t **entry = &event_list;
-	event->scheduled = 0;
+	event->queued = 0;
 	if (*entry == event) {
 		event_list = event->next;
 		return;

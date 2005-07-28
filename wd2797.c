@@ -55,18 +55,18 @@
 
 #define WD2797_INTRQ if (ic1_nmi_enable) nmi = 1
 #define SCHEDULE_DRQ(c) do { \
-		drq_event.at_cycle = current_cycle + (c); \
-		event_schedule(&drq_event); \
+		drq_event->at_cycle = current_cycle + (c); \
+		event_queue(drq_event); \
 	} while (0)
 #define SCHEDULE_INTRQ(c) do { \
-		intrq_event.at_cycle = current_cycle + (c); \
-		event_schedule(&intrq_event); \
+		intrq_event->at_cycle = current_cycle + (c); \
+		event_queue(intrq_event); \
 	} while (0)
 
 static void generate_drq(void);
 static void generate_intrq(void);
-static event_t drq_event;
-static event_t intrq_event;
+static event_t *drq_event;
+static event_t *intrq_event;
 
 /* Disks are implemented as an array of tracks, each track being a pointer to a
  * linked lists of disk sectors.  This is because technically, a track can have
@@ -113,10 +113,10 @@ static uint8_t *data_ptr;
 
 void wd2797_init(void) {
 	memset(disk, 0, sizeof(disk));
-	drq_event.dispatch = generate_drq;
-	drq_event.scheduled = 0;
-	intrq_event.dispatch = generate_intrq;
-	intrq_event.scheduled = 0;
+	drq_event = event_new();
+	drq_event->dispatch = generate_drq;
+	intrq_event = event_new();
+	intrq_event->dispatch = generate_intrq;
 }
 
 void wd2797_reset(void) {

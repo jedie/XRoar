@@ -48,21 +48,20 @@ SoundModule sound_gp32_module = {
 };
 
 typedef uint16_t Sample;  /* 8-bit stereo */
-typedef uint_least16_t Sample_f;
 
-uint_least32_t sample_rate;
-Cycle sample_cycles;
-int_least32_t frame_size;
-uint_least32_t frame_cycles;
+static uint_least32_t sample_rate;
+static Cycle sample_cycles;
+static int_least32_t frame_size;
+static uint_least32_t frame_cycles;
 
 static Cycle frame_cycle_base;
-unsigned int writing_frame;
+static unsigned int writing_frame;
 static Sample **buffer;
 static Sample *wrptr;
 static Sample lastsample;
 
 static void flush_frame(void);
-static event_t flush_event;
+static event_t *flush_event;
 
 static int init(void) {
 	sample_rate = 22050;
@@ -72,10 +71,8 @@ static int init(void) {
 	frame_cycles = sample_cycles * frame_size;
 	buffer = gpsound_buffers(frame_size);
 	gpsound_start();
-	/* Replace this with a generic event_new() */
-	flush_event.dispatch = flush_frame;
-	flush_event.scheduled = 0;
-	flush_event.next = NULL;
+	flush_event = event_new();
+	flush_event->dispatch = flush_frame;
 	return 0;
 }
 
@@ -88,14 +85,14 @@ static void reset(void) {
 	wrptr = buffer[1];
 	writing_frame = 1;
 	frame_cycle_base = current_cycle;
-	flush_event.at_cycle = frame_cycle_base + frame_cycles;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
+	event_queue(flush_event);
 	lastsample = 0x80;
 }
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample_f fill_with;
+	Sample fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
 		fill_to = buffer[writing_frame] + frame_size;
@@ -109,7 +106,6 @@ static void update(void) {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
 			fill_with = 0x80;
-			//fill_with = lastsample & 0xff;
 		} else {
 			/* DAC output */
 			fill_with = ((PIA_1A.port_output & 0xfc) >> 1) ^ 0x80;
@@ -125,15 +121,11 @@ static void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;
-	flush_event.at_cycle = frame_cycle_base + frame_cycles;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
+	event_queue(flush_event);
 	writing_frame ^= 1;
 	wrptr = buffer[writing_frame];
-	/* In theory, setting bit 2 of CLKCON sends the CPU into
-	 * IDLE mode, which turns off the clock until an interrupt
-	 * is raised. */
 	while ((rDCSRC2 >= (unsigned)buffer[1]) == writing_frame);
-		//rCLKCON |= (1<<2);
 }
 
 void sound_silence(void) {

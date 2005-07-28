@@ -40,7 +40,7 @@ static void reset(void);
 static void update(void);
 
 static void flush_frame(void);
-static event_t flush_event = {0, flush_frame, 0, NULL };
+static event_t *flush_event;
 
 SoundModule sound_null_module = {
 	NULL,
@@ -71,13 +71,13 @@ static int init(void) {
 		close(fd);
 		return 1;
 	}
-	flush_event.scheduled = 0;
-	flush_event.next = NULL;
+	flush_event = event_new();
+	flush_event->dispatch = flush_frame;
 	return 0;
 }
 
 static void shutdown(void) {
-	event_delete(&flush_event);
+	event_dequeue(flush_event);
 	if (ioctl(fd, RTC_PIE_OFF, 0) == -1) {
 		LOG_WARN("Couldn't disable periodic interrupts\n");
 	}
@@ -86,8 +86,8 @@ static void shutdown(void) {
 
 static void reset(void) {
 	frame_cycle_base = current_cycle;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 }
 
 static void update(void) {
@@ -96,8 +96,8 @@ static void update(void) {
 static void flush_frame(void) {
 	unsigned long data;
 	frame_cycle_base += FRAME_CYCLES;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	read(fd, &data, sizeof(unsigned long));
 }
 

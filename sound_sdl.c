@@ -46,10 +46,13 @@ SoundModule sound_sdl_module = {
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 
-#define SAMPLE_RATE 44100
+#ifdef WINDOWS32
+# define SAMPLE_RATE 22050
+#else
+# define SAMPLE_RATE 44100
+#endif
 #define CHANNELS 1
 #define FORMAT AFMT_U8
-#define FRAGMENTS 2
 /* The lower the FRAME_SIZE, the better.  Windows32 seems to have problems
  * with very small frame sizes though. */
 #ifdef WINDOWS32
@@ -70,7 +73,7 @@ static SDL_cond *halt_cv;
 static int haltflag;
 
 static void flush_frame(void);
-static event_t flush_event = {0, flush_frame, 0, NULL };
+static event_t *flush_event;
 
 static void callback(void *userdata, Uint8 *stream, int len);
 
@@ -100,17 +103,19 @@ static int init(void) {
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
-	flush_event.scheduled = 0;
-	flush_event.next = NULL;
+	flush_event = event_new();
+	flush_event->dispatch = flush_frame;
 	return 0;
 }
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL audio driver\n");
-	//SDL_PauseAudio(1);
+	event_dequeue(flush_event);
 	SDL_DestroyCond(halt_cv);
 	SDL_DestroyMutex(halt_mutex);
+	LOG_DEBUG(0,"\tCalling SDL_CloseAudio()\n");
 	SDL_CloseAudio();
+	LOG_DEBUG(0,"\tCalling SDL_QuitSubSystem()\n");
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	free(buffer);
 }
@@ -120,8 +125,8 @@ static void reset(void) {
 	SDL_PauseAudio(0);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	lastsample = 0;
 }
 
@@ -131,7 +136,6 @@ static void update(void) {
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
-		LOG_WARN("sdl_sound.c: Got to end of buffer\n");
 	} else {
 		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
 	}
@@ -157,8 +161,8 @@ void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	wrptr = buffer;
 	SDL_LockMutex(halt_mutex);
 	haltflag = 1;

@@ -2,6 +2,8 @@ Changed from v0.11 to v0.12
 	* New OpenGL video driver.  Allows architectures without Xv extension
 	  but with fast 3D graphics card to do hardware scaling.
 	* Disk writing (in memory only).
+	* Address-dependent CPU rate implemented (GP32 clock rate upped to
+	  80MHz to cope).
 
 Changes from v0.10 to v0.11
 

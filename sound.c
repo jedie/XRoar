@@ -171,10 +171,20 @@ void sound_shutdown(void) {
 }
 
 void sound_next(void) {
+	SoundModule *m;
 	sound_module->shutdown();
-	if (sound_module->next == NULL) {
-		module_init(modules_head);
-	} else {
-		module_init(sound_module->next);
+	m = sound_module->next;
+	for (m = sound_module->next; m; m = m->next) {
+		if (module_init(m) == 0) {
+			sound_module->reset();
+			return;
+		}
 	}
+	for (m = modules_head; m && m != sound_module; m = m->next) {
+		if (module_init(m) == 0) {
+			sound_module->reset();
+			return;
+		}
+	}
+	exit(1);
 }

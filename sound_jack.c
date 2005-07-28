@@ -67,7 +67,7 @@ static Sample *wrptr;
 static Sample lastsample;
 static pthread_mutex_t haltflag;
 
-static event_t flush_event = {0, flush_frame, 0, NULL };
+static event_t *flush_event;
 
 static int init(void) {
 	const char **ports;
@@ -108,13 +108,15 @@ static int init(void) {
 	frame_cycles = sample_cycles * frame_size;
 	buffer = (Sample *)malloc(frame_size * sizeof(Sample));
 	pthread_mutex_init(&haltflag, NULL);
+	flush_event = event_new();
+	flush_event->dispatch = flush_frame;
 	return 0;
 }
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down JACK audio driver\n");
 	pthread_mutex_destroy(&haltflag);
-	event_delete(&flush_event);
+	event_dequeue(flush_event);
 	if (client)
 		jack_client_close(client);
 	client = NULL;
@@ -132,8 +134,8 @@ static void reset(void) {
 	memset(buffer, 0x00, frame_size * sizeof(Sample));
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
-	flush_event.at_cycle = frame_cycle_base + frame_cycles;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
+	event_queue(flush_event);
 	lastsample = 0.;
 }
 
@@ -143,7 +145,6 @@ static void update(void) {
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
 		fill_to = buffer + frame_size;
-		LOG_WARN("sound_jack.c: Got to end of buffer\n");
 	} else {
 		fill_to = buffer + (elapsed_cycles/sample_cycles);
 	}
@@ -171,8 +172,8 @@ void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;
-	flush_event.at_cycle = frame_cycle_base + frame_cycles;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
+	event_queue(flush_event);
 	wrptr = buffer;
 	pthread_mutex_lock(&haltflag);
 	pthread_mutex_lock(&haltflag);

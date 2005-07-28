@@ -16,9 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* This GTK code is probably all wrong, but it does seem to work */
-
-/* The GTK+ function prototypes function 'index' from string.h in many places,
+/* The GTK+ function prototypes shadow 'index' from string.h in many places,
  * so expect lots of compiler warnings about that */
 
 #include "config.h"
@@ -57,6 +55,7 @@ static int init(void) {
 static void shutdown(void) {
 	LOG_DEBUG(2, "Shutting down GTK+ user-interface\n");
 	LOG_DEBUG(3, "\tNothing to do...\n");
+	gtk_exit(0);
 }
 
 static gboolean cancel(GtkWidget *w) {

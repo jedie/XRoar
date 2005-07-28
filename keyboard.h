@@ -29,19 +29,19 @@ extern KeyboardModule *keyboard_module;
 extern unsigned int keyboard_column[9];
 extern unsigned int keyboard_row[9];
 
-#define KEYBOARD_PRESS(s) { \
+#define KEYBOARD_PRESS(s) do { \
 		keyboard_column[keymap[s].col] &= ~(1<<keymap[s].row); \
 		keyboard_row[keymap[s].row] &= ~(1<<keymap[s].col); \
-	}
-#define KEYBOARD_RELEASE(s) { \
+	} while (0)
+#define KEYBOARD_RELEASE(s) do { \
 		keyboard_column[keymap[s].col] |= 1<<keymap[s].row; \
 		keyboard_row[keymap[s].row] |= 1<<keymap[s].col; \
-	}
+	} while (0)
 
 #define KEYBOARD_HASQUEUE (keyboard_buflast > keyboard_bufcur)
 /* For each key, queue: shift up/down as appropriate, key down, key up,
  * shift up */
-#define KEYBOARD_QUEUE(c) {  \
+#define KEYBOARD_QUEUE(c) do {  \
 		if ((c) & 0x80) \
 			*(keyboard_buflast++) = 0; \
 		else \
@@ -49,14 +49,14 @@ extern unsigned int keyboard_row[9];
 		*(keyboard_buflast++) = (c) & 0x7f; \
 		*(keyboard_buflast++) = (c) | 0x80; \
 		*(keyboard_buflast++) = 0x80; \
-	}
+	} while (0)
 
-#define KEYBOARD_DEQUEUE(c) { \
+#define KEYBOARD_DEQUEUE(c) do { \
 		c = *(keyboard_bufcur++); \
 		if (keyboard_bufcur >= keyboard_buflast) { \
 			keyboard_bufcur = keyboard_buflast = keyboard_buffer; \
 		} \
-	}
+	} while (0)
 
 extern unsigned int keyboard_buffer[256];
 extern unsigned int *keyboard_bufcur, *keyboard_buflast;

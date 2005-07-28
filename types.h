@@ -14,16 +14,18 @@
 #define WRONG_ENDIAN
 
 /* FCLK = 80/40/40MHz */
-/*
+
 #define SPEED_FAST GpClockSpeedChange(80000000, 0x48012, 2)
 #define SPEED_SLOW GpClockSpeedChange(40000000, 0x48013, 0)
 #define PCLK 40000000
-*/
+
 
 /* FCLK = 72/36/36MHz */
+/*
 #define SPEED_FAST GpClockSpeedChange(72000000, 0x28002, 2)
 #define SPEED_SLOW GpClockSpeedChange(36000000, 0x28003, 0)
 #define PCLK 36000000
+*/
 
 /* FCLK = 66/33/33MHz */
 /*

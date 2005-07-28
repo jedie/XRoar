@@ -67,7 +67,7 @@ static Sample_f lastsample;
 static uint8_t *convbuf;
 
 static void flush_frame(void);
-static event_t flush_event = { 0, flush_frame, 0, NULL };
+static event_t *flush_event;
 
 static int init(void) {
 	const char *device = "/dev/dsp";
@@ -123,6 +123,8 @@ static int init(void) {
 		LOG_WARN("Couldn't set desired buffer parameters: sync to audio might not be ideal\n");
 	buffer = malloc(FRAME_SIZE * sizeof(Sample));
 	convbuf = malloc(FRAME_SIZE * bytes_per_sample * channels);
+	flush_event = event_new();
+	flush_event->dispatch = flush_frame;
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialiase OSS audio driver\n");
@@ -131,6 +133,7 @@ failed:
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down OSS audio driver\n");
+	event_dequeue(flush_event);
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
 	free(buffer);
@@ -141,8 +144,8 @@ static void reset(void) {
 	memset(buffer, 0x00, FRAME_SIZE * sizeof(Sample));
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	lastsample = 0;
 }
 
@@ -179,8 +182,8 @@ static void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
-	flush_event.at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_schedule(&flush_event);
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	wrptr = buffer;
 	/* Convert buffer and write to device */
 	if (format == AFMT_U8) {

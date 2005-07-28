@@ -72,12 +72,12 @@ int intel_hex_read(char *filename) {
 		addr = read_word(fd);
 		type = read_byte(fd);
 		if (type == 0) {
-			LOG_DEBUG(2,"Loading %d bytes to %04x: ", length, addr);
+			LOG_DEBUG(3,"Loading %d bytes to %04x\n", length, addr);
 		}
 		for (i = 0; i < length; i++) {
 			data = read_byte(fd);
 			if (type == 0) {
-				LOG_DEBUG(2,"%02x ", (int)data);
+				LOG_DEBUG(5,"%02x ", (int)data);
 				if (addr < 0x8000)
 					addrptr_low[addr] = data;
 				else
@@ -86,7 +86,7 @@ int intel_hex_read(char *filename) {
 			}
 		}
 		if (type == 0) {
-			LOG_DEBUG(2,"\n");
+			LOG_DEBUG(5,"\n");
 		}
 		sum = read_byte(fd);
 		if (skip_eol(fd) == 0)
@@ -114,7 +114,7 @@ int coco_bin_read(char *filename) {
 			fs_read_byte(fd, &tmp); length |= tmp;
 			fs_read_byte(fd, &tmp); load = (tmp << 8);
 			fs_read_byte(fd, &tmp); load |= tmp;
-			LOG_DEBUG(0,"\tLoading %d bytes to $%04x\n", length, load);
+			LOG_DEBUG(3,"\tLoading %d bytes to $%04x\n", length, load);
 			r = fs_read(fd, &addrptr_low[load], length);
 			continue;
 		}
@@ -123,7 +123,7 @@ int coco_bin_read(char *filename) {
 			fs_read_byte(fd, &tmp); /* skip 0 */
 			fs_read_byte(fd, &tmp); exec = (tmp << 8);
 			fs_read_byte(fd, &tmp); exec |= tmp;
-			LOG_DEBUG(0,"\tExecuting from $%04x\n", exec);
+			LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
 			m6809_jump(exec);
 			break;
 		}

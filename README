@@ -14,9 +14,14 @@ differences are: ROM BASIC, keyboard layout).
 
 ACKNOWLEDGEMENTS
 
-The macros for manipulating the condition code register are based on those
-used in the MAME 6809 core (in particular, those involved with calculating
-the 'V' bit).  The rest is the result of reading too many datasheets.
+The macros for manipulating the condition code register are based on
+those used in the MAME 6809 core (in particular, those involved with
+calculating the 'V' bit).
+
+The Mac OS X 'Carbon' file requester code was contributed by Stuart
+Teasdale.
+
+The rest is the result of reading too many datasheets.
 
 
 COMPILING
@@ -38,56 +43,73 @@ for a different platform.
 
 INSTALLATION
 
-You will need a Dragon or CoCo ROM.  If you don't have the tools
-to transfer this from your original Dragon or CoCo, you may find one
-somewhere on the web - typically called 'dragrom' or 'd32rom'.  Although I
-personally think that such ROMs should be freely available, the copyright
-holders may think differently (and given that Microsoft wrote the BASIC
-ROM, it's quite likely they do), so I don't feel comfortable offering
-them up myself.
+Unix: Copy the file 'xroar' to somewhere in your path.
 
-If you want to use the disk support, you will also need a DOS ROM.
-I've only tested so far with SuperDOS E6, but others should work fine.
+GP32: Upload the file 'xroar.fxe' to gp:/gpmm/.  The ROM files, all
+      cassette images, snapshots and disk images should be in
+      gp:/gpmm/dragon/.
 
-This release should support .DGN format ROMs as used in the PC Dragon
-and T3 emulators for DOS by Paul Burgin.
+You will need a copy of the Dragon or CoCo firmware ROMs.  If you don't
+have the tools to transfer this from your original Dragon or CoCo, you
+may find one somewhere on the web.  Although I personally think that
+such ROMs should be freely available, the copyright holders may think
+differently (and given that Microsoft wrote the BASIC ROM, it's quite
+likely they do), so I don't feel comfortable offering them up myself.
 
-To include the DOS ROM, strip off any leader bytes so you just have the
-raw ROM data, then append it to your normal Dragon ROM.  The resulting
-file should be 24KiB.  DeltaDOS and CoCo disks are not yet implemented
-(they used different controller chips).
+If you want to use the virtual disk support, you will also need a DOS
+firmware ROM.  Only the WD2797-based DragonDOS controllers are emulated.
 
-The Dragon ROM image may be named 'dragon.rom', 'dragon.dgn',
-'d32rom.dgn' or 'dragrom.dgn'.  The CoCo ROM image may be named
-'coco.rom', 'coco_pa.rom', 'cocodisk.rom' or 'coco.dgn'.
+Firmware ROMs can be either raw (".rom") or PC Dragon style (".dgn").
+The base names to use for these files are:
 
-Unix:
+Dragon 32               dragon32        (16K)
+Dragon 64 ROM 1         d64rom1         (16K)
+Dragon 64 ROM 2         d64rom2         (16K)
+CoCo                    coco            (16K Extended BASIC ROM only)
+SuperDOS E6             sdose6          (8K)
+DragonDOS 1.0           ddos10          (8K)
 
-Copy the file 'xroar' to somewhere in your path.  The ROM files are
-assumed to be in the current working directory when you start xroar.
+DOS firmware ROMs are searched for in that order; there is currently no
+way to specify use of a DragonDOS ROM if a SuperDOS ROM is available.
 
-GP32:
+On the GP32, firmware ROMs must be in gp:/gpmm/dragon/.  For other builds,
+they should either be in the current working directory (only option for
+Windows32) when running the emulator, or in one of these directories:
 
-Upload the file 'xroar.fxe' to gp:/gpmm/.  The ROM files, all cassette
-images, snapshots and disk images should be in gp:/gpmm/dragon/.
+Mac OS X        Library/XRoar/Roms              (System or user directory)
+Other Unix      /usr/local/share/xroar/roms
 
 
 UNIX CONTROLS
 
 Full keyboard support plus:
-Ctrl+A	......	Cycle through artifacted video modes (hi-res only).
-Ctrl+S	......	Save a snapshot.
-Ctrl+L	......	Load a snapshot.
-Ctrl+R	......	Reset emulated machine.  Hold shift as well for hard reset.
-Ctrl+E	......	Toggle DOS emulation on/off - reset to take effect.
-Ctrl+D	......	Insert disk (load a virtual disk file).
-Ctrl+M	......	Toggle between Dragon and CoCo emulation (resets machine).
-Ctrl+K	......	Toggle between Dragon and CoCo keyboard layout.
-Ctrl+C	......	Quit emulator.
+Ctrl+[1-4] .... Insert ".vdk" virtual disk into drive 1-4.
+Ctrl+A ........ Cycle through artifacted video modes (hi-res only).
+Ctrl+B ........ Load CoCo ".bin" binary file.
+Ctrl+C ........ Quit emulator.
+Ctrl+E ........ Toggle DOS emulation on/off - reset to take effect.
+Ctrl+H ........ Load ".hex" Intel HEX-record.
+Ctrl+J ........ Cycle through joystick emulation modes (None, Left, Right).
+Ctrl+K ........ Toggle between Dragon and CoCo keyboard layout.
+Ctrl+L ........ Load a snapshot.
+Ctrl+M ........ Toggle between Dragon and CoCo emulation (resets machine).
+Ctrl+R ........ Soft reset.
+Ctrl+Shift+R .. Hard reset.
+Ctrl+S ........ Save a snapshot.
+Ctrl+T ........ Insert ".cas" virtual cassette.
+Ctrl+Shift+T .. Insert virtual cassette and autoload first program.
+Ctrl+Z ........ Enable keyboard translation mode.
+
+In translation mode, characters typed on the host keyboard are translated
+into the correct sequence of keypresses required on the emulated machine
+to achieve the same character.  This works well in BASIC and text-mode
+OS-9, but not so well with the hi-res (GO51) OS-9 console driver.
 
 Joystick support is very basic and unconfigurable at the moment, and is
-based on using a PS2 controller through a PS2-USB converter (although
-any joystick supported by the OS should work).
+based on using a PS2 controller through a PS2-USB converter (although any
+joystick supported by the OS should work).  Alternatively, use joystick
+emulation (Ctrl+J) to simulate a joystick with the cursor keys, with
+Left Alt as fire.
 
 
 GP32 CONTROLS
@@ -95,28 +117,28 @@ GP32 CONTROLS
 The controller can be cycled through four modes by pressing the left
 shoulder button.  These modes are:
 
- * KEYBOARD - D-pad selects a key, B presses a key, hold down right shoulder
-              button to press shift.
- * CURSORS  - D-pad map to Dragon cursor keys.  B is shift, A is space, right
-              shoulder button is enter.
- * RIGHT JOYSTICK - D-pad controls right joystick motion.  B is fire button.
-                    A is space, right shoulder button is enter.
- * LEFT JOYSTICK - D-pad controls left joystick motion, with other controls
-                   as with right joystick mode.
+ * KEYBOARD - D-pad selects a key, B presses a key, hold down right
+              shoulder button to press shift.
+ * CURSORS  - D-pad map to Dragon cursor keys.  B is shift, A is space,
+              right shoulder button is enter.
+ * RIGHT JOYSTICK - D-pad controls right joystick motion.  B is fire
+              button.  A is space, right shoulder button is enter.
+ * LEFT JOYSTICK - D-pad controls left joystick motion, with other
+              controls as with right joystick mode.
 
 At any time, pressing select will bring up a menu allowing you to load
-a snapshot, toggle DOS emulation, insert a disk, switch between Dragon &
-CoCo, switch keymaps and reset the machine.  At present, there is no way
-to save a snapshot, but you can generate them with the Unix version and
-upload them.
+a snapshot, toggle DOS emulation, insert a tape or disk, switch between
+Dragon & CoCo, switch keymaps and reset the machine.  At present, there
+is no way to save a snapshot, but you can generate them with the Unix
+version and upload them.
 
-If the tape is accessed (eg, you typed 'CLOADM' or 'CLOAD'), a list
-of cassette files (ending in '.CAS') will be shown to choose from.
+If the tape is accessed (eg, you typed 'CLOADM' or 'CLOAD'), you need
+to remember to insert a cassette file (".cas") from the menu.
 
 
 CASSETTE IMAGES
 
-Tools exist online to generate .CAS cassette images, but they only
+Tools exist online to generate ".cas" cassette images, but they only
 work under DOS (or presumably Windows).  Check the software section of
 http://www.dragon-archive.co.uk/ for details.  That site also includes
 quite a few titles that have already been converted for your convenience.
@@ -128,9 +150,9 @@ Please note that site's usage requirements, and don't abuse the archive.
 
 SNAPSHOTS
 
-Snapshot files are *not* compatible with the traditional .PAK files used
-in other emulators.  I may support them in future, but the file format
-looks pretty horrible.  This snapshot format is subject to change,
+Snapshot files are *not* compatible with the traditional ".pak" files
+used in other emulators.  I may support them in future, but the file
+format looks pretty horrible.  This snapshot format is subject to change,
 but a snapshot made in this release may well work fine in later ones.
 At the moment, the most reliable way of loading programs is to use
 cassette images or virtual disks, but if you have a Unix-like box,
@@ -139,7 +161,11 @@ you'll probably want to generate snapshots for your own convenience.
 
 BUGS
 
-None known at time of release!
+The horizontal sync interrupt doesn't seem to be quite right (e.g.,
+Rommel's Revenge).
+
+Resizing while using the OpenGL driver in Mac OS X doesn't work
+(12" PowerBook + 10.4).
 
 
 COPYING
