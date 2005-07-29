@@ -92,10 +92,8 @@ void xroar_reset(int hard) {
 
 void xroar_mainloop(void) {
 	while (1) {
-		Cycle until;
 		while (EVENT_PENDING)
 			DISPATCH_NEXT_EVENT;
-		until = event_list->at_cycle;
-		m6809_cycle(until);
+		m6809_cycle(event_list->at_cycle);
 	}
 }
