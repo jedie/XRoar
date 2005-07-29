@@ -25,7 +25,6 @@ CFLAGS_GP32 = -O3 -funroll-loops -finline-functions -mcpu=arm9tdmi \
 	-mstructure-size-boundary=32 -finline-limit=320000
 
 CFLAGS_UNIX = -O3 -g
-#CFLAGS_UNIX = -O3 -g -finline-limit=63000
 
 CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
@@ -219,6 +218,8 @@ dist-macos: $(UNIX_TARGET)
 	cp $(UNIX_TARGET) XRoar-$(version)/XRoar.app/Contents/MacOS/
 	cp /usr/local/lib/libSDL-1.2.0.dylib XRoar-$(version)/XRoar.app/Contents/Frameworks/
 	install_name_tool -change /usr/local/lib/libSDL-1.2.0.dylib @executable_path/../Frameworks/libSDL-1.2.0.dylib XRoar-$(version)/XRoar.app/Contents/MacOS/xroar
+	strip XRoar-$(version)/XRoar.app/Contents/MacOS/$(UNIX_TARGET)
+	strip -x XRoar-$(version)/XRoar.app/Contents/Frameworks/libSDL-1.2.0.dylib
 	sed -e "s!@VERSION@!$(version)!g" macos/Info.plist.in > XRoar-$(version)/XRoar.app/Contents/Info.plist
 	cp macos/xroar.icns XRoar-$(version)/XRoar.app/Contents/Resources/
 	cp README COPYING ChangeLog TODO XRoar-$(version)/
