@@ -231,11 +231,35 @@ static void resize(uint_least16_t w, uint_least16_t h) {
 		xoffset = width / 10;
 		yoffset = (h - height)/2;
 	}
+	glDeleteTextures(1, &texnum);
+	glDeleteTextures(1, &border_texnum);
 	screen = SDL_SetVideoMode(w, h, 0, SDL_OPENGL|SDL_RESIZABLE);
+
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_TEXTURE_2D);
+
 	glViewport(0, 0, screen->w, screen->h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, screen->w, screen->h , 0, -1.0, 1.0);
+
+	glGenTextures(1, &texnum);
+	glBindTexture(GL_TEXTURE_2D, texnum);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glGenTextures(1, &border_texnum);
+	glBindTexture(GL_TEXTURE_2D, border_texnum);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 2, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 static void vdg_reset(void) {
