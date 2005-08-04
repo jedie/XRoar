@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -416,23 +418,6 @@ static void generate_intrq(void) {
 	}
 	WD2797_INTRQ;
 	mode = MODE_NORMAL;
-}
-
-void wd2797_generate_interrupt(void) {
-	if (enable_disk_interrupt == INTERRUPT_DRQ) {
-		status_register = STATUS_BUSY | STATUS_DRQ;
-		PIA_SET_P1CB1;
-	}
-	if (enable_disk_interrupt == INTERRUPT_INTRQ) {
-		status_register = 0;
-		if (mode == MODE_TYPE_1) {
-			if (current_disk->head_position == 0)
-				status_register |= STATUS_TRACK_0;
-		}
-		WD2797_INTRQ;
-		mode = MODE_NORMAL;
-	}
-	enable_disk_interrupt = INTERRUPT_DISABLE;
 }
 
 /* Not strictly WD2797 accesses here, this is DOS cartridge circuitry */

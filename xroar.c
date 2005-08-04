@@ -36,7 +36,6 @@
 #include "logging.h"
 
 Cycle current_cycle;
-int enable_disk_interrupt;
 
 #ifdef TRACE
 int trace = 0;
@@ -82,7 +81,6 @@ void xroar_shutdown(void) {
 }
 
 void xroar_reset(int hard) {
-	enable_disk_interrupt = 0;
 	/* Reset everything */
 	sound_module->reset();
 	joystick_reset();

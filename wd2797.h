@@ -19,7 +19,6 @@ unsigned int wd2797_status_read(void);
 unsigned int wd2797_track_register_read(void);
 unsigned int wd2797_sector_register_read(void);
 unsigned int wd2797_data_register_read(void);
-void wd2797_generate_interrupt(void);
 void wd2797_ff48_write(unsigned int octet);
 unsigned int wd2797_ff48_read(void);
 
