@@ -25,6 +25,7 @@
 #include "types.h"
 #include "hexs19.h"
 #include "joystick.h"
+#include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
 #include "pia.h"
@@ -34,7 +35,6 @@
 #include "video.h"
 #include "wd2797.h"
 #include "xroar.h"
-#include "keyboard.h"
 
 static void getargs(int argc, char **argv);
 static int init(void);
@@ -61,44 +61,23 @@ static unsigned int emulate_joystick = 0;
 
 static uint_least16_t sdl_to_keymap[768];
 
-#define HSHIFT (0x100)
-#define HALTGR (0x200)
-#define DSHIFT (0x100)
-#define DUNSHIFT (0x200)
-
-static uint_least16_t unicode_to_dragon[128] = {
-	0,            0,            0,            0,
-	0,            0,            0,            0,
-	DUNSHIFT+8,   DUNSHIFT+9,   DUNSHIFT+10,  0,
-	DUNSHIFT+12,  DUNSHIFT+13,  0,            0,
-	0,            0,            0,            0,
-	0,            0,            0,            0,
-	0,            0,            0,            DUNSHIFT+27,
-	0,            0,            0,            0,
-	DUNSHIFT+' ', DSHIFT+'1',   DSHIFT+'2',   DSHIFT+'3',
-	DSHIFT+'4',   DSHIFT+'5',   DSHIFT+'6',   DSHIFT+'7',
-	DSHIFT+'8',   DSHIFT+'9',   DSHIFT+':',   DSHIFT+';',
-	DUNSHIFT+',', DUNSHIFT+'-', DUNSHIFT+'.', DUNSHIFT+'/', 
-	DUNSHIFT+'0', DUNSHIFT+'1', DUNSHIFT+'2', DUNSHIFT+'3', 
-	DUNSHIFT+'4', DUNSHIFT+'5', DUNSHIFT+'6', DUNSHIFT+'7', 
-	DUNSHIFT+'8', DUNSHIFT+'9', DUNSHIFT+':', DUNSHIFT+';', 
-	DSHIFT+',',   DSHIFT+'-',   DSHIFT+'.',   DSHIFT+'/',
-	DUNSHIFT+'@', DSHIFT+'a',   DSHIFT+'b',   DSHIFT+'c',
-	DSHIFT+'d',   DSHIFT+'e',   DSHIFT+'f',   DSHIFT+'g',
-	DSHIFT+'h',   DSHIFT+'i',   DSHIFT+'j',   DSHIFT+'k',
-	DSHIFT+'l',   DSHIFT+'m',   DSHIFT+'n',   DSHIFT+'o',
-	DSHIFT+'p',   DSHIFT+'q',   DSHIFT+'r',   DSHIFT+'s',
-	DSHIFT+'t',   DSHIFT+'u',   DSHIFT+'v',   DSHIFT+'w',
-	DSHIFT+'x',   DSHIFT+'y',   DSHIFT+'z',   DSHIFT+10,
-	DSHIFT+12,    DSHIFT+9,     DUNSHIFT+'^', DSHIFT+'^',
-	DUNSHIFT+12,  DUNSHIFT+'a', DUNSHIFT+'b', DUNSHIFT+'c',
-	DUNSHIFT+'d', DUNSHIFT+'e', DUNSHIFT+'f', DUNSHIFT+'g',
-	DUNSHIFT+'h', DUNSHIFT+'i', DUNSHIFT+'j', DUNSHIFT+'k',
-	DUNSHIFT+'l', DUNSHIFT+'m', DUNSHIFT+'n', DUNSHIFT+'o',
-	DUNSHIFT+'p', DUNSHIFT+'q', DUNSHIFT+'r', DUNSHIFT+'s',
-	DUNSHIFT+'t', DUNSHIFT+'u', DUNSHIFT+'v', DUNSHIFT+'w',
-	DUNSHIFT+'x', DUNSHIFT+'y', DUNSHIFT+'z', 0,
-	0,            0,            DUNSHIFT+12,  DUNSHIFT+8
+static unsigned int unicode_to_dragon[128] = {
+	0,       0,       0,       0,       0,       0,       0,       0,
+	8,       9,       10,      0,       12,      13,      0,       0,
+	0,       0,       0,       0,       0,       0,       0,       0,
+	0,       0,       0,       27,      0,       0,       0,       0,
+	' ',     128+'1', 128+'2', 128+'3', 128+'4', 128+'5', 128+'6', 128+'7',
+	128+'8', 128+'9', 128+':', 128+';', ',',     '-',     '.',     '/', 
+	'0',     '1',     '2',     '3',     '4',     '5',     '6',     '7', 
+	'8',     '9',     ':',     ';',     128+',', 128+'-', 128+'.', 128+'/',
+	'@',     128+'a', 128+'b', 128+'c', 128+'d', 128+'e', 128+'f', 128+'g',
+	128+'h', 128+'i', 128+'j', 128+'k', 128+'l', 128+'m', 128+'n', 128+'o',
+	128+'p', 128+'q', 128+'r', 128+'s', 128+'t', 128+'u', 128+'v', 128+'w',
+	128+'x', 128+'y', 128+'z', 128+10,  128+12,  128+9,   '^',     128+'^',
+	12,      'a',     'b',     'c',     'd',     'e',     'f',     'g',
+	'h',     'i',     'j',     'k',     'l',     'm',     'n',     'o',
+	'p',     'q',     'r',     's',     't',     'u',     'v',     'w',
+	'x',     'y',     'z',     0,       0,       0,       12,      8
 };
 
 static char *keymap_option;
@@ -284,22 +263,34 @@ static void keypress(SDL_keysym *keysym) {
 		if (keysym->unicode == '\\') {
 			/* CoCo and Dragon 64 in 64K mode have a different way
 			 * of scanning for '\' */
-			if (IS_COCO_KEYBOARD || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04)))
-				keyboard_queue(0x100+12);
-			else
-				keyboard_queue(0x300+'/');
+			if (IS_COCO_KEYBOARD || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
+				KEYBOARD_PRESS(0);
+				KEYBOARD_PRESS(12);
+			} else {
+				KEYBOARD_PRESS(0);
+				KEYBOARD_PRESS(12);
+				KEYBOARD_PRESS('/');
+			}
 			return;
 		}
-		if ((keysym->unicode == 8 || keysym->unicode == 127) && shift) {
-			keyboard_queue(DSHIFT+8);
+		if (shift && (keysym->unicode == 8 || keysym->unicode == 127)) {
+			KEYBOARD_PRESS(0);
+			KEYBOARD_PRESS(8);
 			return;
 		}
 		if (keysym->unicode == 163) {
-			keyboard_queue(DSHIFT+'3');
+			KEYBOARD_PRESS(0);
+			KEYBOARD_PRESS('3');
 			return;
 		}
-		if (keysym->unicode < 128)
-			keyboard_queue(unicode_to_dragon[keysym->unicode]);
+		if (keysym->unicode < 128) {
+			unsigned int code = unicode_to_dragon[keysym->unicode];
+			if (code & 128)
+				KEYBOARD_PRESS(0);
+			else
+				KEYBOARD_RELEASE(0);
+			KEYBOARD_PRESS(code & 0x7f);
+		}
 		return;
 	}
 	if (sym < 256) {
@@ -308,40 +299,73 @@ static void keypress(SDL_keysym *keysym) {
 	}
 }
 
+#define JOY_UNLOW(j) if (j < 127) j = 127;
+#define JOY_UNHIGH(j) if (j > 128) j = 128;
+
 static void keyrelease(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
 	if (emulate_joystick == 1) {
-		if (sym == SDLK_UP && joystick_lefty < 127) { joystick_lefty = 127; return; }
-		if (sym == SDLK_DOWN && joystick_lefty > 128) { joystick_lefty = 128; return; }
-		if (sym == SDLK_LEFT && joystick_leftx < 127) { joystick_leftx = 127; return; }
-		if (sym == SDLK_RIGHT && joystick_leftx > 128) { joystick_leftx = 128; return; }
+		if (sym == SDLK_UP) { JOY_UNLOW(joystick_lefty); return; }
+		if (sym == SDLK_DOWN) { JOY_UNHIGH(joystick_lefty); return; }
+		if (sym == SDLK_LEFT) { JOY_UNLOW(joystick_leftx); return; }
+		if (sym == SDLK_RIGHT) { JOY_UNHIGH(joystick_leftx); return; }
 		if (sym == SDLK_LALT) { PIA_0A.tied_low |= 0x02; return; }
 	}
 	if (emulate_joystick == 2) {
-		if (sym == SDLK_UP && joystick_righty < 127) { joystick_righty = 127; return; }
-		if (sym == SDLK_DOWN && joystick_righty > 128) { joystick_righty = 128; return; }
-		if (sym == SDLK_LEFT && joystick_rightx < 127) { joystick_rightx = 127; return; }
-		if (sym == SDLK_RIGHT && joystick_rightx > 128) { joystick_rightx = 128; return; }
+		if (sym == SDLK_UP) { JOY_UNLOW(joystick_righty); return; }
+		if (sym == SDLK_DOWN) { JOY_UNHIGH(joystick_righty); return; }
+		if (sym == SDLK_LEFT) { JOY_UNLOW(joystick_rightx); return; }
+		if (sym == SDLK_RIGHT) { JOY_UNHIGH(joystick_rightx); return; }
 		if (sym == SDLK_LALT) { PIA_0A.tied_low |= 0x01; return; }
 	}
-	switch (sym) {
-	case 0: break;
-	case SDLK_LCTRL: case SDLK_RCTRL:
-		control = 0; break;
-	case SDLK_LSHIFT: case SDLK_RSHIFT:
-		shift = 0;
-		KEYBOARD_RELEASE(0); break;
-	case SDLK_UP: KEYBOARD_RELEASE(94); break;
-	case SDLK_DOWN: KEYBOARD_RELEASE(10); break;
-	case SDLK_LEFT: KEYBOARD_RELEASE(8); break;
-	case SDLK_RIGHT: KEYBOARD_RELEASE(9); break;
-	case SDLK_HOME: KEYBOARD_RELEASE(12); break;
-	default:
-		if (sym < 256) {
-			unsigned int mapped = sdl_to_keymap[sym];
-			KEYBOARD_RELEASE(mapped);
+	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
+		shift = 0; 
+		KEYBOARD_RELEASE(0);
+		return;
+	}
+	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 0; return; }
+	if (sym == SDLK_UP) { KEYBOARD_RELEASE(94); return; }
+	if (sym == SDLK_DOWN) { KEYBOARD_RELEASE(10); return; }
+	if (sym == SDLK_LEFT) { KEYBOARD_RELEASE(8); return; }
+	if (sym == SDLK_RIGHT) { KEYBOARD_RELEASE(9); return; }
+	if (sym == SDLK_HOME) { KEYBOARD_RELEASE(12); return; }
+	if (translated_keymap) {
+		if (keysym->unicode == '\\') {
+			/* CoCo and Dragon 64 in 64K mode have a different way
+			 * of scanning for '\' */
+			if (IS_COCO_KEYBOARD || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
+				KEYBOARD_RELEASE(0);
+				KEYBOARD_RELEASE(12);
+			} else {
+				KEYBOARD_RELEASE(0);
+				KEYBOARD_RELEASE(12);
+				KEYBOARD_RELEASE('/');
+			}
+			return;
 		}
-		break;
+		if (shift && (keysym->unicode == 8 || keysym->unicode == 127)) {
+			KEYBOARD_RELEASE(0);
+			KEYBOARD_RELEASE(8);
+			return;
+		}
+		if (keysym->unicode == 163) {
+			KEYBOARD_RELEASE(0);
+			KEYBOARD_RELEASE('3');
+			return;
+		}
+		if (keysym->unicode < 128) {
+			unsigned int code = unicode_to_dragon[keysym->unicode];
+			if (code & 128)
+				KEYBOARD_RELEASE(0);
+			if (shift)
+				KEYBOARD_PRESS(0);
+			KEYBOARD_RELEASE(code & 0x7f);
+		}
+		return;
+	}
+	if (sym < 256) {
+		unsigned int mapped = sdl_to_keymap[sym];
+		KEYBOARD_RELEASE(mapped);
 	}
 }
 
