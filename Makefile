@@ -212,7 +212,7 @@ dist-windows32: $(WINDOWS32_TARGET)
 	zip -r ../$(distname)-windows32.zip $(distname)-windows32
 	rm -rf $(distname)-windows32/
 
-dist-macos: $(UNIX_TARGET)
+dist-macosx dist-macos: $(UNIX_TARGET)
 	mkdir XRoar-$(version)
 	mkdir -p XRoar-$(version)/XRoar.app/Contents/MacOS XRoar-$(version)/XRoar.app/Contents/Frameworks XRoar-$(version)/XRoar.app/Contents/Resources
 	cp $(UNIX_TARGET) XRoar-$(version)/XRoar.app/Contents/MacOS/
