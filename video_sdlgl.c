@@ -49,9 +49,6 @@ static void render_cg2(void);
 static void render_rg6(void);
 static void render_border(void);
 
-extern KeyboardModule keyboard_sdl_module;
-extern JoystickModule joystick_sdl_module;
-
 VideoModule video_sdlgl_module = {
 	NULL,
 	"sdlgl",
@@ -64,6 +61,9 @@ VideoModule video_sdlgl_module = {
 	render_rg1, render_cg2, render_rg6,
 	render_border
 };
+
+extern KeyboardModule keyboard_sdl_module;
+extern JoystickModule joystick_sdl_module;
 
 typedef Uint16 Pixel;
 #define MAPCOLOUR(r,g,b) SDL_MapRGB(screen_tex->format, r, g, b)
@@ -95,6 +95,8 @@ static SDL_Surface *border_tex;
 static GLuint texnum;
 static GLuint border_texnum;
 static GLint xoffset, yoffset;
+
+static void config_opengl(void);
 
 static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL OpenGL driver\n");
@@ -133,34 +135,9 @@ static int init(void) {
 		return 1;
 	}
 
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_TEXTURE_2D);
-	glViewport(0, 0, screen->w, screen->h);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0, screen->w, screen->h, 0.0, -1.0, 1.0);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
-	glClearDepth(1.0f);
+	config_opengl();
 	xoffset = 64;
 	yoffset = 0;
-
-	glGenTextures(1, &texnum);
-	glBindTexture(GL_TEXTURE_2D, texnum);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glGenTextures(1, &border_texnum);
-	glBindTexture(GL_TEXTURE_2D, border_texnum);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 2, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	vdg_colour[0] = MAPCOLOUR(0x00, 0xff, 0x00);
 	vdg_colour[1] = MAPCOLOUR(0xff, 0xff, 0x00);
@@ -234,7 +211,10 @@ static void resize(uint_least16_t w, uint_least16_t h) {
 	glDeleteTextures(1, &texnum);
 	glDeleteTextures(1, &border_texnum);
 	screen = SDL_SetVideoMode(w, h, 0, SDL_OPENGL|SDL_RESIZABLE);
+	config_opengl();
+}
 
+static void config_opengl(void) {
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -245,6 +225,8 @@ static void resize(uint_least16_t w, uint_least16_t h) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, screen->w, screen->h , 0, -1.0, 1.0);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+	glClearDepth(1.0f);
 
 	glGenTextures(1, &texnum);
 	glBindTexture(GL_TEXTURE_2D, texnum);
