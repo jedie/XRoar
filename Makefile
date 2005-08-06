@@ -1,231 +1,198 @@
 ### Install under this prefix:
 prefix = /usr/local
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(exec_prefix)/lib
+mandir = $(prefix)/man
+datadir = $(prefix)/share
 
-### These settings set what compiler to use.  Note that when building for
-### GP32, certain intermediate tools are built using CC_UNIX, so that still
-### needs to be set correctly.
+.PHONY: usage gp32 linux linux-be macosx solaris solaris-le windows32
 
-CC_UNIX = gcc
+usage:
+	@echo
+	@echo "Usage: \"make system-type\", where system-type is one of:"
+	@echo
+	@echo " gp32 linux linux-be macosx solaris solaris-le windows32"
+	@echo
+	@echo "You can append options to determine which tools are used to compile."
+	@echo "e.g., \"make gp32 TOOL_PREFIX=arm-elf-\""
+	@echo
+	@echo "-be and -le targets specify an endianness (big- or little-endian). "
+	@echo
 
-# If you want to build a GP32 binary ('make xroar.fxe'), make sure these
-# are set to point to the appropriate arm-elf build tools (and that b2fxec
-# is in your path).
-CC_GP32 = arm-elf-gcc
-AS_GP32= arm-elf-as
-OBJCOPY_GP32 = arm-elf-objcopy
+VERSION = 0.12
 
-# If you want to build a Windows32 binary ('make xroar.exe'), make sure
-# CC_WINDOWS32 is set to the right cross-compiler, and WINDOWS32_PREFIX
-# points to the top of your MinGW32 install (currently only used to find
-# sdl-config).
-CC_WINDOWS32 = i586-mingw32-gcc
-WINDOWS32_PREFIX = /usr/local/i586-mingw32
+OPT = -O3
 
-CFLAGS_GP32 = -O3 -funroll-loops -finline-functions -mcpu=arm9tdmi \
-	-mstructure-size-boundary=32 -finline-limit=320000
+CFLAGS = $(OPT) -g -DVERSION=\"$(VERSION)\" -DROMPATH=\"$(ROMPATH)\"
 
-CFLAGS_UNIX = -O3 -g
+SDL_CONFIG := sdl-config
+CFLAGS_SDL = -DHAVE_SDL_VIDEO -DHAVE_SDL_AUDIO $(shell $(SDL_CONFIG) --cflags)
+LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
+LDFLAGS_SDLIMAGE = -lSDL_image
+CFLAGS_GL = -DHAVE_SDLGL_VIDEO
+LDFLAGS_GL = -lGL
 
-CFLAGS_COMMON = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
-	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
-	-Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes \
-	-Wredundant-decls
+CFLAGS_GTK = -DHAVE_GTK_UI $(shell gtk-config --cflags)
+LDFLAGS_GTK = $(shell gtk-config --libs)
 
-### Specify the features you want by uncommenting (or re-commenting) lines
-### from the following.  Note that these do not affect the specialised GP32
-### build.
+CFLAGS_CARBON = -DHAVE_CARBON_UI
+LDFLAGS_CARBON = -framework Carbon
 
-# Video, audio and user-interface modules:
-USE_SDL = 1		# SDL video and audio modules
-USE_SDLGL = 1		# Use OpenGL with SDL
-USE_OSS_AUDIO = 1	# OSS blocking audio
-#USE_JACK_AUDIO = 1	# Connects to JACK audio server
-#USE_SUN_AUDIO = 1	# Sun audio.  Might suit *BSD too, don't know
-USE_NULL_AUDIO = 1	# Requires Linux RTC as sound is used to sync
-USE_GTK_UI = 1		# Simple GTK+ file-requester
-#USE_CARBON_UI = 1	# MacOS X Carbon UI (also CoreAudio)
-USE_CLI_UI = 1		# Prompt for filenames on command line
+CFLAGS_OSS = -DHAVE_OSS_AUDIO
+LDFLAGS_OSS =
 
-# Build for a little-endian machine, eg x86.  This should be commented out
-# for big-endian architectures, eg Sparc.
-CFLAGS_UNIX += -DWRONG_ENDIAN
+CFLAGS_COREAUDIO = -DHAVE_MACOSX_AUDIO
+LDFLAGS_COREAUDIO = -framework CoreAudio
 
-# Uncomment this to enable tracing
-#CFLAGS_UNIX += -DTRACE
+CFLAGS_WRONGENDIAN = -DWRONG_ENDIAN
 
-###
-### ----- You shouldn't need to change anything under this line ------ ###
-###
+ROMPATH = :$(prefix)/share/xroar/roms
 
-version = 0.12
-
-distname = xroar-$(version)
-
-COMMON_SOURCES_H = config.h events.h fs.h hexs19.h joystick.h keyboard.h \
-	logging.h m6809.h machine.h pia.h sam.h snapshot.h sound.h tape.h \
-	types.h ui.h vdg.h video.h wd2797.h xroar.h
-COMMON_SOURCES_C = xroar.c snapshot.c tape.c hexs19.c machine.c m6809.c sam.c \
-	pia.c wd2797.c vdg.c video.c sound.c ui.c keyboard.c joystick.c \
-	events.c
-COMMON_SOURCES = $(COMMON_SOURCES_H) $(COMMON_SOURCES_C)
-COMMON_OBJECTS = $(COMMON_SOURCES_C:.c=.o)
-
-UNIX_TARGET = xroar
-UNIX_SOURCES_H = fs_unix.h
-UNIX_SOURCES_C = fs_unix.c joystick_sdl.c keyboard_sdl.c main_unix.c \
-	sound_jack.c sound_null.c sound_oss.c sound_sdl.c sound_sun.c \
-	sound_macosx.c ui_carbon.c ui_cli.c ui_gtk.c ui_windows32.c \
-	video_sdl.c video_sdlyuv.c video_sdlgl.c
-UNIX_SOURCES = $(UNIX_SOURCES_H) $(UNIX_SOURCES_C)
-UNIX_OBJECTS = $(UNIX_SOURCES_C:.c=.o)
-
-WINDOWS32_TARGET = xroar.exe
-
-GP32_TARGET = xroar.fxe
-GP32_SOURCES_H = fs_gp32.h video_gp32.h
-GP32_SOURCES_C = fs_gp32.c keyboard_gp32.c main_gp32.c sound_gp32.c ui_gp32.c \
-	video_gp32.c gp32/gpstart.c gp32/udaiis.c gp32/gpsound.c \
-	gp32/gpkeypad.c gp32/gpchatboard.c
-GP32_SOURCES_S = gp32/crt0.s
-GP32_SOURCES = $(GP32_SOURCES_H) $(GP32_SOURCES_C)
-GP32_BUILD_SOURCES_C = cmode_bin.c copyright.c kbd_graphics.c
-GP32_OBJECTS = $(GP32_SOURCES_S:.s=.o) $(GP32_SOURCES_C:.c=.o) \
-	$(GP32_BUILD_SOURCES_C:.c=.o)
-
-EXTRA_SOURCES = img2c.c prerender.c vdg_bitmaps.c keyboard_sdl_mappings.c
-EXTRA_CLEAN = xroar.bin xroar.elf img2c prerender vdg_bitmaps_gp32.c
-
-CLEAN = $(COMMON_OBJECTS) $(UNIX_OBJECTS) $(GP32_OBJECTS) \
-	$(UNIX_TARGET) $(GP32_TARGET) $(WINDOWS32_TARGET) \
-	$(GP32_BUILD_SOURCES_C) $(EXTRA_CLEAN)
-
-SDL_CONFIG = sdl-config
-$(WINDOWS32_TARGET): SDL_CONFIG = $(WINDOWS32_PREFIX)/bin/sdl-config
-
-ifdef USE_SDL
-	CFLAGS_UNIX += -DHAVE_SDL_VIDEO -DHAVE_SDL_AUDIO
-	CFLAGS_SDL = $(shell $(SDL_CONFIG) --cflags)
-	LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
-	ifdef USE_SDLGL
-		CFLAGS_UNIX += -DHAVE_SDLGL_VIDEO
-		LDFLAGS_GL = -lGL
-		LDFLAGS_SDL += $(LDFLAGS_GL)
-	endif
-endif
-
-ifdef USE_OSS_AUDIO
-	CFLAGS_UNIX += -DHAVE_OSS_AUDIO
-endif
 ifdef USE_JACK_AUDIO
-	CFLAGS_UNIX += -DHAVE_JACK_AUDIO
-	LDFLAGS_JACK = -ljack -lpthread
-endif
-ifdef USE_SUN_AUDIO
-	CFLAGS_UNIX += -DHAVE_SUN_AUDIO
-endif
-ifdef USE_NULL_AUDIO
-	CFLAGS_UNIX += -DHAVE_NULL_AUDIO
-endif
-
-ifdef USE_GTK_UI
-	CFLAGS_UNIX += -DHAVE_GTK_UI
-	CFLAGS_GTK = $(shell gtk-config --cflags)
-	LDFLAGS_GTK = $(shell gtk-config --libs)
+	CFLAGS += -DHAVE_JACK_AUDIO
+	LDFLAGS += -ljack -lpthread
 endif
 ifdef USE_CLI_UI
-	CFLAGS_UNIX += -DHAVE_CLI_UI
+        CFLAGS += -DHAVE_CLI_UI
 endif
-ifdef USE_CARBON_UI
-	CFLAGS_UNIX += -DHAVE_CARBON_UI -DHAVE_MACOSX_AUDIO -DPREFER_NOYUV
-	ROMPATH_UNIX = -DROMPATH=\"~/Library/XRoar/Roms::/Library/XRoar/Roms\"
-	LDFLAGS_CARBON = -framework Carbon -framework CoreAudio
-	LDFLAGS_GL = -framework OpenGL
-else
-	ROMPATH_UNIX = -DROMPATH=\":$(prefix)/share/xroar/roms\"
+ifdef TRACE
+	CFLAGS += -DTRACE
 endif
 
-CFLAGS_UNIX += -DVERSION=\"$(version)\" $(CFLAGS_SDL) $(CFLAGS_GTK)
-LDFLAGS_UNIX = $(LDFLAGS_SDL) $(LDFLAGS_JACK) $(LDFLAGS_GTK) $(LDFLAGS_CARBON)
-CFLAGS_GP32 += -DHAVE_GP32
-LDFLAGS_GP32 = -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
+linux: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GL) $(CFLAGS_GTK) $(CFLAGS_OSS) \
+	$(CFLAGS_WRONGENDIAN) -DHAVE_NULL_AUDIO
+linux: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GL) $(LDFLAGS_GTK) $(LDFLAGS_OSS)
+linux: xroar
 
-all: xroar
+linux-be: CFLAGS_WRONGENDIAN :=
+linux-be: linux
 
-$(UNIX_TARGET): CC = $(CC_UNIX)
-$(UNIX_TARGET): CFLAGS = $(ROMPATH_UNIX) $(CFLAGS_UNIX) $(CFLAGS_COMMON)
-$(WINDOWS32_TARGET): CC = $(CC_WINDOWS32)
-$(WINDOWS32_TARGET): LDFLAGS_GL = -lopengl32
-$(WINDOWS32_TARGET): CFLAGS = -DWINDOWS32 -DPREFER_NOYUV -DROMPATH=\".\" $(CFLAGS_UNIX) $(CFLAGS_COMMON)
-$(UNIX_TARGET) $(WINDOWS32_TARGET): $(UNIX_OBJECTS) $(COMMON_OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $(UNIX_OBJECTS) $(COMMON_OBJECTS) $(LDFLAGS_UNIX)
+gp32: TOOL_PREFIX := arm-elf-
+gp32: CFLAGS += -DHAVE_GP32 -funroll-loops -finline-functions -mcpu=arm9tdmi \
+		-mstructure-size-boundary=32
+gp32: LDFLAGS += -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
+gp32: ROMPATH = /gpmm/dragon
+gp32: xroar.fxe
 
-$(GP32_TARGET): CC = $(CC_GP32)
-$(GP32_TARGET): AS = $(AS_GP32)
-$(GP32_TARGET): OBJCOPY = $(OBJCOPY_GP32)
-$(GP32_TARGET): CFLAGS = -DROMPATH=\"/gpmm/dragon\" $(CFLAGS_GP32) $(CFLAGS_COMMON)
-$(GP32_TARGET): $(GP32_OBJECTS) $(COMMON_OBJECTS)
-	$(CC_GP32) $(CFLAGS) -nostartfiles -o xroar.elf -T gp32/lnkscript $(GP32_OBJECTS) $(COMMON_OBJECTS) $(LDFLAGS_GP32)
+solaris: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GTK)
+solaris: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GTK)
+solaris: xroar
+
+solaris-le: CFLAGS += -DWRONG_ENDIAN
+solaris-le: solaris
+
+macosx: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GL)
+macosx: OPT = -fast -mcpu=7450 -mdynamic-no-pic
+macosx: LDFLAGS_GL = -framework OpenGL
+macosx: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GL)
+macosx: ROMPATH = :~/Library/XRoar/Roms:/Library/XRoar/Roms
+macosx: xroar
+
+macosx-le: CFLAGS += -DWRONG_ENDIAN
+macosx-le: macosx
+
+windows32: TOOL_PREFIX := i586-mingw32-
+windows32: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GL) $(CFLAGS_WRONGENDIAN) -DWINDOWS32 -DPREFER_NOYUV
+windows32: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GL)
+windows32: SDL_CONFIG := /usr/local/i586-mingw32/bin/sdl-config
+windows32: LDFLAGS_GL = -lopengl32
+windows32: ROMPATH = .
+windows32: xroar.exe
+
+HOSTCC = gcc
+CC = $(TOOL_PREFIX)gcc
+AS = $(TOOL_PREFIX)as
+OBJCOPY = $(TOOL_PREFIX)objcopy
+
+COMMON_OBJS = xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o sam.o \
+		 pia.o wd2797.o vdg.o video.o sound.o ui.o keyboard.o \
+		 joystick.o events.o
+
+UNIX_OBJS = fs_unix.o joystick_sdl.o keyboard_sdl.o main_unix.o \
+	       sound_jack.o sound_null.o sound_oss.o sound_sdl.o sound_sun.o \
+	       sound_macosx.o ui_carbon.o ui_cli.o ui_gtk.o ui_windows32.o \
+	       video_sdl.o video_sdlyuv.o video_sdlgl.o
+
+GP32_OBJS = gp32/crt0.o fs_gp32.o keyboard_gp32.o main_gp32.o sound_gp32.o \
+	       ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
+	       gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
+	       cmode_bin.o copyright.o kbd_graphics.o
+
+ALL_OBJS = $(COMMON_OBJS) $(UNIX_OBJS) $(GP32_OBJS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+xroar.fxe: $(GP32_OBJS) $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -nostartfiles -o xroar.elf -T gp32/lnkscript $^ $(LDFLAGS)
 	$(OBJCOPY) -O binary xroar.elf xroar.bin
 	b2fxec -t "XRoar" -a "Ciaran Anscomb" -b gp32/icon.bmp -f xroar.bin $@
 
-IMG2C = $(CURDIR)/img2c
-PRERENDER = $(CURDIR)/prerender
+xroar xroar.exe: $(UNIX_OBJS) $(COMMON_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(IMG2C): img2c.c
-	$(CC_UNIX) $(shell $(SDL_CONFIG) --cflags) -o $@ img2c.c $(shell $(SDL_CONFIG) --libs) -lSDL_image
-
-$(PRERENDER): prerender.c
-	$(CC_UNIX) -o $@ prerender.c
-
-vdg_bitmaps_gp32.c: $(PRERENDER) vdg_bitmaps.c
-	$(PRERENDER) > $@
+./prerender: prerender.c
+	$(HOSTCC) -o $@ $<
 
 video_gp32.c: vdg_bitmaps_gp32.c
-	#touch $@
 
-copyright.c: $(IMG2C) gp32/copyright.png
-	$(IMG2C) copyright_bin gp32/copyright.png > $@
+vdg_bitmaps_gp32.c: ./prerender vdg_bitmaps.c
+	./prerender > $@
 
-cmode_bin.c: $(IMG2C) gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png
-	$(IMG2C) cmode_bin gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png > $@
+./img2c: img2c.c
+	$(HOSTCC) $(CFLAGS_SDL) -o $@ $< $(LDFLAGS_SDL) $(LDFLAGS_SDLIMAGE)
 
-kbd_graphics.c: $(IMG2C) gp32/kbd.png gp32/kbd_shift.png
-	$(IMG2C) kbd_bin gp32/kbd.png gp32/kbd_shift.png > $@
+copyright.c: ./img2c gp32/copyright.png
+	./img2c copyright_bin gp32/copyright.png > $@
 
-dist:
-	darcs dist --dist-name $(distname)
-	mv $(distname).tar.gz ..
+cmode_bin.c: ./img2c gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png
+	./img2c cmode_bin gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png > $@
 
-dist-gp32: $(GP32_TARGET)
-	mkdir $(distname)-gp32
-	cp COPYING ChangeLog README TODO $(GP32_TARGET) $(distname)-gp32/
-	rm -f ../$(distname)-gp32.zip
-	zip -r ../$(distname)-gp32.zip $(distname)-gp32
-	rm -rf $(distname)-gp32/
+kbd_graphics.c: ./img2c gp32/kbd.png gp32/kbd_shift.png
+	./img2c kbd_bin gp32/kbd.png gp32/kbd_shift.png > $@
 
-dist-windows32: $(WINDOWS32_TARGET)
-	mkdir $(distname)-windows32
-	cp COPYING ChangeLog README TODO $(WINDOWS32_TARGET) /usr/local/i586-mingw32/bin/SDL.dll $(distname)-windows32/
-	i586-mingw32-strip $(distname)-windows32/$(WINDOWS32_TARGET)
-	i586-mingw32-strip $(distname)-windows32/SDL.dll
-	rm -f ../$(distname)-windows32.zip
-	zip -r ../$(distname)-windows32.zip $(distname)-windows32
-	rm -rf $(distname)-windows32/
+.PHONY: clean dist dist-gp32 dist-windows32 dist-macos dist-macosx
 
-dist-macosx dist-macos: $(UNIX_TARGET)
-	mkdir XRoar-$(version)
-	mkdir -p XRoar-$(version)/XRoar.app/Contents/MacOS XRoar-$(version)/XRoar.app/Contents/Frameworks XRoar-$(version)/XRoar.app/Contents/Resources
-	cp $(UNIX_TARGET) XRoar-$(version)/XRoar.app/Contents/MacOS/
-	cp /usr/local/lib/libSDL-1.2.0.dylib XRoar-$(version)/XRoar.app/Contents/Frameworks/
-	install_name_tool -change /usr/local/lib/libSDL-1.2.0.dylib @executable_path/../Frameworks/libSDL-1.2.0.dylib XRoar-$(version)/XRoar.app/Contents/MacOS/xroar
-	strip XRoar-$(version)/XRoar.app/Contents/MacOS/$(UNIX_TARGET)
-	strip -x XRoar-$(version)/XRoar.app/Contents/Frameworks/libSDL-1.2.0.dylib
-	sed -e "s!@VERSION@!$(version)!g" macos/Info.plist.in > XRoar-$(version)/XRoar.app/Contents/Info.plist
-	cp macos/xroar.icns XRoar-$(version)/XRoar.app/Contents/Resources/
-	cp README COPYING ChangeLog TODO XRoar-$(version)/
-	chmod -R o+rX,g+rX XRoar-$(version)/
-	hdiutil create -srcfolder XRoar-$(version) -uid 99 -gid 99 ../XRoar-$(version).dmg
-	rm -rf XRoar-$(version)/
+CLEAN_FILES = xroar xroar.exe xroar.fxe $(ALL_OBJS) ./img2c ./prerender \
+	copyright.c cmode_bin.c kbd_graphics.c xroar.bin xroar.elf
 
 clean:
-	rm -f $(CLEAN)
+	rm -f $(CLEAN_FILES)
+
+DISTNAME = xroar-$(VERSION)
+
+dist:
+	darcs dist --dist-name $(DISTNAME)
+	mv $(DISTNAME).tar.gz ..
+
+dist-gp32: gp32
+	mkdir $(DISTNAME)-gp32
+	cp COPYING ChangeLog README TODO xroar.fxe $(DISTNAME)-gp32/
+	rm -f ../$(DISTNAME)-gp32.zip
+	zip -r ../$(DISTNAME)-gp32.zip $(DISTNAME)-gp32
+	rm -rf $(DISTNAME)-gp32/
+
+dist-windows32: windows32
+	mkdir $(DISTNAME)-windows32
+	cp COPYING ChangeLog README TODO xroar.exe /usr/local/i586-mingw32/bin/SDL.dll $(DISTNAME)-windows32/
+	i586-mingw32-strip $(DISTNAME)-windows32/xroar.exe
+	i586-mingw32-strip $(DISTNAME)-windows32/SDL.dll
+	rm -f ../$(DISTNAME)-windows32.zip
+	zip -r ../$(DISTNAME)-windows32.zip $(DISTNAME)-windows32
+	rm -rf $(DISTNAME)-windows32/
+
+dist-macosx dist-macos: macosx
+	mkdir XRoar-$(VERSION)
+	mkdir -p XRoar-$(VERSION)/XRoar.app/Contents/MacOS XRoar-$(VERSION)/XRoar.app/Contents/Frameworks XRoar-$(VERSION)/XRoar.app/Contents/Resources
+	cp xroar XRoar-$(VERSION)/XRoar.app/Contents/MacOS/
+	cp /usr/local/lib/libSDL-1.2.0.dylib XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/
+	install_name_tool -change /usr/local/lib/libSDL-1.2.0.dylib @executable_path/../Frameworks/libSDL-1.2.0.dylib XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar
+	strip XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar
+	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libSDL-1.2.0.dylib
+	sed -e "s!@VERSION@!$(VERSION)!g" macos/Info.plist.in > XRoar-$(VERSION)/XRoar.app/Contents/Info.plist
+	cp macos/xroar.icns XRoar-$(VERSION)/XRoar.app/Contents/Resources/
+	cp README COPYING ChangeLog TODO XRoar-$(VERSION)/
+	chmod -R o+rX,g+rX XRoar-$(VERSION)/
+	hdiutil create -srcfolder XRoar-$(VERSION) -uid 99 -gid 99 ../XRoar-$(VERSION).dmg
+	rm -rf XRoar-$(VERSION)/
