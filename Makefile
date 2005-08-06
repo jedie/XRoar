@@ -105,19 +105,19 @@ CC = $(TOOL_PREFIX)gcc
 AS = $(TOOL_PREFIX)as
 OBJCOPY = $(TOOL_PREFIX)objcopy
 
-COMMON_OBJS = xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o sam.o \
-		 pia.o wd2797.o vdg.o video.o sound.o ui.o keyboard.o \
-		 joystick.o events.o
+COMMON_OBJS = xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o \
+		m6809_dasm.o sam.o pia.o wd2797.o vdg.o video.o sound.o ui.o \
+		keyboard.o joystick.o events.o
 
 UNIX_OBJS = fs_unix.o joystick_sdl.o keyboard_sdl.o main_unix.o \
-	       sound_jack.o sound_null.o sound_oss.o sound_sdl.o sound_sun.o \
-	       sound_macosx.o ui_carbon.o ui_cli.o ui_gtk.o ui_windows32.o \
-	       video_sdl.o video_sdlyuv.o video_sdlgl.o
+		sound_jack.o sound_null.o sound_oss.o sound_sdl.o sound_sun.o \
+		sound_macosx.o ui_carbon.o ui_cli.o ui_gtk.o ui_windows32.o \
+		video_sdl.o video_sdlyuv.o video_sdlgl.o
 
 GP32_OBJS = gp32/crt0.o fs_gp32.o keyboard_gp32.o main_gp32.o sound_gp32.o \
-	       ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
-	       gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
-	       cmode_bin.o copyright.o kbd_graphics.o
+		ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
+		gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
+		cmode_bin.o copyright.o kbd_graphics.o
 
 ALL_OBJS = $(COMMON_OBJS) $(UNIX_OBJS) $(GP32_OBJS)
 

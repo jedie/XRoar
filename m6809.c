@@ -26,6 +26,7 @@
 #include "pia.h"
 #include "logging.h"
 #include "tape.h"
+#include "m6809_dasm.h"
 
 /* Condition Code manipulation macros */
 
@@ -68,18 +69,17 @@
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) sam_peek_byte(a)
 
-#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; TAKEN_CYCLES(1); if (trace) { LOG_DEBUG(0, "%02x", (a) & 0xff); } } while (0)
-//#define EA_INDEXED(a)	do { a = addr_indexed(); } while (0)
-#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; TAKEN_CYCLES(1); if (trace) { LOG_DEBUG(0, "%04x", a); } } while (0)
+#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); if (trace) m6809_dasm_byte(a & 0xff, reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
+#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); if (trace) { m6809_dasm_byte(a >> 8, reg_pc); m6809_dasm_byte(a & 0xff, reg_pc + 1); } reg_pc += 2; TAKEN_CYCLES(1); } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
  * macros.  Must be used carefully, as some of them declare an 'addr' variable
  */
-#define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); reg_pc++; if (trace) { LOG_DEBUG(0, "%02x", v); } }
+#define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); if (trace) m6809_dasm_byte(v, reg_pc); reg_pc++; }
 #define BYTE_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a); }
 #define BYTE_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a); }
 #define BYTE_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a); }
-#define WORD_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; if (trace) { LOG_DEBUG(0, "%04x", v); } }
+#define WORD_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); if (trace) { m6809_dasm_byte(v >> 8, reg_pc); m6809_dasm_byte(v & 0xff, reg_pc + 1); } reg_pc += 2; }
 #define WORD_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 #define WORD_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 #define WORD_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
@@ -360,6 +360,7 @@ void m6809_reset(void) {
 	wait_for_interrupt = 0;
 	skip_register_push = 0;
 	program_counter = fetch_word(0xfffe);
+	m6809_dasm_reset();
 }
 
 void m6809_cycle(Cycle until) {
