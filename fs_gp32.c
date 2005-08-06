@@ -46,13 +46,18 @@ static char *strrchr2(char *s, int c) {
 	return s1;
 }
 
-int fs_chdir(char *path) {
+int fs_chdir(const char *path) {
+	char *pcopy;
 	char *p;
-	if (!path)
+	if (path == NULL)
 		return -1;
-	if (!strcmp(path, "."))
+	pcopy = malloc(strlen(path)+1);
+	if (pcopy == NULL)
+		return -1;
+	strcpy(pcopy, path);
+	if (!strcmp(pcopy, "."))
 		return 0;
-	if (!strcmp(path, "..")) {
+	if (!strcmp(pcopy, "..")) {
 		p = strrchr2(cwd, '\\');
 		if (p)
 			*(p+1) = 0;
@@ -60,23 +65,23 @@ int fs_chdir(char *path) {
 		return 0;
 	}
 	/* Translate / into \ */
-	for (p = path; *p; p++) {
+	for (p = pcopy; *p; p++) {
 		if (*p == '/')
 			*p = '\\';
 	}
-	if (!strncmp(path, "gp:\\", 4)) {
-		strcpy(cwd, path);
+	if (!strncmp(pcopy, "gp:\\", 4)) {
+		strcpy(cwd, pcopy);
 		GpRelativePathSet(cwd);
 		return 0;
 	}
-	if (path[0] == '\\') {
+	if (pcopy[0] == '\\') {
 		strcpy(cwd, "gp:");
-		strcat(cwd, path);
+		strcat(cwd, pcopy);
 		if (*(p-1) != '\\') strcat(cwd, "\\");
 		GpRelativePathSet(cwd);
 		return 0;
 	}
-	strcat(cwd, path);
+	strcat(cwd, pcopy);
 	if (*(p-1) != '\\') strcat(cwd, "\\");
 	GpRelativePathSet(cwd);
 	return 0;
@@ -84,7 +89,7 @@ int fs_chdir(char *path) {
 
 FS_FILE fs_open(const char *filename, int flags) {
 	F_HANDLE fd;
-	char *basename;
+	const char *basename;
 	if ((basename = strrchr(filename, '\\'))
 			|| (basename = strrchr(filename, '/'))) {
 		int length = (basename - filename) + 1;

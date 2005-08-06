@@ -22,7 +22,7 @@
 
 void fs_init(void);
 
-int fs_chdir(char *path);
+int fs_chdir(const char *path);
 FS_FILE fs_open(const char *filename, int flags);
 ssize_t fs_read(FS_FILE fd, void *buffer, size_t size);
 ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size);
