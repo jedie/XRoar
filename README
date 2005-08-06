@@ -26,15 +26,18 @@ The rest is the result of reading too many datasheets.
 
 COMPILING
 
-To build the Unix version, edit 'Makefile' and uncomment whichever USE_*
-lines are relevant to you.  Then type 'make'.
+To see build options, type 'make' on its own.  Common targets are:
 
-To build the GP32 version, edit 'Makefile' and make sure CC_GP32, AS_GP32
-and OBJCOPY_GP32 are set appropriately.  Then type 'make xroar.fxe'.
+linux     - Little-endian Linux target with OSS audio, OpenGL and Xv video.
+solaris   - Big-endian Solaris target with Sun audio and SDL video.
+gp32      - Cross-compile to GP32 (little-endian ARM target).
+macosx    - PowerPC Mac OS X target with OpenGL and CoreAudio support.
+windows32 - Cross-compile for Windows.
 
-To build the Windows32 version, edit 'Makefile' and make sure CC_WINDOWS32
-refers to the correct cross-compiler and that WINDOWS32_PREFIX points to
-your MinGW32 prefix.  Then type 'make xroar.exe'.
+The GP32 and Windows32 builds are cross-compiles and set TOOL_PREFIX, which
+you can override if needed.  For example:
+        make gp32 TOOL_PREFIX=arm-none-elf-
+    or: make windows32 TOOL_PREFIX=i586-mingw32msvc-
 
 When building more than one version, be sure to type 'make clean' in
 between builds, or else object files will remain that have been compiled
