@@ -387,7 +387,6 @@ void m6809_cycle(Cycle until) {
 			reg_cc |= tape_read_bit();
 			PULLWORD(reg_s, reg_pc);
 		}
-		if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 		if (trace) LOG_DEBUG(0, "%04x| ", reg_pc);
 		/* Fetch op-code and process */
 		{
@@ -1065,6 +1064,7 @@ void m6809_cycle(Cycle until) {
 				/* Illegal instruction */
 				default: TAKEN_CYCLES(1); break;
 			}
+			if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 			continue;
 		switched_block_page2:
 			BYTE_IMMEDIATE(0,op);
@@ -1167,6 +1167,7 @@ void m6809_cycle(Cycle until) {
 				/* Illegal instruction */
 				default: TAKEN_CYCLES(1); break;
 			}
+			if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 			continue;
 		switched_block_page3:
 			BYTE_IMMEDIATE(0,op);
@@ -1211,6 +1212,7 @@ void m6809_cycle(Cycle until) {
 				/* Illegal instruction */
 				default: TAKEN_CYCLES(1); break;
 			}
+			if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 			continue;
 		}
 	}
