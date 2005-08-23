@@ -20,142 +20,296 @@ usage:
 	@echo "-be and -le targets specify an endianness (big- or little-endian). "
 	@echo
 
-VERSION = 0.12
+VERSION := 0.13pre1
 
 OPT = -O3
+macosx: OPT = -fast -mcpu=7450 -mdynamic-no-pic
 
 CFLAGS = $(OPT) -g -DVERSION=\"$(VERSION)\" -DROMPATH=\"$(ROMPATH)\"
 
-SDL_CONFIG := sdl-config
-CFLAGS_SDL = -DHAVE_SDL_VIDEO -DHAVE_SDL_AUDIO $(shell $(SDL_CONFIG) --cflags)
+ENABLE_SDL       := linux solaris macosx windows32
+ENABLE_SDLGL     := linux macosx windows32
+ENABLE_OSS       := linux
+ENABLE_SUN_AUDIO := solaris
+ENABLE_COREAUDIO := macosx
+ENABLE_RTC       := linux
+ENABLE_JACK      := 
+ENABLE_GTK       := linux solaris
+ENABLE_CARBON    := macosx
+ENABLE_WINDOWS32 := windows32
+ENABLE_ZLIB      := linux macosx
+ENABLE_WRONGEND  := linux windows32
+
+USES_UNIX_TARGET      := linux solaris macosx
+USES_GP32_TARGET      := gp32
+USES_WINDOWS32_TARGET := windows32
+
+ifdef SDLGL
+	ENABLE_SDLGL += $(MAKECMDGOALS)
+endif
+ifdef OSS
+	ENABLE_OSS += $(MAKECMDGOALS)
+endif
+ifdef SUN_AUDIO
+	ENABLE_SUN_AUDIO += $(MAKECMDGOALS)
+endif
+ifdef COREAUDIO
+	ENABLE_COREAUDIO += $(MAKECMDGOALS)
+endif
+ifdef RTC
+	ENABLE_RTC += $(MAKECMDGOALS)
+endif
+ifdef JACK
+	ENABLE_JACK += $(MAKECMDGOALS)
+endif
+ifdef CARBON
+	ENABLE_CARBON += $(MAKECMDGOALS)
+endif
+ifdef CLI
+	ENABLE_CLI += $(MAKECMDGOALS)
+endif
+ifdef TRACE
+	ENABLE_TRACE += $(MAKECMDGOALS)
+endif
+ifdef ZLIB
+	ENABLE_ZLIB += $(MAKECMDGOALS)
+endif
+ifdef WRONGEND
+	ENABLE_WRONGEND += $(MAKECMDGOALS)
+endif
+
+COMMON_OBJS := xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o \
+		sam.o pia.o wd2797.o vdg.o video.o sound.o ui.o \
+		keyboard.o joystick.o events.o vdrive.o vdisk.o
+ALL_OBJS := $(COMMON_OBJS)
+
+OBJS_SDL := video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o joystick_sdl.o
+ALL_OBJS += $(OBJS_SDL)
+SDL_CONFIG = sdl-config
+CFLAGS_SDL = -DHAVE_SDL $(shell $(SDL_CONFIG) --cflags)
 LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
-LDFLAGS_SDLIMAGE = -lSDL_image
-CFLAGS_GL = -DHAVE_SDLGL_VIDEO
-LDFLAGS_GL = -lGL
+windows32: SDL_CONFIG = /usr/local/i586-mingw32/bin/sdl-config
 
-CFLAGS_GTK = -DHAVE_GTK_UI $(shell gtk-config --cflags)
-LDFLAGS_GTK = $(shell gtk-config --libs)
+OBJS_SDLGL := video_sdlgl.o
+ALL_OBJS += $(OBJS_SDLGL)
+CFLAGS_SDLGL = -DHAVE_SDLGL
+LDFLAGS_SDLGL = -lGL
+macosx: LDFLAGS_SDLGL = -framework OpenGL
+windows32: LDFLAGS_SDLGL = -lopengl32
 
-CFLAGS_CARBON = -DHAVE_CARBON_UI
-LDFLAGS_CARBON = -framework Carbon
-
+OBJS_OSS := sound_oss.o
+ALL_OBJS += $(OBJS_OSS)
 CFLAGS_OSS = -DHAVE_OSS_AUDIO
-LDFLAGS_OSS =
 
+OBJS_SUN_AUDIO := sound_sun.o
+ALL_OBJS += $(OBJS_SUN_AUDIO)
+CFLAGS_SUN_AUDIO = -DHAVE_SUN_AUDIO
+
+OBJS_COREAUDIO := sound_macosx.o
+ALL_OBJS += $(OBJS_COREAUDIO)
 CFLAGS_COREAUDIO = -DHAVE_MACOSX_AUDIO
 LDFLAGS_COREAUDIO = -framework CoreAudio
 
-CFLAGS_WRONGENDIAN = -DWRONG_ENDIAN
+OBJS_RTC := sound_rtc.o
+ALL_OBJS += $(OBJS_RTC)
+CFLAGS_RTC = -DHAVE_RTC
 
-ROMPATH = :$(prefix)/share/xroar/roms
+OBJS_JACK = sound_jack.o
+ALL_OBJS += $(OBJS_JACK)
+CFLAGS_JACK = -DHAVE_JACK_AUDIO
+LDFLAGS_JACK = -ljack -lpthread
 
-ifdef USE_JACK_AUDIO
-	CFLAGS += -DHAVE_JACK_AUDIO
-	LDFLAGS += -ljack -lpthread
-endif
-ifdef USE_CLI_UI
-        CFLAGS += -DHAVE_CLI_UI
-endif
-ifdef TRACE
-	CFLAGS += -DTRACE
-endif
+OBJS_GTK := ui_gtk.o
+ALL_OBJS += $(OBJS_GTK)
+GTK_CONFIG = gtk-config
+CFLAGS_GTK = -DHAVE_GTK_UI $(shell $(GTK_CONFIG) --cflags)
+LDFLAGS_GTK = $(shell $(GTK_CONFIG) --libs)
 
-linux: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GL) $(CFLAGS_GTK) $(CFLAGS_OSS) \
-	$(CFLAGS_WRONGENDIAN) -DHAVE_NULL_AUDIO
-linux: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GL) $(LDFLAGS_GTK) $(LDFLAGS_OSS)
-linux: xroar
+OBJS_CARBON := ui_carbon.o
+ALL_OBJS += $(OBJS_CARBON)
+CFLAGS_CARBON = -DHAVE_CARBON
+LDFLAGS_CARBON = -framework Carbon
 
-linux-be: CFLAGS_WRONGENDIAN :=
+OBJS_WINDOWS32 := ui_windows32.o
+ALL_OBJS += $(OBJS_WINDOWS32)
+CFLAGS_WINDOWS32 = -DWINDOWS32 -DPREFER_NOYUV
+LDFLAGS_WINDOWS32 =
+
+OBJS_CLI = ui_cli.o
+ALL_OBJS += $(OBJS_CLI)
+CFLAGS_CLI = -DHAVE_CLI_UI
+
+OBJS_TRACE = m6809_dasm.o
+ALL_OBJS += $(OBJS_TRACE)
+CFLAGS_TRACE = -DTRACE
+
+CFLAGS_ZLIB = -DHAVE_ZLIB
+LDFLAGS_ZLIB = -lz
+
+CFLAGS_WRONGEND = -DWRONG_ENDIAN
+
+ROMPATH = :~/.xroar/roms:$(prefix)/share/xroar/roms
+windows32: ROMPATH = .
+macosx: ROMPATH = :~/Library/XRoar/Roms
+
+# Enable SDL for these targets:
+$(ENABLE_SDL): OBJS    += $(OBJS_SDL)
+$(ENABLE_SDL): CFLAGS  += $(CFLAGS_SDL)
+$(ENABLE_SDL): LDFLAGS += $(LDFLAGS_SDL)
+$(ENABLE_SDL): $(OBJS_SDL)
+
+# Enable SDLGL for these targets:
+$(ENABLE_SDLGL): OBJS    += $(OBJS_SDLGL)
+$(ENABLE_SDLGL): CFLAGS  += $(CFLAGS_SDLGL)
+$(ENABLE_SDLGL): LDFLAGS += $(LDFLAGS_SDLGL)
+$(ENABLE_SDLGL): $(OBJS_SDLGL)
+
+# Enable OSS for these targets:
+$(ENABLE_OSS): OBJS    += $(OBJS_OSS)
+$(ENABLE_OSS): CFLAGS  += $(CFLAGS_OSS)
+$(ENABLE_OSS): LDFLAGS += $(LDFLAGS_OSS)
+$(ENABLE_OSS): $(OBJS_OSS)
+
+# Enable Sun audio for these targets:
+$(ENABLE_SUN_AUDIO): OBJS    += $(OBJS_SUN_AUDIO)
+$(ENABLE_SUN_AUDIO): CFLAGS  += $(CFLAGS_SUN_AUDIO)
+$(ENABLE_SUN_AUDIO): LDFLAGS += $(LDFLAGS_SUN_AUDIO)
+$(ENABLE_SUN_AUDIO): $(OBJS_SUN_AUDIO)
+$(ENABLE_SUN_AUDIO): $(OBJS_SUN_AUDIO)
+
+# Enable CoreAudio for these targets:
+$(ENABLE_COREAUDIO): OBJS    += $(OBJS_COREAUDIO)
+$(ENABLE_COREAUDIO): CFLAGS  += $(CFLAGS_COREAUDIO)
+$(ENABLE_COREAUDIO): LDFLAGS += $(LDFLAGS_COREAUDIO)
+$(ENABLE_COREAUDIO): $(OBJS_COREAUDIO)
+
+# Enable RTC for these targets:
+$(ENABLE_RTC): OBJS    += $(OBJS_RTC)
+$(ENABLE_RTC): CFLAGS  += $(CFLAGS_RTC)
+$(ENABLE_RTC): LDFLAGS += $(LDFLAGS_RTC)
+$(ENABLE_RTC): $(OBJS_RTC)
+
+# Enable JACK for these targets:
+$(ENABLE_JACK): OBJS    += $(OBJS_JACK)
+$(ENABLE_JACK): CFLAGS  += $(CFLAGS_JACK)
+$(ENABLE_JACK): LDFLAGS += $(LDFLAGS_JACK)
+$(ENABLE_JACK): $(OBJS_JACK)
+
+# Enable GTK+ for these targets:
+$(ENABLE_GTK): OBJS    += $(OBJS_GTK)
+$(ENABLE_GTK): CFLAGS  += $(CFLAGS_GTK)
+$(ENABLE_GTK): LDFLAGS += $(LDFLAGS_GTK)
+$(ENABLE_GTK): $(OBJS_GTK)
+
+# Enable Carbon for these targets:
+$(ENABLE_CARBON): OBJS    += $(OBJS_CARBON)
+$(ENABLE_CARBON): CFLAGS  += $(CFLAGS_CARBON)
+$(ENABLE_CARBON): LDFLAGS += $(LDFLAGS_CARBON)
+$(ENABLE_CARBON): $(OBJS_CARBON)
+
+# Enable Windows32 for these targets:
+$(ENABLE_WINDOWS32): OBJS    += $(OBJS_WINDOWS32)
+$(ENABLE_WINDOWS32): CFLAGS  += $(CFLAGS_WINDOWS32)
+$(ENABLE_WINDOWS32): LDFLAGS += $(LDFLAGS_WINDOWS32)
+$(ENABLE_WINDOWS32): $(OBJS_WINDOWS32)
+
+# Enable CLI for these targets:
+$(ENABLE_CLI): OBJS    += $(OBJS_CLI)
+$(ENABLE_CLI): CFLAGS  += $(CFLAGS_CLI)
+$(ENABLE_CLI): LDFLAGS += $(LDFLAGS_CLI)
+$(ENABLE_CLI): $(OBJS_CLI)
+
+# Enable ZLIB for these targets:
+$(ENABLE_ZLIB): OBJS    += $(OBJS_ZLIB)
+$(ENABLE_ZLIB): CFLAGS  += $(CFLAGS_ZLIB)
+$(ENABLE_ZLIB): LDFLAGS += $(LDFLAGS_ZLIB)
+$(ENABLE_ZLIB): $(OBJS_ZLIB)
+
+# Enable tracing (CPU debugging) for these targets:
+$(ENABLE_TRACE): OBJS    += $(OBJS_TRACE)
+$(ENABLE_TRACE): CFLAGS  += $(CFLAGS_TRACE)
+$(ENABLE_TRACE): LDFLAGS += $(LDFLAGS_TRACE)
+$(ENABLE_TRACE): $(OBJS_TRACE)
+
+$(ENABLE_WRONGEND): CFLAGS += $(CFLAGS_WRONGEND)
+
+# Target-specific objects:
+OBJS_UNIX := fs_unix.o main_unix.o
+ALL_OBJS += $(OBJS_UNIX)
+
+OBJS_GP32 = gp32/crt0.o fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
+		ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
+		gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
+		cmode_bin.o copyright.o kbd_graphics.o
+ALL_OBJS += $(OBJS_GP32)
+CFLAGS_GP32 = -DHAVE_GP32 -funroll-loops -mcpu=arm9tdmi \
+		-mstructure-size-boundary=32
+LDFLAGS_GP32 = -nostartfiles -T gp32/lnkscript -lgpmem -lgpos -lgpstdio \
+		-lgpstdlib -lgpgraphic
+
+$(USES_UNIX_TARGET): OBJS += $(OBJS_UNIX)
+$(USES_UNIX_TARGET): $(OBJS_UNIX) xroar
+
+$(USES_GP32_TARGET): TOOL_PREFIX=arm-elf-
+$(USES_GP32_TARGET): OBJS    += $(OBJS_GP32)
+$(USES_GP32_TARGET): CFLAGS  += $(CFLAGS_GP32)
+$(USES_GP32_TARGET): LDFLAGS += $(LDFLAGS_GP32)
+$(USES_GP32_TARGET): $(OBJS_GP32) xroar.fxe
+
+$(USES_WINDOWS32_TARGET): TOOL_PREFIX=i586-mingw32-
+$(USES_WINDOWS32_TARGET): OBJS += $(OBJS_UNIX)
+$(USES_WINDOWS32_TARGET): $(OBJS_UNIX) xroar.exe
+
+linux-be: CFLAGS_WRONGEND =
 linux-be: linux
 
-gp32: TOOL_PREFIX := arm-elf-
-gp32: CFLAGS += -DHAVE_GP32 -funroll-loops -finline-functions -mcpu=arm9tdmi \
-		-mstructure-size-boundary=32
-gp32: LDFLAGS += -lgpmem -lgpos -lgpstdio -lgpstdlib -lgpgraphic
-gp32: ROMPATH = /gpmm/dragon
-gp32: xroar.fxe
-
-solaris: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GTK)
-solaris: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GTK)
-solaris: xroar
-
-solaris-le: CFLAGS += -DWRONG_ENDIAN
+solaris-le: CFLAGS += $(CFLAGS_WRONGEND)
 solaris-le: solaris
 
-macosx: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GL)
-macosx: OPT = -fast -mcpu=7450 -mdynamic-no-pic
-macosx: LDFLAGS_GL = -framework OpenGL
-macosx: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GL)
-macosx: ROMPATH = :~/Library/XRoar/Roms:/Library/XRoar/Roms
-macosx: xroar
-
-macosx-le: CFLAGS += -DWRONG_ENDIAN
+macosx-le: CFLAGS += $(CFLAGS_WRONGEND)
 macosx-le: macosx
-
-windows32: TOOL_PREFIX := i586-mingw32-
-windows32: CFLAGS += $(CFLAGS_SDL) $(CFLAGS_GL) $(CFLAGS_WRONGENDIAN) -DWINDOWS32 -DPREFER_NOYUV
-windows32: LDFLAGS += $(LDFLAGS_SDL) $(LDFLAGS_GL)
-windows32: SDL_CONFIG := /usr/local/i586-mingw32/bin/sdl-config
-windows32: LDFLAGS_GL = -lopengl32
-windows32: ROMPATH = .
-windows32: xroar.exe
 
 HOSTCC = gcc
 CC = $(TOOL_PREFIX)gcc
 AS = $(TOOL_PREFIX)as
 OBJCOPY = $(TOOL_PREFIX)objcopy
 
-COMMON_OBJS = xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o \
-		m6809_dasm.o sam.o pia.o wd2797.o vdg.o video.o sound.o ui.o \
-		keyboard.o joystick.o events.o
-
-UNIX_OBJS = fs_unix.o joystick_sdl.o keyboard_sdl.o main_unix.o \
-		sound_jack.o sound_null.o sound_oss.o sound_sdl.o sound_sun.o \
-		sound_macosx.o ui_carbon.o ui_cli.o ui_gtk.o ui_windows32.o \
-		video_sdl.o video_sdlyuv.o video_sdlgl.o
-
-GP32_OBJS = gp32/crt0.o fs_gp32.o keyboard_gp32.o main_gp32.o sound_gp32.o \
-		ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
-		gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
-		cmode_bin.o copyright.o kbd_graphics.o
-
-ALL_OBJS = $(COMMON_OBJS) $(UNIX_OBJS) $(GP32_OBJS)
-
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-xroar.fxe: $(GP32_OBJS) $(COMMON_OBJS)
-	$(CC) $(CFLAGS) -nostartfiles -o xroar.elf -T gp32/lnkscript $^ $(LDFLAGS)
+TARGETS = xroar xroar.exe xroar.elf
+
+$(TARGETS): $(COMMON_OBJS)
+	$(CC) $(CFLAGS) $(OBJS) $(COMMON_OBJS) -o $@ $(LDFLAGS)
+
+xroar.fxe: xroar.elf
 	$(OBJCOPY) -O binary xroar.elf xroar.bin
-	b2fxec -t "XRoar" -a "Ciaran Anscomb" -b gp32/icon.bmp -f xroar.bin $@
+	b2fxec -t "XRoar $(VERSION)" -a "Ciaran Anscomb" -b gp32/icon.bmp -f xroar.bin $@
 
-xroar xroar.exe: $(UNIX_OBJS) $(COMMON_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-
-./prerender: prerender.c
+tools/prerender: tools/prerender.c
 	$(HOSTCC) -o $@ $<
 
 video_gp32.c: vdg_bitmaps_gp32.c
 
-vdg_bitmaps_gp32.c: ./prerender vdg_bitmaps.c
-	./prerender > $@
+vdg_bitmaps_gp32.c: tools/prerender vdg_bitmaps.c
+	tools/prerender > $@
 
-./img2c: img2c.c
-	$(HOSTCC) $(CFLAGS_SDL) -o $@ $< $(LDFLAGS_SDL) $(LDFLAGS_SDLIMAGE)
+tools/img2c: tools/img2c.c
+	$(HOSTCC) $(CFLAGS_SDL) -o $@ $< $(LDFLAGS_SDL) -lSDL_image
 
-copyright.c: ./img2c gp32/copyright.png
-	./img2c copyright_bin gp32/copyright.png > $@
+copyright.c: tools/img2c gp32/copyright.png
+	tools/img2c copyright_bin gp32/copyright.png > $@
 
-cmode_bin.c: ./img2c gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png
-	./img2c cmode_bin gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png > $@
+cmode_bin.c: tools/img2c gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png
+	tools/img2c cmode_bin gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png > $@
 
-kbd_graphics.c: ./img2c gp32/kbd.png gp32/kbd_shift.png
-	./img2c kbd_bin gp32/kbd.png gp32/kbd_shift.png > $@
+kbd_graphics.c: tools/img2c gp32/kbd.png gp32/kbd_shift.png
+	tools/img2c kbd_bin gp32/kbd.png gp32/kbd_shift.png > $@
 
 .PHONY: clean dist dist-gp32 dist-windows32 dist-macos dist-macosx
 
-CLEAN_FILES = xroar xroar.exe xroar.fxe $(ALL_OBJS) ./img2c ./prerender \
-	copyright.c cmode_bin.c kbd_graphics.c xroar.bin xroar.elf
+CLEAN_FILES = $(TARGETS) $(ALL_OBJS) tools/img2c tools/prerender \
+	copyright.c cmode_bin.c kbd_graphics.c xroar.bin xroar.fxe
 
 clean:
 	rm -f $(CLEAN_FILES)
