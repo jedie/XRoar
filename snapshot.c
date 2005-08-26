@@ -88,7 +88,7 @@ int read_snapshot(char *filename) {
 		return -1;
 	xroar_reset(RESET_HARD);
 	fs_read(fd, buffer, 17);
-	if (strncmp(buffer, "XRoar snapshot.\012\000", 17)) {
+	if (strncmp((char *)buffer, "XRoar snapshot.\012\000", 17)) {
 		/* Old-style snapshot.  Register dump always came first. */
 		if (buffer[0] != ID_REGISTER_DUMP) {
 			fs_close(fd);
@@ -109,40 +109,40 @@ int read_snapshot(char *filename) {
 			case ID_PIA_REGISTERS:
 				/* PIA_0A */
 				fs_read_byte(fd, &tmp8);
-				PIA_0A.register_select = 0;
+				PIA_SELECT_DDR(PIA_0A);
 				PIA_WRITE_P0DA(tmp8); /* DDR */
 				fs_read_byte(fd, &tmp8);
-				PIA_0A.register_select = 1;
+				PIA_SELECT_PDR(PIA_0A);
 				PIA_WRITE_P0DA(tmp8); /* OR */
 				fs_read_byte(fd, &tmp8);
-				PIA_CONTROL_WRITE(PIA_0A, tmp8);  /* CR */
+				PIA_WRITE_P0CA(tmp8);  /* CR */
 				/* PIA_0B */
 				fs_read_byte(fd, &tmp8);
-				PIA_0B.register_select = 0;
+				PIA_SELECT_DDR(PIA_0B);
 				PIA_WRITE_P0DB(tmp8);  /* DDR */
 				fs_read_byte(fd, &tmp8);
-				PIA_0B.register_select = 1;
+				PIA_SELECT_PDR(PIA_0B);
 				PIA_WRITE_P0DB(tmp8);  /* OR */
 				fs_read_byte(fd, &tmp8);
-				PIA_CONTROL_WRITE(PIA_0B, tmp8);  /* CR */
+				PIA_WRITE_P0CB(tmp8);  /* CR */
 				/* PIA_1A */
 				fs_read_byte(fd, &tmp8);
-				PIA_1A.register_select = 0;
+				PIA_SELECT_DDR(PIA_1A);
 				PIA_WRITE_P1DA(tmp8);  /* DDR */
 				fs_read_byte(fd, &tmp8);
-				PIA_1A.register_select = 1;
+				PIA_SELECT_PDR(PIA_1A);
 				PIA_WRITE_P1DA(tmp8);  /* OR */
 				fs_read_byte(fd, &tmp8);
-				PIA_CONTROL_WRITE(PIA_1A, tmp8);  /* CR */
+				PIA_WRITE_P1CA(tmp8);  /* CR */
 				/* PIA_1B */
 				fs_read_byte(fd, &tmp8);
-				PIA_1B.register_select = 0;
+				PIA_SELECT_DDR(PIA_1B);
 				PIA_WRITE_P1DB(tmp8);  /* DDR */
 				fs_read_byte(fd, &tmp8);
-				PIA_1B.register_select = 1;
+				PIA_SELECT_PDR(PIA_1B);
 				PIA_WRITE_P1DB(tmp8);  /* OR */
 				fs_read_byte(fd, &tmp8);
-				PIA_CONTROL_WRITE(PIA_1B, tmp8);  /* CR */
+				PIA_WRITE_P1CB(tmp8);  /* CR */
 				break;
 			case ID_SAM_REGISTERS:
 				/* SAM */

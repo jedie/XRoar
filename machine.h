@@ -14,10 +14,22 @@
 #define OSCILLATOR_RATE 14318180
 
 /* NTSC timings: */
+/*
 #define CYCLES_PER_SCANLINE 910
 #define ACTIVE_SCANLINES_PER_FRAME 243
 #define TOTAL_SCANLINES_PER_FRAME 262
-#define TOP_BORDER_OFFSET 21
+#define TOP_BORDER_OFFSET 20
+*/
+
+#define CYCLES_PER_SCANLINE 910
+#define FIRST_DISPLAYED_SCANLINE 14
+#define SCANLINE_OF_FS_IRQ_LOW 228
+#define SCANLINE_OF_FS_IRQ_HIGH 236
+#define TOTAL_SCANLINES_PER_FRAME 262
+
+#define ACTIVE_SCANLINES_PER_FRAME 243
+#define TOP_BORDER_OFFSET 20
+
 //#define CYCLES_PER_SCANLINE 910
 //#define ACTIVE_SCANLINES_PER_FRAME 256
 //#define TOTAL_SCANLINES_PER_FRAME 262
@@ -36,7 +48,7 @@
 #define CPU_SLOW_DIVISOR 16
 #define CPU_FAST_DIVISOR 8
 
-#define NUM_MACHINES 3
+/* machine_romtype will be one of: */
 #define DRAGON64 0
 #define COCO 1
 #define DRAGON32 2
@@ -47,7 +59,7 @@
 #define IS_DRAGON (!IS_COCO)
 #define IS_COCO (machine_romtype == COCO)
 
-#define NUM_KEYBOARDS 2
+/* machine_keymap will be set to one of: */
 #define DRAGON_KEYBOARD 0
 #define COCO_KEYBOARD 1
 
@@ -66,6 +78,8 @@ extern uint8_t ram1[0x8000];
 extern uint8_t rom0[0x8000];
 extern uint8_t rom1[0x8000];
 
+void machine_helptext(void);
+void machine_getargs(int argc, char **argv);
 void machine_init(void);
 void machine_reset(int hard);
 void machine_set_romtype(int mode);

@@ -1,6 +1,12 @@
 Changed from v0.12 to v0.13
  * Fixed OpenGL resize problem.
+ * Fixed OpenGL border alignment problem.
  * Trace mode now disassembles instructions.
+ * Virtual floppy timings more accurate, 'formatting' supported.
+ * JVC virtual disk format supported.
+ * Preliminary CoCo disk support (some stuff works, NitrOS-9 doesn't).
+ * 6809-PIA interrupt interaction more accurate (fixes some games).
+ * Various command-line options added.
 
 Changed from v0.11 to v0.12
  * New OpenGL video driver.  Allows architectures without Xv extension
@@ -59,5 +65,5 @@ Changes from v0.7-pre1 to v0.7
  * PIA implementation simplified.
  * Debug level configurable at build time (defaults to "not too much").
  * Keyboard handling changed; GP32 version will be easier to switch to
-   Coco mode when the time comes.
+   CoCo mode when the time comes.
 

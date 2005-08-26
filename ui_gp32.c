@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
-
 #ifdef HAVE_GP32
 
 #include <stdlib.h>
@@ -33,8 +31,8 @@
 #include "snapshot.h"
 #include "sound.h"
 #include "tape.h"
-#include "wd2797.h"
 #include "vdg.h"
+#include "vdisk.h"
 #include "video.h"
 #include "fs.h"
 #include "xroar.h"
@@ -51,7 +49,7 @@ UIModule ui_gp32_module = {
 	"gp32",
 	"GP32 user-interface",
 	init, shutdown,
-	menu, get_filename
+	menu, get_filename, get_filename
 };
 
 #define FG (0xffffff00)
@@ -633,12 +631,12 @@ static void artifact_callback(int num) {
 	vdg_set_mode();
 }
 static void disk_callback(int num) {
-	const char *disk_exts[] = { "VDK", NULL };
+	const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 	char *filename;
 	video_module->restore();
 	filename = get_filename(disk_exts);
 	if (filename)
-		wd2797_load_disk(filename, num);
+		vdisk_load(filename, num);
 }
 static void reset_callback(int mode) {
 	xroar_reset(mode);

@@ -20,12 +20,16 @@ usage:
 	@echo "-be and -le targets specify an endianness (big- or little-endian). "
 	@echo
 
-VERSION := 0.13pre1
+VERSION := 0.13
 
 OPT = -O3
 macosx: OPT = -fast -mcpu=7450 -mdynamic-no-pic
+WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
+	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
+	-Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes \
+	-Wredundant-decls
 
-CFLAGS = $(OPT) -g -DVERSION=\"$(VERSION)\" -DROMPATH=\"$(ROMPATH)\"
+CFLAGS = $(OPT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=\"$(ROMPATH)\"
 
 ENABLE_SDL       := linux solaris macosx windows32
 ENABLE_SDLGL     := linux macosx windows32
@@ -37,7 +41,7 @@ ENABLE_JACK      :=
 ENABLE_GTK       := linux solaris
 ENABLE_CARBON    := macosx
 ENABLE_WINDOWS32 := windows32
-ENABLE_ZLIB      := linux macosx
+#ENABLE_ZLIB      := linux macosx
 ENABLE_WRONGEND  := linux windows32
 
 USES_UNIX_TARGET      := linux solaris macosx
@@ -71,9 +75,9 @@ endif
 ifdef TRACE
 	ENABLE_TRACE += $(MAKECMDGOALS)
 endif
-ifdef ZLIB
-	ENABLE_ZLIB += $(MAKECMDGOALS)
-endif
+#ifdef ZLIB
+#	ENABLE_ZLIB += $(MAKECMDGOALS)
+#endif
 ifdef WRONGEND
 	ENABLE_WRONGEND += $(MAKECMDGOALS)
 endif
@@ -143,14 +147,14 @@ OBJS_TRACE = m6809_dasm.o
 ALL_OBJS += $(OBJS_TRACE)
 CFLAGS_TRACE = -DTRACE
 
-CFLAGS_ZLIB = -DHAVE_ZLIB
-LDFLAGS_ZLIB = -lz
+#CFLAGS_ZLIB = -DHAVE_ZLIB
+#LDFLAGS_ZLIB = -lz
 
 CFLAGS_WRONGEND = -DWRONG_ENDIAN
 
 ROMPATH = :~/.xroar/roms:$(prefix)/share/xroar/roms
 windows32: ROMPATH = .
-macosx: ROMPATH = :~/Library/XRoar/Roms
+macosx: ROMPATH = :~/.xroar/roms:~/Library/XRoar/Roms
 
 # Enable SDL for these targets:
 $(ENABLE_SDL): OBJS    += $(OBJS_SDL)
@@ -219,11 +223,11 @@ $(ENABLE_CLI): CFLAGS  += $(CFLAGS_CLI)
 $(ENABLE_CLI): LDFLAGS += $(LDFLAGS_CLI)
 $(ENABLE_CLI): $(OBJS_CLI)
 
-# Enable ZLIB for these targets:
-$(ENABLE_ZLIB): OBJS    += $(OBJS_ZLIB)
-$(ENABLE_ZLIB): CFLAGS  += $(CFLAGS_ZLIB)
-$(ENABLE_ZLIB): LDFLAGS += $(LDFLAGS_ZLIB)
-$(ENABLE_ZLIB): $(OBJS_ZLIB)
+## Enable ZLIB for these targets:
+#$(ENABLE_ZLIB): OBJS    += $(OBJS_ZLIB)
+#$(ENABLE_ZLIB): CFLAGS  += $(CFLAGS_ZLIB)
+#$(ENABLE_ZLIB): LDFLAGS += $(LDFLAGS_ZLIB)
+#$(ENABLE_ZLIB): $(OBJS_ZLIB)
 
 # Enable tracing (CPU debugging) for these targets:
 $(ENABLE_TRACE): OBJS    += $(OBJS_TRACE)
@@ -242,8 +246,7 @@ OBJS_GP32 = gp32/crt0.o fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
 		gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
 		cmode_bin.o copyright.o kbd_graphics.o
 ALL_OBJS += $(OBJS_GP32)
-CFLAGS_GP32 = -DHAVE_GP32 -funroll-loops -mcpu=arm9tdmi \
-		-mstructure-size-boundary=32
+CFLAGS_GP32 = -DHAVE_GP32 -mcpu=arm9tdmi -funroll-loops
 LDFLAGS_GP32 = -nostartfiles -T gp32/lnkscript -lgpmem -lgpos -lgpstdio \
 		-lgpstdlib -lgpgraphic
 

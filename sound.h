@@ -21,6 +21,7 @@ struct SoundModule {
 
 extern SoundModule *sound_module;
 
+void sound_helptext(void);
 void sound_getargs(int argc, char **argv);
 int sound_init(void);
 void sound_shutdown(void);

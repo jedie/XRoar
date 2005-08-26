@@ -7,6 +7,10 @@
  * into various video module source files and makes use of macros defined in
  * those files (eg, LOCK_SURFACE and XSTEP) */
 
+#ifndef BORDER_XSTEP
+# define BORDER_XSTEP XSTEP
+#endif
+
 /* Renders a line of alphanumeric/semigraphics 4 (mode is selected by data
  * line, so need to be handled together) */
 static void render_sg4(void) {
@@ -59,7 +63,7 @@ static void render_sg4(void) {
 	}
 	UNLOCK_SURFACE;
 	sam_vdg_hsync(32,10,16);
-	pixel += NEXTLINE + (32 * XSTEP);
+	pixel += NEXTLINE + (32 * BORDER_XSTEP);
 	subline++;
 	if (subline > 11)
 		subline = 0;
@@ -115,7 +119,7 @@ static void render_cg1(void) {
 	UNLOCK_SURFACE;
 	sam_vdg_xstep(16);
 	sam_vdg_hsync(16,6,0);
-	pixel += NEXTLINE + (32 * XSTEP);
+	pixel += NEXTLINE + (32 * BORDER_XSTEP);
 	subline++;
 	if (subline > 11)
 		subline = 0;
@@ -167,7 +171,7 @@ static void render_rg1(void) {
 	UNLOCK_SURFACE;
 	sam_vdg_xstep(16);
 	sam_vdg_hsync(16,6,0);
-	pixel += NEXTLINE + (32 * XSTEP);
+	pixel += NEXTLINE + (32 * BORDER_XSTEP);
 	subline++;
 	if (subline > 11)
 		subline = 0;
@@ -217,7 +221,7 @@ static void render_cg2(void) {
 	}
 	UNLOCK_SURFACE;
 	sam_vdg_hsync(32,10,16);
-	pixel += NEXTLINE + (32 * XSTEP);
+	pixel += NEXTLINE + (32 * BORDER_XSTEP);
 	subline++;
 	if (subline > 11)
 		subline = 0;
@@ -237,13 +241,14 @@ static void render_rg6(void) {
 	uint32_t *vram_ptr;
 	unsigned int i, j;
 	uint_least32_t octet;
-	LOCK_SURFACE;
 #ifdef SEPARATE_BORDER
 	LOCK_BORDER;
 	*(bpixel++) = border_colour;
 	*(bpixel++) = border_colour;
 	UNLOCK_BORDER;
-#else
+#endif
+	LOCK_SURFACE;
+#ifndef SEPARATE_BORDER
 	for (i = 32; i; i--) {
 		*pixel = border_colour;
 		*(pixel + 288 * XSTEP) = border_colour;
@@ -271,11 +276,15 @@ static void render_rg6(void) {
 	}
 	UNLOCK_SURFACE;
 	sam_vdg_hsync(32,10,16);
-	pixel += NEXTLINE + (32 * XSTEP);
+	pixel += NEXTLINE + (32 * BORDER_XSTEP);
 	subline++;
 	if (subline > 11)
 		subline = 0;
 }
+
+#ifndef TOP_BOTTOM_BORDER_PIXELS
+# define TOP_BOTTOM_BORDER_PIXELS 320
+#endif
 
 /* Render a line of border (top/bottom) */
 static void render_border(void) {
@@ -287,7 +296,7 @@ static void render_border(void) {
 	UNLOCK_BORDER;
 #endif
 	LOCK_SURFACE;
-	for (i = 320; i; i--) {
+	for (i = TOP_BOTTOM_BORDER_PIXELS; i; i--) {
 		*pixel = border_colour;
 		pixel += XSTEP;
 	}

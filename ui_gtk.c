@@ -19,8 +19,6 @@
 /* The GTK+ function prototypes shadow 'index' from string.h in many places,
  * so expect lots of compiler warnings about that */
 
-#include "config.h"
-
 #ifdef HAVE_GTK_UI
 
 #include <stdlib.h>
@@ -34,14 +32,15 @@
 static int init(void);
 static void shutdown(void);
 static void menu(void);
-static char *get_filename(const char **extensions);
+static char *load_filename(const char **extensions);
+static char *save_filename(const char **extensions);
 
 UIModule ui_gtk_module = {
 	NULL,
 	"gtk",
 	"GTK+ user-interface",
 	init, shutdown,
-	menu, get_filename, get_filename
+	menu, load_filename, save_filename
 };
 
 static char *filename = NULL;
@@ -77,8 +76,27 @@ static void file_selected(GtkWidget *w, GtkFileSelection *fs) {
 static void menu(void) {
 }
 
-static char *get_filename(const char **extensions) {
-	GtkWidget *fs = gtk_file_selection_new("Select file");
+static char *load_filename(const char **extensions) {
+	GtkWidget *fs = gtk_file_selection_new("Load file");
+	(void)extensions;  /* unused */
+	if (filename)
+		free(filename);
+	filename = NULL;
+	gtk_signal_connect(GTK_OBJECT(fs), "destroy",
+			GTK_SIGNAL_FUNC(cancel), NULL);
+	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->ok_button),
+			"clicked",GTK_SIGNAL_FUNC(file_selected),
+			GTK_OBJECT (fs));
+	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->cancel_button),
+			"clicked",GTK_SIGNAL_FUNC(gtk_widget_destroy),
+			GTK_OBJECT (fs));
+	gtk_widget_show(fs);
+	gtk_main();
+	return filename;
+}
+
+static char *save_filename(const char **extensions) {
+	GtkWidget *fs = gtk_file_selection_new("Save file");
 	(void)extensions;  /* unused */
 	if (filename)
 		free(filename);

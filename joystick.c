@@ -21,7 +21,7 @@
 #include "logging.h"
 #include "types.h"
 
-#ifdef HAVE_SDL_JOYSTICK
+#ifdef HAVE_SDL
 extern JoystickModule joystick_sdl_module;
 #endif
 

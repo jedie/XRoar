@@ -69,17 +69,17 @@
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) sam_peek_byte(a)
 
-#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); if (trace) m6809_dasm_byte(a & 0xff, reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
-#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); if (trace) { m6809_dasm_byte(a >> 8, reg_pc); m6809_dasm_byte(a & 0xff, reg_pc + 1); } reg_pc += 2; TAKEN_CYCLES(1); } while (0)
+#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); IF_TRACE(m6809_dasm_byte(a & 0xff, reg_pc)) reg_pc += 1; TAKEN_CYCLES(1); } while (0)
+#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); IF_TRACE(m6809_dasm_byte(a >> 8, reg_pc); m6809_dasm_byte(a & 0xff, reg_pc + 1)) reg_pc += 2; TAKEN_CYCLES(1); } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
  * macros.  Must be used carefully, as some of them declare an 'addr' variable
  */
-#define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); if (trace) m6809_dasm_byte(v, reg_pc); reg_pc++; }
+#define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); IF_TRACE(m6809_dasm_byte(v, reg_pc)) reg_pc++; }
 #define BYTE_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a); }
 #define BYTE_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a); }
 #define BYTE_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a); }
-#define WORD_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); if (trace) { m6809_dasm_byte(v >> 8, reg_pc); m6809_dasm_byte(v & 0xff, reg_pc + 1); } reg_pc += 2; }
+#define WORD_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); IF_TRACE(m6809_dasm_byte(v >> 8, reg_pc); m6809_dasm_byte(v & 0xff, reg_pc + 1)) reg_pc += 2; }
 #define WORD_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 #define WORD_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 #define WORD_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
@@ -139,19 +139,21 @@
 		PUSHBYTE(reg_s, reg_cc); \
 	}
 
-#define TEST_INTERRUPT(i,m,v,e,cm,cyc,nom) \
-	if (i) { \
-		i = 0; \
-		if (!skip_register_push) \
+#define TEST_INTERRUPT(i,m,v,e,cm,cyc,nom) do { \
+		if (!skip_register_push) /* SYNC */ \
 			wait_for_interrupt = 0; \
 		if (!(reg_cc & m)) { \
+			IF_TRACE(LOG_DEBUG(0, "Interrupt " #i " taken\n")) \
 			wait_for_interrupt = 0; \
-			if (!skip_register_push) INTERRUPT_REGISTER_PUSH(e); \
+			INTERRUPT_REGISTER_PUSH(e); \
 			skip_register_push = 0; \
 			reg_cc |= (cm); reg_pc = fetch_word(v); \
 			TAKEN_CYCLES(cyc); \
 		} \
-	}
+	} while (0)
+
+#define ARM_NMI do { nmi_armed = 1; } while (0)
+#define DISARM_NMI do { nmi_armed = 0; } while (0)
 
 /* MPU registers */
 unsigned int condition_code;
@@ -176,9 +178,10 @@ static union {
 #define reg_d reg_accum.word_value
 
 /* MPU interrupt state variables */
-unsigned int nmi, firq, irq;
+unsigned int halt, nmi, firq, irq;
 static unsigned int wait_for_interrupt;
 static unsigned int skip_register_push;
+static unsigned int nmi_armed;
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 #define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))
@@ -271,7 +274,8 @@ static unsigned int skip_register_push;
 					peek_byte(reg_pc); \
 					break; \
 				default: \
-					ead = 0; \
+					ead = 0xffff; \
+					postbyte &= ~0x10; \
 					break; \
 			} \
 			switch ((postbyte & 0x60)>>5) { \
@@ -356,7 +360,8 @@ void m6809_reset(void) {
 	condition_code = 0xff;
 	reg_dp = 0;
 	reg_d = reg_x = reg_y = reg_u = reg_s = 0;
-	nmi = firq = irq = 0;
+	halt = nmi = firq = irq = 0;
+	DISARM_NMI;
 	wait_for_interrupt = 0;
 	skip_register_push = 0;
 	program_counter = fetch_word(0xfffe);
@@ -369,16 +374,34 @@ void m6809_cycle(Cycle until) {
 	unsigned int reg_cc;
 	reg_cc = condition_code;
 	reg_pc = program_counter;
-	TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I, 7, "NMI");
-	TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I, 7, "FIRQ");
-	TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I, 7, "IRQ");
-	if (wait_for_interrupt) {
+
+	if (halt && !wait_for_interrupt) {
 		while ((int)(current_cycle - until) < 0)
 			TAKEN_CYCLES(1);
 		goto restore_regs;
 	}
-	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt) {
-		/* && !(nmi||firq||irq)) - can't happen within this loop? */
+	if (nmi_armed && nmi) {
+		DISARM_NMI;
+		TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I, 7, "NMI");
+		/* NMI is latched.  Assume that means latched only on
+		 * high-to-low transition... */
+		nmi = 0;
+	}
+	if (firq) {
+		TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I, 7, "FIRQ");
+		/* FIRQ and IRQ aren't latched: can remain set */
+	}
+	if (irq) {
+		TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I, 7, "IRQ");
+		/* FIRQ and IRQ aren't latched: can remain set */
+	}
+	if (halt || wait_for_interrupt) {
+		while ((int)(current_cycle - until) < 0)
+			TAKEN_CYCLES(1);
+		goto restore_regs;
+	}
+
+	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt && !halt) {
 		/* Trap cassette ROM routines - hack! */
 		if (reg_pc == brk_csrdon) {
 			PULLWORD(reg_s, reg_pc);
@@ -388,7 +411,7 @@ void m6809_cycle(Cycle until) {
 			reg_cc |= tape_read_bit();
 			PULLWORD(reg_s, reg_pc);
 		}
-		if (trace) LOG_DEBUG(0, "%04x| ", reg_pc);
+		IF_TRACE(LOG_DEBUG(0, "%04x| ", reg_pc));
 		/* Fetch op-code and process */
 		{
 			unsigned int op;
@@ -486,7 +509,12 @@ void m6809_cycle(Cycle until) {
 					SET_NZ16(reg_d);
 					peek_byte(reg_pc);
 					break;
-				/* 0x1E EXG immediate */
+#ifdef HAVE_GP32
+/* Include faster switch-based routines for GP32.
+ * Not as accurate yet though */
+# include "fast_exgtfr.c"
+#else
+				// 0x1E EXG immediate
 				case 0x1e: {
 					unsigned int postbyte;
 					uint_least16_t source = 0xffff, dest = 0xffff;
@@ -532,7 +560,7 @@ void m6809_cycle(Cycle until) {
 					}
 					TAKEN_CYCLES(6);
 				} break;
-				/* 0x1F TFR immediate */
+				// 0x1F TFR immediate
 				case 0x1f: {
 					unsigned int postbyte;
 					uint_least16_t source = 0xffff;
@@ -565,6 +593,7 @@ void m6809_cycle(Cycle until) {
 					}
 					TAKEN_CYCLES(4);
 				} break;
+#endif
 				/* 0x20 BRA relative */
 				case 0x20: BRANCHS(1); break;
 				/* 0x21 BRN relative */
@@ -612,6 +641,7 @@ void m6809_cycle(Cycle until) {
 				/* 0x32 LEAS indexed */
 				case 0x32: EA_INDEXED(reg_s);
 					TAKEN_CYCLES(1);
+					ARM_NMI;  /* XXX: Really? */
 					break;
 				/* 0x33 LEAU indexed */
 				case 0x33: EA_INDEXED(reg_u);
@@ -652,6 +682,7 @@ void m6809_cycle(Cycle until) {
 					} else {
 						PULLWORD(reg_s, reg_pc);
 					}
+					ARM_NMI;
 					peek_byte(reg_s);
 					break;
 				/* 0x3C CWAI immediate */
@@ -661,7 +692,7 @@ void m6809_cycle(Cycle until) {
 					reg_cc &= v;
 					peek_byte(reg_pc);
 					TAKEN_CYCLES(1);
-					INTERRUPT_REGISTER_PUSH(1);
+					//INTERRUPT_REGISTER_PUSH(1);
 					wait_for_interrupt = 1;
 					skip_register_push = 1;
 					TAKEN_CYCLES(1);
@@ -1065,7 +1096,7 @@ void m6809_cycle(Cycle until) {
 				/* Illegal instruction */
 				default: TAKEN_CYCLES(1); break;
 			}
-			if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
+			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			continue;
 		switched_block_page2:
 			BYTE_IMMEDIATE(0,op);
@@ -1152,23 +1183,23 @@ void m6809_cycle(Cycle until) {
 				/* 0x10BF STY extended */
 				case 0xbf: OP_ST16(reg_y, EA_EXTENDED); break;
 				/* 0x10CE LDS immediate */
-				case 0xce: OP_LD16(reg_s, WORD_IMMEDIATE); break;
+				case 0xce: OP_LD16(reg_s, WORD_IMMEDIATE); ARM_NMI; break;
 				/* 0x10DE LDS direct */
-				case 0xde: OP_LD16(reg_s, WORD_DIRECT); break;
+				case 0xde: OP_LD16(reg_s, WORD_DIRECT); ARM_NMI; break;
 				/* 0x10DF STS direct */
 				case 0xdf: OP_ST16(reg_s, EA_DIRECT); break;
 				/* 0x10EE LDS indexed */
-				case 0xee: OP_LD16(reg_s, WORD_INDEXED); break;
+				case 0xee: OP_LD16(reg_s, WORD_INDEXED); ARM_NMI; break;
 				/* 0x10EF STS indexed */
 				case 0xef: OP_ST16(reg_s, EA_INDEXED); break;
 				/* 0x10FE LDS extended */
-				case 0xfe: OP_LD16(reg_s, WORD_EXTENDED); break;
+				case 0xfe: OP_LD16(reg_s, WORD_EXTENDED); ARM_NMI; break;
 				/* 0x10FF STS extended */
 				case 0xff: OP_ST16(reg_s, EA_EXTENDED); break;
 				/* Illegal instruction */
 				default: TAKEN_CYCLES(1); break;
 			}
-			if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
+			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			continue;
 		switched_block_page3:
 			BYTE_IMMEDIATE(0,op);
@@ -1213,7 +1244,7 @@ void m6809_cycle(Cycle until) {
 				/* Illegal instruction */
 				default: TAKEN_CYCLES(1); break;
 			}
-			if (trace) LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
+			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			continue;
 		}
 	}

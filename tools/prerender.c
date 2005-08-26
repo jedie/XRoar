@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "vdg_bitmaps.c"
+#include "../vdg_bitmaps.c"
 
 #define MAPCOLOUR(r,g,b) ((r & 0xc0) | (g & 0xe0) >> 2 | (b & 0xe0) >> 5)
 

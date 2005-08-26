@@ -16,9 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
-
-#ifdef HAVE_SDLGL_VIDEO
+#ifdef HAVE_SDLGL
 
 #include <stdlib.h>
 #include <string.h>
@@ -69,7 +67,8 @@ typedef Uint16 Pixel;
 #define MAPCOLOUR(r,g,b) SDL_MapRGB(screen_tex->format, r, g, b)
 #define VIDEO_SCREENBASE ((Pixel *)screen_tex->pixels)
 #define XSTEP 1
-#define NEXTLINE (-32)
+#define BORDER_XSTEP 0
+#define NEXTLINE 0
 #define VIDEO_TOPLEFT (VIDEO_SCREENBASE)
 #define VIDEO_VIEWPORT_YOFFSET (0)
 #define LOCK_SURFACE SDL_LockSurface(screen_tex)
@@ -77,6 +76,7 @@ typedef Uint16 Pixel;
 #define SEPARATE_BORDER
 #define LOCK_BORDER SDL_LockSurface(border_tex)
 #define UNLOCK_BORDER SDL_UnlockSurface(border_tex)
+#define TOP_BOTTOM_BORDER_PIXELS 256
 extern unsigned int vdg_alpha[768];
 
 static unsigned int subline;
@@ -313,4 +313,4 @@ static void vdg_set_mode(unsigned int mode) {
 
 #include "video_generic_ops.c"
 
-#endif  /* HAVE_SDLGL_VIDEO */
+#endif  /* HAVE_SDLGL */

@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef HAVE_SDL_VIDEO
+#ifdef HAVE_SDL
 # include <SDL.h>
 #endif
 
@@ -29,7 +29,8 @@ int main(int argc, char **argv) {
 	printf("XRoar " VERSION ", (c) 2003-2005 Ciaran Anscomb.\n");
 	atexit(xroar_shutdown);
 
-	xroar_init(argc, argv);
+	xroar_getargs(argc, argv);
+	xroar_init();
 	xroar_mainloop();
 
 	return 0;

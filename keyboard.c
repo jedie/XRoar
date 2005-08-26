@@ -23,7 +23,7 @@
 #include "pia.h"
 #include "xroar.h"
 
-#ifdef HAVE_SDL_KEYBOARD
+#ifdef HAVE_SDL
 extern KeyboardModule keyboard_sdl_module;
 #endif
 #ifdef HAVE_GP32

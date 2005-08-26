@@ -29,7 +29,7 @@ typedef union {
 	} byte_values;
 } accumulator_t;
 
-extern unsigned int nmi, firq, irq;
+extern unsigned int halt, nmi, firq, irq;
 
 void m6809_init(void);
 void m6809_reset(void);

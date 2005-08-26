@@ -16,7 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
 #include "types.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -60,6 +59,7 @@ void sam_reset(void) {
 }
 
 unsigned int sam_read_byte(uint_least16_t addr) {
+	unsigned int ret;
 	addr &= 0xffff;
 	if (addr < 0x8000) { current_cycle += CPU_SLOW_DIVISOR; return addrptr_low[addr]; }
 	if (addr < 0xff00) {
@@ -72,15 +72,15 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 	if (addr < 0xff20) {
 		current_cycle += CPU_SLOW_DIVISOR;
 		if (IS_COCO) {
-			if ((addr & 3) == 0) return PIA_READ(PIA_0A);
-			if ((addr & 3) == 1) return PIA_CONTROL_READ(PIA_0A);
-			if ((addr & 3) == 2) return PIA_READ(PIA_0B);
-			if ((addr & 3) == 3) return PIA_CONTROL_READ(PIA_0B);
+			if ((addr & 3) == 0) { PIA_READ_P0DA(ret); return ret; }
+			if ((addr & 3) == 1) return PIA_READ_P0CA;
+			if ((addr & 3) == 2) { PIA_READ_P0DB(ret); return ret; }
+			if ((addr & 3) == 3) return PIA_READ_P0CB;
 		} else {
-			if ((addr & 7) == 0) return PIA_READ(PIA_0A);
-			if ((addr & 7) == 1) return PIA_CONTROL_READ(PIA_0A);
-			if ((addr & 7) == 2) return PIA_READ(PIA_0B);
-			if ((addr & 7) == 3) return PIA_CONTROL_READ(PIA_0B);
+			if ((addr & 7) == 0) { PIA_READ_P0DA(ret); return ret; }
+			if ((addr & 7) == 1) return PIA_READ_P0CA;
+			if ((addr & 7) == 2) { PIA_READ_P0DB(ret); return ret; }
+			if ((addr & 7) == 3) return PIA_READ_P0CB;
 			/* Not yet implemented:
 			if ((addr & 7) == 4) return serial_stuff;
 			if ((addr & 7) == 5) return serial_stuff;
@@ -92,18 +92,25 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 	}
 	current_cycle += sam_topaddr_cycles;
 	if (addr < 0xff40) {
-		if ((addr & 3) == 0) return PIA_READ(PIA_1A);
-		if ((addr & 3) == 1) return PIA_CONTROL_READ(PIA_1A);
-		if ((addr & 3) == 2) return PIA_READ(PIA_1B);
-		return PIA_CONTROL_READ(PIA_1B);
+		if ((addr & 3) == 0) { PIA_READ_P1DA(ret); return ret; }
+		if ((addr & 3) == 1) return PIA_READ_P1CA;
+		if ((addr & 3) == 2) { PIA_READ_P1DB(ret); return ret; }
+		return PIA_READ_P1CB;
 	}
 	if (addr < 0xff60 && dragondos_enabled) {
-		/* WD2797 Floppy Disk Controller */
-		if ((addr & 15) == 0) return wd2797_status_read();
-		if ((addr & 15) == 1) return wd2797_track_register_read();
-		if ((addr & 15) == 2) return wd2797_sector_register_read();
-		if ((addr & 15) == 3) return wd2797_data_register_read();
-		//if (addr & 8) return wd2797_ff48_read();
+		if (IS_COCO) {
+			/* WD2797 Floppy Disk Controller */
+			if ((addr & 15) == 8) return wd2797_status_read();
+			if ((addr & 15) == 9) return wd2797_track_register_read();
+			if ((addr & 15) == 10) return wd2797_sector_register_read();
+			if ((addr & 15) == 11) return wd2797_data_register_read();
+		} else {
+			/* WD2797 Floppy Disk Controller */
+			if ((addr & 15) == 0) return wd2797_status_read();
+			if ((addr & 15) == 1) return wd2797_track_register_read();
+			if ((addr & 15) == 2) return wd2797_sector_register_read();
+			if ((addr & 15) == 3) return wd2797_data_register_read();
+		}
 		return 0x7e;
 	}
 	if (addr >= 0xffe0) { return rom0[addr-0xc000]; }
@@ -122,14 +129,14 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 		current_cycle += CPU_SLOW_DIVISOR;
 		if (IS_COCO) {
 			if ((addr & 3) == 0) PIA_WRITE_P0DA(octet);
-			if ((addr & 3) == 1) PIA_CONTROL_WRITE(PIA_0A, octet);
+			if ((addr & 3) == 1) PIA_WRITE_P0CA(octet);
 			if ((addr & 3) == 2) PIA_WRITE_P0DB(octet);
-			if ((addr & 3) == 3) PIA_CONTROL_WRITE(PIA_0B, octet);
+			if ((addr & 3) == 3) PIA_WRITE_P0CB(octet);
 		} else {
 			if ((addr & 7) == 0) PIA_WRITE_P0DA(octet);
-			if ((addr & 7) == 1) PIA_CONTROL_WRITE(PIA_0A, octet);
+			if ((addr & 7) == 1) PIA_WRITE_P0CA(octet);
 			if ((addr & 7) == 2) PIA_WRITE_P0DB(octet);
-			if ((addr & 7) == 3) PIA_CONTROL_WRITE(PIA_0B, octet);
+			if ((addr & 7) == 3) PIA_WRITE_P0CB(octet);
 			/* Not yet implemented:
 			if ((addr & 7) == 4) serial_stuff;
 			if ((addr & 7) == 5) serial_stuff;
@@ -142,18 +149,27 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	current_cycle += sam_topaddr_cycles;
 	if (addr < 0xff40) {
 		if ((addr & 3) == 0) PIA_WRITE_P1DA(octet);
-		if ((addr & 3) == 1) PIA_CONTROL_WRITE(PIA_1A, octet);
+		if ((addr & 3) == 1) PIA_WRITE_P1CA(octet);
 		if ((addr & 3) == 2) PIA_WRITE_P1DB(octet);
-		if ((addr & 3) == 3) PIA_CONTROL_WRITE(PIA_1B, octet);
+		if ((addr & 3) == 3) PIA_WRITE_P1CB(octet);
 		return;
 	}
 	if (addr < 0xff60 && dragondos_enabled) {
-		/* WD2797 Floppy Disk Controller */
-		if ((addr & 15) == 0) wd2797_command_write(octet);
-		if ((addr & 15) == 1) wd2797_track_register_write(octet);
-		if ((addr & 15) == 2) wd2797_sector_register_write(octet);
-		if ((addr & 15) == 3) wd2797_data_register_write(octet);
-		if (addr & 8) wd2797_ff48_write(octet);
+		if (IS_COCO) {
+			/* WD2797 Floppy Disk Controller */
+			if ((addr & 15) == 8) wd2797_command_write(octet);
+			if ((addr & 15) == 9) wd2797_track_register_write(octet);
+			if ((addr & 15) == 10) wd2797_sector_register_write(octet);
+			if ((addr & 15) == 11) wd2797_data_register_write(octet);
+			if (!(addr & 8)) wd2797_ff40_write(octet);
+		} else {
+			/* WD2797 Floppy Disk Controller */
+			if ((addr & 15) == 0) wd2797_command_write(octet);
+			if ((addr & 15) == 1) wd2797_track_register_write(octet);
+			if ((addr & 15) == 2) wd2797_sector_register_write(octet);
+			if ((addr & 15) == 3) wd2797_data_register_write(octet);
+			if (addr & 8) wd2797_ff48_write(octet);
+		}
 		return;
 	}
 	if (addr >= 0xffc0 && addr < 0xffe0) {

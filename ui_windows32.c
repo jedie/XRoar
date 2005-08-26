@@ -18,8 +18,6 @@
 
 /* This Windows32 code is probably all wrong, but it does seem to work */
 
-#include "config.h"
-
 #ifdef WINDOWS32
 
 #include "types.h"

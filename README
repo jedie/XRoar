@@ -18,8 +18,8 @@ The macros for manipulating the condition code register are based on
 those used in the MAME 6809 core (in particular, those involved with
 calculating the 'V' bit).
 
-The Mac OS X 'Carbon' file requester code was contributed by Stuart
-Teasdale.
+The Mac OS X 'Carbon' file requester code is based on a contribution by
+Stuart Teasdale.
 
 The rest is the result of reading too many datasheets.
 
@@ -65,28 +65,44 @@ firmware ROM.  Only the WD2797-based DragonDOS controllers are emulated.
 Firmware ROMs can be either raw (".rom") or PC Dragon style (".dgn").
 The base names to use for these files are:
 
-Dragon 32               dragon32        (16K)
-Dragon 64 ROM 1         d64rom1         (16K)
-Dragon 64 ROM 2         d64rom2         (16K)
-CoCo                    coco            (16K Extended BASIC ROM only)
-SuperDOS E6             sdose6          (8K)
-DragonDOS 1.0           ddos10          (8K)
+Dragon 32               d32, dragon32                   (16K)
+Dragon 64 ROM 1         d64_1, d64rom1                  (16K)
+Dragon 64 ROM 2         d64_2, d64rom2                  (16K)
+CoCo BASIC              bas13, bas12, bas11, bas10      (8K)
+CoCo Extended BASIC     extbas11, extbas10              (8K)
+CoCo Disk BASIC         disk11, disk10                  (8K)
+DragonDOS               sdose6, ddos10                  (8K)
 
-DOS firmware ROMs are searched for in that order; there is currently no
-way to specify use of a DragonDOS ROM if a SuperDOS ROM is available.
+You can override the default ROMs using command line switches as
+documented below.
 
 On the GP32, firmware ROMs must be in gp:/gpmm/dragon/.  For other builds,
 they should either be in the current working directory (only option for
 Windows32) when running the emulator, or in one of these directories:
 
-Mac OS X        Library/XRoar/Roms              (System or user directory)
-Other Unix      /usr/local/share/xroar/roms
+Mac OS X        ~/.xroar/roms or Library/XRoar/Roms (System or user directory)
+Other Unix      ~/.xroar/roms or /usr/local/share/xroar/roms
+
+
+COMMAND LINE SWITCHES
+
+  -machine MACHINE	emulated machine ("dragon64", "dragon32" or "coco")
+  -bas FILENAME		specify BASIC ROM to use (CoCo only)
+  -extbas FILENAME	specify Extended BASIC ROM to use
+  -noextbas		disable Extended BASIC
+  -dos FILENAME		specify DOS ROM (or CoCo Disk BASIC)
+  -nodos		disable DOS (ROM and hardware emulation)
+  -cart FILENAME	specify ROM to load into cartridge area ($C000-)
+  -vo MODULE		specify video module (-vo help for a list)
+  -ao MODULE		specify audio module (-ao help for a list)
+  -ui MODULE		specify user-interface module (-ui help for a list)
+  -h                    display help and exit
 
 
 UNIX CONTROLS
 
 Full keyboard support plus:
-Ctrl+[1-4] .... Insert ".vdk" virtual disk into drive 1-4.
+Ctrl+[1-4] .... Insert a virtual disk into drive 1-4.
 Ctrl+A ........ Cycle through artifacted video modes (hi-res only).
 Ctrl+B ........ Load CoCo ".bin" binary file.
 Ctrl+C ........ Quit emulator.
@@ -104,9 +120,8 @@ Ctrl+Shift+T .. Insert virtual cassette and autoload first program.
 Ctrl+Z ........ Enable keyboard translation mode.
 
 In translation mode, characters typed on the host keyboard are translated
-into the correct sequence of keypresses required on the emulated machine
-to achieve the same character.  This works well in BASIC and text-mode
-OS-9, but not so well with the hi-res (GO51) OS-9 console driver.
+into the correct keypresses required on the emulated machine to achieve
+the same character.
 
 Joystick support is very basic and unconfigurable at the moment, and is
 based on using a PS2 controller through a PS2-USB converter (although any
@@ -164,11 +179,9 @@ you'll probably want to generate snapshots for your own convenience.
 
 BUGS
 
-The horizontal sync interrupt doesn't seem to be quite right (e.g.,
-Rommel's Revenge).
-
-Resizing while using the OpenGL driver in Mac OS X doesn't work
-(12" PowerBook + 10.4).
+Sub-line graphics mode changing will not work, so nifty effects in
+Rommel's Revenge or Dragonfire, for example, will not be accurately
+represented.
 
 
 COPYING

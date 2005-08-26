@@ -16,7 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_NULL_AUDIO
+#ifdef HAVE_RTC
 
 #include <errno.h>
 #include <fcntl.h>
@@ -42,10 +42,10 @@ static void update(void);
 static void flush_frame(void);
 static event_t *flush_event;
 
-SoundModule sound_null_module = {
+SoundModule sound_rtc_module = {
 	NULL,
-	"null",
-	"NULL audio (silence)",
+	"rtc",
+	"Use real time clock for timing (no audio)",
 	init, shutdown, reset, update
 };
 
@@ -56,7 +56,7 @@ static Cycle frame_cycle_base;
 int fd;
 
 static int init(void) {
-	LOG_DEBUG(2,"Initialising null audio driver\n");
+	LOG_DEBUG(2,"Initialising RTC driver\n");
 	if ((fd = open ("/dev/rtc", O_RDONLY)) == -1) {
 		LOG_ERROR("Couldn't open /dev/rtc\n");
 		return 1;
@@ -101,4 +101,4 @@ static void flush_frame(void) {
 	read(fd, &data, sizeof(unsigned long));
 }
 
-#endif  /* HAVE_NULL_AUDIO */
+#endif  /* HAVE_RTC */

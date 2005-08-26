@@ -21,7 +21,6 @@
 #include <string.h>
 #include <SDL.h>
 
-#include "config.h"
 #include "types.h"
 #include "hexs19.h"
 #include "joystick.h"
@@ -32,6 +31,7 @@
 #include "snapshot.h"
 #include "tape.h"
 #include "ui.h"
+#include "vdisk.h"
 #include "video.h"
 #include "wd2797.h"
 #include "xroar.h"
@@ -156,10 +156,10 @@ static void keypress(SDL_keysym *keysym) {
 		switch (sym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 			{
-			const char *disk_exts[] = { "VDK", NULL };
+			const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 			char *filename = ui_module->load_filename(disk_exts);
 			if (filename)
-				wd2797_load_disk(filename, sym - SDLK_1);
+				vdisk_load(filename, sym - SDLK_1);
 			}
 			break;
 		case SDLK_a:

@@ -144,6 +144,12 @@ void fs_close(FS_FILE fd) {
 	GpFileClose(fd);
 }
 
+ssize_t fs_size(const char *filename) {
+	unsigned long size;
+	GpFileGetSize(filename, &size);
+	return (ssize_t)size;
+}
+
 int fs_scandir(const char *dir, struct dirent ***namelist,
 		int (*filter)(struct dirent *),
 		int (*compar)(const void *, const void *)) {

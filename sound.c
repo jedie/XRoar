@@ -25,7 +25,7 @@
 #ifdef HAVE_MACOSX_AUDIO
 extern SoundModule sound_macosx_module;
 #endif
-#ifdef HAVE_SDL_AUDIO
+#ifdef HAVE_SDL
 extern SoundModule sound_sdl_module;
 #endif
 #ifdef HAVE_OSS_AUDIO
@@ -37,8 +37,8 @@ extern SoundModule sound_sun_module;
 #ifdef HAVE_JACK_AUDIO
 extern SoundModule sound_jack_module;
 #endif
-#ifdef HAVE_NULL_AUDIO
-extern SoundModule sound_null_module;
+#ifdef HAVE_RTC_AUDIO
+extern SoundModule sound_rtc_module;
 #endif
 #ifdef HAVE_GP32
 extern SoundModule sound_gp32_module;
@@ -109,6 +109,10 @@ static int module_init_by_name(char *name) {
 	return 1;
 }
 
+void sound_helptext(void) {
+	puts("  -ao MODULE            specify audio module (-ao help for a list)");
+}
+
 /* Scan args and record any of relevance to sound modules */
 void sound_getargs(int argc, char **argv) {
 	int i;
@@ -116,7 +120,7 @@ void sound_getargs(int argc, char **argv) {
 #ifdef HAVE_MACOSX_AUDIO
 	module_add(&sound_macosx_module);
 #endif
-#ifdef HAVE_SDL_AUDIO
+#ifdef HAVE_SDL
 	module_add(&sound_sdl_module);
 #endif
 #ifdef HAVE_OSS_AUDIO
@@ -128,8 +132,8 @@ void sound_getargs(int argc, char **argv) {
 #ifdef HAVE_JACK_AUDIO
 	module_add(&sound_jack_module);
 #endif
-#ifdef HAVE_NULL_AUDIO
-	module_add(&sound_null_module);
+#ifdef HAVE_RTC_AUDIO
+	module_add(&sound_rtc_module);
 #endif
 #ifdef HAVE_GP32
 	module_add(&sound_gp32_module);

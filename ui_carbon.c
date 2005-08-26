@@ -17,9 +17,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
-
-#ifdef HAVE_CARBON_UI
+#ifdef HAVE_CARBON
 
 #include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
@@ -109,4 +107,4 @@ static char *save_filename(const char **extensions) {
 	return NULL;
 }
 
-#endif  /* HAVE_CARBON_UI */
+#endif  /* HAVE_CARBON */

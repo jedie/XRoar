@@ -18,9 +18,9 @@
 
 #include <string.h>
 
-#include "config.h"
 #include "types.h"
 #include "logging.h"
+#include "m6809.h"
 #include "xroar.h"
 #include "pia.h"
 
@@ -44,9 +44,6 @@ void pia_reset(void) {
 	PIA_0A.output_register		= PIA_1A.output_register	= 0;
 	PIA_0A.port_input		= PIA_1A.port_input		= 0xff;
 	PIA_0A.tied_low			= PIA_1A.tied_low		= 0xff;
-	PIA_0A.interrupt_enable		= PIA_1A.interrupt_enable	= 0;
-	//PIA_0A.interrupt_transition	= PIA_1A.interrupt_transition	= 0;
-	PIA_0A.register_select		= PIA_1A.register_select	= 0;
 	PIA_UPDATE_OUTPUT(PIA_0A);
 	PIA_UPDATE_OUTPUT(PIA_1A);
 	/* Side B */
@@ -55,9 +52,11 @@ void pia_reset(void) {
 	PIA_0B.output_register		= PIA_1B.output_register	= 0;
 	PIA_0B.port_input		= PIA_1B.port_input		= 0;
 	PIA_0B.tied_low			= PIA_1B.tied_low		= 0xff;
-	PIA_0B.interrupt_enable		= PIA_1B.interrupt_enable	= 0;
-	//PIA_0B.interrupt_transition	= PIA_1B.interrupt_transition	= 0;
-	PIA_0B.register_select		= PIA_1B.register_select	= 0;
 	PIA_UPDATE_OUTPUT(PIA_0B);
 	PIA_UPDATE_OUTPUT(PIA_1B);
+	/* Clear interrupt lines */
+	PIA_0A.interrupt_received = PIA_0A.irq_set = irq  = 0;
+	PIA_0B.interrupt_received = PIA_0B.irq_set = 0;
+	PIA_1A.interrupt_received = PIA_1A.irq_set = firq  = 0;
+	PIA_1B.interrupt_received = PIA_1B.irq_set = 0;
 }

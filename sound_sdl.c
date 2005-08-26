@@ -16,7 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_SDL_AUDIO
+#ifdef HAVE_SDL
 
 #include <stdlib.h>
 #include <string.h>
@@ -113,9 +113,7 @@ static void shutdown(void) {
 	event_dequeue(flush_event);
 	SDL_DestroyCond(halt_cv);
 	SDL_DestroyMutex(halt_mutex);
-	LOG_DEBUG(0,"\tCalling SDL_CloseAudio()\n");
 	SDL_CloseAudio();
-	LOG_DEBUG(0,"\tCalling SDL_QuitSubSystem()\n");
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	free(buffer);
 }
@@ -183,4 +181,4 @@ static void callback(void *userdata, Uint8 *stream, int len) {
 	SDL_UnlockMutex(halt_mutex);
 }
 
-#endif  /* HAVE_SDL_AUDIO */
+#endif  /* HAVE_SDL */

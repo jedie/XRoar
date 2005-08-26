@@ -1,0 +1,13 @@
+/*  XRoar - a Dragon/Tandy Coco emulator
+ *  Copyright (C) 2003-2005  Ciaran Anscomb
+ *
+ *  See COPYING for redistribution conditions. */
+
+#ifndef __VDISK_H__
+#define __VDISK_H__
+
+int vdisk_load(const char *filename, unsigned int drive);
+int vdisk_load_vdk(const char *filename, unsigned int drive);
+int vdisk_load_jvc(const char *filename, unsigned int drive);
+
+#endif  /* __VDISK_H__ */

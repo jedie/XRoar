@@ -23,10 +23,10 @@
 #include "vdg.h"
 #include "logging.h"
 
-#ifdef HAVE_SDLGL_VIDEO
+#ifdef HAVE_SDLGL
 extern VideoModule video_sdlgl_module;
 #endif
-#ifdef HAVE_SDL_VIDEO
+#ifdef HAVE_SDL
 extern VideoModule video_sdlyuv_module;
 extern VideoModule video_sdl_module;
 #endif
@@ -100,14 +100,18 @@ static int module_init_by_name(char *name) {
 	return 1;
 }
 
+void video_helptext(void) {
+	puts("  -vo MODULE            specify video module (-vo help for a list)");
+}
+
 /* Scan args and record any of relevance to video modules */
 void video_getargs(int argc, char **argv) {
 	int i;
 	modules_head = video_module = NULL;
-#ifdef HAVE_SDLGL_VIDEO
+#ifdef HAVE_SDLGL
 	module_add(&video_sdlgl_module);
 #endif
-#ifdef HAVE_SDL_VIDEO
+#ifdef HAVE_SDL
 # ifdef PREFER_NOYUV
 	module_add(&video_sdl_module);
 	module_add(&video_sdlyuv_module);

@@ -22,7 +22,7 @@
 #include "ui.h"
 #include "logging.h"
 
-#ifdef HAVE_CARBON_UI
+#ifdef HAVE_CARBON
 extern UIModule ui_carbon_module;
 #endif
 #ifdef WINDOWS32
@@ -102,11 +102,15 @@ static int module_init_by_name(char *name) {
 	return 1;
 }
 
+void ui_helptext(void) {
+	puts("  -ui MODULE            specify user-interface module (-ui help for a list)");
+}
+
 /* Scan args and record any of relevance to ui modules */
 void ui_getargs(int argc, char **argv) {
 	int i;
 	modules_head = ui_module = NULL;
-#ifdef HAVE_CARBON_UI
+#ifdef HAVE_CARBON
 	module_add(&ui_carbon_module);
 #endif
 #ifdef WINDOWS32

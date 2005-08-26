@@ -16,20 +16,25 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "machine.h"
-#include "sam.h"
-#include "pia.h"
-#include "wd2797.h"
-#include "m6809.h"
-#include "vdg.h"
-#include "tape.h"
+#include "types.h"
+#include "fs.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "fs.h"
-#include "types.h"
+#include "m6809.h"
+#include "machine.h"
+#include "pia.h"
+#include "sam.h"
+#include "tape.h"
+#include "vdg.h"
+#include "vdrive.h"
+#include "wd2797.h"
+
+#define NUM_MACHINES 3
+#define NUM_KEYBOARDS 2
 
 /* machine_romtype indicates which ROM to try and load (Dragon or Coco),
  * and which cassette breakpoints to set (at the moment, this is also used
@@ -81,55 +86,142 @@ static Keymap coco_keymap = {
 	{0,3}, {1,3}, {2,3}, {8,8}, {8,8}, {8,8}, {8,8}, {5,3}, /* 120 - 127 */
 };
 
-const char *rom_names[3][4] = {
-	{ "d64rom1", "d64_1", "dragrom", "dragon" },
-	{ "coco", "coco_pa", "cocodisk", "coco" },
-	{ "dragon32", "d32", "d32rom", "dragon" },
+typedef struct {
+	unsigned int load_addr;
+} rom_info;
+typedef struct {
+	const char *name;
+	const char *description;
+	unsigned int keymap;
+	const char *bas[5];
+	const char *extbas[5];
+	const char *dos[5];
+	const char *rom1[5];
+} machine_info;
+
+/* The first ROM in each of these lists is NULL so it can be overwritten
+   by switches */
+
+machine_info machines[NUM_MACHINES] = {
+	{ "dragon64", "Dragon 64", DRAGON_KEYBOARD,
+		{ NULL, NULL, NULL, NULL, NULL },
+		{ NULL, "d64_1", "d64rom1", "dragrom", "dragon" },
+		{ NULL, "sdose6", "ddos10", NULL, NULL },
+		{ NULL, "d64_2", "d64rom2", NULL, NULL }
+	},
+	{ "coco", "Tandy CoCo", COCO_KEYBOARD,
+		{ NULL, "bas13", "bas12", "bas11", "bas10" },
+		{ NULL, "extbas11", "extbas10", NULL, NULL },
+		{ NULL, "disk11", "disk10", NULL, NULL },
+		{ NULL, NULL, NULL, NULL, NULL }
+	},
+	{ "dragon32", "Dragon 32", DRAGON_KEYBOARD,
+		{ NULL, NULL, NULL, NULL, NULL },
+		{ NULL, "d32", "dragon32", "d32rom", "dragon" },
+		{ NULL, "sdose6", "ddos10", NULL, NULL },
+		{ NULL, NULL, NULL, NULL, NULL }
+	}
 };
-const char *d64_rom2_names[4] =
-	{ "d64rom2", "d64_2", NULL, NULL };
-const char *dragondos_rom_names[4] =
-	{ "sdose6", "ddos10", NULL, NULL };
+
+static const char *cart_filename;
+static int noextbas;
 
 static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
 
-void machine_init(void) {
-	machine_set_romtype(DRAGON64);
+void machine_helptext(void) {
+	puts("  -machine MACHINE      emulated machine (""dragon64"", ""dragon32"" or ""coco"")");
+	puts("  -bas FILENAME         specify BASIC ROM to use (CoCo only)");
+	puts("  -extbas FILENAME      specify Extended BASIC ROM to use");
+	puts("  -noextbas             disable Extended BASIC");
+	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
+	puts("  -nodos                disable DOS (ROM and hardware emulation)");
+	puts("  -cart FILENAME        specify ROM to load into cartridge area ($C000-)");
+}
+
+void machine_getargs(int argc, char **argv) {
+	int i, j;
+	machine_romtype = DRAGON64;
 	machine_set_keymap(DRAGON_KEYBOARD);
+	cart_filename = NULL;
+	noextbas = 0;
 	dragondos_enabled = 1;
+	for (i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-machine")) {
+			i++;
+			if (i >= argc) break;
+			if (!strcmp(argv[i], "help")) {
+				for (j = 0; j < NUM_MACHINES; j++) {
+					printf("\t%-10s%s\n", machines[j].name, machines[j].description);
+				}
+				exit(0);
+			}
+			for (j = 0; j < NUM_MACHINES; j++) {
+				if (!strcmp(argv[i], machines[j].name)) {
+					machine_romtype = j;
+					machine_set_keymap(machines[j].keymap);
+				}
+			}
+		} else if (!strcmp(argv[i], "-bas")) {
+			i++;
+			if (i >= argc) break;
+			machines[machine_romtype].bas[0] = argv[i];
+		} else if (!strcmp(argv[i], "-extbas")) {
+			i++;
+			if (i >= argc) break;
+			machines[machine_romtype].extbas[0] = argv[i];
+		} else if (!strcmp(argv[i], "-noextbas")) {
+			noextbas = 1;
+		} else if (!strcmp(argv[i], "-dos")) {
+			i++;
+			if (i >= argc) break;
+			machines[machine_romtype].dos[0] = argv[i];
+		} else if (!strcmp(argv[i], "-nodos")) {
+			dragondos_enabled = 0;
+		} else if (!strcmp(argv[i], "-cart")) {
+			i++;
+			if (i >= argc) break;
+			cart_filename = argv[i];
+		}
+	}
+}
+
+void machine_init(void) {
 	sam_init();
 	pia_init();
 	wd2797_init();
+	vdrive_init();
 	m6809_init();
 	vdg_init();
 	tape_init();
 }
 
 void machine_reset(int hard) {
-	uint_least16_t romsize;
 	unsigned int i;
+	machine_info *m = &machines[machine_romtype];
+	pia_reset();
 	if (hard) {
 		memset(ram0, 0, sizeof(ram0));
 		memset(ram1, 0, sizeof(ram1));
 		memset(rom0, 0, sizeof(rom0));
 		memset(rom1, 0, sizeof(rom1));
-		if (machine_romtype == COCO) {
+		if (IS_COCO) {
 			brk_csrdon = 0xa77c; brk_bitin = 0xa755;
-			dragondos_enabled = 0;
 		} else {
 			brk_csrdon = 0xbde7; brk_bitin = 0xbda5;
 		}
-		romsize = dragondos_enabled ? sizeof(rom0) : 0x4000;
-		for (i=0; i<4 && load_rom(rom_names[machine_romtype][i], rom0, romsize); i++);
-		if (IS_DRAGON64) {
-			for (i=0; i<4 && load_rom(d64_rom2_names[i], rom1, 0x4000); i++);
-			memcpy(rom1+0x4000, rom0+0x4000, 0x4000);
+		for (i=0; i<5 && load_rom(m->rom1[i], rom1, sizeof(rom1)); i++);
+		if (!IS_COCO || !noextbas)
+			for (i=0; i<5 && load_rom(m->extbas[i], rom0, sizeof(rom0)); i++);
+		for (i=0; i<5 && load_rom(m->bas[i], rom0+0x2000, sizeof(rom0)-0x2000); i++);
+		if (cart_filename) {
+			load_rom(cart_filename, rom0+0x4000, sizeof(rom0)-0x4000);
+			PIA_SET_P1CB1;
+			dragondos_enabled = 0;
 		}
 		if (dragondos_enabled) {
-			for (i=0; i<4 && load_rom(dragondos_rom_names[i], &rom0[0x4000], 0x4000); i++);
+			for (i=0; i<5 && load_rom(m->dos[i], rom0+0x4000, sizeof(rom0)-0x4000); i++);
 		}
 	}
-	pia_reset();
 	if (IS_DRAGON64) {
 		PIA_1B.port_input |= (1<<2);
 		PIA_UPDATE_OUTPUT(PIA_1B);
@@ -144,10 +236,7 @@ void machine_reset(int hard) {
 /* Setting romtype takes effect on next reset */
 void machine_set_romtype(int mode) {
 	machine_romtype = mode % NUM_MACHINES;
-	if (IS_DRAGON)
-		machine_set_keymap(DRAGON_KEYBOARD);
-	else
-		machine_set_keymap(COCO_KEYBOARD);
+	machine_set_keymap(machines[machine_romtype].keymap);
 }
 
 /* Setting keymap takes effect immediately */
@@ -175,19 +264,21 @@ void machine_set_keymap(int mode) {
 
 static int load_rom_f(const char *filename, uint8_t *dest, size_t max_size) {
 	FS_FILE fd;
-	LOG_DEBUG(4,"Checking for %s\n", filename);
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
-	if (fs_read(fd, dest, 16) < 0) {
-		fs_close(fd);
-		return -1;
-	}
 	LOG_DEBUG(3, "Loading ROM: %s\n", filename);
-	if (dest[0] == 0xa1) {
-		fs_read(fd, dest, max_size);
-	} else {
-		fs_read(fd, dest+16, max_size-16);
-	}
+	fs_read(fd, dest, max_size);
+	fs_close(fd);
+	return 0;
+}
+
+static int load_dgn_f(const char *filename, uint8_t *dest, size_t max_size) {
+	FS_FILE fd;
+	if ((fd = fs_open(filename, FS_READ)) == -1)
+		return -1;
+	LOG_DEBUG(3, "Loading DGN: %s\n", filename);
+	fs_read(fd, dest, 16);
+	fs_read(fd, dest, max_size);
 	fs_close(fd);
 	return 0;
 }
@@ -226,28 +317,36 @@ static char *construct_path(const char *path, const char *filename) {
 }
 
 static int load_rom(const char *romname, uint8_t *dest, size_t max_size) {
-	const char *exts[2] = { ".rom", ".dgn" };
 	const char *path = ROMPATH;
 	char *filename;
 	char buf[13];
-	unsigned int i;
+	unsigned int ret;
 	if (!romname)
 		return -1;
-	if (strlen(romname) > 12)
+	/* Try ROM without any extension first */
+	if (load_rom_f(romname, dest, max_size) == 0)
+		return 0;
+	if (strlen(romname) > 8)
 		return -1;
 	while (*path) {
-		for (i = 0; i < 2; i++) {
-			int ret;
-			strcpy(buf, romname);
-			strcat(buf, exts[i]);
-			filename = construct_path(path, buf);
-			if (filename == NULL)
-				return -1;
-			ret = load_rom_f(filename, dest, max_size);
-			free(filename);
-			if (ret == 0)
-				return 0;
-		}
+		strcpy(buf, romname);
+		strcat(buf, ".rom");
+		filename = construct_path(path, buf);
+		if (filename == NULL)
+			return -1;
+		ret = load_rom_f(filename, dest, max_size);
+		free(filename);
+		if (ret == 0)
+			return 0;
+		strcpy(buf, romname);
+		strcat(buf, ".dgn");
+		filename = construct_path(path, buf);
+		if (filename == NULL)
+			return -1;
+		ret = load_dgn_f(filename, dest, max_size);
+		free(filename);
+		if (ret == 0)
+			return 0;
 		while (*path && *path != ':')
 			path++;
 		if (*path == ':')

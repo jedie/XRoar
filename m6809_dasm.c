@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
-
 /* Only worth building this in if TRACE is defined */
 #ifdef TRACE
 
@@ -882,6 +880,8 @@ void m6809_dasm_reset(void) {
 		else { LOG_DEBUG(0, r); not_first = 1; } \
 	} while (0)
 
+#define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
+
 void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 	int display = 0;
 	const char *mnemonic;
@@ -911,7 +911,7 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 			}
 			break;
 		case WANT_BYTE:
-			if (type == INDEXED) {
+			if (type == INDEXED && index_mode == 0) {
 				index_mode = byte;
 				if ((index_mode & 0x80) == 0) {
 					display = 1;
@@ -923,9 +923,13 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 						display = 1;
 						break;
 					case 8: case 12:
-						break; /* stay in WANT_BYTE */
+						state = WANT_BYTE;
+						break;
 					case 9: case 13: case 15:
 						state = WANT_WORD1;
+						break;
+					default:
+						display = 1; 
 						break;
 				}
 			} else {
@@ -993,7 +997,7 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 		case INDEXED: {
 			const char *reg = indexed_regs[(index_mode>>5)&3];
 			if ((index_mode & 0x80) == 0) {
-				LOG_DEBUG(0, "%-8s%d,%s", mnemonic, index_mode & 0x1f, reg);
+				LOG_DEBUG(0, "%-8s%d,%s", mnemonic, sex5(index_mode & 0x1f), reg);
 				break;
 			}
 			if ((index_mode & 0x10) == 0) {
@@ -1021,22 +1025,25 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 						LOG_DEBUG(0, "%-8sA,%s", mnemonic, reg);
 						break;
 					case 8:
-						LOG_DEBUG(0, "%-8s%d,%s", mnemonic, byte_val, reg);
+						LOG_DEBUG(0, "%-8s$%02x,%s", mnemonic, byte_val, reg);
 						break;
 					case 9:
-						LOG_DEBUG(0, "%-8s%d,%s", mnemonic, word_val, reg);
+						LOG_DEBUG(0, "%-8s$%04x,%s", mnemonic, word_val, reg);
 						break;
 					case 11:
 						LOG_DEBUG(0, "%-8sD,%s", mnemonic, reg);
 						break;
 					case 12:
-						LOG_DEBUG(0, "%-8s%d,PCR", mnemonic, byte_val);
+						LOG_DEBUG(0, "%-8s$%02x,PCR", mnemonic, byte_val);
 						break;
 					case 13:
-						LOG_DEBUG(0, "%-8s%d,PCR", mnemonic, word_val);
+						LOG_DEBUG(0, "%-8s$%04x,PCR", mnemonic, word_val);
+						break;
+					case 15:
+						LOG_DEBUG(0, "%-8s$%04x *", mnemonic, word_val);
 						break;
 					default:
-						LOG_DEBUG(0, "%-8s[illegal: $%02x]", mnemonic, index_mode);
+						LOG_DEBUG(0, "%-8s$%02x *", mnemonic, index_mode);
 						break;
 				}
 
@@ -1065,25 +1072,25 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 						LOG_DEBUG(0, "%-8s[A,%s]", mnemonic, reg);
 						break;
 					case 8:
-						LOG_DEBUG(0, "%-8s[%d,%s]", mnemonic, byte_val, reg);
+						LOG_DEBUG(0, "%-8s[$%02x,%s]", mnemonic, byte_val, reg);
 						break;
 					case 9:
-						LOG_DEBUG(0, "%-8s[%d,%s]", mnemonic, word_val, reg);
+						LOG_DEBUG(0, "%-8s[$%04x,%s]", mnemonic, word_val, reg);
 						break;
 					case 11:
 						LOG_DEBUG(0, "%-8s[D,%s]", mnemonic, reg);
 						break;
 					case 12:
-						LOG_DEBUG(0, "%-8s[%d,PCR]", mnemonic, byte_val);
+						LOG_DEBUG(0, "%-8s[$%02x,PCR]", mnemonic, byte_val);
 						break;
 					case 13:
-						LOG_DEBUG(0, "%-8s[%d,PCR]", mnemonic, word_val);
+						LOG_DEBUG(0, "%-8s[$%04x,PCR]", mnemonic, word_val);
 						break;
 					case 15:
 						LOG_DEBUG(0, "%-8s[$%04x]", mnemonic, word_val);
 						break;
 					default:
-						LOG_DEBUG(0, "%-8s[illegal: $%02x]", mnemonic, index_mode);
+						LOG_DEBUG(0, "%-8sillegal: $%02x *", mnemonic, index_mode);
 						break;
 				}
 
@@ -1104,6 +1111,7 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 			LOG_DEBUG(0, "%-8s", mnemonic);
 			break;
 	}
+	index_mode = 0;
 	state = WANT_INSTRUCTION;
 	page = PAGE0;
 }

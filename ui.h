@@ -20,6 +20,7 @@ struct UIModule {
 
 extern UIModule *ui_module;
 
+void ui_helptext(void);
 void ui_getargs(int argc, char **argv);
 int ui_init(void);
 void ui_shutdown(void);

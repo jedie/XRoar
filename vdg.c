@@ -34,7 +34,6 @@ static event_t *hsync_event;
 static int_least16_t scanline;
 
 void vdg_init(void) {
-	video_artifact_mode = 0;
 	vdg_render_scanline = video_module->vdg_render_sg4;
 	hsync_event = event_new();
 	hsync_event->dispatch = vdg_hsync;
@@ -49,19 +48,19 @@ void vdg_reset(void) {
 }
 
 static void vdg_hsync(void) {
-	if (scanline >= TOP_BORDER_OFFSET) {
-		if (scanline < (TOP_BORDER_OFFSET + 24)) {
+	if (scanline >= FIRST_DISPLAYED_SCANLINE) {
+		if (scanline < (FIRST_DISPLAYED_SCANLINE + 24)) {
 #ifndef HAVE_GP32
 			video_module->render_border();
 #endif
 		} else {
-			if (scanline < (216 + TOP_BORDER_OFFSET)) {
+			if (scanline < (216 + FIRST_DISPLAYED_SCANLINE)) {
 #ifdef HAVE_GP32
 				if ((scanline & 3) == 0)
 #endif
 					vdg_render_scanline();
 			} else {
-				if (scanline < (240 + TOP_BORDER_OFFSET)) {
+				if (scanline < (240 + FIRST_DISPLAYED_SCANLINE)) {
 #ifndef HAVE_GP32
 					video_module->render_border();
 #endif
@@ -69,14 +68,15 @@ static void vdg_hsync(void) {
 			}
 		}
 	}
-	PIA_SET_P0CA1;
-	scanline++;
-	if (scanline == ACTIVE_SCANLINES_PER_FRAME) {
+	PIA_RESET_P0CA1; PIA_SET_P0CA1;  // XXX
+	if (scanline == SCANLINE_OF_FS_IRQ_LOW) 
+		PIA_RESET_P0CB1;
+	if (scanline == SCANLINE_OF_FS_IRQ_HIGH)
 		PIA_SET_P0CB1;
-	}
+	scanline++;
 	if (scanline >= TOTAL_SCANLINES_PER_FRAME) {
 		sam_vdg_fsync();
-		video_module->vdg_vsync();  // XXX
+		video_module->vdg_vsync();
 		scanline = 0;
 	}
 	hsync_event->at_cycle += CYCLES_PER_SCANLINE;

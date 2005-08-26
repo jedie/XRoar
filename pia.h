@@ -22,45 +22,124 @@ typedef struct {
 	unsigned int port_output;
 	unsigned int port_input;
 	unsigned int tied_low;
-	/* Convenience flags split out from control_register above */
-	unsigned int interrupt_enable;
-	/*unsigned int interrupt_transition;*/
-	unsigned int register_select;  /* 0 = DDR, SET = OR */
-	unsigned int interrupt_flag;
-	/* ignore Cx2 stuff for now */
+	/* Set to 0x80 when IRQA/B is set */
+	unsigned int irq_set;
+	unsigned int interrupt_received;
 } pia_port;
+
+#define PIA_SELECT_DDR(p) do { p.control_register &= 0xfb; } while (0)
+#define PIA_SELECT_PDR(p) do { p.control_register |= 0x04; } while (0)
+
+#define PIA_INTERRUPT_ENABLED(p) (p.control_register & 0x01)
+#define PIA_ACTIVE_TRANSITION(p) (p.control_register & 0x02)
+#define PIA_DDR_SELECTED(p)      (!(p.control_register & 0x04))
+#define PIA_PDR_SELECTED(p)      (p.control_register & 0x04)
 
 extern pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 
-//#define PIA_SET_P0CA1 do { PIA_0A.control_register |= 0x80; if (PIA_0A.interrupt_enable) irq = 1; } while (0)
-//#define PIA_SET_P0CB1 do { PIA_0B.control_register |= 0x80; if (PIA_0B.interrupt_enable) irq = 1; } while (0)
-//#define PIA_SET_P1CA1 do { PIA_1A.control_register |= 0x80; if (PIA_1A.interrupt_enable) firq = 1; } while (0)
-//#define PIA_SET_P1CB1 do { PIA_1B.control_register |= 0x80; if (PIA_1B.interrupt_enable) firq = 1; } while (0)
-#define PIA_SET_P0CA1 do { if (!(PIA_0A.control_register & 0x80) && PIA_0A.interrupt_enable) PIA_0A.control_register |= 0x80; if (PIA_0A.interrupt_enable) irq = 1; } while (0)
-#define PIA_SET_P0CB1 do { if (!(PIA_0B.control_register & 0x80) && PIA_0B.interrupt_enable) PIA_0B.control_register |= 0x80; if (PIA_0B.interrupt_enable) irq = 1; } while (0)
-#define PIA_SET_P1CA1 do { if (!(PIA_0B.control_register & 0x80) && PIA_0B.interrupt_enable) PIA_0B.control_register |= 0x80; if (PIA_0B.interrupt_enable) irq = 1; } while (0)
-#define PIA_SET_P1CB1 do { if (!(PIA_1B.control_register & 0x80) && PIA_1B.interrupt_enable) PIA_1B.control_register |= 0x80; if (PIA_1B.interrupt_enable) irq = 1; } while (0)
-
-#define PIA_CONTROL_READ(p) (p.control_register)
-
-#define PIA_CONTROL_WRITE(p,v) do { \
-		p.control_register = (v & 0x7f) | p.interrupt_flag; \
-		p.interrupt_enable = v & 0x01; \
-		/*p.interrupt_transition = v & 0x02;*/ \
-		p.register_select = v & 0x04; \
+#define PIA_SET_Cx1(p) do { \
+		if (PIA_ACTIVE_TRANSITION(p)) { \
+			if (PIA_INTERRUPT_ENABLED(p)) { \
+				p.interrupt_received = 0x80; \
+				p.irq_set = 0x80; \
+			} else { \
+				p.interrupt_received = 0x80; \
+				p.irq_set = 0; \
+			} \
+		} \
 	} while (0)
 
-#define PIA_READ(p) (p.register_select ? \
-	(p.control_register &= 0x3f, ((p.port_input & p.tied_low) & ~p.direction_register) | (p.output_register & p.direction_register)) \
-	: p.direction_register)
+#define PIA_SET_P0CA1 do { \
+		PIA_SET_Cx1(PIA_0A); \
+		irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+	} while (0)
+#define PIA_SET_P0CB1 do { \
+		PIA_SET_Cx1(PIA_0B); \
+		irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+	} while (0)
+#define PIA_SET_P1CA1 do { \
+		PIA_SET_Cx1(PIA_1A); \
+		firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+	} while (0)
+#define PIA_SET_P1CB1 do { \
+		PIA_SET_Cx1(PIA_1B); \
+		firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+	} while (0)
+
+#define PIA_RESET_Cx1(p) do { \
+		if (!PIA_ACTIVE_TRANSITION(p)) { \
+			if (PIA_INTERRUPT_ENABLED(p)) { \
+				p.interrupt_received = 0x80; \
+				p.irq_set = 0x80; \
+			} else { \
+				p.interrupt_received = 0x80; \
+				p.irq_set = 0; \
+			} \
+		} \
+	} while (0)
+
+#define PIA_RESET_P0CA1 do { \
+			PIA_RESET_Cx1(PIA_0A); \
+			irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+		} while (0)
+#define PIA_RESET_P0CB1 do { \
+			PIA_RESET_Cx1(PIA_0B); \
+			irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+		} while (0)
+#define PIA_RESET_P1CA1 do { \
+			PIA_RESET_Cx1(PIA_1A); \
+			firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+		} while (0)
+#define PIA_RESET_P1CB1 do { \
+			PIA_RESET_Cx1(PIA_1B); \
+			firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+		} while (0)
+
+#define PIA_CONTROL_READ(p) (p.control_register | p.interrupt_received)
+
+#define PIA_READ_P0CA PIA_CONTROL_READ(PIA_0A)
+#define PIA_READ_P0CB PIA_CONTROL_READ(PIA_0B)
+#define PIA_READ_P1CA PIA_CONTROL_READ(PIA_1A)
+#define PIA_READ_P1CB PIA_CONTROL_READ(PIA_1B)
+
+#define PIA_CONTROL_WRITE(p,v,i,p2) do { \
+		p.control_register = v & 0x3f; \
+		if (PIA_INTERRUPT_ENABLED(p)) { \
+			p.irq_set = p.interrupt_received; \
+		} else { \
+			p.irq_set = 0; \
+		} \
+		i = p.irq_set | p2.irq_set; \
+	} while (0)
+
+#define PIA_WRITE_P0CA(v) PIA_CONTROL_WRITE(PIA_0A,v,irq,PIA_0B)
+#define PIA_WRITE_P0CB(v) PIA_CONTROL_WRITE(PIA_0B,v,irq,PIA_0A)
+#define PIA_WRITE_P1CA(v) PIA_CONTROL_WRITE(PIA_1A,v,firq,PIA_1B)
+#define PIA_WRITE_P1CB(v) PIA_CONTROL_WRITE(PIA_1B,v,firq,PIA_1A)
+
+#define PIA_READ(p,i,p2,r) do { \
+		if (PIA_PDR_SELECTED(p)) { \
+			p.interrupt_received = 0; \
+			p.irq_set = 0; \
+			i = p2.irq_set; \
+			r = ((p.port_input & p.tied_low) & ~p.direction_register) | (p.output_register & p.direction_register); \
+		} else { \
+			r = p.direction_register; \
+		} \
+	} while (0)
+
+#define PIA_READ_P0DA(r) PIA_READ(PIA_0A, irq, PIA_0B, r)
+#define PIA_READ_P0DB(r) PIA_READ(PIA_0B, irq, PIA_0A, r)
+#define PIA_READ_P1DA(r) PIA_READ(PIA_1A, firq, PIA_1B, r)
+#define PIA_READ_P1DB(r) PIA_READ(PIA_1B, firq, PIA_1A, r)
 
 #define PIA_WRITE(p,v) do { \
-		if (!p.register_select) { \
-			p.direction_register = v; \
-			v &= p.output_register; \
-		} else { \
+		if (PIA_PDR_SELECTED(p)) { \
 			p.output_register = v; \
 			v &= p.direction_register; \
+		} else { \
+			p.direction_register = v; \
+			v &= p.output_register; \
 		} \
 		p.port_output = (v | (p.port_input & ~(p.direction_register))) & p.tied_low; \
 	} while (0)

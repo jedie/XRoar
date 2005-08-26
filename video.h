@@ -42,6 +42,7 @@ struct VideoModule {
 extern VideoModule *video_module;
 extern int video_artifact_mode;
 
+void video_helptext(void);
 void video_getargs(int argc, char **argv);
 int video_init(void);
 void video_shutdown(void);

@@ -27,7 +27,9 @@ extern Sprite copyright_bin;
 void GpMain(void *arg) {
 	(void)arg;  /* unused */
 	SPEED_FAST;
-	xroar_init(1, NULL);
+
+	xroar_getargs(1, NULL);
+	xroar_init();
 	video_module->blit(198, 204, &copyright_bin);
 	//xroar_reset(RESET_HARD);
 	xroar_mainloop();

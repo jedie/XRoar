@@ -16,7 +16,9 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "types.h"
 #include "events.h"
@@ -41,12 +43,32 @@ Cycle current_cycle;
 int trace = 0;
 #endif
 
-void xroar_init(int argc, char **argv) {
+static void xroar_helptext(void) {
+	printf("  -h                    display this help and exit\n");
+}
+
+void xroar_getargs(int argc, char **argv) {
+	int i;
+	for (i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+			printf("Usage: xroar [OPTION]...\n\n");
+			machine_helptext();
+			video_helptext();
+			sound_helptext();
+			ui_helptext();
+			xroar_helptext();
+			exit(0);
+		}
+	}
 	/* Let some subsystems scan for options relevant to them */
 	video_getargs(argc, argv);
 	sound_getargs(argc, argv);
 	ui_getargs(argc, argv);
 	keyboard_getargs(argc, argv);
+	machine_getargs(argc, argv);
+}
+
+void xroar_init(void) {
 	/* Initialise everything */
 	current_cycle = 0;
 	if (video_init()) {

@@ -16,9 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
-
-#ifdef HAVE_SDL_VIDEO
+#ifdef HAVE_SDL
 
 #include <stdlib.h>
 #include <string.h>
@@ -194,4 +192,4 @@ static void vdg_set_mode(unsigned int mode) {
 
 #include "video_generic_ops.c"
 
-#endif  /* HAVE_SDL_VIDEO */
+#endif  /* HAVE_SDL */

@@ -15,11 +15,14 @@ extern Cycle current_cycle;
 
 #ifdef TRACE
 extern int trace;
+# define IF_TRACE(s) if (trace) { s; }
 #else
-#define trace 0
+# define trace 0
+# define IF_TRACE(s)
 #endif
 
-void xroar_init(int argc, char **argv);
+void xroar_getargs(int argc, char **argv);
+void xroar_init(void);
 void xroar_shutdown(void);
 void xroar_reset(int hard);
 void xroar_mainloop(void);
