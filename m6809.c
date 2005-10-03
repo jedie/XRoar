@@ -73,8 +73,7 @@
 #define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); IF_TRACE(m6809_dasm_byte(a >> 8, reg_pc); m6809_dasm_byte(a & 0xff, reg_pc + 1)) reg_pc += 2; TAKEN_CYCLES(1); } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
- * macros.  Must be used carefully, as some of them declare an 'addr' variable
- */
+ * macros.  */
 #define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); IF_TRACE(m6809_dasm_byte(v, reg_pc)) reg_pc++; }
 #define BYTE_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a); }
 #define BYTE_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a); }
@@ -188,7 +187,8 @@ static unsigned int nmi_armed;
 
 /* ------------------------------------------------------------------------- */
 
-#define EA_INDEXED(a)	do { \
+#define EA_INDEXED(a) do { a = ea_indexed(); } while (0)
+#define EA_INDEXED_BODY(a)	do { \
 		unsigned int postbyte; \
 		uint_least16_t ead; \
 		uint16_t ireg_val; \
@@ -369,9 +369,17 @@ void m6809_reset(void) {
 }
 
 void m6809_cycle(Cycle until) {
+	__label__ restore_regs, switched_block_page2, switched_block_page3;
 	uint_least16_t addr;
 	uint16_t reg_pc;
 	unsigned int reg_cc;
+	/* Bit of a GCC-ism here: */
+	auto unsigned int ea_indexed(void);
+	unsigned int ea_indexed(void) {
+		unsigned int rret;
+		EA_INDEXED_BODY(rret);
+		return rret;
+	}
 	reg_cc = condition_code;
 	reg_pc = program_counter;
 
@@ -400,7 +408,7 @@ void m6809_cycle(Cycle until) {
 			TAKEN_CYCLES(1);
 		goto restore_regs;
 	}
-
+	IF_TRACE(LOG_DEBUG(0, "In: %d\n", current_cycle));
 	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt && !halt) {
 		/* Trap cassette ROM routines - hack! */
 		if (reg_pc == brk_csrdon) {
@@ -462,7 +470,7 @@ void m6809_cycle(Cycle until) {
 				case 0x13:
 					wait_for_interrupt = 1;
 					peek_byte(reg_pc);
-					TAKEN_CYCLES(1);
+					TAKEN_CYCLES(3);
 					break;
 				/* 0x16 LBRA relative */
 				case 0x16: BRANCHL(1); break;
@@ -509,91 +517,280 @@ void m6809_cycle(Cycle until) {
 					SET_NZ16(reg_d);
 					peek_byte(reg_pc);
 					break;
-#ifdef HAVE_GP32
-/* Include faster switch-based routines for GP32.
- * Not as accurate yet though */
-# include "fast_exgtfr.c"
-#else
-				// 0x1E EXG immediate
+				/* 0x1E EXG immediate */
 				case 0x1e: {
 					unsigned int postbyte;
-					uint_least16_t source = 0xffff, dest = 0xffff;
+					unsigned int tmp;
 					BYTE_IMMEDIATE(0,postbyte);
-					switch ((postbyte & 0xf0) >> 4) {
-						case 0x00: source = reg_d; break;
-						case 0x01: source = reg_x; break;
-						case 0x02: source = reg_y; break;
-						case 0x03: source = reg_u; break;
-						case 0x04: source = reg_s; break;
-						case 0x05: source = reg_pc; break;
-						case 0x08: source = 0xff00 | (reg_a & 0xff); break;
-						case 0x09: source = 0xff00 | (reg_b & 0xff); break;
-						case 0x0a: source = 0xff00 | (reg_cc & 0xff); break;
-						case 0x0b: source = 0xff00 | (reg_dp & 0xff); break;
-						default: break;
-					}
-					switch (postbyte & 0x0f) {
-						case 0x00: dest = reg_d; reg_d = source; break;
-						case 0x01: dest = reg_x; reg_x = source; break;
-						case 0x02: dest = reg_y; reg_y = source; break;
-						case 0x03: dest = reg_u; reg_u = source; break;
-						case 0x04: dest = reg_s; reg_s = source; break;
-						case 0x05: dest = reg_pc; reg_pc = source; break;
-						case 0x08: dest = 0xff00 | (reg_a & 0xff); reg_a = source; break;
-						case 0x09: dest = 0xff00 | (reg_b & 0xff); reg_b = source; break;
-						case 0x0a: dest = 0xff00 | (reg_cc & 0xff); reg_cc = source; break;
-						case 0x0b: dest = 0xff00 | (reg_dp & 0xff); reg_dp = source; break;
-						default: break;
-					}
-					switch ((postbyte & 0xf0) >> 4) {
-						case 0x00: reg_d = dest; break;
-						case 0x01: reg_x = dest; break;
-						case 0x02: reg_y = dest; break;
-						case 0x03: reg_u = dest; break;
-						case 0x04: reg_s = dest; break;
-						case 0x05: reg_pc = dest; break;
-						case 0x08: reg_a = dest; break;
-						case 0x09: reg_b = dest; break;
-						case 0x0a: reg_cc = dest; break;
-						case 0x0b: reg_dp = dest; break;
+					switch (postbyte & 0xff) {
+						case 0x01: case 0x10: tmp = reg_x; reg_x = reg_d; reg_d = tmp; break;
+						case 0x02: case 0x20: tmp = reg_y; reg_y = reg_d; reg_d = tmp; break;
+						case 0x03: case 0x30: tmp = reg_u; reg_u = reg_d; reg_d = tmp; break;
+						case 0x04: case 0x40: tmp = reg_s; reg_s = reg_d; reg_d = tmp; break;
+						case 0x05: case 0x50: tmp = reg_pc; reg_pc = reg_d; reg_d = tmp; break;
+						case 0x06: case 0x60: reg_d = 0xffff; break;
+						case 0x07: case 0x70: reg_d = 0xffff; break;
+						case 0x08: case 0x80: tmp = reg_a; reg_a = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
+						case 0x09: case 0x90: tmp = reg_b; reg_b = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
+						case 0x0a: case 0xa0: tmp = reg_cc; reg_cc = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
+						case 0x0b: case 0xb0: tmp = reg_dp; reg_dp = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
+						case 0x0c: case 0xc0: reg_d = 0xffff; break;
+						case 0x0d: case 0xd0: reg_d = 0xffff; break;
+						case 0x0e: case 0xe0: reg_d = 0xffff; break;
+						case 0x0f: case 0xf0: reg_d = 0xffff; break;
+						case 0x12: case 0x21: tmp = reg_y; reg_y = reg_x; reg_x = tmp; break;
+						case 0x13: case 0x31: tmp = reg_u; reg_u = reg_x; reg_x = tmp; break;
+						case 0x14: case 0x41: tmp = reg_s; reg_s = reg_x; reg_x = tmp; break;
+						case 0x15: case 0x51: tmp = reg_pc; reg_pc = reg_x; reg_x = tmp; break;
+						case 0x16: case 0x61: reg_x = 0xffff; break;
+						case 0x17: case 0x71: reg_x = 0xffff; break;
+						case 0x18: case 0x81: tmp = reg_a; reg_a = reg_x & 0xff; reg_x = 0xff00 | tmp; break;
+						case 0x19: case 0x91: tmp = reg_b; reg_b = reg_x & 0xff; reg_x = 0xff00 | tmp; break;
+						case 0x1a: case 0xa1: tmp = reg_cc; reg_cc = reg_x & 0xff; reg_x = 0xff00 | tmp; break;
+						case 0x1b: case 0xb1: tmp = reg_dp; reg_dp = reg_x & 0xff; reg_x = 0xff00 | tmp; break;
+						case 0x1c: case 0xc1: reg_x = 0xffff; break;
+						case 0x1d: case 0xd1: reg_x = 0xffff; break;
+						case 0x1e: case 0xe1: reg_x = 0xffff; break;
+						case 0x1f: case 0xf1: reg_x = 0xffff; break;
+						case 0x23: case 0x32: tmp = reg_u; reg_u = reg_y; reg_y = tmp; break;
+						case 0x24: case 0x42: tmp = reg_s; reg_s = reg_y; reg_y = tmp; break;
+						case 0x25: case 0x52: tmp = reg_pc; reg_pc = reg_y; reg_y = tmp; break;
+						case 0x26: case 0x62: reg_y = 0xffff; break;
+						case 0x27: case 0x72: reg_y = 0xffff; break;
+						case 0x28: case 0x82: tmp = reg_a; reg_a = reg_y & 0xff; reg_y = 0xff00 | tmp; break;
+						case 0x29: case 0x92: tmp = reg_b; reg_b = reg_y & 0xff; reg_y = 0xff00 | tmp; break;
+						case 0x2a: case 0xa2: tmp = reg_cc; reg_cc = reg_y & 0xff; reg_y = 0xff00 | tmp; break;
+						case 0x2b: case 0xb2: tmp = reg_dp; reg_dp = reg_y & 0xff; reg_y = 0xff00 | tmp; break;
+						case 0x2c: case 0xc2: reg_y = 0xffff; break;
+						case 0x2d: case 0xd2: reg_y = 0xffff; break;
+						case 0x2e: case 0xe2: reg_y = 0xffff; break;
+						case 0x2f: case 0xf2: reg_y = 0xffff; break;
+						case 0x34: case 0x43: tmp = reg_s; reg_s = reg_u; reg_u = tmp; break;
+						case 0x35: case 0x53: tmp = reg_pc; reg_pc = reg_u; reg_u = tmp; break;
+						case 0x36: case 0x63: reg_u = 0xffff; break;
+						case 0x37: case 0x73: reg_u = 0xffff; break;
+						case 0x38: case 0x83: tmp = reg_a; reg_a = reg_u & 0xff; reg_u = 0xff00 | tmp; break;
+						case 0x39: case 0x93: tmp = reg_b; reg_b = reg_u & 0xff; reg_u = 0xff00 | tmp; break;
+						case 0x3a: case 0xa3: tmp = reg_cc; reg_cc = reg_u & 0xff; reg_u = 0xff00 | tmp; break;
+						case 0x3b: case 0xb3: tmp = reg_dp; reg_dp = reg_u & 0xff; reg_u = 0xff00 | tmp; break;
+						case 0x3c: case 0xc3: reg_u = 0xffff; break;
+						case 0x3d: case 0xd3: reg_u = 0xffff; break;
+						case 0x3e: case 0xe3: reg_u = 0xffff; break;
+						case 0x3f: case 0xf3: reg_u = 0xffff; break;
+						case 0x45: case 0x54: tmp = reg_pc; reg_pc = reg_s; reg_s = tmp; break;
+						case 0x46: case 0x64: reg_s = 0xffff; break;
+						case 0x47: case 0x74: reg_s = 0xffff; break;
+						case 0x48: case 0x84: tmp = reg_a; reg_a = reg_s & 0xff; reg_s = 0xff00 | tmp; break;
+						case 0x49: case 0x94: tmp = reg_b; reg_b = reg_s & 0xff; reg_s = 0xff00 | tmp; break;
+						case 0x4a: case 0xa4: tmp = reg_cc; reg_cc = reg_s & 0xff; reg_s = 0xff00 | tmp; break;
+						case 0x4b: case 0xb4: tmp = reg_dp; reg_dp = reg_s & 0xff; reg_s = 0xff00 | tmp; break;
+						case 0x4c: case 0xc4: reg_s = 0xffff; break;
+						case 0x4d: case 0xd4: reg_s = 0xffff; break;
+						case 0x4e: case 0xe4: reg_s = 0xffff; break;
+						case 0x4f: case 0xf4: reg_s = 0xffff; break;
+						case 0x56: case 0x65: reg_pc = 0xffff; break;
+						case 0x57: case 0x75: reg_pc = 0xffff; break;
+						case 0x58: case 0x85: tmp = reg_a; reg_a = reg_pc & 0xff; reg_pc = 0xff00 | tmp; break;
+						case 0x59: case 0x95: tmp = reg_b; reg_b = reg_pc & 0xff; reg_pc = 0xff00 | tmp; break;
+						case 0x5a: case 0xa5: tmp = reg_cc; reg_cc = reg_pc & 0xff; reg_pc = 0xff00 | tmp; break;
+						case 0x5b: case 0xb5: tmp = reg_dp; reg_dp = reg_pc & 0xff; reg_pc = 0xff00 | tmp; break;
+						case 0x5c: case 0xc5: reg_pc = 0xffff; break;
+						case 0x5d: case 0xd5: reg_pc = 0xffff; break;
+						case 0x5e: case 0xe5: reg_pc = 0xffff; break;
+						case 0x5f: case 0xf5: reg_pc = 0xffff; break;
+						case 0x68: case 0x86: reg_a = 0xff; break;
+						case 0x69: case 0x96: reg_b = 0xff; break;
+						case 0x6a: case 0xa6: reg_cc = 0xff; break;
+						case 0x6b: case 0xb6: reg_dp = 0xff; break;
+						case 0x78: case 0x87: reg_a = 0xff; break;
+						case 0x79: case 0x97: reg_b = 0xff; break;
+						case 0x7a: case 0xa7: reg_cc = 0xff; break;
+						case 0x7b: case 0xb7: reg_dp = 0xff; break;
+						case 0x89: case 0x98: tmp = reg_b; reg_b = reg_a; reg_a = tmp; break;
+						case 0x8a: case 0xa8: tmp = reg_cc; reg_cc = reg_a; reg_a = tmp; break;
+						case 0x8b: case 0xb8: tmp = reg_dp; reg_dp = reg_a; reg_a = tmp; break;
+						case 0x8c: case 0xc8: reg_a = 0xff; break;
+						case 0x8d: case 0xd8: reg_a = 0xff; break;
+						case 0x8e: case 0xe8: reg_a = 0xff; break;
+						case 0x8f: case 0xf8: reg_a = 0xff; break;
+						case 0x9a: case 0xa9: tmp = reg_cc; reg_cc = reg_b; reg_b = tmp; break;
+						case 0x9b: case 0xb9: tmp = reg_dp; reg_dp = reg_b; reg_b = tmp; break;
+						case 0x9c: case 0xc9: reg_b = 0xff; break;
+						case 0x9d: case 0xd9: reg_b = 0xff; break;
+						case 0x9e: case 0xe9: reg_b = 0xff; break;
+						case 0x9f: case 0xf9: reg_b = 0xff; break;
+						case 0xab: case 0xba: tmp = reg_dp; reg_dp = reg_cc; reg_cc = tmp; break;
+						case 0xac: case 0xca: reg_cc = 0xff; break;
+						case 0xad: case 0xda: reg_cc = 0xff; break;
+						case 0xae: case 0xea: reg_cc = 0xff; break;
+						case 0xaf: case 0xfa: reg_cc = 0xff; break;
+						case 0xbc: case 0xcb: reg_dp = 0xff; break;
+						case 0xbd: case 0xdb: reg_dp = 0xff; break;
+						case 0xbe: case 0xeb: reg_dp = 0xff; break;
+						case 0xbf: case 0xfb: reg_dp = 0xff; break;
 						default: break;
 					}
 					TAKEN_CYCLES(6);
 				} break;
-				// 0x1F TFR immediate
+				/* 0x1F TFR immediate */
 				case 0x1f: {
 					unsigned int postbyte;
-					uint_least16_t source = 0xffff;
 					BYTE_IMMEDIATE(0,postbyte);
-					switch ((postbyte & 0xf0) >> 4) {
-						case 0x00: source = reg_d; break;
-						case 0x01: source = reg_x; break;
-						case 0x02: source = reg_y; break;
-						case 0x03: source = reg_u; break;
-						case 0x04: source = reg_s; break;
-						case 0x05: source = reg_pc; break;
-						case 0x08: source = 0xff00 | (reg_a & 0xff); break;
-						case 0x09: source = 0xff00 | (reg_b & 0xff); break;
-						case 0x0a: source = 0xff00 | (reg_cc & 0xff); break;
-						case 0x0b: source = 0xff00 | (reg_dp & 0xff); break;
-						default: break;
-					}
-					switch (postbyte & 0x0f) {
-						case 0x00: reg_d = source; break;
-						case 0x01: reg_x = source; break;
-						case 0x02: reg_y = source; break;
-						case 0x03: reg_u = source; break;
-						case 0x04: reg_s = source; break;
-						case 0x05: reg_pc = source; break;
-						case 0x08: reg_a = source; break;
-						case 0x09: reg_b = source; break;
-						case 0x0a: reg_cc = source; break;
-						case 0x0b: reg_dp = source; break;
+					switch (postbyte & 0xff) {
+						case 0x01: reg_x = reg_d; break;
+						case 0x02: reg_y = reg_d; break;
+						case 0x03: reg_u = reg_d; break;
+						case 0x04: reg_s = reg_d; break;
+						case 0x05: reg_pc = reg_d; break;
+						case 0x08: reg_a = reg_d & 0xff; break;
+						case 0x09: reg_b = reg_d & 0xff; break;
+						case 0x0a: reg_cc = reg_d & 0xff; break;
+						case 0x0b: reg_dp = reg_d & 0xff; break;
+						case 0x10: reg_d = reg_x; break;
+						case 0x12: reg_y = reg_x; break;
+						case 0x13: reg_u = reg_x; break;
+						case 0x14: reg_s = reg_x; break;
+						case 0x15: reg_pc = reg_x; break;
+						case 0x18: reg_a = reg_x & 0xff; break;
+						case 0x19: reg_b = reg_x & 0xff; break;
+						case 0x1a: reg_cc = reg_x & 0xff; break;
+						case 0x1b: reg_dp = reg_x & 0xff; break;
+						case 0x20: reg_d = reg_y; break;
+						case 0x21: reg_x = reg_y; break;
+						case 0x23: reg_u = reg_y; break;
+						case 0x24: reg_s = reg_y; break;
+						case 0x25: reg_pc = reg_y; break;
+						case 0x28: reg_a = reg_y & 0xff; break;
+						case 0x29: reg_b = reg_y & 0xff; break;
+						case 0x2a: reg_cc = reg_y & 0xff; break;
+						case 0x2b: reg_dp = reg_y & 0xff; break;
+						case 0x30: reg_d = reg_u; break;
+						case 0x31: reg_x = reg_u; break;
+						case 0x32: reg_y = reg_u; break;
+						case 0x34: reg_s = reg_u; break;
+						case 0x35: reg_pc = reg_u; break;
+						case 0x38: reg_a = reg_u & 0xff; break;
+						case 0x39: reg_b = reg_u & 0xff; break;
+						case 0x3a: reg_cc = reg_u & 0xff; break;
+						case 0x3b: reg_dp = reg_u & 0xff; break;
+						case 0x40: reg_d = reg_s; break;
+						case 0x41: reg_x = reg_s; break;
+						case 0x42: reg_y = reg_s; break;
+						case 0x43: reg_u = reg_s; break;
+						case 0x45: reg_pc = reg_s; break;
+						case 0x48: reg_a = reg_s & 0xff; break;
+						case 0x49: reg_b = reg_s & 0xff; break;
+						case 0x4a: reg_cc = reg_s & 0xff; break;
+						case 0x4b: reg_dp = reg_s & 0xff; break;
+						case 0x50: reg_d = reg_pc; break;
+						case 0x51: reg_x = reg_pc; break;
+						case 0x52: reg_y = reg_pc; break;
+						case 0x53: reg_u = reg_pc; break;
+						case 0x54: reg_s = reg_pc; break;
+						case 0x58: reg_a = reg_pc & 0xff; break;
+						case 0x59: reg_b = reg_pc & 0xff; break;
+						case 0x5a: reg_cc = reg_pc & 0xff; break;
+						case 0x5b: reg_dp = reg_pc & 0xff; break;
+						case 0x60: reg_d = 0xffff; break;
+						case 0x61: reg_x = 0xffff; break;
+						case 0x62: reg_y = 0xffff; break;
+						case 0x63: reg_u = 0xffff; break;
+						case 0x64: reg_s = 0xffff; break;
+						case 0x65: reg_pc = 0xffff; break;
+						case 0x68: reg_a = 0xff; break;
+						case 0x69: reg_b = 0xff; break;
+						case 0x6a: reg_cc = 0xff; break;
+						case 0x6b: reg_dp = 0xff; break;
+						case 0x70: reg_d = 0xffff; break;
+						case 0x71: reg_x = 0xffff; break;
+						case 0x72: reg_y = 0xffff; break;
+						case 0x73: reg_u = 0xffff; break;
+						case 0x74: reg_s = 0xffff; break;
+						case 0x75: reg_pc = 0xffff; break;
+						case 0x78: reg_a = 0xff; break;
+						case 0x79: reg_b = 0xff; break;
+						case 0x7a: reg_cc = 0xff; break;
+						case 0x7b: reg_dp = 0xff; break;
+						case 0x80: reg_d = 0xff00 | reg_a; break;
+						case 0x81: reg_x = 0xff00 | reg_a; break;
+						case 0x82: reg_y = 0xff00 | reg_a; break;
+						case 0x83: reg_u = 0xff00 | reg_a; break;
+						case 0x84: reg_s = 0xff00 | reg_a; break;
+						case 0x85: reg_pc = 0xff00 | reg_a; break;
+						case 0x89: reg_b = reg_a; break;
+						case 0x8a: reg_cc = reg_a; break;
+						case 0x8b: reg_dp = reg_a; break;
+						case 0x90: reg_d = 0xff00 | reg_b; break;
+						case 0x91: reg_x = 0xff00 | reg_b; break;
+						case 0x92: reg_y = 0xff00 | reg_b; break;
+						case 0x93: reg_u = 0xff00 | reg_b; break;
+						case 0x94: reg_s = 0xff00 | reg_b; break;
+						case 0x95: reg_pc = 0xff00 | reg_b; break;
+						case 0x98: reg_a = reg_b; break;
+						case 0x9a: reg_cc = reg_b; break;
+						case 0x9b: reg_dp = reg_b; break;
+						case 0xa0: reg_d = 0xff00 | reg_cc; break;
+						case 0xa1: reg_x = 0xff00 | reg_cc; break;
+						case 0xa2: reg_y = 0xff00 | reg_cc; break;
+						case 0xa3: reg_u = 0xff00 | reg_cc; break;
+						case 0xa4: reg_s = 0xff00 | reg_cc; break;
+						case 0xa5: reg_pc = 0xff00 | reg_cc; break;
+						case 0xa8: reg_a = reg_cc; break;
+						case 0xa9: reg_b = reg_cc; break;
+						case 0xab: reg_dp = reg_cc; break;
+						case 0xb0: reg_d = 0xff00 | reg_dp; break;
+						case 0xb1: reg_x = 0xff00 | reg_dp; break;
+						case 0xb2: reg_y = 0xff00 | reg_dp; break;
+						case 0xb3: reg_u = 0xff00 | reg_dp; break;
+						case 0xb4: reg_s = 0xff00 | reg_dp; break;
+						case 0xb5: reg_pc = 0xff00 | reg_dp; break;
+						case 0xb8: reg_a = reg_dp; break;
+						case 0xb9: reg_b = reg_dp; break;
+						case 0xba: reg_cc = reg_dp; break;
+						case 0xc0: reg_d = 0xffff; break;
+						case 0xc1: reg_x = 0xffff; break;
+						case 0xc2: reg_y = 0xffff; break;
+						case 0xc3: reg_u = 0xffff; break;
+						case 0xc4: reg_s = 0xffff; break;
+						case 0xc5: reg_pc = 0xffff; break;
+						case 0xc8: reg_a = 0xff; break;
+						case 0xc9: reg_b = 0xff; break;
+						case 0xca: reg_cc = 0xff; break;
+						case 0xcb: reg_dp = 0xff; break;
+						case 0xd0: reg_d = 0xffff; break;
+						case 0xd1: reg_x = 0xffff; break;
+						case 0xd2: reg_y = 0xffff; break;
+						case 0xd3: reg_u = 0xffff; break;
+						case 0xd4: reg_s = 0xffff; break;
+						case 0xd5: reg_pc = 0xffff; break;
+						case 0xd8: reg_a = 0xff; break;
+						case 0xd9: reg_b = 0xff; break;
+						case 0xda: reg_cc = 0xff; break;
+						case 0xdb: reg_dp = 0xff; break;
+						case 0xe0: reg_d = 0xffff; break;
+						case 0xe1: reg_x = 0xffff; break;
+						case 0xe2: reg_y = 0xffff; break;
+						case 0xe3: reg_u = 0xffff; break;
+						case 0xe4: reg_s = 0xffff; break;
+						case 0xe5: reg_pc = 0xffff; break;
+						case 0xe8: reg_a = 0xff; break;
+						case 0xe9: reg_b = 0xff; break;
+						case 0xea: reg_cc = 0xff; break;
+						case 0xeb: reg_dp = 0xff; break;
+						case 0xf0: reg_d = 0xffff; break;
+						case 0xf1: reg_x = 0xffff; break;
+						case 0xf2: reg_y = 0xffff; break;
+						case 0xf3: reg_u = 0xffff; break;
+						case 0xf4: reg_s = 0xffff; break;
+						case 0xf5: reg_pc = 0xffff; break;
+						case 0xf8: reg_a = 0xff; break;
+						case 0xf9: reg_b = 0xff; break;
+						case 0xfa: reg_cc = 0xff; break;
+						case 0xfb: reg_dp = 0xff; break;
 						default: break;
 					}
 					TAKEN_CYCLES(4);
 				} break;
-#endif
 				/* 0x20 BRA relative */
 				case 0x20: BRANCHS(1); break;
 				/* 0x21 BRN relative */
@@ -1098,7 +1295,7 @@ void m6809_cycle(Cycle until) {
 			}
 			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			continue;
-		switched_block_page2:
+switched_block_page2:
 			BYTE_IMMEDIATE(0,op);
 			switch(op) {
 				/* 0x10 Page 2 */
@@ -1201,7 +1398,7 @@ void m6809_cycle(Cycle until) {
 			}
 			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			continue;
-		switched_block_page3:
+switched_block_page3:
 			BYTE_IMMEDIATE(0,op);
 			switch(op) {
 				/* 0x10 Page 2 */
@@ -1248,6 +1445,7 @@ void m6809_cycle(Cycle until) {
 			continue;
 		}
 	}
+	IF_TRACE(LOG_DEBUG(0, "Out: %d\n", current_cycle));
 restore_regs:
 	program_counter = reg_pc;
 	condition_code = reg_cc;
