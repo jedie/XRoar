@@ -86,7 +86,7 @@ Other Unix      ~/.xroar/roms or /usr/local/share/xroar/roms
 
 COMMAND LINE SWITCHES
 
-  -machine MACHINE	emulated machine ("dragon64", "dragon32" or "coco")
+  -machine MACHINE	emulated machine [dragon32|dragon64|tano|coco]
   -bas FILENAME		specify BASIC ROM to use (CoCo only)
   -extbas FILENAME	specify Extended BASIC ROM to use
   -noextbas		disable Extended BASIC
@@ -179,9 +179,9 @@ you'll probably want to generate snapshots for your own convenience.
 
 BUGS
 
-Sub-line graphics mode changing will not work, so nifty effects in
-Rommel's Revenge or Dragonfire, for example, will not be accurately
-represented.
+Sub-line graphics mode changing now works, but shows up some slight
+timing flaws.  Nifty effects in Rommel's Revenge or Dragonfire, for
+example, will not be accurately represented.
 
 
 COPYING
