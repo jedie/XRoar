@@ -6,6 +6,8 @@ libdir = $(exec_prefix)/lib
 mandir = $(prefix)/man
 datadir = $(prefix)/share
 
+VERSION := 0.14
+
 .PHONY: usage gp32 linux linux-be macosx solaris solaris-le windows32
 
 usage:
@@ -19,8 +21,6 @@ usage:
 	@echo
 	@echo "-be and -le targets specify an endianness (big- or little-endian). "
 	@echo
-
-VERSION := 0.13
 
 OPT = -O3
 macosx: OPT = -fast -mcpu=7450 -mdynamic-no-pic
