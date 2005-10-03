@@ -39,10 +39,11 @@
  * required, just appropriate timing.  Side-effects of reads obviously won't
  * happen, but in practice that should almost certainly never matter. */
 #define sam_peek_byte(a) do { \
-		if (((a)&0xffff) < 0x8000 || ((a)&0xffff) > 0xff00) \
-			current_cycle += CPU_SLOW_DIVISOR; \
-		else \
+		if ((((a)&0xffff) >= 0x8000) && ((((a)&0xffff) < 0xff00) \
+					|| (((a)&0xffff) >= 0xff20))) \
 			current_cycle += sam_topaddr_cycles; \
+		else \
+			current_cycle += CPU_SLOW_DIVISOR; \
 	} while(0)
 
 extern uint8_t *addrptr_low;

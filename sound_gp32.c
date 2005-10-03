@@ -65,7 +65,8 @@ static int init(void) {
 	sample_rate = 22050;
 	gpsound_init(PCLK, &sample_rate);
 	sample_cycles = OSCILLATOR_RATE / sample_rate;
-	frame_size = CYCLES_PER_FRAME / sample_cycles;
+	//frame_size = CYCLES_PER_FRAME / sample_cycles;
+	frame_size = 512;
 	frame_cycles = sample_cycles * frame_size;
 	buffer = gpsound_buffers(frame_size);
 	gpsound_start();

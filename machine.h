@@ -21,27 +21,14 @@
 #define TOP_BORDER_OFFSET 20
 */
 
-#define CYCLES_PER_SCANLINE 910
+#define CYCLES_PER_SCANLINE 912
 #define FIRST_DISPLAYED_SCANLINE 14
-#define SCANLINE_OF_FS_IRQ_LOW 228
-#define SCANLINE_OF_FS_IRQ_HIGH 236
+#define SCANLINE_OF_FS_IRQ_LOW 229
+#define SCANLINE_OF_FS_IRQ_HIGH 261
 #define TOTAL_SCANLINES_PER_FRAME 262
 
-#define ACTIVE_SCANLINES_PER_FRAME 243
-#define TOP_BORDER_OFFSET 20
-
-//#define CYCLES_PER_SCANLINE 910
-//#define ACTIVE_SCANLINES_PER_FRAME 256
-//#define TOTAL_SCANLINES_PER_FRAME 262
-//#define TOP_BORDER_OFFSET 14
-
-/* NTSC kludged timings: */
-/*
-#define CYCLES_PER_SCANLINE 910
-#define ACTIVE_SCANLINES_PER_FRAME 262
-#define TOTAL_SCANLINES_PER_FRAME 310
-#define TOP_BORDER_OFFSET 25
-*/
+#define CYCLES_PER_LINE_PULSE 928
+#define SCANLINE_OF_DELAYED_FS 253
 
 #define CYCLES_PER_FRAME (CYCLES_PER_SCANLINE * TOTAL_SCANLINES_PER_FRAME)
 
@@ -49,17 +36,23 @@
 #define CPU_FAST_DIVISOR 8
 
 /* machine_romtype will be one of: */
-#define DRAGON64 0
-#define COCO 1
-#define DRAGON32 2
+#define NUM_MACHINES 4
+#define DRAGON32 0
+#define DRAGON64 1
+#define TANO_DRAGON 2
+#define COCO 3
 
-#define IS_DRAGON64 (machine_romtype == DRAGON64)
+#define IS_DRAGON64 (machine_romtype == DRAGON64 || machine_romtype == TANO_DRAGON)
 #define IS_DRAGON32 (machine_romtype == DRAGON32)
 /* Quicker test, but may need changing if there are more machines: */
 #define IS_DRAGON (!IS_COCO)
 #define IS_COCO (machine_romtype == COCO)
 
+#define IS_PAL (machines[machine_romtype].tv_standard == PAL)
+#define IS_NTSC (machines[machine_romtype].tv_standard == NTSC)
+
 /* machine_keymap will be set to one of: */
+#define NUM_KEYBOARDS 2
 #define DRAGON_KEYBOARD 0
 #define COCO_KEYBOARD 1
 
@@ -69,7 +62,26 @@
 typedef struct { unsigned int col, row; } Key;
 typedef Key Keymap[128];
 
-extern int machine_romtype, machine_keymap;
+typedef enum { PAL, NTSC } TVStandard;
+
+typedef struct {
+	const char *name;
+	const char *description;
+	unsigned int keymap;
+	TVStandard tv_standard;
+	struct {
+		unsigned int csrdon;
+		unsigned int bitin;
+	} breakpoints[2];
+	const char *bas[5];
+	const char *extbas[5];
+	const char *dos[5];
+	const char *rom1[5];
+} machine_info;
+
+extern machine_info machines[];
+extern unsigned int machine_romtype;
+extern unsigned int machine_keymap;
 extern int dragondos_enabled;
 extern uint_least16_t brk_csrdon, brk_bitin;
 extern Keymap keymap;
@@ -77,6 +89,8 @@ extern uint8_t ram0[0x8000];
 extern uint8_t ram1[0x8000];
 extern uint8_t rom0[0x8000];
 extern uint8_t rom1[0x8000];
+
+extern const char *cart_filename;
 
 void machine_helptext(void);
 void machine_getargs(int argc, char **argv);

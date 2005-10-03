@@ -99,13 +99,13 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 	}
 	if (addr < 0xff60 && dragondos_enabled) {
 		if (IS_COCO) {
-			/* WD2797 Floppy Disk Controller */
+			/* CoCo floppy disk controller */
 			if ((addr & 15) == 8) return wd2797_status_read();
 			if ((addr & 15) == 9) return wd2797_track_register_read();
 			if ((addr & 15) == 10) return wd2797_sector_register_read();
 			if ((addr & 15) == 11) return wd2797_data_register_read();
 		} else {
-			/* WD2797 Floppy Disk Controller */
+			/* Dragon floppy disk controller */
 			if ((addr & 15) == 0) return wd2797_status_read();
 			if ((addr & 15) == 1) return wd2797_track_register_read();
 			if ((addr & 15) == 2) return wd2797_sector_register_read();
@@ -156,14 +156,14 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	}
 	if (addr < 0xff60 && dragondos_enabled) {
 		if (IS_COCO) {
-			/* WD2797 Floppy Disk Controller */
+			/* CoCo floppy disk controller */
 			if ((addr & 15) == 8) wd2797_command_write(octet);
 			if ((addr & 15) == 9) wd2797_track_register_write(octet);
 			if ((addr & 15) == 10) wd2797_sector_register_write(octet);
 			if ((addr & 15) == 11) wd2797_data_register_write(octet);
 			if (!(addr & 8)) wd2797_ff40_write(octet);
 		} else {
-			/* WD2797 Floppy Disk Controller */
+			/* Dragon floppy disk controller */
 			if ((addr & 15) == 0) wd2797_command_write(octet);
 			if ((addr & 15) == 1) wd2797_track_register_write(octet);
 			if ((addr & 15) == 2) wd2797_sector_register_write(octet);
@@ -198,9 +198,13 @@ void sam_update_from_register(void) {
 		if ((mapped_ram = sam_register & 0x8000)) {
 			addrptr_high = ram1;
 			sam_topaddr_cycles = CPU_SLOW_DIVISOR;
+			brk_csrdon = machines[machine_romtype].breakpoints[1].csrdon;
+			brk_bitin  = machines[machine_romtype].breakpoints[1].bitin;
 		} else {
 			addrptr_high = rom0;
 			sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
+			brk_csrdon = machines[machine_romtype].breakpoints[0].csrdon;
+			brk_bitin  = machines[machine_romtype].breakpoints[0].bitin;
 		}
 	}
 }

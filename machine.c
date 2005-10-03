@@ -33,14 +33,9 @@
 #include "vdrive.h"
 #include "wd2797.h"
 
-#define NUM_MACHINES 3
-#define NUM_KEYBOARDS 2
-
-/* machine_romtype indicates which ROM to try and load (Dragon or Coco),
- * and which cassette breakpoints to set (at the moment, this is also used
- * to choose between some hardware configs).  machine_keymap tracks which
- * keymap is in use (good to be able to set it separately). */
-int machine_romtype, machine_keymap;
+/* machine_keymap tracks which keymap is in use (good to be able to set it
+ * separately). */
+unsigned int machine_keymap;
 int dragondos_enabled;
 uint_least16_t brk_csrdon, brk_bitin;
 Keymap keymap;
@@ -89,47 +84,49 @@ static Keymap coco_keymap = {
 typedef struct {
 	unsigned int load_addr;
 } rom_info;
-typedef struct {
-	const char *name;
-	const char *description;
-	unsigned int keymap;
-	const char *bas[5];
-	const char *extbas[5];
-	const char *dos[5];
-	const char *rom1[5];
-} machine_info;
 
 /* The first ROM in each of these lists is NULL so it can be overwritten
    by switches */
 
 machine_info machines[NUM_MACHINES] = {
-	{ "dragon64", "Dragon 64", DRAGON_KEYBOARD,
+	{ "dragon32", "Dragon 32", DRAGON_KEYBOARD, PAL,
+		{ { 0xbde7, 0xbda5 }, { 0xbde7, 0xbda5 } },
+		{ NULL, NULL, NULL, NULL, NULL },
+		{ NULL, "d32", "dragon32", "d32rom", "dragon" },
+		{ NULL, "sdose6", "ddos10", NULL, NULL },
+		{ NULL, NULL, NULL, NULL, NULL }
+	},
+	{ "dragon64", "Dragon 64", DRAGON_KEYBOARD, PAL,
+		{ { 0xbde7, 0xbda5 }, { 0xbde7, 0xbda5 } },
 		{ NULL, NULL, NULL, NULL, NULL },
 		{ NULL, "d64_1", "d64rom1", "dragrom", "dragon" },
 		{ NULL, "sdose6", "ddos10", NULL, NULL },
 		{ NULL, "d64_2", "d64rom2", NULL, NULL }
 	},
-	{ "coco", "Tandy CoCo", COCO_KEYBOARD,
+	{ "tano", "Tano Dragon", DRAGON_KEYBOARD, NTSC,
+		{ { 0xbde7, 0xbda5 }, { 0xbde7, 0xbda5 } },
+		{ NULL, NULL, NULL, NULL, NULL },
+		{ NULL, "d64_1", "d64rom1", "dragrom", "dragon" },
+		{ NULL, "sdose6", "ddos10", NULL, NULL },
+		{ NULL, "d64_2", "d64rom2", NULL, NULL }
+	},
+	{ "coco", "Tandy CoCo", COCO_KEYBOARD, NTSC,
+		{ { 0xa77c, 0xa755 }, { 0xa77c, 0xa755 } },
 		{ NULL, "bas13", "bas12", "bas11", "bas10" },
 		{ NULL, "extbas11", "extbas10", NULL, NULL },
 		{ NULL, "disk11", "disk10", NULL, NULL },
 		{ NULL, NULL, NULL, NULL, NULL }
-	},
-	{ "dragon32", "Dragon 32", DRAGON_KEYBOARD,
-		{ NULL, NULL, NULL, NULL, NULL },
-		{ NULL, "d32", "dragon32", "d32rom", "dragon" },
-		{ NULL, "sdose6", "ddos10", NULL, NULL },
-		{ NULL, NULL, NULL, NULL, NULL }
 	}
 };
+unsigned int machine_romtype;
 
-static const char *cart_filename;
+const char *cart_filename;
 static int noextbas;
 
 static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
 
 void machine_helptext(void) {
-	puts("  -machine MACHINE      emulated machine (""dragon64"", ""dragon32"" or ""coco"")");
+	puts("  -machine MACHINE      emulated machine [dragon32|dragon64|tano|coco]");
 	puts("  -bas FILENAME         specify BASIC ROM to use (CoCo only)");
 	puts("  -extbas FILENAME      specify Extended BASIC ROM to use");
 	puts("  -noextbas             disable Extended BASIC");
@@ -204,18 +201,16 @@ void machine_reset(int hard) {
 		memset(ram1, 0, sizeof(ram1));
 		memset(rom0, 0, sizeof(rom0));
 		memset(rom1, 0, sizeof(rom1));
-		if (IS_COCO) {
-			brk_csrdon = 0xa77c; brk_bitin = 0xa755;
-		} else {
-			brk_csrdon = 0xbde7; brk_bitin = 0xbda5;
-		}
+		brk_csrdon = m->breakpoints[0].csrdon;
+		brk_bitin = m->breakpoints[0].bitin;
 		for (i=0; i<5 && load_rom(m->rom1[i], rom1, sizeof(rom1)); i++);
 		if (!IS_COCO || !noextbas)
 			for (i=0; i<5 && load_rom(m->extbas[i], rom0, sizeof(rom0)); i++);
 		for (i=0; i<5 && load_rom(m->bas[i], rom0+0x2000, sizeof(rom0)-0x2000); i++);
 		if (cart_filename) {
-			load_rom(cart_filename, rom0+0x4000, sizeof(rom0)-0x4000);
-			PIA_SET_P1CB1;
+			if (load_rom(cart_filename, rom0+0x4000, sizeof(rom0)-0x4000)) {
+				cart_filename = NULL;
+			}
 			dragondos_enabled = 0;
 		}
 		if (dragondos_enabled) {
@@ -237,6 +232,7 @@ void machine_reset(int hard) {
 void machine_set_romtype(int mode) {
 	machine_romtype = mode % NUM_MACHINES;
 	machine_set_keymap(machines[machine_romtype].keymap);
+	LOG_DEBUG(2, "%s selected\n", machines[machine_romtype].description);
 }
 
 /* Setting keymap takes effect immediately */
