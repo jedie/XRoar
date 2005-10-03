@@ -28,10 +28,14 @@
 
 #include "vdg_bitmaps.c"
 
+Cycle scanline_start;
+int beam_pos; 
+
 static void (*vdg_render_scanline)(void);
 static void vdg_hsync(void);
 static event_t *hsync_event;
 static int_least16_t scanline;
+static unsigned int line_pulse_count;
 
 void vdg_init(void) {
 	vdg_render_scanline = video_module->vdg_render_sg4;
@@ -41,17 +45,33 @@ void vdg_init(void) {
 
 void vdg_reset(void) {
 	video_module->vdg_reset();
-	vdg_set_mode();
 	scanline = 0;
+	line_pulse_count = 0;
 	hsync_event->at_cycle = current_cycle + CYCLES_PER_SCANLINE;
 	event_queue(hsync_event);
+	scanline_start = current_cycle;
+	vdg_set_mode();
+	beam_pos = 0;
 }
 
 static void vdg_hsync(void) {
+	/* XXX Hack: this shouldn't be done here really */
+	if (cart_filename) PIA_SET_P1CB1;
+	if (line_pulse_count) {
+		line_pulse_count--;
+		if (line_pulse_count == 0)
+			vdg_set_mode();
+#ifndef HAVE_GP32
+		else
+			video_module->render_border();
+#endif
+		goto done_line_pulse;
+	}
 	if (scanline >= FIRST_DISPLAYED_SCANLINE) {
 		if (scanline < (FIRST_DISPLAYED_SCANLINE + 24)) {
 #ifndef HAVE_GP32
-			video_module->render_border();
+			if (IS_NTSC)
+				video_module->render_border();
 #endif
 		} else {
 			if (scanline < (216 + FIRST_DISPLAYED_SCANLINE)) {
@@ -62,29 +82,54 @@ static void vdg_hsync(void) {
 			} else {
 				if (scanline < (240 + FIRST_DISPLAYED_SCANLINE)) {
 #ifndef HAVE_GP32
-					video_module->render_border();
+					if (IS_NTSC)
+						video_module->render_border();
 #endif
 				}
 			}
 		}
 	}
 	PIA_RESET_P0CA1; PIA_SET_P0CA1;  // XXX
-	if (scanline == SCANLINE_OF_FS_IRQ_LOW) 
+	if (scanline == SCANLINE_OF_FS_IRQ_LOW) {
 		PIA_RESET_P0CB1;
-	if (scanline == SCANLINE_OF_FS_IRQ_HIGH)
+	}
+	if (scanline == SCANLINE_OF_DELAYED_FS && IS_PAL) {
+		line_pulse_count = 25;
+	}
+	if (scanline == SCANLINE_OF_FS_IRQ_HIGH) {
 		PIA_SET_P0CB1;
+		if (IS_PAL) {
+			line_pulse_count = 25;
+		}
+	}
 	scanline++;
 	if (scanline >= TOTAL_SCANLINES_PER_FRAME) {
 		sam_vdg_fsync();
 		video_module->vdg_vsync();
 		scanline = 0;
 	}
-	hsync_event->at_cycle += CYCLES_PER_SCANLINE;
+done_line_pulse:
+	beam_pos = 0;
+	if (line_pulse_count) {
+		hsync_event->at_cycle += CYCLES_PER_LINE_PULSE;
+		scanline_start += CYCLES_PER_LINE_PULSE;
+	} else {
+		hsync_event->at_cycle += CYCLES_PER_SCANLINE;
+		scanline_start += CYCLES_PER_SCANLINE;
+	}
 	event_queue(hsync_event);
 }
 
 void vdg_set_mode(void) {
-	unsigned int mode = PIA_1B.port_output;
+	unsigned int mode;
+	if (line_pulse_count)
+		return;
+#ifndef HAVE_GP32
+	if (scanline >= (FIRST_DISPLAYED_SCANLINE + 24) && scanline < (216 + FIRST_DISPLAYED_SCANLINE)) {
+		vdg_render_scanline();
+	}
+#endif
+	mode = PIA_1B.port_output;
 	/* Update video module */
 	video_module->vdg_set_mode(mode);
 	switch ((mode & 0xf0) >> 4) {
