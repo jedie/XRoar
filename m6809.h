@@ -9,7 +9,27 @@
 #include "machine.h"
 #include "types.h"
 
-extern int halt, nmi, firq, irq;
+#define reg_a reg_accum.byte_values.upper
+#define reg_b reg_accum.byte_values.lower
+#define reg_d reg_accum.word_value
+
+typedef union {
+	//uint32_t word_value;
+	uint16_t word_value;
+	struct {
+#ifdef WRONG_ENDIAN
+		uint8_t lower;
+		uint8_t upper;
+		//uint16_t dummy;
+#else
+		//uint16_t dummy;
+		uint8_t upper;
+		uint8_t lower;
+#endif
+	} byte_values;
+} accumulator_t;
+
+extern unsigned int halt, nmi, firq, irq;
 
 void m6809_init(void);
 void m6809_reset(void);
