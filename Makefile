@@ -155,6 +155,7 @@ CFLAGS_WRONGEND = -DWRONG_ENDIAN
 ROMPATH = :~/.xroar/roms:$(prefix)/share/xroar/roms
 windows32: ROMPATH = .
 macosx: ROMPATH = :~/.xroar/roms:~/Library/XRoar/Roms
+gp32: ROMPATH = gp:/gpmm/dragon
 
 # Enable SDL for these targets:
 $(ENABLE_SDL): OBJS    += $(OBJS_SDL)
@@ -282,6 +283,9 @@ OBJCOPY = $(TOOL_PREFIX)objcopy
 
 TARGETS = xroar xroar.exe xroar.elf
 
+xroar.exe: $(OBJS_WINDOWS32)
+xroar.elf: $(OBJS_GP32)
+
 $(TARGETS): $(COMMON_OBJS)
 	$(CC) $(CFLAGS) $(OBJS) $(COMMON_OBJS) -o $@ $(LDFLAGS)
 
@@ -312,7 +316,8 @@ kbd_graphics.c: tools/img2c gp32/kbd.png gp32/kbd_shift.png
 .PHONY: clean dist dist-gp32 dist-windows32 dist-macos dist-macosx
 
 CLEAN_FILES = $(TARGETS) $(ALL_OBJS) tools/img2c tools/prerender \
-	copyright.c cmode_bin.c kbd_graphics.c xroar.bin xroar.fxe
+	copyright.c cmode_bin.c kbd_graphics.c vdg_bitmaps_gp32.c \
+	xroar.bin xroar.fxe
 
 clean:
 	rm -f $(CLEAN_FILES)
