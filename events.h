@@ -27,7 +27,6 @@ extern event_t *event_list;
 	} while (0)
 
 event_t *event_new(void);
-void event_free(event_t *event);
 void event_queue(event_t *event);
 void event_dequeue(event_t *event);
 

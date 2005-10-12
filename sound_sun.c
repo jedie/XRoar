@@ -111,7 +111,7 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
-	event_free(flush_event);
+	event_dequeue(flush_event);
 	close(sound_fd);
 	free(buffer);
 }
@@ -143,7 +143,7 @@ static void update(void) {
 		fill_with = ((PIA_1B.port_output & 0x02) << 5);
 		//fill_with = 0;
 	} else  {
-		if (PIA_0B.control_register & 0x08) { // || PIA_0A.control_register & 0x08) { 
+		if (PIA_0B.control_register & 0x08 || PIA_0A.control_register & 0x08) { 
 			/* Sound disabled */
 			fill_with = 0;
 		} else {

@@ -207,6 +207,7 @@ static void keypress(SDL_keysym *keysym) {
 			}
 			break;
 		case SDLK_m:
+			machine_set_keymap(machine_keymap+1);
 			machine_set_romtype(machine_romtype+1);
 			xroar_reset(RESET_HARD);
 			break;

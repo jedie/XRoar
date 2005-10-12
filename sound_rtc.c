@@ -77,7 +77,7 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-	event_free(flush_event);
+	event_dequeue(flush_event);
 	if (ioctl(fd, RTC_PIE_OFF, 0) == -1) {
 		LOG_WARN("Couldn't disable periodic interrupts\n");
 	}

@@ -44,6 +44,7 @@ SoundModule sound_sdl_module = {
 };
 
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
+typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 
 #ifdef WINDOWS32
 # define SAMPLE_RATE 22050
@@ -66,7 +67,7 @@ static SDL_AudioSpec audiospec;
 static Cycle frame_cycle_base;
 static Sample *buffer;
 static Sample *wrptr;
-static Sample lastsample;
+static Sample_f lastsample;
 static SDL_mutex *halt_mutex;
 static SDL_cond *halt_cv;
 static int haltflag;
@@ -99,7 +100,7 @@ static int init(void) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		return 1;
 	}
-	buffer = malloc(FRAME_SIZE * sizeof(Sample));
+	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
 	flush_event = event_new();
@@ -109,7 +110,7 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL audio driver\n");
-	event_free(flush_event);
+	event_dequeue(flush_event);
 	SDL_DestroyCond(halt_cv);
 	SDL_DestroyMutex(halt_mutex);
 	SDL_CloseAudio();
@@ -124,12 +125,12 @@ static void reset(void) {
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(flush_event);
-	lastsample = 0x80;
+	lastsample = 0;
 }
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample fill_with;
+	Sample_f fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
@@ -138,14 +139,14 @@ static void update(void) {
 	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = (PIA_1B.port_output & 0x02) ? 0xff : 0x80;
+		fill_with = ((PIA_1B.port_output & 0x02) << 5) ^ 0x80;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
 			fill_with = 0x80;
 		} else {
 			/* DAC output */
-			fill_with = PIA_1A.port_output & 0xfc;
+			fill_with = ((PIA_1A.port_output & 0xfc) >> 1) ^ 0x80;
 		}
 	}
 	while (wrptr < fill_to)

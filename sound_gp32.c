@@ -45,12 +45,11 @@ SoundModule sound_gp32_module = {
 	init, shutdown, reset, update
 };
 
-#define FRAME_SIZE 512
-
 typedef uint16_t Sample;  /* 8-bit stereo */
 
 static uint_least32_t sample_rate;
 static Cycle sample_cycles;
+static int_least32_t frame_size;
 static uint_least32_t frame_cycles;
 
 static Cycle frame_cycle_base;
@@ -66,8 +65,10 @@ static int init(void) {
 	sample_rate = 22050;
 	gpsound_init(PCLK, &sample_rate);
 	sample_cycles = OSCILLATOR_RATE / sample_rate;
-	frame_cycles = sample_cycles * FRAME_SIZE;
-	buffer = gpsound_buffers(FRAME_SIZE);
+	//frame_size = CYCLES_PER_FRAME / sample_cycles;
+	frame_size = 512;
+	frame_cycles = sample_cycles * frame_size;
+	buffer = gpsound_buffers(frame_size);
 	gpsound_start();
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
@@ -75,18 +76,17 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-	event_free(flush_event);
 }
 
 static void reset(void) {
-	memset(buffer[0], 0x00, FRAME_SIZE * sizeof(Sample));
-	memset(buffer[1], 0x00, FRAME_SIZE * sizeof(Sample));
+	memset(buffer[0], 0x80, frame_size * sizeof(Sample));
+	memset(buffer[1], 0x80, frame_size * sizeof(Sample));
 	wrptr = buffer[1];
 	writing_frame = 1;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(flush_event);
-	lastsample = 0x0000;
+	lastsample = 0x80;
 }
 
 static void update(void) {
@@ -94,20 +94,20 @@ static void update(void) {
 	Sample fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
-		fill_to = buffer[writing_frame] + FRAME_SIZE;
+		fill_to = buffer[writing_frame] + frame_size;
 	} else {
 		fill_to = buffer[writing_frame] + (elapsed_cycles/(Cycle)sample_cycles);
 	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = (PIA_1B.port_output & 0x02) ? 0x7f : 0x00;
+		fill_with = ((PIA_1B.port_output & 0x02) << 5) ^ 0x80;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
-			fill_with = 0x00;
+			fill_with = 0x80;
 		} else {
 			/* DAC output */
-			fill_with = (PIA_1A.port_output & 0xfc) ^ 0x80;
+			fill_with = ((PIA_1A.port_output & 0xfc) >> 1) ^ 0x80;
 		}
 	}
 	while (wrptr < fill_to)
@@ -116,7 +116,7 @@ static void update(void) {
 }
 
 static void flush_frame(void) {
-	Sample *fill_to = buffer[writing_frame] + FRAME_SIZE;
+	Sample *fill_to = buffer[writing_frame] + frame_size;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;
@@ -128,8 +128,8 @@ static void flush_frame(void) {
 }
 
 void sound_silence(void) {
-	memset(buffer[0], 0x00, FRAME_SIZE * sizeof(Sample));
-	memset(buffer[1], 0x00, FRAME_SIZE * sizeof(Sample));
+	memset(buffer[0], 0x80, frame_size * sizeof(Sample));
+	memset(buffer[1], 0x80, frame_size * sizeof(Sample));
 }
 
 #endif  /* HAVE_GP32 */

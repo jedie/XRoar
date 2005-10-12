@@ -47,6 +47,7 @@ SoundModule sound_oss_module = {
 };
 
 typedef uint8_t Sample;  /* 8-bit mono */
+typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 
 #define FRAGMENTS 2
 #define FRAME_SIZE 512
@@ -62,7 +63,7 @@ unsigned int bytes_per_sample;
 static Cycle frame_cycle_base;
 static Sample *buffer;
 static Sample *wrptr;
-static Sample lastsample;
+static Sample_f lastsample;
 static uint8_t *convbuf;
 
 static void flush_frame(void);
@@ -79,19 +80,16 @@ static int init(void) {
 	/* The order these ioctls are tried (format, channels, sample rate)
 	 * is important: OSS docs say setting format can affect channels and
 	 * sample rate, and setting channels can affect sample rate. */
-	/* Set audio format.  Only support AFMT_U8, AFMT_S8 and AFMT_S16_NE
-	 * (16-bit host-endian) */
+	/* Set audio format.  Only support AFMT_U8 (unsigned 8-bit) and
+	 * AFMT_S16_NE (signed 16-bit, host-endian) */
 	if (ioctl(sound_fd, SNDCTL_DSP_GETFMTS, &format) == -1)
 		goto failed;
-	if ((format & (AFMT_U8 | AFMT_S8 | AFMT_S16_NE)) == 0) {
+	if ((format & (AFMT_U8 | AFMT_S16_NE)) == 0) {
 		LOG_ERROR("No desired audio formats supported by device\n");
 		return 1;
 	}
 	if (format & AFMT_U8) {
 		format = AFMT_U8;
-		bytes_per_sample = 1;
-	} else if (format & AFMT_S8) {
-		format = AFMT_S8;
 		bytes_per_sample = 1;
 	} else {
 		format = AFMT_S16_NE;
@@ -135,7 +133,7 @@ failed:
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down OSS audio driver\n");
-	event_free(flush_event);
+	event_dequeue(flush_event);
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
 	free(buffer);
@@ -143,17 +141,17 @@ static void shutdown(void) {
 
 static void reset(void) {
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
-	memset(buffer, 0x80, FRAME_SIZE * sizeof(Sample));
+	memset(buffer, 0x00, FRAME_SIZE * sizeof(Sample));
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(flush_event);
-	lastsample = 0x80;
+	lastsample = 0;
 }
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample fill_with;
+	Sample_f fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
@@ -162,11 +160,11 @@ static void update(void) {
 	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = (PIA_1B.port_output & 0x02) ? 0xff : 0x80;
+		fill_with = (PIA_1B.port_output & 0x02) << 6;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
-			fill_with = 0x80;
+			fill_with = 0;
 		} else {
 			/* DAC output */
 			fill_with = PIA_1A.port_output & 0xfc;
@@ -193,19 +191,7 @@ static void flush_frame(void) {
 		uint8_t tmp;
 		int i, j;
 		for (i = FRAME_SIZE; i; i--) {
-			tmp = *(source++);
-			for (j = 0; j < channels; j++)
-				*(dest++) = tmp;
-		}
-		write(sound_fd, convbuf, FRAME_SIZE * channels);
-		return;
-	}
-	if (format == AFMT_S8) {
-		uint8_t *dest = convbuf;
-		uint8_t tmp;
-		int i, j;
-		for (i = FRAME_SIZE; i; i--) {
-			tmp = *(source++) ^ 0x80;
+			tmp = (*(source++) >> 2) ^ 0x80;
 			for (j = 0; j < channels; j++)
 				*(dest++) = tmp;
 		}
@@ -218,7 +204,7 @@ static void flush_frame(void) {
 		int i, j;
 		for (i = FRAME_SIZE; i; i--) {
 			tmp = (*(source++) ^ 0x80) << 8;
-			/* tmp >>= 2; */
+			tmp >>= 2;
 			for (j = 0; j < channels; j++)
 				*(dest++) = tmp;
 		}

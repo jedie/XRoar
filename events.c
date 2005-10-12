@@ -36,11 +36,6 @@ event_t *event_new(void) {
 	return new;
 }
 
-void event_free(event_t *event) {
-	event_dequeue(event);
-	free(event);
-}
-
 void event_queue(event_t *event) {
 	event_t **entry;
 	if (event->queued)

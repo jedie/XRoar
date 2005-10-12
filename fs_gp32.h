@@ -10,4 +10,17 @@
 
 #include "types.h"
 
+#define FS_ATTR_DIRECTORY 16
+
+struct dirent {
+	char d_name[16];
+	unsigned long attr;
+	unsigned long size;
+};
+
 typedef F_HANDLE FS_FILE;
+
+int fs_scandir(const char *dir, struct dirent ***namelist,
+		int (*filter)(struct dirent *),
+		int (*compar)(const void *, const void *));
+void fs_freedir(struct dirent ***namelist);

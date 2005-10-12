@@ -56,9 +56,7 @@ void vdg_reset(void) {
 
 static void vdg_hsync(void) {
 	/* XXX Hack: this shouldn't be done here really */
-#ifndef HAVE_GP32
 	if (cart_filename) PIA_SET_P1CB1;
-#endif
 	if (line_pulse_count) {
 		line_pulse_count--;
 		if (line_pulse_count == 0)
