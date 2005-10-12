@@ -23,7 +23,6 @@
 #include "xroar.h"
 #include "m6809.h"
 #include "sam.h"
-#include "pia.h"
 #include "logging.h"
 #include "tape.h"
 #include "m6809_dasm.h"
@@ -138,7 +137,7 @@
 		PUSHBYTE(reg_s, reg_cc); \
 	}
 
-#define TEST_INTERRUPT(i,m,v,e,cm,cyc,nom) do { \
+#define DO_INTERRUPT(i,m,v,e,cm,cyc,nom) do { \
 		if (!skip_register_push) /* SYNC */ \
 			wait_for_interrupt = 0; \
 		if (!(reg_cc & m)) { \
@@ -155,32 +154,20 @@
 #define DISARM_NMI do { nmi_armed = 0; } while (0)
 
 /* MPU registers */
-unsigned int condition_code;
+static unsigned int condition_code;
+static uint8_t register_a, register_b;
 static uint8_t reg_dp;
 static uint16_t	reg_x, reg_y, reg_u, reg_s;
 static uint16_t program_counter;
 
-static union {
-	uint16_t word_value;
-	struct {
-#ifdef WRONG_ENDIAN
-		uint8_t lower;
-		uint8_t upper;
-#else
-		uint8_t upper;
-		uint8_t lower;
-#endif
-	} byte_values;
-} reg_accum;
-#define reg_a reg_accum.byte_values.upper
-#define reg_b reg_accum.byte_values.lower
-#define reg_d reg_accum.word_value
+#define reg_d ((reg_a&0xff) << 8 | (reg_b&0xff))
+#define set_reg_d(v) do { reg_a = ((v)>>8)&0xff; reg_b = (v)&0xff; } while (0)
 
 /* MPU interrupt state variables */
-unsigned int halt, nmi, firq, irq;
-static unsigned int wait_for_interrupt;
-static unsigned int skip_register_push;
-static unsigned int nmi_armed;
+int halt, nmi, firq, irq;
+static int wait_for_interrupt;
+static int skip_register_push;
+static int nmi_armed;
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 #define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))
@@ -324,6 +311,12 @@ static unsigned int nmi_armed;
 #define OP_TSTR(r) { CLR_NZV; SET_NZ8(r); peek_byte(reg_pc); }
 #define OP_CLRR(r) { r = 0; CLR_NVC; reg_cc |= CC_Z; peek_byte(reg_pc); }
 
+#define OP_SUBD(a) { uint_least32_t tmp = reg_d, octet, result; a(addr,octet); result = tmp - octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); set_reg_d(result); TAKEN_CYCLES(1); }
+#define OP_ADDD(a) { uint_least32_t tmp = reg_d, octet, result; a(addr,octet); result = tmp + octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); set_reg_d(result); TAKEN_CYCLES(1); }
+#define OP_CMPD(a) { uint_least32_t tmp = reg_d, octet, result; a(addr,octet); result = tmp - octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); TAKEN_CYCLES(1); }
+#define OP_LDD(a) { uint_least16_t tmp; a(addr,tmp); CLR_NZV; SET_NZ16(tmp); set_reg_d(tmp); }
+#define OP_STD(a) { uint_least16_t tmp = reg_d; a(addr); store_byte(addr, reg_a); store_byte(addr+1, reg_b); CLR_NZV; SET_NZ16(tmp); }
+
 #define OP_SUB16(r,a) { uint_least32_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; TAKEN_CYCLES(1); }
 #define OP_ADD16(r,a) { uint_least32_t octet, result; a(addr,octet); result = r + octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; TAKEN_CYCLES(1); }
 #define OP_CMP16(r,a) { uint_least32_t octet, result; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); TAKEN_CYCLES(1); }
@@ -358,8 +351,8 @@ void m6809_init(void) {
 
 void m6809_reset(void) {
 	condition_code = 0xff;
-	reg_dp = 0;
-	reg_d = reg_x = reg_y = reg_u = reg_s = 0;
+	register_a = register_b = reg_dp = 0;
+	reg_x = reg_y = reg_u = reg_s = 0;
 	halt = nmi = firq = irq = 0;
 	DISARM_NMI;
 	wait_for_interrupt = 0;
@@ -371,8 +364,9 @@ void m6809_reset(void) {
 void m6809_cycle(Cycle until) {
 	__label__ restore_regs, switched_block_page2, switched_block_page3;
 	uint_least16_t addr;
-	uint16_t reg_pc;
 	unsigned int reg_cc;
+	uint8_t reg_a, reg_b;
+	uint16_t reg_pc;
 	/* Bit of a GCC-ism here: */
 	auto unsigned int ea_indexed(void);
 	unsigned int ea_indexed(void) {
@@ -381,6 +375,8 @@ void m6809_cycle(Cycle until) {
 		return rret;
 	}
 	reg_cc = condition_code;
+	reg_a = register_a;
+	reg_b = register_b;
 	reg_pc = program_counter;
 
 	if (halt && !wait_for_interrupt) {
@@ -390,17 +386,17 @@ void m6809_cycle(Cycle until) {
 	}
 	if (nmi_armed && nmi) {
 		DISARM_NMI;
-		TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I, 7, "NMI");
+		DO_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I, 7, "NMI");
 		/* NMI is latched.  Assume that means latched only on
 		 * high-to-low transition... */
 		nmi = 0;
 	}
 	if (firq) {
-		TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I, 7, "FIRQ");
+		DO_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I, 7, "FIRQ");
 		/* FIRQ and IRQ aren't latched: can remain set */
 	}
 	if (irq) {
-		TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I, 7, "IRQ");
+		DO_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I, 7, "IRQ");
 		/* FIRQ and IRQ aren't latched: can remain set */
 	}
 	if (halt || wait_for_interrupt) {
@@ -410,15 +406,6 @@ void m6809_cycle(Cycle until) {
 	}
 	IF_TRACE(LOG_DEBUG(0, "In: %d\n", current_cycle));
 	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt && !halt) {
-		/* Trap cassette ROM routines - hack! */
-		if (reg_pc == brk_csrdon) {
-			PULLWORD(reg_s, reg_pc);
-		}
-		if (reg_pc == brk_bitin) {
-			reg_cc &= ~CC_C;
-			reg_cc |= tape_read_bit();
-			PULLWORD(reg_s, reg_pc);
-		}
 		IF_TRACE(LOG_DEBUG(0, "%04x| ", reg_pc));
 		/* Fetch op-code and process */
 		{
@@ -511,11 +498,14 @@ void m6809_cycle(Cycle until) {
 					peek_byte(reg_pc);
 				} break;
 				/* 0x1D SEX inherent */
-				case 0x1d:
+				case 0x1d: {
+					uint_least16_t tmp;
 					reg_a = (reg_b&0x80)?0xff:0;
+					tmp = reg_d;
 					CLR_NZV;
-					SET_NZ16(reg_d);
+					SET_NZ16(tmp);
 					peek_byte(reg_pc);
+					}
 					break;
 				/* 0x1E EXG immediate */
 				case 0x1e: {
@@ -523,21 +513,21 @@ void m6809_cycle(Cycle until) {
 					unsigned int tmp;
 					BYTE_IMMEDIATE(0,postbyte);
 					switch (postbyte & 0xff) {
-						case 0x01: case 0x10: tmp = reg_x; reg_x = reg_d; reg_d = tmp; break;
-						case 0x02: case 0x20: tmp = reg_y; reg_y = reg_d; reg_d = tmp; break;
-						case 0x03: case 0x30: tmp = reg_u; reg_u = reg_d; reg_d = tmp; break;
-						case 0x04: case 0x40: tmp = reg_s; reg_s = reg_d; reg_d = tmp; break;
-						case 0x05: case 0x50: tmp = reg_pc; reg_pc = reg_d; reg_d = tmp; break;
-						case 0x06: case 0x60: reg_d = 0xffff; break;
-						case 0x07: case 0x70: reg_d = 0xffff; break;
-						case 0x08: case 0x80: tmp = reg_a; reg_a = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
-						case 0x09: case 0x90: tmp = reg_b; reg_b = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
-						case 0x0a: case 0xa0: tmp = reg_cc; reg_cc = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
-						case 0x0b: case 0xb0: tmp = reg_dp; reg_dp = reg_d & 0xff; reg_d = 0xff00 | tmp; break;
-						case 0x0c: case 0xc0: reg_d = 0xffff; break;
-						case 0x0d: case 0xd0: reg_d = 0xffff; break;
-						case 0x0e: case 0xe0: reg_d = 0xffff; break;
-						case 0x0f: case 0xf0: reg_d = 0xffff; break;
+						case 0x01: case 0x10: tmp = reg_x; reg_x = reg_d; set_reg_d(tmp); break;
+						case 0x02: case 0x20: tmp = reg_y; reg_y = reg_d; set_reg_d(tmp); break;
+						case 0x03: case 0x30: tmp = reg_u; reg_u = reg_d; set_reg_d(tmp); break;
+						case 0x04: case 0x40: tmp = reg_s; reg_s = reg_d; set_reg_d(tmp); break;
+						case 0x05: case 0x50: tmp = reg_pc; reg_pc = reg_d; set_reg_d(tmp); break;
+						case 0x06: case 0x60: set_reg_d(0xffff); break;
+						case 0x07: case 0x70: set_reg_d(0xffff); break;
+						case 0x08: case 0x80: reg_b = reg_a; reg_a = 0xff; break;
+						case 0x09: case 0x90: reg_a = 0xff; break;
+						case 0x0a: case 0xa0: tmp = reg_cc; reg_cc = reg_b; reg_a = 0xff; reg_b = tmp; break;
+						case 0x0b: case 0xb0: tmp = reg_dp; reg_dp = reg_b; reg_a = 0xff; reg_b = tmp; break;
+						case 0x0c: case 0xc0: reg_a = reg_b = 0xff; break;
+						case 0x0d: case 0xd0: reg_a = reg_b = 0xff; break;
+						case 0x0e: case 0xe0: reg_a = reg_b = 0xff; break;
+						case 0x0f: case 0xf0: reg_a = reg_b = 0xff; break;
 						case 0x12: case 0x21: tmp = reg_y; reg_y = reg_x; reg_x = tmp; break;
 						case 0x13: case 0x31: tmp = reg_u; reg_u = reg_x; reg_x = tmp; break;
 						case 0x14: case 0x41: tmp = reg_s; reg_s = reg_x; reg_x = tmp; break;
@@ -642,11 +632,11 @@ void m6809_cycle(Cycle until) {
 						case 0x03: reg_u = reg_d; break;
 						case 0x04: reg_s = reg_d; break;
 						case 0x05: reg_pc = reg_d; break;
-						case 0x08: reg_a = reg_d & 0xff; break;
-						case 0x09: reg_b = reg_d & 0xff; break;
-						case 0x0a: reg_cc = reg_d & 0xff; break;
-						case 0x0b: reg_dp = reg_d & 0xff; break;
-						case 0x10: reg_d = reg_x; break;
+						case 0x08: reg_a = reg_b; break;
+						case 0x09: reg_b = reg_b; break;
+						case 0x0a: reg_cc = reg_b; break;
+						case 0x0b: reg_dp = reg_b; break;
+						case 0x10: set_reg_d(reg_x); break;
 						case 0x12: reg_y = reg_x; break;
 						case 0x13: reg_u = reg_x; break;
 						case 0x14: reg_s = reg_x; break;
@@ -655,7 +645,7 @@ void m6809_cycle(Cycle until) {
 						case 0x19: reg_b = reg_x & 0xff; break;
 						case 0x1a: reg_cc = reg_x & 0xff; break;
 						case 0x1b: reg_dp = reg_x & 0xff; break;
-						case 0x20: reg_d = reg_y; break;
+						case 0x20: set_reg_d(reg_y); break;
 						case 0x21: reg_x = reg_y; break;
 						case 0x23: reg_u = reg_y; break;
 						case 0x24: reg_s = reg_y; break;
@@ -664,7 +654,7 @@ void m6809_cycle(Cycle until) {
 						case 0x29: reg_b = reg_y & 0xff; break;
 						case 0x2a: reg_cc = reg_y & 0xff; break;
 						case 0x2b: reg_dp = reg_y & 0xff; break;
-						case 0x30: reg_d = reg_u; break;
+						case 0x30: set_reg_d(reg_u); break;
 						case 0x31: reg_x = reg_u; break;
 						case 0x32: reg_y = reg_u; break;
 						case 0x34: reg_s = reg_u; break;
@@ -673,7 +663,7 @@ void m6809_cycle(Cycle until) {
 						case 0x39: reg_b = reg_u & 0xff; break;
 						case 0x3a: reg_cc = reg_u & 0xff; break;
 						case 0x3b: reg_dp = reg_u & 0xff; break;
-						case 0x40: reg_d = reg_s; break;
+						case 0x40: set_reg_d(reg_s); break;
 						case 0x41: reg_x = reg_s; break;
 						case 0x42: reg_y = reg_s; break;
 						case 0x43: reg_u = reg_s; break;
@@ -682,7 +672,7 @@ void m6809_cycle(Cycle until) {
 						case 0x49: reg_b = reg_s & 0xff; break;
 						case 0x4a: reg_cc = reg_s & 0xff; break;
 						case 0x4b: reg_dp = reg_s & 0xff; break;
-						case 0x50: reg_d = reg_pc; break;
+						case 0x50: set_reg_d(reg_pc); break;
 						case 0x51: reg_x = reg_pc; break;
 						case 0x52: reg_y = reg_pc; break;
 						case 0x53: reg_u = reg_pc; break;
@@ -691,7 +681,7 @@ void m6809_cycle(Cycle until) {
 						case 0x59: reg_b = reg_pc & 0xff; break;
 						case 0x5a: reg_cc = reg_pc & 0xff; break;
 						case 0x5b: reg_dp = reg_pc & 0xff; break;
-						case 0x60: reg_d = 0xffff; break;
+						case 0x60: reg_a = reg_b = 0xff; break;
 						case 0x61: reg_x = 0xffff; break;
 						case 0x62: reg_y = 0xffff; break;
 						case 0x63: reg_u = 0xffff; break;
@@ -701,7 +691,7 @@ void m6809_cycle(Cycle until) {
 						case 0x69: reg_b = 0xff; break;
 						case 0x6a: reg_cc = 0xff; break;
 						case 0x6b: reg_dp = 0xff; break;
-						case 0x70: reg_d = 0xffff; break;
+						case 0x70: reg_a = reg_b = 0xff; break;
 						case 0x71: reg_x = 0xffff; break;
 						case 0x72: reg_y = 0xffff; break;
 						case 0x73: reg_u = 0xffff; break;
@@ -711,7 +701,7 @@ void m6809_cycle(Cycle until) {
 						case 0x79: reg_b = 0xff; break;
 						case 0x7a: reg_cc = 0xff; break;
 						case 0x7b: reg_dp = 0xff; break;
-						case 0x80: reg_d = 0xff00 | reg_a; break;
+						case 0x80: reg_b = reg_a; reg_a = 0xff; break;
 						case 0x81: reg_x = 0xff00 | reg_a; break;
 						case 0x82: reg_y = 0xff00 | reg_a; break;
 						case 0x83: reg_u = 0xff00 | reg_a; break;
@@ -720,7 +710,7 @@ void m6809_cycle(Cycle until) {
 						case 0x89: reg_b = reg_a; break;
 						case 0x8a: reg_cc = reg_a; break;
 						case 0x8b: reg_dp = reg_a; break;
-						case 0x90: reg_d = 0xff00 | reg_b; break;
+						case 0x90: reg_a = 0xff; break;
 						case 0x91: reg_x = 0xff00 | reg_b; break;
 						case 0x92: reg_y = 0xff00 | reg_b; break;
 						case 0x93: reg_u = 0xff00 | reg_b; break;
@@ -729,7 +719,7 @@ void m6809_cycle(Cycle until) {
 						case 0x98: reg_a = reg_b; break;
 						case 0x9a: reg_cc = reg_b; break;
 						case 0x9b: reg_dp = reg_b; break;
-						case 0xa0: reg_d = 0xff00 | reg_cc; break;
+						case 0xa0: reg_a = 0xff; reg_b = reg_cc; break;
 						case 0xa1: reg_x = 0xff00 | reg_cc; break;
 						case 0xa2: reg_y = 0xff00 | reg_cc; break;
 						case 0xa3: reg_u = 0xff00 | reg_cc; break;
@@ -738,7 +728,7 @@ void m6809_cycle(Cycle until) {
 						case 0xa8: reg_a = reg_cc; break;
 						case 0xa9: reg_b = reg_cc; break;
 						case 0xab: reg_dp = reg_cc; break;
-						case 0xb0: reg_d = 0xff00 | reg_dp; break;
+						case 0xb0: reg_a = 0xff; reg_b = reg_dp; break;
 						case 0xb1: reg_x = 0xff00 | reg_dp; break;
 						case 0xb2: reg_y = 0xff00 | reg_dp; break;
 						case 0xb3: reg_u = 0xff00 | reg_dp; break;
@@ -747,7 +737,7 @@ void m6809_cycle(Cycle until) {
 						case 0xb8: reg_a = reg_dp; break;
 						case 0xb9: reg_b = reg_dp; break;
 						case 0xba: reg_cc = reg_dp; break;
-						case 0xc0: reg_d = 0xffff; break;
+						case 0xc0: reg_a = reg_b = 0xff; break;
 						case 0xc1: reg_x = 0xffff; break;
 						case 0xc2: reg_y = 0xffff; break;
 						case 0xc3: reg_u = 0xffff; break;
@@ -757,7 +747,7 @@ void m6809_cycle(Cycle until) {
 						case 0xc9: reg_b = 0xff; break;
 						case 0xca: reg_cc = 0xff; break;
 						case 0xcb: reg_dp = 0xff; break;
-						case 0xd0: reg_d = 0xffff; break;
+						case 0xd0: reg_a = reg_b = 0xff; break;
 						case 0xd1: reg_x = 0xffff; break;
 						case 0xd2: reg_y = 0xffff; break;
 						case 0xd3: reg_u = 0xffff; break;
@@ -767,7 +757,7 @@ void m6809_cycle(Cycle until) {
 						case 0xd9: reg_b = 0xff; break;
 						case 0xda: reg_cc = 0xff; break;
 						case 0xdb: reg_dp = 0xff; break;
-						case 0xe0: reg_d = 0xffff; break;
+						case 0xe0: reg_a = reg_b = 0xff; break;
 						case 0xe1: reg_x = 0xffff; break;
 						case 0xe2: reg_y = 0xffff; break;
 						case 0xe3: reg_u = 0xffff; break;
@@ -777,7 +767,7 @@ void m6809_cycle(Cycle until) {
 						case 0xe9: reg_b = 0xff; break;
 						case 0xea: reg_cc = 0xff; break;
 						case 0xeb: reg_dp = 0xff; break;
-						case 0xf0: reg_d = 0xffff; break;
+						case 0xf0: reg_a = reg_b = 0xff; break;
 						case 0xf1: reg_x = 0xffff; break;
 						case 0xf2: reg_y = 0xffff; break;
 						case 0xf3: reg_u = 0xffff; break;
@@ -895,14 +885,16 @@ void m6809_cycle(Cycle until) {
 					TAKEN_CYCLES(1);
 				} break;
 				/* 0x3D MUL inherent */
-				case 0x3d:
-					reg_d = reg_a * reg_b;
+				case 0x3d: {
+					uint16_t tmp = reg_a * reg_b;
+					set_reg_d(tmp);
 					CLR_ZC;
-					SET_Z(reg_d);
-					if (reg_d & 0x80)
+					SET_Z(tmp);
+					if (tmp & 0x80)
 						reg_cc |= CC_C;
 					peek_byte(reg_pc);
 					TAKEN_CYCLES(9);
+					}
 					break;
 				/* 0x3E RESET (undocumented) */
 				case 0x3e:
@@ -1043,7 +1035,7 @@ void m6809_cycle(Cycle until) {
 				/* 0x82 SBCA immediate */
 				case 0x82: OP_SBC(reg_a, BYTE_IMMEDIATE); break;
 				/* 0x83 SUBD immediate */
-				case 0x83: OP_SUB16(reg_d, WORD_IMMEDIATE); break;
+				case 0x83: OP_SUBD(WORD_IMMEDIATE); break;
 				/* 0x84 ANDA immediate */
 				case 0x84: OP_AND(reg_a, BYTE_IMMEDIATE); break;
 				/* 0x85 BITA immediate */
@@ -1079,7 +1071,7 @@ void m6809_cycle(Cycle until) {
 				/* 0x92 SBCA direct */
 				case 0x92: OP_SBC(reg_a, BYTE_DIRECT); break;
 				/* 0x93 SUBD direct */
-				case 0x93: OP_SUB16(reg_d, WORD_DIRECT); break;
+				case 0x93: OP_SUBD(WORD_DIRECT); break;
 				/* 0x94 ANDA direct */
 				case 0x94: OP_AND(reg_a, BYTE_DIRECT); break;
 				/* 0x95 BITA direct */
@@ -1111,7 +1103,7 @@ void m6809_cycle(Cycle until) {
 				/* 0xA2 SBCA indexed */
 				case 0xa2: OP_SBC(reg_a, BYTE_INDEXED); break;
 				/* 0xA3 SUBD indexed */
-				case 0xa3: OP_SUB16(reg_d, WORD_INDEXED); break;
+				case 0xa3: OP_SUBD(WORD_INDEXED); break;
 				/* 0xA4 ANDA indexed */
 				case 0xa4: OP_AND(reg_a, BYTE_INDEXED); break;
 				/* 0xA5 BITA indexed */
@@ -1143,7 +1135,7 @@ void m6809_cycle(Cycle until) {
 				/* 0xB2 SBCA extended */
 				case 0xb2: OP_SBC(reg_a, BYTE_EXTENDED); break;
 				/* 0xB3 SUBD extended */
-				case 0xb3: OP_SUB16(reg_d, WORD_EXTENDED); break;
+				case 0xb3: OP_SUBD(WORD_EXTENDED); break;
 				/* 0xB4 ANDA extended */
 				case 0xb4: OP_AND(reg_a, BYTE_EXTENDED); break;
 				/* 0xB5 BITA extended */
@@ -1175,7 +1167,7 @@ void m6809_cycle(Cycle until) {
 				/* 0xC2 SBCB immediate */
 				case 0xc2: OP_SBC(reg_b, BYTE_IMMEDIATE); break;
 				/* 0xC3 ADDD immediate */
-				case 0xc3: OP_ADD16(reg_d, WORD_IMMEDIATE); break;
+				case 0xc3: OP_ADDD(WORD_IMMEDIATE); break;
 				/* 0xC4 ANDB immediate */
 				case 0xc4: OP_AND(reg_b, BYTE_IMMEDIATE); break;
 				/* 0xC5 BITB immediate */
@@ -1191,7 +1183,7 @@ void m6809_cycle(Cycle until) {
 				/* 0xCB ADDB immediate */
 				case 0xcb: OP_ADD(reg_b, BYTE_IMMEDIATE); break;
 				/* 0xCC LDD immediate */
-				case 0xcc: OP_LD16(reg_d, WORD_IMMEDIATE); break;
+				case 0xcc: OP_LDD(WORD_IMMEDIATE); break;
 				/* 0xCE LDU immediate */
 				case 0xce: OP_LD16(reg_u, WORD_IMMEDIATE); break;
 				/* 0xD0 SUBB direct */
@@ -1201,7 +1193,7 @@ void m6809_cycle(Cycle until) {
 				/* 0xD2 SBCB direct */
 				case 0xd2: OP_SBC(reg_b, BYTE_DIRECT); break;
 				/* 0xD3 ADDD direct */
-				case 0xd3: OP_ADD16(reg_d, WORD_DIRECT); break;
+				case 0xd3: OP_ADDD(WORD_DIRECT); break;
 				/* 0xD4 ANDB direct */
 				case 0xd4: OP_AND(reg_b, BYTE_DIRECT); break;
 				/* 0xD5 BITB direct */
@@ -1219,9 +1211,9 @@ void m6809_cycle(Cycle until) {
 				/* 0xDB ADDB direct */
 				case 0xdb: OP_ADD(reg_b, BYTE_DIRECT); break;
 				/* 0xDC LDD direct */
-				case 0xdc: OP_LD16(reg_d, WORD_DIRECT); break;
+				case 0xdc: OP_LDD(WORD_DIRECT); break;
 				/* 0xDD STD direct */
-				case 0xdd: OP_ST16(reg_d, EA_DIRECT); break;
+				case 0xdd: OP_STD(EA_DIRECT); break;
 				/* 0xDE LDU direct */
 				case 0xde: OP_LD16(reg_u, WORD_DIRECT); break;
 				/* 0xDF STU direct */
@@ -1233,7 +1225,7 @@ void m6809_cycle(Cycle until) {
 				/* 0xE2 SBCB indexed */
 				case 0xe2: OP_SBC(reg_b, BYTE_INDEXED); break;
 				/* 0xE3 ADDD indexed */
-				case 0xe3: OP_ADD16(reg_d, WORD_INDEXED); break;
+				case 0xe3: OP_ADDD(WORD_INDEXED); break;
 				/* 0xE4 ANDB indexed */
 				case 0xe4: OP_AND(reg_b, BYTE_INDEXED); break;
 				/* 0xE5 BITB indexed */
@@ -1251,9 +1243,9 @@ void m6809_cycle(Cycle until) {
 				/* 0xEB ADDB indexed */
 				case 0xeb: OP_ADD(reg_b, BYTE_INDEXED); break;
 				/* 0xEC LDD indexed */
-				case 0xec: OP_LD16(reg_d, WORD_INDEXED); break;
+				case 0xec: OP_LDD(WORD_INDEXED); break;
 				/* 0xED STD indexed */
-				case 0xed: OP_ST16(reg_d, EA_INDEXED); break;
+				case 0xed: OP_STD(EA_INDEXED); break;
 				/* 0xEE LDU indexed */
 				case 0xee: OP_LD16(reg_u, WORD_INDEXED); break;
 				/* 0xEF STU indexed */
@@ -1265,7 +1257,7 @@ void m6809_cycle(Cycle until) {
 				/* 0xF2 SBCB extended */
 				case 0xf2: OP_SBC(reg_b, BYTE_EXTENDED); break;
 				/* 0xF3 ADDD extended */
-				case 0xf3: OP_ADD16(reg_d, WORD_EXTENDED); break;
+				case 0xf3: OP_ADDD(WORD_EXTENDED); break;
 				/* 0xF4 ANDB extended */
 				case 0xf4: OP_AND(reg_b, BYTE_EXTENDED); break;
 				/* 0xF5 BITB extended */
@@ -1283,9 +1275,9 @@ void m6809_cycle(Cycle until) {
 				/* 0xFB ADDB extended */
 				case 0xfb: OP_ADD(reg_b, BYTE_EXTENDED); break;
 				/* 0xFC LDD extended */
-				case 0xfc: OP_LD16(reg_d, WORD_EXTENDED); break;
+				case 0xfc: OP_LDD(WORD_EXTENDED); break;
 				/* 0xFD STD extended */
-				case 0xfd: OP_ST16(reg_d, EA_EXTENDED); break;
+				case 0xfd: OP_STD(EA_EXTENDED); break;
 				/* 0xFE LDU extended */
 				case 0xfe: OP_LD16(reg_u, WORD_EXTENDED); break;
 				/* 0xFF STU extended */
@@ -1350,13 +1342,13 @@ switched_block_page2:
 					TAKEN_CYCLES(1);
 					break;
 				/* 0x1083 CMPD immediate */
-				case 0x83: OP_CMP16(reg_d, WORD_IMMEDIATE); break;
+				case 0x83: OP_CMPD(WORD_IMMEDIATE); break;
 				/* 0x108C CMPY immediate */
 				case 0x8c: OP_CMP16(reg_y, WORD_IMMEDIATE); break;
 				/* 0x108E LDY immediate */
 				case 0x8e: OP_LD16(reg_y, WORD_IMMEDIATE); break;
 				/* 0x1093 CMPD direct */
-				case 0x93: OP_CMP16(reg_d, WORD_DIRECT); break;
+				case 0x93: OP_CMPD(WORD_DIRECT); break;
 				/* 0x109C CMPY direct */
 				case 0x9c: OP_CMP16(reg_y, WORD_DIRECT); break;
 				/* 0x109E LDY direct */
@@ -1364,7 +1356,7 @@ switched_block_page2:
 				/* 0x109F STY direct */
 				case 0x9f: OP_ST16(reg_y, EA_DIRECT); break;
 				/* 0x10A3 CMPD indexed */
-				case 0xa3: OP_CMP16(reg_d, WORD_INDEXED); break;
+				case 0xa3: OP_CMPD(WORD_INDEXED); break;
 				/* 0x10AC CMPY indexed */
 				case 0xac: OP_CMP16(reg_y, WORD_INDEXED); break;
 				/* 0x10AE LDY indexed */
@@ -1372,7 +1364,7 @@ switched_block_page2:
 				/* 0x10AF STY indexed */
 				case 0xaf: OP_ST16(reg_y, EA_INDEXED); break;
 				/* 0x10B3 CMPD extended */
-				case 0xb3: OP_CMP16(reg_d, WORD_EXTENDED); break;
+				case 0xb3: OP_CMPD(WORD_EXTENDED); break;
 				/* 0x10BC CMPY extended */
 				case 0xbc: OP_CMP16(reg_y, WORD_EXTENDED); break;
 				/* 0x10BE LDY extended */
@@ -1447,14 +1439,16 @@ switched_block_page3:
 	}
 	IF_TRACE(LOG_DEBUG(0, "Out: %d\n", current_cycle));
 restore_regs:
-	program_counter = reg_pc;
 	condition_code = reg_cc;
+	register_a = reg_a;
+	register_b = reg_b;
+	program_counter = reg_pc;
 }
 
 void m6809_get_registers(uint8_t *regs) {
 	regs[0] = condition_code;
-	regs[1] = reg_a;
-	regs[2] = reg_b;
+	regs[1] = register_a;
+	regs[2] = register_b;
 	regs[3] = reg_dp;
 	regs[4] = reg_x >> 8; regs[5] = reg_x & 0xff;
 	regs[6] = reg_y >> 8; regs[7] = reg_y & 0xff;
@@ -1465,8 +1459,8 @@ void m6809_get_registers(uint8_t *regs) {
 
 void m6809_set_registers(uint8_t *regs) {
 	condition_code = regs[0];
-	reg_a = regs[1];
-	reg_b = regs[2];
+	register_a = regs[1];
+	register_b = regs[2];
 	reg_dp = regs[3];
 	reg_x = regs[4] << 8 | regs[5];
 	reg_y = regs[6] << 8 | regs[7];
