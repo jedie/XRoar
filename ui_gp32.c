@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifdef HAVE_GP32
+
 #include <stdlib.h>
 #include <string.h>
 #include <gpgraphic.h>
@@ -53,64 +55,158 @@ UIModule ui_gp32_module = {
 #define FG (0xffffff00)
 #define BG (0x00200000)
 
+static void tape_callback(int);
+static void machine_callback(int);
+static void keymap_callback(int);
+static void dragondos_callback(int);
+static void artifact_callback(int);
+static void snapshot_load_callback(int);
+static void snapshot_save_callback(int);
+static void binary_load_callback(int);
+static void disk_callback(int);
+static void reset_callback(int);
+
+typedef struct Menu Menu;
+
+typedef enum { MENU_SELECT, MENU_PICKLIST, MENU_PICKINT, MENU_SUBMENU } Menu_t;
+
 typedef struct {
 	const char *label;
-	unsigned int *default_opt;
-	unsigned int cur_opt;
-	unsigned int num_opts;
-	const char **options;
-	void (*select_callback)(unsigned int opt);
-	void (*modify_callback)(unsigned int opt);
-} Menu;
+	int *var;
+	void (*callback)(int opt);
+	unsigned int cur;
+	unsigned int numopt;
+	struct {
+		const char *label;
+		int value;
+	} options[];
+} MenuPickint;
 
-extern int gp_desired_sample_rate;
+typedef struct {
+	const char *label;
+	void (*callback)(int opt);
+	int numopt;
+	char *options[];
+} MenuPicklist;
 
-const char *tape_opts[] = { "Autorun", "Attach only" };
-const char *disk_opts[] = { "Drive 1", "Drive 2", "Drive 3", "Drive 4" };
-const char *artifact_opts[] = { "Off", "Blue-red", "Red-blue" };
-const char *machine_opts[NUM_MACHINES];
-const char *keymap_opts[] = { "Dragon", "Tandy" };
-const char *ram_opts[] = { "4K", "16K", "32K", "64K" };
-const char *onoff_opts[] = { "Disabled", "Enabled" };
-const char *reset_opts[] = { "Soft", "Hard" };
+typedef struct {
+	const char *label;
+	void (*callback)(int num);
+} MenuSelect;
 
-static void snapshot_load_callback(unsigned int);
-static void snapshot_save_callback(unsigned int);
-static void tape_callback(unsigned int);
-static void disk_callback(unsigned int);
-static void binhex_callback(unsigned int);
-static void artifact_callback(unsigned int);
-static void machine_callback(unsigned int);
-static void keymap_callback(unsigned int);
-static void ram_callback(unsigned int);
-static void extbas_callback(unsigned int);
-static void dos_callback(unsigned int);
-static void reset_callback(unsigned int);
-static void do_hard_reset(unsigned int);
+typedef struct {
+	Menu_t type;
+	int hx, hw;  /* highlight x-offset and width */
+	union {
+		void *dummy;  /* gcc doesn't compare against all these
+				 prototypes before warning. */
+		MenuPickint *pickint;
+		MenuSelect *select;
+		MenuPicklist *picklist;
+		Menu *submenu;
+	} data;
+} MenuOption;
 
-static Menu main_menu[] = {
-	{ "Load snapshot...", NULL, 0, 0, NULL, snapshot_load_callback, NULL },
-	{ "Save snapshot...", NULL, 0, 0, NULL, snapshot_save_callback, NULL },
-	{ "Insert tape...", NULL, 0, 2, tape_opts, tape_callback, NULL },
-	{ "Insert disk...", NULL, 0, 4, disk_opts, disk_callback, NULL },
-	{ "Insert binary/hex record...", NULL, 0, 0, NULL, binhex_callback, NULL },
-	{ "Hi-res artifacts", &video_artifact_mode, 0, 3, artifact_opts, NULL, artifact_callback },
-	{ "Emulated machine", &machine_romtype, 0, 4, machine_opts, machine_callback, NULL },
-	{ "Keyboard layout", &machine_keymap, 0, 2, keymap_opts, keymap_callback, NULL },
-	{ "RAM", NULL, 3, 4, ram_opts, do_hard_reset, ram_callback },
-	{ "Extended BASIC", NULL, 1, 2, onoff_opts, do_hard_reset, extbas_callback },
-	{ "DOS", NULL, 1, 2, onoff_opts, do_hard_reset, dos_callback },
-	{ "Reset", NULL, 0, 2, reset_opts, reset_callback, NULL },
-	{ NULL, NULL, 0, 0, NULL, NULL, NULL }
+struct Menu {
+	const char *label;
+	int numopt;
+	MenuOption options[];
+};
+
+static MenuSelect snapshot_load_option = {
+	"Load snapshot", snapshot_load_callback
+};
+static MenuSelect tape_attach_load_option = {
+	"ATTACH AND LOAD FIRST PROGRAM", tape_callback
+};
+static MenuSelect tape_attach_option = {
+	"ATTACH", tape_callback
+};
+static Menu tape_option = {
+	"Cassette file",
+	2,
+	{ { MENU_SELECT, 0, 0, { &tape_attach_load_option } },
+	  { MENU_SELECT, 0, 0, { &tape_attach_option } }
+	}
+};
+static MenuSelect binary_load_option = {
+	"Load binary", binary_load_callback
+};
+static MenuSelect snapshot_save_option = {
+	"Save snapshot", snapshot_save_callback
+};
+static MenuPickint artifact_menuopt = {
+	"Hi-res artifact mode",
+	&video_artifact_mode, artifact_callback, 0,
+	3, {
+		{ "No artifacts", 0 },
+		{ "Blue-red", 1 },
+		{ "Red-blue", 2 },
+	}
+};
+static MenuPickint machine_options = {
+	"Emulated machine",
+	&machine_romtype, machine_callback, 0,
+	3, {
+		{ "Dragon 64", DRAGON64 },
+		{ "Dragon 32", DRAGON32 },
+		{ "Tandy CoCo", COCO },
+	}
+};
+static MenuPickint keymap_options = {
+	"Keymap",
+	&machine_keymap, keymap_callback, 0,
+	2, {
+		{ "Dragon", DRAGON_KEYBOARD },
+		{ "Tandy CoCo", COCO_KEYBOARD },
+	}
+};
+static MenuPickint dragondos_options = {
+	"DragonDOS",
+	&dragondos_enabled, dragondos_callback, 0,
+	2, {
+		{ "Disabled", 0 },
+		{ "Enabled", 1 },
+	}
+};
+static MenuPickint disk_options = {
+	"Insert disk into drive",
+	NULL, disk_callback, 0,
+	4, {
+		{ "1", 0 },
+		{ "2", 1 },
+		{ "3", 2 },
+		{ "4", 3 },
+	}
+};
+static MenuPickint reset_options = {
+	"Reset machine",
+	NULL, reset_callback, 0,
+	2, {
+		{ "Soft", RESET_SOFT },
+		{ "Hard", RESET_HARD },
+	}
+};
+static Menu main_menu = {
+	"Main menu",
+	10,
+	{ { MENU_SELECT, 0, 0, { &snapshot_load_option } },
+	  { MENU_SUBMENU, 0, 0, { &tape_option } },
+	  { MENU_SELECT, 0, 0, { &binary_load_option } },
+	  { MENU_SELECT, 0, 0, { &snapshot_save_option } },
+	  { MENU_PICKINT, 0, 0, { &artifact_menuopt } },
+	  { MENU_PICKINT, 0, 0, { &machine_options } },
+	  { MENU_PICKINT, 0, 0, { &keymap_options } },
+	  { MENU_PICKINT, 0, 0, { &dragondos_options } },
+	  { MENU_PICKINT, 0, 0, { &disk_options } },
+	  { MENU_PICKINT, 0, 0, { &reset_options } },
+	}
 };
 
 extern GPDRAWSURFACE screen;
 extern uint8_t vdg_alpha_gp32[2][3][8192];
 
 static int init(void) {
-	int i;
-	for (i = 0; i < NUM_MACHINES; i++)
-		machine_opts[i] = machines[i].description;
 	return 0;
 }
 
@@ -121,7 +217,7 @@ static void draw_char(int x, int y, char c) {
 	uint32_t *dest = (uint32_t *)screen.ptbuffer + (59-(y*3)) + x*8*60;
 	uint8_t *charset = (uint8_t *)vdg_alpha_gp32[1];
 	uint32_t out;
-	int i, j;
+	unsigned int i, j;
 	c &= 0x7f;
 	if (c >= 'a' && c <= 'z') {
 		c -= 32;
@@ -164,277 +260,324 @@ static void highlight_line(unsigned int x, unsigned int y, unsigned int w) {
 static void notify_box(const char *msg) {
 	int newkey;
 	int x = (40 - strlen(msg)) / 2;
+	video_module->backup();
 	video_module->fillrect(0, 8*12, 320, 3*12, BG);
 	draw_string(x, 9, msg, 40);
 	do {
 		gpkeypad_poll(NULL, &newkey, NULL);
 	} while (!newkey);
+	video_module->restore();
 }
 
-static int valid_extension(char *filename, const char **exts) {
+/* extract is either a function to pull a string out of data given an index
+ * or NULL.  If NULL, data is treated as (char **) */
+
+static int menu_oldselect(char *(*extract)(void *, int), void *data, int n, int x, int y, int w, int h, int is_filesel) {
+	int newkey, rkey;
+	int base = 0, cur = 0, oldbase, oldcur, i;
+	int step = h / 2;
+	char search[16];
+	int search_len = 0, do_search = 0;
+	unsigned char chatkey;
+	int done = 0;
+	if (n < 1) return -1;
+	sound_silence();
+	video_module->fillrect(x*8, y*12, w*8, h*12, BG);
+	if (is_filesel) {
+		search[0] = 0;
+		video_module->fillrect(1*8, 17*12, 16*8, 2*12, BG);
+		video_module->fillrect(1+8, 18*12, 8, 12, FG);
+	}
+	for (i = 0; i < h && (base+i) < n; i++) {
+		char *line;
+		if (extract) line = extract(data, base+i);
+		else         line = ((char **)data)[base+i];
+		draw_string(x, y+i, line, w);
+	}
+	highlight_line(x, y+(cur-base), w);
+	SPEED_SLOW;
+	do {
+		gpkeypad_poll(NULL, &newkey, &rkey);
+		oldcur = cur;
+		oldbase = base;
+		if (rkey & GPC_VK_UP) cur--;
+		if (rkey & GPC_VK_DOWN) cur++;
+		if (rkey & GPC_VK_FL) cur -= step;
+		if (rkey & GPC_VK_FR) cur += step;
+		if (cur < 0) cur = 0;
+		if (cur >= n) cur = n - 1;
+		chatkey = gpchatboard_scan() & 0x7f;
+		switch (chatkey) {
+		case 0: break;
+		case '\r': done = 1; break;
+		case 27: done = -1; break;
+		case 8:
+			if (search_len > 0) {
+				search_len--;
+				search[search_len] = 0;
+				do_search = 1;
+			}
+			break;
+		default:
+			if (search_len < 12) {
+				search[search_len++] = chatkey;
+				search[search_len] = 0;
+				do_search = 1;
+			}
+			break;
+		}
+		if (do_search) {
+			int s;
+			video_module->fillrect(1*8, 17*12, 16*8, 2*12, BG);
+			draw_string(1, 18, search, 16);
+			video_module->fillrect((1+search_len)*8,18*12,8,12,FG);
+			do_search = 0;
+			for (s = 0; s < n; s++) {
+				if (!strncmp(extract(data, s), search, search_len)) {
+					cur = s; break;
+				}
+			}
+		}
+		base = cur - (cur % h);
+		if (cur != oldcur) {
+			highlight_line(x, y+(oldcur-oldbase), w);
+			if (base != oldbase) {
+				video_module->fillrect(x*8, y*12, w*8, h*12, BG);
+				for (i = 0; i < h && (base+i) < n; i++) {
+					draw_string(x, y+i, extract(data, base+i), w);
+				}
+			}
+			highlight_line(x, y+(cur-base), w);
+		}
+		if (newkey & GPC_VK_START)
+			done = -1;
+		if (newkey & (GPC_VK_SELECT|GPC_VK_FA|GPC_VK_FB))
+			done = 1;
+	} while (!done);
+	SPEED_FAST;
+	if (done == -1)
+		return -1;
+	return cur;
+}
+
+static char *dirent_as_string(void *data, int n) {
+	struct dirent **dir = (struct dirent **)data;
+	static char result[18];
+	result[0] = 0;
+	if (dir && dir[n]) {
+		if (dir[n]->attr & FS_ATTR_DIRECTORY) {
+			strcpy(result, "<");
+			strcat(result, dir[n]->d_name);
+			strcat(result, ">");
+		} else {
+			strcpy(result, dir[n]->d_name);
+		}
+	}
+	return result;
+}
+
+static const char **valid_exts;
+
+static int valid_extension(struct dirent *ent) {
+	const char **e = valid_exts;
 	char *entext;
-	if (!exts)
+	if (!e)
 		return 1;
 	/* List all directories */
-	entext = strrchr(filename, '.');
+	if ((ent->attr & 16) && strcmp(ent->d_name, "."))
+		return 1;
+	entext = strrchr(ent->d_name, '.');
 	if (!entext)
 		return 0;
 	entext++;
-	while (*exts) {
-		if (!strcmp(entext, *exts))
+	while (*e) {
+		if (!strcmp(entext, *e))
 			return 1;
-		exts++;
+		e++;
 	}
 	return 0;
 }
 
 static int dirsort(const void *a, const void *b) {
-	const Menu *aa = (const Menu *)a;
-	const Menu *bb = (const Menu *)b;
-	if ((aa->cur_opt & 16) && !(bb->cur_opt & 16))
+	const struct dirent *aa = *(const struct dirent **)a;
+	const struct dirent *bb = *(const struct dirent **)b;
+	if ((aa->attr & FS_ATTR_DIRECTORY) && !(bb->attr & FS_ATTR_DIRECTORY))
 		return -1;
-	if (!(aa->cur_opt & 16) && (bb->cur_opt & 16))
+	if (!(aa->attr & FS_ATTR_DIRECTORY) && (bb->attr & FS_ATTR_DIRECTORY))
 		return 1;
-	return strncmp(aa->label, bb->label, 16);
+	return strncmp(aa->d_name, bb->d_name, 16);
 }
-
-static void show_menu_line(Menu *m, int x, int y, int w) {
-	int hx = x, hw = 0;
-	draw_string(x, y, m->label, w);
-	if (m->num_opts > 0) {
-		m->cur_opt %= m->num_opts;
-		hx = x + 24;
-		hw = strlen(m->options[m->cur_opt]) + 2;
-		if (hw > ((x + w) - hx))
-			hw = (x + w) - hx;
-		draw_char(hx, y, '[');
-		draw_string(hx + 1, y, m->options[m->cur_opt], hw);
-		draw_char(hx + hw - 1, y, ']');
-	}
-}
-
-static void highlight_menu_line(Menu *m, int x, int y, int w) {
-	int hx = x, hw = 0;
-	video_module->fillrect(x*8, y*12, w*8, 12, BG);
-	show_menu_line(m, x, y, w);
-	if (m->num_opts > 0) {
-		m->cur_opt %= m->num_opts;
-		hx = x + 24;
-		hw = strlen(m->options[m->cur_opt]) + 2;
-	} else {
-		hw = strlen(m->label);
-	}
-	if (hw > ((x + w) - hx))
-		hw = (x + w) - hx;
-	highlight_line(hx, y, hw);
-}
-
-static int show_menu(Menu *m, int x, int y, int w, int h) {
-	int newkey, rkey;
-	int nument;
-	int base, cur = 0, oldbase = -1, oldcur;
-	int step = h / 2;
-	int done = 0, selected = -1;
-	int i;
-	for (nument = 0; m[nument].label != NULL; nument++) {
-		if (m[nument].default_opt != NULL)
-			m[nument].cur_opt = *(m[nument].default_opt);
-	}
-	if (nument == 0) return -1;
-	video_module->backup();
-	do {
-		base = cur - (cur % h);
-		if (base != oldbase) {
-			oldbase = base;
-			video_module->fillrect(x*8, y*12, w*8, h*12, BG);
-			for (i = base; i < (base+h) && i < nument; i++) {
-				show_menu_line(&m[i], x, y + (i - base), w);
-			}
-		}
-		highlight_menu_line(&m[cur], x, y + (cur - base), w);
-		SPEED_SLOW;
-		gpkeypad_poll(NULL, &newkey, &rkey);
-		do {
-			oldcur = cur;
-			gpkeypad_poll(NULL, &newkey, &rkey);
-			if (m[cur].num_opts > 0) {
-				unsigned int old_opt = m[cur].cur_opt;
-				if (newkey & GPC_VK_LEFT) {
-					if (m[cur].cur_opt == 0)
-						m[cur].cur_opt = m[cur].num_opts - 1;
-					else
-						m[cur].cur_opt--;
-				}
-				if (newkey & GPC_VK_RIGHT) {
-					m[cur].cur_opt++;
-					m[cur].cur_opt %= m[cur].num_opts;
-				}
-				if (m[cur].cur_opt != old_opt) {
-					if (m[cur].modify_callback)
-						m[cur].modify_callback(m[cur].cur_opt);
-					highlight_menu_line(&m[cur], x, y + (cur - base), w);
-				}
-			}
-			if (rkey & GPC_VK_UP) cur--;
-			if (rkey & GPC_VK_DOWN) cur++;
-			if (rkey & GPC_VK_FL) cur -= step;
-			if (rkey & GPC_VK_FR) cur += step;
-			if (cur < 0) cur = 0;
-			if (cur >= nument) cur = nument - 1;
-			if (newkey & GPC_VK_START) {
-				done = 1;
-			}
-			if (newkey & (GPC_VK_SELECT|GPC_VK_FA|GPC_VK_FB)) {
-				selected = cur;
-				done = 1;
-			}
-		} while (cur == oldcur && !done);
-		SPEED_FAST;
-		if (cur != oldcur)
-			show_menu_line(&m[oldcur], x, y + (oldcur - base), w);
-	} while (!done);
-	video_module->restore();
-	if ((selected != -1) && m[selected].select_callback)
-		m[selected].select_callback((unsigned int)m[selected].cur_opt);
-	return selected;
-}
-
-static void menu(void) {
-	sound_silence();
-	show_menu(main_menu, 1, 1, 38, 18);
-}
-
-/* File requester */
 
 static char *get_filename(const char **extensions) {
+	int num, sel;
 	static char result[16];
-	Menu *filemenu;
-	char *namebuf;
-	char cwd[1024];
-	unsigned long p_num, dummy;
-	GPDIRENTRY gpentry;
-	GPFILEATTR gpentry_attr;
-	int selected;
-	unsigned int i, j;
+	struct dirent **dir;
+	valid_exts = extensions;
+	num = fs_scandir(".", &dir, valid_extension, dirsort);
+	if (num < 1) {
+		fs_freedir(&dir);
+		return NULL;
+	}
+	while (1) {
+		video_module->backup();
+		sel = menu_oldselect(dirent_as_string, dir, num, 1,1,16,16, 1);
+		video_module->restore();
+		if (sel == -1) {
+			fs_freedir(&dir);
+			return NULL;
+		}
+		if (!(dir[sel]->attr & FS_ATTR_DIRECTORY)) {
+			memcpy(result, dir[sel]->d_name, 16);
+			fs_freedir(&dir);
+			return result;
+		}
+		fs_chdir(dir[sel]->d_name);
+		fs_freedir(&dir);
+		num = fs_scandir(".", &dir, valid_extension, dirsort);
+	}
+}
 
-	fs_chdir(".");
+static void menu_show(Menu *m, int x, int y, int w, int h);
+static void menu(void) {
+	sound_silence();
+	video_module->backup();
+	SPEED_SLOW;
+	menu_show(&main_menu, 1, 1, 38, 18);
+	SPEED_FAST;
+	video_module->restore();
+}
+
+static void show_option(int x, int y, int w, MenuOption *opt) {
+	if (opt->type == MENU_PICKINT) {
+		MenuPickint *data = opt->data.pickint;
+		unsigned int i, x2 = x + strlen(data->label) + 1, w2 = 0;
+		data->cur = 0;
+		for (i = 0; i < data->numopt; i++) {
+			if (data->var && *(data->var) == data->options[i].value)
+				data->cur = i;
+			if (strlen(data->options[i].label) > w2)
+				w2 = strlen(data->options[i].label);
+		}
+		opt->hx = x2;
+		opt->hw = w2;
+		draw_string(x, y, data->label, w);
+		draw_string(x2, y, data->options[data->cur].label, w2);
+	}
+	if (opt->type == MENU_SELECT) {
+		MenuSelect *data = opt->data.select;
+		opt->hx = x;
+		opt->hw = w;
+		draw_string(x, y, data->label, w);
+	}
+	if (opt->type == MENU_PICKLIST) {
+		MenuPicklist *data = opt->data.picklist;
+		opt->hx = x;
+		opt->hw = w;
+		draw_string(x, y, data->label, w);
+	}
+	if (opt->type == MENU_SUBMENU) {
+		Menu *data = opt->data.submenu;
+		opt->hx = x;
+		opt->hw = w;
+		draw_string(x, y, data->label, w);
+	}
+}
+
+static int edit_option(int x, int y, int w, MenuOption *opt, int num, int newkey, int rkey) {
+	if (opt->type == MENU_PICKINT) {
+		MenuPickint *data = opt->data.pickint;
+		int x2 = opt->hx, w2 = opt->hw;
+		if (rkey & GPC_VK_LEFT) {
+			video_module->fillrect(x2*8, y*12, w2*8, 12, BG);
+			if (data->cur == 0)
+				data->cur = data->numopt-1;
+			else
+				data->cur--;
+			draw_string(x2, y, data->options[data->cur].label, w2);
+			highlight_line(x2, y, w2);
+			return 0;
+		}
+		if (rkey & GPC_VK_RIGHT) {
+			video_module->fillrect(x2*8, y*12, w2*8, 12, BG);
+			data->cur++;
+			if (data->cur >= data->numopt)
+				data->cur = 0;
+			draw_string(x2, y, data->options[data->cur].label, w2);
+			highlight_line(x2, y, w2);
+			return 0;
+		}
+		if (newkey & (GPC_VK_SELECT|GPC_VK_FA|GPC_VK_FB)) {
+			if (data->callback)
+				data->callback(data->options[data->cur].value);
+			return 1;
+		}
+	}
+	if (opt->type == MENU_SELECT) {
+		MenuSelect *data = opt->data.select;
+		if (newkey & (GPC_VK_SELECT|GPC_VK_FA|GPC_VK_FB)) {
+			highlight_line(x, y, w);
+			data->callback(num);
+			return 1;
+		}
+	}
+	if (opt->type == MENU_PICKLIST) {
+		//MenuPicklist *data = opt->data.picklist;
+		return 0;
+	}
+	if (opt->type == MENU_SUBMENU) {
+		Menu *data = opt->data.submenu;
+		if (newkey  & (GPC_VK_SELECT|GPC_VK_FA|GPC_VK_FB)) {
+			int nx = x + 4, ny = y + 1, nw = w - 4, nh = 19 - ny;
+			highlight_line(x, y, w);
+			menu_show(data, nx, ny, nw, nh);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static void menu_show(Menu *m, int x, int y, int w, int h) {
+	int newkey, rkey;
+	int base = 0, cur = 0, oldbase = -1, oldcur = -1, i;
+	int step = h / 2;
+	int done = 0;
+	if (m->numopt < 1) return;
+	video_module->fillrect(x*8, y*12, w*8, h*12, BG);
 	do {
-		fs_getcwd(cwd, sizeof(cwd));
-		GpDirEnumNum(cwd, &p_num);
-		filemenu = malloc((p_num+1) * sizeof(Menu));
-		if (filemenu == NULL)
-			return NULL;
-		namebuf = malloc(p_num * 16);
-		if (namebuf == NULL) {
-			free(filemenu);
-			return NULL;
-		}
-		for (i = 0, j = 0; i < p_num; i++) {
-			GpDirEnumList(cwd, i, 1, &gpentry, &dummy);
-			if (strcmp(gpentry.name, ".") == 0)
-				continue;
-			GpFileAttr(gpentry.name, &gpentry_attr);
-			if ((gpentry_attr.attr & 16) || valid_extension(gpentry.name, extensions)) {
-				memcpy(namebuf + j * 16, gpentry.name, 16);
-				filemenu[j].label = namebuf + j * 16;
-				filemenu[j].default_opt = NULL;
-				filemenu[j].cur_opt = gpentry_attr.attr;
-				filemenu[j].num_opts = 0;
-				filemenu[j].select_callback = NULL;
-				filemenu[j].modify_callback = NULL;
-				j++;
+		if (base != oldbase) {
+			video_module->fillrect(x*8, y*12, w*8, h*12, BG);
+			for (i = 0; i < h && (base+i) < m->numopt; i++) {
+				show_option(x, y+i, w, &m->options[base+i]);
 			}
+			oldbase = base;
 		}
-		filemenu[j].label = NULL;
-		qsort(filemenu, j, sizeof(Menu), dirsort);
-		selected = show_menu(filemenu, 1, 1, 38, 18);
-		if (selected >= 0) {
-			if (filemenu[selected].cur_opt & 16) {
-				fs_chdir(filemenu[selected].label);
-				selected = 0;
-			} else {
-				memcpy(result, filemenu[selected].label, 16);
-				selected = -2;
-			}
+		if (cur != oldcur) {
+			highlight_line(m->options[cur].hx, y+(cur-base), m->options[cur].hw);
+			oldcur = cur;
 		}
-		free(namebuf);
-		free(filemenu);
-	} while (selected >= 0);
-	if (selected == -2)
-		return result;
-	return NULL;
+		gpkeypad_poll(NULL, &newkey, &rkey);
+		done = edit_option(x, y+(cur-base), w, &m->options[cur], cur, newkey, rkey);
+		if (rkey & GPC_VK_UP) cur--;
+		if (rkey & GPC_VK_DOWN) cur++;
+		if (rkey & GPC_VK_FL) cur -= step;
+		if (rkey & GPC_VK_FR) cur += step;
+		if (cur < 0) cur = 0;
+		if (cur >= m->numopt) cur = m->numopt - 1;
+		if (cur != oldcur)
+			highlight_line(m->options[oldcur].hx, y+(oldcur-base), m->options[oldcur].hw);
+		base = cur - (cur % h);
+		if (newkey & GPC_VK_START)
+			done = 1;
+	} while (!done);
 }
 
-/* Menu callbacks */
-
-static char *save_basename;
-
-static void set_save_basename(char *source) {
-	char *dot;
-	int tocopy;
-	if (save_basename) {
-		free(save_basename);
-		save_basename = NULL;
-	}
-	if (source == NULL)
-		return;
-	if ((dot = strchr(source, '.'))) {
-		tocopy = dot - source;
-	} else {
-		tocopy = strlen(source);
-	}
-	if (tocopy > 8)
-		tocopy = 8;
-	save_basename = malloc(tocopy + 1);
-	if (save_basename == NULL)
-		return;
-	strncpy(save_basename, source, tocopy);
-	save_basename[tocopy] = 0;
-}
-
-static void snapshot_load_callback(unsigned int opt) {
-	const char *snap_exts[] = { "SNA", "SN0", "SN1", "SN2", "SN3", "SN4",
-		"SN5", "SN6", "SN7", "SN8", "SN9", NULL };
-	char *filename;
-	(void)opt;  /* unused */
-	filename = get_filename(snap_exts);
-	if (filename) {
-		set_save_basename(filename);
-		read_snapshot(filename);
-	}
-}
-
-static void snapshot_save_callback(unsigned int opt) {
-	const char *snap_exts[] = { "SN0", "SN1", "SN2", "SN3", "SN4",
-		"SN5", "SN6", "SN7", "SN8", "SN9", NULL };
-	int selected;
-	Menu savemenu[2];
-	char filename[13];
-	(void)opt;  /* unused */
-	if (save_basename == NULL) {
-		notify_box("Unable to save snapshot");
-		return;
-	}
-	memset(savemenu, 0, sizeof(savemenu));
-	savemenu[0].label = save_basename;
-	savemenu[0].num_opts = 10;
-	savemenu[0].options = snap_exts;
-	selected = show_menu(savemenu, 1, 9, 38, 1);
-	if (selected < 0)
-		return;
-	strcpy(filename, save_basename);
-	strcat(filename, ".");
-	strcat(filename, snap_exts[selected]);
-	write_snapshot(filename);
-}
-
-static void tape_callback(unsigned int opt) {
+static void tape_callback(int num) {
 	const char *tape_exts[] = { "CAS", NULL };
 	char *filename;
+	video_module->restore();
 	filename = get_filename(tape_exts);
 	if (filename) {
-		set_save_basename(filename);
-		if (opt == 0) {
+		if (num == 0) {
 			if (tape_autorun(filename) > 0) {
 				notify_box("COULD NOT DETECT PROGRAM TYPE");
 			}
@@ -443,62 +586,60 @@ static void tape_callback(unsigned int opt) {
 		}
 	}
 }
-
-static void disk_callback(unsigned int opt) {
-	const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
-	char *filename;
-	filename = get_filename(disk_exts);
-	if (filename)
-		vdisk_load(filename, opt);
-}
-
-static void binhex_callback(unsigned int opt) {
-	const char *exts[] = { "BIN", NULL };
-	char *filename;
-	(void)opt;
-	filename = get_filename(exts);
-	if (!IS_COCO)
-		notify_box("Warning: Usually for CoCo binaries");
-	if (filename) {
-		set_save_basename(filename);
-		coco_bin_read(filename);
-	}
-}
-
-static void artifact_callback(unsigned int opt) {
-	video_artifact_mode = opt;
-	vdg_set_mode();
-}
-
-static void machine_callback(unsigned int opt) {
-	if (opt != machine_romtype) {
-		machine_set_romtype(opt);
+static void machine_callback(int num) {
+	if (num != machine_romtype) {
+		machine_set_romtype(num);
 		xroar_reset(RESET_HARD);
 	}
 }
-
-static void keymap_callback(unsigned int opt) {
-	machine_set_keymap(opt);
+static void keymap_callback(int num) {
+	machine_set_keymap(num);
+}
+static void dragondos_callback(int num) {
+	dragondos_enabled = num;
+}
+static void snapshot_load_callback(int num) {
+	const char *snap_exts[] = { "SNA", NULL };
+	char *filename;
+	(void)num;  /* unused */
+	video_module->restore();
+	filename = get_filename(snap_exts);
+	if (filename)
+		read_snapshot(filename);
+}
+static void snapshot_save_callback(int num) {
+	//char *snap_exts[] = { "SNA", NULL };
+	//char *filename;
+	(void)num;  /* unused */
+	video_module->restore();
+	notify_box("SNAPSHOT SAVING NOT YET SUPPORTED");
+	// filename = save_filename(snap_exts);
+}
+static void binary_load_callback(int num) {
+	const char *bin_exts[] = { "BIN", NULL };
+	char *filename;
+	(void)num;  /* unused */
+	video_module->restore();
+	if (machine_romtype != COCO)
+		notify_box("WARNING: USUALLY FOR COCO BINARIES");
+	filename = get_filename(bin_exts);
+	if (filename)
+		coco_bin_read(filename);
+}
+static void artifact_callback(int num) {
+	video_artifact_mode = num;
+	vdg_set_mode();
+}
+static void disk_callback(int num) {
+	const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
+	char *filename;
+	video_module->restore();
+	filename = get_filename(disk_exts);
+	if (filename)
+		vdisk_load(filename, num);
+}
+static void reset_callback(int mode) {
+	xroar_reset(mode);
 }
 
-static void ram_callback(unsigned int opt) {
-	(void)opt;
-	notify_box("Not yet implemented: Will always be 64K");
-}
-
-static void extbas_callback(unsigned int opt) {
-	noextbas = opt;
-}
-
-static void dos_callback(unsigned int opt) {
-	dragondos_enabled = opt;
-}
-
-static void reset_callback(unsigned int opt) {
-	xroar_reset(opt);
-}
-
-static void do_hard_reset(unsigned int opt) {
-	(void)opt;
-	xroar_reset(1);
-}
+#endif  /* HAVE_GP33 */
