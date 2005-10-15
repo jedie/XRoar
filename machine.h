@@ -69,10 +69,6 @@ typedef struct {
 	const char *description;
 	unsigned int keymap;
 	TVStandard tv_standard;
-	struct {
-		unsigned int csrdon;
-		unsigned int bitin;
-	} breakpoints[2];
 	const char *bas[5];
 	const char *extbas[5];
 	const char *dos[5];
@@ -83,7 +79,6 @@ extern machine_info machines[];
 extern unsigned int machine_romtype;
 extern unsigned int machine_keymap;
 extern int dragondos_enabled;
-extern uint_least16_t brk_csrdon, brk_bitin;
 extern Keymap keymap;
 extern uint8_t ram0[0x8000];
 extern uint8_t ram1[0x8000];

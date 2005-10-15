@@ -202,13 +202,9 @@ void sam_update_from_register(void) {
 		if ((mapped_ram = sam_register & 0x8000)) {
 			addrptr_high = ram1;
 			sam_topaddr_cycles = CPU_SLOW_DIVISOR;
-			brk_csrdon = machines[machine_romtype].breakpoints[1].csrdon;
-			brk_bitin  = machines[machine_romtype].breakpoints[1].bitin;
 		} else {
 			addrptr_high = rom0;
 			sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
-			brk_csrdon = machines[machine_romtype].breakpoints[0].csrdon;
-			brk_bitin  = machines[machine_romtype].breakpoints[0].bitin;
 		}
 	}
 }

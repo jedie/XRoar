@@ -25,7 +25,6 @@
 #include "sam.h"
 #include "pia.h"
 #include "logging.h"
-#include "tape.h"
 #include "m6809_dasm.h"
 
 /* Condition Code manipulation macros */
@@ -410,15 +409,6 @@ void m6809_cycle(Cycle until) {
 	}
 	IF_TRACE(LOG_DEBUG(0, "In: %d\n", current_cycle));
 	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt && !halt) {
-		/* Trap cassette ROM routines - hack! */
-		if (reg_pc == brk_csrdon) {
-			PULLWORD(reg_s, reg_pc);
-		}
-		if (reg_pc == brk_bitin) {
-			reg_cc &= ~CC_C;
-			reg_cc |= tape_read_bit();
-			PULLWORD(reg_s, reg_pc);
-		}
 		IF_TRACE(LOG_DEBUG(0, "%04x| ", reg_pc));
 		/* Fetch op-code and process */
 		{

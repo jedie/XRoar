@@ -25,6 +25,7 @@
 #include "vdg.h"
 #include "pia.h"
 #include "snapshot.h"
+#include "tape.h"
 #include "logging.h"
 #include "fs.h"
 #include "ui.h"

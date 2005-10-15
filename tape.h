@@ -13,6 +13,6 @@ void tape_reset(void);
 int tape_attach(char *filename);
 void tape_detach(void);
 int tape_autorun(char *filename);
-unsigned int tape_read_bit(void);
+void tape_update(void);
 
 #endif  /* __TAPE_H__ */

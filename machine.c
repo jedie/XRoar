@@ -37,7 +37,6 @@
  * separately). */
 unsigned int machine_keymap;
 int dragondos_enabled;
-uint_least16_t brk_csrdon, brk_bitin;
 Keymap keymap;
 uint8_t ram0[0x8000];
 uint8_t ram1[0x8000];
@@ -90,28 +89,24 @@ typedef struct {
 
 machine_info machines[NUM_MACHINES] = {
 	{ "dragon32", "Dragon 32", DRAGON_KEYBOARD, PAL,
-		{ { 0xbde7, 0xbda5 }, { 0xbde7, 0xbda5 } },
 		{ NULL, NULL, NULL, NULL, NULL },
 		{ NULL, "d32", "dragon32", "d32rom", "dragon" },
 		{ NULL, "sdose6", "ddos10", NULL, NULL },
 		{ NULL, NULL, NULL, NULL, NULL }
 	},
 	{ "dragon64", "Dragon 64", DRAGON_KEYBOARD, PAL,
-		{ { 0xbde7, 0xbda5 }, { 0xbde7, 0xbda5 } },
 		{ NULL, NULL, NULL, NULL, NULL },
 		{ NULL, "d64_1", "d64rom1", "dragrom", "dragon" },
 		{ NULL, "sdose6", "ddos10", NULL, NULL },
 		{ NULL, "d64_2", "d64rom2", NULL, NULL }
 	},
 	{ "tano", "Tano Dragon", DRAGON_KEYBOARD, NTSC,
-		{ { 0xbde7, 0xbda5 }, { 0xbde7, 0xbda5 } },
 		{ NULL, NULL, NULL, NULL, NULL },
 		{ NULL, "d64_1", "d64rom1", "dragrom", "dragon" },
 		{ NULL, "sdose6", "ddos10", NULL, NULL },
 		{ NULL, "d64_2", "d64rom2", NULL, NULL }
 	},
 	{ "coco", "Tandy CoCo", COCO_KEYBOARD, NTSC,
-		{ { 0xa77c, 0xa755 }, { 0xa77c, 0xa755 } },
 		{ NULL, "bas13", "bas12", "bas11", "bas10" },
 		{ NULL, "extbas11", "extbas10", NULL, NULL },
 		{ NULL, "disk11", "disk10", NULL, NULL },
@@ -201,8 +196,6 @@ void machine_reset(int hard) {
 		memset(ram1, 0, sizeof(ram1));
 		memset(rom0, 0, sizeof(rom0));
 		memset(rom1, 0, sizeof(rom1));
-		brk_csrdon = m->breakpoints[0].csrdon;
-		brk_bitin = m->breakpoints[0].bitin;
 		for (i=0; i<5 && load_rom(m->rom1[i], rom1, sizeof(rom1)); i++);
 		if (!IS_COCO || !noextbas)
 			for (i=0; i<5 && load_rom(m->extbas[i], rom0, sizeof(rom0)); i++);

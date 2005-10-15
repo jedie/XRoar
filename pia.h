@@ -114,7 +114,7 @@ extern pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 
 #define PIA_WRITE_P0CA(v) PIA_CONTROL_WRITE(PIA_0A,v,irq,PIA_0B)
 #define PIA_WRITE_P0CB(v) PIA_CONTROL_WRITE(PIA_0B,v,irq,PIA_0A)
-#define PIA_WRITE_P1CA(v) PIA_CONTROL_WRITE(PIA_1A,v,firq,PIA_1B)
+#define PIA_WRITE_P1CA(v) do { PIA_CONTROL_WRITE(PIA_1A,v,firq,PIA_1B); tape_update(); } while (0)
 #define PIA_WRITE_P1CB(v) PIA_CONTROL_WRITE(PIA_1B,v,firq,PIA_1A)
 
 #define PIA_READ(p,i,p2,r) do { \
