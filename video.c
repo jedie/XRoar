@@ -166,14 +166,14 @@ void video_next(void) {
 	for (v = video_module->next; v; v = v->next) {
 		if (module_init(v) == 0) {
 			video_module->vdg_reset();
-			vdg_set_mode();
+			vdg_reset();
 			return;
 		}
 	}
 	for (v = modules_head; v && v != video_module; v = v->next) {
 		if (module_init(v) == 0) {
 			video_module->vdg_reset();
-			vdg_set_mode();
+			vdg_reset();
 			return;
 		}
 	}
