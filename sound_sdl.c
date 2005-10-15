@@ -110,7 +110,7 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL audio driver\n");
-	event_dequeue(flush_event);
+	event_free(flush_event);
 	SDL_DestroyCond(halt_cv);
 	SDL_DestroyMutex(halt_mutex);
 	SDL_CloseAudio();
