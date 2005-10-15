@@ -111,6 +111,7 @@ failed:
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down Mac OS X CoreAudio driver\n");
+	event_free(flush_event);
 	pthread_mutex_destroy(&haltflag);
 	free(buffer);
 }

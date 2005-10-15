@@ -23,6 +23,7 @@
 #include "machine.h"
 #include "pia.h"
 #include "sound.h"
+#include "tape.h"
 #include "vdg.h"
 #include "wd2797.h"
 #include "xroar.h"
