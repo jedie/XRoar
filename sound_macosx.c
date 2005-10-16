@@ -136,7 +136,7 @@ static void update(void) {
 	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = ((Sample)((PIA_1B.port_output & 0x02) << 4) / 300.) - 0.5;
+		fill_with = (PIA_1B.port_output & 0x02) ? 0. : 0.84;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
