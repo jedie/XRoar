@@ -32,6 +32,7 @@
 #include "vdg.h"
 #include "vdrive.h"
 #include "wd2797.h"
+#include "xroar.h"
 
 /* machine_keymap tracks which keymap is in use (good to be able to set it
  * separately). */
@@ -128,6 +129,9 @@ void machine_helptext(void) {
 	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
 	puts("  -nodos                disable DOS (ROM and hardware emulation)");
 	puts("  -cart FILENAME        specify ROM to load into cartridge area ($C000-)");
+#ifdef TRACE
+	puts("  -trace                start with trace mode on");
+#endif
 }
 
 void machine_getargs(int argc, char **argv) {
@@ -173,6 +177,10 @@ void machine_getargs(int argc, char **argv) {
 			i++;
 			if (i >= argc) break;
 			cart_filename = argv[i];
+#ifdef TRACE
+		} else if (!strcmp(argv[i], "-trace")) {
+			trace = 1;
+#endif
 		}
 	}
 }
