@@ -100,9 +100,10 @@ static void map_keyboard(unsigned int *map) {
 static void getargs(int argc, char **argv) {
 	int i;
 	keymap_option = NULL;
-	for (i = 1; i < (argc-1); i++) {
+	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-keymap")) {
 			i++;
+			if (i >= argc) break;
 			keymap_option = argv[i];
 		}
 	}

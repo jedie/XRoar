@@ -139,13 +139,14 @@ void sound_getargs(int argc, char **argv) {
 	module_add(&sound_gp32_module);
 #endif
 	module_option = NULL;
-	for (i = 1; i < (argc-1); i++) {
+	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-ao")) {
-			if (!strcmp(argv[i+1], "help")) {
+			i++;
+			if (i >= argc) break;
+			if (!strcmp(argv[i], "help")) {
 				module_help();
 				exit(0);
 			}
-			i++;
 			module_option = argv[i];
 		}
 	}
