@@ -75,6 +75,7 @@ int write_snapshot(char *filename) {
 	/* SAM */
 	fs_write_byte(fd, ID_SAM_REGISTERS); fs_write_word16(fd, 2);
 	fs_write_word16(fd, sam_register);
+	fs_close(fd);
 	return 0;
 }
 
@@ -90,8 +91,10 @@ int read_snapshot(char *filename) {
 	xroar_reset(RESET_HARD);
 	fs_read(fd, buffer, 17);
 	if (strncmp((char *)buffer, "XRoar snapshot.\012\000", 17)) {
-		/* Old-style snapshot.  Register dump always came first. */
-		if (buffer[0] != ID_REGISTER_DUMP) {
+		/* Old-style snapshot.  Register dump always came first.
+		 * Also, it used to be written out as only taking 12 bytes. */
+		if (buffer[0] != ID_REGISTER_DUMP || buffer[1] != 0
+				|| (buffer[2] != 12 && buffer[2] != 14)) {
 			fs_close(fd);
 			return -1;
 		}

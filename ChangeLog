@@ -2,6 +2,7 @@ Changed from v0.13 to v0.14
  * Implemented PAL timing for Dragon 32, Dragon 64.
  * Added new machine, 'tano'.
  * Implemented sub-scanline rendering (not GP32).
+ * Fixes to snapshot code.
 
 Changed from v0.12 to v0.13
  * Fixed OpenGL resize problem.
