@@ -272,9 +272,8 @@ static int nmi_armed;
 				case 3: reg_s = ireg_val; break; \
 			} \
 			if (postbyte & 0x10) { \
-				uint_least16_t ret = fetch_byte(ead) << 8 | fetch_byte(ead+1); \
+				a = fetch_byte(ead) << 8 | fetch_byte(ead+1); \
 				TAKEN_CYCLES(1); \
-				a = ret; \
 			} else { \
 				a = ead; \
 			} \
