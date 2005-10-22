@@ -98,8 +98,8 @@ void xroar_init(void) {
 void xroar_shutdown(void) {
 	joystick_shutdown();
 	ui_shutdown();
-	video_shutdown();
 	sound_shutdown();
+	video_shutdown();
 }
 
 void xroar_reset(int hard) {

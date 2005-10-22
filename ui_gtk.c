@@ -54,7 +54,9 @@ static int init(void) {
 static void shutdown(void) {
 	LOG_DEBUG(2, "Shutting down GTK+ user-interface\n");
 	LOG_DEBUG(3, "\tNothing to do...\n");
-	gtk_exit(0);
+	/* Apparantly this just calls exit(), which means other shutdown
+	 * stuff gets skipped. */
+	/* gtk_exit(0); */
 }
 
 static gboolean cancel(GtkWidget *w) {
