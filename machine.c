@@ -117,7 +117,7 @@ machine_info machines[NUM_MACHINES] = {
 unsigned int machine_romtype;
 
 const char *cart_filename;
-static int noextbas;
+int noextbas;
 
 static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
 

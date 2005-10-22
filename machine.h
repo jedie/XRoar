@@ -86,6 +86,7 @@ extern uint8_t rom0[0x8000];
 extern uint8_t rom1[0x8000];
 
 extern const char *cart_filename;
+extern int noextbas;
 
 void machine_helptext(void);
 void machine_getargs(int argc, char **argv);

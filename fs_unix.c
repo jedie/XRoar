@@ -104,6 +104,10 @@ ssize_t fs_size(const char *filename) {
 	return -1;
 }
 
+char *fs_getcwd(char *buf, size_t size) {
+	return getcwd(buf, size);
+}
+
 ssize_t fs_load_file(char *filename, void *buf, size_t size) {
 	ssize_t count;
 	FS_FILE fd;

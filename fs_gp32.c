@@ -55,8 +55,10 @@ int fs_chdir(const char *path) {
 	if (pcopy == NULL)
 		return -1;
 	strcpy(pcopy, path);
-	if (!strcmp(pcopy, "."))
+	if (!strcmp(pcopy, ".")) {
+		GpRelativePathSet(cwd);
 		return 0;
+	}
 	if (!strcmp(pcopy, "..")) {
 		p = strrchr2(cwd, '\\');
 		if (p)
@@ -104,12 +106,17 @@ FS_FILE fs_open(const char *filename, int flags) {
 		basename = filename;
 	}
 	if (flags & FS_WRITE) {
-		if (GpFileCreate(basename, ALWAYS_CREATE, &fd) != SM_OK)
-			return -1;
+		if (GpFileOpen(basename, OPEN_W, &fd) != SM_OK) {
+			GpFileCreate(basename, ALWAYS_CREATE, &fd);
+			if (GpFileOpen(basename, OPEN_W, &fd) != SM_OK) {
+				return -1;
+			}
+		}
 	} else {
 		if (GpFileOpen(basename, OPEN_R, &fd) != SM_OK)
 			return -1;
 	}
+	SPEED_SLOW;
 	return fd;
 }
 
@@ -142,6 +149,7 @@ ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size) {
 
 void fs_close(FS_FILE fd) {
 	GpFileClose(fd);
+	SPEED_FAST;
 }
 
 ssize_t fs_size(const char *filename) {
@@ -150,56 +158,13 @@ ssize_t fs_size(const char *filename) {
 	return (ssize_t)size;
 }
 
-int fs_scandir(const char *dir, struct dirent ***namelist,
-		int (*filter)(struct dirent *),
-		int (*compar)(const void *, const void *)) {
-	struct dirent **array;
-	struct dirent entry;
-	struct dirent *new;
-	unsigned long i, count, p_num, dummy;
-	GPDIRENTRY gpentry;
-	GPFILEATTR gpentry_attr;
-	if (!strcmp(dir, ".")) {
-		dir = cwd;
-	}
-	fs_chdir(dir);
-	GpDirEnumNum(dir, &p_num);
-	array = (struct dirent **)malloc((p_num+1) * sizeof(struct dirent *));
-	if (array == NULL)
-		return -1;
-	count = 0;
-	for (i = 0; i < p_num; i++) {
-		GpDirEnumList(dir, i, 1, &gpentry, &dummy);
-		GpFileAttr(gpentry.name,  &gpentry_attr);
-		memcpy(entry.d_name, gpentry.name, 16);
-		entry.attr = gpentry_attr.attr;
-		entry.size = gpentry_attr.size;
-		if (filter == NULL || filter(&entry)) {
-			new = (struct dirent *)malloc(sizeof(struct dirent));
-			if (new == NULL) {
-				/* one fails, they all fail */
-				for (; count; count--)
-					free(array[count-1]);
-				free(array);
-				return -1;
-			}
-			memcpy(new, &entry, sizeof(struct dirent));
-			array[count++] = new;
-		}
-	}
-	array[count] = NULL;
-	*namelist = array;
-	/* Sort results */
-	if (count > 1 && compar)
-		qsort(array, count, sizeof(struct dirent *), compar);
-	return count;
-}
-
-void fs_freedir(struct dirent ***namelist) {
-	struct dirent **cur;
-	for (cur = *namelist; *cur; cur++)
-		free(*cur);
-	free(*namelist);
+char *fs_getcwd(char *buf, size_t size) {
+	if (buf == NULL)
+		return NULL;
+	if ((strlen(cwd) + 1) > size)
+		return NULL;
+	strcpy(buf, cwd);
+	return buf;
 }
 
 ssize_t fs_load_file(char *filename, void *buf, size_t size) {

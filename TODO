@@ -9,8 +9,6 @@ GP32
 
 * Need to be able to enter your own filename using the virtual
   keyboard.
-* Need ability to save a snapshot.  Mostly held up by needing a way to
-  enter filenames.
 
 
 Unix
