@@ -52,6 +52,9 @@ GP32: Upload the file 'xroar.fxe' to gp:/gpmm/.  The ROM files, all
       cassette images, snapshots and disk images should be in
       gp:/gpmm/dragon/.
 
+Windows: The file 'xroar.exe' needs to be run from the directory that
+         contains your firmware ROMs.
+
 You will need a copy of the Dragon or CoCo firmware ROMs.  If you don't
 have the tools to transfer this from your original Dragon or CoCo, you
 may find one somewhere on the web.  Although I personally think that

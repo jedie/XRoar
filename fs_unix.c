@@ -40,6 +40,10 @@ static const char *fs_error = "";
 void fs_init(void) {
 }
 
+int fs_chdir(const char *path) {
+	return chdir(path);
+}
+
 FS_FILE fs_open(const char *filename, int flags) {
 	int fd;
 	if (flags & FS_WRITE)
