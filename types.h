@@ -10,9 +10,6 @@
 
 #include "gp32/types.h"  /* base types */
 
-/* All this affects is how registers A and B combine to form D */
-#define WRONG_ENDIAN
-
 /* FCLK = 80/40/40MHz */
 
 #define SPEED_FAST GpClockSpeedChange(80000000, 0x48012, 2)

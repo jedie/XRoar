@@ -8,18 +8,16 @@ datadir = $(prefix)/share
 
 VERSION := 0.14
 
-.PHONY: usage gp32 linux linux-be macosx solaris solaris-le windows32
+.PHONY: usage gp32 linux macosx solaris windows32
 
 usage:
 	@echo
 	@echo "Usage: \"make system-type\", where system-type is one of:"
 	@echo
-	@echo " gp32 linux linux-be macosx solaris solaris-le windows32"
+	@echo " gp32 linux macosx solaris windows32"
 	@echo
 	@echo "You can append options to determine which tools are used to compile."
 	@echo "e.g., \"make gp32 TOOL_PREFIX=arm-elf-\""
-	@echo
-	@echo "-be and -le targets specify an endianness (big- or little-endian). "
 	@echo
 
 OPT = -O3
@@ -42,7 +40,6 @@ ENABLE_GTK       := linux solaris
 ENABLE_CARBON    := macosx
 ENABLE_WINDOWS32 := windows32
 #ENABLE_ZLIB      := linux macosx
-ENABLE_WRONGEND  := linux windows32
 
 USES_UNIX_TARGET      := linux solaris macosx
 USES_GP32_TARGET      := gp32
@@ -78,9 +75,6 @@ endif
 #ifdef ZLIB
 #	ENABLE_ZLIB += $(MAKECMDGOALS)
 #endif
-ifdef WRONGEND
-	ENABLE_WRONGEND += $(MAKECMDGOALS)
-endif
 
 COMMON_OBJS := xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o \
 		sam.o pia.o wd2797.o vdg.o video.o sound.o ui.o \
@@ -149,8 +143,6 @@ CFLAGS_TRACE = -DTRACE
 
 #CFLAGS_ZLIB = -DHAVE_ZLIB
 #LDFLAGS_ZLIB = -lz
-
-CFLAGS_WRONGEND = -DWRONG_ENDIAN
 
 ROMPATH = :~/.xroar/roms:$(prefix)/share/xroar/roms
 windows32: ROMPATH = .
@@ -236,8 +228,6 @@ $(ENABLE_TRACE): CFLAGS  += $(CFLAGS_TRACE)
 $(ENABLE_TRACE): LDFLAGS += $(LDFLAGS_TRACE)
 $(ENABLE_TRACE): $(OBJS_TRACE)
 
-$(ENABLE_WRONGEND): CFLAGS += $(CFLAGS_WRONGEND)
-
 # Target-specific objects:
 OBJS_UNIX := fs_unix.o main_unix.o
 ALL_OBJS += $(OBJS_UNIX)
@@ -263,15 +253,6 @@ $(USES_GP32_TARGET): $(OBJS_GP32) xroar.fxe
 $(USES_WINDOWS32_TARGET): TOOL_PREFIX=i586-mingw32-
 $(USES_WINDOWS32_TARGET): OBJS += $(OBJS_UNIX)
 $(USES_WINDOWS32_TARGET): $(OBJS_UNIX) xroar.exe
-
-linux-be: CFLAGS_WRONGEND =
-linux-be: linux
-
-solaris-le: CFLAGS += $(CFLAGS_WRONGEND)
-solaris-le: solaris
-
-macosx-le: CFLAGS += $(CFLAGS_WRONGEND)
-macosx-le: macosx
 
 HOSTCC = gcc
 CC = $(TOOL_PREFIX)gcc

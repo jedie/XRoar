@@ -28,9 +28,9 @@ COMPILING
 
 To see build options, type 'make' on its own.  Common targets are:
 
-linux     - Little-endian Linux target with OSS audio, OpenGL and Xv video.
-solaris   - Big-endian Solaris target with Sun audio and SDL video.
-gp32      - Cross-compile to GP32 (little-endian ARM target).
+linux     - Linux target with OSS audio, OpenGL and Xv video.
+solaris   - Solaris target with Sun audio and SDL video.
+gp32      - Cross-compile to GP32 (ARM target).
 macosx    - PowerPC Mac OS X target with OpenGL and CoreAudio support.
 windows32 - Cross-compile for Windows.
 
