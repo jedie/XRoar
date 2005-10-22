@@ -6,6 +6,8 @@ Changed from v0.13 to v0.14
  * Fullscreen toggle added.
  * AD CPU rate removed from GP32 build.
  * New -snap option.
+ * Fix to Windows32 UI module (retains CWD).
+ * 6809 core optimisations.
 
 Changed from v0.12 to v0.13
  * Fixed OpenGL resize problem.
