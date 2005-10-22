@@ -38,6 +38,9 @@
 /* Simple macro for use in place of sam_read_byte() when the result isn't
  * required, just appropriate timing.  Side-effects of reads obviously won't
  * happen, but in practice that should almost certainly never matter. */
+#ifdef HAVE_GP32
+# define sam_peek_byte(a) do { current_cycle += CPU_SLOW_DIVISOR; } while (0)
+#else
 #define sam_peek_byte(a) do { \
 		if ((((a)&0xffff) >= 0x8000) && ((((a)&0xffff) < 0xff00) \
 					|| (((a)&0xffff) >= 0xff20))) \
@@ -45,6 +48,7 @@
 		else \
 			current_cycle += CPU_SLOW_DIVISOR; \
 	} while(0)
+#endif
 
 extern uint8_t *addrptr_low;
 extern uint8_t *addrptr_high;
@@ -58,7 +62,11 @@ extern unsigned int  sam_vdg_mod_ydiv;
 extern uint_least16_t sam_vdg_mod_clear;
 extern unsigned int  sam_vdg_xcount;
 extern unsigned int  sam_vdg_ycount;
+#ifdef HAVE_GP32
+# define sam_topaddr_cycles CPU_SLOW_DIVISOR
+#else
 extern unsigned int sam_topaddr_cycles;
+#endif
 
 void sam_init(void);
 void sam_reset(void);

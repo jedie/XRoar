@@ -44,7 +44,9 @@ unsigned int  sam_vdg_mod_ydiv;
 uint_least16_t sam_vdg_mod_clear;
 unsigned int  sam_vdg_xcount;
 unsigned int  sam_vdg_ycount;
+#ifndef HAVE_GP32
 unsigned int sam_topaddr_cycles;
+#endif
 
 static unsigned int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
 static unsigned int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
@@ -197,15 +199,21 @@ void sam_update_from_register(void) {
 		addrptr_low = ram1;
 		addrptr_high = rom0;
 		mapped_ram = 0;
+#ifndef HAVE_GP32
 		sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
+#endif
 	} else {
 		addrptr_low = ram0;
 		if ((mapped_ram = sam_register & 0x8000)) {
 			addrptr_high = ram1;
+#ifndef HAVE_GP32
 			sam_topaddr_cycles = CPU_SLOW_DIVISOR;
+#endif
 		} else {
 			addrptr_high = rom0;
+#ifndef HAVE_GP32
 			sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
+#endif
 		}
 	}
 }
