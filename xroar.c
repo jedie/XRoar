@@ -43,14 +43,21 @@ Cycle current_cycle;
 int trace = 0;
 #endif
 
+static char *snapshot_load = NULL;
+
 static void xroar_helptext(void) {
+	printf("  -snap FILENAME        load snapshot after initialising\n");
 	printf("  -h                    display this help and exit\n");
 }
 
 void xroar_getargs(int argc, char **argv) {
 	int i;
 	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
+		if (!strcmp(argv[i], "-snap")) {
+			i++;
+			if (i >= argc) break;
+			snapshot_load = argv[i];
+		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");
 			machine_helptext();
@@ -94,6 +101,8 @@ void xroar_init(void) {
 	fs_init();
 	machine_init();
 	xroar_reset(RESET_HARD);
+	if (snapshot_load)
+		read_snapshot(snapshot_load);
 }
 
 void xroar_shutdown(void) {

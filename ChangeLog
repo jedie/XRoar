@@ -5,6 +5,7 @@ Changed from v0.13 to v0.14
  * Fixes to snapshot code.
  * Fullscreen toggle added.
  * AD CPU rate removed from GP32 build.
+ * New -snap option.
 
 Changed from v0.12 to v0.13
  * Fixed OpenGL resize problem.
