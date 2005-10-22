@@ -8,7 +8,16 @@ datadir = $(prefix)/share
 
 VERSION := 0.14
 
-.PHONY: usage gp32 linux macosx solaris windows32
+.PHONY: all usage gp32 linux macosx solaris windows32
+
+all:
+	@case `uname -s` in \
+	 Linux) $(MAKE) linux; ;; \
+	 Darwin) $(MAKE) macosx; ;; \
+	 SunOS) $(MAKE) solaris; ;; \
+	 *) $(MAKE) usage; ;; \
+	 esac; \
+	 exit 0
 
 usage:
 	@echo

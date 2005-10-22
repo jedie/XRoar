@@ -26,7 +26,9 @@ The rest is the result of reading too many datasheets.
 
 COMPILING
 
-To see build options, type 'make' on its own.  Common targets are:
+To build, type 'make' on its own.  For supported native builds, this will
+determine the host OS type and build appropriately.  Here are the supported
+targets:
 
 linux     - Linux target with OSS audio, OpenGL and Xv video.
 solaris   - Solaris target with Sun audio and SDL video.
