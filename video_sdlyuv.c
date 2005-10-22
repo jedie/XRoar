@@ -39,6 +39,7 @@ static void blit(uint_least16_t x, uint_least16_t y, Sprite *src);
 /* static void backup(void);
 static void restore(void); */
 static void resize(uint_least16_t w, uint_least16_t h);
+static void toggle_fullscreen(void);
 static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
@@ -60,7 +61,7 @@ VideoModule video_sdlyuv_module = {
 	"SDL YUV overlay, hopefully uses Xv acceleration",
 	init, shutdown,
 	fillrect, blit,
-	NULL, NULL, resize,
+	NULL, NULL, resize, toggle_fullscreen,
 	reset, vsync, set_mode,
 	render_sg4, render_sg4 /* 6 */, render_cg1,
 	render_rg1, render_cg2, render_rg6,
@@ -109,7 +110,7 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL-YUV video driver\n");
 		return 1;
 	}
-	screen = SDL_SetVideoMode(640, 480, 32, SDL_HWSURFACE|SDL_RESIZABLE);
+	screen = SDL_SetVideoMode(640, 480, 32, SDL_HWSURFACE|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
 		return 1;
@@ -122,6 +123,10 @@ static int init(void) {
 	if (overlay->hw_overlay != 1) {
 		LOG_WARN("Warning: SDL overlay is not hardware accelerated\n");
 	}
+	if (video_want_fullscreen)
+		SDL_ShowCursor(SDL_DISABLE);
+	else
+		SDL_ShowCursor(SDL_ENABLE);
 	memcpy(&dstrect, &screen->clip_rect, sizeof(SDL_Rect));
 	fillrect(0,0,320,240,0);
 	alloc_colours();
@@ -133,6 +138,8 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL-YUV video driver\n");
+	if (video_want_fullscreen)
+		toggle_fullscreen();
 	SDL_FreeYUVOverlay(overlay);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
@@ -158,6 +165,12 @@ static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
 	(void)src;  /* unused */
 }
 
+static void toggle_fullscreen(void) {
+	video_want_fullscreen = !video_want_fullscreen;
+	resize(320, 240);
+}
+
+
 static void resize(uint_least16_t w, uint_least16_t h) {
 	if (w < 640) w = 640;
 	if (h < 480) h = 480;
@@ -172,7 +185,11 @@ static void resize(uint_least16_t w, uint_least16_t h) {
 		dstrect.x = 0;
 		dstrect.y = (h - dstrect.h)/2;
 	}
-	screen = SDL_SetVideoMode(w, h, 32, SDL_HWSURFACE|SDL_RESIZABLE);
+	screen = SDL_SetVideoMode(w, h, 32, SDL_HWSURFACE|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
+	if (video_want_fullscreen)
+		SDL_ShowCursor(SDL_DISABLE);
+	else
+		SDL_ShowCursor(SDL_ENABLE);
 }
 
 static void reset(void) {

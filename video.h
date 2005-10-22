@@ -27,6 +27,7 @@ struct VideoModule {
 	void (*backup)(void);
 	void (*restore)(void);
 	void (*resize)(uint_least16_t w, uint_least16_t h);
+	void (*toggle_fullscreen)(void);
 	void (*vdg_reset)(void);
 	void (*vdg_vsync)(void);
 	void (*vdg_set_mode)(unsigned int mode);
@@ -41,6 +42,7 @@ struct VideoModule {
 
 extern VideoModule *video_module;
 extern int video_artifact_mode;
+extern int video_want_fullscreen;
 
 void video_helptext(void);
 void video_getargs(int argc, char **argv);

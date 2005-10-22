@@ -39,6 +39,7 @@ static VideoModule *modules_head;
 VideoModule *video_module;
 
 int video_artifact_mode;
+int video_want_fullscreen;
 
 static void module_add(VideoModule *module) {
 	VideoModule *m;
@@ -102,6 +103,7 @@ static int module_init_by_name(char *name) {
 
 void video_helptext(void) {
 	puts("  -vo MODULE            specify video module (-vo help for a list)");
+	puts("  -fs                   request initial full-screen mode");
 }
 
 /* Scan args and record any of relevance to video modules */
@@ -124,14 +126,17 @@ void video_getargs(int argc, char **argv) {
 	module_add(&video_gp32_module);
 #endif
 	module_option = NULL;
-	for (i = 1; i < (argc-1); i++) {
+	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-vo")) {
-			if (!strcmp(argv[i+1], "help")) {
+			i++;
+			if (i >= argc) break;
+			if (!strcmp(argv[i], "help")) {
 				module_help();
 				exit(0);
 			}
-			i++;
 			module_option = argv[i];
+		} else if (strcmp(argv[i], "-fs") == 0) {
+			video_want_fullscreen = 1;
 		}
 	}
 }

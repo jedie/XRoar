@@ -183,6 +183,10 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_e:
 			dragondos_enabled = !dragondos_enabled;
 			break;
+		case SDLK_f:
+			if (video_module->toggle_fullscreen)
+				video_module->toggle_fullscreen();
+			break;
 		case SDLK_h:
 			{
 			const char *hex_exts[] = { "HEX", NULL };

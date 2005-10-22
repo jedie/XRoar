@@ -38,6 +38,7 @@ static void fillrect(uint_least16_t x, uint_least16_t y,
 		uint_least16_t w, uint_least16_t h, uint32_t colour);
 static void blit(uint_least16_t x, uint_least16_t y, Sprite *src);
 static void resize(uint_least16_t w, uint_least16_t h);
+static void toggle_fullscreen(void);
 static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
@@ -56,7 +57,7 @@ VideoModule video_sdlgl_module = {
 	"SDL OpenGL",
 	init, shutdown,
 	fillrect, blit,
-	NULL, NULL, resize,
+	NULL, NULL, resize, toggle_fullscreen,
 	reset, vsync, set_mode,
 	render_sg4, render_sg4 /* 6 */, render_cg1,
 	render_rg1, render_cg2, render_rg6,
@@ -101,7 +102,7 @@ static int init(void) {
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,  5);
 	SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 16);
-	screen = SDL_SetVideoMode(640, 480, 0, SDL_OPENGL|SDL_RESIZABLE);
+	screen = SDL_SetVideoMode(640, 480, 0, SDL_OPENGL|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to initialise display\n");
 		return 1;
@@ -117,6 +118,11 @@ static int init(void) {
 		return 1;
 	}
 
+	if (video_want_fullscreen)
+		SDL_ShowCursor(SDL_DISABLE);
+	else
+		SDL_ShowCursor(SDL_ENABLE);
+
 	config_opengl();
 	xoffset = yoffset = 0;
 	alloc_colours();
@@ -128,9 +134,11 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL OpenGL driver\n");
+	if (video_want_fullscreen)
+		toggle_fullscreen();
 	glDeleteTextures(1, &texnum);
 	SDL_FreeSurface(screen_tex);
-	SDL_FreeSurface(screen);
+	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
@@ -154,6 +162,11 @@ static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
 	(void)src;  /* unused */
 }
 
+static void toggle_fullscreen(void) {
+	video_want_fullscreen = !video_want_fullscreen;
+	resize(640, 480);
+}
+
 static void resize(uint_least16_t w, uint_least16_t h) {
 	uint_least16_t width, height;
 	if (w < 320) w = 320;
@@ -170,7 +183,11 @@ static void resize(uint_least16_t w, uint_least16_t h) {
 		yoffset = (h - height)/2;
 	}
 	glDeleteTextures(1, &texnum);
-	screen = SDL_SetVideoMode(w, h, 0, SDL_OPENGL|SDL_RESIZABLE);
+	screen = SDL_SetVideoMode(w, h, 0, SDL_OPENGL|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
+	if (video_want_fullscreen)
+		SDL_ShowCursor(SDL_DISABLE);
+	else
+		SDL_ShowCursor(SDL_ENABLE);
 	config_opengl();
 }
 

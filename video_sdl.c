@@ -38,6 +38,7 @@ static void fillrect(uint_least16_t x, uint_least16_t y,
 static void blit(uint_least16_t x, uint_least16_t y, Sprite *src);
 /* static void backup(void);
 static void restore(void); */
+static void toggle_fullscreen(void);
 static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
@@ -59,7 +60,7 @@ VideoModule video_sdl_module = {
 	"Standard SDL surface",
 	init, shutdown,
 	fillrect, blit,
-	NULL, NULL, NULL,
+	NULL, NULL, NULL, toggle_fullscreen,
 	reset, vsync, set_mode,
 	render_sg4, render_sg4 /* 6 */, render_cg1,
 	render_rg1, render_cg2, render_rg6,
@@ -97,11 +98,15 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL video driver\n");
 		return 1;
 	}
-	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE);
+	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE|(video_want_fullscreen?SDL_FULLSCREEN:0));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
 		return 1;
 	}
+	if (video_want_fullscreen)
+		SDL_ShowCursor(SDL_DISABLE);
+	else
+		SDL_ShowCursor(SDL_ENABLE);
 	fillrect(0,0,320,240,0);
 	alloc_colours();
 	/* Set preferred keyboard & joystick drivers */
@@ -112,6 +117,8 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL video driver\n");
+	if (video_want_fullscreen)
+		toggle_fullscreen();
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
@@ -135,6 +142,15 @@ static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
 	(void)y;  /* unused */
 	(void)src;  /* unused */
 }
+
+static void toggle_fullscreen(void) {
+	video_want_fullscreen = !video_want_fullscreen;
+	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE|(video_want_fullscreen?SDL_FULLSCREEN:0));
+	if (video_want_fullscreen)
+		SDL_ShowCursor(SDL_DISABLE);
+	else
+		SDL_ShowCursor(SDL_ENABLE);
+}       
 
 static void reset(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;

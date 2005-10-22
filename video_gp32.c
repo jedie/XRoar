@@ -53,7 +53,7 @@ VideoModule video_gp32_module = {
 	"GP32 video driver",
 	init, shutdown,
 	fillrect, blit,
-	backup, restore, NULL,
+	backup, restore, NULL, NULL,
 	vdg_reset, vdg_vsync, vdg_set_mode,
 	vdg_render_sg4, vdg_render_sg4 /* 6 */, vdg_render_cg1,
 	vdg_render_rg1, vdg_render_cg2, vdg_render_rg6,
