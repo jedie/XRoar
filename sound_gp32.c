@@ -76,6 +76,7 @@ static int init(void) {
 }
 
 static void shutdown(void) {
+	event_free(flush_event);
 }
 
 static void reset(void) {
@@ -98,20 +99,20 @@ static void update(void) {
 	} else {
 		fill_to = buffer[writing_frame] + (elapsed_cycles/(Cycle)sample_cycles);
 	}
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = ((PIA_1B.port_output & 0x02) << 5) ^ 0x80;
+		fill_with = (PIA_1B.port_output & 0x02) ? 0x7c : 0x80;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
 			fill_with = 0x80;
 		} else {
 			/* DAC output */
-			fill_with = ((PIA_1A.port_output & 0xfc) >> 1) ^ 0x80;
+			fill_with = (PIA_1A.port_output & 0xfc) ^ 0x80;
 		}
 	}
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
 	lastsample = (fill_with << 8) | fill_with;
 }
 

@@ -127,28 +127,27 @@ static void reset(void) {
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
 	} else {
 		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
 	}
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = (PIA_1B.port_output & 0x02) ? 0. : 0.84;
+		/* The zero level of this might depend on joystick position? */
+		lastsample = (PIA_1B.port_output & 0x02) ? 0.42 : -0.42;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
-			fill_with = 0.;
+			lastsample = 0.;
 		} else {
 			/* DAC output */
-			fill_with = ((Sample)(PIA_1A.port_output & 0xfc) / 300.) - 0.5;
+			lastsample = ((Sample)(PIA_1A.port_output & 0xfc) / 300.) - 0.42;
 		}
 	}
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	lastsample = fill_with;
 }
 
 static void flush_frame(void) {

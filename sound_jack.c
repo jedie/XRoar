@@ -116,7 +116,7 @@ static int init(void) {
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down JACK audio driver\n");
 	pthread_mutex_destroy(&haltflag);
-	event_dequeue(flush_event);
+	event_free(flush_event);
 	if (client)
 		jack_client_close(client);
 	client = NULL;

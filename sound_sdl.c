@@ -119,7 +119,7 @@ static void shutdown(void) {
 }
 
 static void reset(void) {
-	memset(buffer, 0x80, FRAME_SIZE * sizeof(Sample));
+	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
 	SDL_PauseAudio(0);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
@@ -139,14 +139,14 @@ static void update(void) {
 	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = ((PIA_1B.port_output & 0x02) << 5) ^ 0x80;
+		fill_with = (PIA_1B.port_output & 0x02) ? 0xfc : 0;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
-			fill_with = 0x80;
+			fill_with = 0;
 		} else {
 			/* DAC output */
-			fill_with = ((PIA_1A.port_output & 0xfc) >> 1) ^ 0x80;
+			fill_with = PIA_1A.port_output & 0xfc;
 		}
 	}
 	while (wrptr < fill_to)
@@ -173,7 +173,7 @@ static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
 	if (len == FRAME_SIZE) {
 		memcpy(stream, buffer, len);
-		memset(buffer, 0x80, len);
+		memset(buffer, 0, len);
 	}
 	SDL_LockMutex(halt_mutex);
 	haltflag = 0;

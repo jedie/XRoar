@@ -47,7 +47,6 @@ SoundModule sound_oss_module = {
 };
 
 typedef uint8_t Sample;  /* 8-bit mono */
-typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 
 #define FRAGMENTS 2
 #define FRAME_SIZE 512
@@ -63,7 +62,7 @@ unsigned int bytes_per_sample;
 static Cycle frame_cycle_base;
 static Sample *buffer;
 static Sample *wrptr;
-static Sample_f lastsample;
+static Sample lastsample;
 static uint8_t *convbuf;
 
 static void flush_frame(void);
@@ -133,7 +132,7 @@ failed:
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down OSS audio driver\n");
-	event_dequeue(flush_event);
+	event_free(flush_event);
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
 	free(buffer);
@@ -141,7 +140,7 @@ static void shutdown(void) {
 
 static void reset(void) {
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
-	memset(buffer, 0x00, FRAME_SIZE * sizeof(Sample));
+	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
@@ -151,7 +150,7 @@ static void reset(void) {
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample_f fill_with;
+	Sample fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
@@ -160,7 +159,7 @@ static void update(void) {
 	}
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = (PIA_1B.port_output & 0x02) << 6;
+		fill_with = (PIA_1B.port_output & 0x02) ? 0xfc : 0;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
@@ -191,7 +190,7 @@ static void flush_frame(void) {
 		uint8_t tmp;
 		int i, j;
 		for (i = FRAME_SIZE; i; i--) {
-			tmp = (*(source++) >> 2) ^ 0x80;
+			tmp = *(source++);
 			for (j = 0; j < channels; j++)
 				*(dest++) = tmp;
 		}
@@ -204,7 +203,6 @@ static void flush_frame(void) {
 		int i, j;
 		for (i = FRAME_SIZE; i; i--) {
 			tmp = (*(source++) ^ 0x80) << 8;
-			tmp >>= 2;
 			for (j = 0; j < channels; j++)
 				*(dest++) = tmp;
 		}
