@@ -50,7 +50,8 @@ static void xroar_helptext(void) {
 void xroar_getargs(int argc, char **argv) {
 	int i;
 	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
+				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");
 			machine_helptext();
 			video_helptext();
