@@ -37,7 +37,7 @@ extern SoundModule sound_sun_module;
 #ifdef HAVE_JACK_AUDIO
 extern SoundModule sound_jack_module;
 #endif
-#ifdef HAVE_RTC_AUDIO
+#ifdef HAVE_RTC
 extern SoundModule sound_rtc_module;
 #endif
 #ifdef HAVE_GP32
@@ -132,7 +132,7 @@ void sound_getargs(int argc, char **argv) {
 #ifdef HAVE_JACK_AUDIO
 	module_add(&sound_jack_module);
 #endif
-#ifdef HAVE_RTC_AUDIO
+#ifdef HAVE_RTC
 	module_add(&sound_rtc_module);
 #endif
 #ifdef HAVE_GP32
