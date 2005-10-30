@@ -61,6 +61,7 @@ void xroar_getargs(int argc, char **argv) {
 				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");
 			machine_helptext();
+			cart_helptext();
 			video_helptext();
 			sound_helptext();
 			ui_helptext();
@@ -74,6 +75,7 @@ void xroar_getargs(int argc, char **argv) {
 	ui_getargs(argc, argv);
 	keyboard_getargs(argc, argv);
 	machine_getargs(argc, argv);
+	cart_getargs(argc, argv);
 }
 
 void xroar_init(void) {
@@ -100,6 +102,7 @@ void xroar_init(void) {
 	}
 	fs_init();
 	machine_init();
+	cart_init();
 	xroar_reset(RESET_HARD);
 	if (snapshot_load)
 		read_snapshot(snapshot_load);
@@ -118,6 +121,7 @@ void xroar_reset(int hard) {
 	joystick_reset();
 	keyboard_reset();
 	machine_reset(hard);
+	cart_reset();
 }
 
 void xroar_mainloop(void) {

@@ -22,6 +22,7 @@
 #include <SDL.h>
 
 #include "types.h"
+#include "cart.h"
 #include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -193,6 +194,16 @@ static void keypress(SDL_keysym *keysym) {
 			char *filename = ui_module->load_filename(hex_exts);
 			if (filename)
 				intel_hex_read(filename);
+			}
+			break;
+		case SDLK_i:
+			{
+			const char *cart_exts[] = { "ROM", NULL };
+			char *filename = ui_module->load_filename(cart_exts);
+			if (filename)
+				cart_insert(filename, shift ? 0 : 1);
+			else
+				cart_remove();
 			}
 			break;
 		case SDLK_j:

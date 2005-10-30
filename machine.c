@@ -116,7 +116,6 @@ machine_info machines[NUM_MACHINES] = {
 };
 unsigned int machine_romtype;
 
-const char *cart_filename;
 int noextbas;
 
 static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
@@ -128,7 +127,6 @@ void machine_helptext(void) {
 	puts("  -noextbas             disable Extended BASIC");
 	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
 	puts("  -nodos                disable DOS (ROM and hardware emulation)");
-	puts("  -cart FILENAME        specify ROM to load into cartridge area ($C000-)");
 #ifdef TRACE
 	puts("  -trace                start with trace mode on");
 #endif
@@ -138,7 +136,6 @@ void machine_getargs(int argc, char **argv) {
 	int i, j;
 	machine_romtype = DRAGON64;
 	machine_set_keymap(DRAGON_KEYBOARD);
-	cart_filename = NULL;
 	noextbas = 0;
 	dragondos_enabled = 1;
 	for (i = 1; i < argc; i++) {
@@ -173,10 +170,6 @@ void machine_getargs(int argc, char **argv) {
 			machines[machine_romtype].dos[0] = argv[i];
 		} else if (!strcmp(argv[i], "-nodos")) {
 			dragondos_enabled = 0;
-		} else if (!strcmp(argv[i], "-cart")) {
-			i++;
-			if (i >= argc) break;
-			cart_filename = argv[i];
 #ifdef TRACE
 		} else if (!strcmp(argv[i], "-trace")) {
 			trace = 1;
@@ -208,12 +201,6 @@ void machine_reset(int hard) {
 		if (!IS_COCO || !noextbas)
 			for (i=0; i<5 && load_rom(m->extbas[i], rom0, sizeof(rom0)); i++);
 		for (i=0; i<5 && load_rom(m->bas[i], rom0+0x2000, sizeof(rom0)-0x2000); i++);
-		if (cart_filename) {
-			if (load_rom(cart_filename, rom0+0x4000, sizeof(rom0)-0x4000)) {
-				cart_filename = NULL;
-			}
-			dragondos_enabled = 0;
-		}
 		if (dragondos_enabled) {
 			for (i=0; i<5 && load_rom(m->dos[i], rom0+0x4000, sizeof(rom0)-0x4000); i++);
 		}

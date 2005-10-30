@@ -87,7 +87,7 @@ endif
 
 COMMON_OBJS := xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o \
 		sam.o pia.o wd2797.o vdg.o video.o sound.o ui.o \
-		keyboard.o joystick.o events.o vdrive.o vdisk.o
+		keyboard.o joystick.o events.o vdrive.o vdisk.o cart.o
 ALL_OBJS := $(COMMON_OBJS)
 
 OBJS_SDL := video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o joystick_sdl.o
