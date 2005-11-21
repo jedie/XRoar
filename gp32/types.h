@@ -12,16 +12,15 @@
 #define malloc gm_malloc
 #define free gm_free
 
-/*
 #define memset gm_memset
 #define memcpy gm_memcpy
 #define strcat gm_strcat
 #define strcpy gm_strcpy
-*/
 
 #define exit(r)
 #define fprintf(...)
 #define printf(...)
+#define puts(...)
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;

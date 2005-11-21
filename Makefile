@@ -246,7 +246,8 @@ OBJS_GP32 = gp32/crt0.o fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
 		gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
 		cmode_bin.o copyright.o kbd_graphics.o
 ALL_OBJS += $(OBJS_GP32)
-CFLAGS_GP32 = -DHAVE_GP32 -mcpu=arm9tdmi -funroll-loops
+#CFLAGS_GP32 = -DHAVE_GP32 -mcpu=arm9tdmi -funroll-loops
+CFLAGS_GP32 = -DHAVE_GP32 -mcpu=arm9tdmi
 LDFLAGS_GP32 = -nostartfiles -T gp32/lnkscript -lgpmem -lgpos -lgpstdio \
 		-lgpstdlib -lgpgraphic
 
