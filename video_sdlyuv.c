@@ -56,7 +56,6 @@ extern KeyboardModule keyboard_sdl_module;
 extern JoystickModule joystick_sdl_module;
 
 VideoModule video_sdlyuv_module = {
-	NULL,
 	"sdlyuv",
 	"SDL YUV overlay, hopefully uses Xv acceleration",
 	init, shutdown,

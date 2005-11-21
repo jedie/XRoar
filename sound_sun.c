@@ -44,14 +44,12 @@ static void flush_frame(void);
 static event_t *flush_event;
 
 SoundModule sound_sun_module = {
-	NULL,
 	"sun",
 	"Sun audio",
 	init, shutdown, reset, update
 };
 
 typedef uint8_t Sample;  /* 8-bit mono */
-typedef unsigned int Sample_f;  /* Fastest for manipulating above */
 
 #define SAMPLE_RATE 22050
 #define CHANNELS 1
@@ -66,7 +64,7 @@ static uint_t samples_written;
 static Cycle frame_cycle_base;
 static Sample *buffer;
 static Sample *wrptr;
-static Sample_f lastsample;
+static Sample lastsample;
 
 static int init(void) {
 	unsigned int rate = SAMPLE_RATE;
@@ -131,31 +129,26 @@ static void reset(void) {
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample_f fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
 	} else {
 		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
 	}
-	if (!(PIA_1B.control_register & 0x08)) {
-		/* Single-bit sound */
-		fill_with = ((PIA_1B.port_output & 0x02) << 5);
-		//fill_with = 0;
-	} else  {
-		if (PIA_0B.control_register & 0x08 || PIA_0A.control_register & 0x08) { 
-			/* Sound disabled */
-			fill_with = 0;
-		} else {
-			/* DAC output */
-			fill_with = ((PIA_1A.port_output & 0xfc) >> 1);
-			//fill_with = PIA_1A.port_output & 0xfc;
-			//fill_with ^= 0x80;
-		}
-	}
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	lastsample = fill_with;
+	if (!(PIA_1B.control_register & 0x08)) {
+		/* Single-bit sound */
+		lastsample = (PIA_1B.port_output & 0x02) ? 0x7c : 0;
+	} else  {
+		if (PIA_0B.control_register & 0x08) {
+			/* Sound disabled */
+			lastsample = 0;
+		} else {
+			/* DAC output */
+			lastsample = (PIA_1A.port_output & 0xfc) >> 1;
+		}
+	}
 }
 
 static void flush_frame(void) {

@@ -22,90 +22,73 @@
 #include "sound.h"
 #include "logging.h"
 
-#ifdef HAVE_MACOSX_AUDIO
 extern SoundModule sound_macosx_module;
+extern SoundModule sound_sdl_module;
+extern SoundModule sound_oss_module;
+extern SoundModule sound_sun_module;
+extern SoundModule sound_jack_module;
+extern SoundModule sound_rtc_module;
+extern SoundModule sound_gp32_module;
+
+static SoundModule *module_list[] = {
+#ifdef HAVE_MACOSX_AUDIO
+	&sound_macosx_module,
 #endif
 #ifdef HAVE_SDL
-extern SoundModule sound_sdl_module;
+	&sound_sdl_module,
 #endif
 #ifdef HAVE_OSS_AUDIO
-extern SoundModule sound_oss_module;
+	&sound_oss_module,
 #endif
 #ifdef HAVE_SUN_AUDIO
-extern SoundModule sound_sun_module;
+	&sound_sun_module,
 #endif
 #ifdef HAVE_JACK_AUDIO
-extern SoundModule sound_jack_module;
+	&sound_jack_module,
 #endif
 #ifdef HAVE_RTC
-extern SoundModule sound_rtc_module;
+	&sound_rtc_module,
 #endif
 #ifdef HAVE_GP32
-extern SoundModule sound_gp32_module;
+	&sound_gp32_module,
 #endif
+	NULL
+};
 
-static char *module_option;
-static SoundModule *modules_head;
+static int selected_module = 0;
 SoundModule *sound_module;
 
-static void module_add(SoundModule *module) {
-	SoundModule *m;
-	module->next = NULL;
-	if (modules_head == NULL) {
-		modules_head = module;
-		return;
-	}
-	for (m = modules_head; m->next; m = m->next);
-	m->next = module;
-}
-
-static void module_delete(SoundModule *module) {
-	SoundModule *m;
-	if (module == NULL)
-		return;
-	if (modules_head == module) {
-		modules_head = module->next;
-		free(modules_head);
-		return;
-	}
-	for (m = modules_head; m; m = m->next) {
-		if (m->next == module) {
-			m->next = module->next;
-			return;
-		}
-	}
-}
-
 static void module_help(void) {
-	SoundModule *m;
+	int i;
 	printf("Available sound drivers:\n");
-	for (m = modules_head; m; m = m->next) {
-		printf("\t%-10s%s\n", m->name, m->help);
+	for (i = 0; module_list[i]; i++) {
+		printf("\t%-10s%s\n", module_list[i]->name, module_list[i]->help);
 	}
 }
 
-/* Tries to init a module, deletes on failure */
-static int module_init(SoundModule *module) {
-	if (module == NULL)
-		return 1;
-	if (module->init() == 0) {
-		sound_module = module;
+/* Tries to init selected module */
+static int module_init(void) {
+	if (module_list[selected_module] == NULL)
 		return 0;
+	if (module_list[selected_module]->init() == 0) {
+		sound_module = module_list[selected_module];
+		return 1;
 	}
-	LOG_WARN("Sound module %s initialisation failed\n", module->name);
-	module_delete(module);
-	return 1;
+	LOG_WARN("Sound module %s initialisation failed\n", module_list[selected_module]->name);
+	return 0;
 }
 
 /* Returns 0 on success */
-static int module_init_by_name(char *name) {
-	SoundModule *m;
-	for (m = modules_head; m; m = m->next) {
-		if (!strcmp(name, m->name)) {
-			return module_init(m);
+static int select_module_by_name(char *name) {
+	int i;
+	for (i = 0; module_list[i]; i++) {
+		if (!strcmp(name, module_list[i]->name)) {
+			selected_module = i;
+			return 0;
 		}
 	}
 	LOG_WARN("Sound module %s not found\n", name);
+	selected_module = 0;
 	return 1;
 }
 
@@ -116,29 +99,8 @@ void sound_helptext(void) {
 /* Scan args and record any of relevance to sound modules */
 void sound_getargs(int argc, char **argv) {
 	int i;
-	modules_head = sound_module = NULL;
-#ifdef HAVE_MACOSX_AUDIO
-	module_add(&sound_macosx_module);
-#endif
-#ifdef HAVE_SDL
-	module_add(&sound_sdl_module);
-#endif
-#ifdef HAVE_OSS_AUDIO
-	module_add(&sound_oss_module);
-#endif
-#ifdef HAVE_SUN_AUDIO
-	module_add(&sound_sun_module);
-#endif
-#ifdef HAVE_JACK_AUDIO
-	module_add(&sound_jack_module);
-#endif
-#ifdef HAVE_RTC
-	module_add(&sound_rtc_module);
-#endif
-#ifdef HAVE_GP32
-	module_add(&sound_gp32_module);
-#endif
-	module_option = NULL;
+	sound_module = NULL;
+	selected_module = 0;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-ao")) {
 			i++;
@@ -147,26 +109,24 @@ void sound_getargs(int argc, char **argv) {
 				module_help();
 				exit(0);
 			}
-			module_option = argv[i];
+			select_module_by_name(argv[i]);
 		}
 	}
 }
 
+/* Try and initialised currently selected module, iterate through
+ * rest of list if that one fails. */
 int sound_init(void) {
-	if (module_option) {
-		char *name = strtok(module_option, ":");
-		while (name && !sound_module) {
-			if (module_init_by_name(name) == 0) {
-				return 0;
-			}
-			name = strtok(NULL, ":");
-		}
-	}
-	while (modules_head) {
-		/* Depends on module_init() deleting failed modules */
-		if (module_init(modules_head) == 0)
+	int old_module = selected_module;
+	if (module_init())
+		return 0; 
+	do {
+		selected_module++;
+		if (module_list[selected_module] == NULL)
+			selected_module = 0;
+		if (module_init())
 			return 0;
-	}
+	} while (selected_module != old_module);
 	return 1;
 }
 
@@ -176,20 +136,9 @@ void sound_shutdown(void) {
 }
 
 void sound_next(void) {
-	SoundModule *m;
-	sound_module->shutdown();
-	m = sound_module->next;
-	for (m = sound_module->next; m; m = m->next) {
-		if (module_init(m) == 0) {
-			sound_module->reset();
-			return;
-		}
-	}
-	for (m = modules_head; m && m != sound_module; m = m->next) {
-		if (module_init(m) == 0) {
-			sound_module->reset();
-			return;
-		}
-	}
-	exit(1);
+	sound_shutdown();
+	selected_module++;
+	if (sound_init())
+		exit(1);
+	sound_module->reset();
 }

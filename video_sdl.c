@@ -55,7 +55,6 @@ extern KeyboardModule keyboard_sdl_module;
 extern JoystickModule joystick_sdl_module;
 
 VideoModule video_sdl_module = {
-	NULL,
 	"sdl",
 	"Standard SDL surface",
 	init, shutdown,

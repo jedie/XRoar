@@ -44,7 +44,6 @@ static void jack_shutdown(void *arg);
 static int jack_callback(jack_nframes_t nframes, void *arg);
 
 SoundModule sound_jack_module = {
-	NULL,
 	"jack",
 	"JACK audio",
 	init, shutdown, reset, update
@@ -106,7 +105,7 @@ static int init(void) {
 	sample_cycles = OSCILLATOR_RATE / sample_rate;
 	frame_size = jack_get_buffer_size(client);
 	frame_cycles = sample_cycles * frame_size;
-	buffer = (Sample *)malloc(frame_size * sizeof(Sample));
+	buffer = malloc(frame_size * sizeof(Sample));
 	pthread_mutex_init(&haltflag, NULL);
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
@@ -131,7 +130,7 @@ static void jack_shutdown(void *arg) {
 }
 
 static void reset(void) {
-	memset(buffer, 0x00, frame_size * sizeof(Sample));
+	memset(buffer, 0, frame_size * sizeof(Sample));
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
@@ -141,30 +140,26 @@ static void reset(void) {
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
 		fill_to = buffer + frame_size;
 	} else {
 		fill_to = buffer + (elapsed_cycles/sample_cycles);
 	}
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = ((Sample)((PIA_1B.port_output & 0x02) << 6) / 300.) - 0.5;
+		lastsample = (PIA_1B.port_output & 0x02) ? 0.42 : -0.42;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
-			fill_with = 0.;
+			lastsample = 0.;
 		} else {
 			/* DAC output */
-			/* /255 would give full volume, but /300 seems to
-			 * give one that fits in with my music playback... */
-			fill_with = ((Sample)(PIA_1A.port_output & 0xfc) / 300.) - 0.5;
+			lastsample = ((Sample)(PIA_1A.port_output & 0xfc) / 300.) - 0.42;
 		}
 	}
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	lastsample = fill_with;
 }
 
 void flush_frame(void) {

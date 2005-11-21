@@ -19,86 +19,69 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "types.h"
 #include "ui.h"
 #include "logging.h"
 
-#ifdef HAVE_CARBON
 extern UIModule ui_carbon_module;
+extern UIModule ui_windows32_module;
+extern UIModule ui_gtk_module;
+extern UIModule ui_gp32_module;
+extern UIModule ui_cli_module;
+
+static UIModule *module_list[] = {
+#ifdef HAVE_CARBON
+	&ui_carbon_module,
 #endif
 #ifdef WINDOWS32
-extern UIModule ui_windows32_module;
+	&ui_windows32_module,
 #endif
 #ifdef HAVE_GTK_UI
-extern UIModule ui_gtk_module;
+	&ui_gtk_module,
 #endif
 #ifdef HAVE_GP32
-extern UIModule ui_gp32_module;
+	&ui_gp32_module,
 #endif
 #ifdef HAVE_CLI_UI
-extern UIModule ui_cli_module;
+	&ui_cli_module,
 #endif
+	NULL
+};
 
-static char *module_option;
-static UIModule *modules_head;
-UIModule *ui_module;
-
-static void module_add(UIModule *module) {
-	UIModule *m;
-	module->next = NULL;
-	if (modules_head == NULL) {
-		modules_head = module;
-		return;
-	}
-	for (m = modules_head; m->next; m = m->next);
-	m->next = module;
-}
-
-static void module_delete(UIModule *module) {
-	UIModule *m;
-	if (modules_head == module) {
-		modules_head = module->next;
-		free(modules_head);
-		return;
-	}
-	for (m = modules_head; m; m = m->next) {
-		if (m->next == module) {
-			m->next = module->next;
-			free(module);
-			return;
-		}
-	}
-}
+static int selected_module = 0;
+UIModule *ui_module = NULL;
 
 static void module_help(void) {
-	UIModule *m;
+	int i;
 	printf("Available UI drivers:\n");
-	for (m = modules_head; m; m = m->next) {
-		printf("\t%-10s%s\n", m->name, m->help);
+	for (i = 0; module_list[i]; i++) {
+		printf("\t%-10s%s\n", module_list[i]->name, module_list[i]->help);
 	}
 }
 
-/* Tries to init a module, deletes on failure */
-static int module_init(UIModule *module) {
-	if (module == NULL)
-		return 1;
-	if (module->init() == 0) {
-		ui_module = module;
+/* Tries to init selected module */
+static int module_init(void) {
+	if (module_list[selected_module] == NULL)
 		return 0;
+	if (module_list[selected_module]->init() == 0) {
+		ui_module = module_list[selected_module];
+		return 1;
 	}
-	LOG_WARN("UI module %s initialisation failed\n", module->name);
-	module_delete(module);
-	return 1;
+	LOG_WARN("UI module %s initialisation failed\n", module_list[selected_module]->name);
+	return 0;
 }
 
 /* Returns 0 on success */
-static int module_init_by_name(char *name) {
-	UIModule *m;
-	for (m = modules_head; m; m = m->next) {
-		if (!strcmp(name, m->name)) {
-			return module_init(m);
+static int select_module_by_name(char *name) {
+	int i;
+	for (i = 0; module_list[i]; i++) {
+		if (!strcmp(name, module_list[i]->name)) {
+			selected_module = i;
+			return 0;
 		}
 	}
 	LOG_WARN("UI module %s not found\n", name);
+	selected_module = 0;
 	return 1;
 }
 
@@ -109,23 +92,8 @@ void ui_helptext(void) {
 /* Scan args and record any of relevance to ui modules */
 void ui_getargs(int argc, char **argv) {
 	int i;
-	modules_head = ui_module = NULL;
-#ifdef HAVE_CARBON
-	module_add(&ui_carbon_module);
-#endif
-#ifdef WINDOWS32
-	module_add(&ui_windows32_module);
-#endif
-#ifdef HAVE_GTK_UI
-	module_add(&ui_gtk_module);
-#endif
-#ifdef HAVE_GP32
-	module_add(&ui_gp32_module);
-#endif
-#ifdef HAVE_CLI_UI
-	module_add(&ui_cli_module);
-#endif
-	module_option = NULL;
+	ui_module = NULL;
+	selected_module = 0;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-ui")) {
 			i++;
@@ -134,26 +102,24 @@ void ui_getargs(int argc, char **argv) {
 				module_help();
 				exit(0);
 			}
-			module_option = argv[i];
+			select_module_by_name(argv[i]);
 		}
 	}
 }
 
+/* Try and initialised currently selected module, iterate through
+ * rest of list if that one fails. */
 int ui_init(void) {
-	if (module_option) { 
-		char *name = strtok(module_option, ":");
-		while (name && !ui_module) {
-			if (module_init_by_name(name) == 0) {
-				return 0;
-			}
-			name = strtok(NULL, ":");
-		}
-	}
-	while (modules_head) {
-		/* Depends on module_init() deleting failed modules */
-		if (module_init(modules_head) == 0)
+	int old_module = selected_module;
+	if (module_init())
+		return 0; 
+	do {
+		selected_module++;
+		if (module_list[selected_module] == NULL)
+			selected_module = 0;
+		if (module_init())
 			return 0;
-	}
+	} while (selected_module != old_module);
 	return 1;
 }
 

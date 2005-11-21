@@ -28,7 +28,7 @@
 #include "cart.h"
 #include "machine.h"
 #include "snapshot.h"
-#include "sound.h"
+#include "sound_gp32.h"
 #include "tape.h"
 #include "vdg.h"
 #include "vdisk.h"

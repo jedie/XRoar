@@ -28,6 +28,7 @@
 #include "types.h"
 #include "events.h"
 #include "sound.h"
+#include "sound_gp32.h"
 #include "pia.h"
 #include "xroar.h"
 #include "gp32/gpsound.h"
@@ -39,7 +40,6 @@ static void reset(void);
 static void update(void);
 
 SoundModule sound_gp32_module = {
-	NULL,
 	"gp32",
 	"GP32 audio",
 	init, shutdown, reset, update
@@ -80,19 +80,18 @@ static void shutdown(void) {
 }
 
 static void reset(void) {
-	memset(buffer[0], 0x80, frame_size * sizeof(Sample));
-	memset(buffer[1], 0x80, frame_size * sizeof(Sample));
+	memset(buffer[0], 0, frame_size * sizeof(Sample));
+	memset(buffer[1], 0, frame_size * sizeof(Sample));
 	wrptr = buffer[1];
 	writing_frame = 1;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(flush_event);
-	lastsample = 0x80;
+	lastsample = 0;
 }
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
 		fill_to = buffer[writing_frame] + frame_size;
@@ -103,18 +102,20 @@ static void update(void) {
 		*(wrptr++) = lastsample;
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = (PIA_1B.port_output & 0x02) ? 0x7c : 0x80;
+		lastsample = (PIA_1B.port_output & 0x02) ? 0x7c7c : 0;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
-			fill_with = 0x80;
+			lastsample = 0;
 		} else {
 			/* DAC output */
-			fill_with = (PIA_1A.port_output & 0xfc) ^ 0x80;
+			lastsample = (PIA_1A.port_output & 0xfc) >> 1;
+			lastsample |= (lastsample << 8);
 		}
 	}
-	lastsample = (fill_with << 8) | fill_with;
 }
+
+//extern uint32_t border_colour;  /* TESTING */
 
 static void flush_frame(void) {
 	Sample *fill_to = buffer[writing_frame] + frame_size;
@@ -123,14 +124,17 @@ static void flush_frame(void) {
 	frame_cycle_base += frame_cycles;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(flush_event);
+	//if ((rDCSRC2 >= (unsigned)buffer[1]) == writing_frame) {
+		//border_colour = 0x80;  /* TESTING */
+	//}
 	writing_frame ^= 1;
 	wrptr = buffer[writing_frame];
 	while ((rDCSRC2 >= (unsigned)buffer[1]) == writing_frame);
 }
 
 void sound_silence(void) {
-	memset(buffer[0], 0x80, frame_size * sizeof(Sample));
-	memset(buffer[1], 0x80, frame_size * sizeof(Sample));
+	memset(buffer[0], 0, frame_size * sizeof(Sample));
+	memset(buffer[1], 0, frame_size * sizeof(Sample));
 }
 
 #endif  /* HAVE_GP32 */

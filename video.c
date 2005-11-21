@@ -19,85 +19,72 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "types.h"
 #include "video.h"
 #include "vdg.h"
 #include "logging.h"
 
-#ifdef HAVE_SDLGL
 extern VideoModule video_sdlgl_module;
-#endif
-#ifdef HAVE_SDL
 extern VideoModule video_sdlyuv_module;
 extern VideoModule video_sdl_module;
+extern VideoModule video_gp32_module;
+
+static VideoModule *module_list[] = {
+#ifdef HAVE_SDLGL
+	&video_sdlgl_module,
+#endif
+#ifdef HAVE_SDL
+# ifdef PREFER_NOYUV
+	&video_sdl_module,
+	&video_sdlyuv_module,
+# else
+	&video_sdlyuv_module,
+	&video_sdl_module,
+# endif
 #endif
 #ifdef HAVE_GP32
-extern VideoModule video_gp32_module;
+	&video_gp32_module,
 #endif
+	NULL
+};
 
-static char *module_option;
-static VideoModule *modules_head;
-VideoModule *video_module;
+static int selected_module = 0;
+VideoModule *video_module = NULL;
 
 int video_artifact_mode;
 int video_want_fullscreen;
 
-static void module_add(VideoModule *module) {
-	VideoModule *m;
-	module->next = NULL;
-	if (modules_head == NULL) {
-		modules_head = module;
-		return;
-	}
-	for (m = modules_head; m->next; m = m->next);
-	m->next = module;
-}
-
-static void module_delete(VideoModule *module) {
-	VideoModule *m;
-	if (modules_head == module) {
-		modules_head = module->next;
-		free(modules_head);
-		return;
-	}
-	for (m = modules_head; m; m = m->next) {
-		if (m->next == module) {
-			m->next = module->next;
-			free(module);
-			return;
-		}
-	}
-}
-
 static void module_help(void) {
-	VideoModule *m;
+	int i;
 	printf("Available video drivers:\n");
-	for (m = modules_head; m; m = m->next) {
-		printf("\t%-10s%s\n", m->name, m->help);
+	for (i = 0; module_list[i]; i++) {
+		printf("\t%-10s%s\n", module_list[i]->name, module_list[i]->help);
 	}
 }
 
-/* Tries to init a module, deletes on failure */
-static int module_init(VideoModule *module) {
-	if (module == NULL)
-		return 1;
-	if (module->init() == 0) {
-		video_module = module;
+/* Tries to init selected module */
+static int module_init(void) {
+	if (module_list[selected_module] == NULL)
 		return 0;
+	if (module_list[selected_module]->init() == 0) {
+		video_module = module_list[selected_module];
+		return 1;
 	}
-	LOG_WARN("Video module %s initialisation failed\n", module->name);
-	module_delete(module);
-	return 1;
+	LOG_WARN("Video module %s initialisation failed\n", module_list[selected_module]->name);
+	return 0;
 }
 
 /* Returns 0 on success */
-static int module_init_by_name(char *name) {
-	VideoModule *m;
-	for (m = modules_head; m; m = m->next) {
-		if (!strcmp(name, m->name)) {
-			return module_init(m);
+static int select_module_by_name(char *name) {
+	int i;
+	for (i = 0; module_list[i]; i++) {
+		if (!strcmp(name, module_list[i]->name)) {
+			selected_module = i;
+			return 0;
 		}
 	}
 	LOG_WARN("Video module %s not found\n", name);
+	selected_module = 0;
 	return 1;
 }
 
@@ -109,23 +96,8 @@ void video_helptext(void) {
 /* Scan args and record any of relevance to video modules */
 void video_getargs(int argc, char **argv) {
 	int i;
-	modules_head = video_module = NULL;
-#ifdef HAVE_SDLGL
-	module_add(&video_sdlgl_module);
-#endif
-#ifdef HAVE_SDL
-# ifdef PREFER_NOYUV
-	module_add(&video_sdl_module);
-	module_add(&video_sdlyuv_module);
-# else
-	module_add(&video_sdlyuv_module);
-	module_add(&video_sdl_module);
-# endif
-#endif
-#ifdef HAVE_GP32
-	module_add(&video_gp32_module);
-#endif
-	module_option = NULL;
+	video_module = NULL;
+	selected_module = 0;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-vo")) {
 			i++;
@@ -134,28 +106,26 @@ void video_getargs(int argc, char **argv) {
 				module_help();
 				exit(0);
 			}
-			module_option = argv[i];
+			select_module_by_name(argv[i]);
 		} else if (strcmp(argv[i], "-fs") == 0) {
 			video_want_fullscreen = 1;
 		}
 	}
 }
 
+/* Try and initialised currently selected module, iterate through
+ * rest of list if that one fails. */
 int video_init(void) {
-	if (module_option) { 
-		char *name = strtok(module_option, ":");
-		while (name && !video_module) {
-			if (module_init_by_name(name) == 0) {
-				return 0;
-			}
-			name = strtok(NULL, ":");
-		}
-	}
-	while (modules_head) {
-		/* Depends on module_init() deleting failed modules */
-		if (module_init(modules_head) == 0)
+	int old_module = selected_module;
+	if (module_init())
+		return 0;
+	do {
+		selected_module++;
+		if (module_list[selected_module] == NULL)
+			selected_module = 0;
+		if (module_init())
 			return 0;
-	}
+	} while (selected_module != old_module);
 	return 1;
 }
 
@@ -165,22 +135,10 @@ void video_shutdown(void) {
 }
 
 void video_next(void) {
-	VideoModule *v;
-	video_module->shutdown();
-	v = video_module->next;
-	for (v = video_module->next; v; v = v->next) {
-		if (module_init(v) == 0) {
-			video_module->vdg_reset();
-			vdg_reset();
-			return;
-		}
-	}
-	for (v = modules_head; v && v != video_module; v = v->next) {
-		if (module_init(v) == 0) {
-			video_module->vdg_reset();
-			vdg_reset();
-			return;
-		}
-	}
-	exit(1);
+	video_shutdown();
+	selected_module++;
+	if (video_init())
+		exit(1);
+	video_module->vdg_reset();
+	vdg_reset();
 }

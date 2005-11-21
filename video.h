@@ -16,7 +16,6 @@ typedef struct {
 
 typedef struct VideoModule VideoModule;
 struct VideoModule {
-	VideoModule *next;
 	const char *name;
 	const char *help;
 	int (*init)(void);

@@ -37,26 +37,22 @@ static void reset(void);
 static void update(void);
 
 SoundModule sound_sdl_module = {
-	NULL,
 	"sdl",
 	"SDL ring-buffer audio",
 	init, shutdown, reset, update
 };
 
-typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
-typedef unsigned int Sample_f;  /* Fastest for manipulating above */
+typedef Sint8 Sample;  /* 8-bit mono (SDL type) */
 
 #ifdef WINDOWS32
 # define SAMPLE_RATE 22050
 #else
 # define SAMPLE_RATE 44100
 #endif
-#define CHANNELS 1
-#define FORMAT AFMT_U8
 /* The lower the FRAME_SIZE, the better.  Windows32 seems to have problems
  * with very small frame sizes though. */
 #ifdef WINDOWS32
-# define FRAME_SIZE 2048
+# define FRAME_SIZE 1024
 #else
 # define FRAME_SIZE 512
 #endif
@@ -67,7 +63,7 @@ static SDL_AudioSpec audiospec;
 static Cycle frame_cycle_base;
 static Sample *buffer;
 static Sample *wrptr;
-static Sample_f lastsample;
+static Sample lastsample;
 static SDL_mutex *halt_mutex;
 static SDL_cond *halt_cv;
 static int haltflag;
@@ -79,6 +75,12 @@ static void callback(void *userdata, Uint8 *stream, int len);
 
 static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL audio driver\n");
+#ifdef WINDOWS32
+	//if (!getenv("SDL_AUDIODRIVER"))
+		//putenv("SDL_AUDIODRIVER=windib");
+	//if (!getenv("SDL_MIXERDRIVER"))
+		//putenv("SDL_MIXERDRIVER=windib");
+#endif
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 			LOG_ERROR("Failed to initialiase SDL\n");
@@ -90,9 +92,9 @@ static int init(void) {
 		return 1;
 	}
 	audiospec.freq = SAMPLE_RATE;
-	audiospec.format = AUDIO_U8;
+	audiospec.format = AUDIO_S8;
 	audiospec.samples = FRAME_SIZE;
-	audiospec.channels = CHANNELS;
+	audiospec.channels = 1;
 	audiospec.callback = callback;
 	audiospec.userdata = NULL;
 	if (SDL_OpenAudio(&audiospec, NULL) < 0) {
@@ -130,28 +132,26 @@ static void reset(void) {
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample_f fill_with;
 	Sample *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		fill_to = buffer + FRAME_SIZE;
 	} else {
 		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
 	}
+	while (wrptr < fill_to)
+		*(wrptr++) = lastsample;
 	if (!(PIA_1B.control_register & 0x08)) {
 		/* Single-bit sound */
-		fill_with = (PIA_1B.port_output & 0x02) ? 0xfc : 0;
+		lastsample = (PIA_1B.port_output & 0x02) ? 0x7c : 0;
 	} else  {
 		if (PIA_0B.control_register & 0x08) {
 			/* Sound disabled */
-			fill_with = 0;
+			lastsample = 0;
 		} else {
 			/* DAC output */
-			fill_with = PIA_1A.port_output & 0xfc;
+			lastsample = (PIA_1A.port_output & 0xfc) >> 1;
 		}
 	}
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	lastsample = fill_with;
 }
 
 void flush_frame(void) {

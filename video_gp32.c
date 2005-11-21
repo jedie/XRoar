@@ -48,7 +48,6 @@ extern KeyboardModule keyboard_gp32_module;
 extern JoystickModule joystick_gp32_module;
 
 VideoModule video_gp32_module = {
-	NULL,
 	"gp32",
 	"GP32 video driver",
 	init, shutdown,
@@ -74,6 +73,7 @@ static uint8_t fg_colour;
 static uint8_t vdg_colour[16];
 static uint8_t *cg_colours;
 static uint32_t border_colour;
+//uint32_t border_colour;  /* TESTING */
 
 static uint8_t screen_backup[320*240];
 GPDRAWSURFACE screen;

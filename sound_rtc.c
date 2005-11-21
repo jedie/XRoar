@@ -43,7 +43,6 @@ static void flush_frame(void);
 static event_t *flush_event;
 
 SoundModule sound_rtc_module = {
-	NULL,
 	"rtc",
 	"Use real time clock for timing (no audio)",
 	init, shutdown, reset, update
