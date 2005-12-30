@@ -1,3 +1,9 @@
+Changed from v0.14 to v0.15
+ * All registers now local to 6809 core main loop.
+ * New indexed addressing code should be faster.
+ * Simplified module system.
+ * New cartridge code.  Now usable on GP32.
+
 Changed from v0.13 to v0.14
  * Implemented PAL timing for Dragon 32, Dragon 64.
  * Added new machine, 'tano'.

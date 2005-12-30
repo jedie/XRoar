@@ -153,11 +153,11 @@
 #define DISARM_NMI do { nmi_armed = 0; } while (0)
 
 /* MPU registers */
-static unsigned int condition_code;
+static unsigned int register_cc;
 static uint8_t register_a, register_b;
-static uint8_t reg_dp;
-static uint16_t	reg_x, reg_y, reg_u, reg_s;
-static uint16_t program_counter;
+static unsigned int register_dp;
+static uint16_t	register_x, register_y, register_u, register_s;
+static uint16_t register_pc;
 
 #define reg_d ((reg_a&0xff) << 8 | (reg_b&0xff))
 #define set_reg_d(v) do { reg_a = ((v)>>8)&0xff; reg_b = (v)&0xff; } while (0)
@@ -173,112 +173,43 @@ static int nmi_armed;
 
 /* ------------------------------------------------------------------------- */
 
+#define EA_ROFF0(b,r) case (b): ea = (r); peek_byte(reg_pc)
+#define EA_ROFF5P(b,r,o) case ((b)+(o)): ea = (r) + (o); peek_byte(reg_pc); TAKEN_CYCLES(1)
+#define EA_ROFF5N(b,r,o) case ((b)+32+(o)): ea = (r) + (o); peek_byte(reg_pc); TAKEN_CYCLES(1)
+#define EA_ROFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + (r); TAKEN_CYCLES(1)
+#define EA_ROFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += (r); peek_byte(reg_pc); TAKEN_CYCLES(2)
+#define EA_ROFFA(b,r) case (b): ea = (r) + sex(reg_a); peek_byte(reg_pc); TAKEN_CYCLES(1)
+#define EA_ROFFB(b,r) case (b): ea = (r) + sex(reg_b); peek_byte(reg_pc); TAKEN_CYCLES(1)
+#define EA_ROFFD(b,r) case (b): ea = (r) + reg_d; peek_byte(reg_pc); peek_byte(reg_pc+1); peek_byte(reg_pc+2); TAKEN_CYCLES(2)
+#define EA_RI1(b,r) case (b): ea = (r); r += 1; peek_byte(reg_pc); TAKEN_CYCLES(2)
+#define EA_RI2(b,r) case (b): ea = (r); r += 2; peek_byte(reg_pc); TAKEN_CYCLES(3)
+#define EA_RD1(b,r) case (b): r -= 1; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(2)
+#define EA_RD2(b,r) case (b): r -= 2; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(3)
+#define EA_PCOFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + reg_pc; TAKEN_CYCLES(1)
+#define EA_PCOFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += reg_pc; peek_byte(reg_pc); TAKEN_CYCLES(3)
+#define EA_EXTIND case 0x9f: WORD_IMMEDIATE(0,ea); peek_byte(reg_pc); ea = fetch_byte(ea) << 8 | fetch_byte(ea+1); TAKEN_CYCLES(1); break
+
+#define EA_ROFF5(b,r) \
+	case (b)+0: case (b)+1: case (b)+2: case (b)+3: case (b)+4: \
+	case (b)+5: case (b)+6: case (b)+7: case (b)+8: case (b)+9: \
+	case (b)+10: case (b)+11: case (b)+12: case (b)+13: case (b)+14: \
+	case (b)+15: case (b)+16: case (b)+17: case (b)+18: case (b)+19: \
+	case (b)+20: case (b)+21: case (b)+22: case (b)+23: case (b)+24: \
+	case (b)+25: case (b)+26: case (b)+27: case (b)+28: case (b)+29: \
+	case (b)+30: case (b)+31: \
+		peek_byte(reg_pc); \
+		TAKEN_CYCLES(1); \
+		ea = (r) + sex5(postbyte)
+
+#define EA_ALLR(m,b) m((b), reg_x); break; m((b)+0x20, reg_y); break; \
+	m((b)+0x40, reg_u); break; m((b)+0x60, reg_s); break
+#define EA_ALLRI(m,b) EA_IND(m,(b),reg_x); break; \
+	EA_IND(m,(b)+0x20,reg_y); break; \
+	EA_IND(m,(b)+0x40,reg_u); break; \
+	EA_IND(m,(b)+0x60,reg_s); break
+#define EA_IND(m,b,r) m(b,r); ea = fetch_byte(ea) << 8 | fetch_byte(ea+1); TAKEN_CYCLES(1)
+
 #define EA_INDEXED(a) do { a = ea_indexed(); } while (0)
-#define EA_INDEXED_BODY(a)	do { \
-		unsigned int postbyte; \
-		uint_least16_t ead; \
-		uint16_t ireg_val; \
-		BYTE_IMMEDIATE(0,postbyte); \
-		switch ((postbyte & 0x60)>>5) { \
-			default: \
-			case 0: ireg_val = reg_x; break; \
-			case 1: ireg_val = reg_y; break; \
-			case 2: ireg_val = reg_u; break; \
-			case 3: ireg_val = reg_s; break; \
-		} \
-		if (!(postbyte & 0x80)) {  /* 5n,R */ \
-			peek_byte(reg_pc); \
-			TAKEN_CYCLES(1); \
-			a = ireg_val + sex5(postbyte); \
-		} else { \
-			switch (postbyte & 0x0f) { \
-				case 0x00:  /* ,R+ */ \
-					ead = ireg_val; \
-					ireg_val += 1; \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(2); \
-					break; \
-				case 0x01:  /* ,R++ */ \
-					ead = ireg_val; \
-					ireg_val += 2; \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(3); \
-					break; \
-				case 0x02:  /* ,-R */ \
-					ireg_val -= 1; \
-					ead = ireg_val; \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(2); \
-					break; \
-				case 0x03:  /* ,--R */ \
-					ireg_val -= 2; \
-					ead = ireg_val; \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(3); \
-					break; \
-				case 0x04:  /* ,R */ \
-					ead = ireg_val; \
-					peek_byte(reg_pc); \
-					break; \
-				case 0x05:  /* B,R */ \
-					ead = ireg_val + sex(reg_b); \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(1); \
-					break; \
-				case 0x06:  /* A,R */ \
-					ead = ireg_val + sex(reg_a); \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(1); \
-					break; \
-				case 0x08:  /* 8n,R */ \
-					BYTE_IMMEDIATE(0,ead); ead = sex(ead) + ireg_val; \
-					TAKEN_CYCLES(1); \
-					break; \
-				case 0x09:  /* 16n, R */ \
-					WORD_IMMEDIATE(0,ead); ead += ireg_val; \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(2); \
-					break; \
-				case 0x0b:  /* D,R */ \
-					ead = ireg_val + reg_d; \
-					peek_byte(reg_pc); \
-					peek_byte(reg_pc+1); \
-					peek_byte(reg_pc+2); \
-					TAKEN_CYCLES(2); \
-					break; \
-				case 0x0c:  /* 8n,PCR */ \
-					BYTE_IMMEDIATE(0,ead); ead = sex(ead) + reg_pc; \
-					TAKEN_CYCLES(1); \
-					break; \
-				case 0x0d:  /* 16n,PCR */ \
-					WORD_IMMEDIATE(0,ead); ead += reg_pc; \
-					peek_byte(reg_pc); \
-					TAKEN_CYCLES(3); \
-					break; \
-				case 0x0f: \
-					WORD_IMMEDIATE(0,ead); \
-					peek_byte(reg_pc); \
-					break; \
-				default: \
-					ead = 0xffff; \
-					postbyte &= ~0x10; \
-					break; \
-			} \
-			switch ((postbyte & 0x60)>>5) { \
-				default: \
-				case 0: reg_x = ireg_val; break; \
-				case 1: reg_y = ireg_val; break; \
-				case 2: reg_u = ireg_val; break; \
-				case 3: reg_s = ireg_val; break; \
-			} \
-			if (postbyte & 0x10) { \
-				a = fetch_byte(ead) << 8 | fetch_byte(ead+1); \
-				TAKEN_CYCLES(1); \
-			} else { \
-				a = ead; \
-			} \
-		} \
-	} while (0)
 
 /* ------------------------------------------------------------------------- */
 
@@ -353,27 +284,51 @@ void m6809_reset(void) {
 	DISARM_NMI;
 	wait_for_interrupt = 0;
 	skip_register_push = 0;
-	condition_code = 0xff;
+	register_cc = 0xff;
 	register_a = register_b = 0;
-	reg_dp = 0;
-	reg_x = reg_y = reg_u = reg_s = 0;
-	program_counter = fetch_word(0xfffe);
+	register_dp = 0;
+	register_x = register_y = register_u = register_s = 0;
+	register_pc = fetch_word(0xfffe);
 	m6809_dasm_reset();
 }
 
 void m6809_cycle(Cycle until) {
 	__label__ restore_regs, switched_block_page2, switched_block_page3;
 	uint_least16_t addr;
-	unsigned int reg_cc = condition_code;
+	unsigned int reg_cc = register_cc;
 	uint8_t reg_a = register_a;
 	uint8_t reg_b = register_b;
-	uint16_t reg_pc = program_counter;
+	unsigned int reg_dp = register_dp;
+	uint16_t reg_x = register_x;
+	uint16_t reg_y = register_y;
+	uint16_t reg_u = register_u;
+	uint16_t reg_s = register_s;
+	uint16_t reg_pc = register_pc;
+
 	/* Bit of a GCC-ism here: */
-	auto unsigned int ea_indexed(void);
-	unsigned int ea_indexed(void) {
-		unsigned int rret;
-		EA_INDEXED_BODY(rret);
-		return rret;
+	auto uint16_t ea_indexed(void);
+	uint16_t ea_indexed(void) {
+		unsigned int ea;
+		uint8_t postbyte;
+		BYTE_IMMEDIATE(0,postbyte);
+		switch (postbyte) {
+			EA_ALLR(EA_ROFF5,   0x00);
+			EA_ALLR(EA_RI1,     0x80);
+			EA_ALLR(EA_RI2,     0x81); EA_ALLRI(EA_RI2,     0x91);
+			EA_ALLR(EA_RD1,     0x82); 
+			EA_ALLR(EA_RD2,     0x83); EA_ALLRI(EA_RD2,     0x93);
+			EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94);
+			EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95);
+			EA_ALLR(EA_ROFFA,   0x86); EA_ALLRI(EA_ROFFA,   0x96);
+			EA_ALLR(EA_ROFF8,   0x88); EA_ALLRI(EA_ROFF8,   0x98);
+			EA_ALLR(EA_ROFF16,  0x89); EA_ALLRI(EA_ROFF16,  0x99);
+			EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
+			EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
+			EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
+			EA_EXTIND;
+			default: ea = 0; break;
+		}
+		return ea;
 	}
 
 	if (halt && !wait_for_interrupt) {
@@ -506,10 +461,10 @@ void m6809_cycle(Cycle until) {
 					break;
 				/* 0x1E EXG immediate */
 				case 0x1e: {
-					unsigned int postbyte;
+					uint8_t postbyte;
 					unsigned int tmp;
 					BYTE_IMMEDIATE(0,postbyte);
-					switch (postbyte & 0xff) {
+					switch (postbyte) {
 						case 0x01: case 0x10: tmp = reg_x; reg_x = reg_d; set_reg_d(tmp); break;
 						case 0x02: case 0x20: tmp = reg_y; reg_y = reg_d; set_reg_d(tmp); break;
 						case 0x03: case 0x30: tmp = reg_u; reg_u = reg_d; set_reg_d(tmp); break;
@@ -621,9 +576,9 @@ void m6809_cycle(Cycle until) {
 				} break;
 				/* 0x1F TFR immediate */
 				case 0x1f: {
-					unsigned int postbyte;
+					uint8_t postbyte;
 					BYTE_IMMEDIATE(0,postbyte);
-					switch (postbyte & 0xff) {
+					switch (postbyte) {
 						case 0x01: reg_x = reg_d; break;
 						case 0x02: reg_y = reg_d; break;
 						case 0x03: reg_u = reg_d; break;
@@ -1436,36 +1391,41 @@ switched_block_page3:
 	}
 
 restore_regs:
-	condition_code = reg_cc;
+	register_cc = reg_cc;
 	register_a = reg_a;
 	register_b = reg_b;
-	program_counter = reg_pc;
+	register_dp = reg_dp;
+	register_x = reg_x;
+	register_y = reg_y;
+	register_u = reg_u;
+	register_s = reg_s;
+	register_pc = reg_pc;
 }
 
 void m6809_get_registers(uint8_t *regs) {
-	regs[0] = condition_code;
+	regs[0] = register_cc;
 	regs[1] = register_a;
 	regs[2] = register_b;
-	regs[3] = reg_dp;
-	regs[4] = reg_x >> 8; regs[5] = reg_x & 0xff;
-	regs[6] = reg_y >> 8; regs[7] = reg_y & 0xff;
-	regs[8] = reg_u >> 8; regs[9] = reg_u & 0xff;
-	regs[10] = reg_s >> 8; regs[11] = reg_s & 0xff;
-	regs[12] = program_counter >> 8; regs[13] = program_counter & 0xff;
+	regs[3] = register_dp;
+	regs[4] = register_x >> 8; regs[5] = register_x & 0xff;
+	regs[6] = register_y >> 8; regs[7] = register_y & 0xff;
+	regs[8] = register_u >> 8; regs[9] = register_u & 0xff;
+	regs[10] = register_s >> 8; regs[11] = register_s & 0xff;
+	regs[12] = register_pc >> 8; regs[13] = register_pc & 0xff;
 }
 
 void m6809_set_registers(uint8_t *regs) {
-	condition_code = regs[0];
+	register_cc = regs[0];
 	register_a = regs[1];
 	register_b = regs[2];
-	reg_dp = regs[3];
-	reg_x = regs[4] << 8 | regs[5];
-	reg_y = regs[6] << 8 | regs[7];
-	reg_u = regs[8] << 8 | regs[9];
-	reg_s = regs[10] << 8 | regs[11];
-	program_counter = regs[12] << 8 | regs[13];
+	register_dp = regs[3];
+	register_x = regs[4] << 8 | regs[5];
+	register_y = regs[6] << 8 | regs[7];
+	register_u = regs[8] << 8 | regs[9];
+	register_s = regs[10] << 8 | regs[11];
+	register_pc = regs[12] << 8 | regs[13];
 }
 
 void m6809_jump(uint_least16_t pc) {
-	program_counter = pc & 0xffff;
+	register_pc = pc & 0xffff;
 }
