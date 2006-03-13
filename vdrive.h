@@ -16,6 +16,12 @@
 #define VDRIVE_DOUBLE_DENSITY (0x8000)
 #define VDRIVE_SINGLE_DENSITY (0x0000)
 
+#define VDRIVE_WRITE_CRC16 do { \
+		uint16_t tmp_write_crc = crc16_value(); \
+		vdrive_write(tmp_write_crc >> 8); \
+		vdrive_write(tmp_write_crc & 0xff); \
+	} while (0)
+
 extern int vdrive_ready;
 extern int vdrive_tr00;
 extern int vdrive_write_protect;

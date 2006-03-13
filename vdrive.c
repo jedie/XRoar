@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "crc16.h"
 #include "logging.h"
 #include "machine.h"
 #include "vdrive.h"
@@ -181,6 +182,7 @@ void vdrive_write(unsigned int data) {
 	if (current_drive == NULL)
 		return;
 	track_base[head_pos++] = data & 0xff;
+	crc16_byte(data & 0xff);
 	if (head_pos >= current_drive->track_length) {
 		index_pulse = 1;
 		head_pos = 128;
@@ -202,6 +204,7 @@ unsigned int vdrive_read(void) {
 	if (current_drive == NULL)
 		return 0;
 	ret = track_base[head_pos++] & 0xff;
+	crc16_byte(ret);
 	if (head_pos >= current_drive->track_length) {
 		index_pulse = 1;
 		head_pos = 128;
@@ -261,6 +264,8 @@ uint8_t *vdrive_next_idam(void) {
 		return NULL;
 	}
 	head_pos = next_offset + 7;
+	crc16_reset();
+	crc16_block(track_base + next_offset + 1, 4);
 	return track_base + next_offset;
 }
 
@@ -303,21 +308,21 @@ int vdrive_format_disk(unsigned int drive, unsigned int num_tracks,
 				for (i = 0; i < 8; i++) vdrive_write(0x00);
 				for (i = 0; i < 3; i++) vdrive_write(0xa1);
 				vdrive_write_idam();
+				crc16_reset();
 				vdrive_write(track);
 				vdrive_write(side);
 				vdrive_write(sect_interleave[sector] + first_sector);
 				vdrive_write(ssize_code);
-				vdrive_write(0x55);
-				vdrive_write(0x55);  /* Fake CRC */
+				VDRIVE_WRITE_CRC16;
 				for (i = 0; i < 22; i++) vdrive_write(0x4e);
 				for (i = 0; i < 12; i++) vdrive_write(0x00);
 				for (i = 0; i < 3; i++) vdrive_write(0xa1);
+				crc16_reset();
 				vdrive_write(0xfb);
 				for (i = 0; i < ssize; i++) {
 					vdrive_write(0xe5);
 				}
-				vdrive_write(0x55);
-				vdrive_write(0x55);  /* Fake CRC */
+				VDRIVE_WRITE_CRC16;
 				for (i = 0; i < 24; i++) vdrive_write(0x4e);
 			}
 			while (!vdrive_index_pulse()) {
@@ -349,12 +354,12 @@ void vdrive_update_sector(unsigned int drive, unsigned int track,
 		if (track == idam[1] && side == idam[2] && sector == idam[3]) {
 			for (i = 0; i < 22; i++) vdrive_skip();
 			for (i = 0; i < 12; i++) vdrive_write(0x00);
+			crc16_reset();
 			vdrive_write(0xfb);
 			for (i = 0; i < ssize; i++) {
 				vdrive_write(data[i]);
 			}
-			vdrive_write(0x55);
-			vdrive_write(0x55);  /* Fake CRC */
+			VDRIVE_WRITE_CRC16;
 			vdrive_write(0xfe);
 			return;
 		}

@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "crc16.h"
 #include "events.h"
 #include "logging.h"
 #include "m6809.h"
@@ -441,13 +442,12 @@ static void verify_track_state_2(void) {
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	/*
-	if (crc_error) {
+	if (crc16_value() != ((idam[5] << 8) | idam[6])) {
+		LOG_DEBUG(3, "Verify track CRC16 error: $%04x != $%04x\n", crc16_value(), (idam[5] << 8) | idam[6]);
 		status_register |= STATUS_CRC_ERROR;
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	*/
 	status_register &= ~(STATUS_CRC_ERROR|STATUS_BUSY);
 	SET_INTRQ;
 }
@@ -502,6 +502,7 @@ static void type_2_state_2(void) {
 		i = 0;
 		dam = 0;
 		do {
+			crc16_reset();
 			tmp = vdrive_read();
 			if (tmp == 0xfb || tmp == 0xf8)
 				dam = tmp;
@@ -543,9 +544,12 @@ static void read_sector_state_2(void) {
 }
 
 static void read_sector_state_3(void) {
-	/* Fake CRC checks: */
-	(void)vdrive_read();
-	(void)vdrive_read();
+	uint16_t crc = crc16_value();
+	uint16_t vcrc = (vdrive_read() << 8) | vdrive_read();
+	if (vcrc != crc) {
+		LOG_DEBUG(3, "Read sector data tr %d se %d CRC16 error: $%04x != $%04x\n", track_register, sector_register, crc, vcrc);
+		status_register |= STATUS_CRC_ERROR;
+	}
 	/* TODO: M == 1 */
 	status_register &= ~(STATUS_BUSY);
 	SET_INTRQ;
@@ -587,6 +591,7 @@ static void write_sector_state_3(void) {
 }
 
 static void write_sector_state_4(void) {
+	crc16_reset();
 	if (cmd_copy & 1)
 		vdrive_write(0xf8);
 	else
@@ -612,8 +617,7 @@ static void write_sector_state_5(void) {
 }
 
 static void write_sector_state_6(void) {
-	vdrive_write(0x55);
-	vdrive_write(0x55); /* Fake CRC */
+	VDRIVE_WRITE_CRC16;
 	vdrive_write(0xfe);
 	/* TODO: M = 1 */
 	status_register &= ~(STATUS_BUSY);
@@ -669,8 +673,7 @@ static void write_track_state_3(void) {
 	}
 	/* Double density */
 	if (data == 0xf7) {
-		vdrive_write(0x55);
-		vdrive_write(0x55);  /* Fake CRC */
+		VDRIVE_WRITE_CRC16;
 		NEXT_STATE(write_track_state_3, 2 * W_BYTE_TIME);
 		return;
 	}
@@ -680,8 +683,10 @@ static void write_track_state_3(void) {
 		return;
 	}
 	if (data == 0xf5) {
-		/* TODO: Preset CRC */
-		data = 0xa1;
+		vdrive_write(0xa1);
+		crc16_reset();
+		NEXT_STATE(write_track_state_3, W_BYTE_TIME);
+		return;
 	}
 	if (data == 0xf6) {
 		data = 0xc2;
