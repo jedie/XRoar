@@ -307,8 +307,8 @@ int vdrive_format_disk(unsigned int drive, unsigned int num_tracks,
 			for (sector = 0; sector < num_sectors; sector++) {
 				for (i = 0; i < 8; i++) vdrive_write(0x00);
 				for (i = 0; i < 3; i++) vdrive_write(0xa1);
-				vdrive_write_idam();
 				crc16_reset();
+				vdrive_write_idam();
 				vdrive_write(track);
 				vdrive_write(side);
 				vdrive_write(sect_interleave[sector] + first_sector);
