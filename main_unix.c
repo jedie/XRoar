@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2005  Ciaran Anscomb
+ *  Copyright (C) 2003-2006  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include "logging.h"
 
 int main(int argc, char **argv) {
-	printf("XRoar " VERSION ", (c) 2003-2005 Ciaran Anscomb.\n");
+	printf("XRoar " VERSION ", (c) 2003-2006 Ciaran Anscomb.\n");
 	atexit(xroar_shutdown);
 
 	xroar_getargs(argc, argv);
