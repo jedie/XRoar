@@ -37,6 +37,7 @@ static event_t *waggle_event;
 static uint8_t buf[512];
 static uint8_t *buf_next;
 static size_t buf_remain;
+static unsigned int fake_leader;
 
 static int tape_open(char *filename);
 static void tape_close(void);
@@ -45,6 +46,7 @@ static void fetch_buffer(void);
 void tape_init(void) {
 	buf_next = buf;
 	buf_remain = 0;
+	fake_leader = 0;
 	isopen = 0;
 	waggle_event = event_new();
 	waggle_event->dispatch = waggle_bit;
@@ -142,8 +144,13 @@ static int read_bit(void) {
 		}
 		if (buf_remain == 0)
 			return -1;
-		tape_byte = *(buf_next++);
-		buf_remain--;
+		if (fake_leader) {
+			tape_byte = 0x55;
+			fake_leader--;
+		} else {
+			tape_byte = *(buf_next++);
+			buf_remain--;
+		}
 		count = 8;
 	}
 	ret = tape_byte & 1;
@@ -185,6 +192,7 @@ void tape_update(void) {
 		if (motor && isopen) {
 			/* If motor turned on and tape file attached, enable
 			 * the tape input bit waggler */
+			fake_leader = 64;  /* Insert some faked leader bytes */
 			waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
 			event_queue(waggle_event);
 		} else {
