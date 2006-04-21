@@ -36,10 +36,10 @@ gp32      - Cross-compile to GP32 (ARM target).
 macosx    - PowerPC Mac OS X target with OpenGL and CoreAudio support.
 windows32 - Cross-compile for Windows.
 
-The GP32 and Windows32 builds are cross-compiles and set TOOL_PREFIX, which
+The GP32 and Windows32 builds are cross-compiles and set TARGET_ARCH, which
 you can override if needed.  For example:
-        make gp32 TOOL_PREFIX=arm-none-elf-
-    or: make windows32 TOOL_PREFIX=i586-mingw32msvc-
+        make gp32 TARGET_ARCH=arm-none-elf
+    or: make windows32 TARGET_ARCH=i586-mingw32msvc
 
 When building more than one version, be sure to type 'make clean' in
 between builds, or else object files will remain that have been compiled

@@ -26,7 +26,7 @@ usage:
 	@echo " gp32 linux macosx solaris windows32"
 	@echo
 	@echo "You can append options to determine which tools are used to compile."
-	@echo "e.g., \"make gp32 TOOL_PREFIX=arm-elf-\""
+	@echo "e.g., \"make gp32 TARGET_ARCH=arm-elf\""
 	@echo
 
 OPT = -O3
@@ -53,6 +53,9 @@ ENABLE_WINDOWS32 := windows32
 USES_UNIX_TARGET      := linux solaris macosx
 USES_GP32_TARGET      := gp32
 USES_WINDOWS32_TARGET := windows32
+
+gp32 dist-gp32: TARGET_ARCH=arm-elf
+windows32 dist-windows32: TARGET_ARCH=i586-mingw32
 
 ifdef SDLGL
 	ENABLE_SDLGL += $(MAKECMDGOALS)
@@ -96,7 +99,7 @@ ALL_OBJS += $(OBJS_SDL)
 SDL_CONFIG = sdl-config
 CFLAGS_SDL = -DHAVE_SDL $(shell $(SDL_CONFIG) --cflags)
 LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
-windows32: SDL_CONFIG = /usr/local/i586-mingw32/bin/sdl-config
+windows32: SDL_CONFIG = /usr/local/$(TARGET_ARCH)/bin/sdl-config
 
 OBJS_SDLGL := video_sdlgl.o
 ALL_OBJS += $(OBJS_SDLGL)
@@ -140,7 +143,7 @@ LDFLAGS_CARBON = -framework Carbon
 
 OBJS_WINDOWS32 := ui_windows32.o
 ALL_OBJS += $(OBJS_WINDOWS32)
-CFLAGS_WINDOWS32 = -DWINDOWS32 -DPREFER_NOYUV
+CFLAGS_WINDOWS32 = -DWINDOWS32 -DPREFER_NOYUV -mms-bitfields
 LDFLAGS_WINDOWS32 =
 
 OBJS_CLI = ui_cli.o
@@ -255,16 +258,15 @@ LDFLAGS_GP32 = -nostartfiles -T gp32/lnkscript -lgpmem -lgpos -lgpstdio \
 $(USES_UNIX_TARGET): OBJS += $(OBJS_UNIX)
 $(USES_UNIX_TARGET): $(OBJS_UNIX) xroar
 
-$(USES_GP32_TARGET): TOOL_PREFIX=arm-elf-
 $(USES_GP32_TARGET): OBJS    += $(OBJS_GP32)
 $(USES_GP32_TARGET): CFLAGS  += $(CFLAGS_GP32)
 $(USES_GP32_TARGET): LDFLAGS += $(LDFLAGS_GP32)
 $(USES_GP32_TARGET): $(OBJS_GP32) xroar.fxe
 
-$(USES_WINDOWS32_TARGET): TOOL_PREFIX=i586-mingw32-
 $(USES_WINDOWS32_TARGET): OBJS += $(OBJS_UNIX)
 $(USES_WINDOWS32_TARGET): $(OBJS_UNIX) xroar.exe
 
+TOOL_PREFIX = $(if $(TARGET_ARCH),$(TARGET_ARCH)-)
 HOSTCC = gcc
 CC = $(TOOL_PREFIX)gcc
 AS = $(TOOL_PREFIX)as
@@ -329,9 +331,9 @@ dist-gp32: gp32
 
 dist-windows32: windows32
 	mkdir $(DISTNAME)-windows32
-	cp COPYING ChangeLog README TODO xroar.exe /usr/local/i586-mingw32/bin/SDL.dll $(DISTNAME)-windows32/
-	i586-mingw32-strip $(DISTNAME)-windows32/xroar.exe
-	i586-mingw32-strip $(DISTNAME)-windows32/SDL.dll
+	cp COPYING ChangeLog README TODO xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll $(DISTNAME)-windows32/
+	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/xroar.exe
+	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/SDL.dll
 	rm -f ../$(DISTNAME)-windows32.zip
 	zip -r ../$(DISTNAME)-windows32.zip $(DISTNAME)-windows32
 	rm -rf $(DISTNAME)-windows32/
