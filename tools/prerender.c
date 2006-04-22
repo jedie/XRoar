@@ -13,7 +13,7 @@ uint8_t fg, fg2, bg, black;
 
 int main(int argc, char **argv) {
 	int i,j,k,l;
-	unsigned int *s = vdg_alpha;
+	const unsigned int *s = vdg_alpha;
 	unsigned int c;
 
 	memset(bitmaps, 0, sizeof(bitmaps));
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 			bitmaps[1][2*8192 + l*32 + 3*8 + k] = (l & 0x01) ? tmp : black;
 		}
 	}
-	printf("uint8_t vdg_alpha_gp32[2][3][8192] = {\n");
+	printf("const uint8_t vdg_alpha_gp32[2][3][8192] = {\n");
 	for (l = 0; l < 2; l++) {
 		printf("\t{\n");
 		for (i = 0; i < 3; i++) {

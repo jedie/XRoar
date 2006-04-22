@@ -8,7 +8,7 @@
 
 #include "types.h"
 
-extern unsigned int vdg_alpha[768];
+extern const unsigned int vdg_alpha[768];
 extern Cycle scanline_start;
 extern int beam_pos;
 
