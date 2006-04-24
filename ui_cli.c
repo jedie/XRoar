@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CLI_UI
-
 #include <stdio.h>
 #include <string.h>
 
@@ -63,5 +61,3 @@ static char *get_filename(const char **extensions) {
 		*cr = 0;
 	return fnbuf;
 }
-
-#endif  /* HAVE_CLI_UI */

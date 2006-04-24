@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_JACK_AUDIO
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,5 +184,3 @@ static int jack_callback(jack_nframes_t nframes, void *arg) {
 	pthread_mutex_unlock(&haltflag);
 	return 0;
 }
-
-#endif  /* HAVE_JACK_AUDIO */

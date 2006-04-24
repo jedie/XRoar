@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_MACOSX_AUDIO
-
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -186,5 +184,3 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 	pthread_mutex_unlock(&haltflag);
 	return kAudioHardwareNoError;
 }
-
-#endif  /* HAVE_MACOSX_AUDIO */

@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_GP32
-
 #include <string.h>
 #include <gpgraphic.h>
 #include "gp32/gpgfx.h"
@@ -460,5 +458,3 @@ static void vdg_set_mode(unsigned int mode) {
 		rendered_alpha = (uint8_t *)vdg_alpha_gp32[(mode & 0x08) >> 3];
 	}
 }
-
-#endif  /* HAVE_GP32 */

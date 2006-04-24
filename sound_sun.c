@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_SUN_AUDIO
-
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -180,5 +178,3 @@ static void flush_frame(void) {
 	write(sound_fd, buffer, FRAME_SIZE);
 	samples_written += FRAME_SIZE;
 }
-
-#endif  /* HAVE_SUN_AUDIO */

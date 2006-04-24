@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_SDL
-
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -180,5 +178,3 @@ static void callback(void *userdata, Uint8 *stream, int len) {
 	SDL_CondSignal(halt_cv);
 	SDL_UnlockMutex(halt_mutex);
 }
-
-#endif  /* HAVE_SDL */

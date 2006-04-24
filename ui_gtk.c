@@ -19,8 +19,6 @@
 /* The GTK+ function prototypes shadow 'index' from string.h in many places,
  * so expect lots of compiler warnings about that */
 
-#ifdef HAVE_GTK_UI
-
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
@@ -115,5 +113,3 @@ static char *save_filename(const char **extensions) {
 	gtk_main();
 	return filename;
 }
-
-#endif  /* HAVE_GTK_UI */

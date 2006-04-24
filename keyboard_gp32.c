@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_GP32
-
 #include <string.h>
 #include <gpdef.h>
 #include <gpstdlib.h>
@@ -206,5 +204,3 @@ static void poll(void) {
 		}
 	}
 }
-
-#endif  /* HAVE_GP32 */

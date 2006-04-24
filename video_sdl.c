@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_SDL
-
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
@@ -69,7 +67,6 @@ typedef Uint8 Pixel;
 #define VIDEO_VIEWPORT_YOFFSET (0)
 #define LOCK_SURFACE SDL_LockSurface(screen)
 #define UNLOCK_SURFACE SDL_UnlockSurface(screen)
-//extern unsigned int vdg_alpha[768];
 
 static SDL_Surface *screen;
 
@@ -134,5 +131,3 @@ static void vsync(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	subline = 0;
 }
-
-#endif  /* HAVE_SDL */

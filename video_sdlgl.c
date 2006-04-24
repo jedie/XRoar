@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_SDLGL
-
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
@@ -220,5 +218,3 @@ static void vsync(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	subline = 0;
 }
-
-#endif  /* HAVE_SDLGL */

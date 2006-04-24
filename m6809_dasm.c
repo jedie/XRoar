@@ -16,9 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* Only worth building this in if TRACE is defined */
-#ifdef TRACE
-
 #include "types.h"
 #include "logging.h"
 
@@ -1115,5 +1112,3 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 	state = WANT_INSTRUCTION;
 	page = PAGE0;
 }
-
-#endif /* TRACE */

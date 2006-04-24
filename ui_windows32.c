@@ -18,8 +18,6 @@
 
 /* This Windows32 code is probably all wrong, but it does seem to work */
 
-#ifdef WINDOWS32
-
 #include "types.h"
 #include "logging.h"
 
@@ -101,5 +99,3 @@ static char *get_filename(const char **extensions) {
 		fs_chdir(cwd);
 	return filename;
 }
-
-#endif  /* WINDOWS32 */

@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_SDL
-
 #include <SDL.h>
 
 #include "types.h"
@@ -83,5 +81,3 @@ static void poll(void) {
 		PIA_0A.tied_low |= 0x02;
 	}
 }
-
-#endif  /* HAVE_SDL */

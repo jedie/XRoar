@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_GP32
-
 #include <string.h>
 #include <gpdef.h>
 #include <gpstdlib.h>
@@ -136,5 +134,3 @@ void sound_silence(void) {
 	memset(buffer[0], 0, frame_size * sizeof(Sample));
 	memset(buffer[1], 0, frame_size * sizeof(Sample));
 }
-
-#endif  /* HAVE_GP32 */

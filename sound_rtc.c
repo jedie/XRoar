@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_RTC
-
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -99,5 +97,3 @@ static void flush_frame(void) {
 	event_queue(flush_event);
 	read(fd, &data, sizeof(unsigned long));
 }
-
-#endif  /* HAVE_RTC */
