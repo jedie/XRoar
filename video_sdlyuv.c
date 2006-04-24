@@ -32,7 +32,7 @@
 static int init(void);
 static void shutdown(void);
 static void resize(unsigned int w, unsigned int h);
-static void toggle_fullscreen(void);
+static int set_fullscreen(int fullscreen);
 static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
@@ -52,7 +52,7 @@ VideoModule video_sdlyuv_module = {
 	"sdlyuv",
 	"SDL YUV overlay, hopefully uses Xv acceleration",
 	init, shutdown,
-	resize, toggle_fullscreen,
+	resize, set_fullscreen, 0,
 	reset, vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
 	render_rg1, render_cg2, render_rg6,
@@ -71,6 +71,8 @@ typedef Uint32 Pixel;
 
 static SDL_Surface *screen;
 static SDL_Overlay *overlay;
+static unsigned int screen_width = 640;
+static unsigned int screen_height = 480;
 static SDL_Rect dstrect;
 
 static Uint32 map_colour(int r, int g, int b) {
@@ -101,11 +103,8 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL-YUV video driver\n");
 		return 1;
 	}
-	screen = SDL_SetVideoMode(640, 480, 32, SDL_HWSURFACE|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
-	if (screen == NULL) {
-		LOG_ERROR("Failed to allocate SDL surface for display\n");
+	if (set_fullscreen(video_want_fullscreen))
 		return 1;
-	}
 	overlay = SDL_CreateYUVOverlay(640, 240, SDL_YUY2_OVERLAY, screen);
 	if (overlay == NULL) {
 		LOG_ERROR("Failed to create SDL overlay for display: %s\n", SDL_GetError());
@@ -114,10 +113,6 @@ static int init(void) {
 	if (overlay->hw_overlay != 1) {
 		LOG_WARN("Warning: SDL overlay is not hardware accelerated\n");
 	}
-	if (video_want_fullscreen)
-		SDL_ShowCursor(SDL_DISABLE);
-	else
-		SDL_ShowCursor(SDL_ENABLE);
 	memcpy(&dstrect, &screen->clip_rect, sizeof(SDL_Rect));
 	alloc_colours();
 	/* Set preferred keyboard driver */
@@ -128,38 +123,47 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL-YUV video driver\n");
-	if (video_want_fullscreen)
-		toggle_fullscreen();
+	set_fullscreen(0);
 	SDL_FreeYUVOverlay(overlay);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-static void toggle_fullscreen(void) {
-	video_want_fullscreen = !video_want_fullscreen;
-	resize(320, 240);
+static void resize(unsigned int w, unsigned int h) {
+	screen_width = w;
+	screen_height = h;
+	set_fullscreen(video_sdlyuv_module.is_fullscreen);
 }
 
-
-static void resize(unsigned int w, unsigned int h) {
-	if (w < 640) w = 640;
-	if (h < 480) h = 480;
-	if (((float)w/(float)h)>(320.0/240.0)) {
-		dstrect.w = ((float)h/240.0)*320;
-		dstrect.h = h;
-		dstrect.x = (w - dstrect.w)/2;
+static int set_fullscreen(int fullscreen) {
+	if (screen_width < 320) screen_width = 320;
+	if (screen_height < 240) screen_height = 240;
+	if (fullscreen) {
+		screen_width = 640;
+		screen_height = 480;
+	}
+	if (((float)screen_width/(float)screen_height)>(320.0/240.0)) {
+		dstrect.w = ((float)screen_height/240.0)*320;
+		dstrect.h = screen_height;
+		dstrect.x = (screen_width - dstrect.w)/2;
 		dstrect.y = 0;
 	} else {
-		dstrect.w = w;
-		dstrect.h = ((float)w/320.0)*240;
+		dstrect.w = screen_width;
+		dstrect.h = ((float)screen_width/320.0)*240;
 		dstrect.x = 0;
-		dstrect.y = (h - dstrect.h)/2;
+		dstrect.y = (screen_height - dstrect.h)/2;
 	}
-	screen = SDL_SetVideoMode(w, h, 32, SDL_HWSURFACE|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
-	if (video_want_fullscreen)
+	screen = SDL_SetVideoMode(screen_width, screen_height, 32, SDL_HWSURFACE|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
+	if (screen == NULL) {
+		LOG_ERROR("Failed to allocate SDL surface for display\n");
+		return 1;
+	}
+	if (fullscreen)
 		SDL_ShowCursor(SDL_DISABLE);
 	else
 		SDL_ShowCursor(SDL_ENABLE);
+	video_sdlyuv_module.is_fullscreen = fullscreen;
+	return 0;
 }
 
 static void reset(void) {
