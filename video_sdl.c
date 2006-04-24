@@ -31,7 +31,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void toggle_fullscreen(void);
+static int set_fullscreen(int fullscreen);
 static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
@@ -51,7 +51,7 @@ VideoModule video_sdl_module = {
 	"sdl",
 	"Standard SDL surface",
 	init, shutdown,
-	NULL, toggle_fullscreen,
+	NULL, set_fullscreen, 0,
 	reset, vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
 	render_rg1, render_cg2, render_rg6,
@@ -88,15 +88,8 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL video driver\n");
 		return 1;
 	}
-	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE|(video_want_fullscreen?SDL_FULLSCREEN:0));
-	if (screen == NULL) {
-		LOG_ERROR("Failed to allocate SDL surface for display\n");
+	if (set_fullscreen(video_want_fullscreen))
 		return 1;
-	}
-	if (video_want_fullscreen)
-		SDL_ShowCursor(SDL_DISABLE);
-	else
-		SDL_ShowCursor(SDL_ENABLE);
 	alloc_colours();
 	/* Set preferred keyboard & joystick drivers */
 	keyboard_module = &keyboard_sdl_module;
@@ -106,20 +99,24 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL video driver\n");
-	if (video_want_fullscreen)
-		toggle_fullscreen();
+	set_fullscreen(0);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-static void toggle_fullscreen(void) {
-	video_want_fullscreen = !video_want_fullscreen;
-	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE|(video_want_fullscreen?SDL_FULLSCREEN:0));
-	if (video_want_fullscreen)
+static int set_fullscreen(int fullscreen) {
+	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE|(fullscreen?SDL_FULLSCREEN:0));
+	if (screen == NULL) {
+		LOG_ERROR("Failed to allocate SDL surface for display\n");
+		return 1;
+	}
+	if (fullscreen)
 		SDL_ShowCursor(SDL_DISABLE);
 	else
 		SDL_ShowCursor(SDL_ENABLE);
-}       
+	video_sdl_module.is_fullscreen = fullscreen;
+	return 0;
+}
 
 static void reset(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
