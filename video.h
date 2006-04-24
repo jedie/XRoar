@@ -8,23 +8,12 @@
 
 #include "types.h"
 
-typedef struct {
-	uint_least16_t w;
-	uint_least16_t h;
-	void *data;
-} Sprite;
-
 typedef struct VideoModule VideoModule;
 struct VideoModule {
 	const char *name;
 	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
-	void (*fillrect)(uint_least16_t x, uint_least16_t y,
-			uint_least16_t w, uint_least16_t h, uint32_t colour);
-	void (*blit)(uint_least16_t x, uint_least16_t y, Sprite *src);
-	void (*backup)(void);
-	void (*restore)(void);
 	void (*resize)(uint_least16_t w, uint_least16_t h);
 	void (*toggle_fullscreen)(void);
 	void (*vdg_reset)(void);
