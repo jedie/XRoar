@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include <gpgraphic.h>
+#include "gp32/gpgfx.h"
 
 #include "sam.h"
 #include "video.h"
@@ -29,11 +30,6 @@
 
 static int init(void);
 static void shutdown(void);
-static void fillrect(uint_least16_t x, uint_least16_t y,
-		uint_least16_t w, uint_least16_t h, uint32_t colour);
-static void blit(uint_least16_t x, uint_least16_t y, Sprite *src);
-static void backup(void);
-static void restore(void);
 static void vdg_reset(void);
 static void vdg_vsync(void);
 static void vdg_set_mode(unsigned int mode);
@@ -51,15 +47,14 @@ VideoModule video_gp32_module = {
 	"gp32",
 	"GP32 video driver",
 	init, shutdown,
-	fillrect, blit,
-	backup, restore, NULL, NULL,
+	NULL, NULL,
 	vdg_reset, vdg_vsync, vdg_set_mode,
 	vdg_render_sg4, vdg_render_sg4 /* 6 */, vdg_render_cg1,
 	vdg_render_rg1, vdg_render_cg2, vdg_render_rg6,
 	NULL
 };
 
-#define MAPCOLOUR(r,g,b) ((r & 0xc0) | (g & 0xe0) >> 2 | (b & 0xe0) >> 5)
+#define MAPCOLOUR GPGFX_MAPCOLOUR
 #define NEXTLINE -76801
 #define VIDEO_VIEWPORT_YOFFSET (-7)
 #define LOCK_SURFACE
@@ -75,20 +70,14 @@ static uint8_t *cg_colours;
 static uint32_t border_colour;
 //uint32_t border_colour;  /* TESTING */
 
-static uint8_t screen_backup[320*240];
-GPDRAWSURFACE screen;
 static uint8_t *rendered_alpha;
 
 #include "vdg_bitmaps_gp32.c"
 
 static int init(void) {
-	GpGraphicModeSet(GPC_DFLAG_8BPP, NULL);
-	GpLcdSurfaceGet(&screen, 0);
-	GpSurfaceSet(&screen);
-	GpLcdEnable();
-	swi_mmu_change((unsigned char *)((uint32_t)screen.ptbuffer & ~4095), (unsigned char *)((uint32_t)(screen.ptbuffer + (320 * 240) + 4095) & ~4095), MMU_NCNB);
-	fillrect(0, 0, 320, 196, 0);
-	fillrect(0, 196, 320, 44, 0xffffff00);
+	gpgfx_init();
+	gpgfx_fillrect(0, 0, 320, 196, 0);
+	gpgfx_fillrect(0, 196, 320, 44, 0xffffff00);
 	vdg_colour[0] = MAPCOLOUR(0x00, 0xff, 0x00);
 	vdg_colour[1] = MAPCOLOUR(0xff, 0xff, 0x00);
 	vdg_colour[2] = MAPCOLOUR(0x00, 0x00, 0xff);
@@ -117,49 +106,14 @@ static int init(void) {
 static void shutdown(void) {
 }
 
-static void fillrect(uint_least16_t x, uint_least16_t y, uint_least16_t w, uint_least16_t h, uint32_t colour) {
-	uint8_t *d = (uint8_t *)screen.ptbuffer + (x*240) + (240-y) - h;
-	uint8_t c = MAPCOLOUR(colour >> 24, (colour >> 16) & 0xff,
-			(colour >> 8) & 0xff);
-	uint_least16_t skip = 240 - h;
-	uint_least16_t j;
-	for (; w; w--) {
-		for (j = h; j; j--) {
-			*(d++) = c;
-		}
-		d += skip;
-	}
-}
-
-static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
-	uint8_t *s = src->data;
-	uint8_t *d = (uint8_t *)screen.ptbuffer + (x*240) + (240-y) - src->h;
-	uint_least16_t skip = 240 - src->h;
-	uint_least16_t j, w = src->w;
-	for (; w; w--) {
-		for (j = src->h; j; j--) {
-			*(d++) = *(s++);
-		}
-		d += skip;
-	}
-}
-
-static void backup(void) {
-	memcpy(screen_backup, screen.ptbuffer, 320*240*sizeof(uint8_t));
-}
-
-static void restore(void) {
-	memcpy(screen.ptbuffer, screen_backup, 320*240*sizeof(uint8_t));
-}
-
 static void vdg_reset(void) {
-	pixel = (uint32_t *)screen.ptbuffer + 58;
+	pixel = (uint32_t *)gp_screen.ptbuffer + 58;
 	subline = 0;
 }
 
 static void vdg_vsync(void) {
 	/* VIDEO_UPDATE; */
-	pixel = (uint32_t *)screen.ptbuffer + 58;
+	pixel = (uint32_t *)gp_screen.ptbuffer + 58;
 	subline = 0;
 }
 

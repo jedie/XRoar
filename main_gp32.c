@@ -17,10 +17,11 @@
  */
 
 #include <gpstdlib.h>
+#include "gp32/gpgfx.h"
 
+#include "types.h"
 #include "xroar.h"
 #include "video.h"
-#include "types.h"
 
 extern Sprite copyright_bin;
 
@@ -30,6 +31,6 @@ void GpMain(void *arg) {
 
 	xroar_getargs(1, NULL);
 	xroar_init();
-	video_module->blit(198, 204, &copyright_bin);
+	gpgfx_blit(198, 204, &copyright_bin);
 	xroar_mainloop();
 }

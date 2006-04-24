@@ -22,6 +22,7 @@
 
 #include "types.h"
 #include "gp32/gp32.h"
+#include "gp32/gpgfx.h"
 #include "gp32/gpkeypad.h"
 #include "gp32/gpchatboard.h"
 #include "ui.h"
@@ -108,7 +109,6 @@ static Menu main_menu[] = {
 	{ NULL, NULL, 0, 0, NULL, NULL, NULL }
 };
 
-extern GPDRAWSURFACE screen;
 extern uint8_t vdg_alpha_gp32[2][3][8192];
 
 static int init(void) {
@@ -122,7 +122,7 @@ static void shutdown(void) {
 }
 
 static void draw_char(int x, int y, char c) {
-	uint32_t *dest = (uint32_t *)screen.ptbuffer + (59-(y*3)) + x*8*60;
+	uint32_t *dest = (uint32_t *)gp_screen.ptbuffer + (59-(y*3)) + x*8*60;
 	uint8_t *charset = (uint8_t *)vdg_alpha_gp32[1];
 	uint32_t out;
 	int i, j;
@@ -155,7 +155,7 @@ static void draw_string(int x, int y, const char *s, int w) {
 }
 
 static void highlight_line(unsigned int x, unsigned int y, unsigned int w) {
-	uint32_t *dest = (uint32_t *)screen.ptbuffer + (57-(y*3)) + x*8*60;
+	uint32_t *dest = (uint32_t *)gp_screen.ptbuffer + (57-(y*3)) + x*8*60;
 	uint_least16_t i;
 	for (i = 0; i < w*8; i++) {
 		*(dest++) ^= ~0;
@@ -168,7 +168,7 @@ static void highlight_line(unsigned int x, unsigned int y, unsigned int w) {
 static void notify_box(const char *msg) {
 	int newkey;
 	int x = (40 - strlen(msg)) / 2;
-	video_module->fillrect(0, 8*12, 320, 3*12, BG);
+	gpgfx_fillrect(0, 8*12, 320, 3*12, BG);
 	draw_string(x, 9, msg, 40);
 	do {
 		gpkeypad_poll(NULL, &newkey, NULL);
@@ -219,7 +219,7 @@ static void show_menu_line(Menu *m, int x, int y, int w) {
 
 static void highlight_menu_line(Menu *m, int x, int y, int w) {
 	int hx = x, hw = 0;
-	video_module->fillrect(x*8, y*12, w*8, 12, BG);
+	gpgfx_fillrect(x*8, y*12, w*8, 12, BG);
 	show_menu_line(m, x, y, w);
 	if (m->num_opts > 0) {
 		m->cur_opt %= m->num_opts;
@@ -245,12 +245,12 @@ static int show_menu(Menu *m, int x, int y, int w, int h) {
 			m[nument].cur_opt = *(m[nument].default_opt);
 	}
 	if (nument == 0) return -1;
-	video_module->backup();
+	gpgfx_backup();
 	do {
 		base = cur - (cur % h);
 		if (base != oldbase) {
 			oldbase = base;
-			video_module->fillrect(x*8, y*12, w*8, h*12, BG);
+			gpgfx_fillrect(x*8, y*12, w*8, h*12, BG);
 			for (i = base; i < (base+h) && i < nument; i++) {
 				show_menu_line(&m[i], x, y + (i - base), w);
 			}
@@ -297,7 +297,7 @@ static int show_menu(Menu *m, int x, int y, int w, int h) {
 		if (cur != oldcur)
 			show_menu_line(&m[oldcur], x, y + (oldcur - base), w);
 	} while (!done);
-	video_module->restore();
+	gpgfx_restore();
 	if ((selected != -1) && m[selected].select_callback)
 		m[selected].select_callback((unsigned int)m[selected].cur_opt);
 	return selected;

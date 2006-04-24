@@ -247,7 +247,7 @@ ALL_OBJS += $(OBJS_UNIX)
 
 OBJS_GP32 = gp32/crt0.o fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
 		ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
-		gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
+		gp32/gpgfx.o gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
 		cmode_bin.o copyright.o kbd_graphics.o
 ALL_OBJS += $(OBJS_GP32)
 #CFLAGS_GP32 = -DHAVE_GP32 -mcpu=arm9tdmi -funroll-loops

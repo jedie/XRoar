@@ -25,6 +25,7 @@
 #include <gpstdio.h>
 #include <gpfont.h>
 #include "gp32/gp32.h"
+#include "gp32/gpgfx.h"
 #include "gp32/gpkeypad.h"
 #include "gp32/gpchatboard.h"
 
@@ -54,7 +55,6 @@ KeyboardModule keyboard_gp32_module = {
 
 #define KEYBOARD_OFFSET (64*240)
 
-extern GPDRAWSURFACE screen;
 extern Sprite kbd_bin[2];
 extern Sprite cmode_bin[4];
 
@@ -82,9 +82,9 @@ static unsigned int displayed_keyboard;
 static void highlight_key(void);
 
 static int init(void) {
-	video_module->blit(64, 200, &kbd_bin[0]);
+	gpgfx_blit(64, 200, &kbd_bin[0]);
 	keyboard_mode = 0;
-	video_module->blit(8, 200, &cmode_bin[keyboard_mode]);
+	gpgfx_blit(8, 200, &cmode_bin[keyboard_mode]);
 	displayed_keyboard = 0;
 	keyx = 1; keyy = 4;
 	current = &keys[keyy][keyx];
@@ -102,7 +102,7 @@ static void shutdown(void) {
 
 static void highlight_key(void) {
 	uint_least16_t i;
-	uint8_t *p = (uint8_t *)screen.ptbuffer + KEYBOARD_OFFSET
+	uint8_t *p = (uint8_t *)gp_screen.ptbuffer + KEYBOARD_OFFSET
 		+ current->xoffset*240 + keyy * 8;
 	for (i = 0; i < current->width; i++) {
 		*(p++) ^= ~0; *(p++) ^= ~0; *(p++) ^= ~0; *(p++) ^= ~0;
@@ -119,7 +119,7 @@ static void poll(void) {
 		keyboard_mode++;
 		if (keyboard_mode > 3)
 			keyboard_mode = 0;
-		video_module->blit(8, 200, &cmode_bin[keyboard_mode]);
+		gpgfx_blit(8, 200, &cmode_bin[keyboard_mode]);
 	}
 	if ((key & (GPC_VK_FR|GPC_VK_FL)) == (GPC_VK_FR|GPC_VK_FL))
 		xroar_reset(RESET_HARD);  /* hard reset machine */
@@ -173,7 +173,7 @@ static void poll(void) {
 			KEY_UPDATE(key & GPC_VK_FR, 0);
 			if (((key&GPC_VK_FR)!=0)^displayed_keyboard) {
 				displayed_keyboard ^= 1;
-				video_module->blit(64, 200, &kbd_bin[displayed_keyboard]);
+				gpgfx_blit(64, 200, &kbd_bin[displayed_keyboard]);
 				highlight_key();
 			}
 			if (rkey & GPC_VK_UP && keyy < 4)
