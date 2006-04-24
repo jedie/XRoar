@@ -185,8 +185,8 @@ static void keypress(SDL_keysym *keysym) {
 			dragondos_enabled = !dragondos_enabled;
 			break;
 		case SDLK_f:
-			if (video_module->toggle_fullscreen)
-				video_module->toggle_fullscreen();
+			if (video_module->set_fullscreen)
+				video_module->set_fullscreen(!video_module->is_fullscreen);
 			break;
 		case SDLK_h:
 			{
