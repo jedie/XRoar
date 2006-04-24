@@ -33,7 +33,7 @@
 static int init(void);
 static void shutdown(void);
 static void resize(unsigned int w, unsigned int h);
-static void toggle_fullscreen(void);
+static int set_fullscreen(int fullscreen);
 static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
@@ -50,7 +50,7 @@ VideoModule video_sdlgl_module = {
 	"sdlgl",
 	"SDL OpenGL",
 	init, shutdown,
-	resize, toggle_fullscreen,
+	resize, set_fullscreen, 0,
 	reset, vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
 	render_rg1, render_cg2, render_rg6,
@@ -72,10 +72,10 @@ typedef Uint16 Pixel;
 
 static SDL_Surface *screen;
 static SDL_Surface *screen_tex;
-static GLuint texnum;
+static unsigned int screen_width = 640;
+static unsigned int screen_height = 480;
+static GLuint texnum = 0;
 static GLint xoffset, yoffset;
-
-static void config_opengl(void);
 
 #include "video_generic_ops.c"
 
@@ -99,28 +99,17 @@ static int init(void) {
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,  5);
 	SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 16);
-	screen = SDL_SetVideoMode(640, 480, 0, SDL_OPENGL|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
-	if (screen == NULL) {
-		LOG_ERROR("Failed to initialise display\n");
-		return 1;
-	}
 
-	/* A simple 320x240 texture worked fine on a 6800GT under Linux,
-	   but trying on a Mac with GeForce FX Go5200 failed, hence these
-	   odd, but powers-of-two-dimensioned separate surfaces for screen
-	   and border */
+	/* Texture dimensions are next power of 2 greater than what we want */
 	screen_tex = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 256, 16, 0, 0, 0, 0);
 	if (screen_tex == NULL) {
 		LOG_ERROR("Failed to create surface for screen texture\n");
 		return 1;
 	}
 
-	if (video_want_fullscreen)
-		SDL_ShowCursor(SDL_DISABLE);
-	else
-		SDL_ShowCursor(SDL_ENABLE);
+	if (set_fullscreen(video_want_fullscreen))
+		return 1;
 
-	config_opengl();
 	xoffset = yoffset = 0;
 	alloc_colours();
 	/* Set preferred keyboard & joystick drivers */
@@ -131,44 +120,50 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL OpenGL driver\n");
-	if (video_want_fullscreen)
-		toggle_fullscreen();
+	set_fullscreen(0);
 	glDeleteTextures(1, &texnum);
 	SDL_FreeSurface(screen_tex);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-static void toggle_fullscreen(void) {
-	video_want_fullscreen = !video_want_fullscreen;
-	resize(640, 480);
+static void resize(unsigned int w, unsigned int h) {
+	screen_width = w;
+	screen_height = h;
+	set_fullscreen(video_sdlgl_module.is_fullscreen);
 }
 
-static void resize(unsigned int w, unsigned int h) {
+static int set_fullscreen(int fullscreen) {
 	uint_least16_t width, height;
-	if (w < 320) w = 320;
-	if (h < 240) h = 240;
-	if (((float)w/(float)h)>(4.0/3.0)) {
-		width = ((float)h/3.0)*4;
-		height = h;
-		xoffset = (w - width) / 2;
+	if (screen_width < 320) screen_width = 320;
+	if (screen_height < 240) screen_height = 240;
+	if (fullscreen) {
+		screen_width = 640;
+		screen_height = 480;
+	}
+	if (((float)screen_width/(float)screen_height)>(4.0/3.0)) {
+		width = ((float)screen_height/3.0)*4;
+		//height = screen_height;
+		xoffset = (screen_width - width) / 2;
 		yoffset = 0;
 	} else {
-		width = w;
-		height = ((float)w/4.0)*3;
+		//width = screen_width;
+		height = ((float)screen_width/4.0)*3;
 		xoffset = 0;
-		yoffset = (h - height)/2;
+		yoffset = (screen_height - height)/2;
 	}
-	glDeleteTextures(1, &texnum);
-	screen = SDL_SetVideoMode(w, h, 0, SDL_OPENGL|SDL_RESIZABLE|(video_want_fullscreen?SDL_FULLSCREEN:0));
-	if (video_want_fullscreen)
+	screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_OPENGL|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
+	if (screen == NULL) {
+		LOG_ERROR("Failed to initialise display\n");
+		return 1;
+	}
+	if (fullscreen)
 		SDL_ShowCursor(SDL_DISABLE);
 	else
 		SDL_ShowCursor(SDL_ENABLE);
-	config_opengl();
-}
+	video_sdlgl_module.is_fullscreen = fullscreen;
 
-static void config_opengl(void) {
+	/* Configure OpenGL */
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -182,6 +177,7 @@ static void config_opengl(void) {
 	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
 	glClearDepth(1.0f);
 
+	glDeleteTextures(1, &texnum);
 	glGenTextures(1, &texnum);
 	glBindTexture(GL_TEXTURE_2D, texnum);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 512, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -189,6 +185,8 @@ static void config_opengl(void) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	return 0;
 }
 
 static void reset(void) {
