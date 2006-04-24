@@ -33,11 +33,6 @@
 
 static int init(void);
 static void shutdown(void);
-static void fillrect(uint_least16_t x, uint_least16_t y,
-		uint_least16_t w, uint_least16_t h, uint32_t colour);
-static void blit(uint_least16_t x, uint_least16_t y, Sprite *src);
-/* static void backup(void);
-static void restore(void); */
 static void resize(uint_least16_t w, uint_least16_t h);
 static void toggle_fullscreen(void);
 static void reset(void);
@@ -59,8 +54,7 @@ VideoModule video_sdlyuv_module = {
 	"sdlyuv",
 	"SDL YUV overlay, hopefully uses Xv acceleration",
 	init, shutdown,
-	fillrect, blit,
-	NULL, NULL, resize, toggle_fullscreen,
+	resize, toggle_fullscreen,
 	reset, vsync, set_mode,
 	render_sg4, render_sg4 /* 6 */, render_cg1,
 	render_rg1, render_cg2, render_rg6,
@@ -127,7 +121,6 @@ static int init(void) {
 	else
 		SDL_ShowCursor(SDL_ENABLE);
 	memcpy(&dstrect, &screen->clip_rect, sizeof(SDL_Rect));
-	fillrect(0,0,320,240,0);
 	alloc_colours();
 	/* Set preferred keyboard driver */
 	keyboard_module = &keyboard_sdl_module;
@@ -142,26 +135,6 @@ static void shutdown(void) {
 	SDL_FreeYUVOverlay(overlay);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
-}
-
-static void fillrect(uint_least16_t x, uint_least16_t y, uint_least16_t w, uint_least16_t h, uint32_t colour) {
-	Pixel *p1 = VIDEO_SCREENBASE + (239 - y) * 320 + x;
-	Pixel c = MAPCOLOUR(colour >> 24, (colour >> 16) & 0xff,
-			(colour >> 8) & 0xff);
-	int skip = -320 - w;
-	uint_least16_t i;
-	for (; h; h--) {
-		for (i = w; i; i--) {
-			*(p1++) = c;
-		}
-		p1 += skip;
-	}
-}
-
-static void blit(uint_least16_t x, uint_least16_t y, Sprite *src) {
-	(void)x;  /* unused */
-	(void)y;  /* unused */
-	(void)src;  /* unused */
 }
 
 static void toggle_fullscreen(void) {
