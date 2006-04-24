@@ -81,10 +81,6 @@ static Keymap coco_keymap = {
 	{0,3}, {1,3}, {2,3}, {8,8}, {8,8}, {8,8}, {8,8}, {5,3}, /* 120 - 127 */
 };
 
-typedef struct {
-	unsigned int load_addr;
-} rom_info;
-
 /* The first ROM in each of these lists is NULL so it can be overwritten
    by switches */
 
