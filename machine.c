@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "cart.h"
 #include "fs.h"
 #include "keyboard.h"
 #include "logging.h"
@@ -182,6 +183,7 @@ void machine_init(void) {
 	m6809_init();
 	vdg_init();
 	tape_init();
+	cart_init();
 }
 
 void machine_reset(int hard) {
@@ -210,6 +212,7 @@ void machine_reset(int hard) {
 	m6809_reset();
 	vdg_reset();
 	tape_reset();
+	cart_reset();
 }
 
 /* Setting romtype takes effect on next reset */

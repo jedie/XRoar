@@ -224,14 +224,14 @@ static void keypress(SDL_keysym *keysym) {
 			break;
 		case SDLK_m:
 			machine_set_romtype(machine_romtype+1);
-			xroar_reset(RESET_HARD);
+			machine_reset(RESET_HARD);
 			break;
 		case SDLK_n:
 			if (shift) video_next();
 			else sound_next();
 			break;
 		case SDLK_r:
-			xroar_reset(shift ? RESET_HARD : RESET_SOFT);
+			machine_reset(shift ? RESET_HARD : RESET_SOFT);
 			break;
 		case SDLK_s:
 			{

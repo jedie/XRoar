@@ -88,7 +88,7 @@ int read_snapshot(char *filename) {
 		return -1;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
-	xroar_reset(RESET_HARD);
+	machine_reset(RESET_HARD);
 	fs_read(fd, buffer, 17);
 	if (strncmp((char *)buffer, "XRoar snapshot.\012\000", 17)) {
 		/* Old-style snapshot.  Register dump always came first.

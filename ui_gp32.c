@@ -489,7 +489,7 @@ static void artifact_callback(unsigned int opt) {
 static void machine_callback(unsigned int opt) {
 	if (opt != machine_romtype) {
 		machine_set_romtype(opt);
-		xroar_reset(RESET_HARD);
+		machine_reset(RESET_HARD);
 	}
 }
 
@@ -511,10 +511,10 @@ static void dos_callback(unsigned int opt) {
 }
 
 static void reset_callback(unsigned int opt) {
-	xroar_reset(opt);
+	machine_reset(opt);
 }
 
 static void do_hard_reset(unsigned int opt) {
 	(void)opt;
-	xroar_reset(1);
+	machine_reset(RESET_HARD);
 }

@@ -24,7 +24,6 @@ extern int trace;
 void xroar_getargs(int argc, char **argv);
 void xroar_init(void);
 void xroar_shutdown(void);
-void xroar_reset(int hard);
 void xroar_mainloop(void);
 
 #endif  /* __XROAR_H__ */

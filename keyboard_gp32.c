@@ -120,7 +120,7 @@ static void poll(void) {
 		gpgfx_blit(8, 200, &cmode_bin[keyboard_mode]);
 	}
 	if ((key & (GPC_VK_FR|GPC_VK_FL)) == (GPC_VK_FR|GPC_VK_FL))
-		xroar_reset(RESET_HARD);  /* hard reset machine */
+		machine_reset(RESET_HARD);  /* hard reset machine */
 	if (newkey & GPC_VK_START)
 		ui_module->menu();
 	switch (keyboard_mode) {
