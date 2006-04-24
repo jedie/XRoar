@@ -34,7 +34,6 @@
 
 static int init(void);
 static void shutdown(void);
-static void reset(void);
 static void update(void);
 
 static void flush_frame(void);
@@ -43,7 +42,7 @@ static event_t *flush_event;
 SoundModule sound_rtc_module = {
 	"rtc",
 	"Use real time clock for timing (no audio)",
-	init, shutdown, reset, update
+	init, shutdown, update
 };
 
 #define SAMPLE_RATE 64
@@ -70,6 +69,10 @@ static int init(void) {
 	}
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
+
+	frame_cycle_base = current_cycle;
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
 	return 0;
 }
 
@@ -79,12 +82,6 @@ static void shutdown(void) {
 		LOG_WARN("Couldn't disable periodic interrupts\n");
 	}
 	close(fd);
-}
-
-static void reset(void) {
-	frame_cycle_base = current_cycle;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(flush_event);
 }
 
 static void update(void) {

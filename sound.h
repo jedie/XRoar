@@ -14,7 +14,6 @@ struct SoundModule {
 	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
-	void (*reset)(void);
 	void (*update)(void);
 };
 

@@ -34,13 +34,12 @@
 
 static int init(void);
 static void shutdown(void);
-static void reset(void);
 static void update(void);
 
 SoundModule sound_oss_module = {
 	"oss",
 	"OSS audio",
-	init, shutdown, reset, update
+	init, shutdown, update
 };
 
 typedef int8_t Sample;  /* 8-bit mono */
@@ -121,6 +120,14 @@ static int init(void) {
 	convbuf = malloc(FRAME_SIZE * bytes_per_sample * channels);
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
+
+	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
+	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
+	wrptr = buffer;
+	frame_cycle_base = current_cycle;
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
+	lastsample = 0;
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialiase OSS audio driver\n");
@@ -133,16 +140,6 @@ static void shutdown(void) {
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
 	free(buffer);
-}
-
-static void reset(void) {
-	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(flush_event);
-	lastsample = 0;
 }
 
 static void update(void) {

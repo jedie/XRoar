@@ -34,7 +34,6 @@
 
 static int init(void);
 static void shutdown(void);
-static void reset(void);
 static void update(void);
 
 static void flush_frame(void);
@@ -44,7 +43,7 @@ static int jack_callback(jack_nframes_t nframes, void *arg);
 SoundModule sound_jack_module = {
 	"jack",
 	"JACK audio",
-	init, shutdown, reset, update
+	init, shutdown, update
 };
 
 typedef jack_default_audio_sample_t Sample;
@@ -107,6 +106,13 @@ static int init(void) {
 	pthread_mutex_init(&haltflag, NULL);
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
+
+	memset(buffer, 0, frame_size * sizeof(Sample));
+	wrptr = buffer;
+	frame_cycle_base = current_cycle;
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
+	event_queue(flush_event);
+	lastsample = 0.;
 	return 0;
 }
 
@@ -125,15 +131,6 @@ static void jack_shutdown(void *arg) {
 	(void)arg;  /* unused */
 	client = NULL;
 	sound_next();
-}
-
-static void reset(void) {
-	memset(buffer, 0, frame_size * sizeof(Sample));
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	flush_event->at_cycle = frame_cycle_base + frame_cycles;
-	event_queue(flush_event);
-	lastsample = 0.;
 }
 
 static void update(void) {

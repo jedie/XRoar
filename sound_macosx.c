@@ -31,13 +31,12 @@
 
 static int init(void);
 static void shutdown(void);
-static void reset(void);
 static void update(void);
 
 SoundModule sound_macosx_module = {
 	"macosx",
 	"Mac OS X CoreAudio",
-	init, shutdown, reset, update
+	init, shutdown, update
 };
 
 typedef float Sample;
@@ -100,6 +99,13 @@ static int init(void) {
 	AudioDeviceStart(device, callback);
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
+
+	memset(buffer, 0, FRAME_SIZE * sizeof(Sample) * channels);
+	wrptr = buffer;
+	frame_cycle_base = current_cycle;
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
+	lastsample = 0;
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialiase Mac OS X CoreAudio driver\n");
@@ -111,15 +117,6 @@ static void shutdown(void) {
 	event_free(flush_event);
 	pthread_mutex_destroy(&haltflag);
 	free(buffer);
-}
-
-static void reset(void) {
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample) * channels);
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(flush_event);
-	lastsample = 0;
 }
 
 static void update(void) {

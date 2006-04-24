@@ -104,7 +104,6 @@ void xroar_init(void) {
 	fs_init();
 	machine_init();
 	/* Reset everything */
-	sound_module->reset();
 	joystick_reset();
 	keyboard_reset();
 	machine_reset(RESET_HARD);

@@ -35,7 +35,6 @@
 
 static int init(void);
 static void shutdown(void);
-static void reset(void);
 static void update(void);
 
 static void flush_frame(void);
@@ -44,7 +43,7 @@ static event_t *flush_event;
 SoundModule sound_sun_module = {
 	"sun",
 	"Sun audio",
-	init, shutdown, reset, update
+	init, shutdown, update
 };
 
 typedef uint8_t Sample;  /* 8-bit mono */
@@ -102,18 +101,7 @@ static int init(void) {
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
-	return 0;
-}
 
-static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
-	event_free(flush_event);
-	close(sound_fd);
-	free(buffer);
-}
-
-static void reset(void) {
-	audio_info_t device_info;
 	memset(buffer, 0x80, FRAME_SIZE);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
@@ -123,6 +111,14 @@ static void reset(void) {
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
 	samples_written = device_info.play.samples;
+	return 0;
+}
+
+static void shutdown(void) {
+	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
+	event_free(flush_event);
+	close(sound_fd);
+	free(buffer);
 }
 
 static void update(void) {

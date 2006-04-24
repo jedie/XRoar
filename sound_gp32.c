@@ -34,13 +34,12 @@
 
 static int init(void);
 static void shutdown(void);
-static void reset(void);
 static void update(void);
 
 SoundModule sound_gp32_module = {
 	"gp32",
 	"GP32 audio",
-	init, shutdown, reset, update
+	init, shutdown, update
 };
 
 typedef uint16_t Sample;  /* 8-bit stereo */
@@ -70,14 +69,7 @@ static int init(void) {
 	gpsound_start();
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
-	return 0;
-}
 
-static void shutdown(void) {
-	event_free(flush_event);
-}
-
-static void reset(void) {
 	memset(buffer[0], 0, frame_size * sizeof(Sample));
 	memset(buffer[1], 0, frame_size * sizeof(Sample));
 	wrptr = buffer[1];
@@ -86,6 +78,11 @@ static void reset(void) {
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(flush_event);
 	lastsample = 0;
+	return 0;
+}
+
+static void shutdown(void) {
+	event_free(flush_event);
 }
 
 static void update(void) {

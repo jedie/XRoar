@@ -140,5 +140,4 @@ void sound_next(void) {
 	selected_module++;
 	if (sound_init())
 		exit(1);
-	sound_module->reset();
 }

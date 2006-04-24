@@ -31,13 +31,12 @@
 
 static int init(void);
 static void shutdown(void);
-static void reset(void);
 static void update(void);
 
 SoundModule sound_sdl_module = {
 	"sdl",
 	"SDL ring-buffer audio",
-	init, shutdown, reset, update
+	init, shutdown, update
 };
 
 typedef Sint8 Sample;  /* 8-bit mono (SDL type) */
@@ -105,6 +104,14 @@ static int init(void) {
 	halt_cv = SDL_CreateCond();
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
+
+	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
+	SDL_PauseAudio(0);
+	wrptr = buffer;
+	frame_cycle_base = current_cycle;
+	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	event_queue(flush_event);
+	lastsample = 0;
 	return 0;
 }
 
@@ -116,16 +123,6 @@ static void shutdown(void) {
 	SDL_CloseAudio();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	free(buffer);
-}
-
-static void reset(void) {
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
-	SDL_PauseAudio(0);
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(flush_event);
-	lastsample = 0;
 }
 
 static void update(void) {
