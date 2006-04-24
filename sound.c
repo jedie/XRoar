@@ -138,6 +138,8 @@ void sound_shutdown(void) {
 void sound_next(void) {
 	sound_shutdown();
 	selected_module++;
+	if (module_list[selected_module] == NULL)
+		selected_module = 0;
 	if (sound_init())
 		exit(1);
 }
