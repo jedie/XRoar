@@ -85,6 +85,7 @@ static void set_mode(unsigned int mode) {
 			fg_colour = vdg_colour[7];
 		else
 			fg_colour = vdg_colour[0];
+		cg_colours = &vdg_colour[(mode & 0x08) >> 1];
 	}
 }
 
@@ -117,6 +118,63 @@ static void render_sg4(void) {
 				tmp = ~tmp;
 			*pixel = (tmp & 0x80) ? fg_colour : bg_colour;
 			*(pixel+1*XSTEP) = (tmp & 0x40) ? fg_colour : bg_colour;
+			*(pixel+2*XSTEP) = (tmp & 0x20) ? fg_colour : bg_colour;
+			*(pixel+3*XSTEP) = (tmp & 0x10) ? fg_colour : bg_colour;
+			*(pixel+4*XSTEP) = (tmp & 0x08) ? fg_colour : bg_colour;
+			*(pixel+5*XSTEP) = (tmp & 0x04) ? fg_colour : bg_colour;
+			*(pixel+6*XSTEP) = (tmp & 0x02) ? fg_colour : bg_colour;
+			*(pixel+7*XSTEP) = (tmp & 0x01) ? fg_colour : bg_colour;
+		}
+		pixel += 8*XSTEP;
+		beam_pos += 8;
+		if (beam_pos == 160 || beam_pos == 288)
+			sam_vdg_xstep(16);
+	}
+	RENDER_RIGHT_BORDER;
+	UNLOCK_SURFACE;
+	if (beam_pos == 320) {
+		sam_vdg_hsync(32,10,16);
+		pixel += NEXTLINE;
+		subline++;
+		if (subline > 11)
+			subline = 0;
+		beam_pos++;
+	}
+}
+
+/* Renders a line of external-alpha/semigraphics 6 (mode is selected by data
+ * line, so need to be handled together) */
+static void render_sg6(void) {
+	unsigned int octet;
+	int beam_to = (int)((current_cycle - SCAN_OFFSET) - scanline_start)/2;
+	if (beam_to < 0)
+		return;
+	LOCK_SURFACE;
+	RENDER_LEFT_BORDER;
+	while (ACTIVE_DISPLAY_AREA) {
+		Pixel tmp;
+		if (beam_pos == 32 || beam_pos == 160)
+			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+		octet = *(vram_ptr++);
+		if (octet & 0x80) {
+			tmp = cg_colours[(octet & 0xc0)>>6];
+			if (subline < 4) {
+				*pixel = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) = *(pixel+3*XSTEP) = (octet & 0x20) ? tmp : black;
+				*(pixel+4*XSTEP) = *(pixel+5*XSTEP) = *(pixel+6*XSTEP) = *(pixel+7*XSTEP) = (octet & 0x10) ? tmp : black;
+			} else if (subline < 8) {
+				*pixel = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) = *(pixel+3*XSTEP) = (octet & 0x08) ? tmp : black;
+				*(pixel+4*XSTEP) = *(pixel+5*XSTEP) = *(pixel+6*XSTEP) = *(pixel+7*XSTEP) = (octet & 0x04) ? tmp : black;
+			} else {
+				*pixel = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) = *(pixel+3*XSTEP) = (octet & 0x02) ? tmp : black;
+				*(pixel+4*XSTEP) = *(pixel+5*XSTEP) = *(pixel+6*XSTEP) = *(pixel+7*XSTEP) = (octet & 0x01) ? tmp : black;
+			}
+		} else {
+			tmp = octet;
+			if (octet & 0x40)
+				tmp = ~tmp;
+			*pixel = (tmp & 0x80) ? fg_colour : bg_colour;
+			//*(pixel+1*XSTEP) = (tmp & 0x40) ? fg_colour : bg_colour;
+			*(pixel+1*XSTEP) = bg_colour;
 			*(pixel+2*XSTEP) = (tmp & 0x20) ? fg_colour : bg_colour;
 			*(pixel+3*XSTEP) = (tmp & 0x10) ? fg_colour : bg_colour;
 			*(pixel+4*XSTEP) = (tmp & 0x08) ? fg_colour : bg_colour;

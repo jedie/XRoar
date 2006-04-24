@@ -38,7 +38,7 @@ static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
 static void render_sg4(void);
-/* static void render_sg6(void); */
+static void render_sg6(void);
 static void render_cg1(void);
 static void render_rg1(void);
 static void render_cg2(void);
@@ -52,7 +52,7 @@ VideoModule video_sdlgl_module = {
 	init, shutdown,
 	resize, toggle_fullscreen,
 	reset, vsync, set_mode,
-	render_sg4, render_sg4 /* 6 */, render_cg1,
+	render_sg4, render_sg6, render_cg1,
 	render_rg1, render_cg2, render_rg6,
 	render_border
 };
