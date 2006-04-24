@@ -137,6 +137,8 @@ void video_shutdown(void) {
 void video_next(void) {
 	video_shutdown();
 	selected_module++;
+	if (module_list[selected_module] == NULL)
+		selected_module = 0;
 	if (video_init())
 		exit(1);
 	video_module->vdg_reset();
