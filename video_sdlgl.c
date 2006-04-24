@@ -32,7 +32,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void resize(uint_least16_t w, uint_least16_t h);
+static void resize(unsigned int w, unsigned int h);
 static void toggle_fullscreen(void);
 static void reset(void);
 static void vsync(void);
@@ -144,7 +144,7 @@ static void toggle_fullscreen(void) {
 	resize(640, 480);
 }
 
-static void resize(uint_least16_t w, uint_least16_t h) {
+static void resize(unsigned int w, unsigned int h) {
 	uint_least16_t width, height;
 	if (w < 320) w = 320;
 	if (h < 240) h = 240;

@@ -6,15 +6,13 @@
 #ifndef __VIDEO_H__
 #define __VIDEO_H__
 
-#include "types.h"
-
 typedef struct VideoModule VideoModule;
 struct VideoModule {
 	const char *name;
 	const char *help;
 	int (*init)(void);
 	void (*shutdown)(void);
-	void (*resize)(uint_least16_t w, uint_least16_t h);
+	void (*resize)(unsigned int w, unsigned int h);
 	void (*toggle_fullscreen)(void);
 	void (*vdg_reset)(void);
 	void (*vdg_vsync)(void);
