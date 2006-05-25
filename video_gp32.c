@@ -455,6 +455,6 @@ static void vdg_set_mode(unsigned int mode) {
 	} else {
 		bg_colour = darkgreen;
 		border_colour = black;
-		rendered_alpha = (uint8_t *)vdg_alpha_gp32[(mode & 0x08) >> 3];
+		rendered_alpha = (uint8_t *)vdg_alpha_gp32[(mode & 0x18) >> 3];
 	}
 }

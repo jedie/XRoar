@@ -109,7 +109,7 @@ static Menu main_menu[] = {
 	{ NULL, NULL, 0, 0, NULL, NULL, NULL }
 };
 
-extern uint8_t vdg_alpha_gp32[2][3][8192];
+extern uint8_t vdg_alpha_gp32[4][3][8192];
 
 static int init(void) {
 	int i;

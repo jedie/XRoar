@@ -6,7 +6,7 @@
 
 #define MAPCOLOUR(r,g,b) ((r & 0xc0) | (g & 0xe0) >> 2 | (b & 0xe0) >> 5)
 
-unsigned int bitmaps[2][8 * 12 * 256];
+unsigned int bitmaps[4][8 * 12 * 256];
 
 uint8_t vdg_colour[8];
 uint8_t fg, fg2, bg, black;
@@ -47,7 +47,21 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
-	/* Pre-render semigraphics characters */
+	/* Pre-render "external" charset characters */
+	for (l = 0; l < 128; l++) {
+		c = l;
+		if (c & 0x40)
+			c = ~c;
+		for (i = 0; i < 3; i++) {
+			for (j = 0; j < 4; j++) {
+				for (k = 0; k < 8; k++) {
+					bitmaps[2][i*8192 + l*32 + j*8 + k] = (c & (1<<(7-k))) ? fg : bg;
+					bitmaps[3][i*8192 + l*32 + j*8 + k] = (c & (1<<(7-k))) ? fg2 : bg;
+				}
+			}
+		}
+	}
+	/* Pre-render semigraphics 4 characters */
 	for (l = 128; l < 256; l++) {
 		uint8_t tmp = vdg_colour[(l & 0x70)>>4];
 		for (k = 0; k < 4; k++) {
@@ -63,22 +77,6 @@ int main(int argc, char **argv) {
 			bitmaps[1][0*8192 + l*32 + 3*8 + k] = (l & 0x08) ? tmp : black;
 			bitmaps[1][1*8192 + l*32 + 0*8 + k] = (l & 0x08) ? tmp : black;
 			bitmaps[1][1*8192 + l*32 + 1*8 + k] = (l & 0x08) ? tmp : black;
-		}
-		for (k = 4; k < 8; k++) {
-			bitmaps[0][0*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[0][0*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[0][0*8192 + l*32 + 2*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[0][0*8192 + l*32 + 3*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[0][1*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[0][1*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[1][0*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[1][0*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[1][0*8192 + l*32 + 2*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[1][0*8192 + l*32 + 3*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[1][1*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
-			bitmaps[1][1*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
-		}
-		for (k = 0; k < 4; k++) {
 			bitmaps[0][1*8192 + l*32 + 2*8 + k] = (l & 0x02) ? tmp : black;
 			bitmaps[0][1*8192 + l*32 + 3*8 + k] = (l & 0x02) ? tmp : black;
 			bitmaps[0][2*8192 + l*32 + 0*8 + k] = (l & 0x02) ? tmp : black;
@@ -93,6 +91,18 @@ int main(int argc, char **argv) {
 			bitmaps[1][2*8192 + l*32 + 3*8 + k] = (l & 0x02) ? tmp : black;
 		}
 		for (k = 4; k < 8; k++) {
+			bitmaps[0][0*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[0][0*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[0][0*8192 + l*32 + 2*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[0][0*8192 + l*32 + 3*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[0][1*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[0][1*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[1][0*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[1][0*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[1][0*8192 + l*32 + 2*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[1][0*8192 + l*32 + 3*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[1][1*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[1][1*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
 			bitmaps[0][1*8192 + l*32 + 2*8 + k] = (l & 0x01) ? tmp : black;
 			bitmaps[0][1*8192 + l*32 + 3*8 + k] = (l & 0x01) ? tmp : black;
 			bitmaps[0][2*8192 + l*32 + 0*8 + k] = (l & 0x01) ? tmp : black;
@@ -107,8 +117,65 @@ int main(int argc, char **argv) {
 			bitmaps[1][2*8192 + l*32 + 3*8 + k] = (l & 0x01) ? tmp : black;
 		}
 	}
-	printf("const uint8_t vdg_alpha_gp32[2][3][8192] = {\n");
-	for (l = 0; l < 2; l++) {
+	/* Pre-render semigraphics 6 characters */
+	for (l = 128; l < 256; l++) {
+		uint8_t tmp = vdg_colour[(l & 0xc0)>>6];
+		uint8_t tmp2 = vdg_colour[4+((l & 0xc0)>>6)];
+		for (k = 0; k < 4; k++) {
+			bitmaps[2][0*8192 + l*32 + 0*8 + k] = (l & 0x20) ? tmp : black;
+			bitmaps[2][0*8192 + l*32 + 1*8 + k] = (l & 0x20) ? tmp : black;
+			bitmaps[2][0*8192 + l*32 + 2*8 + k] = (l & 0x20) ? tmp : black;
+			bitmaps[2][0*8192 + l*32 + 3*8 + k] = (l & 0x20) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 0*8 + k] = (l & 0x08) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 1*8 + k] = (l & 0x08) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 2*8 + k] = (l & 0x08) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 3*8 + k] = (l & 0x08) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 0*8 + k] = (l & 0x02) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 1*8 + k] = (l & 0x02) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 2*8 + k] = (l & 0x02) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 3*8 + k] = (l & 0x02) ? tmp : black;
+			bitmaps[3][0*8192 + l*32 + 0*8 + k] = (l & 0x20) ? tmp2 : black;
+			bitmaps[3][0*8192 + l*32 + 1*8 + k] = (l & 0x20) ? tmp2 : black;
+			bitmaps[3][0*8192 + l*32 + 2*8 + k] = (l & 0x20) ? tmp2 : black;
+			bitmaps[3][0*8192 + l*32 + 3*8 + k] = (l & 0x20) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 0*8 + k] = (l & 0x08) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 1*8 + k] = (l & 0x08) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 2*8 + k] = (l & 0x08) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 3*8 + k] = (l & 0x08) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 0*8 + k] = (l & 0x02) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 1*8 + k] = (l & 0x02) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 2*8 + k] = (l & 0x02) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 3*8 + k] = (l & 0x02) ? tmp2 : black;
+		}
+		for (k = 4; k < 8; k++) {
+			bitmaps[2][0*8192 + l*32 + 0*8 + k] = (l & 0x10) ? tmp : black;
+			bitmaps[2][0*8192 + l*32 + 1*8 + k] = (l & 0x10) ? tmp : black;
+			bitmaps[2][0*8192 + l*32 + 2*8 + k] = (l & 0x10) ? tmp : black;
+			bitmaps[2][0*8192 + l*32 + 3*8 + k] = (l & 0x10) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 2*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[2][1*8192 + l*32 + 3*8 + k] = (l & 0x04) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 0*8 + k] = (l & 0x01) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 1*8 + k] = (l & 0x01) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 2*8 + k] = (l & 0x01) ? tmp : black;
+			bitmaps[2][2*8192 + l*32 + 3*8 + k] = (l & 0x01) ? tmp : black;
+			bitmaps[3][0*8192 + l*32 + 0*8 + k] = (l & 0x10) ? tmp2 : black;
+			bitmaps[3][0*8192 + l*32 + 1*8 + k] = (l & 0x10) ? tmp2 : black;
+			bitmaps[3][0*8192 + l*32 + 2*8 + k] = (l & 0x10) ? tmp2 : black;
+			bitmaps[3][0*8192 + l*32 + 3*8 + k] = (l & 0x10) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 0*8 + k] = (l & 0x04) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 1*8 + k] = (l & 0x04) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 2*8 + k] = (l & 0x04) ? tmp2 : black;
+			bitmaps[3][1*8192 + l*32 + 3*8 + k] = (l & 0x04) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 0*8 + k] = (l & 0x01) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 1*8 + k] = (l & 0x01) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 2*8 + k] = (l & 0x01) ? tmp2 : black;
+			bitmaps[3][2*8192 + l*32 + 3*8 + k] = (l & 0x01) ? tmp2 : black;
+		}
+	}
+	printf("const uint8_t vdg_alpha_gp32[4][3][8192] = {\n");
+	for (l = 0; l < 4; l++) {
 		printf("\t{\n");
 		for (i = 0; i < 3; i++) {
 		printf("\t\t{\n");
