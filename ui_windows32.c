@@ -34,14 +34,15 @@
 static int init(void);
 static void shutdown_module(void);
 static void menu(void);
-static char *get_filename(const char **extensions);
+static char *load_filename(const char **extensions);
+static char *save_filename(const char **extensions);
 
 UIModule ui_windows32_module = {
 	NULL,
 	"windows32",
 	"Windows32 user-interface",
 	init, shutdown_module,
-	menu, get_filename, get_filename
+	menu, load_filename, save_filename
 };
 
 static char *filename = NULL;
@@ -58,7 +59,7 @@ static void shutdown_module(void) {
 static void menu(void) {
 }
 
-static char *get_filename(const char **extensions) {
+static char *load_filename(const char **extensions) {
 	OPENFILENAME ofn;
 	char *cwd, cwdbuf[_MAX_PATH];
 	char fn_buf[260];
@@ -92,6 +93,48 @@ static char *get_filename(const char **extensions) {
 		free(filename);
 	filename = NULL;
 	if (GetOpenFileName(&ofn)==TRUE) {
+		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
+		strcpy(filename, ofn.lpstrFile);
+	}
+	if (cwd)
+		fs_chdir(cwd);
+	return filename;
+}
+
+static char *save_filename(const char **extensions) {
+	OPENFILENAME ofn;
+	char *cwd, cwdbuf[_MAX_PATH];
+	char fn_buf[260];
+	HWND hwnd;
+
+	(void)extensions;  /* unused */
+	SDL_SysWMinfo sdlinfo;
+	SDL_version sdlver;
+
+	SDL_VERSION(&sdlver);
+	sdlinfo.version = sdlver;
+	SDL_GetWMInfo(&sdlinfo);
+	hwnd = sdlinfo.window;
+
+	cwd = fs_getcwd(cwdbuf, sizeof(cwdbuf));
+
+	memset(&ofn, 0, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hwnd;
+	ofn.lpstrFile = fn_buf;
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(fn_buf);
+	ofn.lpstrFilter = "All\0*.*\0Snapshots\0*.SNA\0Cassette images\0*.CAS\0Virtual discs\0*.VDK;*.DSK;*.DMK;*.JVC\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_PATHMUSTEXIST;
+
+	if (filename)
+		free(filename);
+	filename = NULL;
+	if (GetSaveFileName(&ofn)==TRUE) {
 		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
 		strcpy(filename, ofn.lpstrFile);
 	}
