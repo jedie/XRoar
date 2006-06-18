@@ -249,7 +249,16 @@ static void keypress(SDL_keysym *keysym) {
 				if (shift)
 					tape_autorun(filename);
 				else
-					tape_attach(filename);
+					tape_open_reading(filename);
+			}
+			break;
+			}
+		case SDLK_w:
+			{
+			const char *tape_exts[] = { "CAS", NULL };
+			char *filename = ui_module->save_filename(tape_exts);
+			if (filename) {
+				tape_open_writing(filename);
 			}
 			break;
 			}

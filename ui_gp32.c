@@ -443,7 +443,7 @@ static void tape_callback(unsigned int opt) {
 				notify_box("COULD NOT DETECT PROGRAM TYPE");
 			}
 		} else {
-			tape_attach(filename);
+			tape_open_reading(filename);
 		}
 	}
 }

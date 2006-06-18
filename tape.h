@@ -10,9 +10,16 @@
 
 void tape_init(void);
 void tape_reset(void);
-int tape_attach(char *filename);
-void tape_detach(void);
+void tape_shutdown(void);
+
+int tape_open_reading(char *filename);
+void tape_close_reading(void);
+int tape_open_writing(char *filename);
+void tape_close_writing(void);
+
 int tape_autorun(char *filename);
-void tape_update(void);
+
+void tape_update_motor(void);
+void tape_update_output(void);
 
 #endif  /* __TAPE_H__ */

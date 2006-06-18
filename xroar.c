@@ -111,6 +111,7 @@ void xroar_init(void) {
 }
 
 void xroar_shutdown(void) {
+	tape_shutdown();
 	joystick_shutdown();
 	ui_shutdown();
 	sound_shutdown();
