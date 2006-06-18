@@ -101,7 +101,6 @@ void xroar_init(void) {
 	if (joystick_init()) {
 		LOG_WARN("No joystick module initialised.\n");
 	}
-	fs_init();
 	machine_init();
 	/* Reset everything */
 	joystick_reset();

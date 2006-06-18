@@ -8,14 +8,7 @@
 
 #include "types.h"
 
-/* Some file handling abstractions.  Arch-specific stuff is declared in
- * fs_*.h */
-
-#ifdef HAVE_GP32
-# include "fs_gp32.h"
-#else
-# include "fs_unix.h"
-#endif
+/* Some file handling abstractions. */
 
 #define FS_READ 0x01
 #define FS_WRITE 0x02
@@ -23,19 +16,19 @@
 void fs_init(void);
 
 int fs_chdir(const char *path);
-FS_FILE fs_open(const char *filename, int flags);
-ssize_t fs_read(FS_FILE fd, void *buffer, size_t size);
-ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size);
-void fs_close(FS_FILE fd);
+int fs_open(const char *filename, int flags);
+ssize_t fs_read(int fd, void *buffer, size_t size);
+ssize_t fs_write(int fd, const void *buffer, size_t size);
+void fs_close(int fd);
 ssize_t fs_size(const char *filename);
 char *fs_getcwd(char *buf, size_t size);
 
 ssize_t fs_load_file(char *filename, void *buf, size_t size);
-int fs_write_byte(FS_FILE fd, uint8_t octet);
-int fs_write_word16(FS_FILE fd, uint16_t word16);
-int fs_write_word32(FS_FILE fd, uint32_t word32);
-int fs_read_byte(FS_FILE fd, uint8_t *dest);
-int fs_read_word16(FS_FILE fd, uint16_t *dest);
-int fs_read_word32(FS_FILE fd, uint32_t *dest);
+int fs_write_byte(int fd, uint8_t octet);
+int fs_write_word16(int fd, uint16_t word16);
+int fs_write_word32(int fd, uint32_t word32);
+int fs_read_byte(int fd, uint8_t *dest);
+int fs_read_word16(int fd, uint16_t *dest);
+int fs_read_word32(int fd, uint32_t *dest);
 
 #endif  /* __FS_H__ */

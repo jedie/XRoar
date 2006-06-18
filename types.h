@@ -60,6 +60,7 @@ void swi_mmu_change(void *mempos_start, void *mempos_end, int mode);
 
 #else  /* Unix types & macros */
 
+#include <sys/types.h>
 #include <inttypes.h>
 
 typedef int32_t Cycle;

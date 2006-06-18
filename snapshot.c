@@ -45,7 +45,7 @@
 #define ID_SAM_REGISTERS (3)
 
 int write_snapshot(char *filename) {
-	FS_FILE fd;
+	int fd;
 	uint8_t buffer[14];
 	if ((fd = fs_open(filename, FS_WRITE)) == -1)
 		return -1;
@@ -80,7 +80,7 @@ int write_snapshot(char *filename) {
 }
 
 int read_snapshot(char *filename) {
-	FS_FILE fd;
+	int fd;
 	uint8_t buffer[17];
 	uint8_t section, tmp8;
 	uint16_t size, tmp16;

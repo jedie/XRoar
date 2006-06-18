@@ -37,14 +37,11 @@
 
 static const char *fs_error = "";
 
-void fs_init(void) {
-}
-
 int fs_chdir(const char *path) {
 	return chdir(path);
 }
 
-FS_FILE fs_open(const char *filename, int flags) {
+int fs_open(const char *filename, int flags) {
 	int fd;
 	if (flags & FS_WRITE)
 		fd = open(filename, WRFLAGS, 0644);
@@ -57,7 +54,7 @@ FS_FILE fs_open(const char *filename, int flags) {
 	return fd;
 }
 
-ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
+ssize_t fs_read(int fd, void *buffer, size_t size) {
 	int count = 0, tries = 3;
 	ssize_t r;
 	unsigned char *buf = (unsigned char *)buffer;
@@ -76,7 +73,7 @@ ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
 	return count;
 }
 
-ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size) {
+ssize_t fs_write(int fd, const void *buffer, size_t size) {
 	int count = 0, tries = 3;
 	ssize_t r;
 	const unsigned char *buf = (const unsigned char *)buffer;
@@ -95,7 +92,7 @@ ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size) {
 	return count;
 }
 
-void fs_close(FS_FILE fd) {
+void fs_close(int fd) {
 	close(fd);
 }
 
@@ -114,7 +111,7 @@ char *fs_getcwd(char *buf, size_t size) {
 
 ssize_t fs_load_file(char *filename, void *buf, size_t size) {
 	ssize_t count;
-	FS_FILE fd;
+	int fd;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
 	count = fs_read(fd, buf, size);
@@ -122,27 +119,27 @@ ssize_t fs_load_file(char *filename, void *buf, size_t size) {
 	return count;
 }
 
-int fs_write_byte(FS_FILE fd, uint8_t octet) {
+int fs_write_byte(int fd, uint8_t octet) {
 	return fs_write(fd, &octet, 1);
 }
 
-int fs_write_word16(FS_FILE fd, uint16_t word16) {
+int fs_write_word16(int fd, uint16_t word16) {
 	if (fs_write_byte(fd, word16 >> 8) == -1)
 		return -1;
 	return fs_write_byte(fd, word16 & 0xff);
 }
 
-int fs_write_word32(FS_FILE fd, uint32_t word32) {
+int fs_write_word32(int fd, uint32_t word32) {
 	if (fs_write_word16(fd, word32 >> 16) == -1)
 		return -1;
 	return fs_write_word16(fd, word32 & 0xffff);
 }
 
-int fs_read_byte(FS_FILE fd, uint8_t *dest) {
+int fs_read_byte(int fd, uint8_t *dest) {
 	return fs_read(fd, dest, 1);
 }
 
-int fs_read_word16(FS_FILE fd, uint16_t *dest) {
+int fs_read_word16(int fd, uint16_t *dest) {
 	uint8_t octet;
 	int ret;
 	if (fs_read(fd, &octet, 1) == -1)
@@ -154,7 +151,7 @@ int fs_read_word16(FS_FILE fd, uint16_t *dest) {
 	return ret;
 }
 
-int fs_read_word32(FS_FILE fd, uint32_t *dest) {
+int fs_read_word32(int fd, uint32_t *dest) {
 	uint16_t word16;
 	int ret;
 	if (fs_read_word16(fd, &word16) == -1)

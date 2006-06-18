@@ -27,12 +27,28 @@
 #include "fs.h"
 #include "types.h"
 
+static int initialised = 0;
+static F_HANDLE fd_cache[256];
+
 static char cwd[1024];
 
-void fs_init(void) {
+static void init(void) {
+	int i;
+	for (i = 0; i < 256; i++)
+		fd_cache[i] = -1;
 	GpFatInit();
 	strcpy(cwd, "gp:\\gpmm\\dragon\\");
 	GpRelativePathSet(cwd);
+	initialised = 1;
+}
+
+static int next_fd(void) {
+	int i;
+	if (!initialised) init();
+	for (i = 0; i < 256; i++)
+		if (fd_cache[i] == -1)
+			return i;
+	return -1;
 }
 
 static char *strrchr2(char *s, int c) {
@@ -89,9 +105,12 @@ int fs_chdir(const char *path) {
 	return 0;
 }
 
-FS_FILE fs_open(const char *filename, int flags) {
-	F_HANDLE fd;
+int fs_open(const char *filename, int flags) {
+	F_HANDLE fh;
 	const char *basename;
+	int fd;
+	if ((fd = next_fd()) == -1)
+		return -1;
 	if ((basename = strrchr(filename, '\\'))
 			|| (basename = strrchr(filename, '/'))) {
 		int length = (basename - filename) + 1;
@@ -106,28 +125,29 @@ FS_FILE fs_open(const char *filename, int flags) {
 		basename = filename;
 	}
 	if (flags & FS_WRITE) {
-		if (GpFileOpen(basename, OPEN_W, &fd) != SM_OK) {
-			GpFileCreate(basename, ALWAYS_CREATE, &fd);
-			if (GpFileOpen(basename, OPEN_W, &fd) != SM_OK) {
+		if (GpFileOpen(basename, OPEN_W, &fh) != SM_OK) {
+			GpFileCreate(basename, ALWAYS_CREATE, &fh);
+			if (GpFileOpen(basename, OPEN_W, &fh) != SM_OK) {
 				return -1;
 			}
 		}
 	} else {
-		if (GpFileOpen(basename, OPEN_R, &fd) != SM_OK)
+		if (GpFileOpen(basename, OPEN_R, &fh) != SM_OK)
 			return -1;
 	}
 	SPEED_SLOW;
+	fd_cache[fd] = fh;
 	return fd;
 }
 
-ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
+ssize_t fs_read(int fd, void *buffer, size_t size) {
 	unsigned long count;
 	int rbytes = 0;
 	unsigned char *buf = (unsigned char *)buffer;
 	ERR_CODE err;
 	/* Read in 512 byte chunks, or the GP32 crashes! */
 	do {
-		err = GpFileRead(fd, buf, size>512?512:size, &count);
+		err = GpFileRead(fd_cache[fd], buf, size>512?512:size, &count);
 		if (err != SM_OK && err != ERR_EOF)
 			return -1;
 		size -= count;
@@ -137,18 +157,16 @@ ssize_t fs_read(FS_FILE fd, void *buffer, size_t size) {
 	return rbytes;
 }
 
-ssize_t fs_write(FS_FILE fd, const void *buffer, size_t size) {
+ssize_t fs_write(int fd, const void *buffer, size_t size) {
 	ERR_CODE err;
-	/* Haven't done any file writing yet, so don't know if similar
-	 * contortions are required */
-	err = GpFileWrite(fd, buffer, (unsigned long)size);
+	err = GpFileWrite(fd_cache[fd], buffer, (unsigned long)size);
 	if (err != SM_OK)
 		return -1;
 	return size;
 }
 
-void fs_close(FS_FILE fd) {
-	GpFileClose(fd);
+void fs_close(int fd) {
+	GpFileClose(fd_cache[fd]);
 	SPEED_FAST;
 }
 
@@ -169,7 +187,7 @@ char *fs_getcwd(char *buf, size_t size) {
 
 ssize_t fs_load_file(char *filename, void *buf, size_t size) {
 	int count;
-	FS_FILE fd;
+	int fd;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
 	count = fs_read(fd, buf, size);
@@ -177,27 +195,27 @@ ssize_t fs_load_file(char *filename, void *buf, size_t size) {
 	return count;
 }
 
-int fs_write_byte(FS_FILE fd, uint8_t octet) {
+int fs_write_byte(int fd, uint8_t octet) {
 	return fs_write(fd, &octet, 1);
 }
 
-int fs_write_word16(FS_FILE fd, uint16_t word16) {
+int fs_write_word16(int fd, uint16_t word16) {
 	if (fs_write_byte(fd, word16 >> 8) == -1)
 		return -1;
 	return fs_write_byte(fd, word16 & 0xff);
 }
 
-int fs_write_word32(FS_FILE fd, uint32_t word32) {
+int fs_write_word32(int fd, uint32_t word32) {
 	if (fs_write_word16(fd, word32 >> 16) == -1)
 		return -1;
 	return fs_write_word16(fd, word32 & 0xffff);
 }
 
-int fs_read_byte(FS_FILE fd, uint8_t *dest) {
+int fs_read_byte(int fd, uint8_t *dest) {
 	return fs_read(fd, dest, 1);
 }
 
-int fs_read_word16(FS_FILE fd, uint16_t *dest) {
+int fs_read_word16(int fd, uint16_t *dest) {
 	uint8_t octet;
 	int ret;
 	if (fs_read(fd, &octet, 1) == -1)
@@ -209,7 +227,7 @@ int fs_read_word16(FS_FILE fd, uint16_t *dest) {
 	return ret;
 }
 
-int fs_read_word32(FS_FILE fd, uint32_t *dest) {
+int fs_read_word32(int fd, uint32_t *dest) {
 	uint16_t word16;
 	int ret;
 	if (fs_read_word16(fd, &word16) == -1)

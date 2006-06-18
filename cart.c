@@ -83,7 +83,7 @@ static void cart_configure(char *filename, int autostart) {
 }
 
 static void cart_load(void) {
-	FS_FILE fd;
+	int fd;
 	if ((fd = fs_open(cart_filename, FS_READ)) == -1) {
 		cart_remove();
 		return;

@@ -24,7 +24,7 @@
 #include "m6809.h"
 #include "hexs19.h"
 
-static uint8_t read_nibble(FS_FILE fd) {
+static uint8_t read_nibble(int fd) {
 	uint8_t in;
 	fs_read_byte(fd, &in);
 	if (in >= '0' && in <= '9')
@@ -35,15 +35,15 @@ static uint8_t read_nibble(FS_FILE fd) {
 	return 0xff;
 }
 
-static uint8_t read_byte(FS_FILE fd) {
+static uint8_t read_byte(int fd) {
 	return read_nibble(fd) << 4 | read_nibble(fd);
 }
 
-static uint16_t read_word(FS_FILE fd) {
+static uint16_t read_word(int fd) {
 	return read_byte(fd) << 8 | read_byte(fd);
 }
 
-static int skip_eol(FS_FILE fd) {
+static int skip_eol(int fd) {
 	int r;
 	uint8_t d;
 	do {
@@ -55,7 +55,7 @@ static int skip_eol(FS_FILE fd) {
 }
 
 int intel_hex_read(char *filename) {
-	FS_FILE fd;
+	int fd;
 	int i, length, addr, type, sum;
 	uint8_t data;
 	if (filename == NULL)
@@ -99,7 +99,7 @@ int intel_hex_read(char *filename) {
 }
 
 int coco_bin_read(char *filename) {
-	FS_FILE fd;
+	int fd;
 	uint8_t tmp;
 	uint_least16_t length, load, exec;
 	int r;

@@ -63,7 +63,7 @@ int vdisk_load_vdk(const char *filename, unsigned int drive) {
 	unsigned int ssize_code = 1, ssize;
 	unsigned int track, sector, side;
 	uint8_t buf[1024];
-	FS_FILE fd;
+	int fd;
 	if ((file_size = fs_size(filename)) < 0)
 		return -1;
 	if ((fd = fs_open(filename, FS_READ)) < 0)
@@ -109,7 +109,7 @@ int vdisk_load_jvc(const char *filename, unsigned int drive) {
 	unsigned int sector_attr = 0;
 	unsigned int track, sector, side;
 	uint8_t buf[1025];
-	FS_FILE fd;
+	int fd;
 	if (file_size < 0)
 		return -1;
 	header_size = file_size % 256;

@@ -246,7 +246,7 @@ void machine_set_keymap(int mode) {
 #endif
 
 static int load_rom_f(const char *filename, uint8_t *dest, size_t max_size) {
-	FS_FILE fd;
+	int fd;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
 	LOG_DEBUG(3, "Loading ROM: %s\n", filename);
@@ -256,7 +256,7 @@ static int load_rom_f(const char *filename, uint8_t *dest, size_t max_size) {
 }
 
 static int load_dgn_f(const char *filename, uint8_t *dest, size_t max_size) {
-	FS_FILE fd;
+	int fd;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
 	LOG_DEBUG(3, "Loading DGN: %s\n", filename);

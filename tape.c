@@ -26,7 +26,7 @@
 #include "tape.h"
 #include "xroar.h"
 
-static FS_FILE tapefd;
+static int tapefd;
 static int isopen = 0;
 static unsigned int motor;
 
