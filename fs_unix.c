@@ -28,10 +28,10 @@
 #include "types.h"
 
 #ifdef WINDOWS32
-# define WRFLAGS (O_CREAT|O_WRONLY|O_BINARY)
+# define WRFLAGS (O_CREAT|O_WRONLY|O_TRUNC|O_BINARY)
 # define RDFLAGS (O_RDONLY|O_BINARY)
 #else
-# define WRFLAGS (O_CREAT|O_WRONLY)
+# define WRFLAGS (O_CREAT|O_WRONLY|O_TRUNC)
 # define RDFLAGS (O_RDONLY)
 #endif
 
