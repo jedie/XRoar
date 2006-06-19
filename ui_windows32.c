@@ -61,7 +61,6 @@ static void menu(void) {
 
 static char *load_filename(const char **extensions) {
 	OPENFILENAME ofn;
-	char *cwd, cwdbuf[_MAX_PATH];
 	char fn_buf[260];
 	HWND hwnd;
 
@@ -74,8 +73,6 @@ static char *load_filename(const char **extensions) {
 	SDL_GetWMInfo(&sdlinfo);
 	hwnd = sdlinfo.window;
 
-	cwd = fs_getcwd(cwdbuf, sizeof(cwdbuf));
-
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hwnd;
@@ -87,7 +84,8 @@ static char *load_filename(const char **extensions) {
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
 	ofn.lpstrInitialDir = NULL;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR
+		| OFN_HIDEREADONLY;
 
 	if (filename)
 		free(filename);
@@ -96,14 +94,11 @@ static char *load_filename(const char **extensions) {
 		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
 		strcpy(filename, ofn.lpstrFile);
 	}
-	if (cwd)
-		fs_chdir(cwd);
 	return filename;
 }
 
 static char *save_filename(const char **extensions) {
 	OPENFILENAME ofn;
-	char *cwd, cwdbuf[_MAX_PATH];
 	char fn_buf[260];
 	HWND hwnd;
 
@@ -116,8 +111,6 @@ static char *save_filename(const char **extensions) {
 	SDL_GetWMInfo(&sdlinfo);
 	hwnd = sdlinfo.window;
 
-	cwd = fs_getcwd(cwdbuf, sizeof(cwdbuf));
-
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hwnd;
@@ -129,7 +122,8 @@ static char *save_filename(const char **extensions) {
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
 	ofn.lpstrInitialDir = NULL;
-	ofn.Flags = OFN_PATHMUSTEXIST;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_HIDEREADONLY
+		| OFN_OVERWRITEPROMPT;
 
 	if (filename)
 		free(filename);
@@ -138,7 +132,5 @@ static char *save_filename(const char **extensions) {
 		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
 		strcpy(filename, ofn.lpstrFile);
 	}
-	if (cwd)
-		fs_chdir(cwd);
 	return filename;
 }
