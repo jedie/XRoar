@@ -115,6 +115,8 @@ Ctrl+B ........ Load CoCo ".bin" binary file.
 Ctrl+C ........ Quit emulator.
 Ctrl+E ........ Toggle DOS emulation on/off - reset to take effect.
 Ctrl+H ........ Load ".hex" Intel HEX-record.
+Ctrl+I ........ Insert a cartridge.
+Ctrl+Shift+I .. Insert a cartridge, no autorun.
 Ctrl+J ........ Cycle through joystick emulation modes (None, Left, Right).
 Ctrl+K ........ Toggle between Dragon and CoCo keyboard layout.
 Ctrl+L ........ Load a snapshot.
@@ -124,6 +126,7 @@ Ctrl+Shift+R .. Hard reset.
 Ctrl+S ........ Save a snapshot.
 Ctrl+T ........ Insert ".cas" virtual cassette.
 Ctrl+Shift+T .. Insert virtual cassette and autoload first program.
+Ctrl+W ........ Attach a virtual cassette file for writing.
 Ctrl+Z ........ Enable keyboard translation mode.
 
 In translation mode, characters typed on the host keyboard are translated
@@ -135,6 +138,11 @@ based on using a PS2 controller through a PS2-USB converter (although any
 joystick supported by the OS should work).  Alternatively, use joystick
 emulation (Ctrl+J) to simulate a joystick with the cursor keys, with
 Left Alt as fire.
+
+Attaching a virtual cassette for writing will always truncate that file
+to zero bytes even if you don't then write anything, so be careful you
+don't overwrite something important.  Tape files used for writing and
+those used for reading are maintained separately.
 
 
 GP32 CONTROLS
