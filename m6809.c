@@ -267,7 +267,7 @@ static int nmi_armed;
 #define OP_ADD(r,a) { uint_least16_t octet, result; a(addr,octet); result = r + octet; CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
 
 #define BRANCHS(cond) { uint_least16_t RA; SHORT_RELATIVE(RA); \
-		if (cond) { reg_pc += RA; TAKEN_CYCLES(1); } \
+		TAKEN_CYCLES(1); if (cond) { reg_pc += RA; } \
 	}
 #define BRANCHL(cond) { uint_least16_t RA; LONG_RELATIVE(RA); \
 		if (cond) { reg_pc += RA; TAKEN_CYCLES(2); } \
