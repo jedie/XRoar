@@ -7,7 +7,7 @@
  * into various video module source files and makes use of macros defined in
  * those files (eg, LOCK_SURFACE and XSTEP) */
 
-#define SCAN_OFFSET -183
+#define SCAN_OFFSET 36
 
 #define RENDER_LEFT_BORDER do { \
 		while (beam_pos < 32 && beam_pos < beam_to) { \
