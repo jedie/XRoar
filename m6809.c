@@ -1402,18 +1402,45 @@ restore_regs:
 	register_pc = reg_pc;
 }
 
-void m6809_get_registers(uint8_t *regs) {
-	regs[0] = register_cc;
-	regs[1] = register_a;
-	regs[2] = register_b;
-	regs[3] = register_dp;
-	regs[4] = register_x >> 8; regs[5] = register_x & 0xff;
-	regs[6] = register_y >> 8; regs[7] = register_y & 0xff;
-	regs[8] = register_u >> 8; regs[9] = register_u & 0xff;
-	regs[10] = register_s >> 8; regs[11] = register_s & 0xff;
-	regs[12] = register_pc >> 8; regs[13] = register_pc & 0xff;
+void m6809_get_state(M6809State *state) {
+	state->reg_cc = register_cc;
+	state->reg_a = register_a;
+	state->reg_b = register_b;
+	state->reg_dp = register_dp;
+	state->reg_x = register_x;
+	state->reg_y = register_y;
+	state->reg_u = register_u;
+	state->reg_s = register_s;
+	state->reg_pc = register_pc;
+	state->halt = halt;
+	state->nmi = nmi;
+	state->firq = firq;
+	state->irq = irq;
+	state->wait_for_interrupt = wait_for_interrupt;
+	state->skip_register_push = skip_register_push;
+	state->nmi_armed = nmi_armed;
 }
 
+void m6809_set_state(M6809State *state) {
+	register_cc = state->reg_cc;
+	register_a = state->reg_a;
+	register_b = state->reg_b;
+	register_dp = state->reg_dp;
+	register_x = state->reg_x;
+	register_y = state->reg_y;
+	register_u = state->reg_u;
+	register_s = state->reg_s;
+	register_pc = state->reg_pc;
+	halt = state->halt;
+	nmi = state->nmi;
+	firq = state->firq;
+	irq = state->irq;
+	wait_for_interrupt = state->wait_for_interrupt;
+	skip_register_push = state->skip_register_push;
+	nmi_armed = state->nmi_armed;
+}
+
+/* Kept for old snapshots */
 void m6809_set_registers(uint8_t *regs) {
 	register_cc = regs[0];
 	register_a = regs[1];

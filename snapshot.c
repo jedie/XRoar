@@ -34,25 +34,46 @@
 /* TODO: Currently possibly (and likely) to save a snapshot with an interrupt
  * pending, so need to save CPU interrupt flags */
 
-/* Reorganised to write files in 'chunks', each with an identifying byte and
- * a 16-bit length.  This should mean no more changes are required that break
- * the format (if I think of a better way of doing something I just give it a
- * different id) */
+/* Write files in 'chunks', each with an identifying byte and a 16-bit
+ * length.  This should mean no changes are required that break the
+ * format.  */
 
-#define ID_REGISTER_DUMP (0)
+#define ID_REGISTER_DUMP (0)	/* deprecated */
 #define ID_RAM_PAGE0     (1)
 #define ID_PIA_REGISTERS (2)
 #define ID_SAM_REGISTERS (3)
+#define ID_M6809_STATE   (4)
 
 int write_snapshot(char *filename) {
 	int fd;
-	uint8_t buffer[14];
+	/* uint8_t buffer[14]; */
+	M6809State cpu_state;
 	if ((fd = fs_open(filename, FS_WRITE)) == -1)
 		return -1;
 	fs_write(fd, "XRoar snapshot.\012\000", 17);
+	fs_write_byte(fd, ID_M6809_STATE); fs_write_word16(fd, 21);
+	m6809_get_state(&cpu_state);
+	fs_write_byte(fd, cpu_state.reg_cc);
+	fs_write_byte(fd, cpu_state.reg_a);
+	fs_write_byte(fd, cpu_state.reg_b);
+	fs_write_byte(fd, cpu_state.reg_dp);
+	fs_write_word16(fd, cpu_state.reg_x);
+	fs_write_word16(fd, cpu_state.reg_y);
+	fs_write_word16(fd, cpu_state.reg_u);
+	fs_write_word16(fd, cpu_state.reg_s);
+	fs_write_word16(fd, cpu_state.reg_pc);
+	fs_write_byte(fd, cpu_state.halt);
+	fs_write_byte(fd, cpu_state.nmi);
+	fs_write_byte(fd, cpu_state.firq);
+	fs_write_byte(fd, cpu_state.irq);
+	fs_write_byte(fd, cpu_state.wait_for_interrupt);
+	fs_write_byte(fd, cpu_state.skip_register_push);
+	fs_write_byte(fd, cpu_state.nmi_armed);
+	/*
 	m6809_get_registers(buffer);
 	fs_write_byte(fd, ID_REGISTER_DUMP); fs_write_word16(fd, 14);
 	fs_write(fd, buffer, 14);
+	*/
 	fs_write_byte(fd, ID_RAM_PAGE0); fs_write_word16(fd, sizeof(ram0));
 	fs_write(fd, ram0, sizeof(ram0));
 	fs_write_byte(fd, ID_PIA_REGISTERS); fs_write_word16(fd, 3*4);
@@ -84,6 +105,7 @@ int read_snapshot(char *filename) {
 	uint8_t buffer[17];
 	uint8_t section, tmp8;
 	uint16_t size, tmp16;
+	M6809State cpu_state;
 	if (filename == NULL)
 		return -1;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
@@ -104,6 +126,7 @@ int read_snapshot(char *filename) {
 		fs_read_word16(fd, &size);
 		switch (section) {
 			case ID_REGISTER_DUMP:
+				/* deprecated */
 				fs_read(fd, buffer, 14);
 				m6809_set_registers(buffer);
 				break;
@@ -154,6 +177,26 @@ int read_snapshot(char *filename) {
 				sam_register = tmp16;
 				sam_update_from_register();
 				size -= 2;
+				break;
+			case ID_M6809_STATE:
+				/* M6809 state */
+				fs_read_byte(fd, &cpu_state.reg_cc);
+				fs_read_byte(fd, &cpu_state.reg_a);
+				fs_read_byte(fd, &cpu_state.reg_b);
+				fs_read_byte(fd, &cpu_state.reg_dp);
+				fs_read_word16(fd, &cpu_state.reg_x);
+				fs_read_word16(fd, &cpu_state.reg_y);
+				fs_read_word16(fd, &cpu_state.reg_u);
+				fs_read_word16(fd, &cpu_state.reg_s);
+				fs_read_word16(fd, &cpu_state.reg_pc);
+				fs_read_byte(fd, &cpu_state.halt);
+				fs_read_byte(fd, &cpu_state.nmi);
+				fs_read_byte(fd, &cpu_state.firq);
+				fs_read_byte(fd, &cpu_state.irq);
+				fs_read_byte(fd, &cpu_state.wait_for_interrupt);
+				fs_read_byte(fd, &cpu_state.skip_register_push);
+				fs_read_byte(fd, &cpu_state.nmi_armed);
+				m6809_set_state(&cpu_state);
 				break;
 			default:
 				/* Unknown chunk - skip it */
