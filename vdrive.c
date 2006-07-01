@@ -265,7 +265,7 @@ uint8_t *vdrive_next_idam(void) {
 	}
 	head_pos = next_offset + 7;
 	crc16_reset();
-	crc16_block(track_base + next_offset + 1, 4);
+	crc16_block(track_base + next_offset/* + 1*/, 5);
 	return track_base + next_offset;
 }
 
