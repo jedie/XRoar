@@ -3,6 +3,13 @@ Changed from v0.14 to v0.15
  * New indexed addressing code should be faster.
  * Simplified module system.
  * New cartridge code.  Now usable on GP32.
+ * Semigraphics mode 6 implemented.
+ * Virtual cassette writing supported.
+ * While reading virtual cassettes, fake leader bytes are inserted when
+   cassette motor is turned on.
+ * Windows32 UI has separate save dialog.
+ * Timing issue with short branches fixed.
+ * WD2797 emulation now implements CRC16.
 
 Changed from v0.13 to v0.14
  * Implemented PAL timing for Dragon 32, Dragon 64.
