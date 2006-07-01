@@ -35,9 +35,11 @@
 #include "wd2797.h"
 #include "xroar.h"
 
-/* machine_keymap tracks which keymap is in use (good to be able to set it
- * separately). */
+unsigned int machine_romtype;
+unsigned int machine_page0_ram = 0x8000;  /* Base RAM in bytes, up to 32K */
+unsigned int machine_page1_ram = 0x8000;  /* Generally 0 or 32K */
 unsigned int machine_keymap;
+
 int dragondos_enabled;
 Keymap keymap;
 uint8_t ram0[0x8000];
@@ -111,7 +113,6 @@ machine_info machines[NUM_MACHINES] = {
 		{ NULL, NULL, NULL, NULL, NULL }
 	}
 };
-unsigned int machine_romtype;
 
 int noextbas;
 
@@ -124,6 +125,7 @@ void machine_helptext(void) {
 	puts("  -noextbas             disable Extended BASIC");
 	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
 	puts("  -nodos                disable DOS (ROM and hardware emulation)");
+	puts("  -ram KBYTES           specify amount of RAM in K");
 #ifdef TRACE
 	puts("  -trace                start with trace mode on");
 #endif
@@ -136,9 +138,8 @@ void machine_getargs(int argc, char **argv) {
 	noextbas = 0;
 	dragondos_enabled = 1;
 	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-machine")) {
+		if (!strcmp(argv[i], "-machine") && i+1<argc) {
 			i++;
-			if (i >= argc) break;
 			if (!strcmp(argv[i], "help")) {
 				for (j = 0; j < NUM_MACHINES; j++) {
 					printf("\t%-10s%s\n", machines[j].name, machines[j].description);
@@ -151,22 +152,24 @@ void machine_getargs(int argc, char **argv) {
 					machine_set_keymap(machines[j].keymap);
 				}
 			}
-		} else if (!strcmp(argv[i], "-bas")) {
-			i++;
-			if (i >= argc) break;
-			machines[machine_romtype].bas[0] = argv[i];
-		} else if (!strcmp(argv[i], "-extbas")) {
-			i++;
-			if (i >= argc) break;
-			machines[machine_romtype].extbas[0] = argv[i];
+		} else if (!strcmp(argv[i], "-bas") && i+1<argc) {
+			machines[machine_romtype].bas[0] = argv[++i];
+		} else if (!strcmp(argv[i], "-extbas") && i+1<argc) {
+			machines[machine_romtype].extbas[0] = argv[++i];
 		} else if (!strcmp(argv[i], "-noextbas")) {
 			noextbas = 1;
-		} else if (!strcmp(argv[i], "-dos")) {
-			i++;
-			if (i >= argc) break;
-			machines[machine_romtype].dos[0] = argv[i];
+		} else if (!strcmp(argv[i], "-dos") && i+1<argc) {
+			machines[machine_romtype].dos[0] = argv[++i];
 		} else if (!strcmp(argv[i], "-nodos")) {
 			dragondos_enabled = 0;
+		} else if (!strcmp(argv[i], "-ram") && i+1<argc) {
+			unsigned int tmp = strtol(argv[++i], NULL, 0) * 1024;
+			machine_set_page0_ram_size(tmp);
+			if (tmp > 0x8000) {
+				machine_set_page1_ram_size(tmp-0x8000);
+			} else {
+				machine_set_page1_ram_size(0);
+			}
 #ifdef TRACE
 		} else if (!strcmp(argv[i], "-trace")) {
 			trace = 1;
@@ -191,10 +194,10 @@ void machine_reset(int hard) {
 	machine_info *m = &machines[machine_romtype];
 	pia_reset();
 	if (hard) {
-		memset(ram0, 0, sizeof(ram0));
-		memset(ram1, 0, sizeof(ram1));
-		memset(rom0, 0, sizeof(rom0));
-		memset(rom1, 0, sizeof(rom1));
+		memset(ram0, 0x00, sizeof(ram0));
+		memset(ram1, 0x00, sizeof(ram1));
+		memset(rom0, 0x7e, sizeof(rom0));
+		memset(rom1, 0x7e, sizeof(rom1));
 		for (i=0; i<5 && load_rom(m->rom1[i], rom1, sizeof(rom1)); i++);
 		if (!IS_COCO || !noextbas)
 			for (i=0; i<5 && load_rom(m->extbas[i], rom0, sizeof(rom0)); i++);
@@ -234,6 +237,23 @@ void machine_set_keymap(int mode) {
 			memcpy(keymap, coco_keymap, sizeof(keymap));
 			break;
 	}
+}
+
+/* Set RAM sizes for page0, page1 */
+void machine_set_page0_ram_size(unsigned int size) {
+	machine_page0_ram = size;
+	if (size > 0x8000)
+		size = 0x8000;
+	if (size < 0x8000)
+		memset(ram0 + size, 0x7e, 0x8000 - size);
+}
+
+void machine_set_page1_ram_size(unsigned int size) {
+	machine_page1_ram = size;
+	if (size > 0x8000)
+		size = 0x8000;
+	if (size < 0x8000)
+		memset(ram1 + size, 0x7e, 0x8000 - size);
 }
 
 /* load_rom searches a path (specified in ROMPATH macro at compile time) to

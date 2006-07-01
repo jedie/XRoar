@@ -43,6 +43,9 @@
 #define ID_PIA_REGISTERS (2)
 #define ID_SAM_REGISTERS (3)
 #define ID_M6809_STATE   (4)
+#define ID_KEYBOARD_MAP  (5)
+#define ID_ARCHITECTURE  (6)
+#define ID_RAM_PAGE1     (7)
 
 int write_snapshot(char *filename) {
 	int fd;
@@ -51,6 +54,13 @@ int write_snapshot(char *filename) {
 	if ((fd = fs_open(filename, FS_WRITE)) == -1)
 		return -1;
 	fs_write(fd, "XRoar snapshot.\012\000", 17);
+	/* Machine architecture */
+	fs_write_byte(fd, ID_ARCHITECTURE); fs_write_word16(fd, 1);
+	fs_write_byte(fd, machine_romtype);
+	/* Keyboard map */
+	fs_write_byte(fd, ID_KEYBOARD_MAP); fs_write_word16(fd, 1);
+	fs_write_byte(fd, machine_keymap);
+	/* M6809 state */
 	fs_write_byte(fd, ID_M6809_STATE); fs_write_word16(fd, 21);
 	m6809_get_state(&cpu_state);
 	fs_write_byte(fd, cpu_state.reg_cc);
@@ -69,13 +79,16 @@ int write_snapshot(char *filename) {
 	fs_write_byte(fd, cpu_state.wait_for_interrupt);
 	fs_write_byte(fd, cpu_state.skip_register_push);
 	fs_write_byte(fd, cpu_state.nmi_armed);
-	/*
-	m6809_get_registers(buffer);
-	fs_write_byte(fd, ID_REGISTER_DUMP); fs_write_word16(fd, 14);
-	fs_write(fd, buffer, 14);
-	*/
-	fs_write_byte(fd, ID_RAM_PAGE0); fs_write_word16(fd, sizeof(ram0));
-	fs_write(fd, ram0, sizeof(ram0));
+	/* RAM page 0 */
+	fs_write_byte(fd, ID_RAM_PAGE0); fs_write_word16(fd, machine_page0_ram);
+	fs_write(fd, ram0, machine_page0_ram);
+	/* RAM page 1 */
+	if (machine_page1_ram > 0) {
+		fs_write_byte(fd, ID_RAM_PAGE1);
+		fs_write_word16(fd, machine_page1_ram);
+		fs_write(fd, ram1, machine_page1_ram);
+	}
+	/* PIAs */
 	fs_write_byte(fd, ID_PIA_REGISTERS); fs_write_word16(fd, 3*4);
 	/* PIA_0A */
 	fs_write_byte(fd, PIA_0A.direction_register);
@@ -110,7 +123,7 @@ int read_snapshot(char *filename) {
 		return -1;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
-	machine_reset(RESET_HARD);
+	//machine_reset(RESET_HARD);
 	fs_read(fd, buffer, 17);
 	if (strncmp((char *)buffer, "XRoar snapshot.\012\000", 17)) {
 		/* Old-style snapshot.  Register dump always came first.
@@ -125,13 +138,48 @@ int read_snapshot(char *filename) {
 	while (fs_read_byte(fd, &section) > 0) {
 		fs_read_word16(fd, &size);
 		switch (section) {
+			case ID_ARCHITECTURE:
+				/* Machine architecture */
+				fs_read_byte(fd, &tmp8);
+				machine_set_romtype(tmp8);
+				break;
+			case ID_KEYBOARD_MAP:
+				/* Keyboard map */
+				fs_read_byte(fd, &tmp8);
+				machine_set_keymap(tmp8);
+				break;
 			case ID_REGISTER_DUMP:
 				/* deprecated */
 				fs_read(fd, buffer, 14);
 				m6809_set_registers(buffer);
 				break;
+			case ID_M6809_STATE:
+				/* M6809 state */
+				fs_read_byte(fd, &cpu_state.reg_cc);
+				fs_read_byte(fd, &cpu_state.reg_a);
+				fs_read_byte(fd, &cpu_state.reg_b);
+				fs_read_byte(fd, &cpu_state.reg_dp);
+				fs_read_word16(fd, &cpu_state.reg_x);
+				fs_read_word16(fd, &cpu_state.reg_y);
+				fs_read_word16(fd, &cpu_state.reg_u);
+				fs_read_word16(fd, &cpu_state.reg_s);
+				fs_read_word16(fd, &cpu_state.reg_pc);
+				fs_read_byte(fd, &cpu_state.halt);
+				fs_read_byte(fd, &cpu_state.nmi);
+				fs_read_byte(fd, &cpu_state.firq);
+				fs_read_byte(fd, &cpu_state.irq);
+				fs_read_byte(fd, &cpu_state.wait_for_interrupt);
+				fs_read_byte(fd, &cpu_state.skip_register_push);
+				fs_read_byte(fd, &cpu_state.nmi_armed);
+				m6809_set_state(&cpu_state);
+				break;
 			case ID_RAM_PAGE0:
-				fs_read(fd, ram0, sizeof(ram0));
+				machine_set_page0_ram_size(size);
+				fs_read(fd, ram0, machine_page0_ram);
+				break;
+			case ID_RAM_PAGE1:
+				machine_set_page1_ram_size(size);
+				fs_read(fd, ram1, machine_page1_ram);
 				break;
 			case ID_PIA_REGISTERS:
 				/* PIA_0A */
@@ -177,26 +225,6 @@ int read_snapshot(char *filename) {
 				sam_register = tmp16;
 				sam_update_from_register();
 				size -= 2;
-				break;
-			case ID_M6809_STATE:
-				/* M6809 state */
-				fs_read_byte(fd, &cpu_state.reg_cc);
-				fs_read_byte(fd, &cpu_state.reg_a);
-				fs_read_byte(fd, &cpu_state.reg_b);
-				fs_read_byte(fd, &cpu_state.reg_dp);
-				fs_read_word16(fd, &cpu_state.reg_x);
-				fs_read_word16(fd, &cpu_state.reg_y);
-				fs_read_word16(fd, &cpu_state.reg_u);
-				fs_read_word16(fd, &cpu_state.reg_s);
-				fs_read_word16(fd, &cpu_state.reg_pc);
-				fs_read_byte(fd, &cpu_state.halt);
-				fs_read_byte(fd, &cpu_state.nmi);
-				fs_read_byte(fd, &cpu_state.firq);
-				fs_read_byte(fd, &cpu_state.irq);
-				fs_read_byte(fd, &cpu_state.wait_for_interrupt);
-				fs_read_byte(fd, &cpu_state.skip_register_push);
-				fs_read_byte(fd, &cpu_state.nmi_armed);
-				m6809_set_state(&cpu_state);
 				break;
 			default:
 				/* Unknown chunk - skip it */

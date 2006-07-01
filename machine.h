@@ -78,6 +78,8 @@ typedef struct {
 extern machine_info machines[];
 extern unsigned int machine_romtype;
 extern unsigned int machine_keymap;
+extern unsigned int machine_page0_ram;  /* Base RAM in bytes, up to 32K */
+extern unsigned int machine_page1_ram;  /* Generally 0 or 32K */
 extern int dragondos_enabled;
 extern Keymap keymap;
 extern uint8_t ram0[0x8000];
@@ -93,5 +95,7 @@ void machine_init(void);
 void machine_reset(int hard);
 void machine_set_romtype(int mode);
 void machine_set_keymap(int mode);
+void machine_set_page0_ram_size(unsigned int size);
+void machine_set_page1_ram_size(unsigned int size);
 
 #endif  /* __MACHINE_H__ */

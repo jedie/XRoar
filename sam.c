@@ -64,10 +64,19 @@ void sam_reset(void) {
 unsigned int sam_read_byte(uint_least16_t addr) {
 	unsigned int ret;
 	addr &= 0xffff;
-	if (addr < 0x8000) { current_cycle += CPU_SLOW_DIVISOR; return addrptr_low[addr]; }
+	if (addr < 0x8000) {
+		current_cycle += CPU_SLOW_DIVISOR;
+		if (addr < machine_page0_ram)
+			return addrptr_low[addr];
+		return 0x7e;
+	}
 	if (addr < 0xff00) {
 		current_cycle += sam_topaddr_cycles;
-		if (mapped_ram) return ram1[addr-0x8000];
+		if (mapped_ram) {
+			if ((addr-0x8000) < machine_page1_ram)
+				return ram1[addr-0x8000];
+			return 0x7e;
+		}
 		if (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))
 			return rom1[addr-0x8000];
 		return rom0[addr-0x8000];
@@ -91,7 +100,7 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 			if ((addr & 7) == 7) return serial_stuff;
 			*/
 		}
-		return 0x7f;
+		return 0x7e;
 	}
 	current_cycle += sam_topaddr_cycles;
 	if (addr < 0xff40) {
@@ -124,10 +133,16 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 
 void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	addr &= 0xffff;
-	if (addr < 0x8000) { current_cycle += CPU_SLOW_DIVISOR; addrptr_low[addr] = octet; return; }
+	if (addr < 0x8000) {
+		current_cycle += CPU_SLOW_DIVISOR;
+		if (addr < machine_page0_ram)
+			addrptr_low[addr] = octet;
+		return;
+	}
 	if (addr < 0xff00) {
 		current_cycle += sam_topaddr_cycles;
-		if (mapped_ram) ram1[addr-0x8000] = octet;
+		if (mapped_ram && (addr-0x8000) < machine_page1_ram)
+			ram1[addr-0x8000] = octet;
 		return;
 	}
 	if (addr < 0xff20) {
