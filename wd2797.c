@@ -38,6 +38,8 @@
 #include "wd2797.h"
 #include "xroar.h"
 
+#define IS_WD1773 (IS_COCO)
+
 #define STATUS_NOT_READY     (1<<7)
 #define STATUS_WRITE_PROTECT (1<<6)
 #define STATUS_HEAD_LOADED   (1<<5)
@@ -77,9 +79,11 @@
 #define SET_INTRQ do { \
 		if (IS_COCO) { \
 			halt_enable = halt = 0; \
+			QUEUE_NMI(); \
+		} else { \
+			if (ic1_nmi_enable) \
+				QUEUE_NMI(); \
 		} \
-		if (ic1_nmi_enable) \
-			nmi = 1; \
 	} while (0)
 #define RESET_INTRQ
 
@@ -97,6 +101,11 @@
 		direction = -1; vdrive_set_direction(-1); \
 	} while (0)
 #define SET_SIDE(s) do { side = (s) ? 1 : 0; vdrive_set_side(side); } while (0)
+
+#define QUEUE_NMI() do { \
+		nmi_event->at_cycle = current_cycle + 1; \
+		event_queue(nmi_event); \
+	} while (0)
 
 /* Functions used in state machines: */
 static void type_1_state_1(void);
@@ -120,6 +129,10 @@ static void write_track_state_2(void);
 static void write_track_state_3(void);
 
 static event_t *state_event;
+
+/* NMIs queued to allow CPU to run next instruction */
+static event_t *nmi_event;
+static void do_nmi(void);
 
 /* WD2797 registers */
 static unsigned int status_register;
@@ -153,6 +166,8 @@ static unsigned int halt_enable;
 
 void wd2797_init(void) {
 	state_event = event_new();
+	nmi_event = event_new();
+	nmi_event->dispatch = do_nmi;
 }
 
 void wd2797_reset(void) {
@@ -202,9 +217,8 @@ void wd2797_ff40_write(unsigned int octet) {
 		new_drive_select = 1;
 	} else if (octet & 0x04) {
 		new_drive_select = 2;
-	} else if (octet & 0x40) {
-		new_drive_select = 3;
 	}
+	SET_SIDE(octet & 0x40);
 	//LOG_DEBUG(4, "WD2797: Write to FF40: ");
 	if (new_drive_select != ic1_drive_select)
 		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
@@ -338,7 +352,8 @@ void wd2797_command_write(unsigned int cmd) {
 			SET_INTRQ;
 			return;
 		}
-		SET_SIDE(cmd & 0x02);  /* 'U' */
+		if (!IS_WD1773)
+			SET_SIDE(cmd & 0x02);  /* 'U' */
 		if (cmd & 0x04) {  /* 'E' set */
 			NEXT_STATE(type_2_state_1, W_MILLISEC(30));
 			return;
@@ -369,7 +384,8 @@ void wd2797_command_write(unsigned int cmd) {
 			SET_INTRQ;
 			return;
 		}
-		SET_SIDE(cmd & 0x02);  /* 'U' */
+		if (!IS_WD1773)
+			SET_SIDE(cmd & 0x02);  /* 'U' */
 		if (cmd & 0x04) {  /* 'E' set */
 			NEXT_STATE(write_track_state_1, W_MILLISEC(30));
 			return;
@@ -443,7 +459,7 @@ static void verify_track_state_2(void) {
 		return;
 	}
 	if (crc16_value() != ((idam[5] << 8) | idam[6])) {
-		LOG_DEBUG(3, "Verify track CRC16 error: $%04x != $%04x\n", crc16_value(), (idam[5] << 8) | idam[6]);
+		LOG_DEBUG(3, "Verify track %d CRC16 error: $%04x != $%04x\n", track_register, crc16_value(), (idam[5] << 8) | idam[6]);
 		status_register |= STATUS_CRC_ERROR;
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
@@ -491,7 +507,10 @@ static void type_2_state_2(void) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	bytes_left = sector_size[(cmd_copy & 0x08)?1:0][idam[4]&3];
+	if (IS_WD1773)
+		bytes_left = sector_size[1][idam[4]&3];
+	else
+		bytes_left = sector_size[(cmd_copy & 0x08)?1:0][idam[4]&3];
 	/* TODO: CRC check */
 	if ((cmd_copy & 0x20) == 0) {
 		unsigned int bytes_to_scan, i, tmp;
@@ -531,7 +550,7 @@ static void read_sector_state_1(void) {
 static void read_sector_state_2(void) {
 	if (status_register & STATUS_DRQ) {
 		status_register |= STATUS_LOST_DATA;
-		RESET_DRQ;  // XXX
+		//RESET_DRQ;  // XXX
 	}
 	if (bytes_left > 0) {
 		data_register = vdrive_read();
@@ -540,7 +559,7 @@ static void read_sector_state_2(void) {
 		NEXT_STATE(read_sector_state_2, W_BYTE_TIME);
 		return;
 	}
-	NEXT_STATE(read_sector_state_3, 2 * W_BYTE_TIME);
+	NEXT_STATE(read_sector_state_3, 1 * W_BYTE_TIME);
 }
 
 static void read_sector_state_3(void) {
@@ -551,6 +570,8 @@ static void read_sector_state_3(void) {
 		status_register |= STATUS_CRC_ERROR;
 	}
 	/* TODO: M == 1 */
+	if (cmd_copy & 0x10)
+		LOG_DEBUG(2, "WD2797: TODO: multi-sector read will fail.\n");
 	status_register &= ~(STATUS_BUSY);
 	SET_INTRQ;
 }
@@ -693,4 +714,8 @@ static void write_track_state_3(void) {
 	}
 	vdrive_write(data);
 	NEXT_STATE(write_track_state_3, W_BYTE_TIME);
+}
+
+static void do_nmi(void) {
+	nmi = 1;
 }

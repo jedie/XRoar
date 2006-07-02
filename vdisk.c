@@ -85,7 +85,7 @@ int vdisk_load_vdk(const char *filename, unsigned int drive) {
 		fs_close(fd);
 		return -1;
 	}
-	LOG_DEBUG(2,"Loading VDK virtual disk to drive %d.  %d Tr, %d Si, %d Se.\n", drive, num_tracks, num_sides, num_sectors);
+	LOG_DEBUG(2,"Loading VDK virtual disk to drive %d: %dT %dH %dS (%d-byte)\n", drive, num_tracks, num_sides, num_sectors, ssize);
 	for (track = 0; track < num_tracks; track++) {
 		for (side = 0; side < num_sides; side++) {
 			for (sector = 0; sector < num_sectors; sector++) {
@@ -108,7 +108,7 @@ int vdisk_load_jvc(const char *filename, unsigned int drive) {
 	unsigned int first_sector = 1;
 	unsigned int sector_attr = 0;
 	unsigned int track, sector, side;
-	uint8_t buf[1025];
+	uint8_t buf[1024];
 	int fd;
 	if (file_size < 0)
 		return -1;
@@ -142,12 +142,14 @@ int vdisk_load_jvc(const char *filename, unsigned int drive) {
 		fs_close(fd);
 		return -1;
 	}
-	LOG_DEBUG(2,"Loading JVC virtual disk to drive %d.  %d Tr, %d Si, %d Se.\n", drive, num_tracks, num_sides, num_sectors);
+	LOG_DEBUG(2,"Loading JVC virtual disk to drive %d: %dT %dH %dS (%d-byte)\n", drive, num_tracks, num_sides, num_sectors, ssize);
 	for (track = 0; track < num_tracks; track++) {
 		for (side = 0; side < num_sides; side++) {
 			for (sector = 0; sector < num_sectors; sector++) {
-				fs_read(fd, buf, ssize + sector_attr);
-				vdrive_update_sector(drive, track, side, sector + first_sector, ssize_code, &buf[sector_attr]);
+				uint8_t attr;
+				if (sector_attr) fs_read_byte(fd, &attr);
+				fs_read(fd, buf, ssize);
+				vdrive_update_sector(drive, track, side, sector + first_sector, ssize_code, buf);
 			}
 		}
 	}
