@@ -7,7 +7,10 @@
  * into various video module source files and makes use of macros defined in
  * those files (eg, LOCK_SURFACE and XSTEP) */
 
-#define SCAN_OFFSET 36
+/* VDG_tFP here is a kludge - I don't know why it's needed, but without it,
+ * DragonFire doesn't render correctly.  Everything *should* be relative to
+ * the horizontal sync pulse which occurs *after* the front porch. */
+#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + VDG_tFP)
 
 #define RENDER_LEFT_BORDER do { \
 		while (beam_pos < 32 && beam_pos < beam_to) { \
@@ -93,7 +96,7 @@ static void set_mode(unsigned int mode) {
  * line, so need to be handled together) */
 static void render_sg4(void) {
 	unsigned int octet;
-	int beam_to = (int)((current_cycle - SCAN_OFFSET) - scanline_start)/2;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -146,7 +149,7 @@ static void render_sg4(void) {
  * line, so need to be handled together) */
 static void render_sg6(void) {
 	unsigned int octet;
-	int beam_to = (int)((current_cycle - SCAN_OFFSET) - scanline_start)/2;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -215,7 +218,7 @@ static void render_sg6(void) {
 /* Render a 16-byte colour graphics line (CG1) */
 static void render_cg1(void) {
 	unsigned int octet;
-	int beam_to = (int)((current_cycle - SCAN_OFFSET) - scanline_start)/2;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -254,7 +257,7 @@ static void render_cg1(void) {
 /* Render a 16-byte resolution graphics line (RG1,RG2,RG3) */
 static void render_rg1(void) {
 	unsigned int octet;
-	int beam_to = (int)((current_cycle - SCAN_OFFSET) - scanline_start)/2;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -292,7 +295,7 @@ static void render_rg1(void) {
 
 /* Render a 32-byte colour graphics line (CG2,CG3,CG6) */
 static void render_cg2(void) {
-	int beam_to = (int)((current_cycle - SCAN_OFFSET) - scanline_start)/2;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -332,7 +335,7 @@ static void render_cg2(void) {
 /* Render a 32-byte resolution graphics line (RG6) */
 static void render_rg6(void) {
 	unsigned int octet;
-	int beam_to = (int)((current_cycle - SCAN_OFFSET) - scanline_start)/2;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;

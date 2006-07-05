@@ -32,98 +32,121 @@ Cycle scanline_start;
 int beam_pos; 
 
 static void (*vdg_render_scanline)(void);
-static void vdg_hsync(void);
-static event_t *hsync_event;
 static int_least16_t scanline;
-static unsigned int line_pulse_count;
+static int inhibit_mode_change;
+
+static event_t *hs_fall_event, *hs_rise_event;
+static event_t *fs_fall_event, *fs_rise_event;
+static void do_hs_fall(void);
+static void do_hs_rise(void);
+static void do_fs_fall(void);
+static void do_fs_rise(void);
+
+#define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
 void vdg_init(void) {
 	vdg_render_scanline = video_module->vdg_render_sg4;
-	hsync_event = event_new();
-	hsync_event->dispatch = vdg_hsync;
+	hs_fall_event = event_new();
+	hs_fall_event->dispatch = do_hs_fall;
+	hs_rise_event = event_new();
+	hs_rise_event->dispatch = do_hs_rise;
+	fs_fall_event = event_new();
+	fs_fall_event->dispatch = do_fs_fall;
+	fs_rise_event = event_new();
+	fs_rise_event->dispatch = do_fs_rise;
 }
 
 void vdg_reset(void) {
 	video_module->vdg_reset();
 	scanline = 0;
-	line_pulse_count = 0;
-	hsync_event->at_cycle = current_cycle + CYCLES_PER_SCANLINE;
-	event_queue(hsync_event);
 	scanline_start = current_cycle;
+	hs_fall_event->at_cycle = current_cycle + VDG_LINE_DURATION;
+	event_queue(hs_fall_event);
 	vdg_set_mode();
 	beam_pos = 0;
+	inhibit_mode_change = 0;
 }
 
-static void vdg_hsync(void) {
-	if (line_pulse_count) {
-		line_pulse_count--;
-		if (line_pulse_count == 0)
-			vdg_set_mode();
+static void do_hs_fall(void) {
+	/* Finish rendering previous scanline */
+	if (scanline >= (VDG_TOP_BORDER_START + 1)) {
+		if (scanline < VDG_ACTIVE_AREA_START) {
 #ifndef HAVE_GP32
-		else
 			video_module->render_border();
 #endif
-		goto done_line_pulse;
-	}
-	if (scanline >= FIRST_DISPLAYED_SCANLINE) {
-		if (scanline < (FIRST_DISPLAYED_SCANLINE + 24)) {
-#ifndef HAVE_GP32
-			if (IS_NTSC)
-				video_module->render_border();
-#endif
-		} else {
-			if (scanline < (216 + FIRST_DISPLAYED_SCANLINE)) {
+		} else if (scanline < VDG_ACTIVE_AREA_END) {
 #ifdef HAVE_GP32
-				if ((scanline & 3) == 0)
+			if ((scanline & 3) == ((VDG_TOP_BORDER_START+3)&3))
 #endif
-					vdg_render_scanline();
-			} else {
-				if (scanline < (240 + FIRST_DISPLAYED_SCANLINE)) {
+				vdg_render_scanline();
+		} else if (scanline < VDG_BOTTOM_BORDER_END) {
 #ifndef HAVE_GP32
-					if (IS_NTSC)
-						video_module->render_border();
+			video_module->render_border();
 #endif
-				}
-			}
 		}
 	}
-	PIA_RESET_P0CA1; PIA_SET_P0CA1;  // XXX
-	if (scanline == SCANLINE_OF_FS_IRQ_LOW) {
-		PIA_RESET_P0CB1;
-	}
-	if (scanline == SCANLINE_OF_DELAYED_FS && IS_PAL) {
-		line_pulse_count = 25;
-	}
-	if (scanline == SCANLINE_OF_FS_IRQ_HIGH) {
-		PIA_SET_P0CB1;
-		if (IS_PAL) {
-			line_pulse_count = 25;
-		}
-	}
-	scanline++;
-	if (scanline >= TOTAL_SCANLINES_PER_FRAME) {
+	/* Next scanline */
+	scanline = (scanline + 1) % VDG_FRAME_DURATION;
+	scanline_start = hs_fall_event->at_cycle;
+	beam_pos = 0;
+	PIA_RESET_P0CA1;
+	hs_rise_event->at_cycle = scanline_start + VDG_HS_RISING_EDGE;
+	event_queue(hs_rise_event);
+	hs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION;
+	/* Frame sync */
+	if (scanline == SCANLINE(VDG_VBLANK_START)) {
 		sam_vdg_fsync();
 		video_module->vdg_vsync();
-		scanline = 0;
 	}
-done_line_pulse:
-	beam_pos = 0;
-	if (line_pulse_count) {
-		hsync_event->at_cycle += CYCLES_PER_LINE_PULSE;
-		scanline_start += CYCLES_PER_LINE_PULSE;
-	} else {
-		hsync_event->at_cycle += CYCLES_PER_SCANLINE;
-		scanline_start += CYCLES_PER_SCANLINE;
+	/* Enable mode changes at beginning of active area */
+	if (scanline == SCANLINE(VDG_ACTIVE_AREA_START)) {
+		inhibit_mode_change = 0;
+		vdg_set_mode();
 	}
-	event_queue(hsync_event);
+	/* FS falling edge at end of this scanline */
+	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END - 1)) {
+		fs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION + 16;
+		event_queue(fs_fall_event);
+	}
+	/* Disable mode changes after end of active area */
+	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END)) {
+		inhibit_mode_change = 1;
+	}
+	/* PAL delay 24 lines after FS falling edge */
+	if (IS_PAL && (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 23))) {
+		hs_fall_event->at_cycle += 25 * VDG_PAL_PADDING_LINE;
+	}
+	/* FS rising edge at end of this scanline */
+	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 31)) {
+		/* Fig. 8, VDG data sheet: tWFS = 32 * (227.5 * 1/f) */
+		fs_rise_event->at_cycle = scanline_start + VDG_LINE_DURATION + 16;
+		event_queue(fs_rise_event);
+		/* PAL delay after FS rising edge */
+		if (IS_PAL) {
+			hs_fall_event->at_cycle += 25 * VDG_PAL_PADDING_LINE;
+		}
+	}
+	event_queue(hs_fall_event);
+}
+
+static void do_hs_rise(void) {
+	PIA_SET_P0CA1;
+}
+
+static void do_fs_fall(void) {
+	PIA_RESET_P0CB1;
+}
+
+static void do_fs_rise(void) {
+	PIA_SET_P0CB1;
 }
 
 void vdg_set_mode(void) {
 	unsigned int mode;
-	if (line_pulse_count)
+	if (inhibit_mode_change)
 		return;
 #ifndef HAVE_GP32
-	if (scanline >= (FIRST_DISPLAYED_SCANLINE + 24) && scanline < (216 + FIRST_DISPLAYED_SCANLINE)) {
+	if (scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
 		vdg_render_scanline();
 	}
 #endif
