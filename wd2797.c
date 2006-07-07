@@ -38,7 +38,7 @@
 #include "wd2797.h"
 #include "xroar.h"
 
-#define IS_WD1773 (IS_COCO)
+#define IS_WD1773 (IS_RSDOS)
 
 #define STATUS_NOT_READY     (1<<7)
 #define STATUS_WRITE_PROTECT (1<<6)
@@ -60,7 +60,7 @@
 
 #define SET_DRQ do { \
 		status_register |= STATUS_DRQ; \
-		if (IS_COCO) { \
+		if (IS_RSDOS) { \
 			halt = 0; \
 		} else { \
 			PIA_SET_P1CB1; \
@@ -68,7 +68,7 @@
 	} while (0)
 #define RESET_DRQ do { \
 		status_register &= ~(STATUS_DRQ); \
-		if (IS_COCO) { \
+		if (IS_RSDOS) { \
 			if (halt_enable) { \
 				halt = 1; \
 			} \
@@ -77,7 +77,7 @@
 		} \
 	} while (0)
 #define SET_INTRQ do { \
-		if (IS_COCO) { \
+		if (IS_RSDOS) { \
 			halt_enable = halt = 0; \
 			QUEUE_NMI(); \
 		} else { \
@@ -176,7 +176,7 @@ void wd2797_reset(void) {
 	track_register = 0;
 	sector_register = 0;
 	data_register = 0;
-	if (IS_COCO)
+	if (IS_RSDOS)
 		wd2797_ff40_write(0);
 	else
 		wd2797_ff48_write(0);

@@ -110,9 +110,9 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 		return PIA_READ_P1CB;
 	}
 	if (addr < 0xff60) {
-		if (!dragondos_enabled)
+		if (!DOS_ENABLED)
 			return 0x7e;
-		if (IS_COCO) {
+		if (IS_RSDOS) {
 			/* CoCo floppy disk controller */
 			if ((addr & 15) == 8) return wd2797_status_read();
 			if ((addr & 15) == 9) return wd2797_track_register_read();
@@ -175,9 +175,9 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 		return;
 	}
 	if (addr < 0xff60) {
-		if (!dragondos_enabled)
+		if (!DOS_ENABLED)
 			return;
-		if (IS_COCO) {
+		if (IS_RSDOS) {
 			/* CoCo floppy disk controller */
 			if ((addr & 15) == 8) wd2797_command_write(octet);
 			if ((addr & 15) == 9) wd2797_track_register_write(octet);

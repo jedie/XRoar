@@ -182,7 +182,7 @@ static void keypress(SDL_keysym *keysym) {
 			exit(0);
 			break;
 		case SDLK_e:
-			dragondos_enabled = !dragondos_enabled;
+			requested_config.dos_type = DOS_ENABLED ? DOS_NONE : ANY_AUTO;
 			break;
 		case SDLK_f:
 			if (video_module->set_fullscreen)
@@ -212,7 +212,7 @@ static void keypress(SDL_keysym *keysym) {
 				emulate_joystick = 0;
 			break;
 		case SDLK_k:
-			machine_set_keymap(machine_keymap+1);
+			machine_set_keymap(running_config.keymap + 1);
 			break;
 		case SDLK_l:
 			{
@@ -223,7 +223,7 @@ static void keypress(SDL_keysym *keysym) {
 			}
 			break;
 		case SDLK_m:
-			machine_set_romtype(machine_romtype+1);
+			requested_machine = running_machine + 1;
 			machine_reset(RESET_HARD);
 			break;
 		case SDLK_n:
@@ -287,7 +287,7 @@ static void keypress(SDL_keysym *keysym) {
 		if (keysym->unicode == '\\') {
 			/* CoCo and Dragon 64 in 64K mode have a different way
 			 * of scanning for '\' */
-			if (IS_COCO_KEYBOARD || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
+			if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
 				KEYBOARD_PRESS(0);
 				KEYBOARD_PRESS(12);
 			} else {
@@ -357,7 +357,7 @@ static void keyrelease(SDL_keysym *keysym) {
 		if (keysym->unicode == '\\') {
 			/* CoCo and Dragon 64 in 64K mode have a different way
 			 * of scanning for '\' */
-			if (IS_COCO_KEYBOARD || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
+			if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
 				KEYBOARD_RELEASE(0);
 				KEYBOARD_RELEASE(12);
 			} else {

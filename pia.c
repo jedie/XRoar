@@ -21,6 +21,7 @@
 #include "types.h"
 #include "logging.h"
 #include "m6809.h"
+#include "machine.h"
 #include "xroar.h"
 #include "pia.h"
 
@@ -52,6 +53,9 @@ void pia_reset(void) {
 	PIA_0B.output_register		= PIA_1B.output_register	= 0;
 	PIA_0B.port_input		= PIA_1B.port_input		= 0;
 	PIA_0B.tied_low			= PIA_1B.tied_low		= 0xff;
+	if (IS_DRAGON64) {
+		PIA_1B.port_input |= (1<<2);
+	}
 	PIA_UPDATE_OUTPUT(PIA_0B);
 	PIA_UPDATE_OUTPUT(PIA_1B);
 	/* Clear interrupt lines */

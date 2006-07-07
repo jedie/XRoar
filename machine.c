@@ -35,17 +35,34 @@
 #include "wd2797.h"
 #include "xroar.h"
 
-unsigned int machine_romtype;
+const char *machine_names[NUM_MACHINE_TYPES] = {
+	"Dragon 32", "Dragon 64", "Tano Dragon (NTSC)", "Tandy CoCo (PAL)", "Tandy CoCo (NTSC)"
+};
+
+MachineConfig machine_defaults[NUM_MACHINE_TYPES] = {
+	{ ARCH_DRAGON32, ROMSET_DRAGON32, KEYMAP_DRAGON, TV_PAL,  32, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
+	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_PAL,  64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
+	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_NTSC, 64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
+	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_PAL,  64, DOS_RSDOS,     NULL, NULL, NULL, NULL },
+	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_NTSC, 64, DOS_RSDOS,     NULL, NULL, NULL, NULL } 
+};
+
+int requested_machine = 1;
+MachineConfig requested_config = {
+	ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, NULL, NULL, NULL, NULL
+};
+int running_machine;
+MachineConfig running_config;
+
 unsigned int machine_page0_ram = 0x8000;  /* Base RAM in bytes, up to 32K */
 unsigned int machine_page1_ram = 0x8000;  /* Generally 0 or 32K */
-unsigned int machine_keymap;
-
-int dragondos_enabled;
 Keymap keymap;
 uint8_t ram0[0x8000];
 uint8_t ram1[0x8000];
 uint8_t rom0[0x8000];
 uint8_t rom1[0x8000];
+
+int noextbas;
 
 static Keymap dragon_keymap = {
 	{7,6}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0 - 7 */
@@ -84,44 +101,41 @@ static Keymap coco_keymap = {
 	{0,3}, {1,3}, {2,3}, {8,8}, {8,8}, {8,8}, {8,8}, {5,3}, /* 120 - 127 */
 };
 
-/* The first ROM in each of these lists is NULL so it can be overwritten
-   by switches */
+static const char *d32_extbas_roms[] = { "d32", "dragon32", "d32rom", "dragon", NULL };
+static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "dragrom", "dragon", NULL };
+static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", NULL };
+static const char *coco_bas_roms[] = { "bas13", "bas12", "bas11", "bas10", NULL };
+static const char *coco_extbas_roms[] = { "extbas11", "extbas10", NULL };
+static const char *dragondos_roms[] = { "sdose6", "ddos10", NULL };
+static const char *rsdos_roms[] = { "disk11", "disk10", NULL };
 
-machine_info machines[NUM_MACHINES] = {
-	{ "dragon32", "Dragon 32", DRAGON_KEYBOARD, PAL,
-		{ NULL, NULL, NULL, NULL, NULL },
-		{ NULL, "d32", "dragon32", "d32rom", "dragon" },
-		{ NULL, "sdose6", "ddos10", NULL, NULL },
-		{ NULL, NULL, NULL, NULL, NULL }
-	},
-	{ "dragon64", "Dragon 64", DRAGON_KEYBOARD, PAL,
-		{ NULL, NULL, NULL, NULL, NULL },
-		{ NULL, "d64_1", "d64rom1", "dragrom", "dragon" },
-		{ NULL, "sdose6", "ddos10", NULL, NULL },
-		{ NULL, "d64_2", "d64rom2", NULL, NULL }
-	},
-	{ "tano", "Tano Dragon", DRAGON_KEYBOARD, NTSC,
-		{ NULL, NULL, NULL, NULL, NULL },
-		{ NULL, "d64_1", "d64rom1", "dragrom", "dragon" },
-		{ NULL, "sdose6", "ddos10", NULL, NULL },
-		{ NULL, "d64_2", "d64rom2", NULL, NULL }
-	},
-	{ "coco", "Tandy CoCo", COCO_KEYBOARD, NTSC,
-		{ NULL, "bas13", "bas12", "bas11", "bas10" },
-		{ NULL, "extbas11", "extbas10", NULL, NULL },
-		{ NULL, "disk11", "disk10", NULL, NULL },
-		{ NULL, NULL, NULL, NULL, NULL }
-	}
+static struct {
+	const char **bas;
+	const char **extbas;
+	const char **altbas;
+} rom_list[] = {
+	{ NULL, d32_extbas_roms, NULL },
+	{ NULL, d64_extbas_roms, d64_altbas_roms },
+	{ coco_bas_roms, coco_extbas_roms, NULL }
 };
 
-int noextbas;
+static const char **dos_rom_list[] = { dragondos_roms, rsdos_roms };
 
+static const char *machine_options[NUM_MACHINE_TYPES] = {
+	"dragon32", "dragon64", "tano", "coco", "cocous"
+};
+
+static int load_rom_from_list(const char *preferred, const char **list,
+		uint8_t *dest, size_t max_size);
 static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
 
+/**************************************************************************/
+
 void machine_helptext(void) {
-	puts("  -machine MACHINE      emulated machine [dragon32|dragon64|tano|coco]");
+	puts("  -machine MACHINE      emulated machine [dragon32|dragon64|tano|coco|cocous]");
 	puts("  -bas FILENAME         specify BASIC ROM to use (CoCo only)");
 	puts("  -extbas FILENAME      specify Extended BASIC ROM to use");
+	puts("  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)");
 	puts("  -noextbas             disable Extended BASIC");
 	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
 	puts("  -nodos                disable DOS (ROM and hardware emulation)");
@@ -133,43 +147,36 @@ void machine_helptext(void) {
 
 void machine_getargs(int argc, char **argv) {
 	int i, j;
-	machine_romtype = DRAGON64;
-	machine_set_keymap(DRAGON_KEYBOARD);
+	machine_clear_requested_config();
 	noextbas = 0;
-	dragondos_enabled = 1;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-machine") && i+1<argc) {
 			i++;
 			if (!strcmp(argv[i], "help")) {
-				for (j = 0; j < NUM_MACHINES; j++) {
-					printf("\t%-10s%s\n", machines[j].name, machines[j].description);
+				for (j = 0; j < NUM_MACHINE_TYPES; j++) {
+					printf("\t%-10s%s\n", machine_options[j], machine_names[j]);
 				}
 				exit(0);
 			}
-			for (j = 0; j < NUM_MACHINES; j++) {
-				if (!strcmp(argv[i], machines[j].name)) {
-					machine_romtype = j;
-					machine_set_keymap(machines[j].keymap);
+			for (j = 0; j < NUM_MACHINE_TYPES; j++) {
+				if (!strcmp(argv[i], machine_options[j])) {
+					requested_machine = j;
 				}
 			}
 		} else if (!strcmp(argv[i], "-bas") && i+1<argc) {
-			machines[machine_romtype].bas[0] = argv[++i];
+			requested_config.bas_rom = argv[++i];
 		} else if (!strcmp(argv[i], "-extbas") && i+1<argc) {
-			machines[machine_romtype].extbas[0] = argv[++i];
+			requested_config.extbas_rom = argv[++i];
+		} else if (!strcmp(argv[i], "-altbas") && i+1<argc) {
+			requested_config.altbas_rom = argv[++i];
 		} else if (!strcmp(argv[i], "-noextbas")) {
 			noextbas = 1;
 		} else if (!strcmp(argv[i], "-dos") && i+1<argc) {
-			machines[machine_romtype].dos[0] = argv[++i];
+			requested_config.dos_rom = argv[++i];
 		} else if (!strcmp(argv[i], "-nodos")) {
-			dragondos_enabled = 0;
+			requested_config.dos_type = DOS_NONE;
 		} else if (!strcmp(argv[i], "-ram") && i+1<argc) {
-			unsigned int tmp = strtol(argv[++i], NULL, 0) * 1024;
-			machine_set_page0_ram_size(tmp);
-			if (tmp > 0x8000) {
-				machine_set_page1_ram_size(tmp-0x8000);
-			} else {
-				machine_set_page1_ram_size(0);
-			}
+			requested_config.ram = strtol(argv[++i], NULL, 0);
 #ifdef TRACE
 		} else if (!strcmp(argv[i], "-trace")) {
 			trace = 1;
@@ -190,26 +197,61 @@ void machine_init(void) {
 }
 
 void machine_reset(int hard) {
-	unsigned int i;
-	machine_info *m = &machines[machine_romtype];
-	pia_reset();
 	if (hard) {
-		memset(ram0, 0x00, sizeof(ram0));
-		memset(ram1, 0x00, sizeof(ram1));
+		MachineConfig *defaults;
+		running_machine = requested_machine % NUM_MACHINE_TYPES;
+		LOG_DEBUG(2, "%s selected\n", machine_names[running_machine]);
+		defaults = &machine_defaults[running_machine];
+		/* Update running config */
+		memcpy(&running_config, &requested_config, sizeof(MachineConfig));
+		if (running_config.architecture == ANY_AUTO)
+			running_config.architecture = defaults->architecture % NUM_ARCHITECTURES;
+		if (running_config.romset == ANY_AUTO)
+			running_config.romset = defaults->romset % NUM_ROMSETS;
+		if (running_config.keymap == ANY_AUTO)
+			running_config.keymap = defaults->keymap % NUM_KEYMAPS;
+		if (running_config.tv_standard == ANY_AUTO)
+			running_config.tv_standard = defaults->tv_standard % NUM_TV_STANDARDS;
+		if (running_config.ram == ANY_AUTO)
+			running_config.ram = defaults->ram;
+		if (running_config.dos_type == ANY_AUTO)
+			running_config.dos_type = defaults->dos_type % NUM_DOS_TYPES;
+		/* Load appropriate ROMs */
 		memset(rom0, 0x7e, sizeof(rom0));
 		memset(rom1, 0x7e, sizeof(rom1));
-		for (i=0; i<5 && load_rom(m->rom1[i], rom1, sizeof(rom1)); i++);
-		if (!IS_COCO || !noextbas)
-			for (i=0; i<5 && load_rom(m->extbas[i], rom0, sizeof(rom0)); i++);
-		for (i=0; i<5 && load_rom(m->bas[i], rom0+0x2000, sizeof(rom0)-0x2000); i++);
-		if (dragondos_enabled) {
-			for (i=0; i<5 && load_rom(m->dos[i], rom0+0x4000, sizeof(rom0)-0x4000); i++);
+		/* ... BASIC */
+		load_rom_from_list(running_config.bas_rom,
+				rom_list[running_config.romset].bas,
+				rom0 + 0x2000, sizeof(rom0) - 0x2000);
+		/* ... Extended BASIC */
+		if (!noextbas) {
+			load_rom_from_list(running_config.extbas_rom,
+					rom_list[running_config.romset].extbas,
+					rom0, sizeof(rom0));
+		}
+		/* ... DOS */
+		if (DOS_ENABLED) {
+			load_rom_from_list(running_config.dos_rom,
+					dos_rom_list[running_config.dos_type - 1],
+					rom0 + 0x4000, sizeof(rom0) - 0x4000);
+		}
+		/* ... Alternate BASIC ROM */
+		load_rom_from_list(running_config.altbas_rom,
+				rom_list[running_config.romset].altbas,
+				rom1, sizeof(rom1));
+		/* Configure keymap */
+		machine_set_keymap(running_config.keymap);
+		/* Configure RAM */
+		memset(ram0, 0x00, sizeof(ram0));
+		memset(ram1, 0x00, sizeof(ram1));
+		machine_set_page0_ram_size(running_config.ram * 1024);
+		if (running_config.ram > 32) {
+			machine_set_page1_ram_size((running_config.ram-32) * 1024);
+		} else {
+			machine_set_page1_ram_size(0);
 		}
 	}
-	if (IS_DRAGON64) {
-		PIA_1B.port_input |= (1<<2);
-		PIA_UPDATE_OUTPUT(PIA_1B);
-	}
+	pia_reset();
 	wd2797_reset();
 	sam_reset();
 	m6809_reset();
@@ -218,22 +260,29 @@ void machine_reset(int hard) {
 	cart_reset();
 }
 
-/* Setting romtype takes effect on next reset */
-void machine_set_romtype(int mode) {
-	machine_romtype = mode % NUM_MACHINES;
-	machine_set_keymap(machines[machine_romtype].keymap);
-	LOG_DEBUG(2, "%s selected\n", machines[machine_romtype].description);
+void machine_clear_requested_config(void) {
+	requested_config.architecture = ANY_AUTO;
+	requested_config.romset = ANY_AUTO;
+	requested_config.keymap = ANY_AUTO;
+	requested_config.tv_standard = ANY_AUTO;
+	requested_config.ram = ANY_AUTO;
+	requested_config.dos_type = ANY_AUTO;
+	requested_config.bas_rom = NULL;
+	requested_config.extbas_rom = NULL;
+	requested_config.altbas_rom = NULL;
+	requested_config.dos_rom = NULL;
 }
 
-/* Setting keymap takes effect immediately */
-void machine_set_keymap(int mode) {
-	machine_keymap = mode % NUM_KEYBOARDS;
-	switch (machine_keymap) {
+/* Keymap can be changed on-the-fly */
+void machine_set_keymap(int map) {
+	map %= NUM_KEYMAPS;
+	running_config.keymap = map;
+	switch (map) {
 		default:
-		case DRAGON_KEYBOARD:
+		case KEYMAP_DRAGON:
 			memcpy(keymap, dragon_keymap, sizeof(keymap));
 			break;
-		case COCO_KEYBOARD:
+		case KEYMAP_COCO:
 			memcpy(keymap, coco_keymap, sizeof(keymap));
 			break;
 	}
@@ -241,20 +290,22 @@ void machine_set_keymap(int mode) {
 
 /* Set RAM sizes for page0, page1 */
 void machine_set_page0_ram_size(unsigned int size) {
-	machine_page0_ram = size;
 	if (size > 0x8000)
 		size = 0x8000;
+	machine_page0_ram = size;
 	if (size < 0x8000)
 		memset(ram0 + size, 0x7e, 0x8000 - size);
 }
 
 void machine_set_page1_ram_size(unsigned int size) {
-	machine_page1_ram = size;
 	if (size > 0x8000)
 		size = 0x8000;
+	machine_page1_ram = size;
 	if (size < 0x8000)
 		memset(ram1 + size, 0x7e, 0x8000 - size);
 }
+
+/**************************************************************************/
 
 /* load_rom searches a path (specified in ROMPATH macro at compile time) to
  * find roms.  It searches each element in the (colon separated) path for
@@ -356,4 +407,15 @@ static int load_rom(const char *romname, uint8_t *dest, size_t max_size) {
 			path++;
 	}
 	return -1;
+}
+
+static int load_rom_from_list(const char *preferred, const char **list,
+		uint8_t *dest, size_t max_size) {
+	int i;
+	if (list == NULL)
+		return 1;
+	if (preferred && !load_rom(preferred, dest, max_size))
+		return 1;
+	for (i = 0; list[i] && load_rom(list[i], dest, max_size); i++);
+	return 1;
 }
