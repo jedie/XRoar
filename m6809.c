@@ -417,8 +417,10 @@ void m6809_cycle(Cycle until) {
 				case 0x16: BRANCHL(1); break;
 				/* 0x17 LBSR relative */
 				case 0x17: {
-					uint_least16_t RA; LONG_RELATIVE(RA);
-					uint16_t dest = reg_pc + RA;
+					uint_least16_t RA;
+					uint16_t dest;
+					LONG_RELATIVE(RA);
+					dest = reg_pc + RA;
 					TAKEN_CYCLES(1);
 					peek_byte(dest);
 					TAKEN_CYCLES(1);
@@ -1008,8 +1010,10 @@ void m6809_cycle(Cycle until) {
 				case 0x8c: OP_CMP16(reg_x, WORD_IMMEDIATE); break;
 				/* 0x8D BSR relative */
 				case 0x8d: {
-					uint_least16_t RA; SHORT_RELATIVE(RA);
-					uint16_t dest = reg_pc + RA;
+					uint_least16_t RA;
+					uint16_t dest;
+					SHORT_RELATIVE(RA);
+					dest = reg_pc + RA;
 					peek_byte(dest);
 					TAKEN_CYCLES(1);
 					PUSHWORD(reg_s, reg_pc);
