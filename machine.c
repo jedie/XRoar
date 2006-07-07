@@ -139,6 +139,8 @@ void machine_helptext(void) {
 	puts("  -noextbas             disable Extended BASIC");
 	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
 	puts("  -nodos                disable DOS (ROM and hardware emulation)");
+	puts("  -pal                  emulate PAL (50Hz) video");
+	puts("  -ntsc                 emulate NTSC (60Hz) video");
 	puts("  -ram KBYTES           specify amount of RAM in K");
 #ifdef TRACE
 	puts("  -trace                start with trace mode on");
@@ -177,6 +179,10 @@ void machine_getargs(int argc, char **argv) {
 			requested_config.dos_type = DOS_NONE;
 		} else if (!strcmp(argv[i], "-ram") && i+1<argc) {
 			requested_config.ram = strtol(argv[++i], NULL, 0);
+		} else if (!strcmp(argv[i], "-pal")) {
+			requested_config.tv_standard = TV_PAL;
+		} else if (!strcmp(argv[i], "-ntsc")) {
+			requested_config.tv_standard = TV_NTSC;
 #ifdef TRACE
 		} else if (!strcmp(argv[i], "-trace")) {
 			trace = 1;
