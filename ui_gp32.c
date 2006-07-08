@@ -71,9 +71,8 @@ const char *tape_opts[] = { "Autorun", "Attach only" };
 const char *disk_opts[] = { "Drive 1", "Drive 2", "Drive 3", "Drive 4" };
 const char *cart_opts[] = { "Insert...", "Remove" };
 const char *artifact_opts[] = { "Off", "Blue-red", "Red-blue" };
-const char *machine_opts[NUM_MACHINES];
-const char *keymap_opts[] = { "Dragon", "Tandy" };
-const char *ram_opts[] = { "4K", "16K", "32K", "64K" };
+const char *keymap_opts[] = { "Auto", "Dragon", "Tandy" };
+const char *ram_opts[] = { "Auto", "4K", "16K", "32K", "64K" };
 const char *onoff_opts[] = { "Disabled", "Enabled" };
 const char *reset_opts[] = { "Soft", "Hard" };
 
@@ -100,9 +99,9 @@ static Menu main_menu[] = {
 	{ "Cartridge:", NULL, 0, 2, cart_opts, cart_callback, NULL },
 	{ "Insert binary/hex record...", NULL, 0, 0, NULL, binhex_callback, NULL },
 	{ "Hi-res artifacts", &video_artifact_mode, 0, 3, artifact_opts, NULL, artifact_callback },
-	{ "Emulated machine", &machine_romtype, 0, 4, machine_opts, machine_callback, NULL },
-	{ "Keyboard layout", &machine_keymap, 0, 2, keymap_opts, keymap_callback, NULL },
-	{ "RAM", NULL, 3, 4, ram_opts, do_hard_reset, ram_callback },
+	{ "Emulated machine", &requested_machine, 0, 4, machine_names, machine_callback, NULL },
+	{ "Keyboard layout", &requested_config.keymap, 0, 3, keymap_opts, keymap_callback, NULL },
+	{ "RAM", NULL, 4, 5, ram_opts, do_hard_reset, ram_callback },
 	{ "Extended BASIC", NULL, 1, 2, onoff_opts, do_hard_reset, extbas_callback },
 	{ "DOS", NULL, 1, 2, onoff_opts, do_hard_reset, dos_callback },
 	{ "Reset", NULL, 0, 2, reset_opts, reset_callback, NULL },
@@ -112,9 +111,6 @@ static Menu main_menu[] = {
 extern uint8_t vdg_alpha_gp32[4][3][8192];
 
 static int init(void) {
-	int i;
-	for (i = 0; i < NUM_MACHINES; i++)
-		machine_opts[i] = machines[i].description;
 	return 0;
 }
 
@@ -487,19 +483,19 @@ static void artifact_callback(unsigned int opt) {
 }
 
 static void machine_callback(unsigned int opt) {
-	if (opt != machine_romtype) {
-		machine_set_romtype(opt);
+	if ((int)opt != requested_machine) {
+		requested_machine = opt;
 		machine_reset(RESET_HARD);
 	}
 }
 
 static void keymap_callback(unsigned int opt) {
-	machine_set_keymap(opt);
+	machine_set_keymap(opt - 1);
 }
 
 static void ram_callback(unsigned int opt) {
-	(void)opt;
-	notify_box("Not yet implemented: Will always be 64K");
+	int opt_trans[5] = { ANY_AUTO, 4, 16, 32, 64 };
+	requested_config.ram = opt_trans[opt % 5];
 }
 
 static void extbas_callback(unsigned int opt) {
@@ -507,7 +503,7 @@ static void extbas_callback(unsigned int opt) {
 }
 
 static void dos_callback(unsigned int opt) {
-	dragondos_enabled = opt;
+	requested_config.dos_type = opt ? ANY_AUTO : DOS_NONE;
 }
 
 static void reset_callback(unsigned int opt) {
