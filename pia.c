@@ -28,14 +28,6 @@
 pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 
 void pia_init(void) {
-	/*
-	memset(&PIA_0A, 0, sizeof(pia_port));
-	memset(&PIA_0B, 0, sizeof(pia_port));
-	memset(&PIA_1A, 0, sizeof(pia_port));
-	memset(&PIA_1B, 0, sizeof(pia_port));
-	PIA_0A.tied_low = PIA_0B.tied_low = PIA_1A.tied_low =
-		PIA_1B.tied_low = 0xff;
-		*/
 }
 
 void pia_reset(void) {
@@ -59,8 +51,7 @@ void pia_reset(void) {
 	PIA_UPDATE_OUTPUT(PIA_0B);
 	PIA_UPDATE_OUTPUT(PIA_1B);
 	/* Clear interrupt lines */
-	PIA_0A.interrupt_received = PIA_0A.irq_set = irq  = 0;
-	PIA_0B.interrupt_received = PIA_0B.irq_set = 0;
-	PIA_1A.interrupt_received = PIA_1A.irq_set = firq  = 0;
-	PIA_1B.interrupt_received = PIA_1B.irq_set = 0;
+	PIA_0A.interrupt_received = PIA_1A.interrupt_received = 0;
+	PIA_0B.interrupt_received = PIA_1B.interrupt_received = 0;
+	irq = firq = 0;
 }

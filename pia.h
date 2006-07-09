@@ -23,8 +23,6 @@ typedef struct {
 	unsigned int port_output;
 	unsigned int port_input;
 	unsigned int tied_low;
-	/* Set to 0x80 when IRQA/B is set */
-	unsigned int irq_set;
 	unsigned int interrupt_received;
 } pia_port;
 
@@ -38,62 +36,52 @@ typedef struct {
 
 extern pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 
-#define PIA_SET_Cx1(p) do { \
+#define PIA_SET_Cx1(p,i,bv) do { \
 		if (PIA_ACTIVE_TRANSITION(p)) { \
+			p.interrupt_received = 0x80; \
 			if (PIA_INTERRUPT_ENABLED(p)) { \
-				p.interrupt_received = 0x80; \
-				p.irq_set = 0x80; \
+				i |= (bv); \
 			} else { \
-				p.interrupt_received = 0x80; \
-				p.irq_set = 0; \
+				i &= ~(bv); \
 			} \
 		} \
 	} while (0)
 
 #define PIA_SET_P0CA1 do { \
-		PIA_SET_Cx1(PIA_0A); \
-		irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+		PIA_SET_Cx1(PIA_0A, irq, 1); \
 	} while (0)
 #define PIA_SET_P0CB1 do { \
-		PIA_SET_Cx1(PIA_0B); \
-		irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+		PIA_SET_Cx1(PIA_0B, irq, 2); \
 	} while (0)
 #define PIA_SET_P1CA1 do { \
-		PIA_SET_Cx1(PIA_1A); \
-		firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+		PIA_SET_Cx1(PIA_1A, firq, 1); \
 	} while (0)
 #define PIA_SET_P1CB1 do { \
-		PIA_SET_Cx1(PIA_1B); \
-		firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+		PIA_SET_Cx1(PIA_1B, firq, 2); \
 	} while (0)
 
-#define PIA_RESET_Cx1(p) do { \
+#define PIA_RESET_Cx1(p,i,bv) do { \
 		if (!PIA_ACTIVE_TRANSITION(p)) { \
+			p.interrupt_received = 0x80; \
 			if (PIA_INTERRUPT_ENABLED(p)) { \
-				p.interrupt_received = 0x80; \
-				p.irq_set = 0x80; \
+				i |= (bv); \
 			} else { \
-				p.interrupt_received = 0x80; \
-				p.irq_set = 0; \
+				i &= ~(bv); \
 			} \
 		} \
 	} while (0)
 
 #define PIA_RESET_P0CA1 do { \
-			PIA_RESET_Cx1(PIA_0A); \
-			irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+			PIA_RESET_Cx1(PIA_0A, irq, 1); \
 		} while (0)
 #define PIA_RESET_P0CB1 do { \
-			PIA_RESET_Cx1(PIA_0B); \
-			irq = PIA_0A.irq_set | PIA_0B.irq_set; \
+			PIA_RESET_Cx1(PIA_0B, irq, 2); \
 		} while (0)
 #define PIA_RESET_P1CA1 do { \
-			PIA_RESET_Cx1(PIA_1A); \
-			firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+			PIA_RESET_Cx1(PIA_1A, firq, 1); \
 		} while (0)
 #define PIA_RESET_P1CB1 do { \
-			PIA_RESET_Cx1(PIA_1B); \
-			firq = PIA_1A.irq_set | PIA_1B.irq_set; \
+			PIA_RESET_Cx1(PIA_1B, firq, 2); \
 		} while (0)
 
 #define PIA_CONTROL_READ(p) (p.control_register | p.interrupt_received)
@@ -103,36 +91,35 @@ extern pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 #define PIA_READ_P1CA PIA_CONTROL_READ(PIA_1A)
 #define PIA_READ_P1CB PIA_CONTROL_READ(PIA_1B)
 
-#define PIA_CONTROL_WRITE(p,v,i,p2) do { \
+#define PIA_CONTROL_WRITE(p,v,i,bv) do { \
 		p.control_register = v & 0x3f; \
 		if (PIA_INTERRUPT_ENABLED(p)) { \
-			p.irq_set = p.interrupt_received; \
+			if (p.interrupt_received) \
+				i |= (bv); \
 		} else { \
-			p.irq_set = 0; \
+			i &= ~(bv); \
 		} \
-		i = p.irq_set | p2.irq_set; \
 	} while (0)
 
-#define PIA_WRITE_P0CA(v) PIA_CONTROL_WRITE(PIA_0A,v,irq,PIA_0B)
-#define PIA_WRITE_P0CB(v) PIA_CONTROL_WRITE(PIA_0B,v,irq,PIA_0A)
-#define PIA_WRITE_P1CA(v) do { PIA_CONTROL_WRITE(PIA_1A,v,firq,PIA_1B); tape_update_motor(); } while (0)
-#define PIA_WRITE_P1CB(v) PIA_CONTROL_WRITE(PIA_1B,v,firq,PIA_1A)
+#define PIA_WRITE_P0CA(v) PIA_CONTROL_WRITE(PIA_0A,v,irq,1)
+#define PIA_WRITE_P0CB(v) PIA_CONTROL_WRITE(PIA_0B,v,irq,2)
+#define PIA_WRITE_P1CA(v) do { PIA_CONTROL_WRITE(PIA_1A,v,firq,1); tape_update_motor(); } while (0)
+#define PIA_WRITE_P1CB(v) PIA_CONTROL_WRITE(PIA_1B,v,firq,2)
 
-#define PIA_READ(p,i,p2,r) do { \
+#define PIA_READ(p,i,bv,r) do { \
 		if (PIA_PDR_SELECTED(p)) { \
 			p.interrupt_received = 0; \
-			p.irq_set = 0; \
-			i = p2.irq_set; \
+			i &= ~(bv); \
 			r = ((p.port_input & p.tied_low) & ~p.direction_register) | (p.output_register & p.direction_register); \
 		} else { \
 			r = p.direction_register; \
 		} \
 	} while (0)
 
-#define PIA_READ_P0DA(r) PIA_READ(PIA_0A, irq, PIA_0B, r)
-#define PIA_READ_P0DB(r) PIA_READ(PIA_0B, irq, PIA_0A, r)
-#define PIA_READ_P1DA(r) PIA_READ(PIA_1A, firq, PIA_1B, r)
-#define PIA_READ_P1DB(r) PIA_READ(PIA_1B, firq, PIA_1A, r)
+#define PIA_READ_P0DA(r) PIA_READ(PIA_0A, irq, 1, r)
+#define PIA_READ_P0DB(r) PIA_READ(PIA_0B, irq, 2, r)
+#define PIA_READ_P1DA(r) PIA_READ(PIA_1A, firq, 1, r)
+#define PIA_READ_P1DB(r) PIA_READ(PIA_1B, firq, 2, r)
 
 #define PIA_WRITE(p,v) do { \
 		if (PIA_PDR_SELECTED(p)) { \

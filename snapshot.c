@@ -47,7 +47,7 @@
 #define ID_SNAPVERSION   (9)
 
 #define SNAPSHOT_VERSION_MAJOR 1
-#define SNAPSHOT_VERSION_MINOR 1
+#define SNAPSHOT_VERSION_MINOR 2
 
 int write_snapshot(char *filename) {
 	int fd;
