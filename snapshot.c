@@ -195,6 +195,8 @@ int read_snapshot(char *filename) {
 				fs_read_byte(fd, &cpu_state.wait_for_interrupt);
 				fs_read_byte(fd, &cpu_state.skip_register_push);
 				fs_read_byte(fd, &cpu_state.nmi_armed);
+				cpu_state.firq &= 3;
+				cpu_state.irq &= 3;
 				m6809_set_state(&cpu_state);
 				break;
 			case ID_MACHINECONFIG:
