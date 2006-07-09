@@ -28,7 +28,7 @@ enum {
 
 typedef struct {
 	const char *mnemonic;
-	int type; 
+	int type;
 } instruction;
 
 static instruction instructions[3][256] = { {
@@ -926,7 +926,7 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 						state = WANT_WORD1;
 						break;
 					default:
-						display = 1; 
+						display = 1;
 						break;
 				}
 			} else {

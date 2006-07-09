@@ -1,10 +1,10 @@
 /* The Dragon keyboard layout:
- * 
+ *
  *   1   2   3   4   5   6   7   8   9   0   :   -  brk
  * up   Q   W   E   R   T   Y   U   I   O   P   @  lft rgt
  *  dwn  A   S   D   F   G   H   J   K   L   ;   enter  clr
  *  shft  Z   X   C   V   B   N   M   , .   /   shft
- *                         space            
+ *                         space
  */
 
 /* Keymaps are lists of pairs of 'key' to 'mapping'.

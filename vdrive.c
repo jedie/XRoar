@@ -296,7 +296,7 @@ int vdrive_format_disk(unsigned int drive, unsigned int num_tracks,
 	for (track = 0; track < num_tracks; track++) {
 		for (side = 0; side < num_sides; side++) {
 			vdrive_set_side(side);
-			do { 
+			do {
 				(void)vdrive_next_idam();
 			} while (!vdrive_index_pulse());
 			for (i = 0; i < 54; i++) vdrive_write(0x4e);
@@ -345,7 +345,7 @@ void vdrive_update_sector(unsigned int drive, unsigned int track,
 	vdrive_set_side(side);
 	current_drive->current_track = track;
 	update_signals();
-	do { 
+	do {
 		(void)vdrive_next_idam();
 	} while (!vdrive_index_pulse());
 	while (!vdrive_index_pulse()) {

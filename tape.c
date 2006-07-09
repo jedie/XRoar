@@ -158,7 +158,7 @@ int tape_autorun(char *filename) {
 		event_queue(waggle_event);
 	}
 	switch (type) {
-		/* BASIC programs don't autorun yet */ 
+		/* BASIC programs don't autorun yet */
 		case 0: keyboard_queue_string("CLOAD\r");
 			return 0;
 			break;

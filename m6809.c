@@ -315,7 +315,7 @@ void m6809_cycle(Cycle until) {
 			EA_ALLR(EA_ROFF5,   0x00);
 			EA_ALLR(EA_RI1,     0x80);
 			EA_ALLR(EA_RI2,     0x81); EA_ALLRI(EA_RI2,     0x91);
-			EA_ALLR(EA_RD1,     0x82); 
+			EA_ALLR(EA_RD1,     0x82);
 			EA_ALLR(EA_RD2,     0x83); EA_ALLRI(EA_RD2,     0x93);
 			EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94);
 			EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95);

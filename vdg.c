@@ -29,7 +29,7 @@
 #include "vdg_bitmaps.c"
 
 Cycle scanline_start;
-int beam_pos; 
+int beam_pos;
 
 static void (*vdg_render_scanline)(void);
 static int_least16_t scanline;

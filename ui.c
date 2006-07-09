@@ -112,7 +112,7 @@ void ui_getargs(int argc, char **argv) {
 int ui_init(void) {
 	int old_module = selected_module;
 	if (module_init())
-		return 0; 
+		return 0;
 	do {
 		selected_module++;
 		if (module_list[selected_module] == NULL)

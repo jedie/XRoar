@@ -58,7 +58,7 @@ static void flush_frame(void);
 static event_t *flush_event;
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
-		const AudioBufferList *inInputData, 
+		const AudioBufferList *inInputData,
 		const AudioTimeStamp *inInputTime,
 		AudioBufferList *outOutputData,
 		const AudioTimeStamp *inOutputTime, void *defptr);
@@ -158,7 +158,7 @@ static void flush_frame(void) {
 }
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
-		const AudioBufferList *inInputData, 
+		const AudioBufferList *inInputData,
 		const AudioTimeStamp *inInputTime,
 		AudioBufferList *outOutputData,
 		const AudioTimeStamp *inOutputTime, void *defptr) {

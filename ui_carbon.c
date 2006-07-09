@@ -52,9 +52,9 @@ static void menu(void) {
 static char *load_filename(const char **extensions) {
 	NavDialogCreationOptions options;
 	NavDialogRef load_dialog;
-        
+
 	OSStatus status;
-        NavReplyRecord replyrecord; 
+        NavReplyRecord replyrecord;
         AEDesc filedesc;
         FSRef fileref;
         static UInt8 filename[768];
@@ -76,7 +76,7 @@ static char *load_filename(const char **extensions) {
 static char *save_filename(const char **extensions) {
 	NavDialogCreationOptions options;
 	NavDialogRef save_dialog;
-        NavReplyRecord replyrecord; 
+        NavReplyRecord replyrecord;
         AEDesc filedesc;
         FSRef fileref;
         static char savename[768];

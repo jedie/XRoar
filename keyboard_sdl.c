@@ -68,8 +68,8 @@ static unsigned int unicode_to_dragon[128] = {
 	0,       0,       0,       0,       0,       0,       0,       0,
 	0,       0,       0,       27,      0,       0,       0,       0,
 	' ',     128+'1', 128+'2', 128+'3', 128+'4', 128+'5', 128+'6', 128+'7',
-	128+'8', 128+'9', 128+':', 128+';', ',',     '-',     '.',     '/', 
-	'0',     '1',     '2',     '3',     '4',     '5',     '6',     '7', 
+	128+'8', 128+'9', 128+':', 128+';', ',',     '-',     '.',     '/',
+	'0',     '1',     '2',     '3',     '4',     '5',     '6',     '7',
 	'8',     '9',     ':',     ';',     128+',', 128+'-', 128+'.', 128+'/',
 	'@',     128+'a', 128+'b', 128+'c', 128+'d', 128+'e', 128+'f', 128+'g',
 	128+'h', 128+'i', 128+'j', 128+'k', 128+'l', 128+'m', 128+'n', 128+'o',
@@ -343,7 +343,7 @@ static void keyrelease(SDL_keysym *keysym) {
 		if (sym == SDLK_LALT) { PIA_0A.tied_low |= 0x01; return; }
 	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
-		shift = 0; 
+		shift = 0;
 		KEYBOARD_RELEASE(0);
 		return;
 	}
@@ -396,7 +396,7 @@ static void keyrelease(SDL_keysym *keysym) {
 static void poll(void) {
 	SDL_Event event;
 	while (SDL_PollEvent(&event) == 1) {
-		switch(event.type) { 
+		switch(event.type) {
 			case SDL_VIDEORESIZE:
 				if (video_module->resize) {
 					video_module->resize(event.resize.w, event.resize.h);
