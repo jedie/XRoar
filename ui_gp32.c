@@ -99,7 +99,7 @@ static Menu main_menu[] = {
 	{ "Cartridge:", NULL, 0, 2, cart_opts, cart_callback, NULL },
 	{ "Insert binary/hex record...", NULL, 0, 0, NULL, binhex_callback, NULL },
 	{ "Hi-res artifacts", &video_artifact_mode, 0, 3, artifact_opts, NULL, artifact_callback },
-	{ "Emulated machine", &requested_machine, 0, 4, machine_names, machine_callback, NULL },
+	{ "Emulated machine", &requested_machine, 1, 5, machine_names, machine_callback, NULL },
 	{ "Keyboard layout", &requested_config.keymap, 0, 3, keymap_opts, keymap_callback, NULL },
 	{ "RAM", NULL, 4, 5, ram_opts, do_hard_reset, ram_callback },
 	{ "Extended BASIC", NULL, 1, 2, onoff_opts, do_hard_reset, extbas_callback },
