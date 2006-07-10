@@ -77,15 +77,16 @@
 		} \
 	} while (0)
 #define SET_INTRQ do { \
+		intrq_flag = 1; \
 		if (IS_RSDOS) { \
 			halt_enable = halt = 0; \
-			QUEUE_NMI(); \
-		} else { \
-			if (ic1_nmi_enable) \
-				QUEUE_NMI(); \
 		} \
+		QUEUE_NMI(); \
 	} while (0)
-#define RESET_INTRQ
+#define RESET_INTRQ do { \
+		intrq_flag = 0; \
+		nmi = 0; \
+	} while (0)
 
 #define NEXT_STATE(f,t) do { \
 		state_event->dispatch = f; \
@@ -149,6 +150,7 @@ static unsigned int step_delay;
 static unsigned int index_holes_count;
 static unsigned int bytes_left;
 static unsigned int dam;
+static int intrq_flag;
 
 static unsigned int stepping_rate[4] = { 6, 12, 20, 30 };
 static unsigned int sector_size[2][4] = {
@@ -176,6 +178,7 @@ void wd2797_reset(void) {
 	track_register = 0;
 	sector_register = 0;
 	data_register = 0;
+	intrq_flag = 0;
 	if (IS_RSDOS)
 		wd2797_ff40_write(0);
 	else
@@ -238,6 +241,9 @@ void wd2797_ff40_write(unsigned int octet) {
 	ic1_density = octet & 0x20;
 	vdrive_set_density(ic1_density);
 	ic1_nmi_enable = 1;
+	if (ic1_density && intrq_flag) {
+		nmi = 1;
+	}
 	halt_enable = octet & 0x80;
 	if (halt_enable && !(status_register & STATUS_DRQ)) {
 		halt = 1;
@@ -717,5 +723,13 @@ static void write_track_state_3(void) {
 }
 
 static void do_nmi(void) {
-	nmi = 1;
+	if (IS_RSDOS) {
+		if (IS_DOUBLE_DENSITY && intrq_flag) {
+			nmi = 1;
+		}
+	} else {
+		if (ic1_nmi_enable) {
+			nmi = 1;
+		}
+	}
 }
