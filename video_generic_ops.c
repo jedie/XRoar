@@ -202,18 +202,22 @@ static void render_sg6(void) {
 	}
 }
 
-#define RENDER_BYTE_CG1(b,o,n) *(pixel+(o)*XSTEP) = *(pixel+(o+1)*XSTEP) \
-		= *(pixel+(o+2)*XSTEP) = *(pixel+(o+3)*XSTEP) \
-		= cg_colours[(b & (0xc0<<(n * 8))) >> ((n*8)+6)]; \
-	*(pixel+(o+4)*XSTEP) = *(pixel+(o+5)*XSTEP) \
-		= *(pixel+(o+6)*XSTEP) = *(pixel+(o+7)*XSTEP) \
-		= cg_colours[(b & (0x30<<(n * 8))) >> ((n*8)+4)]; \
-	*(pixel+(o+8)*XSTEP) = *(pixel+(o+9)*XSTEP) \
-		= *(pixel+(o+10)*XSTEP) = *(pixel+(o+11)*XSTEP) \
-		= cg_colours[(b & (0x0c<<(n * 8))) >> ((n*8)+2)]; \
-	*(pixel+(o+12)*XSTEP) = *(pixel+(o+13)*XSTEP) \
-		= *(pixel+(o+14)*XSTEP) = *(pixel+(o+15)*XSTEP) \
-		= cg_colours[(b & (0x03<<(n * 8))) >> ((n*8))]
+#define RENDER_BYTE_CG1(b) do { \
+		*pixel = *(pixel+1*XSTEP) \
+			= *(pixel+2*XSTEP) = *(pixel+3*XSTEP) \
+			= cg_colours[(b & 0xc0) >> 6]; \
+		*(pixel+4*XSTEP) = *(pixel+5*XSTEP) \
+			= *(pixel+6*XSTEP) = *(pixel+7*XSTEP) \
+			= cg_colours[(b & 0x30) >> 4]; \
+		*(pixel+8*XSTEP) = *(pixel+9*XSTEP) \
+			= *(pixel+10*XSTEP) = *(pixel+11*XSTEP) \
+			= cg_colours[(b & 0x0c) >> 2]; \
+		*(pixel+12*XSTEP) = *(pixel+13*XSTEP) \
+			= *(pixel+14*XSTEP) = *(pixel+15*XSTEP) \
+			= cg_colours[b & 0x03]; \
+		pixel += 16 * XSTEP; \
+		beam_pos += 16; \
+	} while (0);
 
 /* Render a 16-byte colour graphics line (CG1) */
 static void render_cg1(void) {
@@ -227,16 +231,14 @@ static void render_cg1(void) {
 		if (beam_pos == 32)
 			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
 		octet = *(vram_ptr++);
-		RENDER_BYTE_CG1(octet,0,0);
-		pixel += 16*XSTEP;
-		beam_pos += 16;
+		RENDER_BYTE_CG1(octet);
 		if (beam_pos == 288)
 			sam_vdg_xstep(16);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(16,6,0);
+		sam_vdg_hsync(16,6,16);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -245,14 +247,18 @@ static void render_cg1(void) {
 	}
 }
 
-#define RENDER_BYTE_RG1(b,o,n) *(pixel+(o)*XSTEP) = *(pixel+(o+1)*XSTEP) = (b & (0x80<<(n*8))) ? fg_colour : bg_colour; \
-	*(pixel+(o+2)*XSTEP) = *(pixel+(o+3)*XSTEP) = (b & (0x40<<(n*8))) ? fg_colour : bg_colour; \
-	*(pixel+(o+4)*XSTEP) = *(pixel+(o+5)*XSTEP) = (b & (0x20<<(n*8))) ? fg_colour : bg_colour; \
-	*(pixel+(o+6)*XSTEP) = *(pixel+(o+7)*XSTEP) = (b & (0x10<<(n*8))) ? fg_colour : bg_colour; \
-	*(pixel+(o+8)*XSTEP) = *(pixel+(o+9)*XSTEP) = (b & (0x08<<(n*8))) ? fg_colour : bg_colour; \
-	*(pixel+(o+10)*XSTEP) = *(pixel+(o+11)*XSTEP) = (b & (0x04<<(n*8))) ? fg_colour : bg_colour; \
-	*(pixel+(o+12)*XSTEP) = *(pixel+(o+13)*XSTEP) = (b & (0x02<<(n*8))) ? fg_colour : bg_colour; \
-	*(pixel+(o+14)*XSTEP) = *(pixel+(o+15)*XSTEP) = (b & (0x01<<(n*8))) ? fg_colour : bg_colour
+#define RENDER_BYTE_RG1(b) do { \
+		*pixel = *(pixel+1*XSTEP) = (b & 0x80) ? fg_colour : bg_colour; \
+		*(pixel+2*XSTEP) = *(pixel+3*XSTEP) = (b & 0x40) ? fg_colour : bg_colour; \
+		*(pixel+4*XSTEP) = *(pixel+5*XSTEP) = (b & 0x20) ? fg_colour : bg_colour; \
+		*(pixel+6*XSTEP) = *(pixel+7*XSTEP) = (b & 0x10) ? fg_colour : bg_colour; \
+		*(pixel+8*XSTEP) = *(pixel+9*XSTEP) = (b & 0x08) ? fg_colour : bg_colour; \
+		*(pixel+10*XSTEP) = *(pixel+11*XSTEP) = (b & 0x04) ? fg_colour : bg_colour; \
+		*(pixel+12*XSTEP) = *(pixel+13*XSTEP) = (b & 0x02) ? fg_colour : bg_colour; \
+		*(pixel+14*XSTEP) = *(pixel+15*XSTEP) = (b & 0x01) ? fg_colour : bg_colour; \
+		pixel += 16 * XSTEP; \
+		beam_pos += 16; \
+	} while (0)
 
 /* Render a 16-byte resolution graphics line (RG1,RG2,RG3) */
 static void render_rg1(void) {
@@ -266,16 +272,14 @@ static void render_rg1(void) {
 		if (beam_pos == 32)
 			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
 		octet = *(vram_ptr++);
-		RENDER_BYTE_RG1(octet,0,0);
-		pixel += 16*XSTEP;
-		beam_pos += 16;
+		RENDER_BYTE_RG1(octet);
 		if (beam_pos == 288)
 			sam_vdg_xstep(16);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(16,6,0);
+		sam_vdg_hsync(16,6,16);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
