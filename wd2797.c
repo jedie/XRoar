@@ -240,7 +240,6 @@ void wd2797_ff40_write(unsigned int octet) {
 	ic1_precomp_enable = octet & 0x10;
 	ic1_density = octet & 0x20;
 	vdrive_set_density(ic1_density);
-	ic1_nmi_enable = 1;
 	if (ic1_density && intrq_flag) {
 		nmi = 1;
 	}
