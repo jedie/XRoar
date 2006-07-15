@@ -33,7 +33,7 @@
 #include "sam.h"
 #include "snapshot.h"
 #include "sound.h"
-#include "ui.h"
+//#include "ui.h"
 #include "video.h"
 #include "wd2797.h"
 #include "xroar.h"
@@ -65,7 +65,7 @@ void xroar_getargs(int argc, char **argv) {
 			cart_helptext();
 			video_helptext();
 			sound_helptext();
-			ui_helptext();
+			//ui_helptext();
 			xroar_helptext();
 			exit(0);
 		}
@@ -73,7 +73,7 @@ void xroar_getargs(int argc, char **argv) {
 	/* Let some subsystems scan for options relevant to them */
 	video_getargs(argc, argv);
 	sound_getargs(argc, argv);
-	ui_getargs(argc, argv);
+	//ui_getargs(argc, argv);
 	keyboard_getargs(argc, argv);
 	machine_getargs(argc, argv);
 	cart_getargs(argc, argv);
@@ -90,11 +90,11 @@ void xroar_init(void) {
 		LOG_ERROR("No sound module initialised.\n");
 		exit(1);
 	}
-	if (ui_init()) {
-		LOG_ERROR("No user-interface module initialised.\n");
-		exit(1);
-	}
-	if (keyboard_init()) {
+	//if (ui_init()) {
+		//LOG_ERROR("No user-interface module initialised.\n");
+		//exit(1);
+	//}
+	if (!keyboard_init()) {
 		LOG_ERROR("No keyboard module initialised.\n");
 		exit(1);
 	}
@@ -113,7 +113,7 @@ void xroar_init(void) {
 void xroar_shutdown(void) {
 	tape_shutdown();
 	joystick_shutdown();
-	ui_shutdown();
+	//ui_shutdown();
 	sound_shutdown();
 	video_shutdown();
 }

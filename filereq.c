@@ -16,48 +16,43 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "ui.h"
-#include "fs.h"
 #include "types.h"
+#include "filereq.h"
 #include "logging.h"
 
-static int init(void);
-static void shutdown(void);
-static void menu(void);
-static char *get_filename(const char **extensions);
+extern FileReqModule filereq_carbon_module;
+extern FileReqModule filereq_windows32_module;
+extern FileReqModule filereq_gtk_module;
+extern FileReqModule filereq_cli_module;
 
-UIModule ui_cli_module = {
-	NULL,
-	"cli",
-	"Command-line interface",
-	init, shutdown,
-	menu, get_filename, get_filename
+static FileReqModule *module_list[] = {
+#ifdef HAVE_CARBON
+	&filereq_carbon_module,
+#endif
+#ifdef WINDOWS32
+	&filereq_windows32_module,
+#endif
+#ifdef HAVE_GTK
+	&filereq_gtk_module,
+#endif
+#ifdef HAVE_CLI
+	&filereq_cli_module,
+#endif
+	NULL
 };
 
-static char fnbuf[256];
-
-static int init(void) {
-	LOG_DEBUG(2, "Initialising CLI user-interface\n");
-	return 0;
-}
-
-static void shutdown(void) {
-	LOG_DEBUG(2, "Shutting down CLI user-interface\n");
-}
-
-static void menu(void) {
-}
-
-static char *get_filename(const char **extensions) {
-	char *cr;
-	(void)extensions;  /* unused */
-	printf("Filename? ");
-	fgets(fnbuf, sizeof(fnbuf), stdin);
-	cr = strrchr(fnbuf, '\n');
-	if (cr)
-		*cr = 0;
-	return fnbuf;
+/* File requesters listed in order of preference, so just get first
+   one that initialises. */
+FileReqModule *filereq_init(void) {
+	int i;
+	for (i = 0; module_list[i]; i++) {
+		if (module_list[i]->init()) {
+			return module_list[i];
+		}
+	}
+	LOG_WARN("No file requester chosen.\n");
+	return NULL;
 }

@@ -18,45 +18,35 @@
 
 /* This Windows32 code is probably all wrong, but it does seem to work */
 
-#include "types.h"
-#include "logging.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 #include <commdlg.h>
 #include <SDL/SDL_syswm.h>
 
+#include "types.h"
+#include "filereq.h"
 #include "fs.h"
-#include "ui.h"
-#include "xroar.h"
+#include "logging.h"
 
 static int init(void);
 static void shutdown_module(void);
-static void menu(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
-UIModule ui_windows32_module = {
-	NULL,
-	"windows32",
-	"Windows32 user-interface",
+FileReqModule filereq_windows32_module = {
 	init, shutdown_module,
-	menu, load_filename, save_filename
+	load_filename, save_filename
 };
 
 static char *filename = NULL;
 
 static int init(void) {
-	LOG_DEBUG(2, "Initialising Windows32 user-interface\n");
-	return 0;
+	LOG_DEBUG(2, "Windows32 file requester selected.\n");
+	return 1;
 }
 
 static void shutdown_module(void) {
-	LOG_DEBUG(2, "Shutting down Windows32 user-interface\n");
-}
-
-static void menu(void) {
 }
 
 static char *load_filename(const char **extensions) {

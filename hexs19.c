@@ -20,7 +20,6 @@
 #include "sam.h"
 #include "logging.h"
 #include "fs.h"
-#include "ui.h"
 #include "m6809.h"
 #include "hexs19.h"
 

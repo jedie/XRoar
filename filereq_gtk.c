@@ -22,39 +22,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
-#include "ui.h"
-#include "fs.h"
+
 #include "types.h"
+#include "filereq.h"
+#include "fs.h"
 #include "logging.h"
 
 static int init(void);
 static void shutdown(void);
-static void menu(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
-UIModule ui_gtk_module = {
-	NULL,
-	"gtk",
-	"GTK+ user-interface",
+FileReqModule filereq_gtk_module = {
 	init, shutdown,
-	menu, load_filename, save_filename
+	load_filename, save_filename
 };
 
 static char *filename = NULL;
 
 static int init(void) {
-	LOG_DEBUG(2, "Initialising GTK+ user-interface\n");
+	LOG_DEBUG(2, "GTK+ file requester selected.\n");
 	gtk_init(NULL, NULL);
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2, "Shutting down GTK+ user-interface\n");
-	LOG_DEBUG(3, "\tNothing to do...\n");
-	/* Apparantly this just calls exit(), which means other shutdown
-	 * stuff gets skipped. */
-	/* gtk_exit(0); */
 }
 
 static gboolean cancel(GtkWidget *w) {
@@ -71,9 +63,6 @@ static void file_selected(GtkWidget *w, GtkFileSelection *fs) {
 	filename = (char *)malloc(strlen(fn)+1);
 	strcpy(filename, fn);
 	gtk_widget_destroy(w);
-}
-
-static void menu(void) {
 }
 
 static char *load_filename(const char **extensions) {

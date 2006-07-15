@@ -89,7 +89,7 @@ endif
 #endif
 
 COMMON_OBJS := xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o \
-		sam.o pia.o wd2797.o vdg.o video.o sound.o ui.o \
+		sam.o pia.o wd2797.o vdg.o video.o sound.o filereq.o \
 		keyboard.o joystick.o events.o vdrive.o vdisk.o cart.o \
 		crc16.o
 ALL_OBJS := $(COMMON_OBJS)
@@ -130,25 +130,25 @@ ALL_OBJS += $(OBJS_JACK)
 CFLAGS_JACK = -DHAVE_JACK_AUDIO
 LDFLAGS_JACK = -ljack -lpthread
 
-OBJS_GTK := ui_gtk.o
+OBJS_GTK := filereq_gtk.o
 ALL_OBJS += $(OBJS_GTK)
 GTK_CONFIG = gtk-config
-CFLAGS_GTK = -DHAVE_GTK_UI $(shell $(GTK_CONFIG) --cflags)
+CFLAGS_GTK = -DHAVE_GTK $(shell $(GTK_CONFIG) --cflags)
 LDFLAGS_GTK = $(shell $(GTK_CONFIG) --libs)
 
-OBJS_CARBON := ui_carbon.o
+OBJS_CARBON := filereq_carbon.o
 ALL_OBJS += $(OBJS_CARBON)
 CFLAGS_CARBON = -DHAVE_CARBON
 LDFLAGS_CARBON = -framework Carbon
 
-OBJS_WINDOWS32 := ui_windows32.o
+OBJS_WINDOWS32 := filereq_windows32.o
 ALL_OBJS += $(OBJS_WINDOWS32)
 CFLAGS_WINDOWS32 = -DWINDOWS32 -DPREFER_NOYUV -mms-bitfields
 LDFLAGS_WINDOWS32 =
 
-OBJS_CLI = ui_cli.o
+OBJS_CLI = filereq_cli.o
 ALL_OBJS += $(OBJS_CLI)
-CFLAGS_CLI = -DHAVE_CLI_UI
+CFLAGS_CLI = -DHAVE_CLI
 
 OBJS_TRACE = m6809_dasm.o
 ALL_OBJS += $(OBJS_TRACE)

@@ -21,32 +21,24 @@
 #include <CoreServices/CoreServices.h>
 
 #include "logging.h"
-#include "ui.h"
+#include "filereq.h"
 
 static int init(void);
 static void shutdown(void);
-static void menu(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
-UIModule ui_carbon_module = {
-	NULL,
-	"carbon",
-	"MacOS X Carbon interface",
+FileReqModule filereq_carbon_module = {
 	init, shutdown,
-	menu, load_filename, save_filename
+	load_filename, save_filename
 };
 
 static int init(void){
-	LOG_DEBUG(2, "Initialising Carbon interface\n");
-	return 0;
+	LOG_DEBUG(2, "Carbon file requester selected.\n");
+	return 1;
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2, "Shutting down Carbon interface\n");
-}
-
-static void menu(void) {
 }
 
 static char *load_filename(const char **extensions) {

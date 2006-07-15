@@ -23,6 +23,7 @@
 
 #include "types.h"
 #include "cart.h"
+#include "filereq.h"
 #include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -31,7 +32,6 @@
 #include "pia.h"
 #include "snapshot.h"
 #include "tape.h"
-#include "ui.h"
 #include "vdisk.h"
 #include "video.h"
 #include "wd2797.h"
@@ -89,6 +89,8 @@ static char *keymap_option;
 static unsigned int *selected_keymap;
 static int translated_keymap;
 
+static FileReqModule *filereq;
+
 static void map_keyboard(unsigned int *map) {
 	int i;
 	for (i = 0; i < 256; i++)
@@ -118,6 +120,9 @@ static void getargs(int argc, char **argv) {
 
 static int init(void) {
 	int i;
+	filereq = filereq_init();
+	if (filereq == NULL)
+		return 0;
 	selected_keymap = NULL;
 	for (i = 0; mappings[i].name; i++) {
 		if (selected_keymap == NULL
@@ -132,10 +137,12 @@ static int init(void) {
 	map_keyboard(selected_keymap);
 	translated_keymap = 0;
 	SDL_EnableUNICODE(translated_keymap);
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {
+	if (filereq)
+		filereq->shutdown();
 }
 
 static void keypress(SDL_keysym *keysym) {
@@ -165,7 +172,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 			{
 			const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
-			char *filename = ui_module->load_filename(disk_exts);
+			char *filename = filereq->load_filename(disk_exts);
 			if (filename)
 				vdisk_load(filename, sym - SDLK_1);
 			}
@@ -179,7 +186,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_b:
 			{
 			const char *bin_exts[] = { "BIN", NULL };
-			char *filename = ui_module->load_filename(bin_exts);
+			char *filename = filereq->load_filename(bin_exts);
 			if (filename)
 				coco_bin_read(filename);
 			}
@@ -197,7 +204,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_h:
 			{
 			const char *hex_exts[] = { "HEX", NULL };
-			char *filename = ui_module->load_filename(hex_exts);
+			char *filename = filereq->load_filename(hex_exts);
 			if (filename)
 				intel_hex_read(filename);
 			}
@@ -205,7 +212,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_i:
 			{
 			const char *cart_exts[] = { "ROM", NULL };
-			char *filename = ui_module->load_filename(cart_exts);
+			char *filename = filereq->load_filename(cart_exts);
 			if (filename)
 				cart_insert(filename, shift ? 0 : 1);
 			else
@@ -223,7 +230,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_l:
 			{
 			const char *snap_exts[] = { "SNA", NULL };
-			char *filename = ui_module->load_filename(snap_exts);
+			char *filename = filereq->load_filename(snap_exts);
 			if (filename)
 				read_snapshot(filename);
 			}
@@ -242,7 +249,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_s:
 			{
 			const char *snap_exts[] = { "SNA", NULL };
-			char *filename = ui_module->save_filename(snap_exts);
+			char *filename = filereq->save_filename(snap_exts);
 			if (filename)
 				write_snapshot(filename);
 			}
@@ -250,7 +257,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_t:
 			{
 			const char *tape_exts[] = { "CAS", NULL };
-			char *filename = ui_module->load_filename(tape_exts);
+			char *filename = filereq->load_filename(tape_exts);
 			if (filename) {
 				if (shift)
 					tape_autorun(filename);
@@ -262,7 +269,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_w:
 			{
 			const char *tape_exts[] = { "CAS", NULL };
-			char *filename = ui_module->save_filename(tape_exts);
+			char *filename = filereq->save_filename(tape_exts);
 			if (filename) {
 				tape_open_writing(filename);
 			}

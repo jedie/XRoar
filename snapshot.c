@@ -28,7 +28,6 @@
 #include "tape.h"
 #include "logging.h"
 #include "fs.h"
-#include "ui.h"
 #include "types.h"
 
 /* Write files in 'chunks', each with an identifying byte and a 16-bit

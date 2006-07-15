@@ -25,7 +25,7 @@
 #include "gp32/gpgfx.h"
 #include "gp32/gpkeypad.h"
 #include "gp32/gpchatboard.h"
-#include "ui.h"
+//#include "ui.h"
 #include "cart.h"
 #include "machine.h"
 #include "snapshot.h"
@@ -41,16 +41,16 @@
 
 static int init(void);
 static void shutdown(void);
-static void menu(void);
+void gp32_menu(void);
 static char *get_filename(const char **extensions);
 
-UIModule ui_gp32_module = {
-	NULL,
-	"gp32",
-	"GP32 user-interface",
-	init, shutdown,
-	menu, get_filename, get_filename
-};
+//UIModule ui_gp32_module = {
+	//NULL,
+	//"gp32",
+	//"GP32 user-interface",
+	//init, shutdown,
+	//gp32_menu, get_filename, get_filename
+//};
 
 #define FG (0xffffff00)
 #define BG (0x00200000)
@@ -299,7 +299,7 @@ static int show_menu(Menu *m, int x, int y, int w, int h) {
 	return selected;
 }
 
-static void menu(void) {
+void gp32_menu(void) {
 	sound_silence();
 	show_menu(main_menu, 1, 1, 38, 18);
 }

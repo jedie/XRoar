@@ -33,9 +33,10 @@
 #include "logging.h"
 #include "pia.h"
 #include "snapshot.h"
-#include "ui.h"
 #include "video.h"
 #include "xroar.h"
+
+void gp32_menu(void);
 
 static int init(void);
 static void shutdown(void);
@@ -122,7 +123,7 @@ static void poll(void) {
 	if ((key & (GPC_VK_FR|GPC_VK_FL)) == (GPC_VK_FR|GPC_VK_FL))
 		machine_reset(RESET_HARD);  /* hard reset machine */
 	if (newkey & GPC_VK_START)
-		ui_module->menu();
+		gp32_menu();
 	switch (keyboard_mode) {
 		case 3:
 			joystick_rightx = joystick_righty = 255;
