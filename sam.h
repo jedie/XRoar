@@ -52,7 +52,6 @@
 
 extern uint8_t *addrptr_low;
 extern uint8_t *addrptr_high;
-extern uint_least16_t mapped_ram;
 extern uint_least16_t sam_register;
 extern uint_least16_t sam_vdg_base;
 extern unsigned int  sam_vdg_mode;

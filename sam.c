@@ -31,7 +31,7 @@
 
 uint8_t *addrptr_low;
 uint8_t *addrptr_high;
-uint_least16_t mapped_ram;
+static uint_least16_t map_type;
 uint_least16_t sam_page1;
 
 uint_least16_t sam_register;
@@ -72,7 +72,7 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 	}
 	if (addr < 0xff00) {
 		current_cycle += sam_topaddr_cycles;
-		if (mapped_ram) {
+		if (map_type) {
 			if ((addr-0x8000) < machine_page1_ram)
 				return ram1[addr-0x8000];
 			return 0x7e;
@@ -141,7 +141,7 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	}
 	if (addr < 0xff00) {
 		current_cycle += sam_topaddr_cycles;
-		if (mapped_ram && (addr-0x8000) < machine_page1_ram)
+		if (map_type && (addr-0x8000) < machine_page1_ram)
 			ram1[addr-0x8000] = octet;
 		return;
 	}
@@ -210,25 +210,22 @@ void sam_update_from_register(void) {
 	sam_vdg_mod_xdiv = vdg_mod_xdiv[sam_vdg_mode];
 	sam_vdg_mod_ydiv = vdg_mod_ydiv[sam_vdg_mode];
 	sam_vdg_mod_clear = vdg_mod_clear[sam_vdg_mode];
-	if ((sam_page1 = sam_register & 0x0400)) {
-		addrptr_low = ram1;
-		addrptr_high = rom0;
-		mapped_ram = 0;
+	if ((map_type = sam_register & 0x8000)) {
+		/* Map type 1 */
+		sam_page1 = 0;
+		addrptr_low = ram0;
+#ifndef HAVE_GP32
+		sam_topaddr_cycles = CPU_SLOW_DIVISOR;
+#endif
+	} else {
+		/* Map type 0 */
+		if ((sam_page1 = sam_register & 0x0400)) {
+			addrptr_low = ram1;
+		} else {
+			addrptr_low = ram0;
+		}
 #ifndef HAVE_GP32
 		sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
 #endif
-	} else {
-		addrptr_low = ram0;
-		if ((mapped_ram = sam_register & 0x8000)) {
-			addrptr_high = ram1;
-#ifndef HAVE_GP32
-			sam_topaddr_cycles = CPU_SLOW_DIVISOR;
-#endif
-		} else {
-			addrptr_high = rom0;
-#ifndef HAVE_GP32
-			sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
-#endif
-		}
 	}
 }
