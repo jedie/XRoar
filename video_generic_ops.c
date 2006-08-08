@@ -1,7 +1,7 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
  *  Copyright (C) 2003-2006  Ciaran Anscomb
  *
- *  See COPYING for redistribution conditions. */
+ *  See COPYING.GPL for redistribution conditions. */
 
 /* This file contains generic scanline rendering routines.  It is included
  * into various video module source files and makes use of macros defined in

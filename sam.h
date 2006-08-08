@@ -1,7 +1,7 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
  *  Copyright (C) 2003-2006  Ciaran Anscomb
  *
- *  See COPYING for redistribution conditions. */
+ *  See COPYING.GPL for redistribution conditions. */
 
 #ifndef __SAM_H__
 #define __SAM_H__
