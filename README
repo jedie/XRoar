@@ -213,6 +213,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 See the file 'COPYING.GPL' for the full terms.
 
+Binary distributions only:
+
 Binary distributions of this software may be linked, statically or
 otherwise, against the SDL and/or libsndfile libraries.  Both packages
 are distributed under the GNU Lesser General Public License, Version 2.1.
@@ -221,5 +223,5 @@ home pages, but also from the XRoar home page (see above for URL).
 
 See the file 'COPYING.LGPL-2.1' for the full terms.
 
-http://www.mega-nerd.com/libsndfile/	- libsndfile home page.
-http://www.libsdl.org/			- SDL home page.
+http://www.mega-nerd.com/libsndfile/    - libsndfile home page.
+http://www.libsdl.org/                  - SDL home page.
