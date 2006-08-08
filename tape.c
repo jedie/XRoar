@@ -277,6 +277,7 @@ void tape_update_output(void) {
 	}
 }
 
+#ifndef HAVE_GP32
 void tape_update_input(void) {
 #ifdef HAVE_SNDFILE
 	short sample;
@@ -289,6 +290,7 @@ void tape_update_input(void) {
 		PIA_1A.port_input &= ~0x01;
 #endif
 }
+#endif
 
 static int bit_in(void) {
 	static int cur_byte;

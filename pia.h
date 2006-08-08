@@ -14,6 +14,10 @@
 #include "tape.h"
 #include "vdg.h"
 
+#ifdef HAVE_GP32
+#define tape_update_input()
+#endif
+
 #define MAX_WRFUNCS 4
 
 typedef struct {

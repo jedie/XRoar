@@ -90,8 +90,12 @@ static void do_hs_fall(void) {
 	scanline_start = hs_fall_event->at_cycle;
 	beam_pos = 0;
 	PIA_RESET_P0CA1;
+#ifndef HAVE_GP32
 	hs_rise_event->at_cycle = scanline_start + VDG_HS_RISING_EDGE;
 	event_queue(hs_rise_event);
+#else
+	PIA_SET_P0CA1;
+#endif
 	hs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION;
 	/* Frame sync */
 	if (scanline == SCANLINE(VDG_VBLANK_START)) {
