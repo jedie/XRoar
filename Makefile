@@ -11,10 +11,11 @@ VERSION := 0.16
 .PHONY: all usage gp32 linux macosx solaris windows32
 
 all:
-	@case `uname -s` in \
-	 Linux) $(MAKE) linux; ;; \
-	 Darwin) $(MAKE) macosx; ;; \
-	 SunOS) $(MAKE) solaris; ;; \
+	@sndfile=""; pkg-config sndfile && sndfile="SNDFILE=1"; \
+	 case `uname -s` in \
+	 Linux) $(MAKE) $$sndfile linux; ;; \
+	 Darwin) $(MAKE) $$sndfile macosx; ;; \
+	 SunOS) $(MAKE) $$sndfile solaris; ;; \
 	 *) $(MAKE) usage; ;; \
 	 esac; \
 	 exit 0
@@ -48,7 +49,7 @@ ENABLE_JACK      :=
 ENABLE_GTK       := linux solaris
 ENABLE_CARBON    := macosx
 ENABLE_WINDOWS32 := windows32
-#ENABLE_ZLIB      := linux macosx
+ENABLE_SNDFILE   := windows32
 
 USES_UNIX_TARGET      := linux solaris macosx
 USES_GP32_TARGET      := gp32
@@ -84,9 +85,9 @@ endif
 ifdef TRACE
 	ENABLE_TRACE += $(MAKECMDGOALS)
 endif
-#ifdef ZLIB
-#	ENABLE_ZLIB += $(MAKECMDGOALS)
-#endif
+ifdef SNDFILE
+	ENABLE_SNDFILE += $(MAKECMDGOALS)
+endif
 
 COMMON_OBJS := xroar.o snapshot.o tape.o hexs19.o machine.o m6809.o \
 		sam.o pia.o wd2797.o vdg.o video.o sound.o filereq.o \
@@ -154,8 +155,8 @@ OBJS_TRACE = m6809_dasm.o
 ALL_OBJS += $(OBJS_TRACE)
 CFLAGS_TRACE = -DTRACE
 
-#CFLAGS_ZLIB = -DHAVE_ZLIB
-#LDFLAGS_ZLIB = -lz
+CFLAGS_SNDFILE = -DHAVE_SNDFILE $(shell $(PKG_CONFIG) --cflags sndfile)
+LDFLAGS_SNDFILE = $(shell $(PKG_CONFIG) --libs sndfile)
 
 ROMPATH = :~/.xroar/roms:$(prefix)/share/xroar/roms
 windows32: ROMPATH = .
@@ -241,6 +242,12 @@ $(ENABLE_TRACE): CFLAGS  += $(CFLAGS_TRACE)
 $(ENABLE_TRACE): LDFLAGS += $(LDFLAGS_TRACE)
 $(ENABLE_TRACE): $(OBJS_TRACE)
 
+# Enable use of libsndfile for these targets:
+$(ENABLE_SNDFILE): OBJS    += $(OBJS_SNDFILE)
+$(ENABLE_SNDFILE): CFLAGS  += $(CFLAGS_SNDFILE)
+$(ENABLE_SNDFILE): LDFLAGS += $(LDFLAGS_SNDFILE)
+$(ENABLE_SNDFILE): $(OBJS_SNDFILE)
+
 # Target-specific objects:
 OBJS_UNIX := fs_unix.o main_unix.o
 ALL_OBJS += $(OBJS_UNIX)
@@ -271,6 +278,7 @@ HOSTCC = gcc
 CC = $(TOOL_PREFIX)gcc
 AS = $(TOOL_PREFIX)as
 OBJCOPY = $(TOOL_PREFIX)objcopy
+PKG_CONFIG = $(TOOL_PREFIX)pkg-config
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -324,16 +332,18 @@ dist:
 
 dist-gp32: gp32
 	mkdir $(DISTNAME)-gp32
-	cp COPYING ChangeLog README TODO xroar.fxe $(DISTNAME)-gp32/
+	cp COPYING.GPL ChangeLog README TODO xroar.fxe $(DISTNAME)-gp32/
 	rm -f ../$(DISTNAME)-gp32.zip
 	zip -r ../$(DISTNAME)-gp32.zip $(DISTNAME)-gp32
 	rm -rf $(DISTNAME)-gp32/
 
 dist-windows32: windows32
 	mkdir $(DISTNAME)-windows32
-	cp COPYING ChangeLog README TODO xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll $(DISTNAME)-windows32/
+	cp COPYING.GPL ChangeLog README TODO xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
+	cp COPYING.LGPL-2.1 $(DISTNAME)-windows32/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/xroar.exe
 	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/SDL.dll
+	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/libsndfile-1.dll
 	rm -f ../$(DISTNAME)-windows32.zip
 	zip -r ../$(DISTNAME)-windows32.zip $(DISTNAME)-windows32
 	rm -rf $(DISTNAME)-windows32/
@@ -344,11 +354,15 @@ dist-macosx dist-macos: macosx
 	cp xroar XRoar-$(VERSION)/XRoar.app/Contents/MacOS/
 	cp /usr/local/lib/libSDL-1.2.0.dylib XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/
 	install_name_tool -change /usr/local/lib/libSDL-1.2.0.dylib @executable_path/../Frameworks/libSDL-1.2.0.dylib XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar
+	cp /usr/local/lib/libsndfile.1.dylib XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/
+	install_name_tool -change /usr/local/lib/libsndfile.1.dylib @executable_path/../Frameworks/libsndfile.1.dylib XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar
 	strip XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar
 	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libSDL-1.2.0.dylib
+	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libsndfile.1.dylib
 	sed -e "s!@VERSION@!$(VERSION)!g" macos/Info.plist.in > XRoar-$(VERSION)/XRoar.app/Contents/Info.plist
 	cp macos/xroar.icns XRoar-$(VERSION)/XRoar.app/Contents/Resources/
-	cp README COPYING ChangeLog TODO XRoar-$(VERSION)/
+	cp README COPYING.GPL ChangeLog TODO XRoar-$(VERSION)/
+	cp COPYING.LGPL-2.1 XRoar-$(VERSION)/COPYING.LGPL-2.1
 	chmod -R o+rX,g+rX XRoar-$(VERSION)/
 	hdiutil create -srcfolder XRoar-$(VERSION) -uid 99 -gid 99 ../XRoar-$(VERSION).dmg
 	rm -rf XRoar-$(VERSION)/

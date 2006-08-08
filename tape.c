@@ -17,6 +17,10 @@
  */
 
 #include <string.h>
+#ifdef HAVE_SNDFILE
+#include <stdlib.h>
+#include <sndfile.h>
+#endif
 
 #include "types.h"
 #include "events.h"
@@ -33,11 +37,24 @@ static void waggle_bit(void);
 static event_t *waggle_event;
 
 /* For reading */
+static int input_type;
 static int fake_leader;
 static int bytes_remaining = 0;
 static int bits_remaining = 0;
 static uint8_t read_buf[512];
 static uint8_t *read_buf_ptr;
+/* WAV input support */
+#ifdef HAVE_SNDFILE
+static SNDFILE *wav_read_file;
+static int wav_samples_remaining;
+#define SF_BUF_LENGTH (512)
+static short *wav_read_buf = NULL;
+static short *wav_read_ptr;
+static Cycle wav_last_sample_cycle;
+static int wav_sample_rate;
+static int wav_channels;
+#define SAMPLE_CYCLES ((Cycle)(OSCILLATOR_RATE / wav_sample_rate))
+#endif
 
 /* For writing */
 static int have_bytes = 0;
@@ -55,7 +72,15 @@ static void bit_out(int);
 static void byte_out(int);
 static void buffer_out(void);
 
+#ifdef HAVE_SNDFILE
+static void wav_buffer_in(void);
+static short wav_sample_in(void);
+#endif
+
 void tape_init(void) {
+#ifdef HAVE_SNDFILE
+	wav_read_file = NULL;
+#endif
 	read_fd = write_fd = -1;
 	read_buf_ptr = read_buf;
 	bits_remaining = bytes_remaining = 0;
@@ -67,8 +92,8 @@ void tape_init(void) {
 }
 
 void tape_reset(void) {
-	if (read_fd != -1) tape_close_reading();
-	if (write_fd != -1) tape_close_writing();
+	tape_close_reading();
+	tape_close_writing();
 	motor = 0;
 	event_dequeue(waggle_event);
 }
@@ -78,16 +103,44 @@ void tape_shutdown(void) {
 }
 
 int tape_open_reading(char *filename) {
+#ifdef HAVE_SNDFILE
+	SF_INFO info;
+#endif
 	tape_close_reading();
-	if ((read_fd = fs_open(filename, FS_READ)) == -1)
-		return -1;
-	bits_remaining = bytes_remaining = 0;
+	input_type = xroar_filetype_by_ext(filename);
+	switch (input_type) {
+	case FILETYPE_CAS:
+		if ((read_fd = fs_open(filename, FS_READ)) == -1)
+			return -1;
+		bits_remaining = bytes_remaining = 0;
+		LOG_DEBUG(2,"Attached virtual cassette %s\n", filename);
+		break;
+#ifdef HAVE_SNDFILE
+	default:
+		info.format = 0;
+		wav_read_file = sf_open(filename, SFM_READ, &info);
+		wav_channels = info.channels;
+		wav_sample_rate = info.samplerate;
+		if (wav_read_buf != NULL)
+			free(wav_read_buf);
+		wav_read_buf = malloc(SF_BUF_LENGTH * sizeof(short) * wav_channels);
+		wav_samples_remaining = 0;
+		LOG_DEBUG(2,"Attached audio file %s\n\t%dHz, %d channel%s\n", filename, wav_sample_rate, wav_channels, (wav_channels==1)?"":"s");
+		break;
+#endif
+	}
 	return 0;
 }
 
 void tape_close_reading(void) {
 	if (read_fd != -1)
 		fs_close(read_fd);
+#ifdef HAVE_SNDFILE
+	if (wav_read_file) {
+		sf_close(wav_read_file);
+		wav_read_file = NULL;
+	}
+#endif
 	read_fd = -1;
 }
 
@@ -177,12 +230,24 @@ int tape_autorun(char *filename) {
 void tape_update_motor(void) {
 	if ((PIA_1A.control_register & 0x08) != motor) {
 		motor = PIA_1A.control_register & 0x08;
-		if (motor && read_fd != -1) {
-			/* If motor turned on and tape file attached, enable
-			 * the tape input bit waggler */
-			fake_leader = 64;  /* Insert some faked leader bytes */
-			waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-			event_queue(waggle_event);
+		if (motor) {
+			switch (input_type) {
+			case FILETYPE_CAS:
+				if (read_fd != -1) {
+					/* If motor turned on and tape file
+					 * attached, enable the tape input bit
+					 * waggler */
+					fake_leader = 64;
+					waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
+					event_queue(waggle_event);
+				}
+				break;
+			default:
+#ifdef HAVE_SNDFILE
+				wav_last_sample_cycle = current_cycle;
+#endif
+				break;
+			}
 		} else {
 			event_dequeue(waggle_event);
 		}
@@ -210,6 +275,19 @@ void tape_update_output(void) {
 			bit_out(0);
 		}
 	}
+}
+
+void tape_update_input(void) {
+#ifdef HAVE_SNDFILE
+	short sample;
+	if (!motor || input_type == FILETYPE_CAS)
+		return;
+	sample = wav_sample_in();
+	if (sample > 0)
+		PIA_1A.port_input |= 0x01;
+	else
+		PIA_1A.port_input &= ~0x01;
+#endif
 }
 
 static int bit_in(void) {
@@ -304,3 +382,34 @@ static void buffer_out(void) {
 	have_bytes = 0;
 	write_buf_ptr = write_buf;
 }
+
+#ifdef HAVE_SNDFILE
+static void wav_buffer_in(void) {
+	wav_read_ptr = wav_read_buf;
+	wav_samples_remaining = 0;
+	if (wav_read_file == NULL || wav_read_buf == NULL)
+		return;
+	wav_samples_remaining = sf_read_short(wav_read_file, wav_read_buf, SF_BUF_LENGTH);
+	if (wav_samples_remaining < SF_BUF_LENGTH)
+		tape_close_reading();
+}
+
+static short wav_sample_in(void) {
+	Cycle elapsed_cycles;
+	elapsed_cycles = current_cycle - wav_last_sample_cycle;
+	while (elapsed_cycles >= SAMPLE_CYCLES) {
+		wav_read_ptr++;
+		if (wav_samples_remaining == 0) {
+			wav_buffer_in();
+			if (wav_samples_remaining <= 0) 
+				return 0;
+		}
+		wav_last_sample_cycle += SAMPLE_CYCLES;
+		wav_samples_remaining--;
+		elapsed_cycles -= SAMPLE_CYCLES;
+	}
+	if (wav_read_ptr == NULL)
+		return 0;
+	return *wav_read_ptr;
+}
+#endif

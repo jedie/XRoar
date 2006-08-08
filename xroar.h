@@ -11,6 +11,16 @@
 #define RESET_SOFT 0
 #define RESET_HARD 1
 
+#define FILETYPE_UNKNOWN (0)
+#define FILETYPE_VDK (1)
+#define FILETYPE_JVC (2)
+#define FILETYPE_DMK (3)
+#define FILETYPE_BIN (4)
+#define FILETYPE_HEX (5)
+#define FILETYPE_CAS (6)
+#define FILETYPE_WAV (7)
+#define FILETYPE_SNA (8)
+
 extern Cycle current_cycle;
 
 #ifdef TRACE
@@ -25,5 +35,6 @@ void xroar_getargs(int argc, char **argv);
 void xroar_init(void);
 void xroar_shutdown(void);
 void xroar_mainloop(void);
+int xroar_filetype_by_ext(const char *filename);
 
 #endif  /* __XROAR_H__ */

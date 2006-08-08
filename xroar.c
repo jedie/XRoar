@@ -46,6 +46,22 @@ int trace = 0;
 
 static char *snapshot_load = NULL;
 
+static struct {
+	const char *ext;
+	int filetype;
+} filetypes[] = {
+	{ "VDK", FILETYPE_VDK },
+	{ "JVC", FILETYPE_JVC },
+	{ "DSK", FILETYPE_JVC },
+	{ "DMK", FILETYPE_DMK },
+	{ "BIN", FILETYPE_BIN },
+	{ "HEX", FILETYPE_HEX },
+	{ "CAS", FILETYPE_CAS },
+	{ "WAV", FILETYPE_WAV },
+	{ "SN",  FILETYPE_SNA },
+	{ NULL, FILETYPE_UNKNOWN }
+};
+
 static void xroar_helptext(void) {
 	printf("  -snap FILENAME        load snapshot after initialising\n");
 	printf("  -h                    display this help and exit\n");
@@ -124,4 +140,18 @@ void xroar_mainloop(void) {
 			DISPATCH_NEXT_EVENT;
 		m6809_cycle(event_list->at_cycle);
 	}
+}
+
+int xroar_filetype_by_ext(const char *filename) {
+	char *ext;
+	int i;
+	ext = strrchr(filename, '.');
+	if (ext == NULL)
+		return FILETYPE_UNKNOWN;
+	ext++;
+	for (i = 0; filetypes[i].ext; i++) {
+		if (!strncasecmp(ext, filetypes[i].ext, strlen(ext)))
+			return filetypes[i].filetype;
+	}
+	return FILETYPE_UNKNOWN;
 }

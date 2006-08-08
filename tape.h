@@ -21,5 +21,6 @@ int tape_autorun(char *filename);
 
 void tape_update_motor(void);
 void tape_update_output(void);
+void tape_update_input(void);
 
 #endif  /* __TAPE_H__ */

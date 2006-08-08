@@ -180,6 +180,9 @@ you'll *have* to download the version there, because the original
 required a dongle to be inserted, and obviously I don't emulate that.
 Please note that site's usage requirements, and don't abuse the archive.
 
+If libsndfile is detected while building, XRoar will use it to support
+cassette loading from audio files.
+
 
 SNAPSHOTS
 
@@ -215,4 +218,15 @@ You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-See the file 'COPYING' for the full terms.
+See the file 'COPYING.GPL' for the full terms.
+
+Binary distributions of this software may be linked, statically or
+otherwise, against the SDL and/or libsndfile libraries.  Both packages
+are distributed under the GNU Lesser General Public License, Version 2.1.
+Source code for these libraries is made available from their respective
+home pages, but also from the XRoar home page (see above for URL).
+
+See the file 'COPYING.LGPL-2.1' for the full terms.
+
+http://www.mega-nerd.com/libsndfile/	- libsndfile home page.
+http://www.libsdl.org/			- SDL home page.

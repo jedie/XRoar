@@ -118,7 +118,7 @@ extern pia_port PIA_0A, PIA_0B, PIA_1A, PIA_1B;
 
 #define PIA_READ_P0DA(r) PIA_READ(PIA_0A, irq, 1, r)
 #define PIA_READ_P0DB(r) PIA_READ(PIA_0B, irq, 2, r)
-#define PIA_READ_P1DA(r) PIA_READ(PIA_1A, firq, 1, r)
+#define PIA_READ_P1DA(r) do { tape_update_input(); PIA_READ(PIA_1A, firq, 1, r); } while (0)
 #define PIA_READ_P1DB(r) PIA_READ(PIA_1B, firq, 2, r)
 
 #define PIA_WRITE(p,v) do { \
