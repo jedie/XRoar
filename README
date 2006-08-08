@@ -195,13 +195,6 @@ cassette images or virtual disks, but if you have a Unix-like box,
 you'll probably want to generate snapshots for your own convenience.
 
 
-BUGS
-
-Sub-line graphics mode changing now works, but shows up some slight
-timing flaws.  Nifty effects in Rommel's Revenge or Dragonfire, for
-example, will not be accurately represented.
-
-
 COPYING
 
 This program is free software; you can redistribute it and/or modify it
