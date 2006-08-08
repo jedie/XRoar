@@ -1,3 +1,16 @@
+Changed from v0.15 to v0.16
+ * Added -ram option.
+ * CRC16 fixes.
+ * RSDOS fixes.
+ * Video timing code updated.
+ * Added -pal and -ntsc options.
+ * Fixed 16-byte video modes.
+ * Fixed keyboard translation for Windows.
+ * Support an illegal indexed addressing mode accidentally used by the first
+   release of Glove.
+ * Support using audio files for cassette input.
+ * GP32 speed hacks (still not perfect).
+
 Changed from v0.14 to v0.15
  * All registers now local to 6809 core main loop.
  * New indexed addressing code should be faster.
