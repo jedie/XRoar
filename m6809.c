@@ -187,6 +187,8 @@ static int nmi_armed;
 #define EA_RD2(b,r) case (b): r -= 2; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(3)
 #define EA_PCOFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + reg_pc; TAKEN_CYCLES(1)
 #define EA_PCOFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += reg_pc; peek_byte(reg_pc); TAKEN_CYCLES(3)
+/* Illegal instruction, but seems to work on a real 6809: */
+#define EA_EXT case 0x8f: WORD_IMMEDIATE(0,ea); peek_byte(reg_pc); break
 #define EA_EXTIND case 0x9f: WORD_IMMEDIATE(0,ea); peek_byte(reg_pc); ea = fetch_byte(ea) << 8 | fetch_byte(ea+1); TAKEN_CYCLES(1); break
 
 #define EA_ROFF5(b,r) \
@@ -325,7 +327,7 @@ void m6809_cycle(Cycle until) {
 			EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
 			EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
 			EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
-			EA_EXTIND;
+			EA_EXT; EA_EXTIND;
 			default: ea = 0; break;
 		}
 		return ea;
