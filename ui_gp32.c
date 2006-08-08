@@ -76,12 +76,11 @@ const char *ram_opts[] = { "Auto", "4K", "16K", "32K", "64K" };
 const char *onoff_opts[] = { "Disabled", "Enabled" };
 const char *reset_opts[] = { "Soft", "Hard" };
 
-static void snapshot_load_callback(unsigned int);
+static void load_file_callback(unsigned int);
 static void snapshot_save_callback(unsigned int);
 static void tape_callback(unsigned int);
 static void disk_callback(unsigned int);
 static void cart_callback(unsigned int);
-static void binhex_callback(unsigned int);
 static void artifact_callback(unsigned int);
 static void machine_callback(unsigned int);
 static void keymap_callback(unsigned int);
@@ -92,12 +91,11 @@ static void reset_callback(unsigned int);
 static void do_hard_reset(unsigned int);
 
 static Menu main_menu[] = {
-	{ "Load snapshot...", NULL, 0, 0, NULL, snapshot_load_callback, NULL },
+	{ "Load file...", NULL, 0, 0, NULL, load_file_callback, NULL },
 	{ "Save snapshot...", NULL, 0, 0, NULL, snapshot_save_callback, NULL },
 	{ "Insert tape...", NULL, 0, 2, tape_opts, tape_callback, NULL },
 	{ "Insert disk...", NULL, 0, 4, disk_opts, disk_callback, NULL },
 	{ "Cartridge:", NULL, 0, 2, cart_opts, cart_callback, NULL },
-	{ "Insert binary/hex record...", NULL, 0, 0, NULL, binhex_callback, NULL },
 	{ "Hi-res artifacts", &video_artifact_mode, 0, 3, artifact_opts, NULL, artifact_callback },
 	{ "Emulated machine", &requested_machine, 1, 5, machine_names, machine_callback, NULL },
 	{ "Keyboard layout", &requested_config.keymap, 0, 3, keymap_opts, keymap_callback, NULL },
@@ -392,15 +390,35 @@ static void set_save_basename(char *source) {
 	save_basename[tocopy] = 0;
 }
 
-static void snapshot_load_callback(unsigned int opt) {
-	const char *snap_exts[] = { "SNA", "SN0", "SN1", "SN2", "SN3", "SN4",
-		"SN5", "SN6", "SN7", "SN8", "SN9", NULL };
+static void load_file_callback(unsigned int opt) {
+	const char *exts[] = {
+		"SNA", "SN0", "SN1", "SN2", "SN3", "SN4", "SN5", "SN6",
+		"SN7", "SN8", "SN9",
+		"CAS", "BIN", "HEX",
+		"DMK", "JVC", "VDK", "DSK",
+		NULL };
 	char *filename;
+	int type;
 	(void)opt;  /* unused */
-	filename = get_filename(snap_exts);
-	if (filename) {
-		set_save_basename(filename);
-		read_snapshot(filename);
+	filename = get_filename(exts);
+	if (filename == NULL)
+		return;
+	set_save_basename(filename);
+	type = xroar_filetype_by_ext(filename);
+	switch (type) {
+		case FILETYPE_VDK: case FILETYPE_JVC:
+		case FILETYPE_DMK:
+			vdisk_load(filename, 0); break;
+		case FILETYPE_BIN:
+			coco_bin_read(filename); break;
+		case FILETYPE_HEX:
+			intel_hex_read(filename); break;
+		case FILETYPE_SNA:
+			read_snapshot(filename); break;
+		case FILETYPE_CAS:
+			tape_autorun(filename); break;
+		default:
+			break;
 	}
 }
 
@@ -461,19 +479,6 @@ static void cart_callback(unsigned int opt) {
 			cart_insert(filename, 1);
 	} else {
 		cart_remove();
-	}
-}
-
-static void binhex_callback(unsigned int opt) {
-	const char *exts[] = { "BIN", NULL };
-	char *filename;
-	(void)opt;
-	filename = get_filename(exts);
-	if (!IS_COCO)
-		notify_box("Warning: Usually for CoCo binaries");
-	if (filename) {
-		set_save_basename(filename);
-		coco_bin_read(filename);
 	}
 }
 
