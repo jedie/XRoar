@@ -150,7 +150,7 @@ int xroar_filetype_by_ext(const char *filename) {
 		return FILETYPE_UNKNOWN;
 	ext++;
 	for (i = 0; filetypes[i].ext; i++) {
-		if (!strncasecmp(ext, filetypes[i].ext, strlen(ext)))
+		if (!strncasecmp(ext, filetypes[i].ext, strlen(filetypes[i].ext)))
 			return filetypes[i].filetype;
 	}
 	return FILETYPE_UNKNOWN;

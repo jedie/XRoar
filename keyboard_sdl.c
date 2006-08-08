@@ -183,14 +183,6 @@ static void keypress(SDL_keysym *keysym) {
 				video_artifact_mode = 0;
 			vdg_set_mode();
 			break;
-		case SDLK_b:
-			{
-			const char *bin_exts[] = { "BIN", NULL };
-			char *filename = filereq->load_filename(bin_exts);
-			if (filename)
-				coco_bin_read(filename);
-			}
-			break;
 		case SDLK_c:
 			exit(0);
 			break;
@@ -200,14 +192,6 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_f:
 			if (video_module->set_fullscreen)
 				video_module->set_fullscreen(!video_module->is_fullscreen);
-			break;
-		case SDLK_h:
-			{
-			const char *hex_exts[] = { "HEX", NULL };
-			char *filename = filereq->load_filename(hex_exts);
-			if (filename)
-				intel_hex_read(filename);
-			}
 			break;
 		case SDLK_i:
 			{
@@ -227,12 +211,34 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_k:
 			machine_set_keymap(running_config.keymap + 1);
 			break;
+		case SDLK_b:
+		case SDLK_h:
 		case SDLK_l:
+		case SDLK_t:
 			{
-			const char *snap_exts[] = { "SNA", NULL };
-			char *filename = filereq->load_filename(snap_exts);
-			if (filename)
-				read_snapshot(filename);
+			char *filename;
+			int type;
+			filename = filereq->load_filename(NULL);
+			if (filename == NULL)
+				break;
+			type = xroar_filetype_by_ext(filename);
+			switch (type) {
+			case FILETYPE_VDK: case FILETYPE_JVC:
+			case FILETYPE_DMK:
+				vdisk_load(filename, 0); break;
+			case FILETYPE_BIN:
+				coco_bin_read(filename); break;
+			case FILETYPE_HEX:
+				intel_hex_read(filename); break;
+			case FILETYPE_SNA:
+				read_snapshot(filename); break;
+			case FILETYPE_CAS: default:
+				if (shift)
+					tape_autorun(filename);
+				else
+					tape_open_reading(filename);
+				break;
+			}
 			}
 			break;
 		case SDLK_m:
@@ -254,18 +260,6 @@ static void keypress(SDL_keysym *keysym) {
 				write_snapshot(filename);
 			}
 			break;
-		case SDLK_t:
-			{
-			const char *tape_exts[] = { "CAS", NULL };
-			char *filename = filereq->load_filename(tape_exts);
-			if (filename) {
-				if (shift)
-					tape_autorun(filename);
-				else
-					tape_open_reading(filename);
-			}
-			break;
-			}
 		case SDLK_w:
 			{
 			const char *tape_exts[] = { "CAS", NULL };

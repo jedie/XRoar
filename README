@@ -111,23 +111,38 @@ UNIX CONTROLS
 Full keyboard support plus:
 Ctrl+[1-4] .... Insert a virtual disk into drive 1-4.
 Ctrl+A ........ Cycle through artifacted video modes (hi-res only).
-Ctrl+B ........ Load CoCo ".bin" binary file.
 Ctrl+C ........ Quit emulator.
 Ctrl+E ........ Toggle DOS emulation on/off - reset to take effect.
-Ctrl+H ........ Load ".hex" Intel HEX-record.
 Ctrl+I ........ Insert a cartridge.
 Ctrl+Shift+I .. Insert a cartridge, no autorun.
 Ctrl+J ........ Cycle through joystick emulation modes (None, Left, Right).
 Ctrl+K ........ Toggle between Dragon and CoCo keyboard layout.
-Ctrl+L ........ Load a snapshot.
+Ctrl+L ........ Load a file (see below).
 Ctrl+M ........ Toggle between Dragon and CoCo emulation (resets machine).
 Ctrl+R ........ Soft reset.
 Ctrl+Shift+R .. Hard reset.
 Ctrl+S ........ Save a snapshot.
-Ctrl+T ........ Insert ".cas" virtual cassette.
-Ctrl+Shift+T .. Insert virtual cassette and autoload first program.
 Ctrl+W ........ Attach a virtual cassette file for writing.
-Ctrl+Z ........ Enable keyboard translation mode.
+Ctrl+Z ........ Enable keyboard translation mode (see below).
+
+Loading a file with Ctrl+L autodetects the file type by extension, and
+acts accordingly:
+
+ * Disk files (".vdk", ".jvc", ".dsk") are inserted into drive 1.
+ * Virtual cassettes (".cas") are attached.  If shift is also pressed,
+   XRoar will attempt to autodetect their type and insert the appropriate
+   load command ("CLOAD" or "CLOADM:EXEC") into the keypress buffer.
+ * Hex records (".hex") will be loaded into memory.
+ * CoCo binaries (".bin") will be loaded into memory and started from their
+   EXEC address.
+ * Snapshots (".sna") will continue from when they were saved.
+ * Unrecognised filetypes are assumed to be audio files, and if XRoar
+   is built with libsndfile, it will attempt to use them for cassette
+   input.
+
+Individual key bindings used for loading each type of file in previous
+versions of XRoar have been kept for the moment as synonyms for Ctrl+L,
+but this is deprecated and may be removed in future.
 
 In translation mode, characters typed on the host keyboard are translated
 into the correct keypresses required on the emulated machine to achieve
