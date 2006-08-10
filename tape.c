@@ -121,8 +121,14 @@ int tape_open_reading(char *filename) {
 		wav_read_file = sf_open(filename, SFM_READ, &info);
 		wav_channels = info.channels;
 		wav_sample_rate = info.samplerate;
-		if (wav_read_buf != NULL)
+		if (wav_read_buf != NULL) {
 			free(wav_read_buf);
+			wav_read_buf = NULL;
+		}
+		if (wav_sample_rate == 0) {
+			tape_close_reading();
+			return -1;
+		}
 		wav_read_buf = malloc(SF_BUF_LENGTH * sizeof(short) * wav_channels);
 		wav_samples_remaining = 0;
 		LOG_DEBUG(2,"Attached audio file %s\n\t%dHz, %d channel%s\n", filename, wav_sample_rate, wav_channels, (wav_channels==1)?"":"s");
@@ -233,7 +239,7 @@ void tape_update_motor(void) {
 		if (motor) {
 			switch (input_type) {
 			case FILETYPE_CAS:
-				if (read_fd != -1) {
+				if (bytes_remaining > 0 || read_fd != -1) {
 					/* If motor turned on and tape file
 					 * attached, enable the tape input bit
 					 * waggler */
@@ -398,6 +404,8 @@ static void wav_buffer_in(void) {
 
 static short wav_sample_in(void) {
 	Cycle elapsed_cycles;
+	if (wav_sample_rate == 0)
+		return 0;
 	elapsed_cycles = current_cycle - wav_last_sample_cycle;
 	while (elapsed_cycles >= SAMPLE_CYCLES) {
 		wav_read_ptr++;
