@@ -65,7 +65,8 @@ differently (and given that Microsoft wrote the BASIC ROM, it's quite
 likely they do), so I don't feel comfortable offering them up myself.
 
 If you want to use the virtual disk support, you will also need a DOS
-firmware ROM.  Only the WD2797-based DragonDOS controllers are emulated.
+firmware ROM.  The WD2797-based DragonDOS controllers or the WD1773-based
+RSDOS controller is emulated, depending on which machine is selected.
 
 Firmware ROMs can be either raw (".rom") or PC Dragon style (".dgn").
 The base names to use for these files are:
@@ -85,23 +86,26 @@ On the GP32, firmware ROMs must be in gp:/gpmm/dragon/.  For other builds,
 they should either be in the current working directory (only option for
 Windows32) when running the emulator, or in one of these directories:
 
-Mac OS X        ~/.xroar/roms or Library/XRoar/Roms (System or user directory)
+Mac OS X        ~/.xroar/roms or ~/Library/XRoar/Roms
 Other Unix      ~/.xroar/roms or /usr/local/share/xroar/roms
 
 
 COMMAND LINE SWITCHES
 
-  -machine MACHINE      emulated machine [dragon32|dragon64|tano|coco]
+  -machine MACHINE      emulated machine [dragon32|dragon64|tano|coco|cocous]
   -bas FILENAME         specify BASIC ROM to use (CoCo only)
   -extbas FILENAME      specify Extended BASIC ROM to use
+  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)
   -noextbas             disable Extended BASIC
   -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)
   -nodos                disable DOS (ROM and hardware emulation)
+  -pal                  emulate PAL (50Hz) video
+  -ntsc                 emulate NTSC (60Hz) video
+  -ram KBYTES           specify amount of RAM in K
   -cart FILENAME        specify ROM to load into cartridge area ($C000-)
   -vo MODULE            specify video module (-vo help for a list)
   -fs                   request initial full-screen mode
   -ao MODULE            specify audio module (-ao help for a list)
-  -ui MODULE            specify user-interface module (-ui help for a list)
   -snap FILENAME        load snapshot after initialising
   -h                    display this help and exit
 
@@ -206,8 +210,8 @@ used in other emulators.  I may support them in future, but the file
 format looks pretty horrible.  This snapshot format is subject to change,
 but a snapshot made in this release may well work fine in later ones.
 At the moment, the most reliable way of loading programs is to use
-cassette images or virtual disks, but if you have a Unix-like box,
-you'll probably want to generate snapshots for your own convenience.
+cassette images or virtual disks, but you'll probably want to generate
+snapshots for your own convenience.
 
 
 COPYING
