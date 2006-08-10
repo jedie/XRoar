@@ -59,7 +59,7 @@ static Cycle frame_cycle_base;
 static Sample *buffer;
 static Sample *wrptr;
 static Sample lastsample;
-static uint8_t *convbuf;
+static int8_t *convbuf;
 
 static void flush_frame(void);
 static event_t *flush_event;
@@ -167,7 +167,7 @@ static void update(void) {
 }
 
 static void flush_frame(void) {
-	uint8_t *source = buffer;
+	int8_t *source = buffer;
 	Sample *fill_to = buffer + FRAME_SIZE;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;

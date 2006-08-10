@@ -331,7 +331,7 @@ static void buffer_in(void) {
 	bytes_remaining = 0;
 	if (read_fd != -1) {
 		bytes_remaining = fs_read(read_fd, read_buf, sizeof(read_buf));
-		if (bytes_remaining < sizeof(read_buf))
+		if (bytes_remaining < (int)sizeof(read_buf))
 			tape_close_reading();
 	}
 }
@@ -378,7 +378,7 @@ static void bit_out(int value) {
 static void byte_out(int value) {
 	*(write_buf_ptr++) = value;
 	have_bytes++;
-	if (have_bytes < sizeof(write_buf))
+	if (have_bytes < (int)sizeof(write_buf))
 		return;
 	buffer_out();
 }

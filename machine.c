@@ -54,8 +54,8 @@ MachineConfig requested_config = {
 int running_machine;
 MachineConfig running_config;
 
-unsigned int machine_page0_ram = 0x8000;  /* Base RAM in bytes, up to 32K */
-unsigned int machine_page1_ram = 0x8000;  /* Generally 0 or 32K */
+uint_least16_t machine_page0_ram = 0x8000;  /* Base RAM in bytes, up to 32K */
+uint_least16_t machine_page1_ram = 0x8000;  /* Generally 0 or 32K */
 Keymap keymap;
 uint8_t ram0[0x8000];
 uint8_t ram1[0x8000];

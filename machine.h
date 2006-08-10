@@ -81,8 +81,8 @@ extern int running_machine;
 extern MachineConfig requested_config;
 extern MachineConfig running_config;
 
-extern unsigned int machine_page0_ram;  /* Base RAM in bytes, up to 32K */
-extern unsigned int machine_page1_ram;  /* Generally 0 or 32K */
+extern uint_least16_t machine_page0_ram;  /* Base RAM in bytes, up to 32K */
+extern uint_least16_t machine_page1_ram;  /* Generally 0 or 32K */
 extern Keymap keymap;
 extern uint8_t ram0[0x8000];
 extern uint8_t ram1[0x8000];
