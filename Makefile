@@ -6,7 +6,7 @@ libdir = $(exec_prefix)/lib
 mandir = $(prefix)/man
 datadir = $(prefix)/share
 
-VERSION := 0.16
+VERSION := 0.17
 
 .PHONY: all usage gp32 linux macosx solaris windows32
 
