@@ -214,6 +214,7 @@ void sam_update_from_register(void) {
 		/* Map type 1 */
 		sam_page1 = 0;
 		addrptr_low = ram0;
+		addrptr_high = ram1;
 #ifndef HAVE_GP32
 		sam_topaddr_cycles = CPU_SLOW_DIVISOR;
 #endif
@@ -224,6 +225,7 @@ void sam_update_from_register(void) {
 		} else {
 			addrptr_low = ram0;
 		}
+		addrptr_high = rom0;
 #ifndef HAVE_GP32
 		sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
 #endif
