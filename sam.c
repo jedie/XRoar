@@ -32,7 +32,6 @@
 uint8_t *addrptr_low;
 uint8_t *addrptr_high;
 static uint_least16_t map_type;
-uint_least16_t sam_page1;
 
 uint_least16_t sam_register;
 
@@ -212,7 +211,6 @@ void sam_update_from_register(void) {
 	sam_vdg_mod_clear = vdg_mod_clear[sam_vdg_mode];
 	if ((map_type = sam_register & 0x8000)) {
 		/* Map type 1 */
-		sam_page1 = 0;
 		addrptr_low = ram0;
 		addrptr_high = ram1;
 #ifndef HAVE_GP32
@@ -220,9 +218,11 @@ void sam_update_from_register(void) {
 #endif
 	} else {
 		/* Map type 0 */
-		if ((sam_page1 = sam_register & 0x0400)) {
+		if (sam_register & 0x0400) {
+			/* Page #1 */
 			addrptr_low = ram1;
 		} else {
+			/* Page #0 */
 			addrptr_low = ram0;
 		}
 		addrptr_high = rom0;
