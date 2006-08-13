@@ -453,7 +453,7 @@ static void tape_callback(unsigned int opt) {
 	if (filename) {
 		set_save_basename(filename);
 		if (opt == 0) {
-			if (tape_autorun(filename) > 0) {
+			if (tape_autorun(filename) < 0) {
 				notify_box("COULD NOT DETECT PROGRAM TYPE");
 			}
 		} else {

@@ -219,13 +219,10 @@ int tape_autorun(char *filename) {
 	switch (type) {
 		/* BASIC programs don't autorun yet */
 		case 0: keyboard_queue_string("CLOAD\r");
-			return 0;
 			break;
 		case 2: keyboard_queue_string("CLOADM:EXEC\r");
-			return 0;
 			break;
 		default:
-			return 1;
 			break;
 	}
 	return type;
