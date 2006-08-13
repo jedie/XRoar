@@ -28,7 +28,6 @@
 
 static int init(void);
 static void shutdown(void);
-static void vdg_reset(void);
 static void vdg_vsync(void);
 static void vdg_set_mode(unsigned int mode);
 static void vdg_render_sg4(void);
@@ -46,7 +45,7 @@ VideoModule video_gp32_module = {
 	"GP32 video driver",
 	init, shutdown,
 	NULL, NULL, 0,
-	vdg_reset, vdg_vsync, vdg_set_mode,
+	vdg_vsync, vdg_set_mode,
 	vdg_render_sg4, vdg_render_sg4 /* 6 */, vdg_render_cg1,
 	vdg_render_rg1, vdg_render_cg2, vdg_render_rg6,
 	NULL
@@ -102,11 +101,6 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-}
-
-static void vdg_reset(void) {
-	pixel = (uint32_t *)gp_screen.ptbuffer + 58;
-	subline = 0;
 }
 
 static void vdg_vsync(void) {

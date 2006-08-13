@@ -15,7 +15,6 @@ struct VideoModule {
 	void (*resize)(unsigned int w, unsigned int h);
 	int (*set_fullscreen)(int fullscreen);
 	int is_fullscreen;
-	void (*vdg_reset)(void);
 	void (*vdg_vsync)(void);
 	void (*vdg_set_mode)(unsigned int mode);
 	void (*vdg_render_sg4)(void);

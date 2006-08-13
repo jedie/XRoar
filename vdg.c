@@ -57,7 +57,7 @@ void vdg_init(void) {
 }
 
 void vdg_reset(void) {
-	video_module->vdg_reset();
+	video_module->vdg_vsync();
 	scanline = 0;
 	scanline_start = current_cycle;
 	hs_fall_event->at_cycle = current_cycle + VDG_LINE_DURATION;

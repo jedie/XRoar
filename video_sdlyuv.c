@@ -33,7 +33,6 @@ static int init(void);
 static void shutdown(void);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
-static void reset(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
 static void render_sg4(void);
@@ -53,7 +52,7 @@ VideoModule video_sdlyuv_module = {
 	"SDL YUV overlay, hopefully uses Xv acceleration",
 	init, shutdown,
 	resize, set_fullscreen, 0,
-	reset, vsync, set_mode,
+	vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
 	render_rg1, render_cg2, render_rg6,
 	render_border
@@ -164,11 +163,6 @@ static int set_fullscreen(int fullscreen) {
 		SDL_ShowCursor(SDL_ENABLE);
 	video_sdlyuv_module.is_fullscreen = fullscreen;
 	return 0;
-}
-
-static void reset(void) {
-	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
-	subline = 0;
 }
 
 static void vsync(void) {

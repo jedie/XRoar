@@ -141,6 +141,5 @@ void video_next(void) {
 		selected_module = 0;
 	if (video_init())
 		exit(1);
-	video_module->vdg_reset();
 	vdg_reset();
 }
