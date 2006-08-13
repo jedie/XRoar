@@ -113,6 +113,11 @@ int tape_open_reading(char *filename) {
 		if ((read_fd = fs_open(filename, FS_READ)) == -1)
 			return -1;
 		bits_remaining = bytes_remaining = 0;
+		/* If motor is on, enable the bit waggler */
+		if (motor) {
+			waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
+			event_queue(waggle_event);
+		}
 		LOG_DEBUG(2,"Attached virtual cassette %s\n", filename);
 		break;
 #ifdef HAVE_SNDFILE
@@ -181,9 +186,9 @@ int tape_autorun(char *filename) {
 	 * file on tape */
 	state = 0;
 	type = 1;  /* default to data - no autorun (if trying to) */
-	buffer_in();
-	while (read_fd != -1 && state >= 0) {
-		uint8_t b = *(read_buf_ptr++);
+	//buffer_in();
+	while ((bytes_remaining > 0 || read_fd != -1) && state >= 0) {
+		uint8_t b = byte_in();
 		switch(state) {
 			case 0:
 				if (b != 0x55) state = -1;
@@ -204,18 +209,13 @@ int tape_autorun(char *filename) {
 			default:
 				break;
 		}
-		bytes_remaining--;
-		if (bytes_remaining < 1)
-			buffer_in();
+		//bytes_remaining--;
+		//if (bytes_remaining < 1)
+			//buffer_in();
 	}
 	tape_close_reading();
 	if (tape_open_reading(filename) == -1)
 		return -1;
-	/* If motor is on, enable the bit waggler */
-	if (motor) {
-		waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-		event_queue(waggle_event);
-	}
 	switch (type) {
 		/* BASIC programs don't autorun yet */
 		case 0: keyboard_queue_string("CLOAD\r");
