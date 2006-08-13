@@ -34,6 +34,9 @@
  * length.  This should mean no changes are required that break the
  * format.  */
 
+/* Note: Setting up the correct ROM select for Dragon 64 depends on SAM
+ * register update following PIA configuration. */
+
 #define ID_REGISTER_DUMP (0)	/* deprecated */
 #define ID_RAM_PAGE0     (1)
 #define ID_PIA_REGISTERS (2)

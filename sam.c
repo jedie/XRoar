@@ -71,14 +71,7 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 	}
 	if (addr < 0xff00) {
 		current_cycle += sam_topaddr_cycles;
-		if (map_type) {
-			if ((addr-0x8000) < machine_page1_ram)
-				return ram1[addr-0x8000];
-			return 0x7e;
-		}
-		if (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))
-			return rom1[addr-0x8000];
-		return rom0[addr-0x8000];
+		return addrptr_high[addr-0x8000];
 	}
 	if (addr < 0xff20) {
 		current_cycle += CPU_SLOW_DIVISOR;
@@ -126,8 +119,9 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 		}
 		return 0x7e;
 	}
-	if (addr >= 0xffe0) { return rom0[addr-0xc000]; }
-	return 0x7f;
+	if (addr < 0xffe0)
+		return 0x7f;
+	return rom0[addr-0xc000];
 }
 
 void sam_store_byte(uint_least16_t addr, unsigned int octet) {
@@ -140,8 +134,16 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	}
 	if (addr < 0xff00) {
 		current_cycle += sam_topaddr_cycles;
-		if (map_type && (addr-0x8000) < machine_page1_ram)
-			ram1[addr-0x8000] = octet;
+		if (map_type) {
+			if (IS_DRAGON32 && machine_page1_ram == 0) {
+				ram0[addr-0x8000] = rom0[addr-0x8000];
+				return;
+			}
+			if ((addr-0x8000) < machine_page1_ram) {
+				ram1[addr-0x8000] = octet;
+				return;
+			}
+		}
 		return;
 	}
 	if (addr < 0xff20) {
@@ -169,7 +171,12 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	if (addr < 0xff40) {
 		if ((addr & 3) == 0) PIA_WRITE_P1DA(octet);
 		if ((addr & 3) == 1) PIA_WRITE_P1CA(octet);
-		if ((addr & 3) == 2) PIA_WRITE_P1DB(octet);
+		if ((addr & 3) == 2) {
+			PIA_WRITE_P1DB(octet);
+			/* Update ROM select on Dragon 64 */
+			if (IS_DRAGON64 && !map_type)
+				addrptr_high = (PIA_1B.port_output & 0x04) ? rom0 : rom1;
+		}
 		if ((addr & 3) == 3) PIA_WRITE_P1CB(octet);
 		return;
 	}
@@ -193,7 +200,9 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 		}
 		return;
 	}
-	if (addr >= 0xffc0 && addr < 0xffe0) {
+	if (addr < 0xffc0)
+		return;
+	if (addr < 0xffe0) {
 		addr -= 0xffc0;
 		if (addr & 1)
 			sam_register |= 1 << (addr>>1);
@@ -212,7 +221,10 @@ void sam_update_from_register(void) {
 	if ((map_type = sam_register & 0x8000)) {
 		/* Map type 1 */
 		addrptr_low = ram0;
-		addrptr_high = ram1;
+		if (machine_page1_ram == 0)
+			addrptr_high = ram0;
+		else
+			addrptr_high = ram1;
 #ifndef HAVE_GP32
 		sam_topaddr_cycles = CPU_SLOW_DIVISOR;
 #endif
@@ -225,7 +237,10 @@ void sam_update_from_register(void) {
 			/* Page #0 */
 			addrptr_low = ram0;
 		}
-		addrptr_high = rom0;
+		if (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))
+			addrptr_high = rom1;
+		else
+			addrptr_high = rom0;
 #ifndef HAVE_GP32
 		sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
 #endif
