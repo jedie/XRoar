@@ -34,6 +34,7 @@ int beam_pos;
 static void (*vdg_render_scanline)(void);
 static int_least16_t scanline;
 static int inhibit_mode_change;
+static int frame;
 
 static event_t *hs_fall_event, *hs_rise_event;
 static event_t *fs_fall_event, *fs_rise_event;
@@ -65,11 +66,13 @@ void vdg_reset(void) {
 	vdg_set_mode();
 	beam_pos = 0;
 	inhibit_mode_change = 0;
+	frameskip = requested_frameskip;
+	frame = 0;
 }
 
 static void do_hs_fall(void) {
 	/* Finish rendering previous scanline */
-	if (scanline >= (VDG_TOP_BORDER_START + 1)) {
+	if (frame == 0 && scanline >= (VDG_TOP_BORDER_START + 1)) {
 		if (scanline < VDG_ACTIVE_AREA_START) {
 #ifndef HAVE_GP32
 			video_module->render_border();
@@ -100,7 +103,11 @@ static void do_hs_fall(void) {
 	/* Frame sync */
 	if (scanline == SCANLINE(VDG_VBLANK_START)) {
 		sam_vdg_fsync();
-		video_module->vdg_vsync();
+		frame--;
+		if (frame < 0)
+			frame = frameskip;
+		if (frame == 0)
+			video_module->vdg_vsync();
 	}
 	/* Enable mode changes at beginning of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_START)) {
@@ -150,7 +157,7 @@ void vdg_set_mode(void) {
 	if (inhibit_mode_change)
 		return;
 #ifndef HAVE_GP32
-	if (scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
+	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
 		vdg_render_scanline();
 	}
 #endif

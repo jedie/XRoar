@@ -22,6 +22,9 @@
 #define FILETYPE_SNA (8)
 
 extern Cycle current_cycle;
+extern int requested_frameskip;
+extern int frameskip;
+extern int noratelimit;
 
 #ifdef TRACE
 extern int trace;

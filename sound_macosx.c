@@ -152,6 +152,8 @@ static void flush_frame(void) {
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(flush_event);
 	wrptr = buffer;
+	if (noratelimit)
+		return;
 	pthread_mutex_lock(&haltflag);
 	pthread_mutex_lock(&haltflag);
 	pthread_mutex_unlock(&haltflag);

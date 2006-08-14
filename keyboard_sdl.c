@@ -167,6 +167,10 @@ static void keypress(SDL_keysym *keysym) {
 		return;
 	}
 	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 1; return; }
+	if (sym == SDLK_F12) {
+		noratelimit = 1;
+		frameskip = 10;
+	}
 	if (control) {
 		switch (sym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
@@ -360,6 +364,10 @@ static void keyrelease(SDL_keysym *keysym) {
 		return;
 	}
 	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 0; return; }
+	if (sym == SDLK_F12) {
+		noratelimit = 0;
+		frameskip = requested_frameskip;
+	}
 	if (sym == SDLK_UP) { KEYBOARD_RELEASE(94); return; }
 	if (sym == SDLK_DOWN) { KEYBOARD_RELEASE(10); return; }
 	if (sym == SDLK_LEFT) { KEYBOARD_RELEASE(8); return; }

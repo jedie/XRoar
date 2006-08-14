@@ -157,11 +157,13 @@ void flush_frame(void) {
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(flush_event);
 	wrptr = buffer;
-	SDL_LockMutex(halt_mutex);
-	haltflag = 1;
-	while (haltflag)
-		SDL_CondWait(halt_cv, halt_mutex);
-	SDL_UnlockMutex(halt_mutex);
+	if (!noratelimit) {
+		SDL_LockMutex(halt_mutex);
+		haltflag = 1;
+		while (haltflag)
+			SDL_CondWait(halt_cv, halt_mutex);
+		SDL_UnlockMutex(halt_mutex);
+	}
 }
 
 static void callback(void *userdata, Uint8 *stream, int len) {

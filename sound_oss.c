@@ -175,6 +175,8 @@ static void flush_frame(void) {
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(flush_event);
 	wrptr = buffer;
+	if (noratelimit)
+		return;
 	/* Convert buffer and write to device */
 	if (format == AFMT_S8) {
 		int8_t *dest = convbuf;

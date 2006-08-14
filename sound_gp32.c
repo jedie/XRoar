@@ -119,11 +119,10 @@ static void flush_frame(void) {
 	frame_cycle_base += frame_cycles;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(flush_event);
-	//if ((rDCSRC2 >= (unsigned)buffer[1]) == writing_frame) {
-		//border_colour = 0x80;  /* TESTING */
-	//}
 	writing_frame ^= 1;
 	wrptr = buffer[writing_frame];
+	if (noratelimit)
+		return;
 	while ((rDCSRC2 >= (unsigned)buffer[1]) == writing_frame);
 }
 

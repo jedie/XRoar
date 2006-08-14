@@ -102,6 +102,7 @@ COMMAND LINE SWITCHES
   -pal                  emulate PAL (50Hz) video
   -ntsc                 emulate NTSC (60Hz) video
   -ram KBYTES           specify amount of RAM in K
+  -fskip FRAMES         specify frameskip (default: 0)
   -cart FILENAME        specify ROM to load into cartridge area ($C000-)
   -vo MODULE            specify video module (-vo help for a list)
   -fs                   request initial full-screen mode

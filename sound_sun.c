@@ -156,6 +156,10 @@ static void flush_frame(void) {
 	event_queue(flush_event);
 	wrptr = buffer;
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
+	if (noratelimit) {
+		ioctl(sound_fd, I_FLUSH, FLUSHW);
+		samples_written = device_info.play.samples;
+	}
 	samples_left = samples_written - device_info.play.samples;
 	if (samples_left > FRAME_SIZE) {
 		int sleep_ms = ((samples_left - FRAME_SIZE) * 1000)/SAMPLE_RATE;

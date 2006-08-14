@@ -39,6 +39,9 @@
 #include "xroar.h"
 
 Cycle current_cycle;
+int requested_frameskip;
+int frameskip;
+int noratelimit = 0;
 
 #ifdef TRACE
 int trace = 0;
@@ -63,14 +66,20 @@ static struct {
 };
 
 static void xroar_helptext(void) {
-	printf("  -snap FILENAME        load snapshot after initialising\n");
-	printf("  -h                    display this help and exit\n");
+	puts("  -fskip FRAMES         specify frameskip (default: 0)");
+	puts("  -snap FILENAME        load snapshot after initialising");
+	puts("  -h                    display this help and exit");
 }
 
 void xroar_getargs(int argc, char **argv) {
 	int i;
+	requested_frameskip = 0;
 	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-snap")) {
+		if (!strcmp(argv[i], "-fskip") && i+1<argc) {
+			requested_frameskip = strtol(argv[++i], NULL, 0);
+			if (requested_frameskip < 0)
+				requested_frameskip = 0;
+		} else if (!strcmp(argv[i], "-snap")) {
 			i++;
 			if (i >= argc) break;
 			snapshot_load = argv[i];
