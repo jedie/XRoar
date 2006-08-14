@@ -38,7 +38,6 @@
 #include "wd2797.h"
 #include "xroar.h"
 
-Cycle current_cycle;
 int requested_frameskip;
 int frameskip;
 int noratelimit = 0;
@@ -68,11 +67,17 @@ static struct {
 static void xroar_helptext(void) {
 	puts("  -fskip FRAMES         specify frameskip (default: 0)");
 	puts("  -snap FILENAME        load snapshot after initialising");
+#ifdef TRACE
+	puts("  -trace                start with trace mode on");
+#endif
 	puts("  -h                    display this help and exit");
 }
 
 void xroar_getargs(int argc, char **argv) {
 	int i;
+#ifdef TRACE
+	trace = 0;
+#endif
 	requested_frameskip = 0;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-fskip") && i+1<argc) {
@@ -83,6 +88,10 @@ void xroar_getargs(int argc, char **argv) {
 			i++;
 			if (i >= argc) break;
 			snapshot_load = argv[i];
+#ifdef TRACE
+		} else if (!strcmp(argv[i], "-trace")) {
+			trace = 1;
+#endif
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");

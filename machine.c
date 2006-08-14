@@ -62,6 +62,7 @@ uint8_t ram1[0x8000];
 uint8_t rom0[0x8000];
 uint8_t rom1[0x8000];
 
+Cycle current_cycle;
 int noextbas;
 
 static Keymap dragon_keymap = {
@@ -142,9 +143,6 @@ void machine_helptext(void) {
 	puts("  -pal                  emulate PAL (50Hz) video");
 	puts("  -ntsc                 emulate NTSC (60Hz) video");
 	puts("  -ram KBYTES           specify amount of RAM in K");
-#ifdef TRACE
-	puts("  -trace                start with trace mode on");
-#endif
 }
 
 void machine_getargs(int argc, char **argv) {
@@ -183,10 +181,6 @@ void machine_getargs(int argc, char **argv) {
 			requested_config.tv_standard = TV_PAL;
 		} else if (!strcmp(argv[i], "-ntsc")) {
 			requested_config.tv_standard = TV_NTSC;
-#ifdef TRACE
-		} else if (!strcmp(argv[i], "-trace")) {
-			trace = 1;
-#endif
 		}
 	}
 }

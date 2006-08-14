@@ -89,6 +89,7 @@ extern uint8_t ram1[0x8000];
 extern uint8_t rom0[0x8000];
 extern uint8_t rom1[0x8000];
 
+extern Cycle current_cycle;
 extern int noextbas;
 
 void machine_helptext(void);
