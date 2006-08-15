@@ -332,14 +332,14 @@ dist:
 
 dist-gp32: gp32
 	mkdir $(DISTNAME)-gp32
-	cp COPYING.GPL ChangeLog README TODO xroar.fxe $(DISTNAME)-gp32/
+	cp COPYING.GPL ChangeLog README xroar.fxe $(DISTNAME)-gp32/
 	rm -f ../$(DISTNAME)-gp32.zip
 	zip -r ../$(DISTNAME)-gp32.zip $(DISTNAME)-gp32
 	rm -rf $(DISTNAME)-gp32/
 
 dist-windows32: windows32
 	mkdir $(DISTNAME)-windows32
-	cp COPYING.GPL ChangeLog README TODO xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
+	cp COPYING.GPL ChangeLog README xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
 	cp COPYING.LGPL-2.1 $(DISTNAME)-windows32/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/xroar.exe
 	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/SDL.dll
@@ -361,7 +361,7 @@ dist-macosx dist-macos: macosx
 	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libsndfile.1.dylib
 	sed -e "s!@VERSION@!$(VERSION)!g" macos/Info.plist.in > XRoar-$(VERSION)/XRoar.app/Contents/Info.plist
 	cp macos/xroar.icns XRoar-$(VERSION)/XRoar.app/Contents/Resources/
-	cp README COPYING.GPL ChangeLog TODO XRoar-$(VERSION)/
+	cp README COPYING.GPL ChangeLog XRoar-$(VERSION)/
 	cp COPYING.LGPL-2.1 XRoar-$(VERSION)/COPYING.LGPL-2.1
 	chmod -R o+rX,g+rX XRoar-$(VERSION)/
 	hdiutil create -srcfolder XRoar-$(VERSION) -uid 99 -gid 99 ../XRoar-$(VERSION).dmg
