@@ -1,3 +1,12 @@
+Changed from v0.16 to v0.17
+ * Map '~' to Shift+'@' in translation mode.
+ * Hopefully fix windows32 build.
+ * Tape loading bugs fixed.
+ * Fix VDG accesses >32K.
+ * More accurately emulate Dragon 32 behaviour in map type 1.
+ * Added frameskip option (-fskip).
+ * Added rate limiter inhibit by holding F12.
+
 Changed from v0.15 to v0.16
  * Added -ram option.
  * CRC16 fixes.
