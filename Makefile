@@ -30,8 +30,8 @@ usage:
 	@echo "e.g., \"make gp32 TARGET_ARCH=arm-elf\""
 	@echo
 
-OPT = -O3
-macosx: OPT = -fast -mcpu=7450 -mdynamic-no-pic
+OPT = -O3 -pipe
+macosx: OPT = -fast -mcpu=7450 -mdynamic-no-pic -pipe
 WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
 	-Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes \
@@ -97,10 +97,9 @@ ALL_OBJS := $(COMMON_OBJS)
 
 OBJS_SDL := video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o joystick_sdl.o
 ALL_OBJS += $(OBJS_SDL)
-SDL_CONFIG = sdl-config
+SDL_CONFIG = $(TOOL_PREFIX)sdl-config
 CFLAGS_SDL = -DHAVE_SDL $(shell $(SDL_CONFIG) --cflags)
 LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
-windows32: SDL_CONFIG = /usr/local/$(TARGET_ARCH)/bin/sdl-config
 
 OBJS_SDLGL := video_sdlgl.o
 ALL_OBJS += $(OBJS_SDLGL)
