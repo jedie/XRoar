@@ -100,6 +100,9 @@ ALL_OBJS += $(OBJS_SDL)
 SDL_CONFIG = $(TOOL_PREFIX)sdl-config
 CFLAGS_SDL = -DHAVE_SDL $(shell $(SDL_CONFIG) --cflags)
 LDFLAGS_SDL = $(shell $(SDL_CONFIG) --libs)
+HOST_SDL_CONFIG = sdl-config
+HOST_CFLAGS_SDL = $(shell $(HOST_SDL_CONFIG) --cflags)
+HOST_LDFLAGS_SDL = $(shell $(HOST_SDL_CONFIG) --libs)
 
 OBJS_SDLGL := video_sdlgl.o
 ALL_OBJS += $(OBJS_SDLGL)
@@ -303,7 +306,7 @@ vdg_bitmaps_gp32.c: tools/prerender vdg_bitmaps.c
 	tools/prerender > $@
 
 tools/img2c: tools/img2c.c
-	$(HOSTCC) $(CFLAGS_SDL) -o $@ $< $(LDFLAGS_SDL) -lSDL_image
+	$(HOSTCC) $(HOST_CFLAGS_SDL) -o $@ $< $(HOST_LDFLAGS_SDL) -lSDL_image
 
 copyright.c: tools/img2c gp32/copyright.png
 	tools/img2c copyright_bin gp32/copyright.png > $@
