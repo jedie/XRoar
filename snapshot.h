@@ -6,7 +6,7 @@
 #ifndef __SNAPSHOT_H__
 #define __SNAPSHOT_H__
 
-int write_snapshot(char *filename);
-int read_snapshot(char *filename);
+int write_snapshot(const char *filename);
+int read_snapshot(const char *filename);
 
 #endif  /* __SNAPSHOT_H__ */

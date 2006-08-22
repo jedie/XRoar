@@ -25,25 +25,28 @@
 #include <SDL/SDL_syswm.h>
 
 #include "types.h"
-#include "filereq.h"
-#include "fs.h"
 #include "logging.h"
+#include "fs.h"
+#include "module.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown_module(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
 FileReqModule filereq_windows32_module = {
-	init, shutdown_module,
+	{ "windows32", "Windows32 file requester",
+	  init, 0, shutdown_module, NULL },
 	load_filename, save_filename
 };
 
 static char *filename = NULL;
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2, "Windows32 file requester selected.\n");
-	return 1;
+	return 0;
 }
 
 static void shutdown_module(void) {

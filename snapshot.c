@@ -51,7 +51,7 @@
 #define SNAPSHOT_VERSION_MAJOR 1
 #define SNAPSHOT_VERSION_MINOR 2
 
-int write_snapshot(char *filename) {
+int write_snapshot(const char *filename) {
 	int fd;
 	M6809State cpu_state;
 	if ((fd = fs_open(filename, FS_WRITE)) == -1)
@@ -132,7 +132,7 @@ static int old_arch_mapping[4] = {
 	MACHINE_COCOUS
 };
 
-int read_snapshot(char *filename) {
+int read_snapshot(const char *filename) {
 	int fd;
 	uint8_t buffer[17];
 	uint8_t section, tmp8;

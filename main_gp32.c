@@ -21,16 +21,14 @@
 
 #include "types.h"
 #include "xroar.h"
-#include "video.h"
 
 extern Sprite copyright_bin;
 
 void GpMain(void *arg) {
-	(void)arg;  /* unused */
 	SPEED_FAST;
+	(void)arg;  /* unused */
 
-	xroar_getargs(1, NULL);
-	xroar_init();
+	xroar_init(1, NULL);
 	gpgfx_blit(198, 204, &copyright_bin);
 	xroar_mainloop();
 }

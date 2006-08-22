@@ -22,33 +22,31 @@
 #include <SDL.h>
 
 #include "types.h"
+#include "logging.h"
 #include "cart.h"
-#include "filereq.h"
+#include "events.h"
 #include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
-#include "logging.h"
 #include "machine.h"
+#include "module.h"
 #include "pia.h"
 #include "snapshot.h"
 #include "tape.h"
 #include "vdisk.h"
-#include "video.h"
 #include "wd2797.h"
 #include "xroar.h"
 
-static void getargs(int argc, char **argv);
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
-static void poll(void);
 
 KeyboardModule keyboard_sdl_module = {
-	NULL,
-	"sdl",
-	"SDL keyboard driver",
-	getargs, init, shutdown,
-	poll
+	{ "sdl", "SDL keyboard driver",
+	  init, 0, shutdown, NULL }
 };
+
+static event_t *poll_event;
+static void do_poll(void);
 
 struct keymap {
 	const char *name;
@@ -85,11 +83,9 @@ static unsigned int unicode_to_dragon[128] = {
  * only guarantees to fill in the unicode field on key *releases*). */
 static unsigned int unicode_last_keysym[SDLK_LAST];
 
-static char *keymap_option;
+static const char *keymap_option;
 static unsigned int *selected_keymap;
 static int translated_keymap;
-
-static FileReqModule *filereq;
 
 static void map_keyboard(unsigned int *map) {
 	int i;
@@ -106,7 +102,7 @@ static void map_keyboard(unsigned int *map) {
 	}
 }
 
-static void getargs(int argc, char **argv) {
+static int init(int argc, char **argv) {
 	int i;
 	keymap_option = NULL;
 	for (i = 1; i < argc; i++) {
@@ -116,13 +112,6 @@ static void getargs(int argc, char **argv) {
 			keymap_option = argv[i];
 		}
 	}
-}
-
-static int init(void) {
-	int i;
-	filereq = filereq_init();
-	if (filereq == NULL)
-		return 0;
 	selected_keymap = NULL;
 	for (i = 0; mappings[i].name; i++) {
 		if (selected_keymap == NULL
@@ -137,12 +126,15 @@ static int init(void) {
 	map_keyboard(selected_keymap);
 	translated_keymap = 0;
 	SDL_EnableUNICODE(translated_keymap);
-	return 1;
+	poll_event = event_new();
+	poll_event->dispatch = do_poll;
+	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
+	event_queue(poll_event);
+	return 0;
 }
 
 static void shutdown(void) {
-	if (filereq)
-		filereq->shutdown();
+	event_free(poll_event);
 }
 
 static void keypress(SDL_keysym *keysym) {
@@ -176,7 +168,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 			{
 			const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
-			char *filename = filereq->load_filename(disk_exts);
+			char *filename = filereq_module->load_filename(disk_exts);
 			if (filename)
 				vdisk_load(filename, sym - SDLK_1);
 			}
@@ -200,7 +192,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_i:
 			{
 			const char *cart_exts[] = { "ROM", NULL };
-			char *filename = filereq->load_filename(cart_exts);
+			char *filename = filereq_module->load_filename(cart_exts);
 			if (filename)
 				cart_insert(filename, shift ? 0 : 1);
 			else
@@ -222,7 +214,7 @@ static void keypress(SDL_keysym *keysym) {
 			{
 			char *filename;
 			int type;
-			filename = filereq->load_filename(NULL);
+			filename = filereq_module->load_filename(NULL);
 			if (filename == NULL)
 				break;
 			type = xroar_filetype_by_ext(filename);
@@ -250,8 +242,8 @@ static void keypress(SDL_keysym *keysym) {
 			machine_reset(RESET_HARD);
 			break;
 		case SDLK_n:
-			if (shift) video_next();
-			else sound_next();
+			//if (shift) video_next();
+			//else sound_next();
 			break;
 		case SDLK_r:
 			machine_reset(shift ? RESET_HARD : RESET_SOFT);
@@ -259,7 +251,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_s:
 			{
 			const char *snap_exts[] = { "SNA", NULL };
-			char *filename = filereq->save_filename(snap_exts);
+			char *filename = filereq_module->save_filename(snap_exts);
 			if (filename)
 				write_snapshot(filename);
 			}
@@ -267,7 +259,7 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_w:
 			{
 			const char *tape_exts[] = { "CAS", NULL };
-			char *filename = filereq->save_filename(tape_exts);
+			char *filename = filereq_module->save_filename(tape_exts);
 			if (filename) {
 				tape_open_writing(filename);
 			}
@@ -417,7 +409,7 @@ static void keyrelease(SDL_keysym *keysym) {
 	}
 }
 
-static void poll(void) {
+static void do_poll(void) {
 	SDL_Event event;
 	while (SDL_PollEvent(&event) == 1) {
 		switch(event.type) {
@@ -442,4 +434,6 @@ static void poll(void) {
 				break;
 		}
 	}
+	poll_event->at_cycle += OSCILLATOR_RATE / 100;
+	event_queue(poll_event);
 }

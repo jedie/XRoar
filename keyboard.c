@@ -17,22 +17,11 @@
  */
 
 #include "types.h"
+#include "logging.h"
 #include "events.h"
 #include "keyboard.h"
-#include "logging.h"
 #include "pia.h"
 #include "xroar.h"
-
-#ifdef HAVE_SDL
-extern KeyboardModule keyboard_sdl_module;
-#endif
-#ifdef HAVE_GP32
-extern KeyboardModule keyboard_gp32_module;
-#endif
-
-KeyboardModule *keyboard_module;
-static int local_argc;
-static char **local_argv;
 
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
@@ -46,27 +35,10 @@ unsigned int *keyboard_bufcur, *keyboard_buflast;
 static void keyboard_poll(void);
 static event_t *poll_event;
 
-void keyboard_getargs(int argc, char **argv) {
-	/* Preserve args info for passing to modules getargs later */
-	local_argc = argc;
-	local_argv = argv;
-}
-
-int keyboard_init(void) {
-	/* A video module should have set keyboard_module by this point */
+void keyboard_init(void) {
 	poll_event = event_new();
 	poll_event->dispatch = keyboard_poll;
-	if (keyboard_module == NULL)
-		return 1;
-	if (keyboard_module->getargs)
-		keyboard_module->getargs(local_argc, local_argv);
 	keyboard_bufcur = keyboard_buflast = keyboard_buffer;
-	return keyboard_module->init();
-}
-
-void keyboard_shutdown(void) {
-	if (keyboard_module)
-		keyboard_module->shutdown();
 }
 
 void keyboard_reset(void) {
@@ -134,21 +106,17 @@ void keyboard_queue(uint_least16_t c) {
 }
 
 static void keyboard_poll(void) {
-	poll_event->at_cycle = current_cycle + 141050;
 	if (KEYBOARD_HASQUEUE) {
 		unsigned int k;
-		poll_event->at_cycle += 141050;
 		KEYBOARD_DEQUEUE(k);
 		if (k & 0x80) {
 			KEYBOARD_RELEASE(k & 0x7f);
 		} else {
 			KEYBOARD_PRESS(k);
 		}
-	} else {
-		keyboard_module->poll();
 	}
-#ifndef HAVE_GP32
-	joystick_module->poll();
-#endif
-	event_queue(poll_event);
+	if (KEYBOARD_HASQUEUE) {
+		poll_event->at_cycle += OSCILLATOR_RATE / 50;
+		event_queue(poll_event);
+	}
 }

@@ -17,17 +17,16 @@
  */
 
 #include "types.h"
+#include "logging.h"
 #include "joystick.h"
 #include "keyboard.h"
-#include "logging.h"
 #include "machine.h"
 #include "pia.h"
-#include "sound.h"
+#include "sam.h"
 #include "tape.h"
 #include "vdg.h"
 #include "wd2797.h"
 #include "xroar.h"
-#include "sam.h"
 
 uint8_t *addrptr_low;
 uint8_t *addrptr_high;

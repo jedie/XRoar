@@ -26,20 +26,20 @@
 #include <sys/soundcard.h>
 
 #include "types.h"
-#include "events.h"
 #include "logging.h"
+#include "events.h"
+#include "module.h"
 #include "pia.h"
 #include "xroar.h"
-#include "sound.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
 SoundModule sound_oss_module = {
-	"oss",
-	"OSS audio",
-	init, shutdown, update
+	{ "oss", "OSS audio",
+	  init, 0, shutdown, NULL },
+	update
 };
 
 typedef int8_t Sample;  /* 8-bit mono */
@@ -64,10 +64,12 @@ static int8_t *convbuf;
 static void flush_frame(void);
 static event_t *flush_event;
 
-static int init(void) {
+static int init(int argc, char **argv) {
 	const char *device = "/dev/dsp";
 	int fragment_param, tmp;
 
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising OSS audio driver\n");
 	sound_fd = open(device, O_WRONLY);
 	if (sound_fd == -1)

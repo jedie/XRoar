@@ -27,13 +27,13 @@
 #include <sys/stropts.h>
 
 #include "types.h"
-#include "events.h"
 #include "logging.h"
+#include "events.h"
+#include "module.h"
 #include "pia.h"
 #include "xroar.h"
-#include "sound.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
@@ -41,9 +41,9 @@ static void flush_frame(void);
 static event_t *flush_event;
 
 SoundModule sound_sun_module = {
-	"sun",
-	"Sun audio",
-	init, shutdown, update
+	{ "sun", "Sun audio",
+	  init, 0, shutdown, NULL },
+	update
 };
 
 typedef uint8_t Sample;  /* 8-bit mono */
@@ -63,11 +63,13 @@ static Sample *buffer;
 static Sample *wrptr;
 static Sample lastsample;
 
-static int init(void) {
+static int init(int argc, char **argv) {
 	unsigned int rate = SAMPLE_RATE;
 	audio_info_t device_info;
 	const char *device = "/dev/audio";
 
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising Sun audio driver\n");
 	channels = CHANNELS;
 	sound_fd = open(device, O_WRONLY);

@@ -24,26 +24,29 @@
 #include <gtk/gtk.h>
 
 #include "types.h"
-#include "filereq.h"
-#include "fs.h"
 #include "logging.h"
+#include "fs.h"
+#include "module.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
 FileReqModule filereq_gtk_module = {
-	init, shutdown,
+	{ "gtk", "GTK+ file requester",
+	  init, 0, shutdown, NULL },
 	load_filename, save_filename
 };
 
 static char *filename = NULL;
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2, "GTK+ file requester selected.\n");
 	gtk_init(NULL, NULL);
-	return 1;
+	return 0;
 }
 
 static void shutdown(void) {

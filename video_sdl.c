@@ -20,16 +20,15 @@
 #include <string.h>
 #include <SDL.h>
 
-#include "video.h"
-#include "keyboard.h"
-#include "joystick.h"
-#include "sam.h"
 #include "types.h"
 #include "logging.h"
+#include "module.h"
+#include "sam.h"
+#include "ui_sdl.h"
 #include "vdg.h"
 #include "xroar.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static int set_fullscreen(int fullscreen);
 static void vsync(void);
@@ -43,13 +42,9 @@ static void render_rg6(void);
 static void render_border(void);
 static void alloc_colours(void);
 
-extern KeyboardModule keyboard_sdl_module;
-extern JoystickModule joystick_sdl_module;
-
 VideoModule video_sdl_module = {
-	"sdl",
-	"Standard SDL surface",
-	init, shutdown,
+	{ "sdl", "Standard SDL surface",
+	  init, 0, shutdown, NULL },
 	NULL, set_fullscreen, 0,
 	vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
@@ -71,7 +66,9 @@ static SDL_Surface *screen;
 
 #include "video_generic_ops.c"
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL video driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
@@ -87,12 +84,9 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL video driver\n");
 		return 1;
 	}
-	if (set_fullscreen(video_want_fullscreen))
+	if (set_fullscreen(sdl_video_want_fullscreen))
 		return 1;
 	alloc_colours();
-	/* Set preferred keyboard & joystick drivers */
-	keyboard_module = &keyboard_sdl_module;
-	joystick_module = &joystick_sdl_module;
 	return 0;
 }
 

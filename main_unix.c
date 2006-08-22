@@ -27,9 +27,8 @@
 
 int main(int argc, char **argv) {
 	printf("XRoar " VERSION ", (c) 2003-2006 Ciaran Anscomb.\n");
-	xroar_getargs(argc, argv);
 	atexit(xroar_shutdown);
-	xroar_init();
+	xroar_init(argc, argv);
 	xroar_mainloop();
 	return 0;
 }

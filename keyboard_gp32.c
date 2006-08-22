@@ -28,27 +28,27 @@
 #include "gp32/gpchatboard.h"
 
 #include "types.h"
+#include "logging.h"
+#include "events.h"
 #include "joystick.h"
 #include "keyboard.h"
-#include "logging.h"
+#include "module.h"
 #include "pia.h"
 #include "snapshot.h"
-#include "video.h"
 #include "xroar.h"
 
 void gp32_menu(void);
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
-static void poll(void);
 
 KeyboardModule keyboard_gp32_module = {
-	NULL,
-	"gp32",
-	"GP32 virtual keyboard driver",
-	NULL, init, shutdown,
-	poll
+	{ "gp32", "GP32 virtual keyboard driver",
+	  init, 0, shutdown, NULL }
 };
+
+static event_t *poll_event;
+static void do_poll(void);
 
 #define KEY_UPDATE(t,s) if (t) { KEYBOARD_PRESS(s); } else { KEYBOARD_RELEASE(s); }
 
@@ -80,7 +80,9 @@ static unsigned int displayed_keyboard;
 
 static void highlight_key(void);
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	gpgfx_blit(64, 200, &kbd_bin[0]);
 	keyboard_mode = 0;
 	gpgfx_blit(8, 200, &cmode_bin[keyboard_mode]);
@@ -92,11 +94,16 @@ static int init(void) {
 	gpkeypad_init();
 	gpkeypad_repeat_rate(225);
 	gpchatboard_init();
+	poll_event = event_new();
+	poll_event->dispatch = do_poll;
+	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
+	event_queue(poll_event);
 	return 0;
 }
 
 static void shutdown(void) {
 	gpchatboard_shutdown();
+	event_free(poll_event);
 }
 
 static void highlight_key(void) {
@@ -110,7 +117,7 @@ static void highlight_key(void) {
 	}
 }
 
-static void poll(void) {
+static void do_poll(void) {
 	unsigned int newkeyx = keyx, newkeyy = keyy;
 	int key, newkey, rkey;
 	gpkeypad_poll(&key, &newkey, &rkey);
@@ -204,4 +211,6 @@ static void poll(void) {
 			KEYBOARD_QUEUE(chatboard_key);
 		}
 	}
+	poll_event->at_cycle += OSCILLATOR_RATE / 100;
+	event_queue(poll_event);
 }

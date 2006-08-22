@@ -10,7 +10,7 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "m6809.h"
-#include "sound.h"
+#include "module.h"
 #include "tape.h"
 #include "vdg.h"
 

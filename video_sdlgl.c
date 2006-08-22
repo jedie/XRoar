@@ -22,15 +22,14 @@
 #include <SDL_opengl.h>
 
 #include "types.h"
-#include "joystick.h"
-#include "keyboard.h"
 #include "logging.h"
+#include "module.h"
 #include "sam.h"
+#include "ui_sdl.h"
 #include "vdg.h"
-#include "video.h"
 #include "xroar.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
@@ -46,18 +45,14 @@ static void render_border(void);
 static void alloc_colours(void);
 
 VideoModule video_sdlgl_module = {
-	"sdlgl",
-	"SDL OpenGL",
-	init, shutdown,
+	{ "sdlgl", "SDL OpenGL",
+	  init, 0, shutdown, NULL },
 	resize, set_fullscreen, 0,
 	vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
 	render_rg1, render_cg2, render_rg6,
 	render_border
 };
-
-extern KeyboardModule keyboard_sdl_module;
-extern JoystickModule joystick_sdl_module;
 
 typedef Uint16 Pixel;
 #define MAPCOLOUR(r,g,b) SDL_MapRGB(screen_tex->format, r, g, b)
@@ -78,7 +73,9 @@ static GLint xoffset, yoffset;
 
 #include "video_generic_ops.c"
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL OpenGL driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
@@ -106,14 +103,11 @@ static int init(void) {
 		return 1;
 	}
 
-	if (set_fullscreen(video_want_fullscreen))
+	if (set_fullscreen(sdl_video_want_fullscreen))
 		return 1;
 
 	xoffset = yoffset = 0;
 	alloc_colours();
-	/* Set preferred keyboard & joystick drivers */
-	keyboard_module = &keyboard_sdl_module;
-	joystick_module = &joystick_sdl_module;
 	return 0;
 }
 

@@ -25,32 +25,35 @@
 #include "gp32/gpgfx.h"
 #include "gp32/gpkeypad.h"
 #include "gp32/gpchatboard.h"
-//#include "ui.h"
 #include "cart.h"
+#include "fs.h"
+#include "hexs19.h"
+#include "keyboard.h"
 #include "machine.h"
+#include "module.h"
 #include "snapshot.h"
 #include "sound_gp32.h"
 #include "tape.h"
 #include "vdg.h"
 #include "vdisk.h"
-#include "video.h"
-#include "fs.h"
 #include "xroar.h"
-#include "keyboard.h"
-#include "hexs19.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 void gp32_menu(void);
 static char *get_filename(const char **extensions);
 
-//UIModule ui_gp32_module = {
-	//NULL,
-	//"gp32",
-	//"GP32 user-interface",
-	//init, shutdown,
-	//gp32_menu, get_filename, get_filename
-//};
+static Module *empty_module_list[] = { NULL };
+
+UIModule ui_gp32_module = {
+	{ "gp32", "GP32 user-interface",
+	  init, 0, shutdown, NULL },
+	(FileReqModule **)empty_module_list,
+	(VideoModule **)empty_module_list,
+	(SoundModule **)empty_module_list,
+	(KeyboardModule **)empty_module_list,
+	(JoystickModule **)empty_module_list
+};
 
 #define FG (0xffffff00)
 #define BG (0x00200000)
@@ -108,7 +111,9 @@ static Menu main_menu[] = {
 
 extern uint8_t vdg_alpha_gp32[4][3][8192];
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	return 0;
 }
 

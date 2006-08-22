@@ -6,26 +6,10 @@
 #ifndef __JOYSTICK_H__
 #define __JOYSTICK_H__
 
-#include "types.h"
-
-typedef struct JoystickModule JoystickModule;
-struct JoystickModule {
-	JoystickModule *next;
-	const char *name;
-	const char *help;
-	int (*init)(void);
-	void (*shutdown)(void);
-	void (*poll)(void);
-};
-
-/* Video & sound modules will probably have a joystick module preference,
- * so will set this: */
-extern JoystickModule *joystick_module;
-
 extern unsigned int joystick_leftx, joystick_lefty;
 extern unsigned int joystick_rightx, joystick_righty;
 
-int joystick_init(void);
+void joystick_init(void);
 void joystick_shutdown(void);
 void joystick_reset(void);
 void joystick_poll(void);

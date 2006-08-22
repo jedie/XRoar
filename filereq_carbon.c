@@ -20,22 +20,26 @@
 #include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
 
+#include "types.h"
 #include "logging.h"
-#include "filereq.h"
+#include "module.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
 FileReqModule filereq_carbon_module = {
-	init, shutdown,
+	{ "carbon", "Carbon file requester",
+	  init, 0, shutdown, NULL },
 	load_filename, save_filename
 };
 
-static int init(void){
+static int init(int argc, char **argv){
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2, "Carbon file requester selected.\n");
-	return 1;
+	return 0;
 }
 
 static void shutdown(void) {

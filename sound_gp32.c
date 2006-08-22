@@ -25,21 +25,21 @@
 
 #include "types.h"
 #include "events.h"
-#include "sound.h"
-#include "sound_gp32.h"
+#include "module.h"
 #include "pia.h"
+#include "sound_gp32.h"
 #include "xroar.h"
 #include "gp32/gpsound.h"
 #include "gp32/gp32.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
 SoundModule sound_gp32_module = {
-	"gp32",
-	"GP32 audio",
-	init, shutdown, update
+	{ "gp32", "GP32 audio",
+	  init, 0, shutdown, NULL },
+	update
 };
 
 typedef uint16_t Sample;  /* 8-bit stereo */
@@ -58,7 +58,9 @@ static Sample lastsample;
 static void flush_frame(void);
 static event_t *flush_event;
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	sample_rate = 22050;
 	gpsound_init(PCLK, &sample_rate);
 	sample_cycles = OSCILLATOR_RATE / sample_rate;

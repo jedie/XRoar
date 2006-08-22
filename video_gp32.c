@@ -20,13 +20,12 @@
 #include <gpgraphic.h>
 #include "gp32/gpgfx.h"
 
-#include "sam.h"
-#include "video.h"
-#include "keyboard.h"
-#include "joystick.h"
 #include "types.h"
+#include "module.h"
+#include "sam.h"
+#include "xroar.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void vdg_vsync(void);
 static void vdg_set_mode(unsigned int mode);
@@ -37,13 +36,9 @@ static void vdg_render_rg1(void);
 static void vdg_render_cg2(void);
 static void vdg_render_rg6(void);
 
-extern KeyboardModule keyboard_gp32_module;
-extern JoystickModule joystick_gp32_module;
-
 VideoModule video_gp32_module = {
-	"gp32",
-	"GP32 video driver",
-	init, shutdown,
+	{ "gp32", "GP32 video driver",
+	  init, 0, shutdown, NULL },
 	NULL, NULL, 0,
 	vdg_vsync, vdg_set_mode,
 	vdg_render_sg4, vdg_render_sg4 /* 6 */, vdg_render_cg1,
@@ -71,7 +66,9 @@ static uint8_t *rendered_alpha;
 
 #include "vdg_bitmaps_gp32.c"
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	gpgfx_init();
 	gpgfx_fillrect(0, 0, 320, 196, 0);
 	gpgfx_fillrect(0, 196, 320, 44, 0xffffff00);
@@ -95,8 +92,6 @@ static int init(void) {
 	black = (black<<24) | (black<<16) | (black<<8) | black;
 	darkgreen = MAPCOLOUR(0x00, 0x20, 0x00);
 	darkgreen = (darkgreen<<24) | (darkgreen<<16) | (darkgreen<<8) | darkgreen;
-	/* Set preferred keyboard driver */
-	keyboard_module = &keyboard_gp32_module;
 	return 0;
 }
 

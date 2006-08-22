@@ -23,20 +23,20 @@
 #include <SDL_thread.h>
 
 #include "types.h"
+#include "logging.h"
 #include "events.h"
-#include "sound.h"
+#include "module.h"
 #include "pia.h"
 #include "xroar.h"
-#include "logging.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
 SoundModule sound_sdl_module = {
-	"sdl",
-	"SDL ring-buffer audio",
-	init, shutdown, update
+	{ "sdl", "SDL ring-buffer audio",
+	  init, 0, shutdown, NULL },
+	update
 };
 
 typedef Sint8 Sample;  /* 8-bit mono (SDL type) */
@@ -70,7 +70,9 @@ static event_t *flush_event;
 
 static void callback(void *userdata, Uint8 *stream, int len);
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL audio driver\n");
 #ifdef WINDOWS32
 	//if (!getenv("SDL_AUDIODRIVER"))

@@ -20,16 +20,15 @@
 #include <string.h>
 #include <SDL.h>
 
-#include "joystick.h"
-#include "keyboard.h"
-#include "logging.h"
-#include "sam.h"
 #include "types.h"
+#include "logging.h"
+#include "module.h"
+#include "sam.h"
+#include "ui_sdl.h"
 #include "vdg.h"
-#include "video.h"
 #include "xroar.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
@@ -44,13 +43,9 @@ static void render_rg6(void);
 static void render_border(void);
 static void alloc_colours(void);
 
-extern KeyboardModule keyboard_sdl_module;
-extern JoystickModule joystick_sdl_module;
-
 VideoModule video_sdlyuv_module = {
-	"sdlyuv",
-	"SDL YUV overlay, hopefully uses Xv acceleration",
-	init, shutdown,
+	{ "sdlyuv", "SDL YUV overlay, hopefully uses Xv acceleration",
+	  init, 0, shutdown, NULL },
 	resize, set_fullscreen, 0,
 	vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
@@ -86,7 +81,9 @@ static Uint32 map_colour(int r, int g, int b) {
 
 #include "video_generic_ops.c"
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL-YUV video driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
@@ -102,7 +99,7 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL-YUV video driver\n");
 		return 1;
 	}
-	if (set_fullscreen(video_want_fullscreen))
+	if (set_fullscreen(sdl_video_want_fullscreen))
 		return 1;
 	overlay = SDL_CreateYUVOverlay(640, 240, SDL_YUY2_OVERLAY, screen);
 	if (overlay == NULL) {
@@ -114,9 +111,6 @@ static int init(void) {
 	}
 	memcpy(&dstrect, &screen->clip_rect, sizeof(SDL_Rect));
 	alloc_colours();
-	/* Set preferred keyboard driver */
-	keyboard_module = &keyboard_sdl_module;
-	joystick_module = &joystick_sdl_module;
 	return 0;
 }
 

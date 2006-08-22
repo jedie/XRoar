@@ -17,13 +17,12 @@
  */
 
 #include "types.h"
-#include "events.h"
 #include "logging.h"
+#include "events.h"
 #include "m6809.h"
 #include "pia.h"
 #include "sam.h"
 #include "vdg.h"
-#include "video.h"
 #include "xroar.h"
 
 #include "vdg_bitmaps.c"

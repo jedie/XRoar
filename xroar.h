@@ -24,6 +24,7 @@
 extern int requested_frameskip;
 extern int frameskip;
 extern int noratelimit;
+extern int video_artifact_mode;
 
 #ifdef TRACE
 extern int trace;
@@ -34,7 +35,7 @@ extern int trace;
 #endif
 
 void xroar_getargs(int argc, char **argv);
-void xroar_init(void);
+int xroar_init(int argc, char **argv);
 void xroar_shutdown(void);
 void xroar_mainloop(void);
 int xroar_filetype_by_ext(const char *filename);

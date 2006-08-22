@@ -25,12 +25,11 @@
 #include <pthread.h>
 
 #include "types.h"
+#include "logging.h"
 #include "events.h"
 #include "pia.h"
-#include "sound.h"
 #include "types.h"
 #include "xroar.h"
-#include "logging.h"
 
 static int init(void);
 static void shutdown(void);
@@ -41,9 +40,9 @@ static void jack_shutdown(void *arg);
 static int jack_callback(jack_nframes_t nframes, void *arg);
 
 SoundModule sound_jack_module = {
-	"jack",
-	"JACK audio",
-	init, shutdown, update
+	{ "jack", "JACK audio",
+	  init, 0, shutdown, NULL }
+	update
 };
 
 typedef jack_default_audio_sample_t Sample;

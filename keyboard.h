@@ -8,21 +8,6 @@
 
 #include "types.h"
 
-typedef struct KeyboardModule KeyboardModule;
-struct KeyboardModule {
-	KeyboardModule *next;
-	const char *name;
-	const char *help;
-	void (*getargs)(int argc, char **argv);
-	int (*init)(void);
-	void (*shutdown)(void);
-	void (*poll)(void);
-};
-
-/* Video modules will probably have a keyboard module preference, so
- * will set this: */
-extern KeyboardModule *keyboard_module;
-
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
  * be applied on column reads */
@@ -61,9 +46,7 @@ extern unsigned int keyboard_row[9];
 extern unsigned int keyboard_buffer[256];
 extern unsigned int *keyboard_bufcur, *keyboard_buflast;
 
-void keyboard_getargs(int argc, char **argv);
-int keyboard_init(void);
-void keyboard_shutdown(void);
+void keyboard_init(void);
 void keyboard_reset(void);
 void keyboard_column_update(void);
 void keyboard_row_update(void);

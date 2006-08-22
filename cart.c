@@ -32,7 +32,7 @@ static event_t *cart_event;
 static char *cart_filename;
 static int cart_autostart;
 
-static void cart_configure(char *filename, int autostart);
+static void cart_configure(const char *filename, int autostart);
 static void cart_load(void);
 static void cart_interrupt(void);
 
@@ -74,7 +74,7 @@ void cart_remove(void) {
 	}
 }
 
-static void cart_configure(char *filename, int autostart) {
+static void cart_configure(const char *filename, int autostart) {
 	if (cart_filename)
 		cart_remove();
 	cart_filename = malloc(strlen(filename)+1);

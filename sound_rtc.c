@@ -26,13 +26,13 @@
 #include <linux/rtc.h>
 
 #include "types.h"
-#include "events.h"
-#include "pia.h"
-#include "sound.h"
-#include "xroar.h"
 #include "logging.h"
+#include "events.h"
+#include "module.h"
+#include "pia.h"
+#include "xroar.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
@@ -40,9 +40,9 @@ static void flush_frame(void);
 static event_t *flush_event;
 
 SoundModule sound_rtc_module = {
-	"rtc",
-	"Use real time clock for timing (no audio)",
-	init, shutdown, update
+	{ "rtc", "Use real time clock for timing (no audio)",
+	  init, 0, shutdown, NULL },
+	update
 };
 
 #define SAMPLE_RATE 64
@@ -51,7 +51,9 @@ SoundModule sound_rtc_module = {
 static Cycle frame_cycle_base;
 int fd;
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising RTC driver\n");
 	if ((fd = open ("/dev/rtc", O_RDONLY)) == -1) {
 		LOG_ERROR("Couldn't open /dev/rtc\n");

@@ -16,29 +16,19 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "types.h"
+#include "logging.h"
+#include "module.h"
 #include "pia.h"
 #include "joystick.h"
-#include "logging.h"
-#include "types.h"
-
-#ifdef HAVE_SDL
-extern JoystickModule joystick_sdl_module;
-#endif
-
-JoystickModule *joystick_module;
 
 unsigned int joystick_leftx, joystick_lefty;
 unsigned int joystick_rightx, joystick_righty;
 
-int joystick_init(void) {
-	if (joystick_module == NULL)
-		return 1;
-	return joystick_module->init();
+void joystick_init(void) {
 }
 
 void joystick_shutdown(void) {
-	if (joystick_module)
-		joystick_module->shutdown();
 }
 
 void joystick_reset(void) {

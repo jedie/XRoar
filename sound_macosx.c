@@ -23,20 +23,20 @@
 #include <pthread.h>
 
 #include "types.h"
+#include "logging.h"
 #include "events.h"
-#include "sound.h"
+#include "module.h"
 #include "pia.h"
 #include "xroar.h"
-#include "logging.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
 SoundModule sound_macosx_module = {
-	"macosx",
-	"Mac OS X CoreAudio",
-	init, shutdown, update
+	{ "macosx", "Mac OS X CoreAudio",
+	  init, 0, shutdown, NULL },
+	update
 };
 
 typedef float Sample;
@@ -63,7 +63,9 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		AudioBufferList *outOutputData,
 		const AudioTimeStamp *inOutputTime, void *defptr);
 
-static int init(void) {
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	AudioStreamBasicDescription deviceFormat;
 	UInt32 buffer_bytes = FRAME_SIZE * sizeof(Sample);
 	UInt32 count;

@@ -17,42 +17,65 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <SDL.h>
 
 #include "types.h"
 #include "logging.h"
-#include "fs.h"
 #include "module.h"
 
 static int init(int argc, char **argv);
 static void shutdown(void);
-static char *get_filename(const char **extensions);
 
-FileReqModule filereq_cli_module = {
-	{ "cli", "Command-line file requester",
-	  init, 0, shutdown, NULL },
-	get_filename, get_filename
+extern VideoModule video_sdlgl_module;
+extern VideoModule video_sdlyuv_module;
+extern VideoModule video_sdl_module;
+static VideoModule *sdl_video_module_list[] = {
+#ifdef HAVE_SDLGL
+	&video_sdlgl_module,
+#endif
+#ifdef PREFER_NOYUV
+	&video_sdl_module,
+	&video_sdlyuv_module,
+#else
+	&video_sdlyuv_module,
+	&video_sdl_module,
+#endif
+	NULL
 };
 
-static char fnbuf[256];
+extern KeyboardModule keyboard_sdl_module;
+static KeyboardModule *sdl_keyboard_module_list[] = {
+	&keyboard_sdl_module,
+	NULL
+};
+
+/* Note: SDL sound and joystick modules not listed here as they can be used
+ * outside of the usual SDL UI */
+
+UIModule ui_sdl_module = {
+	{ "sdl", "SDL user-interface",
+	  init, 0, shutdown, NULL },
+	NULL,  /* use default filereq module list */
+	sdl_video_module_list,
+	NULL,  /* use default sound module list */
+	sdl_keyboard_module_list,
+	NULL  /* use default joystick module list */
+};
+
+int sdl_video_want_fullscreen;
 
 static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
-	LOG_DEBUG(2, "Command-line file requester selected.\n");
+	int i;
+	sdl_video_want_fullscreen = 0;
+	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-fs") == 0) {
+			sdl_video_want_fullscreen = 1;
+		}
+	}
 	return 0;
 }
 
 static void shutdown(void) {
-}
-
-static char *get_filename(const char **extensions) {
-	char *cr;
-	(void)extensions;  /* unused */
-	printf("Filename? ");
-	fgets(fnbuf, sizeof(fnbuf), stdin);
-	cr = strrchr(fnbuf, '\n');
-	if (cr)
-		*cr = 0;
-	return fnbuf;
 }

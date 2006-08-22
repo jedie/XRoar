@@ -19,52 +19,55 @@
 #include <SDL.h>
 
 #include "types.h"
-#include "joystick.h"
-#include "pia.h"
 #include "logging.h"
+#include "events.h"
+#include "joystick.h"
+#include "module.h"
+#include "pia.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
-static void poll(void);
 
 JoystickModule joystick_sdl_module = {
-	NULL,
-	"sdl",
-	"SDL joystick driver",
-	init, shutdown, poll
+	{ "sdl", "SDL joystick driver",
+	  init, 0, shutdown, NULL }
 };
 
 static SDL_Joystick *joy = NULL;
 
-static int init(void) {
+static event_t *poll_event;
+static void do_poll(void);
+
+static int init(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL joystick driver\n");
 	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-	if (SDL_NumJoysticks() > 0) {
-		LOG_DEBUG(2,"\tFound %d joysticks, using first\n", SDL_NumJoysticks());
-		joy = SDL_JoystickOpen(0);
-		if (joy) {
-			LOG_DEBUG(1,"\t%s\n", SDL_JoystickName(0));
-			LOG_DEBUG(2,"\tNumber of Axes: %d\n", SDL_JoystickNumAxes(joy));
-			LOG_DEBUG(2,"\tNumber of Buttons: %d\n", SDL_JoystickNumButtons(joy));
-			LOG_DEBUG(2,"\tNumber of Balls: %d\n", SDL_JoystickNumBalls(joy));
-			return 0;
-		}
-	}
-	return 1;
+	if (SDL_NumJoysticks() <= 0)
+		return 1;
+	LOG_DEBUG(2,"\tFound %d joysticks, using first\n", SDL_NumJoysticks());
+	joy = SDL_JoystickOpen(0);
+	if (joy == NULL)
+		return 1;
+	LOG_DEBUG(1,"\t%s\n", SDL_JoystickName(0));
+	LOG_DEBUG(2,"\tNumber of Axes: %d\n", SDL_JoystickNumAxes(joy));
+	LOG_DEBUG(2,"\tNumber of Buttons: %d\n", SDL_JoystickNumButtons(joy));
+	LOG_DEBUG(2,"\tNumber of Balls: %d\n", SDL_JoystickNumBalls(joy));
+	poll_event = event_new();
+	poll_event->dispatch = do_poll;
+	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
+	event_queue(poll_event); 
+	return 0;
 }
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL joystick driver\n");
-	if (joy) {
-		SDL_JoystickClose(joy);
-		joy = NULL;
-	}
+	SDL_JoystickClose(joy);
+	joy = NULL;
 	SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
 }
 
-static void poll(void) {
-	if (joy == NULL)
-		return;
+static void do_poll(void) {
 	SDL_JoystickUpdate();
 	joystick_leftx = (SDL_JoystickGetAxis(joy, 3)+32768) >> 8;
 	joystick_lefty = (SDL_JoystickGetAxis(joy, 2)+32768) >> 8;
@@ -80,4 +83,7 @@ static void poll(void) {
 	} else {
 		PIA_0A.tied_low |= 0x02;
 	}
+	joystick_update();
+	poll_event->at_cycle += OSCILLATOR_RATE / 100;
+	event_queue(poll_event);
 }

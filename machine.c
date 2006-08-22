@@ -133,7 +133,7 @@ static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
 /**************************************************************************/
 
 void machine_helptext(void) {
-	puts("  -machine MACHINE      emulated machine [dragon32|dragon64|tano|coco|cocous]");
+	puts("  -machine MACHINE      emulated machine (-machine help for a list)");
 	puts("  -bas FILENAME         specify BASIC ROM to use (CoCo only)");
 	puts("  -extbas FILENAME      specify Extended BASIC ROM to use");
 	puts("  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)");
