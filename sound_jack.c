@@ -156,7 +156,7 @@ static void update(void) {
 	}
 }
 
-void flush_frame(void) {
+static void flush_frame(void) {
 	Sample *fill_to = buffer + frame_size;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
