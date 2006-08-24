@@ -32,7 +32,9 @@ int beam_pos;
 
 static void (*vdg_render_scanline)(void);
 static int_least16_t scanline;
+#ifndef HAVE_GP32
 static int inhibit_mode_change;
+#endif
 static int frame;
 
 static event_t *hs_fall_event, *hs_rise_event;
@@ -64,39 +66,46 @@ void vdg_reset(void) {
 	event_queue(hs_fall_event);
 	vdg_set_mode();
 	beam_pos = 0;
+#ifndef HAVE_GP32
 	inhibit_mode_change = 0;
+#endif
 	frameskip = requested_frameskip;
 	frame = 0;
 }
 
 static void do_hs_fall(void) {
 	/* Finish rendering previous scanline */
+#ifdef HAVE_GP32
+	/* GP32-specific code */
+	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START
+			&& scanline < VDG_ACTIVE_AREA_END
+			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)) {
+		vdg_render_scanline();
+	}
+#else
+	/* Normal code */
 	if (frame == 0 && scanline >= (VDG_TOP_BORDER_START + 1)) {
 		if (scanline < VDG_ACTIVE_AREA_START) {
-#ifndef HAVE_GP32
 			video_module->render_border();
-#endif
 		} else if (scanline < VDG_ACTIVE_AREA_END) {
-#ifdef HAVE_GP32
-			if ((scanline & 3) == ((VDG_TOP_BORDER_START+3)&3))
-#endif
-				vdg_render_scanline();
+			vdg_render_scanline();
 		} else if (scanline < VDG_BOTTOM_BORDER_END) {
-#ifndef HAVE_GP32
 			video_module->render_border();
-#endif
 		}
 	}
+#endif
 	/* Next scanline */
 	scanline = (scanline + 1) % VDG_FRAME_DURATION;
 	scanline_start = hs_fall_event->at_cycle;
 	beam_pos = 0;
 	PIA_RESET_P0CA1;
-#ifndef HAVE_GP32
+#ifdef HAVE_GP32
+	/* Faster, less accurate timing for GP32 */
+	PIA_SET_P0CA1;
+#else
+	/* Everything else schedule HS rise for later */
 	hs_rise_event->at_cycle = scanline_start + VDG_HS_RISING_EDGE;
 	event_queue(hs_rise_event);
-#else
-	PIA_SET_P0CA1;
 #endif
 	hs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION;
 	/* Frame sync */
@@ -108,20 +117,24 @@ static void do_hs_fall(void) {
 		if (frame == 0)
 			video_module->vdg_vsync();
 	}
+#ifndef HAVE_GP32
 	/* Enable mode changes at beginning of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_START)) {
 		inhibit_mode_change = 0;
 		vdg_set_mode();
 	}
+#endif
 	/* FS falling edge at end of this scanline */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END - 1)) {
 		fs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION + 16;
 		event_queue(fs_fall_event);
 	}
+#ifndef HAVE_GP32
 	/* Disable mode changes after end of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END)) {
 		inhibit_mode_change = 1;
 	}
+#endif
 	/* PAL delay 24 lines after FS falling edge */
 	if (IS_PAL && (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 23))) {
 		hs_fall_event->at_cycle += 25 * VDG_PAL_PADDING_LINE;
@@ -153,9 +166,13 @@ static void do_fs_rise(void) {
 
 void vdg_set_mode(void) {
 	unsigned int mode;
+#ifndef HAVE_GP32
+	/* No need to inhibit mode changes during borders on GP32, as they're
+	 * not rendered anyway. */
 	if (inhibit_mode_change)
 		return;
-#ifndef HAVE_GP32
+	/* Render scanline so far before changing modes (disabled for speed
+	 * on GP32). */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
 		vdg_render_scanline();
 	}
