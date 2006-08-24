@@ -171,7 +171,7 @@ int xroar_init(int argc, char **argv) {
 	machine_reset(RESET_HARD);
 	if (snapshot_load)
 		read_snapshot(snapshot_load);
-	return 1;
+	return 0;
 }
 
 void xroar_shutdown(void) {

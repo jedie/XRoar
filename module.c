@@ -67,7 +67,6 @@ extern SoundModule sound_sdl_module;
 extern SoundModule sound_oss_module;
 extern SoundModule sound_jack_module;
 extern SoundModule sound_rtc_module;
-extern SoundModule sound_gp32_module;
 extern SoundModule sound_null_module;
 static SoundModule *default_sound_module_list[] = {
 #ifdef HAVE_MACOSX_AUDIO
@@ -87,9 +86,6 @@ static SoundModule *default_sound_module_list[] = {
 #endif
 #ifdef HAVE_RTC
 	&sound_rtc_module,
-#endif
-#ifdef HAVE_GP32
-	&sound_gp32_module,
 #endif
 	&sound_null_module,
 	NULL

@@ -45,13 +45,31 @@ static char *get_filename(const char **extensions);
 
 static Module *empty_module_list[] = { NULL };
 
+extern VideoModule video_gp32_module;
+static VideoModule *gp32_video_module_list[] = {
+	&video_gp32_module,
+	NULL
+};
+
+extern SoundModule sound_gp32_module;
+static SoundModule *gp32_sound_module_list[] = {
+	&sound_gp32_module,
+	NULL
+};
+
+extern KeyboardModule keyboard_gp32_module;
+static KeyboardModule *gp32_keyboard_module_list[] = {
+	&keyboard_gp32_module,
+	NULL
+};
+
 UIModule ui_gp32_module = {
 	{ "gp32", "GP32 user-interface",
 	  init, 0, shutdown, NULL },
 	(FileReqModule **)empty_module_list,
-	(VideoModule **)empty_module_list,
-	(SoundModule **)empty_module_list,
-	(KeyboardModule **)empty_module_list,
+	gp32_video_module_list,
+	gp32_sound_module_list,
+	gp32_keyboard_module_list,
 	(JoystickModule **)empty_module_list
 };
 
@@ -114,6 +132,9 @@ extern uint8_t vdg_alpha_gp32[4][3][8192];
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
+	gpgfx_init();
+	gpgfx_fillrect(0, 0, 320, 196, 0x00000000);
+	gpgfx_fillrect(0, 196, 320, 44, 0xffffff00);
 	return 0;
 }
 

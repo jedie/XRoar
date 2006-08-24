@@ -82,6 +82,8 @@ static unsigned int current_time(void) {
 	return (tp.tv_sec % 1000) * 1000 + (tp.tv_usec / 1000);
 #elif defined(HAVE_SDL)
 	return SDL_GetTicks();
+#else
+	return 0;
 #endif
 }
 
@@ -97,6 +99,8 @@ static void sleep_ms(unsigned int ms) {
 	} while (nanosleep(&tv, &elapsed) && errno == EINTR);
 #elif defined(HAVE_SDL)
 	SDL_Delay(ms);
+#else
+	(void)ms;
 #endif
 }
 

@@ -69,9 +69,6 @@ static uint8_t *rendered_alpha;
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
-	gpgfx_init();
-	gpgfx_fillrect(0, 0, 320, 196, 0);
-	gpgfx_fillrect(0, 196, 320, 44, 0xffffff00);
 	vdg_colour[0] = MAPCOLOUR(0x00, 0xff, 0x00);
 	vdg_colour[1] = MAPCOLOUR(0xff, 0xff, 0x00);
 	vdg_colour[2] = MAPCOLOUR(0x00, 0x00, 0xff);
