@@ -190,16 +190,21 @@ void wd2797_reset(void) {
 /* Not strictly WD2797 accesses here, this is DOS cartridge circuitry */
 void wd2797_ff48_write(unsigned int octet) {
 	LOG_DEBUG(4, "WD2797: Write to FF48: ");
-	if ((octet & 0x03) != ic1_drive_select)
+	if ((octet & 0x03) != ic1_drive_select) {
 		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
-	if ((octet & 0x04) != ic1_motor_enable)
+	}
+	if ((octet & 0x04) != ic1_motor_enable) {
 		LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x04)?"ON":"OFF");
-	if ((octet & 0x08) != ic1_density)
+	}
+	if ((octet & 0x08) != ic1_density) {
 		LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x08)?"SINGLE":"DOUBLE");
-	if ((octet & 0x10) != ic1_precomp_enable)
+	}
+	if ((octet & 0x10) != ic1_precomp_enable) {
 		LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
-	if ((octet & 0x20) != ic1_nmi_enable)
+	}
+	if ((octet & 0x20) != ic1_nmi_enable) {
 		LOG_DEBUG(4, "NMI %s, ", (octet & 0x20)?"ENABLED":"DISABLED");
+	}
 	LOG_DEBUG(4, "\n");
 	ic1_drive_select = octet & 0x03;
 	vdrive_set_drive(ic1_drive_select);
@@ -223,16 +228,21 @@ void wd2797_ff40_write(unsigned int octet) {
 	}
 	SET_SIDE(octet & 0x40);
 	//LOG_DEBUG(4, "WD2797: Write to FF40: ");
-	if (new_drive_select != ic1_drive_select)
+	if (new_drive_select != ic1_drive_select) {
 		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
-	if ((octet & 0x08) != ic1_motor_enable)
+	}
+	if ((octet & 0x08) != ic1_motor_enable) {
 		LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x08)?"ON":"OFF");
-	if ((octet & 0x20) != ic1_density)
+	}
+	if ((octet & 0x20) != ic1_density) {
 		LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x20)?"SINGLE":"DOUBLE");
-	if ((octet & 0x10) != ic1_precomp_enable)
+	}
+	if ((octet & 0x10) != ic1_precomp_enable) {
 		LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
-	if ((octet & 0x80) != halt_enable)
+	}
+	if ((octet & 0x80) != halt_enable) {
 		LOG_DEBUG(4, "HALT %s, ", (octet & 0x80)?"ENABLED":"DISABLED");
+	}
 	LOG_DEBUG(4, "\n");
 	ic1_drive_select = new_drive_select;
 	vdrive_set_drive(ic1_drive_select);
@@ -575,8 +585,9 @@ static void read_sector_state_3(void) {
 		status_register |= STATUS_CRC_ERROR;
 	}
 	/* TODO: M == 1 */
-	if (cmd_copy & 0x10)
+	if (cmd_copy & 0x10) {
 		LOG_DEBUG(2, "WD2797: TODO: multi-sector read will fail.\n");
+	}
 	status_register &= ~(STATUS_BUSY);
 	SET_INTRQ;
 }
