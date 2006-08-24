@@ -22,12 +22,12 @@
 #include <string.h>
 #include <windows.h>
 #include <commdlg.h>
-#include <SDL/SDL_syswm.h>
 
 #include "types.h"
 #include "logging.h"
 #include "fs.h"
 #include "module.h"
+#include "common_windows32.h"
 
 static int init(int argc, char **argv);
 static void shutdown_module(void);
@@ -55,20 +55,12 @@ static void shutdown_module(void) {
 static char *load_filename(const char **extensions) {
 	OPENFILENAME ofn;
 	char fn_buf[260];
-	HWND hwnd;
 
 	(void)extensions;  /* unused */
-	SDL_SysWMinfo sdlinfo;
-	SDL_version sdlver;
-
-	SDL_VERSION(&sdlver);
-	sdlinfo.version = sdlver;
-	SDL_GetWMInfo(&sdlinfo);
-	hwnd = sdlinfo.window;
 
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = hwnd;
+	ofn.hwndOwner = windows32_main_hwnd;
 	ofn.lpstrFile = fn_buf;
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(fn_buf);
@@ -93,20 +85,12 @@ static char *load_filename(const char **extensions) {
 static char *save_filename(const char **extensions) {
 	OPENFILENAME ofn;
 	char fn_buf[260];
-	HWND hwnd;
 
 	(void)extensions;  /* unused */
-	SDL_SysWMinfo sdlinfo;
-	SDL_version sdlver;
-
-	SDL_VERSION(&sdlver);
-	sdlinfo.version = sdlver;
-	SDL_GetWMInfo(&sdlinfo);
-	hwnd = sdlinfo.window;
 
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = hwnd;
+	ofn.hwndOwner = windows32_main_hwnd;
 	ofn.lpstrFile = fn_buf;
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(fn_buf);

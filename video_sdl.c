@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
+#include <SDL/SDL_syswm.h>
 
 #include "types.h"
 #include "logging.h"
@@ -27,6 +28,9 @@
 #include "ui_sdl.h"
 #include "vdg.h"
 #include "xroar.h"
+#ifdef WINDOWS32
+#include "common_windows32.h"
+#endif
 
 static int init(int argc, char **argv);
 static void shutdown(void);
@@ -87,6 +91,16 @@ static int init(int argc, char **argv) {
 	if (set_fullscreen(sdl_video_want_fullscreen))
 		return 1;
 	alloc_colours();
+#ifdef WINDOWS32
+	{
+		SDL_version sdlver;
+		SDL_SysWMinfo sdlinfo;
+		SDL_VERSION(&sdlver);
+		sdlinfo.version = sdlver;
+		SDL_GetWMInfo(&sdlinfo);
+		windows32_main_hwnd = sdlinfo.window;
+	}
+#endif
 	return 0;
 }
 
