@@ -89,7 +89,7 @@ static void do_hs_fall(void) {
 			video_module->render_border();
 		} else if (scanline < VDG_ACTIVE_AREA_END) {
 			vdg_render_scanline();
-		} else if (scanline < VDG_BOTTOM_BORDER_END) {
+		} else if (scanline < (VDG_BOTTOM_BORDER_END - 2)) {
 			video_module->render_border();
 		}
 	}
