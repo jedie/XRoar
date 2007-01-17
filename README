@@ -26,24 +26,19 @@ The rest is the result of reading too many datasheets.
 
 COMPILING
 
-To build, type 'make' on its own.  For supported native builds, this will
-determine the host OS type and build appropriately.  Here are the supported
-targets:
+To build, run 'configure', then type 'make' if everything looks ok.
+Run 'configure --help' for available options.
 
-linux     - Linux target with OSS audio, OpenGL and Xv video.
-solaris   - Solaris target with Sun audio and SDL video.
-gp32      - Cross-compile to GP32 (ARM target).
-macosx    - PowerPC Mac OS X target with OpenGL and CoreAudio support.
-windows32 - Cross-compile for Windows.
+'configure' will attempt to determine which flags to pass to the compiler,
+and which libraries to link against, including any optional libraries.
 
-The GP32 and Windows32 builds are cross-compiles and set TARGET_ARCH, which
-you can override if needed.  For example:
-        make gp32 TARGET_ARCH=arm-none-elf
-    or: make windows32 TARGET_ARCH=i586-mingw32msvc
+Use the '--host' switch to cross-compile.  For example:
 
-When building more than one version, be sure to type 'make clean' in
-between builds, or else object files will remain that have been compiled
-for a different platform.
+        ./configure --host=arm-elf
+    or: ./configure --host=i586-mingw32
+
+If 'configure' is run from outside the source directory, object files
+will be built in the current directory, keeping the source tree clean.
 
 
 INSTALLATION
@@ -108,8 +103,8 @@ COMMAND LINE SWITCHES
   -fs                   request initial full-screen mode
   -ao MODULE            specify audio module (-ao help for a list)
   -snap FILENAME        load snapshot after initialising
-  -h                    display this help and exit
-
+  -h, --help            display this help and exit
+      --version         output version information and exit
 
 UNIX CONTROLS
 
