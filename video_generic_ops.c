@@ -12,6 +12,18 @@
  * the horizontal sync pulse which occurs *after* the front porch. */
 #define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + VDG_tFP)
 
+#ifdef NO_BORDER
+#define RENDER_LEFT_BORDER do { \
+		while (beam_pos < 32 && beam_pos < beam_to) { \
+			beam_pos += 8; \
+		} \
+	} while (0)
+#define RENDER_RIGHT_BORDER do { \
+		while (beam_pos >= 288 && beam_pos < 320 && beam_pos < beam_to) { \
+			beam_pos += 8; \
+		} \
+	} while (0)
+#else  /* NO_BORDER */
 #define RENDER_LEFT_BORDER do { \
 		while (beam_pos < 32 && beam_pos < beam_to) { \
 			*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) \
@@ -33,6 +45,7 @@
 			beam_pos += 8; \
 		} \
 	} while (0)
+#endif  /* NO_BORDER */
 
 #define ACTIVE_DISPLAY_AREA (beam_pos >= 32 && beam_pos < 288 && beam_pos < beam_to)
 
@@ -368,6 +381,7 @@ static void render_rg6(void) {
 
 /* Render a line of border (top/bottom) */
 static void render_border(void) {
+#ifndef NO_BORDER
 	unsigned int i;
 	LOCK_SURFACE;
 	for (i = 320; i; i--) {
@@ -376,4 +390,5 @@ static void render_border(void) {
 	}
 	UNLOCK_SURFACE;
 	pixel += NEXTLINE;
+#endif
 }

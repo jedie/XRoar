@@ -27,12 +27,16 @@
 
 extern UIModule ui_sdl_module;
 extern UIModule ui_gp32_module;
+extern UIModule ui_nds_module;
 static UIModule *default_ui_module_list[] = {
 #ifdef HAVE_SDL
 	&ui_sdl_module,
 #endif
 #ifdef HAVE_GP32
 	&ui_gp32_module,
+#endif
+#ifdef HAVE_NDS
+	&ui_nds_module,
 #endif
 	NULL
 };

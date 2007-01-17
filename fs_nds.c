@@ -27,18 +27,14 @@
 #include "types.h"
 #include "fs.h"
 
-#ifdef WINDOWS32
-# define WRFLAGS (O_CREAT|O_WRONLY|O_TRUNC|O_BINARY)
-# define RDFLAGS (O_RDONLY|O_BINARY)
-#else
-# define WRFLAGS (O_CREAT|O_WRONLY|O_TRUNC)
-# define RDFLAGS (O_RDONLY)
-#endif
+#define WRFLAGS (O_CREAT|O_WRONLY|O_TRUNC)
+#define RDFLAGS (O_RDONLY)
 
 static const char *fs_error = "";
 
 int fs_chdir(const char *path) {
-	return chdir(path);
+	//return chdir(path);
+	return 0;
 }
 
 int fs_open(const char *filename, int flags) {
@@ -108,7 +104,8 @@ ssize_t fs_size(const char *filename) {
 }
 
 char *fs_getcwd(char *buf, size_t size) {
-	return getcwd(buf, size);
+	//return getcwd(buf, size);
+	return NULL;
 }
 
 ssize_t fs_load_file(char *filename, void *buf, size_t size) {

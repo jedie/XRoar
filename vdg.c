@@ -27,7 +27,7 @@
 
 #include "vdg_bitmaps.c"
 
-#ifdef HAVE_GP32
+#if defined(HAVE_GP32) || defined(HAVE_NDS)
 # define FAST_VDG
 #endif
 
@@ -108,7 +108,7 @@ static void do_hs_fall(void) {
 	beam_pos = 0;
 	PIA_RESET_P0CA1;
 #ifdef FAST_VDG
-	/* Faster, less accurate timing for GP32 */
+	/* Faster, less accurate timing for GP32/NDS */
 	PIA_SET_P0CA1;
 #else
 	/* Everything else schedule HS rise for later */
@@ -175,12 +175,12 @@ static void do_fs_rise(void) {
 void vdg_set_mode(void) {
 	unsigned int mode;
 #ifndef FAST_VDG
-	/* No need to inhibit mode changes during borders on GP32, as
+	/* No need to inhibit mode changes during borders on GP32/NDS, as
 	 * they're not rendered anyway. */
 	if (inhibit_mode_change)
 		return;
 	/* Render scanline so far before changing modes (disabled for speed
-	 * on GP32). */
+	 * on GP32/NDS). */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
 		vdg_render_scanline();
 	}

@@ -14,7 +14,11 @@ TARGET = xroar$(EXEEXT)
 ifeq ($(CONFIG_GP32),yes)
 all: xroar.fxe
 else
+ifeq ($(CONFIG_NDS),yes)
+all: xroar.nds
+else
 all: $(TARGET)
+endif
 endif
 
 usage:
@@ -35,6 +39,10 @@ windows32:
 	./configure --target=i586-mingw32
 	$(MAKE) all
 
+nds:
+	./configure --target=arm-nds-eabi
+	$(MAKE) all
+
 VPATH = $(SRCROOT)
 
 WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
@@ -48,7 +56,11 @@ else
 ifeq ($(CONFIG_GP32),yes)
 ROMPATH = \"gp:/gpmm/dragon\"
 else
+ifeq ($(CONFIG_NDS),yes)
+ROMPATH = \"fat:/dragon\"
+else
 ROMPATH = \".\",\"~/.xroar/roms\",\"$(prefix)/share/xroar/roms\",\"~/Library/XRoar/Roms\"
+endif
 endif
 endif
 
@@ -133,13 +145,21 @@ OBJS_GP32 = fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
 		gp32/cmode_bin.o gp32/copyright.o gp32/kbd_graphics.o
 ALL_OBJS += $(OBJS_GP32)
 
+OBJS_NDS = fs_nds.o main_unix.o keyboard_nds.o ui_nds.o video_nds.o \
+		nds/ndsgfx.o nds/kbd_graphics.o
+ALL_OBJS += $(OBJS_NDS)
+
 OBJS_UNIX = fs_unix.o main_unix.o
 ALL_OBJS += $(OBJS_UNIX)
 
 ifeq ($(CONFIG_GP32),yes)
 	OBJS += $(OBJS_GP32)
 else
+ifeq ($(CONFIG_NDS),yes)
+	OBJS += $(OBJS_NDS)
+else
 	OBJS += $(OBJS_UNIX)
+endif
 endif
 
 ############################################################################
@@ -157,6 +177,13 @@ ifeq ($(CONFIG_GP32),yes)
 xroar.fxe: xroar.elf
 	$(OBJCOPY) -O binary xroar.elf xroar.bin
 	b2fxec -t "XRoar $(VERSION)" -a "Ciaran Anscomb" -b $(SRCROOT)/gp32/icon.bmp -f xroar.bin $@
+endif
+
+ifeq ($(CONFIG_NDS),yes)
+xroar.nds: xroar.elf
+	$(OBJCOPY) -O binary xroar.elf xroar.arm9
+	ndstool -c $@ -9 xroar.arm9
+	dsbuild $@
 endif
 
 ############################################################################
@@ -184,15 +211,22 @@ tools/img2c: tools/img2c.c
 	mkdir -p tools
 	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) -lSDL_image
 
+nds/kbd_graphics.c: tools/img2c_nds nds/kbd.png nds/kbd_shift.png
+	tools/img2c_nds kbd_bin $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png > $@
+
+tools/img2c_nds: tools/img2c_nds.c
+	mkdir -p tools
+	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) -lSDL_image
+
 ############################################################################
 # Distribution creation and cleanup
 
 .PHONY: clean distclean dist dist-gp32 dist-windows32 dist-macos dist-macosx
 
-CLEAN_FILES = $(CRT0) $(ALL_OBJS) tools/img2c tools/prerender \
+CLEAN_FILES = $(CRT0) $(ALL_OBJS) tools/img2c tools/img2c_nds tools/prerender \
 	gp32/copyright.c gp32/cmode_bin.c gp32/kbd_graphics.c \
 	gp32/vdg_bitmaps_gp32.c xroar.bin xroar.fxe xroar.elf \
-	xroar
+	nds/kbd_graphics.c xroar.nds xroar.ds.gba xroar.arm9 xroar
 
 clean:
 	rm -f $(CLEAN_FILES)

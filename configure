@@ -26,6 +26,7 @@ _jack=auto
 _sndfile=auto
 _mingw=auto
 _gp32=auto
+_nds=auto
 _trace=no
 
 _have_video_driver=
@@ -63,6 +64,7 @@ Optional Features:
   --disable-coreaudio   don't test for Mac OS X Core Audio
   --disable-mingw       don't test for MinGW
   --disable-gp32        don't test for GP32
+  --disable-nds         don't test for Nintendo DS
   --enable-trace        enable trace mode
 
   --with-sdl-config=PATH   set path to sdl-config script
@@ -586,6 +588,31 @@ fi
 
 ########
 
+if test "$_nds" = "auto"; then
+	echocheck NDS
+	nds_cflags="-mcpu=arm9tdmi -mtune=arm9tdmi -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM9"
+	nds_ldflags="-specs=ds_arm9.specs -lfat -lnds9"
+	cat > $TMPC <<EOF
+#include <nds.h>
+int main(int argc, char **argv) { powerON(POWER_LCD | POWER_2D_B); return 0; }
+EOF
+	_nds=no
+	target_cc_check "$nds_cflags" "$nds_ldflags" && _nds=yes
+	rm -f $TMPC
+	echo "$_nds"
+fi
+if test "$_nds" = "yes"; then
+	EXEEXT=.elf
+	_TARGET_CFLAGS="$_TARGET_CFLAGS $nds_cflags"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $nds_ldflags"
+	_nds_def="#define HAVE_NDS"
+	_have_video_driver=yes
+else
+	_nds_def="#undef HAVE_NDS"
+fi
+
+########
+
 if test "$_mingw" = "auto"; then
 	echocheck MinGW
 	cat > $TMPC <<EOF
@@ -656,6 +683,7 @@ CONFIG_COREAUDIO = $_coreaudio
 CONFIG_JACK = $_jack
 CONFIG_SNDFILE = $_sndfile
 CONFIG_GP32 = $_gp32
+CONFIG_NDS = $_nds
 CONFIG_MINGW = $_mingw
 CONFIG_TRACE = $_trace
 EOF
@@ -700,6 +728,9 @@ $_sndfile_def
 
 /* GP32? */
 $_gp32_def
+
+/* NDS? */
+$_nds_def
 
 /* MinGW (Windows32)? */
 $_mingw_def
