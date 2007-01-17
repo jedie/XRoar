@@ -31,17 +31,16 @@
 #include "types.h"
 #include "xroar.h"
 
-static int init(void);
+static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
 static void flush_frame(void);
-static void jack_shutdown(void *arg);
 static int jack_callback(jack_nframes_t nframes, void *arg);
 
 SoundModule sound_jack_module = {
 	{ "jack", "JACK audio",
-	  init, 0, shutdown, NULL }
+	  init, 0, shutdown, NULL },
 	update
 };
 
@@ -64,16 +63,18 @@ static pthread_mutex_t haltflag;
 
 static event_t *flush_event;
 
-static int init(void) {
+static int init(int argc, char **argv) {
 	const char **ports;
 	int i;
+
+	(void)argc;
+	(void)argv;
 	LOG_DEBUG(2,"Initialising JACK audio driver\n");
 	if ((client = jack_client_new("XRoar")) == 0) {
 		LOG_ERROR("Initialisation failed: JACK server not running?\n");
 		return 1;
 	}
 	jack_set_process_callback(client, jack_callback, 0);
-	jack_on_shutdown(client, jack_shutdown, 0);
 	output_port[0] = jack_port_register(client, "output0", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	output_port[1] = jack_port_register(client, "output1", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	if (jack_activate(client)) {
@@ -125,11 +126,6 @@ static void shutdown(void) {
 	if (buffer)
 		free(buffer);
 	buffer = NULL;
-}
-static void jack_shutdown(void *arg) {
-	(void)arg;  /* unused */
-	client = NULL;
-	sound_next();
 }
 
 static void update(void) {
