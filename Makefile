@@ -37,7 +37,7 @@ WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes \
 	-Wredundant-decls
 
-CFLAGS = $(OPT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=\"$(ROMPATH)\"
+CFLAGS = $(OPT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH)
 
 ENABLE_SDL       := linux solaris macosx windows32
 ENABLE_SDLGL     := linux macosx windows32
@@ -160,10 +160,10 @@ CFLAGS_TRACE = -DTRACE
 CFLAGS_SNDFILE = -DHAVE_SNDFILE $(shell $(PKG_CONFIG) --cflags sndfile)
 LDFLAGS_SNDFILE = $(shell $(PKG_CONFIG) --libs sndfile)
 
-ROMPATH = :~/.xroar/roms:$(prefix)/share/xroar/roms
-windows32: ROMPATH = .
-macosx: ROMPATH = :~/.xroar/roms:~/Library/XRoar/Roms
-gp32: ROMPATH = gp:/gpmm/dragon
+ROMPATH = \".\",\"~/.xroar/roms\",\"$(prefix)/share/xroar/roms\"
+windows32: ROMPATH = \".\"
+macosx: ROMPATH = \".\",\"~/.xroar/roms\",\"~/Library/XRoar/Roms\"
+gp32: ROMPATH = \"gp:/gpmm/dragon\"
 
 # Enable SDL for these targets:
 $(ENABLE_SDL): OBJS    += $(OBJS_SDL)

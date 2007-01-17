@@ -313,8 +313,10 @@ void machine_set_page1_ram_size(unsigned int size) {
  * the actual loading. */
 
 #ifndef ROMPATH
-# define ROMPATH ":/usr/local/share/xroar/roms"
+# define ROMPATH ".","/usr/local/share/xroar/roms"
 #endif
+
+static const char *rom_path[] = { ROMPATH, NULL };
 
 static int load_rom_f(const char *filename, uint8_t *dest, size_t max_size) {
 	int fd;
@@ -339,41 +341,39 @@ static int load_dgn_f(const char *filename, uint8_t *dest, size_t max_size) {
 
 static char *construct_path(const char *path, const char *filename) {
 	char *buf;
-	char *until = strchr(path, ':');
 	char *home = NULL;
-	int path_length, home_length = 0;
-	if (!until)
-		path_length = strlen(path);
-	else
-		path_length = until - path;
+	int path_length;
+
+	/* Account for path, "/", filename and trailing null */
+	path_length = strlen(path) + strlen(filename) + 2;
 	if (path[0] == '~' && (path[1] == '/' || path[1] == '\\')) {
 		home = getenv("HOME");
-		if (home)
-			home_length = strlen(home)+1;
-		path += 2;
-		path_length -= 2;
+		if (home) {
+			/* Skip "~/" */
+			path += 2;
+			path_length -= 2;
+			/* Account for home, "/" */
+			path_length += strlen(home) + 1;  /* trailing '/' */
+		}
 	}
-	buf = malloc(home_length + path_length + strlen(filename) + 2);
+	buf = malloc(path_length);
 	if (!buf)
 		return NULL;
 	buf[0] = 0;
-	if (home_length) {
+	if (home) {
 		strcpy(buf, home);
 		strcat(buf, "/");
 	}
-	if (path_length) {
-		strncat(buf, path, path_length);
-		buf[home_length + path_length] = '/';
-		buf[home_length + path_length + 1] = 0;
-	}
+	strcat(buf, path);
+	strcat(buf, "/");
 	strcat(buf, filename);
 	return buf;
 }
 
 static int load_rom(const char *romname, uint8_t *dest, size_t max_size) {
-	const char *path = ROMPATH;
+	int i;
 	char *filename;
-	char buf[13];
+	char name_dot_rom[13], name_dot_dgn[13];
 	unsigned int ret;
 	if (!romname)
 		return -1;
@@ -382,29 +382,25 @@ static int load_rom(const char *romname, uint8_t *dest, size_t max_size) {
 		return 0;
 	if (strlen(romname) > 8)
 		return -1;
-	while (*path) {
-		strcpy(buf, romname);
-		strcat(buf, ".rom");
-		filename = construct_path(path, buf);
+	strcpy(name_dot_rom, romname);
+	strcat(name_dot_rom, ".rom");
+	strcpy(name_dot_dgn, romname);
+	strcat(name_dot_dgn, ".dgn");
+	for (i = 0; rom_path[i]; i++) {
+		filename = construct_path(rom_path[i], name_dot_rom);
 		if (filename == NULL)
 			return -1;
 		ret = load_rom_f(filename, dest, max_size);
 		free(filename);
 		if (ret == 0)
 			return 0;
-		strcpy(buf, romname);
-		strcat(buf, ".dgn");
-		filename = construct_path(path, buf);
+		filename = construct_path(rom_path[i], name_dot_dgn);
 		if (filename == NULL)
 			return -1;
 		ret = load_dgn_f(filename, dest, max_size);
 		free(filename);
 		if (ret == 0)
 			return 0;
-		while (*path && *path != ':')
-			path++;
-		if (*path == ':')
-			path++;
 	}
 	return -1;
 }
