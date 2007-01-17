@@ -26,7 +26,6 @@
 #include "logging.h"
 
 int main(int argc, char **argv) {
-	printf("XRoar " VERSION ", (c) 2003-2006 Ciaran Anscomb.\n");
 	atexit(xroar_shutdown);
 	xroar_init(argc, argv);
 	xroar_mainloop();

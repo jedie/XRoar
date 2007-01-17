@@ -71,6 +71,7 @@ static void xroar_helptext(void) {
 	puts("  -trace                start with trace mode on");
 #endif
 	puts("  -h, --help            display this help and exit");
+	puts("      --version         output version information and exit");
 }
 
 int xroar_init(int argc, char **argv) {
@@ -129,6 +130,13 @@ int xroar_init(int argc, char **argv) {
 			machine_helptext();
 			cart_helptext();
 			xroar_helptext();
+			exit(0);
+		} else if (!strcmp(argv[i], "--version")) {
+			printf("XRoar " VERSION "\n");
+			puts("Copyright (C) 2006 Ciaran Anscomb");
+			puts("This is free software.  You may redistribute copies of it under the terms of");
+			puts("the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.");
+			puts("There is NO WARRANTY, to the extent permitted by law.");
 			exit(0);
 		}
 	}
