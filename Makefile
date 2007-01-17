@@ -300,9 +300,9 @@ xroar.fxe: xroar.elf
 tools/prerender: tools/prerender.c
 	$(HOSTCC) -o $@ $<
 
-video_gp32.c: vdg_bitmaps_gp32.c
+video_gp32.c: gp32/vdg_bitmaps_gp32.c
 
-vdg_bitmaps_gp32.c: tools/prerender vdg_bitmaps.c
+gp32/vdg_bitmaps_gp32.c: tools/prerender vdg_bitmaps.c
 	tools/prerender > $@
 
 tools/img2c: tools/img2c.c
@@ -320,7 +320,7 @@ kbd_graphics.c: tools/img2c gp32/kbd.png gp32/kbd_shift.png
 .PHONY: clean dist dist-gp32 dist-windows32 dist-macos dist-macosx
 
 CLEAN_FILES = $(TARGETS) $(ALL_OBJS) tools/img2c tools/prerender \
-	copyright.c cmode_bin.c kbd_graphics.c vdg_bitmaps_gp32.c \
+	copyright.c cmode_bin.c kbd_graphics.c gp32/vdg_bitmaps_gp32.c \
 	xroar.bin xroar.fxe
 
 clean:

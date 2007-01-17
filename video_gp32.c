@@ -63,7 +63,7 @@ static uint32_t border_colour;
 
 static uint8_t *rendered_alpha;
 
-#include "vdg_bitmaps_gp32.c"
+#include "gp32/vdg_bitmaps_gp32.c"
 
 static int init(int argc, char **argv) {
 	(void)argc;
