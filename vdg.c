@@ -27,12 +27,16 @@
 
 #include "vdg_bitmaps.c"
 
+#ifdef HAVE_GP32
+# define FAST_VDG
+#endif
+
 Cycle scanline_start;
 int beam_pos;
 
 static void (*vdg_render_scanline)(void);
 static int_least16_t scanline;
-#ifndef HAVE_GP32
+#ifndef FAST_VDG
 static int inhibit_mode_change;
 #endif
 static int frame;
@@ -66,7 +70,7 @@ void vdg_reset(void) {
 	event_queue(hs_fall_event);
 	vdg_set_mode();
 	beam_pos = 0;
-#ifndef HAVE_GP32
+#ifndef FAST_VDG
 	inhibit_mode_change = 0;
 #endif
 	frameskip = requested_frameskip;
@@ -75,11 +79,15 @@ void vdg_reset(void) {
 
 static void do_hs_fall(void) {
 	/* Finish rendering previous scanline */
-#ifdef HAVE_GP32
-	/* GP32-specific code */
+#ifdef FAST_VDG
+	/* Skip borders, etc. */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START
 			&& scanline < VDG_ACTIVE_AREA_END
-			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)) {
+#ifdef HAVE_GP32
+			/* GP32 renders 4 scanlines at once */
+			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)
+#endif
+			) {
 		vdg_render_scanline();
 	}
 #else
@@ -99,7 +107,7 @@ static void do_hs_fall(void) {
 	scanline_start = hs_fall_event->at_cycle;
 	beam_pos = 0;
 	PIA_RESET_P0CA1;
-#ifdef HAVE_GP32
+#ifdef FAST_VDG
 	/* Faster, less accurate timing for GP32 */
 	PIA_SET_P0CA1;
 #else
@@ -117,7 +125,7 @@ static void do_hs_fall(void) {
 		if (frame == 0)
 			video_module->vdg_vsync();
 	}
-#ifndef HAVE_GP32
+#ifndef FAST_VDG
 	/* Enable mode changes at beginning of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_START)) {
 		inhibit_mode_change = 0;
@@ -129,7 +137,7 @@ static void do_hs_fall(void) {
 		fs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION + 16;
 		event_queue(fs_fall_event);
 	}
-#ifndef HAVE_GP32
+#ifndef FAST_VDG
 	/* Disable mode changes after end of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END)) {
 		inhibit_mode_change = 1;
@@ -166,9 +174,9 @@ static void do_fs_rise(void) {
 
 void vdg_set_mode(void) {
 	unsigned int mode;
-#ifndef HAVE_GP32
-	/* No need to inhibit mode changes during borders on GP32, as they're
-	 * not rendered anyway. */
+#ifndef FAST_VDG
+	/* No need to inhibit mode changes during borders on GP32, as
+	 * they're not rendered anyway. */
 	if (inhibit_mode_change)
 		return;
 	/* Render scanline so far before changing modes (disabled for speed
