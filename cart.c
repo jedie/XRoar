@@ -55,6 +55,10 @@ void cart_getargs(int argc, char **argv) {
 
 void cart_init(void) {
 	cart_event = event_new();
+	if (cart_event == NULL) {
+		LOG_WARN("Couldn't create cartridge event.\n");
+		return;
+	}
 	cart_event->dispatch = cart_interrupt;
 }
 
@@ -78,12 +82,16 @@ static void cart_configure(const char *filename, int autostart) {
 	if (cart_filename)
 		cart_remove();
 	cart_filename = malloc(strlen(filename)+1);
+	if (cart_filename == NULL)
+		return;
 	strcpy(cart_filename, filename);
 	cart_autostart = autostart;
 }
 
 static void cart_load(void) {
 	int fd;
+	if (cart_filename == NULL)
+		return;
 	if ((fd = fs_open(cart_filename, FS_READ)) == -1) {
 		cart_remove();
 		return;
