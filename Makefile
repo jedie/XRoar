@@ -238,6 +238,11 @@ DISTNAME = xroar-$(VERSION)
 
 dist:
 	darcs dist --dist-name $(DISTNAME)
+	gzip -dc $(DISTNAME).tar.gz | tar xf -
+	chmod u+x $(DISTNAME)/configure
+	chmod -R g+rX,o+rX $(DISTNAME)
+	rm -f $(DISTNAME).tar.gz
+	tar cf - $(DISTNAME) | gzip -c > $(DISTNAME).tar.gz
 	mv $(DISTNAME).tar.gz ..
 
 dist-gp32: gp32
