@@ -6,6 +6,8 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
+#include "config.h"
+
 #ifdef HAVE_GP32  /* GP32 types & macros */
 
 #include "gp32/types.h"  /* base types */

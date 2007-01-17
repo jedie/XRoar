@@ -20,6 +20,7 @@
 #include <string.h>
 #include <signal.h>
 
+#include "config.h"
 #if (0)
 #include <errno.h>
 #include <time.h>
