@@ -41,6 +41,12 @@ static void do_poll(void);
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
+	poll_event = event_new();
+	if (poll_event == NULL) {
+		LOG_WARN("Couldn't create joystick polling event.\n");
+		return 1;
+	}
+	poll_event->dispatch = do_poll;
 	LOG_DEBUG(2,"Initialising SDL joystick driver\n");
 	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
 	if (SDL_NumJoysticks() <= 0)
@@ -53,8 +59,6 @@ static int init(int argc, char **argv) {
 	LOG_DEBUG(2,"\tNumber of Axes: %d\n", SDL_JoystickNumAxes(joy));
 	LOG_DEBUG(2,"\tNumber of Buttons: %d\n", SDL_JoystickNumButtons(joy));
 	LOG_DEBUG(2,"\tNumber of Balls: %d\n", SDL_JoystickNumBalls(joy));
-	poll_event = event_new();
-	poll_event->dispatch = do_poll;
 	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
 	event_queue(poll_event); 
 	return 0;
