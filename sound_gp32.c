@@ -112,8 +112,6 @@ static void update(void) {
 	}
 }
 
-//extern uint32_t border_colour;  /* TESTING */
-
 static void flush_frame(void) {
 	Sample *fill_to = buffer[writing_frame] + frame_size;
 	while (wrptr < fill_to)

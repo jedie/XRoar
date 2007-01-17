@@ -60,7 +60,6 @@ static uint8_t fg_colour;
 static uint8_t vdg_colour[16];
 static uint8_t *cg_colours;
 static uint32_t border_colour;
-//uint32_t border_colour;  /* TESTING */
 
 static uint8_t *rendered_alpha;
 
