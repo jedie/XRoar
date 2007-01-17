@@ -24,8 +24,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "fs.h"
 #include "types.h"
+#include "fs.h"
 
 #ifdef WINDOWS32
 # define WRFLAGS (O_CREAT|O_WRONLY|O_TRUNC|O_BINARY)
