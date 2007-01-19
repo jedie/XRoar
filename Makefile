@@ -243,6 +243,7 @@ dist:
 	chmod -R g+rX,o+rX $(DISTNAME)
 	rm -f $(DISTNAME).tar.gz
 	tar cf - $(DISTNAME) | gzip -c > $(DISTNAME).tar.gz
+	rm -rf $(DISTNAME)
 	mv $(DISTNAME).tar.gz ..
 
 dist-gp32: gp32
