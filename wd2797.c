@@ -347,7 +347,7 @@ void wd2797_command_write(unsigned int cmd) {
 			data_register = 0x00;
 			LOG_DEBUG(4, "WD2797: CMD: Restore\n");
 		} else {
-			LOG_DEBUG(4, "WD2797: CMD: Seek\n");
+			LOG_DEBUG(4, "WD2797: CMD: Seek (TR=%d)\n", track_register);
 		}
 		type_1_state_1();
 		return;
@@ -412,6 +412,7 @@ void wd2797_command_write(unsigned int cmd) {
 }
 
 static void type_1_state_1(void) {
+	LOG_DEBUG(5, " type_1_state_1()\n");
 	if (data_register == track_register) {
 		verify_track_state_1();
 		return;
@@ -424,11 +425,13 @@ static void type_1_state_1(void) {
 }
 
 static void type_1_state_2(void) {
+	LOG_DEBUG(5, " type_1_state_2()\n");
 	track_register += direction;
 	type_1_state_3();
 }
 
 static void type_1_state_3(void) {
+	LOG_DEBUG(5, " type_1_state_3()\n");
 	if (vdrive_tr00 && direction == -1) {
 		LOG_DEBUG(4,"WD2797: TR00!\n");
 		track_register = 0;
@@ -444,6 +447,7 @@ static void type_1_state_3(void) {
 }
 
 static void verify_track_state_1(void) {
+	LOG_DEBUG(5, " verify_track_state_1()\n");
 	if (!(cmd_copy & 0x04)) {
 		status_register &= ~(STATUS_BUSY);
 		SET_INTRQ;
@@ -455,9 +459,11 @@ static void verify_track_state_1(void) {
 
 static void verify_track_state_2(void) {
 	uint8_t *idam;
+	LOG_DEBUG(5, " verify_track_state_2(): ");
 	if (vdrive_index_pulse()) {
 		index_holes_count++;
 		if (index_holes_count >= 5) {
+			LOG_DEBUG(5, "index_holes_count >= 5: seek error\n");
 			status_register &= ~(STATUS_BUSY);
 			status_register |= STATUS_SEEK_ERROR;
 			SET_INTRQ;
@@ -466,24 +472,29 @@ static void verify_track_state_2(void) {
 	}
 	idam = vdrive_next_idam();
 	if (idam == NULL) {
+		LOG_DEBUG(5, "null IDAM: -> verify_track_state_2\n");
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
 	}
 	if (track_register != idam[1]) {
+		LOG_DEBUG(5, "track_register != idam[1]: -> verify_track_state_2\n");
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
 	}
 	if (crc16_value() != ((idam[5] << 8) | idam[6])) {
+		LOG_DEBUG(5, "crc16 != idam[5,6]: -> crc error\n");
 		LOG_DEBUG(3, "Verify track %d CRC16 error: $%04x != $%04x\n", track_register, crc16_value(), (idam[5] << 8) | idam[6]);
 		status_register |= STATUS_CRC_ERROR;
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
 	}
+	LOG_DEBUG(5, "finished.\n");
 	status_register &= ~(STATUS_CRC_ERROR|STATUS_BUSY);
 	SET_INTRQ;
 }
 
 static void type_2_state_1(void) {
+	LOG_DEBUG(5, " type_2_state_1()\n");
 	if ((cmd_copy & 0x20) && vdrive_write_protect) {
 		status_register &= ~(STATUS_BUSY);
 		status_register |= STATUS_WRITE_PROTECT;
