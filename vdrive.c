@@ -230,8 +230,9 @@ void vdrive_write_idam(void) {
 unsigned int vdrive_time_to_next_idam(void) {
 	unsigned int next_offset;
 	unsigned int i, tmp;
-	if (current_drive == NULL)
-		return 0;
+	if (current_drive == NULL) {
+		return (OSCILLATOR_RATE / 5);
+	}
 	next_offset = current_drive->track_length;
 	for (i = 0; i < 64; i++) {
 		tmp = idamptr[i] & 0x3fff;
@@ -250,8 +251,10 @@ unsigned int vdrive_time_to_next_idam(void) {
 uint8_t *vdrive_next_idam(void) {
 	unsigned int next_offset;
 	unsigned int i, tmp;
-	if (current_drive == NULL)
+	if (current_drive == NULL) {
+		index_pulse = 1;
 		return NULL;
+	}
 	next_offset = current_drive->track_length;
 	for (i = 0; i < 64; i++) {
 		tmp = idamptr[i] & 0x3fff;
