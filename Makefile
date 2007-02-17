@@ -246,14 +246,14 @@ dist:
 	rm -rf $(DISTNAME)
 	mv $(DISTNAME).tar.gz ..
 
-dist-gp32: gp32
+dist-gp32: all
 	mkdir $(DISTNAME)-gp32
 	cp COPYING.GPL ChangeLog README xroar.fxe $(DISTNAME)-gp32/
 	rm -f ../$(DISTNAME)-gp32.zip
 	zip -r ../$(DISTNAME)-gp32.zip $(DISTNAME)-gp32
 	rm -rf $(DISTNAME)-gp32/
 
-dist-windows32: windows32
+dist-windows32: all
 	mkdir $(DISTNAME)-windows32
 	cp COPYING.GPL ChangeLog README xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
 	cp COPYING.LGPL-2.1 $(DISTNAME)-windows32/COPYING.LGPL-2.1
@@ -264,7 +264,7 @@ dist-windows32: windows32
 	zip -r ../$(DISTNAME)-windows32.zip $(DISTNAME)-windows32
 	rm -rf $(DISTNAME)-windows32/
 
-dist-macosx dist-macos: macosx
+dist-macosx dist-macos: all
 	mkdir XRoar-$(VERSION)
 	mkdir -p XRoar-$(VERSION)/XRoar.app/Contents/MacOS XRoar-$(VERSION)/XRoar.app/Contents/Frameworks XRoar-$(VERSION)/XRoar.app/Contents/Resources
 	cp xroar XRoar-$(VERSION)/XRoar.app/Contents/MacOS/
