@@ -252,6 +252,10 @@ void machine_reset(int hard) {
 		}
 	}
 	pia_reset();
+	if (running_config.dos_type == DOS_DRAGONDOS)
+		wd279x_type = WD2797;
+	else
+		wd279x_type = WD2793;
 	wd279x_reset();
 	sam_reset();
 	m6809_reset();

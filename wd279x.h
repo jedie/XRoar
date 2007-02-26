@@ -8,6 +8,12 @@
 
 #include "types.h"
 
+enum WD279X_type {
+	WD2791, WD2793, WD2795, WD2797
+};
+
+extern unsigned int wd279x_type;
+
 void wd279x_init(void);
 void wd279x_reset(void);
 int wd279x_load_disk(char *filename, int drive);

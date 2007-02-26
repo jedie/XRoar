@@ -38,8 +38,6 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-#define IS_WD1773 (IS_RSDOS)
-
 #define STATUS_NOT_READY     (1<<7)
 #define STATUS_WRITE_PROTECT (1<<6)
 #define STATUS_HEAD_LOADED   (1<<5)
@@ -108,6 +106,13 @@
 		event_queue(nmi_event); \
 	} while (0)
 
+/* From enum WD279X_type */
+unsigned int wd279x_type;
+
+#define HAS_SSO (wd279x_type == WD2795 || wd279x_type == WD2797)
+#define HAS_LENGTH_FLAG (wd279x_type == WD2795 || wd279x_type == WD2797)
+#define INVERTED_DATA (wd279x_type == WD2791 || wd279x_type == WD2795)
+
 /* Functions used in state machines: */
 static void type_1_state_1(void);
 static void type_1_state_2(void);
@@ -167,6 +172,7 @@ static unsigned int ic1_nmi_enable;
 static unsigned int halt_enable;
 
 void wd279x_init(void) {
+	wd279x_type = WD2797;
 	state_event = event_new();
 	nmi_event = event_new();
 	nmi_event->dispatch = do_nmi;
@@ -262,38 +268,55 @@ void wd279x_ff40_write(unsigned int octet) {
 }
 
 void wd279x_track_register_write(unsigned int octet) {
+	if (INVERTED_DATA)
+		octet = ~octet;
 	track_register = octet & 0xff;
 }
 
 unsigned int wd279x_track_register_read(void) {
+	if (INVERTED_DATA)
+		return ~track_register & 0xff;
 	return track_register & 0xff;
 }
 
 void wd279x_sector_register_write(unsigned int octet) {
+	if (INVERTED_DATA)
+		octet = ~octet;
 	sector_register = octet & 0xff;
 }
 
 unsigned int wd279x_sector_register_read(void) {
+	if (INVERTED_DATA)
+		return ~sector_register & 0xff;
 	return sector_register & 0xff;
 }
 
 void wd279x_data_register_write(unsigned int octet) {
 	RESET_DRQ;
+	if (INVERTED_DATA)
+		octet = ~octet;
 	data_register = octet & 0xff;
 }
 
 unsigned int wd279x_data_register_read(void) {
 	RESET_DRQ;
+	if (INVERTED_DATA)
+		return ~data_register & 0xff;
 	return data_register & 0xff;
 }
 
 unsigned int wd279x_status_read(void) {
 	RESET_INTRQ;
-	return status_register;
+	if (INVERTED_DATA)
+		return ~status_register & 0xff;
+	return status_register & 0xff;
 }
 
 void wd279x_command_write(unsigned int cmd) {
 	RESET_INTRQ;
+	if (INVERTED_DATA)
+		cmd = ~cmd;
+	cmd &= 0xff;
 	cmd_copy = cmd;
 	/* FORCE INTERRUPT */
 	if ((cmd & 0xf0) == 0xd0) {
@@ -367,7 +390,7 @@ void wd279x_command_write(unsigned int cmd) {
 			SET_INTRQ;
 			return;
 		}
-		if (!IS_WD1773)
+		if (HAS_SSO)
 			SET_SIDE(cmd & 0x02);  /* 'U' */
 		if (cmd & 0x04) {  /* 'E' set */
 			NEXT_STATE(type_2_state_1, W_MILLISEC(30));
@@ -399,7 +422,7 @@ void wd279x_command_write(unsigned int cmd) {
 			SET_INTRQ;
 			return;
 		}
-		if (!IS_WD1773)
+		if (HAS_SSO)
 			SET_SIDE(cmd & 0x02);  /* 'U' */
 		if (cmd & 0x04) {  /* 'E' set */
 			NEXT_STATE(write_track_state_1, W_MILLISEC(30));
@@ -533,10 +556,10 @@ static void type_2_state_2(void) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	if (IS_WD1773)
-		bytes_left = sector_size[1][idam[4]&3];
-	else
+	if (HAS_LENGTH_FLAG)
 		bytes_left = sector_size[(cmd_copy & 0x08)?1:0][idam[4]&3];
+	else
+		bytes_left = sector_size[1][idam[4]&3];
 	/* TODO: CRC check */
 	if ((cmd_copy & 0x20) == 0) {
 		unsigned int bytes_to_scan, i, tmp;
