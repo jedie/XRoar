@@ -32,7 +32,7 @@
 #include "tape.h"
 #include "vdg.h"
 #include "vdrive.h"
-#include "wd2797.h"
+#include "wd279x.h"
 #include "xroar.h"
 
 const char *machine_names[NUM_MACHINE_TYPES] = {
@@ -188,7 +188,7 @@ void machine_getargs(int argc, char **argv) {
 void machine_init(void) {
 	sam_init();
 	pia_init();
-	wd2797_init();
+	wd279x_init();
 	vdrive_init();
 	m6809_init();
 	vdg_init();
@@ -252,7 +252,7 @@ void machine_reset(int hard) {
 		}
 	}
 	pia_reset();
-	wd2797_reset();
+	wd279x_reset();
 	sam_reset();
 	m6809_reset();
 	vdg_reset();

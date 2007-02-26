@@ -34,7 +34,7 @@
 #include "snapshot.h"
 #include "tape.h"
 #include "vdisk.h"
-#include "wd2797.h"
+#include "wd279x.h"
 #include "xroar.h"
 
 static int init(int argc, char **argv);

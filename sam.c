@@ -25,7 +25,7 @@
 #include "sam.h"
 #include "tape.h"
 #include "vdg.h"
-#include "wd2797.h"
+#include "wd279x.h"
 #include "xroar.h"
 
 uint8_t *addrptr_low;
@@ -105,16 +105,16 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 			return 0x7e;
 		if (IS_RSDOS) {
 			/* CoCo floppy disk controller */
-			if ((addr & 15) == 8) return wd2797_status_read();
-			if ((addr & 15) == 9) return wd2797_track_register_read();
-			if ((addr & 15) == 10) return wd2797_sector_register_read();
-			if ((addr & 15) == 11) return wd2797_data_register_read();
+			if ((addr & 15) == 8) return wd279x_status_read();
+			if ((addr & 15) == 9) return wd279x_track_register_read();
+			if ((addr & 15) == 10) return wd279x_sector_register_read();
+			if ((addr & 15) == 11) return wd279x_data_register_read();
 		} else {
 			/* Dragon floppy disk controller */
-			if ((addr & 15) == 0) return wd2797_status_read();
-			if ((addr & 15) == 1) return wd2797_track_register_read();
-			if ((addr & 15) == 2) return wd2797_sector_register_read();
-			if ((addr & 15) == 3) return wd2797_data_register_read();
+			if ((addr & 15) == 0) return wd279x_status_read();
+			if ((addr & 15) == 1) return wd279x_track_register_read();
+			if ((addr & 15) == 2) return wd279x_sector_register_read();
+			if ((addr & 15) == 3) return wd279x_data_register_read();
 		}
 		return 0x7e;
 	}
@@ -184,18 +184,18 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 			return;
 		if (IS_RSDOS) {
 			/* CoCo floppy disk controller */
-			if ((addr & 15) == 8) wd2797_command_write(octet);
-			if ((addr & 15) == 9) wd2797_track_register_write(octet);
-			if ((addr & 15) == 10) wd2797_sector_register_write(octet);
-			if ((addr & 15) == 11) wd2797_data_register_write(octet);
-			if (!(addr & 8)) wd2797_ff40_write(octet);
+			if ((addr & 15) == 8) wd279x_command_write(octet);
+			if ((addr & 15) == 9) wd279x_track_register_write(octet);
+			if ((addr & 15) == 10) wd279x_sector_register_write(octet);
+			if ((addr & 15) == 11) wd279x_data_register_write(octet);
+			if (!(addr & 8)) wd279x_ff40_write(octet);
 		} else {
 			/* Dragon floppy disk controller */
-			if ((addr & 15) == 0) wd2797_command_write(octet);
-			if ((addr & 15) == 1) wd2797_track_register_write(octet);
-			if ((addr & 15) == 2) wd2797_sector_register_write(octet);
-			if ((addr & 15) == 3) wd2797_data_register_write(octet);
-			if (addr & 8) wd2797_ff48_write(octet);
+			if ((addr & 15) == 0) wd279x_command_write(octet);
+			if ((addr & 15) == 1) wd279x_track_register_write(octet);
+			if ((addr & 15) == 2) wd279x_sector_register_write(octet);
+			if ((addr & 15) == 3) wd279x_data_register_write(octet);
+			if (addr & 8) wd279x_ff48_write(octet);
 		}
 		return;
 	}

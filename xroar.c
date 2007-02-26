@@ -31,7 +31,7 @@
 #include "pia.h"
 #include "sam.h"
 #include "snapshot.h"
-#include "wd2797.h"
+#include "wd279x.h"
 #include "xroar.h"
 
 int requested_frameskip;

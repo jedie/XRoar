@@ -35,7 +35,7 @@
 #include "m6809.h"
 #include "pia.h"
 #include "vdrive.h"
-#include "wd2797.h"
+#include "wd279x.h"
 #include "xroar.h"
 
 #define IS_WD1773 (IS_RSDOS)
@@ -166,13 +166,13 @@ static unsigned int ic1_density;
 static unsigned int ic1_nmi_enable;
 static unsigned int halt_enable;
 
-void wd2797_init(void) {
+void wd279x_init(void) {
 	state_event = event_new();
 	nmi_event = event_new();
 	nmi_event->dispatch = do_nmi;
 }
 
-void wd2797_reset(void) {
+void wd279x_reset(void) {
 	event_dequeue(state_event);
 	status_register = 0;
 	track_register = 0;
@@ -180,15 +180,15 @@ void wd2797_reset(void) {
 	data_register = 0;
 	intrq_flag = 0;
 	if (IS_RSDOS)
-		wd2797_ff40_write(0);
+		wd279x_ff40_write(0);
 	else
-		wd2797_ff48_write(0);
+		wd279x_ff48_write(0);
 	RESET_DIRECTION;
 	SET_SIDE(0);
 }
 
 /* Not strictly WD2797 accesses here, this is DOS cartridge circuitry */
-void wd2797_ff48_write(unsigned int octet) {
+void wd279x_ff48_write(unsigned int octet) {
 	LOG_DEBUG(4, "WD2797: Write to FF48: ");
 	if ((octet & 0x03) != ic1_drive_select) {
 		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
@@ -216,7 +216,7 @@ void wd2797_ff48_write(unsigned int octet) {
 }
 
 /* Coco version of above - slightly different... */
-void wd2797_ff40_write(unsigned int octet) {
+void wd279x_ff40_write(unsigned int octet) {
 	unsigned int new_drive_select = 0;
 	octet ^= 0x20;
 	if (octet & 0x01) {
@@ -261,38 +261,38 @@ void wd2797_ff40_write(unsigned int octet) {
 	}
 }
 
-void wd2797_track_register_write(unsigned int octet) {
+void wd279x_track_register_write(unsigned int octet) {
 	track_register = octet & 0xff;
 }
 
-unsigned int wd2797_track_register_read(void) {
+unsigned int wd279x_track_register_read(void) {
 	return track_register & 0xff;
 }
 
-void wd2797_sector_register_write(unsigned int octet) {
+void wd279x_sector_register_write(unsigned int octet) {
 	sector_register = octet & 0xff;
 }
 
-unsigned int wd2797_sector_register_read(void) {
+unsigned int wd279x_sector_register_read(void) {
 	return sector_register & 0xff;
 }
 
-void wd2797_data_register_write(unsigned int octet) {
+void wd279x_data_register_write(unsigned int octet) {
 	RESET_DRQ;
 	data_register = octet & 0xff;
 }
 
-unsigned int wd2797_data_register_read(void) {
+unsigned int wd279x_data_register_read(void) {
 	RESET_DRQ;
 	return data_register & 0xff;
 }
 
-unsigned int wd2797_status_read(void) {
+unsigned int wd279x_status_read(void) {
 	RESET_INTRQ;
 	return status_register;
 }
 
-void wd2797_command_write(unsigned int cmd) {
+void wd279x_command_write(unsigned int cmd) {
 	RESET_INTRQ;
 	cmd_copy = cmd;
 	/* FORCE INTERRUPT */
