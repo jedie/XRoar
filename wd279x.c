@@ -19,10 +19,6 @@
 /* Sources:
  *     WD279x:
  *         http://www.swtpc.com/mholley/DC_5/TMS279X_DataSheet.pdf
- *     DragonDOS cartridge detail:
- *         http://www.dragon-archive.co.uk/
- *     CoCo DOS cartridge detail:
- *         http://www.coco3.com/unravalled/disk-basic-unravelled.pdf
  */
 
 #include <stdlib.h>
@@ -58,32 +54,21 @@
 
 #define SET_DRQ do { \
 		status_register |= STATUS_DRQ; \
-		if (IS_RSDOS) { \
-			halt = 0; \
-		} else { \
-			PIA_SET_P1CB1; \
-		} \
+		if (wd279x_set_drq_handler) \
+			wd279x_set_drq_handler(); \
 	} while (0)
 #define RESET_DRQ do { \
 		status_register &= ~(STATUS_DRQ); \
-		if (IS_RSDOS) { \
-			if (halt_enable) { \
-				halt = 1; \
-			} \
-		} else { \
-			PIA_RESET_P1CB1; \
-		} \
+		if (wd279x_reset_drq_handler) \
+			wd279x_reset_drq_handler(); \
 	} while (0)
 #define SET_INTRQ do { \
-		intrq_flag = 1; \
-		if (IS_RSDOS) { \
-			halt_enable = halt = 0; \
-		} \
-		QUEUE_NMI(); \
+		if (wd279x_set_intrq_handler) \
+			wd279x_set_intrq_handler(); \
 	} while (0)
 #define RESET_INTRQ do { \
-		intrq_flag = 0; \
-		nmi = 0; \
+		if (wd279x_reset_intrq_handler) \
+			wd279x_reset_intrq_handler(); \
 	} while (0)
 
 #define NEXT_STATE(f,t) do { \
@@ -92,8 +77,11 @@
 		event_queue(state_event); \
 	} while (0)
 
-#define IS_DOUBLE_DENSITY (ic1_density == 0)
-#define IS_SINGLE_DENSITY (!IS_DOUBLE_DENSITY)
+#define SINGLE_DENSITY (0)
+#define DOUBLE_DENSITY (1)
+
+#define IS_DOUBLE_DENSITY (density == DOUBLE_DENSITY)
+#define IS_SINGLE_DENSITY (density == SINGLE_DENSITY)
 
 #define SET_DIRECTION do { direction = 1; vdrive_set_direction(1); } while (0)
 #define RESET_DIRECTION do { \
@@ -101,17 +89,18 @@
 	} while (0)
 #define SET_SIDE(s) do { side = (s) ? 1 : 0; vdrive_set_side(side); } while (0)
 
-#define QUEUE_NMI() do { \
-		nmi_event->at_cycle = current_cycle + 1; \
-		event_queue(nmi_event); \
-	} while (0)
-
 /* From enum WD279X_type */
 unsigned int wd279x_type;
 
 #define HAS_SSO (wd279x_type == WD2795 || wd279x_type == WD2797)
 #define HAS_LENGTH_FLAG (wd279x_type == WD2795 || wd279x_type == WD2797)
 #define INVERTED_DATA (wd279x_type == WD2791 || wd279x_type == WD2795)
+
+/* Various signal handlers set by DOS cart reset code: */
+void (*wd279x_set_drq_handler)(void);
+void (*wd279x_reset_drq_handler)(void);
+void (*wd279x_set_intrq_handler)(void);
+void (*wd279x_reset_intrq_handler)(void);
 
 /* Functions used in state machines: */
 static void type_1_state_1(void);
@@ -136,10 +125,6 @@ static void write_track_state_3(void);
 
 static event_t *state_event;
 
-/* NMIs queued to allow CPU to run next instruction */
-static event_t *nmi_event;
-static void do_nmi(void);
-
 /* WD2797 registers */
 static unsigned int status_register;
 static unsigned int track_register;
@@ -155,7 +140,6 @@ static unsigned int step_delay;
 static unsigned int index_holes_count;
 static unsigned int bytes_left;
 static unsigned int dam;
-static int intrq_flag;
 
 static unsigned int stepping_rate[4] = { 6, 12, 20, 30 };
 static unsigned int sector_size[2][4] = {
@@ -163,19 +147,15 @@ static unsigned int sector_size[2][4] = {
 	{ 128, 256, 512, 1024 }
 };
 
-/* Not really part of WD2797, but also part of the DragonDOS cart: */
-static unsigned int ic1_drive_select;
-static unsigned int ic1_motor_enable;
-static unsigned int ic1_precomp_enable;
-static unsigned int ic1_density;
-static unsigned int ic1_nmi_enable;
-static unsigned int halt_enable;
+static unsigned int density;
 
 void wd279x_init(void) {
 	wd279x_type = WD2797;
+	wd279x_set_drq_handler = NULL;
+	wd279x_reset_drq_handler = NULL;
+	wd279x_set_intrq_handler = NULL;
+	wd279x_reset_intrq_handler = NULL;
 	state_event = event_new();
-	nmi_event = event_new();
-	nmi_event->dispatch = do_nmi;
 }
 
 void wd279x_reset(void) {
@@ -184,87 +164,14 @@ void wd279x_reset(void) {
 	track_register = 0;
 	sector_register = 0;
 	data_register = 0;
-	intrq_flag = 0;
-	if (IS_RSDOS)
-		wd279x_ff40_write(0);
-	else
-		wd279x_ff48_write(0);
 	RESET_DIRECTION;
 	SET_SIDE(0);
 }
 
-/* Not strictly WD2797 accesses here, this is DOS cartridge circuitry */
-void wd279x_ff48_write(unsigned int octet) {
-	LOG_DEBUG(4, "WD2797: Write to FF48: ");
-	if ((octet & 0x03) != ic1_drive_select) {
-		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
-	}
-	if ((octet & 0x04) != ic1_motor_enable) {
-		LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x04)?"ON":"OFF");
-	}
-	if ((octet & 0x08) != ic1_density) {
-		LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x08)?"SINGLE":"DOUBLE");
-	}
-	if ((octet & 0x10) != ic1_precomp_enable) {
-		LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
-	}
-	if ((octet & 0x20) != ic1_nmi_enable) {
-		LOG_DEBUG(4, "NMI %s, ", (octet & 0x20)?"ENABLED":"DISABLED");
-	}
-	LOG_DEBUG(4, "\n");
-	ic1_drive_select = octet & 0x03;
-	vdrive_set_drive(ic1_drive_select);
-	ic1_motor_enable = octet & 0x04;
-	ic1_density = octet & 0x08;
-	vdrive_set_density(ic1_density);
-	ic1_precomp_enable = octet & 0x10;
-	ic1_nmi_enable = octet & 0x20;
-}
-
-/* Coco version of above - slightly different... */
-void wd279x_ff40_write(unsigned int octet) {
-	unsigned int new_drive_select = 0;
-	octet ^= 0x20;
-	if (octet & 0x01) {
-		new_drive_select = 0;
-	} else if (octet & 0x02) {
-		new_drive_select = 1;
-	} else if (octet & 0x04) {
-		new_drive_select = 2;
-	}
-	SET_SIDE(octet & 0x40);
-	//LOG_DEBUG(4, "WD2797: Write to FF40: ");
-	if (new_drive_select != ic1_drive_select) {
-		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
-	}
-	if ((octet & 0x08) != ic1_motor_enable) {
-		LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x08)?"ON":"OFF");
-	}
-	if ((octet & 0x20) != ic1_density) {
-		LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x20)?"SINGLE":"DOUBLE");
-	}
-	if ((octet & 0x10) != ic1_precomp_enable) {
-		LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
-	}
-	if ((octet & 0x80) != halt_enable) {
-		LOG_DEBUG(4, "HALT %s, ", (octet & 0x80)?"ENABLED":"DISABLED");
-	}
-	LOG_DEBUG(4, "\n");
-	ic1_drive_select = new_drive_select;
-	vdrive_set_drive(ic1_drive_select);
-	ic1_motor_enable = octet & 0x08;
-	ic1_precomp_enable = octet & 0x10;
-	ic1_density = octet & 0x20;
-	vdrive_set_density(ic1_density);
-	if (ic1_density && intrq_flag) {
-		nmi = 1;
-	}
-	halt_enable = octet & 0x80;
-	if (halt_enable && !(status_register & STATUS_DRQ)) {
-		halt = 1;
-	} else {
-		halt = 0;
-	}
+void wd279x_set_density(unsigned int d) {
+	/* DDEN# is active-low */
+	density = d ? SINGLE_DENSITY : DOUBLE_DENSITY;
+	vdrive_set_density(d ? VDRIVE_SINGLE_DENSITY : VDRIVE_DOUBLE_DENSITY);
 }
 
 void wd279x_track_register_write(unsigned int octet) {
@@ -764,16 +671,4 @@ static void write_track_state_3(void) {
 	}
 	vdrive_write(data);
 	NEXT_STATE(write_track_state_3, W_BYTE_TIME);
-}
-
-static void do_nmi(void) {
-	if (IS_RSDOS) {
-		if (IS_DOUBLE_DENSITY && intrq_flag) {
-			nmi = 1;
-		}
-	} else {
-		if (ic1_nmi_enable) {
-			nmi = 1;
-		}
-	}
 }

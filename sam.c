@@ -17,11 +17,13 @@
  */
 
 #include "types.h"
-#include "logging.h"
+#include "dragondos.h"
 #include "joystick.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "machine.h"
 #include "pia.h"
+#include "rsdos.h"
 #include "sam.h"
 #include "tape.h"
 #include "vdg.h"
@@ -188,14 +190,14 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 			if ((addr & 15) == 9) wd279x_track_register_write(octet);
 			if ((addr & 15) == 10) wd279x_sector_register_write(octet);
 			if ((addr & 15) == 11) wd279x_data_register_write(octet);
-			if (!(addr & 8)) wd279x_ff40_write(octet);
+			if (!(addr & 8)) rsdos_ff40_write(octet);
 		} else {
 			/* Dragon floppy disk controller */
 			if ((addr & 15) == 0) wd279x_command_write(octet);
 			if ((addr & 15) == 1) wd279x_track_register_write(octet);
 			if ((addr & 15) == 2) wd279x_sector_register_write(octet);
 			if ((addr & 15) == 3) wd279x_data_register_write(octet);
-			if (addr & 8) wd279x_ff48_write(octet);
+			if (addr & 8) dragondos_ff48_write(octet);
 		}
 		return;
 	}

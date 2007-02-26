@@ -22,12 +22,14 @@
 
 #include "types.h"
 #include "cart.h"
+#include "dragondos.h"
 #include "fs.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
 #include "pia.h"
+#include "rsdos.h"
 #include "sam.h"
 #include "tape.h"
 #include "vdg.h"
@@ -188,6 +190,8 @@ void machine_getargs(int argc, char **argv) {
 void machine_init(void) {
 	sam_init();
 	pia_init();
+	dragondos_init();
+	rsdos_init();
 	wd279x_init();
 	vdrive_init();
 	m6809_init();
@@ -252,11 +256,10 @@ void machine_reset(int hard) {
 		}
 	}
 	pia_reset();
-	if (running_config.dos_type == DOS_DRAGONDOS)
-		wd279x_type = WD2797;
-	else
-		wd279x_type = WD2793;
-	wd279x_reset();
+	if (IS_DRAGONDOS)
+		dragondos_reset();
+	if (IS_RSDOS)
+		rsdos_reset();
 	sam_reset();
 	m6809_reset();
 	vdg_reset();
