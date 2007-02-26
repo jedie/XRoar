@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2006  Ciaran Anscomb
+ *  Copyright (C) 2003-2007  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -133,7 +133,7 @@ int xroar_init(int argc, char **argv) {
 			exit(0);
 		} else if (!strcmp(argv[i], "--version")) {
 			printf("XRoar " VERSION "\n");
-			puts("Copyright (C) 2006 Ciaran Anscomb");
+			puts("Copyright (C) 2007 Ciaran Anscomb");
 			puts("This is free software.  You may redistribute copies of it under the terms of");
 			puts("the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.");
 			puts("There is NO WARRANTY, to the extent permitted by law.");
