@@ -40,7 +40,7 @@
 		event_queue(nmi_event); \
 	} while (0)
 
-/* Handle signals from WD2797 */
+/* Handle signals from WD2793 */
 static void set_drq_handler(void);
 static void reset_drq_handler(void);
 static void set_intrq_handler(void);

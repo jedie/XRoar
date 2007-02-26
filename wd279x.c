@@ -125,13 +125,13 @@ static void write_track_state_3(void);
 
 static event_t *state_event;
 
-/* WD2797 registers */
+/* WD279X registers */
 static unsigned int status_register;
 static unsigned int track_register;
 static unsigned int sector_register;
 static unsigned int data_register;
 
-/* WD2797 internal state */
+/* WD279X internal state */
 static unsigned int cmd_copy;
 static unsigned int is_step_cmd;
 static int direction;
@@ -227,7 +227,7 @@ void wd279x_command_write(unsigned int cmd) {
 	cmd_copy = cmd;
 	/* FORCE INTERRUPT */
 	if ((cmd & 0xf0) == 0xd0) {
-		LOG_DEBUG(4,"WD2797: CMD: Force interrupt (%01x)\n",cmd&0x0f);
+		LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",cmd&0x0f);
 		if ((cmd & 0x0f) == 0) {
 			event_dequeue(state_event);
 			status_register &= ~(STATUS_BUSY);
@@ -243,7 +243,7 @@ void wd279x_command_write(unsigned int cmd) {
 	}
 	/* Ignore any other command if busy */
 	if (status_register & STATUS_BUSY) {
-		LOG_DEBUG(4,"WD2797: Command received while busy!\n");
+		LOG_DEBUG(4,"WD279X: Command received while busy!\n");
 		return;
 	}
 	/* 0xxxxxxx = RESTORE / SEEK / STEP / STEP-IN / STEP-OUT */
@@ -254,14 +254,14 @@ void wd279x_command_write(unsigned int cmd) {
 		step_delay = stepping_rate[cmd & 3];
 		is_step_cmd = 0;
 		if ((cmd & 0xe0) == 0x20) {
-			LOG_DEBUG(4, "WD2797: CMD: Step\n");
+			LOG_DEBUG(4, "WD279X: CMD: Step\n");
 			is_step_cmd = 1;
 		} else if ((cmd & 0xe0) == 0x40) {
-			LOG_DEBUG(4, "WD2797: CMD: Step-in\n");
+			LOG_DEBUG(4, "WD279X: CMD: Step-in\n");
 			is_step_cmd = 1;
 			SET_DIRECTION;
 		} else if ((cmd & 0xe0) == 0x60) {
-			LOG_DEBUG(4, "WD2797: CMD: Step-out\n");
+			LOG_DEBUG(4, "WD279X: CMD: Step-out\n");
 			is_step_cmd = 1;
 			RESET_DIRECTION;
 		}
@@ -275,9 +275,9 @@ void wd279x_command_write(unsigned int cmd) {
 		if ((cmd & 0xf0) == 0x00) {
 			track_register = 0xff;
 			data_register = 0x00;
-			LOG_DEBUG(4, "WD2797: CMD: Restore\n");
+			LOG_DEBUG(4, "WD279X: CMD: Restore\n");
 		} else {
-			LOG_DEBUG(4, "WD2797: CMD: Seek (TR=%d)\n", track_register);
+			LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", track_register);
 		}
 		type_1_state_1();
 		return;
@@ -285,9 +285,9 @@ void wd279x_command_write(unsigned int cmd) {
 	/* 10xxxxxx = READ/WRITE SECTOR */
 	if ((cmd & 0xc0) == 0x80) {
 		if ((cmd & 0xe0) == 0x80) {
-			LOG_DEBUG(4, "WD2797: CMD: Read sector (Tr %d, Side %d, Sector %d)\n", track_register, side, sector_register);
+			LOG_DEBUG(4, "WD279X: CMD: Read sector (Tr %d, Side %d, Sector %d)\n", track_register, side, sector_register);
 		} else {
-			LOG_DEBUG(4, "WD2797: CMD: Write sector\n");
+			LOG_DEBUG(4, "WD279X: CMD: Write sector\n");
 		}
 		status_register |= STATUS_BUSY;
 		status_register &= ~(STATUS_LOST_DATA|STATUS_RNF|(1<<5)|(1<<6));
@@ -308,19 +308,19 @@ void wd279x_command_write(unsigned int cmd) {
 	}
 	/* 11000xx0 = READ ADDRESS */
 	if ((cmd & 0xf9) == 0xc0) {
-		LOG_WARN("WD2797: CMD: Read address not implemented\n");
+		LOG_WARN("WD279X: CMD: Read address not implemented\n");
 		SET_INTRQ;
 		return;
 	}
 	/* 11100xx0 = READ TRACK */
 	if ((cmd & 0xf9) == 0xe0) {
-		LOG_WARN("WD2797: CMD: Read track not implemented\n");
+		LOG_WARN("WD279X: CMD: Read track not implemented\n");
 		SET_INTRQ;
 		return;
 	}
 	/* 11110xx0 = WRITE TRACK */
 	if ((cmd & 0xf9) == 0xf0) {
-		LOG_DEBUG(4, "WD2797: CMD: Write track\n");
+		LOG_DEBUG(4, "WD279X: CMD: Write track\n");
 		status_register |= STATUS_BUSY;
 		status_register &= ~(STATUS_LOST_DATA|(1<<4)|(1<<5));
 		RESET_DRQ;
@@ -338,7 +338,7 @@ void wd279x_command_write(unsigned int cmd) {
 		write_track_state_1();
 		return;
 	}
-	LOG_WARN("WD2797: CMD: Unknown command %02x\n", cmd);
+	LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd);
 }
 
 static void type_1_state_1(void) {
@@ -363,7 +363,7 @@ static void type_1_state_2(void) {
 static void type_1_state_3(void) {
 	LOG_DEBUG(5, " type_1_state_3()\n");
 	if (vdrive_tr00 && direction == -1) {
-		LOG_DEBUG(4,"WD2797: TR00!\n");
+		LOG_DEBUG(4,"WD279X: TR00!\n");
 		track_register = 0;
 		verify_track_state_1();
 		return;
@@ -527,7 +527,7 @@ static void read_sector_state_3(void) {
 	}
 	/* TODO: M == 1 */
 	if (cmd_copy & 0x10) {
-		LOG_DEBUG(2, "WD2797: TODO: multi-sector read will fail.\n");
+		LOG_DEBUG(2, "WD279X: TODO: multi-sector read will fail.\n");
 	}
 	status_register &= ~(STATUS_BUSY);
 	SET_INTRQ;

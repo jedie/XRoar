@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __WD2797_H__
-#define __WD2797_H__
+#ifndef __WD279X_H__
+#define __WD279X_H__
 
 #include "types.h"
 
@@ -32,4 +32,4 @@ unsigned int wd279x_data_register_read(void);
 void wd279x_ff48_write(unsigned int octet);
 void wd279x_ff40_write(unsigned int octet);
 
-#endif  /* __WD2797_H__ */
+#endif  /* __WD279X_H__ */
