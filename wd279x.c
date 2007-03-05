@@ -389,7 +389,8 @@ static void verify_track_state_1(void) {
 
 static void verify_track_state_2(void) {
 	uint8_t *idam;
-	LOG_DEBUG(5, " verify_track_state_2(): ");
+	LOG_DEBUG(5, " verify_track_state_2()\n");
+	idam = vdrive_next_idam();
 	if (vdrive_index_pulse()) {
 		index_holes_count++;
 		if (index_holes_count >= 5) {
@@ -400,7 +401,6 @@ static void verify_track_state_2(void) {
 			return;
 		}
 	}
-	idam = vdrive_next_idam();
 	if (idam == NULL) {
 		LOG_DEBUG(5, "null IDAM: -> verify_track_state_2\n");
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
@@ -437,6 +437,8 @@ static void type_2_state_1(void) {
 
 static void type_2_state_2(void) {
 	uint8_t *idam;
+	LOG_DEBUG(5, " type_2_state_2()\n");
+	idam = vdrive_next_idam();
 	if (vdrive_index_pulse()) {
 		index_holes_count++;
 		if (index_holes_count >= 5) {
@@ -446,7 +448,6 @@ static void type_2_state_2(void) {
 			return;
 		}
 	}
-	idam = vdrive_next_idam();
 	if (idam == NULL) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 		return;
@@ -496,6 +497,7 @@ static void type_2_state_2(void) {
 }
 
 static void read_sector_state_1(void) {
+	LOG_DEBUG(5, " read_sector_state_1()\n");
 	status_register |= ((~dam & 1) << 5);
 	data_register = vdrive_read();
 	bytes_left--;
@@ -504,6 +506,7 @@ static void read_sector_state_1(void) {
 }
 
 static void read_sector_state_2(void) {
+	LOG_DEBUG(5, " read_sector_state_2()\n");
 	if (status_register & STATUS_DRQ) {
 		status_register |= STATUS_LOST_DATA;
 		//RESET_DRQ;  // XXX
@@ -519,8 +522,10 @@ static void read_sector_state_2(void) {
 }
 
 static void read_sector_state_3(void) {
-	uint16_t crc = crc16_value();
-	uint16_t vcrc = (vdrive_read() << 8) | vdrive_read();
+	uint16_t crc, vcrc;
+	LOG_DEBUG(5, " read_sector_state_3()\n");
+	crc = crc16_value();
+	vcrc = (vdrive_read() << 8) | vdrive_read();
 	if (vcrc != crc) {
 		LOG_DEBUG(3, "Read sector data tr %d se %d CRC16 error: $%04x != $%04x\n", track_register, sector_register, crc, vcrc);
 		status_register |= STATUS_CRC_ERROR;
@@ -535,6 +540,7 @@ static void read_sector_state_3(void) {
 
 static void write_sector_state_1(void) {
 	unsigned int i;
+	LOG_DEBUG(5, " write_sector_state_1()\n");
 	SET_DRQ;
 	for (i = 0; i < 8; i++)
 		vdrive_skip();
@@ -542,6 +548,7 @@ static void write_sector_state_1(void) {
 }
 
 static void write_sector_state_2(void) {
+	LOG_DEBUG(5, " write_sector_state_2()\n");
 	if (status_register & STATUS_DRQ) {
 		status_register &= ~(STATUS_BUSY);
 		RESET_DRQ;  // XXX
@@ -555,6 +562,7 @@ static void write_sector_state_2(void) {
 
 static void write_sector_state_3(void) {
 	unsigned int i;
+	LOG_DEBUG(5, " write_sector_state_3()\n");
 	if (IS_DOUBLE_DENSITY) {
 		for (i = 0; i < 11; i++)
 			vdrive_skip();
@@ -569,6 +577,7 @@ static void write_sector_state_3(void) {
 }
 
 static void write_sector_state_4(void) {
+	LOG_DEBUG(5, " write_sector_state_4()\n");
 	crc16_reset();
 	if (cmd_copy & 1)
 		vdrive_write(0xf8);
@@ -579,6 +588,7 @@ static void write_sector_state_4(void) {
 
 static void write_sector_state_5(void) {
 	unsigned int data = data_register;
+	LOG_DEBUG(5, " write_sector_state_5()\n");
 	if (status_register & STATUS_DRQ) {
 		data = 0;
 		status_register |= STATUS_LOST_DATA;
@@ -595,6 +605,7 @@ static void write_sector_state_5(void) {
 }
 
 static void write_sector_state_6(void) {
+	LOG_DEBUG(5, " write_sector_state_6()\n");
 	VDRIVE_WRITE_CRC16;
 	vdrive_write(0xfe);
 	/* TODO: M = 1 */
@@ -603,6 +614,7 @@ static void write_sector_state_6(void) {
 }
 
 static void write_track_state_1(void) {
+	LOG_DEBUG(5, " write_track_state_1()\n");
 	if (vdrive_write_protect) {
 		status_register &= ~(STATUS_BUSY);
 		status_register |= STATUS_WRITE_PROTECT;
@@ -615,6 +627,7 @@ static void write_track_state_1(void) {
 
 static void write_track_state_2(void) {
 	unsigned int t = 0;
+	LOG_DEBUG(5, " write_track_state_2()\n");
 	if (status_register & STATUS_DRQ) {
 		status_register &= ~(STATUS_BUSY);
 		status_register |= STATUS_LOST_DATA;
@@ -631,6 +644,7 @@ static void write_track_state_2(void) {
 
 static void write_track_state_3(void) {
 	unsigned int data = data_register;
+	LOG_DEBUG(5, " write_track_state_3()\n");
 	if (vdrive_index_pulse()) {
 		status_register &= ~(STATUS_BUSY);
 		RESET_DRQ;  // XXX
