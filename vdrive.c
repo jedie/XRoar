@@ -16,6 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,23 +27,26 @@
 #include "vdrive.h"
 
 #define BYTE_TIME (OSCILLATOR_RATE / 31250)
+#define MAX_DRIVES (4)
+#define MAX_SIDES (2)
+#define MAX_TRACKS (256)
 
-typedef struct {
-	unsigned int write_protect;
+struct drive_data {
+	int disk_present;
+	int write_protect;
 	unsigned int tracks;
 	unsigned int track_length;
 	unsigned int sides;
 	uint8_t *track_data;
 	unsigned int current_track;
 	unsigned int max_alloc;
-	uint8_t *head_pos;
-} vdrive;
+};
 
 int vdrive_ready;
 int vdrive_tr00;
 int vdrive_write_protect;
 
-static vdrive *drives[4], *current_drive;
+static struct drive_data drives[MAX_DRIVES], *current_drive;
 static int direction;
 static unsigned int cur_side;
 static unsigned int density;
@@ -54,84 +58,54 @@ static unsigned int index_pulse;
 static void update_signals(void);
 
 void vdrive_init(void) {
-	drives[0] = drives[1] = drives[2] = drives[3] = NULL;
-	/* Default to having a blank disk in drive 1 */
-	//vdrive_alloc(0, 40, VDRIVE_LENGTH_5_25, 1);
+	int i;
+	for (i = 0; i < MAX_DRIVES; i++) {
+		drives[i].disk_present = 0;
+		drives[i].track_length = VDRIVE_LENGTH_5_25;
+		drives[i].max_alloc = 0;
+		drives[i].current_track = 0;
+		drives[i].tracks = 43;
+	}
 	vdrive_set_drive(0);
 }
 
-/* Allocate space for a new virtual disk and return a vdrive struct with
- * appropriate fields filled in.  Disk is kept internally in 'DMK' format
- * minus the header (all useful info in the vdrive struct) which should be
- * exportable to any other format.  More on 'DMK' format here:
+/* Allocate space for a new virtual disk within the appropriate drive struct.
+ * Disk is kept internally in 'DMK' format minus the header (all useful
+ * info in the vdrive struct) which should be exportable to any other
+ * format.  More on 'DMK' format here:
  * http://discover-net.net/~dmkeil/coco/cocotech.htm#Technical-DMK-disks
  */
 
-static int vdrive_ialloc(unsigned int drive, unsigned int tracks,
-		unsigned int track_length, unsigned int sides) {
-	unsigned int new_alloc;
-	drive &= 3;
-	if (tracks < 1 || tracks > 256 || track_length < 129
-			|| track_length > 0x2940 || sides < 1 || sides > 2)
-		return -1;
-	drives[drive] = malloc(sizeof(vdrive));
-	if (drives[drive] == NULL)
-		return -1;
-	new_alloc = tracks * sides * track_length;
-	drives[drive]->track_data = malloc(new_alloc);
-	if (drives[drive]->track_data == NULL) {
-		free(drives[drive]);
-		return -1;
-	}
-	drives[drive]->write_protect = 0;
-	drives[drive]->tracks = tracks;
-	drives[drive]->track_length = track_length;
-	drives[drive]->sides = sides;
-	drives[drive]->max_alloc = new_alloc;
-	drives[drive]->current_track = 0;
-	memset(drives[drive]->track_data, 0, new_alloc);
-	return 0;
-}
-
-int vdrive_alloc(unsigned int drive, unsigned int tracks,
-		unsigned int track_length, unsigned int sides) {
+int vdrive_alloc(unsigned int drive, unsigned int num_tracks,
+		unsigned int track_length, unsigned int num_sides) {
 	unsigned int new_alloc;
 	uint8_t *new_data;
-	drive &= 3;
-	if (drives[drive] == NULL) {
-		return vdrive_ialloc(drive, tracks, track_length, sides);
-	}
-	if (tracks < 1 || tracks > 256 || track_length < 129
-			|| track_length > 0x2940 || sides < 1 || sides > 2) {
+	if (drive >= MAX_DRIVES) return -1;
+	if (num_tracks < 1 || num_tracks > MAX_TRACKS
+			|| track_length < 129 || track_length > 0x2940
+			|| num_sides < 1 || num_sides > MAX_SIDES) {
 		return -1;
 	}
-	new_alloc = tracks * sides * track_length;
-	if (new_alloc > drives[drive]->max_alloc) {
-		new_data = realloc(drives[drive]->track_data, new_alloc);
-		if (new_data == NULL)
-			return -1;
-		drives[drive]->track_data = new_data;
-		drives[drive]->max_alloc = new_alloc;
+	new_alloc = num_tracks * num_sides * track_length;
+	if (drives[drive].track_data == NULL) {
+		new_data = malloc(new_alloc);
+		if (new_data == NULL) return -1;
+		drives[drive].track_data = new_data;
+		drives[drive].max_alloc = new_alloc;
+	} else if (new_alloc > drives[drive].max_alloc) {
+		new_data = realloc(drives[drive].track_data, new_alloc);
+		if (new_data == NULL) return -1;
+		drives[drive].track_data = new_data;
+		drives[drive].max_alloc = new_alloc;
 	}
-	drives[drive]->write_protect = 0;
-	drives[drive]->tracks = tracks;
-	drives[drive]->track_length = track_length;
-	drives[drive]->sides = sides;
-	memset(drives[drive]->track_data, 0, drives[drive]->max_alloc);
+	drives[drive].write_protect = 0;
+	drives[drive].tracks = num_tracks;
+	drives[drive].track_length = track_length;
+	drives[drive].sides = num_sides;
+	memset(drives[drive].track_data, 0, drives[drive].max_alloc);
+	drives[drive].disk_present = 1;
 	return 0;
 }
-
-/*
-static void vdrive_free(unsigned int d) {
-	if (drives[d] != NULL) {
-		if (drives[d]->track_data != NULL) {
-			free(drives[d]->track_data);
-			drives[d]->track_data = NULL;
-		}
-		free(drives[d]);
-	}
-}
-*/
 
 /* Lines from controller sent to all drives */
 void vdrive_set_direction(int d) {
@@ -139,7 +113,8 @@ void vdrive_set_direction(int d) {
 }
 
 void vdrive_set_side(unsigned int s) {
-	cur_side = s ? 1 : 0;
+	if (s >= MAX_SIDES) return;
+	cur_side = s;
 	update_signals();
 }
 
@@ -148,30 +123,33 @@ void vdrive_set_density(unsigned int d) {
 }
 
 static void update_signals(void) {
-	if (current_drive == NULL) {
-		vdrive_ready = 0;
-	} else {
-		vdrive_ready = 1;
-		vdrive_tr00 = (current_drive->current_track == 0) ? 1 : 0;
-		if (current_drive->current_track >= current_drive->tracks)
-			current_drive->current_track = current_drive->tracks - 1;
+	assert(current_drive);
+	vdrive_ready = current_drive->disk_present;
+	if (current_drive->current_track >= current_drive->tracks)
+		current_drive->current_track = current_drive->tracks - 1;
+	vdrive_tr00 = (current_drive->current_track == 0) ? 1 : 0;
+	vdrive_write_protect = current_drive->write_protect;
+	if (vdrive_ready && cur_side < current_drive->sides) {
 		track_base = current_drive->track_data
 			+ (current_drive->current_track * current_drive->sides * current_drive->track_length)
 			+ (((current_drive->sides > 1) ? cur_side : 0) * current_drive->track_length);
 		idamptr = (uint16_t *)track_base;
-		vdrive_write_protect = current_drive->write_protect;
+	} else {
+		track_base = NULL;
+		idamptr = NULL;
 	}
 }
 
 /* Drive select */
 void vdrive_set_drive(unsigned int d) {
-	current_drive = drives[d & 3];
+	if (d >= MAX_DRIVES) return;
+	current_drive = &drives[d];
 	update_signals();
 }
 
 /* Drive-specific actions */
 void vdrive_step(void) {
-	if (current_drive != NULL) {
+	if (current_drive->disk_present) {
 		if (direction > 0 || current_drive->current_track > 0)
 			current_drive->current_track += direction;
 	}
@@ -179,7 +157,7 @@ void vdrive_step(void) {
 }
 
 void vdrive_write(unsigned int data) {
-	if (current_drive == NULL)
+	if (!current_drive->disk_present)
 		return;
 	track_base[head_pos++] = data & 0xff;
 	crc16_byte(data & 0xff);
@@ -190,7 +168,7 @@ void vdrive_write(unsigned int data) {
 }
 
 void vdrive_skip(void) {
-	if (current_drive == NULL)
+	if (!current_drive->disk_present)
 		return;
 	head_pos++;
 	if (head_pos >= current_drive->track_length) {
@@ -201,7 +179,7 @@ void vdrive_skip(void) {
 
 unsigned int vdrive_read(void) {
 	unsigned int ret;
-	if (current_drive == NULL)
+	if (!current_drive->disk_present)
 		return 0;
 	ret = track_base[head_pos++] & 0xff;
 	crc16_byte(ret);
@@ -230,7 +208,7 @@ void vdrive_write_idam(void) {
 unsigned int vdrive_time_to_next_idam(void) {
 	unsigned int next_offset;
 	unsigned int i, tmp;
-	if (current_drive == NULL) {
+	if (!current_drive->disk_present) {
 		return (OSCILLATOR_RATE / 5);
 	}
 	next_offset = current_drive->track_length;
@@ -251,7 +229,7 @@ unsigned int vdrive_time_to_next_idam(void) {
 uint8_t *vdrive_next_idam(void) {
 	unsigned int next_offset;
 	unsigned int i, tmp;
-	if (current_drive == NULL) {
+	if (!current_drive->disk_present) {
 		index_pulse = 1;
 		return NULL;
 	}
