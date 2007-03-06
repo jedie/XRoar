@@ -215,6 +215,16 @@ unsigned int wd279x_data_register_read(void) {
 
 unsigned int wd279x_status_read(void) {
 	RESET_INTRQ;
+	if (vdrive_ready)
+		status_register &= ~STATUS_NOT_READY;
+	else
+		status_register |= STATUS_NOT_READY;
+	if (!state_event->queued || (cmd_copy & 0x80) == 0x00) {
+		if (vdrive_index_pulse)
+			status_register |= STATUS_INDEX_PULSE;
+		else
+			status_register &= ~STATUS_INDEX_PULSE;
+	}
 	if (INVERTED_DATA)
 		return ~status_register & 0xff;
 	return status_register & 0xff;
