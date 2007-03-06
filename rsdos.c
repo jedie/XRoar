@@ -71,6 +71,11 @@ void rsdos_reset(void) {
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
 	wd279x_reset();
+	ic1_drive_select = 0xff;
+	ic1_motor_enable = 0xff;
+	ic1_precomp_enable = 0xff;
+	ic1_density = 0xff;
+	halt_enable = 0xff;
 	drq_flag = intrq_flag = 0;
 	rsdos_ff40_write(0);
 }
@@ -89,7 +94,7 @@ void rsdos_ff40_write(unsigned int octet) {
 	vdrive_set_side(octet & 0x40 ? 1 : 0);
 	LOG_DEBUG(4, "RSDOS: Write to FF40: ");
 	if (new_drive_select != ic1_drive_select) {
-		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
+		LOG_DEBUG(4, "DRIVE SELECT %d, ", new_drive_select);
 	}
 	if ((octet & 0x08) != ic1_motor_enable) {
 		LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x08)?"ON":"OFF");

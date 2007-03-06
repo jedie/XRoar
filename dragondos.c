@@ -69,6 +69,11 @@ void dragondos_reset(void) {
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
 	wd279x_reset();
+	ic1_drive_select = 0xff;
+	ic1_motor_enable = 0xff;
+	ic1_precomp_enable = 0xff;
+	ic1_density = 0xff;
+	ic1_nmi_enable = 0xff;
 	dragondos_ff48_write(0);
 }
 
