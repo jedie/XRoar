@@ -24,9 +24,12 @@
 
 extern int vdrive_ready;
 extern int vdrive_tr00;
+extern int vdrive_index_pulse;
 extern int vdrive_write_protect;
 
 void vdrive_init(void);
+
+unsigned int vdrive_head_pos(void);
 
 /* Managing space for disks */
 int vdrive_alloc(unsigned int drive, unsigned int tracks,
@@ -46,7 +49,8 @@ void vdrive_write(unsigned int data);
 void vdrive_skip(void);
 unsigned int vdrive_read(void);
 void vdrive_write_idam(void);
-int vdrive_index_pulse(void);  /* Has there been one? */
+int vdrive_new_index_pulse(void);  /* Has there been one? */
+unsigned int vdrive_time_to_next_byte(void);
 unsigned int vdrive_time_to_next_idam(void);
 uint8_t *vdrive_next_idam(void);
 

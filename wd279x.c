@@ -121,6 +121,7 @@ static void write_sector_state_5(void);
 static void write_sector_state_6(void);
 static void write_track_state_1(void);
 static void write_track_state_2(void);
+static void write_track_state_2b(void);
 static void write_track_state_3(void);
 
 static event_t *state_event;
@@ -320,7 +321,7 @@ void wd279x_command_write(unsigned int cmd) {
 	}
 	/* 11110xx0 = WRITE TRACK */
 	if ((cmd & 0xf9) == 0xf0) {
-		LOG_DEBUG(4, "WD279X: CMD: Write track\n");
+		LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", track_register);
 		status_register |= STATUS_BUSY;
 		status_register &= ~(STATUS_LOST_DATA|(1<<4)|(1<<5));
 		RESET_DRQ;
@@ -391,7 +392,7 @@ static void verify_track_state_2(void) {
 	uint8_t *idam;
 	LOG_DEBUG(5, " verify_track_state_2()\n");
 	idam = vdrive_next_idam();
-	if (vdrive_index_pulse()) {
+	if (vdrive_new_index_pulse()) {
 		index_holes_count++;
 		if (index_holes_count >= 5) {
 			LOG_DEBUG(5, "index_holes_count >= 5: seek error\n");
@@ -432,14 +433,14 @@ static void type_2_state_1(void) {
 		return;
 	}
 	index_holes_count = 0;
-	type_2_state_2();
+	NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 }
 
 static void type_2_state_2(void) {
 	uint8_t *idam;
 	LOG_DEBUG(5, " type_2_state_2()\n");
 	idam = vdrive_next_idam();
-	if (vdrive_index_pulse()) {
+	if (vdrive_new_index_pulse()) {
 		index_holes_count++;
 		if (index_holes_count >= 5) {
 			status_register &= ~(STATUS_BUSY);
@@ -485,10 +486,10 @@ static void type_2_state_2(void) {
 			i++;
 		} while (i < bytes_to_scan && dam == 0);
 		if (dam == 0) {
-			NEXT_STATE(type_2_state_2, (i+1) * W_BYTE_TIME);
+			NEXT_STATE(type_2_state_2, vdrive_time_to_next_byte());
 			return;
 		}
-		NEXT_STATE(read_sector_state_1, (i+1) * W_BYTE_TIME);
+		NEXT_STATE(read_sector_state_1, vdrive_time_to_next_byte());
 		return;
 	}
 	vdrive_skip();
@@ -626,7 +627,6 @@ static void write_track_state_1(void) {
 }
 
 static void write_track_state_2(void) {
-	unsigned int t = 0;
 	LOG_DEBUG(5, " write_track_state_2()\n");
 	if (status_register & STATUS_DRQ) {
 		status_register &= ~(STATUS_BUSY);
@@ -635,17 +635,24 @@ static void write_track_state_2(void) {
 		SET_INTRQ;
 		return;
 	}
-	do {
-		t += vdrive_time_to_next_idam();
-		(void)vdrive_next_idam();
-	} while (!vdrive_index_pulse());
-	NEXT_STATE(write_track_state_3, t);
+	NEXT_STATE(write_track_state_2b, vdrive_time_to_next_idam());
+}
+
+static void write_track_state_2b(void) {
+	LOG_DEBUG(5, " write_track_state_2b()\n");
+	if (!vdrive_new_index_pulse()) {
+		LOG_DEBUG(4,"Waiting for index pulse, head_pos=%04x\n", vdrive_head_pos());
+		NEXT_STATE(write_track_state_2b, vdrive_time_to_next_idam());
+		return;
+	}
+	LOG_DEBUG(4,"Writing track from head_pos=%04x\n", vdrive_head_pos());
+	return write_track_state_3();
 }
 
 static void write_track_state_3(void) {
 	unsigned int data = data_register;
 	LOG_DEBUG(5, " write_track_state_3()\n");
-	if (vdrive_index_pulse()) {
+	if (vdrive_new_index_pulse()) {
 		status_register &= ~(STATUS_BUSY);
 		RESET_DRQ;  // XXX
 		SET_INTRQ;
@@ -660,29 +667,29 @@ static void write_track_state_3(void) {
 		/* Single density */
 		//LOG_WARN("Single density write - need to implement\n");
 		vdrive_write(data);
-		NEXT_STATE(write_track_state_3, 2 * W_BYTE_TIME);
+		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 		return;
 	}
 	/* Double density */
 	if (data == 0xf7) {
 		VDRIVE_WRITE_CRC16;
-		NEXT_STATE(write_track_state_3, 2 * W_BYTE_TIME);
+		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 		return;
 	}
 	if (data == 0xfe) {
 		vdrive_write_idam();
-		NEXT_STATE(write_track_state_3, W_BYTE_TIME);
+		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 		return;
 	}
 	if (data == 0xf5) {
 		vdrive_write(0xa1);
 		crc16_reset();
-		NEXT_STATE(write_track_state_3, W_BYTE_TIME);
+		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 		return;
 	}
 	if (data == 0xf6) {
 		data = 0xc2;
 	}
 	vdrive_write(data);
-	NEXT_STATE(write_track_state_3, W_BYTE_TIME);
+	NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 }
