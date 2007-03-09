@@ -52,6 +52,25 @@ GP32: Upload the file 'xroar.fxe' to gp:/gpmm/.  The ROM files, all
 Windows: The file 'xroar.exe' needs to be run from the directory that
          contains your firmware ROMs.
 
+
+USING XROAR
+
+XRoar will emulate the following machines:
+
+----------------+--------------------------------------------------------------
+ Machine        | Description
+----------------+--------------------------------------------------------------
+ dragon32       | Dragon 32 (PAL)
+ dragon64       | Dragon 64 (PAL)
+ tano           | Tano Dragon (NTSC)
+ coco           | Tandy Color Computer (PAL)
+ cocous         | Tandy Color Computer (NTSC)
+----------------+--------------------------------------------------------------
+
+To select a machine, use the following command-line option:
+
+  -machine MACHINE      emulated machine (-machine help for a list)
+
 You will need a copy of the Dragon or CoCo firmware ROMs.  If you don't
 have the tools to transfer this from your original Dragon or CoCo, you
 may find one somewhere on the web.  Although I personally think that
@@ -59,76 +78,159 @@ such ROMs should be freely available, the copyright holders may think
 differently (and given that Microsoft wrote the BASIC ROM, it's quite
 likely they do), so I don't feel comfortable offering them up myself.
 
+Firmware ROM images can be either raw (".rom") or PC Dragon style
+(".dgn").  The following table lists which ROMs are required for each
+emulated machine.  Note that from groups of similar ROMs (indicated
+with a "-" before the first in the group), only one is required, but
+they are searched for in the order given.
+
+----------------+-----------------------+------+-------------------------------
+ Machine        | ROM                   | Size | Description
+----------------+-----------------------+------+-------------------------------
+ dragon32       | - d32, dragon32       | 16K  | Dragon BASIC ROM
+----------------+-----------------------+------+-------------------------------
+ dragon64       | - d64_1, d64rom1      | 16K  | 32K-mode BASIC ROM
+ tano           | - d64_2, d64rom2      | 16K  | 64K-mode BASIC ROM 
+----------------+-----------------------+------+-------------------------------
+ coco           | - bas13               | 8K   | Color BASIC 1.3
+ cocous         |   bas12               | 8K   | Color BASIC 1.2
+                |   bas11               | 8K   | Color BASIC 1.1
+                |   bas10               | 8K   | Color BASIC 1.0
+                | - extbas11            | 8K   | Extended Color BASIC 1.1
+                |   extbas10            | 8K   | Extended Color BASIC 1.0
+----------------+-----------------------+------+-------------------------------
+
+To override the per-machine defaults, use the following command-line
+options:
+
+  -bas FILENAME         specify BASIC ROM to use (CoCo only)
+  -extbas FILENAME      specify Extended BASIC ROM to use
+  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)
+  -noextbas             disable Extended BASIC
+
+Dragon machines all contain a complete version of Extended BASIC;
+CoCo's are able to run with a much reduced "Color BASIC", with Extended
+BASIC being optional.
+
+XRoar supports virtual disks by emulating three different types of disk
+controller cartridge (the default depending on which machine is
+selected):
+
+----------------+--------------------------------------------------------------
+ Controller     | Description
+----------------+--------------------------------------------------------------
+ dragondos      | DragonDOS, Official DOS cartridge from Dragon Data Ltd
+ delta          | Delta System, Premier Microsystems' DOS for the Dragon
+ rsdos          | RSDOS, Tandy's DOS cartridge for use with the CoCo
+----------------+--------------------------------------------------------------
+
 If you want to use the virtual disk support, you will also need a DOS
-firmware ROM.  The WD2797-based DragonDOS controllers or the WD1773-based
-RSDOS controller is emulated, depending on which machine is selected.
+firmware ROM.  For each controller, here is a list of compatible ROM
+image files that are searched for in order:
 
-Firmware ROMs can be either raw (".rom") or PC Dragon style (".dgn").
-The base names to use for these files are:
+----------------+-----------------------+------+-------------------------------
+ Controller     | ROM                   | Size | Description
+----------------+-----------------------+------+-------------------------------
+ dragondos      | - dplus49b            | 8K   | DOSplus 4.9B
+                |   dplus48             | 8K   | DOSplus 4.8
+                |   sdose6              | 8K   | SuperDOS E6
+                |   sdose5              | 8K   | SuperDOS E5
+                |   sdose4              | 8K   | SuperDOS E4
+                |   ddos40              | 8K   | DragonDOS 4.0
+                |   ddos15              | 8K   | DragonDOS 1.5
+                |   ddos10              | 8K   | DragonDOS 1.0
+----------------+-----------------------+------+-------------------------------
+ delta          | - delta, deltados     | 8K   | Delta System
+----------------+-----------------------+------+-------------------------------
+ rsdos          | - disk11              | 8K   | Disk Extended Color BASIC 1.1
+                |   disk10              | 8K   | Disk Extended Color BASIC 1.0
+----------------+-----------------------+------+-------------------------------
 
-Dragon 32               d32, dragon32                   (16K)
-Dragon 64 ROM 1         d64_1, d64rom1                  (16K)
-Dragon 64 ROM 2         d64_2, d64rom2                  (16K)
-CoCo BASIC              bas13, bas12, bas11, bas10      (8K)
-CoCo Extended BASIC     extbas11, extbas10              (8K)
-CoCo Disk BASIC         disk11, disk10                  (8K)
-DragonDOS               sdose6, ddos10                  (8K)
+To override the defaults, use the following command-line options:
 
-You can override the default ROMs using command line switches as
-documented below.
+  -dostype DOS          type of DOS cartridge (-dostype help for a list)
+  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)
+  -nodos                disable DOS (ROM and hardware emulation)
+
+Three virtual disk formats are supported:
+
+----------------+---------------+----------------------------------------------
+ Image format   | Extensions    | Description
+----------------+---------------+----------------------------------------------
+ DMK            | .dmk          | David Keil's custom format
+ JVC            | .jvc, .dsk    | Jeff Vavasour's format, optional headers
+ VDK            | .vdk          | Another format with header information
+----------------+---------------+----------------------------------------------
+
+Of these, DMK retains the most information about the actual layout of
+the floppy disk, and is the only one that XRoar will recognise as
+containing single-density data (as used by the Delta system).
+
+Disk images can be modified in memory after loading, but image files
+themselves are not yet updated.
+
+
+FILE LOCATIONS
 
 On the GP32, firmware ROMs must be in gp:/gpmm/dragon/.  For other builds,
 they should either be in the current working directory (only option for
 Windows32) when running the emulator, or in one of these directories:
 
-Mac OS X        ~/.xroar/roms or ~/Library/XRoar/Roms
-Other Unix      ~/.xroar/roms or /usr/local/share/xroar/roms
+ Mac OS X         ~/.xroar/roms or ~/Library/XRoar/Roms
+ Other Unix       ~/.xroar/roms or /usr/local/share/xroar/roms
 
 
 COMMAND LINE SWITCHES
 
-  -machine MACHINE      emulated machine [dragon32|dragon64|tano|coco|cocous]
+Here's a complete summary of supported command-line switches:
+
+  -machine MACHINE      emulated machine (-machine help for a list)
   -bas FILENAME         specify BASIC ROM to use (CoCo only)
   -extbas FILENAME      specify Extended BASIC ROM to use
   -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)
   -noextbas             disable Extended BASIC
+  -dostype DOS          type of DOS cartridge (-dostype help for a list)
   -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)
   -nodos                disable DOS (ROM and hardware emulation)
   -pal                  emulate PAL (50Hz) video
   -ntsc                 emulate NTSC (60Hz) video
   -ram KBYTES           specify amount of RAM in K
-  -fskip FRAMES         specify frameskip (default: 0)
   -cart FILENAME        specify ROM to load into cartridge area ($C000-)
+  -cartna FILENAME      as -cart, but no auto-run
+  -ui MODULE            specify user-interface module (-ui help for a list)
   -vo MODULE            specify video module (-vo help for a list)
-  -fs                   request initial full-screen mode
   -ao MODULE            specify audio module (-ao help for a list)
+  -fskip FRAMES         specify frameskip (default: 0)
   -snap FILENAME        load snapshot after initialising
+  -trace                start with trace mode on
   -h, --help            display this help and exit
       --version         output version information and exit
+
 
 UNIX CONTROLS
 
 Full keyboard support plus:
-Ctrl+[1-4] .... Insert a virtual disk into drive 1-4.
-Ctrl+A ........ Cycle through artifacted video modes (hi-res only).
-Ctrl+C ........ Quit emulator.
-Ctrl+E ........ Toggle DOS emulation on/off - reset to take effect.
-Ctrl+I ........ Insert a cartridge.
-Ctrl+Shift+I .. Insert a cartridge, no autorun.
-Ctrl+J ........ Cycle through joystick emulation modes (None, Left, Right).
-Ctrl+K ........ Toggle between Dragon and CoCo keyboard layout.
-Ctrl+L ........ Load a file (see below).
-Ctrl+M ........ Toggle between Dragon and CoCo emulation (resets machine).
-Ctrl+R ........ Soft reset.
-Ctrl+Shift+R .. Hard reset.
-Ctrl+S ........ Save a snapshot.
-Ctrl+W ........ Attach a virtual cassette file for writing.
-Ctrl+Z ........ Enable keyboard translation mode (see below).
+Ctrl+[1-4] ........ Insert a virtual disk into drive 1-4.
+Ctrl+Shift+[1-4] .. Insert a blank virtual disk (40TSS) into drive 1-4.
+Ctrl+A ............ Cycle through artifacted video modes (hi-res only).
+Ctrl+C ............ Quit emulator.
+Ctrl+E ............ Toggle DOS emulation on/off - reset to take effect.
+Ctrl+I ............ Insert a cartridge.
+Ctrl+Shift+I ...... Insert a cartridge, no autorun.
+Ctrl+J ............ Cycle through joystick emulation modes (None, Left, Right).
+Ctrl+K ............ Toggle between Dragon and CoCo keyboard layout.
+Ctrl+L ............ Load a file (see below).
+Ctrl+M ............ Toggle between Dragon and CoCo emulation (resets machine).
+Ctrl+R ............ Soft reset.
+Ctrl+Shift+R ...... Hard reset.
+Ctrl+S ............ Save a snapshot.
+Ctrl+W ............ Attach a virtual cassette file for writing.
+Ctrl+Z ............ Enable keyboard translation mode (see below).
 
 Loading a file with Ctrl+L autodetects the file type by extension, and
 acts accordingly:
 
- * Disk files (".vdk", ".jvc", ".dsk") are inserted into drive 1.
+ * Disk files (".dmk", ".vdk", ".jvc", ".dsk") are inserted into drive 1.
  * Virtual cassettes (".cas") are attached.  If shift is also pressed,
    XRoar will attempt to autodetect their type and insert the appropriate
    load command ("CLOAD" or "CLOADM:EXEC") into the keypress buffer.
