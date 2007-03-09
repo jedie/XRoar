@@ -33,6 +33,7 @@ static struct {
 	{ "VDK", vdisk_load_vdk },
 	{ "JVC", vdisk_load_jvc },
 	{ "DSK", vdisk_load_jvc },
+	{ "DMK", vdisk_load_dmk },
 	{ NULL,  vdisk_load_jvc }
 };
 
@@ -81,7 +82,11 @@ int vdisk_load_vdk(const char *filename, unsigned int drive) {
 		fs_read(fd, buf, header_size);
 	ssize = 128 << ssize_code;
 	drive %= 3;
-	if (vdrive_format_disk(drive, num_tracks, num_sides, num_sectors, ssize_code, 1) < 0) {
+	if (vdrive_blank_disk(drive, num_sides, num_tracks, VDRIVE_LENGTH_5_25) < 0) {
+		fs_close(fd);
+		return -1;
+	}
+	if (vdrive_format_disk(drive, VDRIVE_DOUBLE_DENSITY, num_sectors, 1, ssize_code) < 0) {
 		fs_close(fd);
 		return -1;
 	}
@@ -90,7 +95,7 @@ int vdisk_load_vdk(const char *filename, unsigned int drive) {
 		for (side = 0; side < num_sides; side++) {
 			for (sector = 0; sector < num_sectors; sector++) {
 				fs_read(fd, buf, ssize);
-				vdrive_update_sector(drive, track, side, sector + 1, ssize_code, buf);
+				vdrive_update_sector(drive, side, track, sector + 1, ssize, buf);
 			}
 		}
 	}
@@ -101,7 +106,7 @@ int vdisk_load_vdk(const char *filename, unsigned int drive) {
 int vdisk_load_jvc(const char *filename, unsigned int drive) {
 	ssize_t file_size = fs_size(filename);
 	unsigned int header_size;
-	unsigned int num_tracks, tracks_to_format;
+	unsigned int num_tracks;
 	unsigned int num_sides = 1;
 	unsigned int num_sectors = 18;
 	unsigned int ssize_code = 1, ssize;
@@ -135,10 +140,11 @@ int vdisk_load_jvc(const char *filename, unsigned int drive) {
 	else
 		num_tracks = file_size / (num_sectors * (ssize+1)) / num_sides;
 	drive %= 3;
-	tracks_to_format = num_tracks;
-	if (tracks_to_format < 40)
-		tracks_to_format = 40;
-	if (vdrive_format_disk(drive, tracks_to_format, num_sides, num_sectors, ssize_code, first_sector) < 0) {
+	if (vdrive_blank_disk(drive, num_sides, num_tracks, VDRIVE_LENGTH_5_25) < 0) {
+		fs_close(fd);
+		return -1;
+	}
+	if (vdrive_format_disk(drive, VDRIVE_DOUBLE_DENSITY, num_sectors, first_sector, ssize_code) < 0) {
 		fs_close(fd);
 		return -1;
 	}
@@ -149,8 +155,62 @@ int vdisk_load_jvc(const char *filename, unsigned int drive) {
 				uint8_t attr;
 				if (sector_attr) fs_read_byte(fd, &attr);
 				fs_read(fd, buf, ssize);
-				vdrive_update_sector(drive, track, side, sector + first_sector, ssize_code, buf);
+				vdrive_update_sector(drive, side, track, sector + first_sector, ssize, buf);
 			}
+		}
+	}
+	fs_close(fd);
+	return 0;
+}
+
+int vdisk_load_dmk(const char *filename, unsigned int drive) {
+	uint8_t header[16];
+	ssize_t file_size = fs_size(filename);
+	int write_protect = 0;
+	unsigned int num_sides;
+	unsigned int num_tracks;
+	unsigned int track_length;
+	unsigned int track, side;
+	uint8_t *buf;
+	int fd;
+	if (file_size < 0)
+		return -1;
+	fd = fs_open(filename, FS_READ);
+	if (fd < 0)
+		return -1;
+	fs_read(fd, header, 16);
+	write_protect = header[0] ? VDRIVE_WRITE_PROTECT : VDRIVE_WRITE_ENABLE;
+	num_tracks = header[1];
+	track_length = (header[3] << 8) | header[2];  /* yes, little-endian! */
+	num_sides = (header[4] & 0x10) ? 1 : 2;
+	if (header[4] & 0x40)
+		LOG_WARN("DMK is flagged single-density only\n");
+	if (header[4] & 0x80)
+		LOG_WARN("DMK is flagged density-agnostic\n");
+	file_size -= 16;
+
+	drive %= 3;
+	if (vdrive_blank_disk(drive, num_sides, num_tracks, track_length) < 0) {
+		fs_close(fd);
+		return -1;
+	}
+	buf = vdrive_track_data(drive);
+	if (buf == NULL) {
+		fs_close(fd);
+		return -1;
+	}
+	LOG_DEBUG(2,"Loading DMK virtual disk to drive %d: %dT %dH (%d-byte)\n", drive, num_tracks, num_sides, track_length);
+	for (track = 0; track < num_tracks; track++) {
+		for (side = 0; track < num_tracks; track++) {
+			int i;
+			fs_read(fd, buf, 128);
+			for (i = 0; i < 64; i++) {
+				uint16_t tmp = (buf[1] << 8) | buf[0];
+				*((uint16_t *)buf) = tmp;
+				buf += 2;
+			}
+			fs_read(fd, buf, track_length - 128);
+			buf += track_length - 128;
 		}
 	}
 	fs_close(fd);
