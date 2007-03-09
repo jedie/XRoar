@@ -34,6 +34,7 @@
 #include "snapshot.h"
 #include "tape.h"
 #include "vdisk.h"
+#include "vdrive.h"
 #include "wd279x.h"
 #include "xroar.h"
 
@@ -166,11 +167,14 @@ static void keypress(SDL_keysym *keysym) {
 	if (control) {
 		switch (sym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
-			{
-			const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
-			char *filename = filereq_module->load_filename(disk_exts);
-			if (filename)
-				vdisk_load(filename, sym - SDLK_1);
+			if (shift) {
+				LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + sym - SDLK_1);
+				vdrive_blank_disk(sym - SDLK_1, 2, 42, VDRIVE_LENGTH_5_25);
+			} else {
+				const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
+				char *filename = filereq_module->load_filename(disk_exts);
+				if (filename)
+					vdisk_load(filename, sym - SDLK_1);
 			}
 			break;
 		case SDLK_a:
