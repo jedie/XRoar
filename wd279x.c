@@ -165,6 +165,7 @@ void wd279x_reset(void) {
 	track_register = 0;
 	sector_register = 0;
 	data_register = 0;
+	cmd_copy = 0;
 	RESET_DIRECTION;
 	SET_SIDE(0);
 }
@@ -219,7 +220,11 @@ unsigned int wd279x_status_read(void) {
 		status_register &= ~STATUS_NOT_READY;
 	else
 		status_register |= STATUS_NOT_READY;
-	if (!state_event->queued || (cmd_copy & 0x80) == 0x00) {
+	if ((cmd_copy & 0xf0) == 0xd0 || (cmd_copy & 0x80) == 0x00) {
+		if (vdrive_tr00)
+			status_register |= STATUS_TRACK_0;
+		else
+			status_register &= ~STATUS_TRACK_0;
 		if (vdrive_index_pulse)
 			status_register |= STATUS_INDEX_PULSE;
 		else
@@ -288,7 +293,7 @@ void wd279x_command_write(unsigned int cmd) {
 			data_register = 0x00;
 			LOG_DEBUG(4, "WD279X: CMD: Restore\n");
 		} else {
-			LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", track_register);
+			LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", data_register);
 		}
 		type_1_state_1();
 		return;
@@ -400,6 +405,7 @@ static void verify_track_state_1(void) {
 
 static void verify_track_state_2(void) {
 	uint8_t *idam;
+	int i;
 	LOG_DEBUG(5, " verify_track_state_2()\n");
 	idam = vdrive_next_idam();
 	if (vdrive_new_index_pulse()) {
@@ -417,14 +423,23 @@ static void verify_track_state_2(void) {
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	if (track_register != idam[1]) {
+	crc16_reset();
+	if (IS_DOUBLE_DENSITY) {
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+	}
+	(void)vdrive_read();  /* Include IDAM in CRC */
+	if (track_register != vdrive_read()) {
 		LOG_DEBUG(5, "track_register != idam[1]: -> verify_track_state_2\n");
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	if (crc16_value() != ((idam[5] << 8) | idam[6])) {
-		LOG_DEBUG(5, "crc16 != idam[5,6]: -> crc error\n");
-		LOG_DEBUG(3, "Verify track %d CRC16 error: $%04x != $%04x\n", track_register, crc16_value(), (idam[5] << 8) | idam[6]);
+	/* Include rest of ID field - should result in computed CRC = 0 */
+	for (i = 0; i < 5; i++)
+		(void)vdrive_read();
+	if (crc16_value() != 0) {
+		LOG_DEBUG(3, "Verify track %d CRC16 error: $%04x != 0\n", track_register, crc16_value());
 		status_register |= STATUS_CRC_ERROR;
 		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 		return;
@@ -448,6 +463,7 @@ static void type_2_state_1(void) {
 
 static void type_2_state_2(void) {
 	uint8_t *idam;
+	int i;
 	LOG_DEBUG(5, " type_2_state_2()\n");
 	idam = vdrive_next_idam();
 	if (vdrive_new_index_pulse()) {
@@ -463,38 +479,60 @@ static void type_2_state_2(void) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	if (track_register != idam[1]) {
+	crc16_reset();
+	if (IS_DOUBLE_DENSITY) {
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+	}
+	(void)vdrive_read();  /* Include IDAM in CRC */
+	if (track_register != vdrive_read()) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	if (sector_register != idam[3]) {
+	if (side != vdrive_read()) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 		return;
 	}
-	if (side != idam[2]) {
+	if (sector_register != vdrive_read()) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 		return;
 	}
+	i = vdrive_read();
 	if (HAS_LENGTH_FLAG)
-		bytes_left = sector_size[(cmd_copy & 0x08)?1:0][idam[4]&3];
+		bytes_left = sector_size[(cmd_copy & 0x08)?1:0][i&3];
 	else
-		bytes_left = sector_size[1][idam[4]&3];
-	/* TODO: CRC check */
+		bytes_left = sector_size[1][i&3];
+	/* Including CRC bytes should result in computed CRC = 0 */
+	(void)vdrive_read();
+	(void)vdrive_read();
+	if (crc16_value() != 0) {
+		status_register |= STATUS_CRC_ERROR;
+		LOG_DEBUG(3, "Type 2 tr %d se %d CRC16 error: $%04x != 0\n", track_register, sector_register, crc16_value());
+		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
+		return;
+	}
+
 	if ((cmd_copy & 0x20) == 0) {
-		unsigned int bytes_to_scan, i, tmp;
+		unsigned int bytes_to_scan, j, tmp;
 		if (IS_SINGLE_DENSITY)
 			bytes_to_scan = 30;
 		else
 			bytes_to_scan = 43;
-		i = 0;
+		j = 0;
 		dam = 0;
 		do {
 			crc16_reset();
+			if (IS_DOUBLE_DENSITY) {
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+			}
 			tmp = vdrive_read();
 			if (tmp == 0xfb || tmp == 0xf8)
 				dam = tmp;
-			i++;
-		} while (i < bytes_to_scan && dam == 0);
+			j++;
+		} while (j < bytes_to_scan && dam == 0);
 		if (dam == 0) {
 			NEXT_STATE(type_2_state_2, vdrive_time_to_next_byte());
 			return;
@@ -504,16 +542,17 @@ static void type_2_state_2(void) {
 	}
 	vdrive_skip();
 	vdrive_skip();
-	NEXT_STATE(write_sector_state_1, 2 * W_BYTE_TIME);
+	NEXT_STATE(write_sector_state_1, vdrive_time_to_next_byte());
 }
 
 static void read_sector_state_1(void) {
 	LOG_DEBUG(5, " read_sector_state_1()\n");
+	LOG_DEBUG(4,"Reading %d-byte sector (Tr %d, Se %d) from head_pos=%04x\n", bytes_left, track_register, sector_register, vdrive_head_pos());
 	status_register |= ((~dam & 1) << 5);
 	data_register = vdrive_read();
 	bytes_left--;
 	SET_DRQ;
-	NEXT_STATE(read_sector_state_2, W_BYTE_TIME);
+	NEXT_STATE(read_sector_state_2, vdrive_time_to_next_byte());
 }
 
 static void read_sector_state_2(void) {
@@ -526,19 +565,19 @@ static void read_sector_state_2(void) {
 		data_register = vdrive_read();
 		bytes_left--;
 		SET_DRQ;
-		NEXT_STATE(read_sector_state_2, W_BYTE_TIME);
+		NEXT_STATE(read_sector_state_2, vdrive_time_to_next_byte());
 		return;
 	}
-	NEXT_STATE(read_sector_state_3, 1 * W_BYTE_TIME);
+	/* Including CRC bytes should result in computed CRC = 0 */
+	(void)vdrive_read();
+	(void)vdrive_read();
+	NEXT_STATE(read_sector_state_3, vdrive_time_to_next_byte());
 }
 
 static void read_sector_state_3(void) {
-	uint16_t crc, vcrc;
 	LOG_DEBUG(5, " read_sector_state_3()\n");
-	crc = crc16_value();
-	vcrc = (vdrive_read() << 8) | vdrive_read();
-	if (vcrc != crc) {
-		LOG_DEBUG(3, "Read sector data tr %d se %d CRC16 error: $%04x != $%04x\n", track_register, sector_register, crc, vcrc);
+	if (crc16_value() != 0) {
+		LOG_DEBUG(3, "Read sector data tr %d se %d CRC16 error: $%04x != 0\n", track_register, sector_register, crc16_value());
 		status_register |= STATUS_CRC_ERROR;
 	}
 	/* TODO: M == 1 */
@@ -555,7 +594,7 @@ static void write_sector_state_1(void) {
 	SET_DRQ;
 	for (i = 0; i < 8; i++)
 		vdrive_skip();
-	NEXT_STATE(write_sector_state_2, 8 * W_BYTE_TIME);
+	NEXT_STATE(write_sector_state_2, vdrive_time_to_next_byte());
 }
 
 static void write_sector_state_2(void) {
@@ -568,7 +607,7 @@ static void write_sector_state_2(void) {
 		return;
 	}
 	vdrive_skip();
-	NEXT_STATE(write_sector_state_3, W_BYTE_TIME);
+	NEXT_STATE(write_sector_state_3, vdrive_time_to_next_byte());
 }
 
 static void write_sector_state_3(void) {
@@ -579,22 +618,27 @@ static void write_sector_state_3(void) {
 			vdrive_skip();
 		for (i = 0; i < 12; i++)
 			vdrive_write(0);
-		NEXT_STATE(write_sector_state_4, 23 * W_BYTE_TIME);
+		NEXT_STATE(write_sector_state_4, vdrive_time_to_next_byte());
 		return;
 	}
 	for (i = 0; i < 6; i++)
 		vdrive_write(0);
-	NEXT_STATE(write_sector_state_4, 6 * W_BYTE_TIME);
+	NEXT_STATE(write_sector_state_4, vdrive_time_to_next_byte());
 }
 
 static void write_sector_state_4(void) {
 	LOG_DEBUG(5, " write_sector_state_4()\n");
 	crc16_reset();
+	if (IS_DOUBLE_DENSITY) {
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+	}
 	if (cmd_copy & 1)
 		vdrive_write(0xf8);
 	else
 		vdrive_write(0xfb);
-	NEXT_STATE(write_sector_state_5, W_BYTE_TIME);
+	NEXT_STATE(write_sector_state_5, vdrive_time_to_next_byte());
 }
 
 static void write_sector_state_5(void) {
@@ -609,15 +653,15 @@ static void write_sector_state_5(void) {
 	bytes_left--;
 	if (bytes_left > 0) {
 		SET_DRQ;
-		NEXT_STATE(write_sector_state_5, W_BYTE_TIME);
+		NEXT_STATE(write_sector_state_5, vdrive_time_to_next_byte());
 		return;
 	}
-	NEXT_STATE(write_sector_state_6, 2 * W_BYTE_TIME + W_MICROSEC(20));
+	VDRIVE_WRITE_CRC16;
+	NEXT_STATE(write_sector_state_6, vdrive_time_to_next_byte() + W_MICROSEC(20));
 }
 
 static void write_sector_state_6(void) {
 	LOG_DEBUG(5, " write_sector_state_6()\n");
-	VDRIVE_WRITE_CRC16;
 	vdrive_write(0xfe);
 	/* TODO: M = 1 */
 	status_register &= ~(STATUS_BUSY);
@@ -639,9 +683,9 @@ static void write_track_state_1(void) {
 static void write_track_state_2(void) {
 	LOG_DEBUG(5, " write_track_state_2()\n");
 	if (status_register & STATUS_DRQ) {
-		status_register &= ~(STATUS_BUSY);
-		status_register |= STATUS_LOST_DATA;
 		RESET_DRQ;  // XXX
+		status_register |= STATUS_LOST_DATA;
+		status_register &= ~(STATUS_BUSY);
 		SET_INTRQ;
 		return;
 	}
@@ -663,8 +707,9 @@ static void write_track_state_3(void) {
 	unsigned int data = data_register;
 	LOG_DEBUG(5, " write_track_state_3()\n");
 	if (vdrive_new_index_pulse()) {
-		status_register &= ~(STATUS_BUSY);
+		LOG_DEBUG(4,"Finished writing track at head_pos=%04x\n", vdrive_head_pos());
 		RESET_DRQ;  // XXX
+		status_register &= ~(STATUS_BUSY);
 		SET_INTRQ;
 		return;
 	}
@@ -675,7 +720,27 @@ static void write_track_state_3(void) {
 	SET_DRQ;
 	if (IS_SINGLE_DENSITY) {
 		/* Single density */
-		//LOG_WARN("Single density write - need to implement\n");
+		if (data == 0xf5 || data == 0xf6) {
+			LOG_DEBUG(4, "Illegal value in single-density track write: %02x\n", data);
+		}
+		if (data == 0xf7) {
+			VDRIVE_WRITE_CRC16;
+			NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+			return;
+		}
+		if (data >= 0xf8 && data <= 0xfb) {
+			crc16_reset();
+			vdrive_write(data);
+			NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+			return;
+		}
+		if (data == 0xfe) {
+			LOG_DEBUG(4,"IDAM at head_pos=%04x\n", vdrive_head_pos());
+			crc16_reset();
+			vdrive_write_idam();
+			NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+			return;
+		}
 		vdrive_write(data);
 		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 		return;
@@ -687,13 +752,16 @@ static void write_track_state_3(void) {
 		return;
 	}
 	if (data == 0xfe) {
+		LOG_DEBUG(4,"IDAM at head_pos=%04x\n", vdrive_head_pos());
 		vdrive_write_idam();
 		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 		return;
 	}
 	if (data == 0xf5) {
-		vdrive_write(0xa1);
 		crc16_reset();
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+		vdrive_write(0xa1);
 		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 		return;
 	}

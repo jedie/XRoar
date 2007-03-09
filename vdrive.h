@@ -16,6 +16,9 @@
 #define VDRIVE_DOUBLE_DENSITY (0x8000)
 #define VDRIVE_SINGLE_DENSITY (0x0000)
 
+#define VDRIVE_WRITE_PROTECT (0xff)
+#define VDRIVE_WRITE_ENABLE (0)
+
 #define VDRIVE_WRITE_CRC16 do { \
 		uint16_t tmp_write_crc = crc16_value(); \
 		vdrive_write(tmp_write_crc >> 8); \
@@ -32,16 +35,19 @@ void vdrive_init(void);
 unsigned int vdrive_head_pos(void);
 
 /* Managing space for disks */
-int vdrive_alloc(unsigned int drive, unsigned int tracks,
-		unsigned int track_length, unsigned int sides);
+int vdrive_blank_disk(int drive, int num_sides,
+		int num_tracks, int track_length);
+/* Return pointer to current drive's raw data area - for loading DMK images */
+uint8_t *vdrive_track_data(int drive);
+void vdrive_set_write_protect(int drive, int write_protect);
 
 /* Lines from controller sent to all drives */
-void vdrive_set_direction(int d);
-void vdrive_set_side(unsigned int s);
-void vdrive_set_density(unsigned int d);
+void vdrive_set_direction(int direction);
+void vdrive_set_side(int side);
+void vdrive_set_density(int density);
 
 /* Drive select */
-void vdrive_set_drive(unsigned int d);
+void vdrive_set_drive(int drive);
 
 /* Drive-specific actions */
 void vdrive_step(void);
@@ -55,11 +61,12 @@ unsigned int vdrive_time_to_next_idam(void);
 uint8_t *vdrive_next_idam(void);
 
 /* Convenience functions */
-int vdrive_format_disk(unsigned int drive, unsigned int num_tracks,
-		unsigned int num_sides, unsigned int num_sectors,
-		unsigned int ssize_code, unsigned int first_sector);
-void vdrive_update_sector(unsigned int drive, unsigned int track,
-		unsigned int side, unsigned int sector,
-		unsigned int ssize_code, uint8_t *data);
+/* Only double-density for now: */
+int vdrive_format_disk(int drive, int density,
+		int num_sectors, int first_sector, int ssize_code);
+
+/* Only double-density for now: */
+int vdrive_update_sector(int drive, int side, int track,
+		int sector, int sector_length, uint8_t *data);
 
 #endif  /* __VDRIVE_H__ */
