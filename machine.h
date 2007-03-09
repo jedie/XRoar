@@ -30,6 +30,7 @@
 #define DOS_ENABLED (running_config.dos_type != DOS_NONE)
 #define IS_DRAGONDOS (running_config.dos_type == DOS_DRAGONDOS)
 #define IS_RSDOS (running_config.dos_type == DOS_RSDOS)
+#define IS_DELTADOS (running_config.dos_type == DOS_DELTADOS)
 
 #define ANY_AUTO (-1)
 #define MACHINE_DRAGON32 (0)
@@ -50,13 +51,14 @@
 #define DOS_NONE      (0)
 #define DOS_DRAGONDOS (1)
 #define DOS_RSDOS     (2)
+#define DOS_DELTADOS  (3)
 
 #define NUM_MACHINE_TYPES (5)
 #define NUM_ARCHITECTURES (3)
 #define NUM_ROMSETS       (3)
 #define NUM_KEYMAPS       (2)
 #define NUM_TV_STANDARDS  (2)
-#define NUM_DOS_TYPES     (3)
+#define NUM_DOS_TYPES     (4)
 
 typedef struct { unsigned int col, row; } Key;
 typedef Key Keymap[128];

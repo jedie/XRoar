@@ -71,7 +71,8 @@ CFLAGS += -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH
 
 OBJS := cart.o crc16.o events.o hexs19.o joystick.o keyboard.o m6809.o \
 		machine.o module.o pia.o sam.o snapshot.o sound_null.o tape.o \
-		vdg.o vdisk.o vdrive.o dragondos.o rsdos.o wd279x.o xroar.o
+		vdg.o vdisk.o vdrive.o dragondos.o rsdos.o deltados.o \
+		wd279x.o xroar.o
 
 ALL_OBJS := $(OBJS)
 

@@ -22,6 +22,7 @@
 
 #include "types.h"
 #include "cart.h"
+#include "deltados.h"
 #include "dragondos.h"
 #include "fs.h"
 #include "keyboard.h"
@@ -109,7 +110,8 @@ static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "dragrom", "dragon"
 static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", NULL };
 static const char *coco_bas_roms[] = { "bas13", "bas12", "bas11", "bas10", NULL };
 static const char *coco_extbas_roms[] = { "extbas11", "extbas10", NULL };
-static const char *dragondos_roms[] = { "sdose6", "ddos10", NULL };
+static const char *dragondos_roms[] = { "dplus49b", "dplus48", "sdose6", "sdose5", "sdose4", "ddos40", "ddos15", "ddos10", NULL };
+static const char *deltados_roms[] = { "delta", "deltados", NULL };
 static const char *rsdos_roms[] = { "disk11", "disk10", NULL };
 
 static struct {
@@ -122,10 +124,20 @@ static struct {
 	{ coco_bas_roms, coco_extbas_roms, NULL }
 };
 
-static const char **dos_rom_list[] = { dragondos_roms, rsdos_roms };
+static const char **dos_rom_list[] = {
+	dragondos_roms, rsdos_roms, deltados_roms
+};
+
+const char *dos_type_names[NUM_DOS_TYPES] = {
+	"No DOS cartridge", "DragonDOS", "RS-DOS", "Delta System"
+};
 
 static const char *machine_options[NUM_MACHINE_TYPES] = {
 	"dragon32", "dragon64", "tano", "coco", "cocous"
+};
+
+static const char *dos_type_options[NUM_DOS_TYPES] = {
+	"none", "dragondos", "rsdos", "delta"
 };
 
 static int load_rom_from_list(const char *preferred, const char **list,
@@ -140,6 +152,7 @@ void machine_helptext(void) {
 	puts("  -extbas FILENAME      specify Extended BASIC ROM to use");
 	puts("  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)");
 	puts("  -noextbas             disable Extended BASIC");
+	puts("  -dostype DOS          type of DOS cartridge (-dostype help for a list)");
 	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
 	puts("  -nodos                disable DOS (ROM and hardware emulation)");
 	puts("  -pal                  emulate PAL (50Hz) video");
@@ -148,11 +161,12 @@ void machine_helptext(void) {
 }
 
 void machine_getargs(int argc, char **argv) {
-	int i, j;
+	int i;
 	machine_clear_requested_config();
 	noextbas = 0;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-machine") && i+1<argc) {
+			int j;
 			i++;
 			if (!strcmp(argv[i], "help")) {
 				for (j = 0; j < NUM_MACHINE_TYPES; j++) {
@@ -173,10 +187,25 @@ void machine_getargs(int argc, char **argv) {
 			requested_config.altbas_rom = argv[++i];
 		} else if (!strcmp(argv[i], "-noextbas")) {
 			noextbas = 1;
+		} else if (!strcmp(argv[i], "-dostype") && i+1<argc) {
+			int j;
+			i++;
+			if (!strcmp(argv[i], "help")) {
+				for (j = 0; j < NUM_DOS_TYPES; j++) {
+					printf("\t%-10s%s\n", dos_type_options[j], dos_type_names[j]);
+				}
+				exit(0);
+			}
+			for (j = 0; j < NUM_DOS_TYPES; j++) {
+				if (!strcmp(argv[i], dos_type_options[j])) {
+					requested_config.dos_type = j;
+				}
+			}
 		} else if (!strcmp(argv[i], "-dos") && i+1<argc) {
 			requested_config.dos_rom = argv[++i];
 		} else if (!strcmp(argv[i], "-nodos")) {
 			requested_config.dos_type = DOS_NONE;
+			requested_config.dos_rom = NULL;
 		} else if (!strcmp(argv[i], "-ram") && i+1<argc) {
 			requested_config.ram = strtol(argv[++i], NULL, 0);
 		} else if (!strcmp(argv[i], "-pal")) {
@@ -260,6 +289,8 @@ void machine_reset(int hard) {
 		dragondos_reset();
 	if (IS_RSDOS)
 		rsdos_reset();
+	if (IS_DELTADOS)
+		deltados_reset();
 	sam_reset();
 	m6809_reset();
 	vdg_reset();
