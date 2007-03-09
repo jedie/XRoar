@@ -1,3 +1,17 @@
+Changed from v0.17 to v0.18
+ * New 'configure' script.
+ * New 'null' sound driver replaces 'rtc'.
+ * Initial support for Nintendo DS (NDS).
+ * Slight speed hacks for GP32/NDS.
+ * Correct amount of scanlines rendered.
+ * Added --version option.
+ * Fixed potential infinite loop in disk emulation.
+ * Single-density disk support.
+ * Ability to insert blank disks (Ctrl+Shift+[1-4]).
+ * DMK virtual disk format support.
+ * Premier Delta System DOS cartridge support.
+ * Added -dostype option.
+
 Changed from v0.16 to v0.17
  * Map '~' to Shift+'@' in translation mode.
  * Hopefully fix windows32 build.
