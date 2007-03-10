@@ -52,6 +52,7 @@ static struct drive_data drives[MAX_DRIVES], *current_drive;
 static int cur_direction;
 static unsigned int cur_side;
 static unsigned int cur_density;
+static int head_incr;  /* bytes per write - 2 in SD, 1 in DD */
 static uint8_t *track_base;  /* updated to point to base addr of cur track */
 static uint16_t *idamptr;  /* likewise, but different data size */
 static unsigned int head_pos;  /* index into current track for read/write */
@@ -178,6 +179,7 @@ void vdrive_set_density(int density) {
 			&& density != VDRIVE_DOUBLE_DENSITY)
 		return;
 	cur_density = density;
+	head_incr = (density == VDRIVE_SINGLE_DENSITY) ? 2 : 1;
 }
 
 static void update_signals(void) {
@@ -227,26 +229,22 @@ static int compar_idams(const void *aa, const void *bb) {
 }
 
 void vdrive_write(unsigned int data) {
-	if (!vdrive_ready)
-		return;
+	int i;
+	if (!vdrive_ready) return;
 	data &= 0xff;
-	if (head_pos < current_drive->track_length) {
-		int i;
-		track_base[head_pos] = data;
-		if (cur_density == VDRIVE_SINGLE_DENSITY && (head_pos+1) < current_drive->track_length)
-			track_base[head_pos+1] = 0xfe;
-		for (i = 0; i < 64; i++) {
-			if (head_pos == (unsigned)(idamptr[i] & 0x3fff)) {
-				idamptr[i] = 0;
-				qsort(idamptr, 64, sizeof(uint16_t), compar_idams);
+	for (i = head_incr; i; i--) {
+		int j;
+		if (head_pos < current_drive->track_length) {
+			track_base[head_pos] = data;
+			for (j = 0; j < 64; j++) {
+				if (head_pos == (unsigned)(idamptr[j] & 0x3fff)) {
+					idamptr[j] = 0;
+					qsort(idamptr, 64, sizeof(uint16_t), compar_idams);
+				}
 			}
 		}
-	} else {
-		LOG_DEBUG(4, "vdrive_write() beyond end of track\n");
-	}
-	head_pos++;
-	if (cur_density == VDRIVE_SINGLE_DENSITY)
 		head_pos++;
+	}
 	crc16_byte(data);
 	if (head_pos >= current_drive->track_length) {
 		vdrive_index_pulse = 1;
@@ -254,11 +252,8 @@ void vdrive_write(unsigned int data) {
 }
 
 void vdrive_skip(void) {
-	if (!vdrive_ready)
-		return;
-	head_pos++;
-	if (cur_density == VDRIVE_SINGLE_DENSITY)
-		head_pos++;
+	if (!vdrive_ready) return;
+	head_pos += head_incr;
 	if (head_pos >= current_drive->track_length) {
 		vdrive_index_pulse = 1;
 	}
@@ -266,16 +261,11 @@ void vdrive_skip(void) {
 
 unsigned int vdrive_read(void) {
 	unsigned int ret = 0;
-	if (!vdrive_ready)
-		return 0;
+	if (!vdrive_ready) return 0;
 	if (head_pos < current_drive->track_length) {
 		ret = track_base[head_pos] & 0xff;
-	} else {
-		LOG_DEBUG(4, "vdrive_read() beyond end of track\n");
 	}
-	head_pos++;
-	if (cur_density == VDRIVE_SINGLE_DENSITY)
-		head_pos++;
+	head_pos += head_incr;
 	crc16_byte(ret);
 	if (head_pos >= current_drive->track_length) {
 		vdrive_index_pulse = 1;
@@ -283,36 +273,26 @@ unsigned int vdrive_read(void) {
 	return ret;
 }
 
+#define IDAM(i) ((unsigned)(idamptr[i] & 0x3fff))
+
 void vdrive_write_idam(void) {
-	unsigned int i;
-	if ((head_pos+1) < current_drive->track_length) {
-		/* Remove old IDAM ptr if it exists */
+	int i;
+	if ((head_pos+head_incr) < current_drive->track_length) {
+		/* Write 0xfe and remove old IDAM ptr if it exists */
 		for (i = 0; i < 64; i++) {
-			if ((unsigned)(idamptr[i] & 0x3fff) == head_pos) {
-				idamptr[i] = 0;
-			}
-			if (cur_density == VDRIVE_SINGLE_DENSITY
-					&& (unsigned)(idamptr[i] & 0x3fff) == (head_pos+1)) {
-				idamptr[i] = 0;
+			int j;
+			for (j = 0; j < head_incr; j++) {
+				track_base[head_pos + j] = 0xfe;
+				if ((head_pos + j) == IDAM(j)) {
+					idamptr[i] = 0;
+				}
 			}
 		}
 		/* Add to end of idam list and sort */
 		idamptr[63] = head_pos | cur_density;
 		qsort(idamptr, 64, sizeof(uint16_t), compar_idams);
-		track_base[head_pos] = 0xfe;
-		if (cur_density == VDRIVE_SINGLE_DENSITY)
-			track_base[head_pos+1] = 0xfe;
-		LOG_DEBUG(5, "IDAMs (Si %d, Tr %d): ", cur_side, current_drive->current_track);
-		for (i = 0; i < 64 && idamptr[i]; i++) {
-			LOG_DEBUG(5, "%04x  ", idamptr[i] & 0x3fff);
-		}
-		LOG_DEBUG(5, "\n");
-	} else {
-		LOG_DEBUG(3, "vdrive_write_idam() beyond end of track\n");
 	}
-	head_pos++;
-	if (cur_density == VDRIVE_SINGLE_DENSITY)
-		head_pos++;
+	head_pos += head_incr;
 	crc16_byte(0xfe);
 	if (head_pos >= current_drive->track_length) {
 		vdrive_index_pulse = 1;
@@ -443,7 +423,7 @@ int vdrive_format_disk(int drive, int density,
 	vdrive_set_drive(drive);
 	if (!vdrive_ready) return -1;
 	old_density = cur_density;
-	cur_density = density;
+	vdrive_set_density(density);
 	vdrive_set_direction(-1);
 	while (!vdrive_tr00) vdrive_step();
 	vdrive_set_direction(1);
@@ -455,7 +435,7 @@ int vdrive_format_disk(int drive, int density,
 		}
 		vdrive_step();
 	}
-	cur_density = old_density;
+	vdrive_set_density(old_density);
 	return 0;
 }
 
@@ -498,9 +478,9 @@ int vdrive_update_sector(int drive, int side, int track,
 			vdrive_write(0);
 		VDRIVE_WRITE_CRC16;
 		vdrive_write(0xfe);
-		cur_density = old_density;
+		vdrive_set_density(old_density);
 		return 0;
 	}
-	cur_density = old_density;
+	vdrive_set_density(old_density);
 	return -1;
 }
