@@ -37,6 +37,7 @@ static uint_least16_t map_type;
 uint_least16_t sam_register;
 
 uint_least16_t sam_vdg_base;
+uint_least16_t sam_vdg_line_base;
 unsigned int  sam_vdg_mode;
 uint_least16_t sam_vdg_address;
 unsigned int  sam_vdg_mod_xdiv;

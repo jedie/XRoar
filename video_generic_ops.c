@@ -149,7 +149,7 @@ static void render_sg4(void) {
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(32,10,16);
+		sam_vdg_hsync(10);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -206,7 +206,7 @@ static void render_sg6(void) {
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(32,10,16);
+		sam_vdg_hsync(10);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -251,7 +251,7 @@ static void render_cg1(void) {
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(16,6,16);
+		sam_vdg_hsync(6);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -292,7 +292,7 @@ static void render_rg1(void) {
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(16,6,16);
+		sam_vdg_hsync(6);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -329,7 +329,7 @@ static void render_cg2(void) {
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(32,10,16);
+		sam_vdg_hsync(10);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -370,7 +370,7 @@ static void render_rg6(void) {
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(32,10,16);
+		sam_vdg_hsync(10);
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)

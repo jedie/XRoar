@@ -105,7 +105,7 @@ static inline void vram_ptrs_16(uint8_t **ptrs) {
 	for (i = 4; i; i--) {
 		*(ptrs++) = (uint8_t *)sam_vram_ptr(sam_vdg_address);
 		sam_vdg_xstep(16);
-		sam_vdg_hsync(16,6,0);
+		sam_vdg_hsync(6);
 	}
 }
 
@@ -116,7 +116,7 @@ static inline void vram_ptrs_32(uint8_t **ptrs) {
 			*(ptrs++) = (uint8_t *)sam_vram_ptr(sam_vdg_address);
 			sam_vdg_xstep(16);
 		}
-		sam_vdg_hsync(32,10,16);
+		sam_vdg_hsync(10);
 	}
 }
 

@@ -8,31 +8,6 @@
 
 #include "types.h"
 
-#define sam_vdg_xstep(b) do { \
-		sam_vdg_xcount++; \
-		if (sam_vdg_xcount >= sam_vdg_mod_xdiv) { \
-			sam_vdg_xcount = 0; \
-			sam_vdg_address += b; \
-		} \
-	} while(0)
-
-#define sam_vdg_hsync(bpl,a,p) do { \
-		sam_vdg_ycount++; \
-		if (sam_vdg_ycount >= sam_vdg_mod_ydiv) { \
-			sam_vdg_ycount = 0; \
-		} else { \
-			sam_vdg_address -= bpl; \
-		} \
-		sam_vdg_xstep(sam_vdg_mode == 7 ? a : p); \
-		sam_vdg_address &= sam_vdg_mod_clear; \
-	} while(0)
-
-#define sam_vdg_fsync() do { \
-		sam_vdg_address = sam_vdg_base; \
-		sam_vdg_xcount = 0; \
-		sam_vdg_ycount = 0; \
-	} while(0)
-
 #define sam_vram_ptr(a) (a<0x8000 ? &addrptr_low[a] : &addrptr_high[a-0x8000])
 
 /* Simple macro for use in place of sam_read_byte() when the result isn't
@@ -54,6 +29,7 @@ extern uint8_t *addrptr_low;
 extern uint8_t *addrptr_high;
 extern uint_least16_t sam_register;
 extern uint_least16_t sam_vdg_base;
+extern uint_least16_t sam_vdg_line_base;
 extern unsigned int  sam_vdg_mode;
 extern uint_least16_t sam_vdg_address;
 extern unsigned int  sam_vdg_mod_xdiv;
@@ -66,6 +42,41 @@ extern unsigned int  sam_vdg_ycount;
 #else
 extern unsigned int sam_topaddr_cycles;
 #endif
+
+static inline void sam_vdg_xstep(int b) {
+	sam_vdg_address += b;
+	sam_vdg_xcount++;
+	if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
+		sam_vdg_xcount = 0;
+	} else {
+		if (sam_vdg_mode != 7) {
+			if (sam_vdg_address & 8) {
+				sam_vdg_address += 6;
+			} else {
+				sam_vdg_address -= 6;
+			}
+			sam_vdg_address &= ~15;
+		}
+	}
+}
+
+static inline void sam_vdg_hsync(int a) {
+	sam_vdg_address += a;
+	sam_vdg_ycount++;
+	if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
+		sam_vdg_ycount = 0;
+	} else {
+		sam_vdg_address = sam_vdg_line_base;
+	}
+	sam_vdg_address &= sam_vdg_mod_clear;
+	sam_vdg_line_base = sam_vdg_address;
+}
+
+static inline void sam_vdg_fsync(void) {
+	sam_vdg_line_base = sam_vdg_address = sam_vdg_base;
+	sam_vdg_xcount = 0;
+	sam_vdg_ycount = 0;
+}
 
 void sam_init(void);
 void sam_reset(void);
