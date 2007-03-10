@@ -119,6 +119,10 @@ static void write_sector_state_3(void);
 static void write_sector_state_4(void);
 static void write_sector_state_5(void);
 static void write_sector_state_6(void);
+static void type_3_state_1(void);
+static void read_address_state_1(void);
+static void read_address_state_2(void);
+static void read_address_state_3(void);
 static void write_track_state_1(void);
 static void write_track_state_2(void);
 static void write_track_state_2b(void);
@@ -141,6 +145,7 @@ static unsigned int step_delay;
 static unsigned int index_holes_count;
 static unsigned int bytes_left;
 static unsigned int dam;
+static unsigned int track_register_tmp;
 
 static unsigned int stepping_rate[4] = { 6, 12, 20, 30 };
 static unsigned int sector_size[2][4] = {
@@ -323,23 +328,15 @@ void wd279x_command_write(unsigned int cmd) {
 		return;
 	}
 	/* 11000xx0 = READ ADDRESS */
-	if ((cmd & 0xf9) == 0xc0) {
-		LOG_WARN("WD279X: CMD: Read address not implemented\n");
-		SET_INTRQ;
-		return;
-	}
 	/* 11100xx0 = READ TRACK */
-	if ((cmd & 0xf9) == 0xe0) {
-		LOG_WARN("WD279X: CMD: Read track not implemented\n");
-		SET_INTRQ;
-		return;
-	}
 	/* 11110xx0 = WRITE TRACK */
-	if ((cmd & 0xf9) == 0xf0) {
-		LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", track_register);
+	if (((cmd & 0xf9) == 0xc0)
+			|| ((cmd & 0xf9) == 0xe0)
+			|| ((cmd & 0xf9) == 0xf0)) {
 		status_register |= STATUS_BUSY;
 		status_register &= ~(STATUS_LOST_DATA|(1<<4)|(1<<5));
-		RESET_DRQ;
+		if ((cmd & 0xf0) == 0xf0)
+			RESET_DRQ;
 		if (!vdrive_ready) {
 			status_register &= ~(STATUS_BUSY);
 			SET_INTRQ;
@@ -348,11 +345,10 @@ void wd279x_command_write(unsigned int cmd) {
 		if (HAS_SSO)
 			SET_SIDE(cmd & 0x02);  /* 'U' */
 		if (cmd & 0x04) {  /* 'E' set */
-			NEXT_STATE(write_track_state_1, W_MILLISEC(30));
+			NEXT_STATE(type_3_state_1, W_MILLISEC(30));
 			return;
 		}
-		write_track_state_1();
-		return;
+		return type_3_state_1();
 	}
 	LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd);
 }
@@ -664,6 +660,80 @@ static void write_sector_state_6(void) {
 	LOG_DEBUG(5, " write_sector_state_6()\n");
 	vdrive_write(0xfe);
 	/* TODO: M = 1 */
+	status_register &= ~(STATUS_BUSY);
+	SET_INTRQ;
+}
+
+static void type_3_state_1(void) {
+	LOG_DEBUG(5, " type_3_state_1()\n");
+	switch (cmd_copy & 0xf0) {
+		case 0xc0:
+			index_holes_count = 0;
+			NEXT_STATE(read_address_state_1, vdrive_time_to_next_idam());
+			return;
+		case 0xe0:
+			LOG_WARN("WD279X: CMD: Read track not implemented\n");
+			SET_INTRQ;
+			break;
+		case 0xf0:
+			LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", track_register);
+			return write_track_state_1();
+		default:
+			LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd_copy);
+			break;
+	}
+}
+
+static void read_address_state_1(void) {
+	uint8_t *idam;
+	LOG_DEBUG(5, " read_address_state_1()\n");
+	idam = vdrive_next_idam();
+	if (vdrive_new_index_pulse()) {
+		index_holes_count++;
+		if (index_holes_count >= 6) {
+			status_register &= ~(STATUS_BUSY);
+			status_register |= STATUS_RNF;
+			SET_INTRQ;
+			return;
+		}
+	}
+	if (idam == NULL) {
+		NEXT_STATE(read_address_state_1, vdrive_time_to_next_idam());
+		return;
+	}
+	crc16_reset();
+	if (IS_DOUBLE_DENSITY) {
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+		crc16_byte(0xa1);
+	}
+	(void)vdrive_read();
+	NEXT_STATE(read_address_state_2, vdrive_time_to_next_byte());
+}
+
+static void read_address_state_2(void) {
+	bytes_left = 5;
+	data_register = vdrive_read();
+	/* At end of command, this is transferred to the sector register: */
+	track_register_tmp = data_register;
+	SET_DRQ;
+	NEXT_STATE(read_address_state_3, vdrive_time_to_next_byte());
+}
+
+static void read_address_state_3(void) {
+	/* Lost data not mentioned in data sheet, so not checking
+	   for now */
+	if (bytes_left > 0) {
+		data_register = vdrive_read();
+		bytes_left--;
+		SET_DRQ;
+		NEXT_STATE(read_address_state_3, vdrive_time_to_next_byte());
+		return;
+	}
+	sector_register = track_register_tmp;
+	if (crc16_value() != 0) {
+		status_register |= STATUS_CRC_ERROR;
+	}
 	status_register &= ~(STATUS_BUSY);
 	SET_INTRQ;
 }
