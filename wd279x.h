@@ -29,7 +29,5 @@ unsigned int wd279x_status_read(void);
 unsigned int wd279x_track_register_read(void);
 unsigned int wd279x_sector_register_read(void);
 unsigned int wd279x_data_register_read(void);
-void wd279x_ff48_write(unsigned int octet);
-void wd279x_ff40_write(unsigned int octet);
 
 #endif  /* __WD279X_H__ */
