@@ -220,6 +220,7 @@ void machine_init(void) {
 	sam_init();
 	pia_init();
 	dragondos_init();
+	deltados_init();
 	rsdos_init();
 	wd279x_init();
 	vdrive_init();
