@@ -241,7 +241,7 @@ EOF
 		;;
 	esac
 	echo "$__opt"
-	TARGET_CFLAGS="$__opt -pipe"
+	TARGET_CFLAGS="$__opt"
 fi
 
 test -z "$TARGET_LDFLAGS" && TARGET_LDFLAGS="$LDFLAGS"
@@ -264,6 +264,20 @@ if test "$build_pkg_config" = "auto"; then
 		build_pkg_config="false"
 	fi
 fi
+
+########
+
+echocheck $TARGET_CC accepting -pipe
+_c_pipe=no
+cat > $TMPC <<EOF
+int main(int argc, char **argv) { return 0; }
+EOF
+target_cc_check_compile "-pipe" "" && _c_pipe=yes
+echo "$_c_pipe"
+if test "$_c_pipe" = "yes"; then
+	_TARGET_CFLAGS="$_TARGET_CFLAGS -pipe"
+fi
+rm -f $TMPC
 
 ########
 
