@@ -9,7 +9,8 @@
 typedef struct event_t event_t;
 struct event_t {
 	Cycle at_cycle;
-	void (*dispatch)(void);
+	void (*dispatch)(void *context);
+	void *context;
 	int queued;
 	event_t *next;
 };
@@ -23,7 +24,7 @@ extern event_t *event_list;
 		event_t *e = event_list; \
 		event_list = event_list->next; \
 		e->queued = 0; \
-		e->dispatch(); \
+		e->dispatch(e->context); \
 	} while (0)
 
 event_t *event_new(void);

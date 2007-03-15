@@ -43,10 +43,10 @@ static int frame;
 
 static event_t *hs_fall_event, *hs_rise_event;
 static event_t *fs_fall_event, *fs_rise_event;
-static void do_hs_fall(void);
-static void do_hs_rise(void);
-static void do_fs_fall(void);
-static void do_fs_rise(void);
+static void do_hs_fall(void *context);
+static void do_hs_rise(void *context);
+static void do_fs_fall(void *context);
+static void do_fs_rise(void *context);
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
@@ -77,7 +77,8 @@ void vdg_reset(void) {
 	frame = 0;
 }
 
-static void do_hs_fall(void) {
+static void do_hs_fall(void *context) {
+	(void)context;
 	/* Finish rendering previous scanline */
 #ifdef FAST_VDG
 	/* Skip borders, etc. */
@@ -160,15 +161,18 @@ static void do_hs_fall(void) {
 	event_queue(hs_fall_event);
 }
 
-static void do_hs_rise(void) {
+static void do_hs_rise(void *context) {
+	(void)context;
 	PIA_SET_P0CA1;
 }
 
-static void do_fs_fall(void) {
+static void do_fs_fall(void *context) {
+	(void)context;
 	PIA_RESET_P0CB1;
 }
 
-static void do_fs_rise(void) {
+static void do_fs_rise(void *context) {
+	(void)context;
 	PIA_SET_P0CB1;
 }
 

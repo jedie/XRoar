@@ -32,7 +32,7 @@ unsigned int keyboard_row[9];
 unsigned int keyboard_buffer[256];
 unsigned int *keyboard_bufcur, *keyboard_buflast;
 
-static void keyboard_poll(void);
+static void keyboard_poll(void *context);
 static event_t *poll_event;
 
 void keyboard_init(void) {
@@ -105,7 +105,8 @@ void keyboard_queue(uint_least16_t c) {
 	*(keyboard_buflast++) = shift_state ? 0x80 : 0; /* last shift state */
 }
 
-static void keyboard_poll(void) {
+static void keyboard_poll(void *context) {
+	(void)context;
 	if (KEYBOARD_HASQUEUE) {
 		unsigned int k;
 		KEYBOARD_DEQUEUE(k);

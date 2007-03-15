@@ -61,7 +61,7 @@ static Sample *wrptr;
 static Sample lastsample;
 static int8_t *convbuf;
 
-static void flush_frame(void);
+static void flush_frame(void *context);
 static event_t *flush_event;
 
 static int init(int argc, char **argv) {
@@ -168,9 +168,10 @@ static void update(void) {
 	}
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *context) {
 	int8_t *source = buffer;
 	Sample *fill_to = buffer + FRAME_SIZE;
+	(void)context;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;

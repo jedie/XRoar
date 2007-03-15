@@ -35,7 +35,6 @@
 #include "tape.h"
 #include "vdisk.h"
 #include "vdrive.h"
-#include "wd279x.h"
 #include "xroar.h"
 
 static int init(int argc, char **argv);
@@ -47,7 +46,7 @@ KeyboardModule keyboard_sdl_module = {
 };
 
 static event_t *poll_event;
-static void do_poll(void);
+static void do_poll(void *context);
 
 struct keymap {
 	const char *name;
@@ -413,7 +412,8 @@ static void keyrelease(SDL_keysym *keysym) {
 	}
 }
 
-static void do_poll(void) {
+static void do_poll(void *context) {
+	(void)context;
 	SDL_Event event;
 	while (SDL_PollEvent(&event) == 1) {
 		switch(event.type) {

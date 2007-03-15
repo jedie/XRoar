@@ -37,7 +37,7 @@ static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
-static void flush_frame(void);
+static void flush_frame(void *context);
 static event_t *flush_event;
 
 SoundModule sound_sun_module = {
@@ -147,7 +147,8 @@ static void update(void) {
 	}
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *context) {
+	(void)context;
 	audio_info_t device_info;
 	int samples_left;
 	Sample *fill_to = buffer + FRAME_SIZE;

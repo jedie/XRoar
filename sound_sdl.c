@@ -65,7 +65,7 @@ static SDL_mutex *halt_mutex;
 static SDL_cond *halt_cv;
 static int haltflag;
 
-static void flush_frame(void);
+static void flush_frame(void *context);
 static event_t *flush_event;
 
 static void callback(void *userdata, Uint8 *stream, int len);
@@ -151,7 +151,8 @@ static void update(void) {
 	}
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *context) {
+	(void)context;
 	Sample *fill_to = buffer + FRAME_SIZE;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;

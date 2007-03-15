@@ -51,7 +51,7 @@ SoundModule sound_null_module = {
 static Cycle last_pause_cycle;
 static unsigned int last_pause_ms;
 
-static void flush_frame(void);
+static void flush_frame(void *context);
 static event_t *flush_event;
 
 static unsigned int current_time(void);
@@ -105,10 +105,11 @@ static void sleep_ms(unsigned int ms) {
 #endif
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *context) {
 	Cycle elapsed_cycles = current_cycle - last_pause_cycle;
 	unsigned int expected_elapsed_ms = elapsed_cycles / CYCLES_PER_MS;
 	unsigned int actual_elapsed_ms, difference_ms;
+	(void)context;
 	actual_elapsed_ms = current_time() - last_pause_ms;
 	difference_ms = expected_elapsed_ms - actual_elapsed_ms;
 	if (difference_ms >= 10) {

@@ -35,7 +35,7 @@
 static int read_fd, write_fd;
 static unsigned int motor;
 
-static void waggle_bit(void);
+static void waggle_bit(void *context);
 static event_t *waggle_event;
 
 /* For reading */
@@ -336,9 +336,10 @@ static void buffer_in(void) {
 	}
 }
 
-static void waggle_bit(void) {
+static void waggle_bit(void *context) {
 	static int cur_bit = 0;
 	static int waggle_state = 0;
+	(void)context;
 	switch (waggle_state) {
 		default:
 		case 0:

@@ -55,7 +55,7 @@ static Sample **buffer;
 static Sample *wrptr;
 static Sample lastsample;
 
-static void flush_frame(void);
+static void flush_frame(void *context);
 static event_t *flush_event;
 
 static int init(int argc, char **argv) {
@@ -112,8 +112,9 @@ static void update(void) {
 	}
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *context) {
 	Sample *fill_to = buffer[writing_frame] + frame_size;
+	(void)context;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;

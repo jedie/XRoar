@@ -103,30 +103,30 @@ void (*wd279x_set_intrq_handler)(void);
 void (*wd279x_reset_intrq_handler)(void);
 
 /* Functions used in state machines: */
-static void type_1_state_1(void);
-static void type_1_state_2(void);
-static void type_1_state_3(void);
-static void verify_track_state_1(void);
-static void verify_track_state_2(void);
-static void type_2_state_1(void);
-static void type_2_state_2(void);
-static void read_sector_state_1(void);
-static void read_sector_state_2(void);
-static void read_sector_state_3(void);
-static void write_sector_state_1(void);
-static void write_sector_state_2(void);
-static void write_sector_state_3(void);
-static void write_sector_state_4(void);
-static void write_sector_state_5(void);
-static void write_sector_state_6(void);
-static void type_3_state_1(void);
-static void read_address_state_1(void);
-static void read_address_state_2(void);
-static void read_address_state_3(void);
-static void write_track_state_1(void);
-static void write_track_state_2(void);
-static void write_track_state_2b(void);
-static void write_track_state_3(void);
+static void type_1_state_1(void *context);
+static void type_1_state_2(void *context);
+static void type_1_state_3(void *context);
+static void verify_track_state_1(void *context);
+static void verify_track_state_2(void *context);
+static void type_2_state_1(void *context);
+static void type_2_state_2(void *context);
+static void read_sector_state_1(void *context);
+static void read_sector_state_2(void *context);
+static void read_sector_state_3(void *context);
+static void write_sector_state_1(void *context);
+static void write_sector_state_2(void *context);
+static void write_sector_state_3(void *context);
+static void write_sector_state_4(void *context);
+static void write_sector_state_5(void *context);
+static void write_sector_state_6(void *context);
+static void type_3_state_1(void *context);
+static void read_address_state_1(void *context);
+static void read_address_state_2(void *context);
+static void read_address_state_3(void *context);
+static void write_track_state_1(void *context);
+static void write_track_state_2(void *context);
+static void write_track_state_2b(void *context);
+static void write_track_state_3(void *context);
 
 static event_t *state_event;
 
@@ -288,9 +288,9 @@ void wd279x_command_write(unsigned int cmd) {
 		}
 		if (is_step_cmd) {
 			if (cmd & 0x10)
-				type_1_state_2();
+				type_1_state_2(NULL);
 			else
-				type_1_state_3();
+				type_1_state_3(NULL);
 			return;
 		}
 		if ((cmd & 0xf0) == 0x00) {
@@ -300,7 +300,7 @@ void wd279x_command_write(unsigned int cmd) {
 		} else {
 			LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", data_register);
 		}
-		type_1_state_1();
+		type_1_state_1(NULL);
 		return;
 	}
 	/* 10xxxxxx = READ/WRITE SECTOR */
@@ -324,7 +324,7 @@ void wd279x_command_write(unsigned int cmd) {
 			NEXT_STATE(type_2_state_1, W_MILLISEC(30));
 			return;
 		}
-		type_2_state_1();
+		type_2_state_1(NULL);
 		return;
 	}
 	/* 11000xx0 = READ ADDRESS */
@@ -348,36 +348,39 @@ void wd279x_command_write(unsigned int cmd) {
 			NEXT_STATE(type_3_state_1, W_MILLISEC(30));
 			return;
 		}
-		return type_3_state_1();
+		return type_3_state_1(NULL);
 	}
 	LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd);
 }
 
-static void type_1_state_1(void) {
+static void type_1_state_1(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " type_1_state_1()\n");
 	if (data_register == track_register) {
-		verify_track_state_1();
+		verify_track_state_1(context);
 		return;
 	}
 	if (data_register > track_register)
 		SET_DIRECTION;
 	else
 		RESET_DIRECTION;
-	type_1_state_2();
+	type_1_state_2(context);
 }
 
-static void type_1_state_2(void) {
+static void type_1_state_2(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " type_1_state_2()\n");
 	track_register += direction;
-	type_1_state_3();
+	type_1_state_3(context);
 }
 
-static void type_1_state_3(void) {
+static void type_1_state_3(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " type_1_state_3()\n");
 	if (vdrive_tr00 && direction == -1) {
 		LOG_DEBUG(4,"WD279X: TR00!\n");
 		track_register = 0;
-		verify_track_state_1();
+		verify_track_state_1(context);
 		return;
 	}
 	vdrive_step();
@@ -388,7 +391,8 @@ static void type_1_state_3(void) {
 	NEXT_STATE(type_1_state_1, W_MILLISEC(step_delay));
 }
 
-static void verify_track_state_1(void) {
+static void verify_track_state_1(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " verify_track_state_1()\n");
 	if (!(cmd_copy & 0x04)) {
 		status_register &= ~(STATUS_BUSY);
@@ -399,9 +403,10 @@ static void verify_track_state_1(void) {
 	NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
 }
 
-static void verify_track_state_2(void) {
+static void verify_track_state_2(void *context) {
 	uint8_t *idam;
 	int i;
+	(void)context;
 	LOG_DEBUG(5, " verify_track_state_2()\n");
 	idam = vdrive_next_idam();
 	if (vdrive_new_index_pulse()) {
@@ -445,7 +450,8 @@ static void verify_track_state_2(void) {
 	SET_INTRQ;
 }
 
-static void type_2_state_1(void) {
+static void type_2_state_1(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " type_2_state_1()\n");
 	if ((cmd_copy & 0x20) && vdrive_write_protect) {
 		status_register &= ~(STATUS_BUSY);
@@ -457,9 +463,10 @@ static void type_2_state_1(void) {
 	NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 }
 
-static void type_2_state_2(void) {
+static void type_2_state_2(void *context) {
 	uint8_t *idam;
 	int i;
+	(void)context;
 	LOG_DEBUG(5, " type_2_state_2()\n");
 	idam = vdrive_next_idam();
 	if (vdrive_new_index_pulse()) {
@@ -541,7 +548,8 @@ static void type_2_state_2(void) {
 	NEXT_STATE(write_sector_state_1, vdrive_time_to_next_byte());
 }
 
-static void read_sector_state_1(void) {
+static void read_sector_state_1(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " read_sector_state_1()\n");
 	LOG_DEBUG(4,"Reading %d-byte sector (Tr %d, Se %d) from head_pos=%04x\n", bytes_left, track_register, sector_register, vdrive_head_pos());
 	status_register |= ((~dam & 1) << 5);
@@ -551,7 +559,8 @@ static void read_sector_state_1(void) {
 	NEXT_STATE(read_sector_state_2, vdrive_time_to_next_byte());
 }
 
-static void read_sector_state_2(void) {
+static void read_sector_state_2(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " read_sector_state_2()\n");
 	if (status_register & STATUS_DRQ) {
 		status_register |= STATUS_LOST_DATA;
@@ -570,7 +579,8 @@ static void read_sector_state_2(void) {
 	NEXT_STATE(read_sector_state_3, vdrive_time_to_next_byte());
 }
 
-static void read_sector_state_3(void) {
+static void read_sector_state_3(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " read_sector_state_3()\n");
 	if (crc16_value() != 0) {
 		LOG_DEBUG(3, "Read sector data tr %d se %d CRC16 error: $%04x != 0\n", track_register, sector_register, crc16_value());
@@ -584,8 +594,9 @@ static void read_sector_state_3(void) {
 	SET_INTRQ;
 }
 
-static void write_sector_state_1(void) {
+static void write_sector_state_1(void *context) {
 	unsigned int i;
+	(void)context;
 	LOG_DEBUG(5, " write_sector_state_1()\n");
 	SET_DRQ;
 	for (i = 0; i < 8; i++)
@@ -593,7 +604,8 @@ static void write_sector_state_1(void) {
 	NEXT_STATE(write_sector_state_2, vdrive_time_to_next_byte());
 }
 
-static void write_sector_state_2(void) {
+static void write_sector_state_2(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " write_sector_state_2()\n");
 	if (status_register & STATUS_DRQ) {
 		status_register &= ~(STATUS_BUSY);
@@ -606,8 +618,9 @@ static void write_sector_state_2(void) {
 	NEXT_STATE(write_sector_state_3, vdrive_time_to_next_byte());
 }
 
-static void write_sector_state_3(void) {
+static void write_sector_state_3(void *context) {
 	unsigned int i;
+	(void)context;
 	LOG_DEBUG(5, " write_sector_state_3()\n");
 	if (IS_DOUBLE_DENSITY) {
 		for (i = 0; i < 11; i++)
@@ -622,7 +635,8 @@ static void write_sector_state_3(void) {
 	NEXT_STATE(write_sector_state_4, vdrive_time_to_next_byte());
 }
 
-static void write_sector_state_4(void) {
+static void write_sector_state_4(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " write_sector_state_4()\n");
 	crc16_reset();
 	if (IS_DOUBLE_DENSITY) {
@@ -637,8 +651,9 @@ static void write_sector_state_4(void) {
 	NEXT_STATE(write_sector_state_5, vdrive_time_to_next_byte());
 }
 
-static void write_sector_state_5(void) {
+static void write_sector_state_5(void *context) {
 	unsigned int data = data_register;
+	(void)context;
 	LOG_DEBUG(5, " write_sector_state_5()\n");
 	if (status_register & STATUS_DRQ) {
 		data = 0;
@@ -656,7 +671,8 @@ static void write_sector_state_5(void) {
 	NEXT_STATE(write_sector_state_6, vdrive_time_to_next_byte() + W_MICROSEC(20));
 }
 
-static void write_sector_state_6(void) {
+static void write_sector_state_6(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " write_sector_state_6()\n");
 	vdrive_write(0xfe);
 	/* TODO: M = 1 */
@@ -664,7 +680,8 @@ static void write_sector_state_6(void) {
 	SET_INTRQ;
 }
 
-static void type_3_state_1(void) {
+static void type_3_state_1(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " type_3_state_1()\n");
 	switch (cmd_copy & 0xf0) {
 		case 0xc0:
@@ -677,15 +694,16 @@ static void type_3_state_1(void) {
 			break;
 		case 0xf0:
 			LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", track_register);
-			return write_track_state_1();
+			return write_track_state_1(context);
 		default:
 			LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd_copy);
 			break;
 	}
 }
 
-static void read_address_state_1(void) {
+static void read_address_state_1(void *context) {
 	uint8_t *idam;
+	(void)context;
 	LOG_DEBUG(5, " read_address_state_1()\n");
 	idam = vdrive_next_idam();
 	if (vdrive_new_index_pulse()) {
@@ -711,7 +729,8 @@ static void read_address_state_1(void) {
 	NEXT_STATE(read_address_state_2, vdrive_time_to_next_byte());
 }
 
-static void read_address_state_2(void) {
+static void read_address_state_2(void *context) {
+	(void)context;
 	bytes_left = 5;
 	data_register = vdrive_read();
 	/* At end of command, this is transferred to the sector register: */
@@ -720,7 +739,8 @@ static void read_address_state_2(void) {
 	NEXT_STATE(read_address_state_3, vdrive_time_to_next_byte());
 }
 
-static void read_address_state_3(void) {
+static void read_address_state_3(void *context) {
+	(void)context;
 	/* Lost data not mentioned in data sheet, so not checking
 	   for now */
 	if (bytes_left > 0) {
@@ -738,7 +758,8 @@ static void read_address_state_3(void) {
 	SET_INTRQ;
 }
 
-static void write_track_state_1(void) {
+static void write_track_state_1(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " write_track_state_1()\n");
 	if (vdrive_write_protect) {
 		status_register &= ~(STATUS_BUSY);
@@ -750,7 +771,8 @@ static void write_track_state_1(void) {
 	NEXT_STATE(write_track_state_2, 3 * W_BYTE_TIME);
 }
 
-static void write_track_state_2(void) {
+static void write_track_state_2(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " write_track_state_2()\n");
 	if (status_register & STATUS_DRQ) {
 		RESET_DRQ;  // XXX
@@ -762,7 +784,8 @@ static void write_track_state_2(void) {
 	NEXT_STATE(write_track_state_2b, vdrive_time_to_next_idam());
 }
 
-static void write_track_state_2b(void) {
+static void write_track_state_2b(void *context) {
+	(void)context;
 	LOG_DEBUG(5, " write_track_state_2b()\n");
 	if (!vdrive_new_index_pulse()) {
 		LOG_DEBUG(4,"Waiting for index pulse, head_pos=%04x\n", vdrive_head_pos());
@@ -770,11 +793,12 @@ static void write_track_state_2b(void) {
 		return;
 	}
 	LOG_DEBUG(4,"Writing track from head_pos=%04x\n", vdrive_head_pos());
-	return write_track_state_3();
+	return write_track_state_3(context);
 }
 
-static void write_track_state_3(void) {
+static void write_track_state_3(void *context) {
 	unsigned int data = data_register;
+	(void)context;
 	LOG_DEBUG(5, " write_track_state_3()\n");
 	if (vdrive_new_index_pulse()) {
 		LOG_DEBUG(4,"Finished writing track at head_pos=%04x\n", vdrive_head_pos());

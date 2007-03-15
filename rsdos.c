@@ -48,7 +48,7 @@ static void reset_intrq_handler(void);
 
 /* NMIs queued to allow CPU to run next instruction */
 static event_t *nmi_event;
-static void do_nmi(void);
+static void do_nmi(void *context);
 
 /* Latch that's part of the RSDOS cart: */
 static unsigned int ic1_drive_select;
@@ -149,7 +149,8 @@ static void reset_intrq_handler(void) {
 	nmi = 0;
 }
 
-static void do_nmi(void) {
+static void do_nmi(void *context) {
+	(void)context;
 	if (!ic1_density && intrq_flag) {
 		nmi = 1;
 	}

@@ -36,7 +36,7 @@ JoystickModule joystick_sdl_module = {
 static SDL_Joystick *joy = NULL;
 
 static event_t *poll_event;
-static void do_poll(void);
+static void do_poll(void *context);
 
 static int init(int argc, char **argv) {
 	(void)argc;
@@ -71,7 +71,8 @@ static void shutdown(void) {
 	SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
 }
 
-static void do_poll(void) {
+static void do_poll(void *context) {
+	(void)context;
 	SDL_JoystickUpdate();
 	joystick_leftx = (SDL_JoystickGetAxis(joy, 3)+32768) >> 8;
 	joystick_lefty = (SDL_JoystickGetAxis(joy, 2)+32768) >> 8;

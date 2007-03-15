@@ -31,6 +31,7 @@ event_t *event_new(void) {
 		return NULL;
 	new->at_cycle = 0;
 	new->dispatch = NULL;
+	new->context = NULL;
 	new->queued = 0;
 	new->next = NULL;
 	return new;
