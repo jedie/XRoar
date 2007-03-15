@@ -227,7 +227,7 @@ tools/img2c_nds: tools/img2c_nds.c
 CLEAN_FILES = $(CRT0) $(ALL_OBJS) tools/img2c tools/img2c_nds tools/prerender \
 	gp32/copyright.c gp32/cmode_bin.c gp32/kbd_graphics.c \
 	gp32/vdg_bitmaps_gp32.c xroar.bin xroar.fxe xroar.elf \
-	nds/kbd_graphics.c xroar.nds xroar.ds.gba xroar.arm9 xroar
+	nds/kbd_graphics.c xroar.nds xroar.ds.gba xroar.arm9 xroar xroar.exe
 
 clean:
 	rm -f $(CLEAN_FILES)
