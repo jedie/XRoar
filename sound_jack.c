@@ -25,8 +25,9 @@
 #include <pthread.h>
 
 #include "types.h"
-#include "logging.h"
 #include "events.h"
+#include "logging.h"
+#include "machine.h"
 #include "pia.h"
 #include "types.h"
 #include "xroar.h"
