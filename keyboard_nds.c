@@ -39,7 +39,7 @@ KeyboardModule keyboard_nds_module = {
 };
 
 static event_t *poll_event;
-static void do_poll(void);
+static void do_poll(void *context);
 
 #define KEY_UPDATE(t,s) if (t) { KEYBOARD_PRESS(s); } else { KEYBOARD_RELEASE(s); }
 #define KEYBOARD_X (13)
@@ -103,8 +103,9 @@ static void highlight_key(void) {
 	}
 }
 
-static void do_poll(void) {
+static void do_poll(void *context) {
 	uint16_t px, py;
+	(void)context;
 	while (IPC->mailBusy);
 	px = IPC->touchXpx;
 	py = IPC->touchYpx;
