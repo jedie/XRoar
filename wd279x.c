@@ -30,6 +30,7 @@
 #include "logging.h"
 #include "m6809.h"
 #include "pia.h"
+#include "vdisk.h"
 #include "vdrive.h"
 #include "wd279x.h"
 #include "xroar.h"
@@ -178,7 +179,7 @@ void wd279x_reset(void) {
 void wd279x_set_density(unsigned int d) {
 	/* DDEN# is active-low */
 	density = d ? SINGLE_DENSITY : DOUBLE_DENSITY;
-	vdrive_set_density(d ? VDRIVE_SINGLE_DENSITY : VDRIVE_DOUBLE_DENSITY);
+	vdrive_set_density(d ? VDISK_SINGLE_DENSITY : VDISK_DOUBLE_DENSITY);
 }
 
 void wd279x_track_register_write(unsigned int octet) {

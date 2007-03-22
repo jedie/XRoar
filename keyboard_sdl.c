@@ -168,12 +168,15 @@ static void keypress(SDL_keysym *keysym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 			if (shift) {
 				LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + sym - SDLK_1);
-				vdrive_blank_disk(sym - SDLK_1, 2, 42, VDRIVE_LENGTH_5_25);
+				vdrive_eject_disk(sym - SDLK_1);
+				vdrive_insert_disk(sym - SDLK_1, vdisk_blank_disk(2, 42, VDISK_LENGTH_5_25));
 			} else {
 				const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 				char *filename = filereq_module->load_filename(disk_exts);
-				if (filename)
-					vdisk_load(filename, sym - SDLK_1);
+				if (filename) {
+					vdrive_eject_disk(sym - SDLK_1);
+					vdrive_insert_disk(sym - SDLK_1, vdisk_load(filename));
+				}
 			}
 			break;
 		case SDLK_a:
@@ -224,7 +227,9 @@ static void keypress(SDL_keysym *keysym) {
 			switch (type) {
 			case FILETYPE_VDK: case FILETYPE_JVC:
 			case FILETYPE_DMK:
-				vdisk_load(filename, 0); break;
+				vdrive_eject_disk(0);
+				vdrive_insert_disk(0, vdisk_load(filename));
+				break;
 			case FILETYPE_BIN:
 				coco_bin_read(filename); break;
 			case FILETYPE_HEX:

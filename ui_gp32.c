@@ -36,6 +36,7 @@
 #include "tape.h"
 #include "vdg.h"
 #include "vdisk.h"
+#include "vdrive.h"
 #include "xroar.h"
 
 static int init(int argc, char **argv);
@@ -438,7 +439,9 @@ static void load_file_callback(unsigned int opt) {
 	switch (type) {
 		case FILETYPE_VDK: case FILETYPE_JVC:
 		case FILETYPE_DMK:
-			vdisk_load(filename, 0); break;
+			vdrive_eject_disk(0);
+			vdrive_insert_disk(0, vdisk_load(filename));
+			break;
 		case FILETYPE_BIN:
 			coco_bin_read(filename); break;
 		case FILETYPE_HEX:
@@ -496,8 +499,10 @@ static void disk_callback(unsigned int opt) {
 	const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 	char *filename;
 	filename = get_filename(disk_exts);
-	if (filename)
-		vdisk_load(filename, opt);
+	if (filename) {
+		vdrive_eject_disk(opt);
+		vdrive_insert_disk(opt, vdisk_load(filename));
+	}
 }
 
 static void cart_callback(unsigned int opt) {
