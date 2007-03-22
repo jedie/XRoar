@@ -62,9 +62,6 @@ static event_t *reset_index_pulse_event;
 static void do_index_pulse(void *context);
 static void do_reset_index_pulse(void *context);
 
-#define CURRENT_TRACK_LENGTH (current_drive->disk ? current_drive->disk->track_length : VDISK_LENGTH_5_25)
-#define CURRENT_WRITE_PROTECT (current_drive->disk ? current_drive->disk->write_protect : VDISK_WRITE_ENABLE)
-
 void vdrive_init(void) {
 	int i;
 	for (i = 0; i < MAX_DRIVES; i++) {
@@ -78,9 +75,6 @@ void vdrive_init(void) {
 	index_pulse_event->dispatch = do_index_pulse;
 	reset_index_pulse_event = event_new();
 	reset_index_pulse_event->dispatch = do_reset_index_pulse;
-	track_start_cycle = current_cycle;
-	index_pulse_event->at_cycle = track_start_cycle + (CURRENT_TRACK_LENGTH - 128) * BYTE_TIME;
-	event_queue(index_pulse_event);
 }
 
 int vdrive_insert_disk(int drive, struct vdisk *disk) {
@@ -93,6 +87,7 @@ int vdrive_insert_disk(int drive, struct vdisk *disk) {
 		return -1;
 	drives[drive].disk = disk;
 	drives[drive].disk_present = 1;
+	update_signals();
 	return 0;
 }
 
@@ -103,7 +98,7 @@ int vdrive_eject_disk(int drive) {
 		return -1;
 	vdisk_destroy(drives[drive].disk);
 	drives[drive].disk_present = 0;
-	event_dequeue(index_pulse_event);
+	update_signals();
 	return 0;
 }
 
@@ -134,14 +129,25 @@ static void update_signals(void) {
 	assert(current_drive);
 	vdrive_ready = current_drive->disk_present;
 	vdrive_tr00 = (current_drive->current_track == 0) ? 1 : 0;
-	vdrive_write_protect = CURRENT_WRITE_PROTECT;
-	if (!vdrive_ready || cur_side >= current_drive->disk->num_sides) {
+	if (!vdrive_ready) {
+		vdrive_write_protect = VDISK_WRITE_ENABLE;
 		track_base = NULL;
 		idamptr = NULL;
 		return;
 	}
-	idamptr = vdisk_track_base(current_drive->disk, cur_side, current_drive->current_track);
+	vdrive_write_protect = current_drive->disk->write_protect;
+	if (cur_side < current_drive->disk->num_sides) {
+		idamptr = vdisk_track_base(current_drive->disk, cur_side, current_drive->current_track);
+	} else {
+		idamptr = NULL;
+	}
 	track_base = (uint8_t *)idamptr;
+	if (!index_pulse_event->queued) {
+		head_pos = 128;
+		track_start_cycle = current_cycle;
+		index_pulse_event->at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
+		event_queue(index_pulse_event);
+	}
 }
 
 /* Drive select */
@@ -322,15 +328,17 @@ int vdrive_new_index_pulse(void) {
 
 static void do_index_pulse(void *context) {
 	(void)context;
-	if (vdrive_ready) {
-		vdrive_index_pulse = 1;
-		head_pos = 128;
-		last_update_cycle = index_pulse_event->at_cycle;
+	if (!vdrive_ready) {
+		vdrive_index_pulse = 0;
+		return;
 	}
+	vdrive_index_pulse = 1;
+	head_pos = 128;
+	last_update_cycle = index_pulse_event->at_cycle;
 	track_start_cycle = index_pulse_event->at_cycle;
-	index_pulse_event->at_cycle = track_start_cycle + (CURRENT_TRACK_LENGTH - 128) * BYTE_TIME;
+	index_pulse_event->at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
 	event_queue(index_pulse_event);
-	reset_index_pulse_event->at_cycle = track_start_cycle + ((CURRENT_TRACK_LENGTH - 128)/100) * BYTE_TIME;
+	reset_index_pulse_event->at_cycle = track_start_cycle + ((current_drive->disk->track_length - 128)/100) * BYTE_TIME;
 	event_queue(reset_index_pulse_event);
 }
 
