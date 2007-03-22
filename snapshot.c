@@ -18,17 +18,17 @@
 
 #include <string.h>
 
-#include "xroar.h"
-#include "machine.h"
+#include "types.h"
+#include "fs.h"
+#include "logging.h"
 #include "m6809.h"
-#include "sam.h"
-#include "vdg.h"
+#include "machine.h"
 #include "pia.h"
+#include "sam.h"
 #include "snapshot.h"
 #include "tape.h"
-#include "logging.h"
-#include "fs.h"
-#include "types.h"
+#include "vdg.h"
+#include "xroar.h"
 
 /* Write files in 'chunks', each with an identifying byte and a 16-bit
  * length.  This should mean no changes are required that break the

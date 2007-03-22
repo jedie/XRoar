@@ -25,11 +25,11 @@
 #include <string.h>
 
 #include "types.h"
-#include "crc16.h"
 #include "dragondos.h"
 #include "events.h"
 #include "logging.h"
 #include "m6809.h"
+#include "machine.h"
 #include "pia.h"
 #include "vdrive.h"
 #include "wd279x.h"

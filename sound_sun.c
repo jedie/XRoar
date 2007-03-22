@@ -27,8 +27,9 @@
 #include <sys/stropts.h>
 
 #include "types.h"
-#include "logging.h"
 #include "events.h"
+#include "logging.h"
+#include "machine.h"
 #include "module.h"
 #include "pia.h"
 #include "xroar.h"

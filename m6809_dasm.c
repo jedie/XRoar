@@ -18,6 +18,7 @@
 
 #include "types.h"
 #include "logging.h"
+#include "m6809_dasm.h"
 
 enum {
 	PAGE0 = 0, PAGE2 = 1, PAGE3 = 2, ILLEGAL,

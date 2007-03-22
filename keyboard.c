@@ -17,11 +17,11 @@
  */
 
 #include "types.h"
-#include "logging.h"
 #include "events.h"
 #include "keyboard.h"
+#include "logging.h"
+#include "machine.h"
 #include "pia.h"
-#include "xroar.h"
 
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will

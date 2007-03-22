@@ -6,7 +6,6 @@
 #ifndef __M6809_H__
 #define __M6809_H__
 
-#include "machine.h"
 #include "types.h"
 
 typedef struct {

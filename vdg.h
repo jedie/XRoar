@@ -7,7 +7,6 @@
 #define __VDG_H__
 
 #include "types.h"
-#include "machine.h"
 
 #define VDG_CYCLES(c) ((c) * 4)
 

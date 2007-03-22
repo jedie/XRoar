@@ -28,6 +28,7 @@
 #include "events.h"
 #include "fs.h"
 #include "logging.h"
+#include "machine.h"
 #include "pia.h"
 #include "tape.h"
 #include "xroar.h"

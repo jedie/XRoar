@@ -7,6 +7,8 @@
  * into various video module source files and makes use of macros defined in
  * those files (eg, LOCK_SURFACE and XSTEP) */
 
+#include "machine.h"
+
 /* VDG_tFP here is a kludge - I don't know why it's needed, but without it,
  * DragonFire doesn't render correctly.  Everything *should* be relative to
  * the horizontal sync pulse which occurs *after* the front porch. */

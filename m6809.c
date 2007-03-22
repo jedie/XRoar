@@ -16,15 +16,13 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef TRACE
-# include <unistd.h>
-#endif
-
-#include "xroar.h"
-#include "m6809.h"
-#include "sam.h"
+#include "types.h"
 #include "logging.h"
+#include "m6809.h"
 #include "m6809_dasm.h"
+#include "machine.h"
+#include "sam.h"
+#include "xroar.h"
 
 /* Condition Code manipulation macros */
 

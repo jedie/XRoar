@@ -17,9 +17,10 @@
  */
 
 #include "types.h"
-#include "logging.h"
 #include "events.h"
+#include "logging.h"
 #include "m6809.h"
+#include "machine.h"
 #include "pia.h"
 #include "sam.h"
 #include "vdg.h"

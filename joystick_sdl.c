@@ -19,9 +19,10 @@
 #include <SDL.h>
 
 #include "types.h"
-#include "logging.h"
 #include "events.h"
 #include "joystick.h"
+#include "logging.h"
+#include "machine.h"
 #include "module.h"
 #include "pia.h"
 
