@@ -61,7 +61,7 @@ static uint8_t vdg_colour[16];
 static uint8_t *cg_colours;
 static uint32_t border_colour;
 
-static uint8_t *rendered_alpha;
+static unsigned int text_mode;
 
 #include "gp32/vdg_bitmaps_gp32.c"
 
@@ -95,8 +95,9 @@ static void shutdown(void) {
 }
 
 static void vdg_vsync(void) {
-	/* VIDEO_UPDATE; */
-	pixel = (uint32_t *)gp_screen.ptbuffer + 58;
+	/* gp_screen.ptbuffer always aligned correctly: */
+	void *ptbuffer = gp_screen.ptbuffer;
+	pixel = (uint32_t *)ptbuffer + 58;
 	subline = 0;
 }
 
@@ -124,14 +125,14 @@ static void vdg_render_sg4(void) {
 	uint8_t *vram0, *vram1, *vram2, *vram3;
 	uint32_t in4, in5, in6, in7, out, i, j, k;
 	uint32_t *dest;
-	uint8_t *charset;
+	const uint8_t *charset;
 	uint8_t *vram_ptrs[8];
 	dest = pixel--;
 	for (i = 32; i; i--) {
 		*dest = border_colour;
 		dest += 60;
 	}
-	charset = rendered_alpha + subline * 8192;
+	charset = vdg_alpha_gp32[text_mode][subline];
 	vram_ptrs_32(vram_ptrs);
 	for (k = 0; k < 2; k++) {
 		vram0 = vram_ptrs[k]; vram1 = vram_ptrs[2+k];
@@ -440,6 +441,6 @@ static void vdg_set_mode(unsigned int mode) {
 	} else {
 		bg_colour = darkgreen;
 		border_colour = black;
-		rendered_alpha = (uint8_t *)vdg_alpha_gp32[(mode & 0x18) >> 3];
+		text_mode = (mode & 0x18) >> 3;
 	}
 }

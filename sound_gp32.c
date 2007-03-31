@@ -25,6 +25,7 @@
 
 #include "types.h"
 #include "events.h"
+#include "machine.h"
 #include "module.h"
 #include "pia.h"
 #include "sound_gp32.h"

@@ -32,6 +32,7 @@
 #include "events.h"
 #include "joystick.h"
 #include "keyboard.h"
+#include "machine.h"
 #include "module.h"
 #include "pia.h"
 #include "snapshot.h"
@@ -48,7 +49,7 @@ KeyboardModule keyboard_gp32_module = {
 };
 
 static event_t *poll_event;
-static void do_poll(void);
+static void do_poll(void *context);
 
 #define KEY_UPDATE(t,s) if (t) { KEYBOARD_PRESS(s); } else { KEYBOARD_RELEASE(s); }
 
@@ -117,9 +118,10 @@ static void highlight_key(void) {
 	}
 }
 
-static void do_poll(void) {
+static void do_poll(void *context) {
 	unsigned int newkeyx = keyx, newkeyy = keyy;
 	int key, newkey, rkey;
+	(void)context;
 	gpkeypad_poll(&key, &newkey, &rkey);
 	if (newkey & GPC_VK_FL) {
 		keyboard_mode++;
