@@ -324,8 +324,8 @@ depend:
 ./keyboard.o: joystick.h m6809.h module.h tape.h vdg.h
 ./keyboard_gp32.o: gp32/gp32.h gp32/gpgfx.h ./types.h config.h
 ./keyboard_gp32.o: gp32/gpkeypad.h gp32/gpchatboard.h types.h logging.h
-./keyboard_gp32.o: events.h joystick.h keyboard.h module.h pia.h m6809.h
-./keyboard_gp32.o: tape.h vdg.h snapshot.h xroar.h
+./keyboard_gp32.o: events.h joystick.h keyboard.h machine.h module.h pia.h
+./keyboard_gp32.o: m6809.h tape.h vdg.h snapshot.h xroar.h
 ./keyboard_nds.o: nds/ndsgfx.h ./types.h config.h types.h logging.h events.h
 ./keyboard_nds.o: joystick.h keyboard.h module.h pia.h m6809.h tape.h vdg.h
 ./keyboard_nds.o: snapshot.h xroar.h
@@ -353,17 +353,17 @@ depend:
 ./snapshot.o: types.h config.h fs.h logging.h m6809.h machine.h pia.h
 ./snapshot.o: joystick.h keyboard.h module.h tape.h vdg.h sam.h snapshot.h
 ./snapshot.o: xroar.h
-./sound_gp32.o: types.h config.h events.h module.h pia.h joystick.h
+./sound_gp32.o: types.h config.h events.h machine.h module.h pia.h joystick.h
 ./sound_gp32.o: keyboard.h m6809.h tape.h vdg.h sound_gp32.h xroar.h
 ./sound_gp32.o: gp32/gpsound.h ./types.h gp32/gp32.h
-./sound_jack.o: types.h config.h logging.h events.h pia.h joystick.h
-./sound_jack.o: keyboard.h m6809.h module.h tape.h vdg.h xroar.h
+./sound_jack.o: types.h config.h events.h logging.h machine.h pia.h
+./sound_jack.o: joystick.h keyboard.h m6809.h module.h tape.h vdg.h xroar.h
 ./sound_macosx.o: types.h config.h logging.h events.h module.h pia.h
 ./sound_macosx.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
 ./sound_null.o: config.h types.h logging.h events.h machine.h module.h
 ./sound_null.o: xroar.h
-./sound_oss.o: types.h config.h logging.h events.h module.h pia.h joystick.h
-./sound_oss.o: keyboard.h m6809.h tape.h vdg.h xroar.h
+./sound_oss.o: types.h config.h events.h logging.h machine.h module.h pia.h
+./sound_oss.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
 ./sound_sdl.o: types.h config.h events.h logging.h machine.h module.h pia.h
 ./sound_sdl.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
 ./sound_sun.o: types.h config.h events.h logging.h machine.h module.h pia.h
