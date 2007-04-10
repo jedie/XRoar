@@ -358,8 +358,8 @@ depend:
 ./sound_gp32.o: gp32/gpsound.h ./types.h gp32/gp32.h
 ./sound_jack.o: types.h config.h events.h logging.h machine.h pia.h
 ./sound_jack.o: joystick.h keyboard.h m6809.h module.h tape.h vdg.h xroar.h
-./sound_macosx.o: types.h config.h logging.h events.h module.h pia.h
-./sound_macosx.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
+./sound_macosx.o: types.h config.h logging.h events.h machine.h module.h
+./sound_macosx.o: pia.h joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
 ./sound_null.o: config.h types.h logging.h events.h machine.h module.h
 ./sound_null.o: xroar.h
 ./sound_oss.o: types.h config.h events.h logging.h machine.h module.h pia.h
