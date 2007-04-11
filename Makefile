@@ -327,8 +327,8 @@ depend:
 ./keyboard_gp32.o: events.h joystick.h keyboard.h machine.h module.h pia.h
 ./keyboard_gp32.o: m6809.h tape.h vdg.h snapshot.h xroar.h
 ./keyboard_nds.o: nds/ndsgfx.h ./types.h config.h types.h logging.h events.h
-./keyboard_nds.o: joystick.h keyboard.h module.h pia.h m6809.h tape.h vdg.h
-./keyboard_nds.o: snapshot.h xroar.h
+./keyboard_nds.o: joystick.h keyboard.h machine.h module.h pia.h m6809.h
+./keyboard_nds.o: tape.h vdg.h snapshot.h xroar.h
 ./keyboard_sdl.o: types.h config.h logging.h cart.h events.h hexs19.h
 ./keyboard_sdl.o: joystick.h keyboard.h machine.h module.h pia.h m6809.h
 ./keyboard_sdl.o: tape.h vdg.h snapshot.h vdisk.h vdrive.h xroar.h

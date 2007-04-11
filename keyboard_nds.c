@@ -25,6 +25,7 @@
 #include "events.h"
 #include "joystick.h"
 #include "keyboard.h"
+#include "machine.h"
 #include "module.h"
 #include "pia.h"
 #include "snapshot.h"
