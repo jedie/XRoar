@@ -380,7 +380,7 @@ depend:
 ./vdg.o: types.h config.h events.h logging.h m6809.h machine.h pia.h
 ./vdg.o: joystick.h keyboard.h module.h tape.h vdg.h sam.h xroar.h
 ./vdg.o: vdg_bitmaps.c
-./vdisk.o: types.h config.h crc16.h fs.h logging.h vdisk.h vdrive.h
+./vdisk.o: types.h config.h crc16.h fs.h logging.h vdisk.h
 ./vdrive.o: types.h config.h crc16.h events.h logging.h machine.h vdisk.h
 ./vdrive.o: vdrive.h
 ./video_generic_ops.o: machine.h types.h config.h

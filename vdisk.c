@@ -25,7 +25,6 @@
 #include "fs.h"
 #include "logging.h"
 #include "vdisk.h"
-#include "vdrive.h"
 
 #define MAX_SIDES (2)
 #define MAX_TRACKS (256)
