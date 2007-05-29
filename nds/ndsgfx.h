@@ -18,5 +18,8 @@ void ndsgfx_fillrect(int x, int y, int w, int h, uint32_t colour);
 void ndsgfx_blit(int x, int y, Sprite *src);
 void ndsgfx_backup(void);
 void ndsgfx_restore(void);
+void nds_set_text_colour(uint32_t fg, uint32_t bg);
+void nds_put_char(int x, int y, int c);
+void nds_print_string(int x, int y, const char *str);
 
 #endif  /* __NDSGFX_H__ */

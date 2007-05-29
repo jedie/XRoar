@@ -1,7 +1,7 @@
 # Makefile for XRoar.
 # Needs you to run './configure' first.  './configure --help' for help.
 
-include config.mak
+-include config.mak
 
 VERSION := 0.18
 
@@ -67,12 +67,20 @@ endif
 CFLAGS += -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH)
 
 ############################################################################
+# Build rules for ARM7
+
+NDS_ARM7_CFLAGS = -O3 -pipe -mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM7 -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH)
+NDS_ARM7_LDFLAGS = -specs=ds_arm7.specs -lnds7
+xroar.arm7: CFLAGS = $(NDS_ARM7_CFLAGS)
+xroar.arm7: LDFLAGS = $(NDS_ARM7_LDFLAGS)
+
+############################################################################
 # Base object files required by all builds
 
 OBJS := cart.o crc16.o events.o hexs19.o joystick.o keyboard.o m6809.o \
 		machine.o module.o pia.o sam.o snapshot.o sound_null.o tape.o \
-		vdg.o vdisk.o vdrive.o dragondos.o rsdos.o deltados.o \
-		wd279x.o xroar.o
+		vdg.o vdg_bitmaps.o vdisk.o vdrive.o dragondos.o rsdos.o \
+		deltados.o wd279x.o xroar.o
 
 ALL_OBJS := $(OBJS)
 
@@ -146,9 +154,13 @@ OBJS_GP32 = fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
 		gp32/cmode_bin.o gp32/copyright.o gp32/kbd_graphics.o
 ALL_OBJS += $(OBJS_GP32)
 
-OBJS_NDS = fs_nds.o main_unix.o keyboard_nds.o ui_nds.o video_nds.o \
-		nds/ndsgfx.o nds/kbd_graphics.o
-ALL_OBJS += $(OBJS_NDS)
+OBJS_NDS9 = fs_unix.o main_nds9.o ui_nds.o video_nds.o \
+		nds/ndsgfx.o \
+		nds/ndsui.o nds/ndsui_button.o nds/ndsui_filelist.o \
+		nds/ndsui_keyboard.o nds/ndsui_scrollbar.o \
+		nds/nds_font8x8.o nds/kbd_graphics.o
+OBJS_NDS7 = main_nds7.o
+ALL_OBJS += $(OBJS_NDS9) $(OBJS_NDS7)
 
 OBJS_UNIX = fs_unix.o main_unix.o
 ALL_OBJS += $(OBJS_UNIX)
@@ -157,7 +169,7 @@ ifeq ($(CONFIG_GP32),yes)
 	OBJS += $(OBJS_GP32)
 else
 ifeq ($(CONFIG_NDS),yes)
-	OBJS += $(OBJS_NDS)
+	#OBJS += $(OBJS_NDS)
 else
 	OBJS += $(OBJS_UNIX)
 endif
@@ -181,14 +193,32 @@ xroar.fxe: xroar.elf
 endif
 
 ifeq ($(CONFIG_NDS),yes)
-xroar.nds: xroar.elf
-	$(OBJCOPY) -O binary xroar.elf xroar.arm9
-	ndstool -c $@ -9 xroar.arm9
+xroar.arm7: $(OBJS_NDS7)
+	$(CC) $(CFLAGS) $(OBJS_NDS7) -o $@ $(LDFLAGS)
+
+xroar.arm7.bin: xroar.arm7
+	$(OBJCOPY) -O binary $< $@
+
+xroar.arm9: $(OBJS_NDS9) $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS_NDS9) $(OBJS) -o $@ $(LDFLAGS)
+
+xroar.arm9.bin: xroar.arm9
+	$(OBJCOPY) -O binary $< $@
+
+xroar.nds: xroar.arm7.bin xroar.arm9.bin
+	ndstool -c $@ -7 xroar.arm7.bin -9 xroar.arm9.bin
 	dsbuild $@
 endif
 
 ############################################################################
 # Generated dependencies and the tools that generate them
+
+tools/font2c: tools/font2c.c
+	mkdir -p tools
+	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) -lSDL_image
+
+$(SRCROOT)/vdg_bitmaps.c: tools/font2c $(SRCROOT)/vdgfont.png
+	tools/font2c --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
 
 $(SRCROOT)/video_gp32.c: gp32/vdg_bitmaps_gp32.c
 
@@ -215,6 +245,9 @@ tools/img2c: tools/img2c.c
 nds/kbd_graphics.c: tools/img2c_nds nds/kbd.png nds/kbd_shift.png
 	tools/img2c_nds kbd_bin $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png > $@
 
+nds/nds_font8x8.c: tools/font2c vdgfont.png
+	tools/font2c --array nds_font8x8 --type "unsigned char" $(SRCROOT)/vdgfont.png > $@
+
 tools/img2c_nds: tools/img2c_nds.c
 	mkdir -p tools
 	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) -lSDL_image
@@ -225,9 +258,11 @@ tools/img2c_nds: tools/img2c_nds.c
 .PHONY: clean distclean dist dist-gp32 dist-windows32 dist-macos dist-macosx
 
 CLEAN_FILES = $(CRT0) $(ALL_OBJS) tools/img2c tools/img2c_nds tools/prerender \
+	tools/font2c vdg_bitmaps.c \
 	gp32/copyright.c gp32/cmode_bin.c gp32/kbd_graphics.c \
 	gp32/vdg_bitmaps_gp32.c xroar.bin xroar.fxe xroar.elf \
-	nds/kbd_graphics.c xroar.nds xroar.ds.gba xroar.arm9 xroar xroar.exe
+	nds/kbd_graphics.c nds/nds_font8x8.c xroar.nds xroar.ds.gba \
+	xroar.arm7 xroar.arm9 xroar.arm7.bin xroar.arm9.bin xroar xroar.exe
 
 clean:
 	rm -f $(CLEAN_FILES)
@@ -315,7 +350,7 @@ depend:
 ./gp32/gpsound.o: ./gp32/gp32.h ./gp32/udaiis.h ./types.h config.h
 ./gp32/gpsound.o: ./gp32/gpsound.h
 ./gp32/udaiis.o: ./types.h config.h ./gp32/udaiis.h ./gp32/gp32.h
-./hexs19.o: types.h config.h sam.h logging.h fs.h m6809.h hexs19.h
+./hexs19.o: types.h config.h sam.h logging.h fs.h m6809.h hexs19.h machine.h
 ./joystick.o: types.h config.h logging.h module.h pia.h joystick.h keyboard.h
 ./joystick.o: m6809.h tape.h vdg.h
 ./joystick_sdl.o: types.h config.h events.h joystick.h logging.h machine.h
@@ -326,9 +361,6 @@ depend:
 ./keyboard_gp32.o: gp32/gpkeypad.h gp32/gpchatboard.h types.h logging.h
 ./keyboard_gp32.o: events.h joystick.h keyboard.h machine.h module.h pia.h
 ./keyboard_gp32.o: m6809.h tape.h vdg.h snapshot.h xroar.h
-./keyboard_nds.o: nds/ndsgfx.h ./types.h config.h types.h logging.h events.h
-./keyboard_nds.o: joystick.h keyboard.h machine.h module.h pia.h m6809.h
-./keyboard_nds.o: tape.h vdg.h snapshot.h xroar.h
 ./keyboard_sdl.o: types.h config.h logging.h cart.h events.h hexs19.h
 ./keyboard_sdl.o: joystick.h keyboard.h machine.h module.h pia.h m6809.h
 ./keyboard_sdl.o: tape.h vdg.h snapshot.h vdisk.h vdrive.h xroar.h
@@ -375,11 +407,13 @@ depend:
 ./ui_gp32.o: gp32/gpkeypad.h gp32/gpchatboard.h cart.h fs.h hexs19.h
 ./ui_gp32.o: keyboard.h machine.h module.h snapshot.h sound_gp32.h tape.h
 ./ui_gp32.o: vdg.h vdisk.h vdrive.h xroar.h
-./ui_nds.o: types.h config.h logging.h module.h nds/ndsgfx.h ./types.h
+./ui_nds.o: types.h config.h events.h hexs19.h keyboard.h logging.h machine.h
+./ui_nds.o: module.h snapshot.h tape.h vdisk.h vdrive.h xroar.h nds/ndsgfx.h
+./ui_nds.o: ./types.h nds/ndsui.h nds/ndsui_button.h nds/ndsui_filelist.h
+./ui_nds.o: nds/ndsui_keyboard.h nds/ndsui_scrollbar.h
 ./ui_sdl.o: types.h config.h logging.h module.h
 ./vdg.o: types.h config.h events.h logging.h m6809.h machine.h pia.h
 ./vdg.o: joystick.h keyboard.h module.h tape.h vdg.h sam.h xroar.h
-./vdg.o: vdg_bitmaps.c
 ./vdisk.o: types.h config.h crc16.h fs.h logging.h vdisk.h
 ./vdrive.o: types.h config.h crc16.h events.h logging.h machine.h vdisk.h
 ./vdrive.o: vdrive.h
@@ -387,7 +421,6 @@ depend:
 ./video_gp32.o: gp32/gpgfx.h ./types.h config.h types.h module.h sam.h
 ./video_gp32.o: xroar.h
 ./video_nds.o: types.h config.h logging.h module.h sam.h vdg.h xroar.h
-./video_nds.o: video_generic_ops.c machine.h
 ./video_sdl.o: types.h config.h logging.h module.h sam.h ui_sdl.h vdg.h
 ./video_sdl.o: xroar.h video_generic_ops.c machine.h
 ./video_sdlgl.o: types.h config.h logging.h module.h sam.h ui_sdl.h vdg.h

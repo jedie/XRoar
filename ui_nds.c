@@ -16,16 +16,32 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <nds.h>
 #include <fat.h>
+#include <sys/dir.h>
 
 #include "types.h"
+#include "events.h"
+#include "hexs19.h"
+#include "keyboard.h"
 #include "logging.h"
+#include "machine.h"
 #include "module.h"
+#include "snapshot.h"
+#include "tape.h"
+#include "vdisk.h"
+#include "vdrive.h"
+#include "xroar.h"
 #include "nds/ndsgfx.h"
+#include "nds/ndsui.h"
+#include "nds/ndsui_button.h"
+#include "nds/ndsui_filelist.h"
+#include "nds/ndsui_keyboard.h"
+#include "nds/ndsui_scrollbar.h"
 
 static int init(int argc, char **argv);
 static void shutdown(void);
@@ -36,45 +52,309 @@ static VideoModule *nds_video_module_list[] = {
 	NULL
 };
 
-extern KeyboardModule keyboard_nds_module;
-static KeyboardModule *nds_keyboard_module_list[] = {
-	&keyboard_nds_module,
-	NULL
-};
-
 UIModule ui_nds_module = {
 	{ "nds", "SDL user-interface",
 	  init, 0, shutdown, NULL },
 	NULL,  /* use default filereq module list */
 	nds_video_module_list,
 	NULL,  /* use default sound module list */
-	nds_keyboard_module_list,
+	NULL,  //nds_keyboard_module_list,
 	NULL  /* use default joystick module list */
 };
 
-extern Sprite kbd_bin[2];
+static struct ndsui_component *component_list = NULL;
+static struct ndsui_component *current_component = NULL;
+static unsigned int old_keyinput, old_keyxy, old_px, old_py;
+
+static void add_component(struct ndsui_component *c);
+static void draw_all_components(void);
+static void clear_component_list(void);
+
+static event_t *poll_pen_event;
+static void do_poll_pen(void *context);
+
+static void show_main_input_screen(void);
+static void show_file_requester(const char **extensions);
+static void file_requester_callback(void (*func)(char *));
 
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
 	powerSET(POWER_ALL_2D|POWER_SWAP_LCDS);
-	// Use the main screen for output
-	/*
-	videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE);
-	vramSetBankC(VRAM_C_SUB_BG);
-	SUB_BG0_CR = BG_MAP_BASE(31);
-	// Set the colour of the font to White.
-	BG_PALETTE_SUB[255] = RGB15(31,31,31);
-	consoleInitDefault((uint16_t *)SCREEN_BASE_BLOCK_SUB(31), (uint16_t *)CHAR_BASE_BLOCK_SUB(0), 16);
-	*/
 	if (!fatInitDefault()) {
 		LOG_ERROR("fatInitDefault() failed.\n");
 	}
+
 	ndsgfx_init();
-	ndsgfx_fillrect(0, 0, 256, 192, 0x00000000);
-	ndsgfx_blit(13, 110, &kbd_bin[0]);
+	ndsgfx_fillrect(0, 0, 256, 192, 0);
+	ndsgfx_fillrect(0, 101, 256, 9, 0);
+	component_list = current_component = NULL;
+
+	poll_pen_event = event_new();
+	poll_pen_event->dispatch = do_poll_pen;
+	poll_pen_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
+	event_queue(poll_pen_event);
+
+	show_main_input_screen();
+
 	return 0;
 }
 
 static void shutdown(void) {
+}
+
+static void do_poll_pen(void *context) {
+	unsigned int keyinput, keyxy;
+	int px, py;
+	(void)context;
+	while (IPC->mailBusy);
+	keyinput = REG_KEYINPUT;
+	keyxy = ~(IPC->buttons);
+	if (keyxy & (1<<6)) {
+		px = IPC->touchXpx;
+		py = IPC->touchYpx;
+		if (old_keyxy & (1<<6)) {
+			if (current_component) {
+				if (current_component->pen_move) {
+					current_component->pen_move(current_component, px, py);
+				}
+			}
+		} else {
+			struct ndsui_component *c;
+			for (c = component_list; c; c = c->next) {
+				if (c->visible && px >= c->x && px < (c->x+c->w) && py >= c->y && py < (c->y+c->h)) {
+					current_component = c;
+				}
+			}
+			if (current_component) {
+				if (current_component->pen_down) {
+					current_component->pen_down(current_component, px, py);
+				}
+			} else {
+				if (px > 0xf0 && py < 0x10) {
+					machine_reset(RESET_HARD);
+				}
+			}
+		}
+	} else {
+		if (current_component) {
+			if (current_component->pen_up) {
+				current_component->pen_up(current_component);
+			}
+			current_component = NULL;
+		}
+	}
+	old_keyxy = keyxy;
+	poll_pen_event->at_cycle += OSCILLATOR_RATE / 100;
+	event_queue(poll_pen_event);
+}
+
+static void add_component(struct ndsui_component *c) {
+	if (c == NULL) return;
+	/* c->next being set implies component is already on the list */
+	if (c->next != NULL) return;
+	c->next = component_list;
+	component_list = c;
+	ndsui_draw_component(c);
+}
+
+/* Draw all visible components */
+static void draw_all_components(void) {
+	struct ndsui_component *c;
+	for (c = component_list; c; c = c->next) {
+		ndsui_draw_component(c);
+	}
+}
+
+/* Undraw all visible components and clear the component list */
+static void clear_component_list(void) {
+	struct ndsui_component **c = &component_list;
+	while (*c) {
+		struct ndsui_component **next = &((*c)->next);
+		ndsui_undraw_component(*c);
+		*c = NULL;
+		c = next;
+	}
+}
+
+/**************************************************************************/
+
+/* Main emulator input screen, setup and callbacks */
+
+static struct ndsui_component *mi_keyboard = NULL;
+static struct ndsui_component *mi_load_button = NULL;
+
+static void mi_key_press(int sym);
+static void mi_key_release(int sym);
+static void mi_shift_update(int shift);
+static void mi_load_release(void);
+static void mi_load_file(char *filename);
+
+static void show_main_input_screen(void) {
+	clear_component_list();
+
+	if (mi_keyboard == NULL) {
+		mi_keyboard = new_ndsui_keyboard(13, 110);
+		ndsui_keyboard_keypress_callback(mi_keyboard, mi_key_press);
+		ndsui_keyboard_keyrelease_callback(mi_keyboard, mi_key_release);
+		ndsui_keyboard_shift_callback(mi_keyboard, mi_shift_update);
+		ndsui_show_component(mi_keyboard);
+	}
+	add_component(mi_keyboard);
+
+	if (mi_load_button == NULL) {
+		mi_load_button = new_ndsui_button(0, 0, "Load...");
+		ndsui_button_release_callback(mi_load_button, mi_load_release);
+		ndsui_show_component(mi_load_button);
+	}
+	add_component(mi_load_button);
+
+	draw_all_components();
+}
+
+static void mi_key_press(int sym) {
+	KEYBOARD_PRESS(sym);
+}
+
+static void mi_key_release(int sym) {
+	KEYBOARD_RELEASE(sym);
+}
+
+static void mi_shift_update(int state) {
+	if (state)
+		KEYBOARD_PRESS(0);
+	else
+		KEYBOARD_RELEASE(0);
+}
+
+static void mi_load_release(void) {
+	show_file_requester(NULL);
+	file_requester_callback(mi_load_file);
+}
+
+static void mi_load_file(char *filename) {
+	int type = xroar_filetype_by_ext(filename);
+	switch (type) {
+		case FILETYPE_VDK: case FILETYPE_JVC:
+		case FILETYPE_DMK:
+			vdrive_eject_disk(0);
+			vdrive_insert_disk(0, vdisk_load(filename));
+			break;
+		case FILETYPE_BIN:
+			coco_bin_read(filename); break;
+		case FILETYPE_HEX:
+			intel_hex_read(filename); break;
+		case FILETYPE_SNA:
+			read_snapshot(filename); break;
+		case FILETYPE_CAS: default:
+			tape_open_reading(filename);
+			break;
+	}
+}
+
+/**************************************************************************/
+
+/* File requester screen, setup and callbacks */
+
+static struct ndsui_component *fr_scrollbar = NULL;
+static struct ndsui_component *fr_filelist = NULL;
+static struct ndsui_component *fr_keyboard = NULL;
+static struct ndsui_component *fr_ok_button = NULL;
+static struct ndsui_component *fr_cancel_button = NULL;
+static char *fr_filename = NULL;
+static void (*fr_ok_callback)(char *);
+
+static void fr_num_files_callback(int num_files);
+static void fr_visible_callback(int visible);
+static void fr_scrollbar_callback(int offset);
+static void fr_key_press(int sym);
+static void fr_key_release(int sym);
+static void fr_ok_release(void);
+static void fr_cancel_release(void);
+
+static void show_file_requester(const char **extensions) {
+	clear_component_list();
+
+	if (fr_scrollbar == NULL) {
+		fr_scrollbar = new_ndsui_scrollbar(144, 0, 24, 99);
+		ndsui_scrollbar_offset_callback(fr_scrollbar, fr_scrollbar_callback);
+		ndsui_show_component(fr_scrollbar);
+	}
+	add_component(fr_scrollbar);
+
+	if (fr_filelist == NULL) {
+		fr_filelist = new_ndsui_filelist(0, 0, 144, 99);
+		ndsui_filelist_num_files_callback(fr_filelist, fr_num_files_callback);
+		ndsui_filelist_visible_callback(fr_filelist, fr_visible_callback);
+		ndsui_show_component(fr_filelist);
+	}
+	add_component(fr_filelist);
+
+	if (fr_keyboard == NULL) {
+		fr_keyboard = new_ndsui_keyboard(13, 110);
+		ndsui_keyboard_keypress_callback(fr_keyboard, fr_key_press);
+		ndsui_keyboard_keyrelease_callback(fr_keyboard, fr_key_release);
+		ndsui_show_component(fr_keyboard);
+	}
+	add_component(fr_keyboard);
+
+	if (fr_ok_button == NULL) {
+		fr_ok_button = new_ndsui_button(238, 87, "OK");
+		ndsui_button_release_callback(fr_ok_button, fr_ok_release);
+		ndsui_show_component(fr_ok_button);
+	}
+	add_component(fr_ok_button);
+
+	if (fr_cancel_button == NULL) {
+		fr_cancel_button = new_ndsui_button(195, 87, "Cancel");
+		ndsui_button_release_callback(fr_cancel_button, fr_cancel_release);
+		ndsui_show_component(fr_cancel_button);
+	}
+	add_component(fr_cancel_button);
+
+	if (fr_filename != NULL) {
+		free(fr_filename);
+		fr_filename = NULL;
+	}
+
+	draw_all_components();
+	ndsui_filelist_open(fr_filelist, ".", extensions);
+}
+
+static void file_requester_callback(void (*func)(char *)) {
+	fr_ok_callback = func;
+}
+
+static void fr_num_files_callback(int num_files) {
+	ndsui_scrollbar_set_total(fr_scrollbar, num_files);
+}
+
+static void fr_visible_callback(int visible) {
+	ndsui_scrollbar_set_visible(fr_scrollbar, visible);
+}
+
+static void fr_scrollbar_callback(int offset) {
+	ndsui_filelist_set_offset(fr_filelist, offset);
+}
+
+static void fr_key_press(int sym) {
+	if (sym == 27)
+		show_main_input_screen();
+}
+
+static void fr_key_release(int sym) {
+	(void)sym;
+}
+
+static void fr_ok_release(void) {
+	fr_filename = ndsui_filelist_filename(fr_filelist);
+	ndsui_filelist_close(fr_filelist);
+	show_main_input_screen();
+	if (fr_ok_callback != NULL)
+		fr_ok_callback(fr_filename);
+}
+
+static void fr_cancel_release(void) {
+	ndsui_filelist_close(fr_filelist);
+	show_main_input_screen();
 }

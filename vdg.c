@@ -26,8 +26,6 @@
 #include "vdg.h"
 #include "xroar.h"
 
-#include "vdg_bitmaps.c"
-
 #if defined(HAVE_GP32) || defined(HAVE_NDS)
 # define FAST_VDG
 #endif
@@ -85,10 +83,10 @@ static void do_hs_fall(void *context) {
 	/* Skip borders, etc. */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START
 			&& scanline < VDG_ACTIVE_AREA_END
-#ifdef HAVE_GP32
+//#ifdef HAVE_GP32
 			/* GP32 renders 4 scanlines at once */
 			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)
-#endif
+//#endif
 			) {
 		vdg_render_scanline();
 	}

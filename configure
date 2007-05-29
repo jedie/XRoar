@@ -616,7 +616,7 @@ EOF
 	echo "$_nds"
 fi
 if test "$_nds" = "yes"; then
-	EXEEXT=.elf
+	EXEEXT=.tmp
 	_TARGET_CFLAGS="$_TARGET_CFLAGS $nds_cflags"
 	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $nds_ldflags"
 	_nds_def="#define HAVE_NDS"
