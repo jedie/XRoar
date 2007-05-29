@@ -22,6 +22,7 @@
 #include "fs.h"
 #include "m6809.h"
 #include "hexs19.h"
+#include "machine.h"
 
 static uint8_t read_nibble(int fd) {
 	uint8_t in;
@@ -78,9 +79,9 @@ int intel_hex_read(char *filename) {
 			if (type == 0) {
 				LOG_DEBUG(5,"%02x ", (int)data);
 				if (addr < 0x8000)
-					addrptr_low[addr] = data;
+					ram0[addr] = data;
 				else
-					addrptr_high[addr-0x8000] = data;
+					ram1[addr-0x8000] = data;
 				addr++;
 			}
 		}
