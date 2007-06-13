@@ -524,6 +524,7 @@ static void artifact_callback(unsigned int opt) {
 
 static void machine_callback(unsigned int opt) {
 	if ((int)opt != requested_machine) {
+		machine_clear_requested_config();
 		requested_machine = opt;
 		machine_reset(RESET_HARD);
 	}

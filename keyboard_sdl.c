@@ -246,6 +246,7 @@ static void keypress(SDL_keysym *keysym) {
 			}
 			break;
 		case SDLK_m:
+			machine_clear_requested_config();
 			requested_machine = running_machine + 1;
 			machine_reset(RESET_HARD);
 			break;
