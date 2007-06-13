@@ -87,12 +87,12 @@ static int init(int argc, char **argv) {
 #endif
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
-			LOG_ERROR("Failed to initialiase SDL OpenGL\n");
+			LOG_ERROR("Failed to initialiase SDL: %s\n", SDL_GetError());
 			return 1;
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
-		LOG_ERROR("Failed to initialiase SDL OpenGL driver\n");
+		LOG_ERROR("Failed to initialiase SDL OpenGL driver: %s\n", SDL_GetError());
 		return 1;
 	}
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE,   5);

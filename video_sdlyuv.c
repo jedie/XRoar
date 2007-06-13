@@ -95,12 +95,12 @@ static int init(int argc, char **argv) {
 #endif
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
-			LOG_ERROR("Failed to initialiase SDL\n");
+			LOG_ERROR("Failed to initialiase SDL: %s\n", SDL_GetError());
 			return 1;
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
-		LOG_ERROR("Failed to initialiase SDL-YUV video driver\n");
+		LOG_ERROR("Failed to initialiase SDL-YUV video driver: %s\n", SDL_GetError());
 		return 1;
 	}
 	if (set_fullscreen(sdl_video_want_fullscreen))
