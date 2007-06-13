@@ -106,6 +106,12 @@ ifeq ($(CONFIG_GTK),yes)
 	OBJS += $(OBJS_GTK)
 endif
 
+OBJS_CLI = filereq_cli.o
+ALL_OBJS += $(OBJS_CLI)
+ifeq ($(CONFIG_CLI),yes)
+	OBJS += $(OBJS_CLI)
+endif
+
 OBJS_CARBON = filereq_carbon.o
 ALL_OBJS += $(OBJS_CARBON)
 ifeq ($(CONFIG_CARBON),yes)

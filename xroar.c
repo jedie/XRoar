@@ -86,7 +86,7 @@ int xroar_init(int argc, char **argv) {
 	/* Select file requester module */
 	if (ui_module->filereq_module_list != NULL)
 		filereq_module_list = ui_module->filereq_module_list;
-	filereq_module = NULL;
+	filereq_module = (FileReqModule *)module_select_by_arg((Module **)filereq_module_list, "-filereq", argc, argv);
 	/* Select video module */
 	if (ui_module->video_module_list != NULL)
 		video_module_list = ui_module->video_module_list;

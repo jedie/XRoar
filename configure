@@ -18,6 +18,7 @@ _sdl=auto
 _sdlgl=auto
 _build_sdl=auto
 _gtk=auto
+_cli=yes
 _carbon=auto
 _oss=auto
 _sun=auto
@@ -643,9 +644,20 @@ if test "$_mingw" = "yes"; then
 	EXEEXT=.exe
 	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -lmingw32 -mwindows"
 	_mingw_def="#define WINDOWS32"
+	_cli=no
 else
 	_mingw_def="#undef WINDOWS32"
 fi
+
+########
+
+if test "$_cli" = "yes"; then
+	_cli_def="#define HAVE_CLI"
+else
+	_cli_def="#undef HAVE_CLI"
+fi
+
+########
 
 if test "$_trace" = "yes"; then
 	echo "Trace mode enabled"
@@ -690,6 +702,7 @@ CONFIG_SDL = $_sdl
 CONFIG_SDLGL = $_sdlgl
 CONFIG_BUILD_SDL = $_build_sdl
 CONFIG_GTK = $_gtk
+CONFIG_CLI = $_cli
 CONFIG_CARBON = $_carbon
 CONFIG_OSS = $_oss
 CONFIG_SUN = $_sun
@@ -721,6 +734,9 @@ $_sdlgl_def
 
 /* GTK+? */
 $_gtk_def
+
+/* CLI? */
+$_cli_def
 
 /* Mac OS X Carbon? */
 $_carbon_def
