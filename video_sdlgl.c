@@ -62,7 +62,7 @@ typedef Uint16 Pixel;
 #define MAPCOLOUR(r,g,b) SDL_MapRGB(screen_tex->format, r, g, b)
 #define VIDEO_SCREENBASE ((Pixel *)screen_tex->pixels)
 #define XSTEP 1
-#define NEXTLINE 192
+#define NEXTLINE 0
 #define VIDEO_TOPLEFT VIDEO_SCREENBASE
 #define VIDEO_VIEWPORT_YOFFSET (0)
 #define LOCK_SURFACE SDL_LockSurface(screen_tex)
@@ -101,7 +101,7 @@ static int init(int argc, char **argv) {
 	SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 16);
 
 	/* Texture dimensions are next power of 2 greater than what we want */
-	screen_tex = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 256, 16, 0, 0, 0, 0);
+	screen_tex = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
 	if (screen_tex == NULL) {
 		LOG_ERROR("Failed to create surface for screen texture\n");
 		return 1;
@@ -181,7 +181,7 @@ static int set_fullscreen(int fullscreen) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, screen->w, screen->h , 0, -1.0, 1.0);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClearDepth(1.0f);
 
 	glDeleteTextures(1, &texnum);
@@ -202,7 +202,7 @@ static void vsync(void) {
 	/* Draw main window */
 	glBindTexture(GL_TEXTURE_2D, texnum);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-			512, 256, GL_RGB,
+			320, 240, GL_RGB,
 			GL_UNSIGNED_SHORT_5_6_5, screen_tex->pixels);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, 0.0);
