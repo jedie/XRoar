@@ -136,7 +136,8 @@ int read_snapshot(const char *filename) {
 	int fd;
 	uint8_t buffer[17];
 	uint8_t section, tmp8;
-	uint16_t size, tmp16;
+	uint16_t tmp16;
+	unsigned int size;
 	M6809State cpu_state;
 	if (filename == NULL)
 		return -1;
@@ -148,39 +149,51 @@ int read_snapshot(const char *filename) {
 		 * Also, it used to be written out as only taking 12 bytes. */
 		if (buffer[0] != ID_REGISTER_DUMP || buffer[1] != 0
 				|| (buffer[2] != 12 && buffer[2] != 14)) {
+			LOG_WARN("Snapshot format not recognised.\n");
 			fs_close(fd);
 			return -1;
 		}
-		m6809_set_registers(buffer + 3);
 	}
 	/* Default to Dragon 64 for old snapshots */
 	requested_machine = MACHINE_DRAGON64;
 	machine_clear_requested_config();
+	requested_config.dos_type = DOS_NONE;
 	/* Need reset in case old snapshot doesn't trigger one */
 	machine_reset(RESET_HARD);
+	/* If old snapshot, buffer contains register dump */
+	if (buffer[0] != 'X') {
+		m6809_set_registers(buffer + 3);
+	}
 	while (fs_read_byte(fd, &section) > 0) {
-		fs_read_word16(fd, &size);
+		fs_read_word16(fd, &tmp16);
+		size = tmp16 ? tmp16 : 0x10000;
 		switch (section) {
 			case ID_ARCHITECTURE:
 				/* Deprecated: Machine architecture */
+				if (size < 1) break;
 				fs_read_byte(fd, &tmp8);
 				tmp8 %= 4;
 				requested_machine = old_arch_mapping[tmp8];
 				machine_reset(RESET_HARD);
+				size--;
 				break;
 			case ID_KEYBOARD_MAP:
 				/* Deprecated: Keyboard map */
+				if (size < 1) break;
 				fs_read_byte(fd, &tmp8);
 				requested_config.keymap = tmp8;
 				machine_set_keymap(tmp8);
+				size--;
 				break;
 			case ID_REGISTER_DUMP:
 				/* Deprecated */
-				fs_read(fd, buffer, 14);
+				if (size < 14) break;
+				size -= fs_read(fd, buffer, 14);
 				m6809_set_registers(buffer);
 				break;
 			case ID_M6809_STATE:
 				/* M6809 state */
+				if (size < 21) break;
 				fs_read_byte(fd, &cpu_state.reg_cc);
 				fs_read_byte(fd, &cpu_state.reg_a);
 				fs_read_byte(fd, &cpu_state.reg_b);
@@ -200,9 +213,11 @@ int read_snapshot(const char *filename) {
 				cpu_state.firq &= 3;
 				cpu_state.irq &= 3;
 				m6809_set_state(&cpu_state);
+				size -= 21;
 				break;
 			case ID_MACHINECONFIG:
 				/* Machine running config */
+				if (size < 7) break;
 				fs_read_byte(fd, &tmp8);
 				requested_machine = tmp8;
 				fs_read_byte(fd, &tmp8);
@@ -218,9 +233,11 @@ int read_snapshot(const char *filename) {
 				fs_read_byte(fd, &tmp8);
 				requested_config.dos_type = tmp8;
 				machine_reset(RESET_HARD);
+				size -= 7;
 				break;
 			case ID_PIA_REGISTERS:
 				/* PIA_0A */
+				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
 				PIA_SELECT_DDR(PIA_0A);
 				PIA_WRITE_P0DA(tmp8); /* DDR */
@@ -229,7 +246,9 @@ int read_snapshot(const char *filename) {
 				PIA_WRITE_P0DA(tmp8); /* OR */
 				fs_read_byte(fd, &tmp8);
 				PIA_WRITE_P0CA(tmp8);  /* CR */
+				size -= 3;
 				/* PIA_0B */
+				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
 				PIA_SELECT_DDR(PIA_0B);
 				PIA_WRITE_P0DB(tmp8);  /* DDR */
@@ -238,7 +257,9 @@ int read_snapshot(const char *filename) {
 				PIA_WRITE_P0DB(tmp8);  /* OR */
 				fs_read_byte(fd, &tmp8);
 				PIA_WRITE_P0CB(tmp8);  /* CR */
+				size -= 3;
 				/* PIA_1A */
+				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
 				PIA_SELECT_DDR(PIA_1A);
 				PIA_WRITE_P1DA(tmp8);  /* DDR */
@@ -247,7 +268,9 @@ int read_snapshot(const char *filename) {
 				PIA_WRITE_P1DA(tmp8);  /* OR */
 				fs_read_byte(fd, &tmp8);
 				PIA_WRITE_P1CA(tmp8);  /* CR */
+				size -= 3;
 				/* PIA_1B */
+				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
 				PIA_SELECT_DDR(PIA_1B);
 				PIA_WRITE_P1DB(tmp8);  /* DDR */
@@ -256,34 +279,52 @@ int read_snapshot(const char *filename) {
 				PIA_WRITE_P1DB(tmp8);  /* OR */
 				fs_read_byte(fd, &tmp8);
 				PIA_WRITE_P1CB(tmp8);  /* CR */
+				size -= 3;
 				break;
 			case ID_RAM_PAGE0:
-				fs_read(fd, ram0, size);
+				if (size <= sizeof(ram0)) {
+					size -= fs_read(fd, ram0, size);
+				} else {
+					size -= fs_read(fd, ram0, sizeof(ram0));
+				}
 				break;
 			case ID_RAM_PAGE1:
-				fs_read(fd, ram1, size);
+				if (size <= sizeof(ram1)) {
+					size -= fs_read(fd, ram1, size);
+				} else {
+					size -= fs_read(fd, ram1, sizeof(ram1));
+				}
 				break;
 			case ID_SAM_REGISTERS:
 				/* SAM */
+				if (size < 2) break;
 				fs_read_word16(fd, &tmp16);
+				size -= 2;
 				sam_register = tmp16;
 				sam_update_from_register();
 				break;
 			case ID_SNAPVERSION:
 				/* Snapshot version - abort if snapshot
 				 * contains stuff we don't understand */
+				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
 				fs_read_word16(fd, &tmp16);
+				size -= 3;
 				if (tmp8 != SNAPSHOT_VERSION_MAJOR || tmp16 > SNAPSHOT_VERSION_MINOR) {
+					LOG_WARN("Snapshot version %d.%d not supported.\n", tmp8, tmp16);
 					fs_close(fd);
 					return -1;
 				}
 				break;
 			default:
-				/* Unknown chunk - skip it */
-				for (; size; size--)
-					fs_read_byte(fd, &tmp8);
+				/* Unknown chunk */
+				LOG_WARN("Unknown chunk in snaphot.\n");
 				break;
+		}
+		if (size > 0) {
+			LOG_WARN("Skipping extra bytes in snapshot chunk.\n");
+			for (; size; size--)
+				fs_read_byte(fd, &tmp8);
 		}
 	}
 	fs_close(fd);
