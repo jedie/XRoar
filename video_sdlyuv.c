@@ -160,7 +160,7 @@ static int set_fullscreen(int fullscreen) {
 		dstrect.x = 0;
 		dstrect.y = (screen_height - dstrect.h)/2;
 	}
-	screen = SDL_SetVideoMode(screen_width, screen_height, 32, SDL_HWSURFACE|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
+	screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_HWSURFACE|SDL_ANYFORMAT|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
 		return 1;
