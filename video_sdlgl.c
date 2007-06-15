@@ -58,18 +58,20 @@ VideoModule video_sdlgl_module = {
 	render_border
 };
 
-typedef Uint16 Pixel;
-#define MAPCOLOUR(r,g,b) SDL_MapRGB(screen_tex->format, r, g, b)
-#define VIDEO_SCREENBASE ((Pixel *)screen_tex->pixels)
+typedef uint16_t Pixel;
+#define MAP_565(r,g,b) ( (((r) & 0xf8) << 8) | (((g) & 0xfc) << 3) | (((b) & 0xf8) >> 3) )
+#define MAP_332(r,g,b) ( ((r) & 0xe0) | (((g) & 0xe0) >> 3) | (((b) & 0xc0) >> 6) )
+#define MAPCOLOUR(r,g,b) MAP_565(r,g,b)
+#define VIDEO_SCREENBASE (screen_tex)
 #define XSTEP 1
 #define NEXTLINE 0
 #define VIDEO_TOPLEFT VIDEO_SCREENBASE
 #define VIDEO_VIEWPORT_YOFFSET (0)
-#define LOCK_SURFACE SDL_LockSurface(screen_tex)
-#define UNLOCK_SURFACE SDL_UnlockSurface(screen_tex)
+#define LOCK_SURFACE 
+#define UNLOCK_SURFACE 
 
 static SDL_Surface *screen;
-static SDL_Surface *screen_tex;
+static Pixel *screen_tex;
 static unsigned int screen_width = 640;
 static unsigned int screen_height = 480;
 static GLuint texnum = 0;
@@ -100,10 +102,9 @@ static int init(int argc, char **argv) {
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,  5);
 	SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 16);
 
-	/* Texture dimensions are next power of 2 greater than what we want */
-	screen_tex = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
+	screen_tex = malloc(320 * 240 * sizeof(Pixel));
 	if (screen_tex == NULL) {
-		LOG_ERROR("Failed to create surface for screen texture\n");
+		LOG_ERROR("Failed to allocate memory for screen texture\n");
 		return 1;
 	}
 
@@ -129,7 +130,7 @@ static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL OpenGL driver\n");
 	set_fullscreen(0);
 	glDeleteTextures(1, &texnum);
-	SDL_FreeSurface(screen_tex);
+	free(screen_tex);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
@@ -150,11 +151,9 @@ static int set_fullscreen(int fullscreen) {
 	}
 	if (((float)screen_width/(float)screen_height)>(4.0/3.0)) {
 		width = ((float)screen_height/3.0)*4;
-		//height = screen_height;
 		xoffset = (screen_width - width) / 2;
 		yoffset = 0;
 	} else {
-		//width = screen_width;
 		height = ((float)screen_width/4.0)*3;
 		xoffset = 0;
 		yoffset = (screen_height - height)/2;
@@ -203,7 +202,7 @@ static void vsync(void) {
 	glBindTexture(GL_TEXTURE_2D, texnum);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 			320, 240, GL_RGB,
-			GL_UNSIGNED_SHORT_5_6_5, screen_tex->pixels);
+			GL_UNSIGNED_SHORT_5_6_5, screen_tex);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, 0.0);
 	glVertex3i(xoffset, yoffset, 0);
