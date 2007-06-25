@@ -239,7 +239,7 @@ struct vdisk *vdisk_load_dmk(const char *filename) {
 	}
 	LOG_DEBUG(2,"Loading DMK virtual disk: %dT %dH (%d-byte)\n", num_tracks, num_sides, track_length);
 	for (track = 0; track < num_tracks; track++) {
-		for (side = 0; track < num_tracks; track++) {
+		for (side = 0; side < num_sides; side++) {
 			uint16_t *idams = vdisk_track_base(disk, side, track);
 			uint8_t *buf = (uint8_t *)idams;
 			int i;
