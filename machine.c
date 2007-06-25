@@ -230,6 +230,11 @@ void machine_init(void) {
 	cart_init();
 }
 
+void machine_shutdown(void) {
+	tape_shutdown();
+	vdrive_shutdown();
+}
+
 void machine_reset(int hard) {
 	if (hard) {
 		MachineConfig *defaults;

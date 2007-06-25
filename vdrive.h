@@ -11,6 +11,8 @@
 #include "types.h"
 #include "vdisk.h"
 
+#define VDRIVE_MAX_DRIVES (4)
+
 #define VDRIVE_MOTOR_OFF (0)
 #define VDRIVE_MOTOR_ON  (1)
 
@@ -26,9 +28,11 @@ extern int vdrive_index_pulse;
 extern int vdrive_write_protect;
 
 void vdrive_init(void);
+void vdrive_shutdown(void);
 
 int vdrive_insert_disk(int drive, struct vdisk *disk);
 int vdrive_eject_disk(int drive);
+struct vdisk *vdrive_disk_in_drive(int drive);
 
 unsigned int vdrive_head_pos(void);
 

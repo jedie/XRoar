@@ -166,8 +166,18 @@ Of these, DMK retains the most information about the actual layout of
 the floppy disk, and is the only one that XRoar will recognise as
 containing single-density data (as used by the Delta system).
 
-Disk images can be modified in memory after loading, but image files
-themselves are not yet updated.
+Two write protect flags are maintained for disk images: one for the
+image as it resides in memory, and one for the on-disk file the image is
+associated with.  Updates are only made to image files (for which writing
+is enabled) when the disk in a drive is changed or the emulator exits.
+Old files are backed up with a .bak extension so long as that name does
+not already exist.
+
+When blank disks are created, the default filename is "newdisk<n>.dmk",
+where <n> is the drive number it is created in.
+
+Note that currently, only DMK format files are (re-)written, as that is
+(near enough) the format used internally.
 
 
 FILE LOCATIONS
@@ -212,6 +222,8 @@ UNIX CONTROLS
 Full keyboard support plus:
 Ctrl+[1-4] ........ Insert a virtual disk into drive 1-4.
 Ctrl+Shift+[1-4] .. Insert a blank virtual disk (40TSS) into drive 1-4.
+Ctrl+[5-8] ........ Toggle write protect on disk in drive 1-4.
+Ctrl+Shift+[5-8] .. Toggle write protect on file for disk in drive 1-4.
 Ctrl+A ............ Cycle through artifacted video modes (hi-res only).
 Ctrl+C ............ Quit emulator.
 Ctrl+E ............ Toggle DOS emulation on/off - reset to take effect.

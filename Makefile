@@ -378,9 +378,21 @@ depend:
 ./machine.o: logging.h m6809.h machine.h pia.h joystick.h module.h tape.h
 ./machine.o: vdg.h rsdos.h sam.h vdrive.h vdisk.h wd279x.h xroar.h
 ./main_gp32.o: gp32/gpgfx.h ./types.h config.h types.h xroar.h
+./main_nds7.o: types.h config.h
+./main_nds9.o: config.h xroar.h types.h logging.h
 ./main_unix.o: config.h xroar.h types.h logging.h
 ./module.o: types.h config.h logging.h module.h
 ./nds/ndsgfx.o: ./types.h config.h ./nds/ndsgfx.h
+./nds/ndsui.o: types.h config.h logging.h module.h nds/ndsui.h nds/ndsgfx.h
+./nds/ndsui.o: ./types.h
+./nds/ndsui_button.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_button.o: ./types.h nds/ndsui.h nds/ndsui_button.h
+./nds/ndsui_filelist.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_filelist.o: ./types.h nds/ndsui.h nds/ndsui_filelist.h
+./nds/ndsui_keyboard.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_keyboard.o: ./types.h nds/ndsui.h nds/ndsui_keyboard.h
+./nds/ndsui_scrollbar.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_scrollbar.o: ./types.h nds/ndsui.h nds/ndsui_scrollbar.h
 ./pia.o: types.h config.h logging.h m6809.h machine.h xroar.h pia.h
 ./pia.o: joystick.h keyboard.h module.h tape.h vdg.h
 ./rsdos.o: types.h config.h events.h logging.h m6809.h machine.h rsdos.h
@@ -408,7 +420,6 @@ depend:
 ./sound_sun.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
 ./tape.o: config.h types.h events.h fs.h logging.h machine.h pia.h joystick.h
 ./tape.o: keyboard.h m6809.h module.h tape.h vdg.h xroar.h
-./tools/prerender.o: ./vdg_bitmaps.c
 ./ui_gp32.o: types.h config.h gp32/gp32.h gp32/gpgfx.h ./types.h
 ./ui_gp32.o: gp32/gpkeypad.h gp32/gpchatboard.h cart.h fs.h hexs19.h
 ./ui_gp32.o: keyboard.h machine.h module.h snapshot.h sound_gp32.h tape.h
@@ -420,9 +431,9 @@ depend:
 ./ui_sdl.o: types.h config.h logging.h module.h
 ./vdg.o: types.h config.h events.h logging.h m6809.h machine.h pia.h
 ./vdg.o: joystick.h keyboard.h module.h tape.h vdg.h sam.h xroar.h
-./vdisk.o: types.h config.h crc16.h fs.h logging.h vdisk.h
+./vdisk.o: types.h config.h crc16.h fs.h logging.h module.h vdisk.h xroar.h
 ./vdrive.o: types.h config.h crc16.h events.h logging.h machine.h vdisk.h
-./vdrive.o: vdrive.h
+./vdrive.o: vdrive.h xroar.h
 ./video_generic_ops.o: machine.h types.h config.h
 ./video_gp32.o: gp32/gpgfx.h ./types.h config.h types.h module.h sam.h
 ./video_gp32.o: xroar.h

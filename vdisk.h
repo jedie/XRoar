@@ -16,6 +16,9 @@
 #define VDISK_WRITE_ENABLE (0)
 
 struct vdisk {
+	int filetype;
+	char *filename;
+	int file_write_protect;
 	int write_protect;
 	unsigned int num_sides;
 	unsigned int num_tracks;
@@ -28,9 +31,7 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 void vdisk_destroy(struct vdisk *disk);
 
 struct vdisk *vdisk_load(const char *filename);
-struct vdisk *vdisk_load_vdk(const char *filename);
-struct vdisk *vdisk_load_jvc(const char *filename);
-struct vdisk *vdisk_load_dmk(const char *filename);
+int vdisk_save(struct vdisk *disk, int force);
 
 void vdisk_set_write_protect(struct vdisk *disk, int write_protect);
 

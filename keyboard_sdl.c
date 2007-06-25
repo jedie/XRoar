@@ -167,15 +167,54 @@ static void keypress(SDL_keysym *keysym) {
 		switch (sym) {
 		case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 			if (shift) {
-				LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + sym - SDLK_1);
-				vdrive_eject_disk(sym - SDLK_1);
-				vdrive_insert_disk(sym - SDLK_1, vdisk_blank_disk(2, 42, VDISK_LENGTH_5_25));
+				struct vdisk *new_disk;
+				int drive = sym - SDLK_1;
+				LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);
+				vdrive_eject_disk(drive);
+				new_disk = vdisk_blank_disk(2, 42, VDISK_LENGTH_5_25);
+				if (new_disk == NULL) break;
+				if (new_disk->filename == NULL) {
+					new_disk->filetype = FILETYPE_DMK;
+					new_disk->filename = malloc(13);
+					if (new_disk->filename != NULL) {
+						snprintf(new_disk->filename, 13, "newdisk%d.dmk", drive);
+					}
+					new_disk->file_write_protect = VDISK_WRITE_ENABLE;
+				}
+				vdrive_insert_disk(drive, new_disk);
 			} else {
 				const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 				char *filename = filereq_module->load_filename(disk_exts);
 				if (filename) {
 					vdrive_eject_disk(sym - SDLK_1);
 					vdrive_insert_disk(sym - SDLK_1, vdisk_load(filename));
+				}
+			}
+			break;
+		case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8:
+			if (shift) {
+				int drive = sym - SDLK_5;
+				struct vdisk *disk = vdrive_disk_in_drive(drive);
+				if (disk != NULL) {
+					if (disk->file_write_protect == VDISK_WRITE_ENABLE) {
+						disk->file_write_protect = VDISK_WRITE_PROTECT;
+						LOG_DEBUG(2, "File for disk in drive %d write protected.\n", drive);
+					} else {
+						disk->file_write_protect = VDISK_WRITE_ENABLE;
+						LOG_DEBUG(2, "File for disk in drive %d write enabled.\n", drive);
+					}
+				}
+			} else {
+				int drive = sym - SDLK_5;
+				struct vdisk *disk = vdrive_disk_in_drive(drive);
+				if (disk != NULL) {
+					if (disk->write_protect == VDISK_WRITE_ENABLE) {
+						disk->write_protect = VDISK_WRITE_PROTECT;
+						LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
+					} else {
+						disk->write_protect = VDISK_WRITE_ENABLE;
+						LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
+					}
 				}
 			}
 			break;

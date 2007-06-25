@@ -97,6 +97,7 @@ extern int noextbas;
 void machine_helptext(void);
 void machine_getargs(int argc, char **argv);
 void machine_init(void);
+void machine_shutdown(void);
 void machine_reset(int hard);
 
 void machine_clear_requested_config(void);

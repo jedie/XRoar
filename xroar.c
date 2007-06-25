@@ -180,7 +180,7 @@ int xroar_init(int argc, char **argv) {
 }
 
 void xroar_shutdown(void) {
-	tape_shutdown();
+	machine_shutdown();
 	module_shutdown((Module *)joystick_module);
 	module_shutdown((Module *)keyboard_module);
 	module_shutdown((Module *)sound_module);

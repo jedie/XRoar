@@ -24,20 +24,27 @@
 #include "crc16.h"
 #include "fs.h"
 #include "logging.h"
+#include "module.h"
 #include "vdisk.h"
+#include "xroar.h"
 
 #define MAX_SIDES (2)
 #define MAX_TRACKS (256)
 
+static struct vdisk *vdisk_load_vdk(const char *filename);
+static struct vdisk *vdisk_load_jvc(const char *filename);
+static struct vdisk *vdisk_load_dmk(const char *filename);
+static int vdisk_save_dmk(struct vdisk *disk);
+
 static struct {
-	const char *ext;
+	int filetype;
 	struct vdisk *(*load_func)(const char *);
+	int (*save_func)(struct vdisk *);
 } dispatch[] = {
-	{ "VDK", vdisk_load_vdk },
-	{ "JVC", vdisk_load_jvc },
-	{ "DSK", vdisk_load_jvc },
-	{ "DMK", vdisk_load_dmk },
-	{ NULL,  vdisk_load_jvc }
+	{ FILETYPE_VDK, vdisk_load_vdk, NULL },
+	{ FILETYPE_JVC, vdisk_load_jvc, NULL },
+	{ FILETYPE_DMK, vdisk_load_dmk, vdisk_save_dmk },
+	{ -1, NULL, NULL }
 };
 
 struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
@@ -63,6 +70,9 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 		return NULL;
 	}
 	memset(new_track_data, 0, data_size);
+	new->filetype = FILETYPE_DMK;
+	new->filename = NULL;
+	new->file_write_protect = VDISK_WRITE_PROTECT;
 	new->write_protect = 0;
 	new->num_sides = num_sides;
 	new->num_tracks = num_tracks;
@@ -73,29 +83,63 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 
 void vdisk_destroy(struct vdisk *disk) {
 	if (disk == NULL) return;
+	if (disk->filename) {
+		free(disk->filename);
+		disk->filename = NULL;
+	}
 	free(disk->track_data);
 	free(disk);
 }
 
 struct vdisk *vdisk_load(const char *filename) {
-	char ext[4];
-	int len = strlen(filename);
+	int filetype;
 	int i;
-	if (len < 4)
-		return vdisk_load_vdk(filename);
-	for (i = 0; i < 3; i++)
-		ext[i] = toupper(filename[i+len-3]);
-	ext[3] = 0;
-	i = 0;
-	do {
-		if (strcmp(ext, dispatch[i].ext) == 0)
-			break;
-		i++;
-	} while (dispatch[i].ext != NULL);
+	if (filename == NULL) return NULL;
+	filetype = xroar_filetype_by_ext(filename);
+	for (i = 0; dispatch[i].filetype >= 0 && dispatch[i].filetype != filetype; i++);
+	if (dispatch[i].load_func == NULL) {
+		LOG_WARN("No reader for virtual disk file type.\n");
+		return NULL;
+	}
 	return dispatch[i].load_func(filename);
 }
 
-struct vdisk *vdisk_load_vdk(const char *filename) {
+int vdisk_save(struct vdisk *disk, int force) {
+	char *backup_filename;
+	int i;
+	if (disk == NULL) return 1;
+	if (!force && disk->file_write_protect != VDISK_WRITE_ENABLE) {
+		LOG_DEBUG(3, "Not saving disk file: file is write protected.\n");
+		return 0;
+	}
+	if (disk->filename == NULL) {
+		disk->filename = filereq_module->save_filename(NULL);
+		if (disk->filename != NULL) {
+			disk->filetype = xroar_filetype_by_ext(disk->filename);
+		}
+	}
+	for (i = 0; dispatch[i].filetype >= 0 && dispatch[i].filetype != disk->filetype; i++);
+	if (dispatch[i].save_func == NULL) {
+		LOG_WARN("No writer for virtual disk file type.\n");
+		return 1;
+	}
+	{
+		int bf_len = strlen(disk->filename) + 5;
+		backup_filename = malloc(bf_len);
+		/* Rename old file to filename.bak if that .bak file does not
+		 * already exist */
+		if (backup_filename != NULL) {
+			snprintf(backup_filename, bf_len, "%s.bak", disk->filename);
+			if (fs_size(backup_filename) == -1) {
+				rename(disk->filename, backup_filename);
+			}
+			free(backup_filename);
+		}
+	}
+	return dispatch[i].save_func(disk);
+}
+
+static struct vdisk *vdisk_load_vdk(const char *filename) {
 	struct vdisk *disk;
 	ssize_t file_size;
 	unsigned int header_size;
@@ -127,6 +171,8 @@ struct vdisk *vdisk_load_vdk(const char *filename) {
 		fs_close(fd);
 		return NULL;
 	}
+	disk->filetype = FILETYPE_VDK;
+	disk->filename = strdup(filename);
 	if (vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, 1, ssize_code) < 0) {
 		fs_close(fd);
 		vdisk_destroy(disk);
@@ -145,7 +191,7 @@ struct vdisk *vdisk_load_vdk(const char *filename) {
 	return disk;
 }
 
-struct vdisk *vdisk_load_jvc(const char *filename) {
+static struct vdisk *vdisk_load_jvc(const char *filename) {
 	struct vdisk *disk;
 	ssize_t file_size = fs_size(filename);
 	unsigned int header_size;
@@ -187,6 +233,8 @@ struct vdisk *vdisk_load_jvc(const char *filename) {
 		fs_close(fd);
 		return NULL;
 	}
+	disk->filetype = FILETYPE_JVC;
+	disk->filename = strdup(filename);
 	if (vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, first_sector, ssize_code) < 0) {
 		fs_close(fd);
 		vdisk_destroy(disk);
@@ -207,11 +255,14 @@ struct vdisk *vdisk_load_jvc(const char *filename) {
 	return disk;
 }
 
-struct vdisk *vdisk_load_dmk(const char *filename) {
+/* XRoar extension to DMK: byte 11 of header contains actual virtual
+ * disk write protect status, as value in header[0] is interpreted as the
+ * write protect status of the file. */
+
+static struct vdisk *vdisk_load_dmk(const char *filename) {
 	struct vdisk *disk;
 	uint8_t header[16];
 	ssize_t file_size = fs_size(filename);
-	int write_protect = 0;
 	unsigned int num_sides;
 	unsigned int num_tracks;
 	unsigned int track_length;
@@ -223,7 +274,6 @@ struct vdisk *vdisk_load_dmk(const char *filename) {
 	if (fd < 0)
 		return NULL;
 	fs_read(fd, header, 16);
-	write_protect = header[0] ? VDISK_WRITE_PROTECT : VDISK_WRITE_ENABLE;
 	num_tracks = header[1];
 	track_length = (header[3] << 8) | header[2];  /* yes, little-endian! */
 	num_sides = (header[4] & 0x10) ? 1 : 2;
@@ -238,6 +288,15 @@ struct vdisk *vdisk_load_dmk(const char *filename) {
 		return NULL;
 	}
 	LOG_DEBUG(2,"Loading DMK virtual disk: %dT %dH (%d-byte)\n", num_tracks, num_sides, track_length);
+	disk->filetype = FILETYPE_DMK;
+	disk->filename = strdup(filename);
+	disk->file_write_protect = header[0] ? VDISK_WRITE_PROTECT : VDISK_WRITE_ENABLE;
+	if (header[11] == VDISK_WRITE_ENABLE
+			|| header[11] == VDISK_WRITE_PROTECT) {
+		disk->write_protect = header[11];
+	} else {
+		disk->write_protect = disk->file_write_protect;
+	}
 	for (track = 0; track < num_tracks; track++) {
 		for (side = 0; side < num_sides; side++) {
 			uint16_t *idams = vdisk_track_base(disk, side, track);
@@ -257,6 +316,45 @@ struct vdisk *vdisk_load_dmk(const char *filename) {
 	}
 	fs_close(fd);
 	return disk;
+}
+
+static int vdisk_save_dmk(struct vdisk *disk) {
+	uint8_t header[16];
+	unsigned int track, side;
+	int fd;
+	if (disk == NULL)
+		return -1;
+	fd = fs_open(disk->filename, FS_WRITE);
+	if (fd < 0)
+		return -1;
+	LOG_DEBUG(2,"Writing DMK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
+	memset(header, 0, sizeof(header));
+	if (disk->file_write_protect != VDISK_WRITE_ENABLE)
+		header[0] = 0xff;
+	header[1] = disk->num_tracks;
+	header[2] = disk->track_length & 0xff;
+	header[3] = (disk->track_length >> 8) & 0xff;
+	if (disk->num_sides == 1)
+		header[4] |= 0x10;
+	header[11] = disk->write_protect;
+	fs_write(fd, header, 16);
+	for (track = 0; track < disk->num_tracks; track++) {
+		for (side = 0; side < disk->num_sides; side++) {
+			uint16_t *idams = vdisk_track_base(disk, side, track);
+			uint8_t *buf = (uint8_t *)idams;
+			int i;
+			if (buf == NULL) continue;
+			for (i = 0; i < 64; i++) {
+				fs_write_byte(fd, idams[i] & 0xff);
+				fs_write_byte(fd, (idams[i] >> 8) & 0xff);
+				buf += 2;
+			}
+			fs_write(fd, buf, disk->track_length - 128);
+			buf += disk->track_length - 128;
+		}
+	}
+	fs_close(fd);
+	return 0;
 }
 
 /* Returns void because track data is manipulated in 8-bit and 16-bit

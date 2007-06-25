@@ -27,9 +27,10 @@
 #include "machine.h"
 #include "vdisk.h"
 #include "vdrive.h"
+#include "xroar.h"
 
 #define BYTE_TIME (OSCILLATOR_RATE / 31250)
-#define MAX_DRIVES (4)
+#define MAX_DRIVES VDRIVE_MAX_DRIVES
 #define MAX_SIDES (2)
 #define MAX_TRACKS (256)
 
@@ -77,6 +78,15 @@ void vdrive_init(void) {
 	reset_index_pulse_event->dispatch = do_reset_index_pulse;
 }
 
+void vdrive_shutdown(void) {
+	int i;
+	for (i = 0; i < MAX_DRIVES; i++) {
+		if (drives[i].disk != NULL && drives[i].disk_present) {
+			vdrive_eject_disk(i);
+		}
+	}
+}
+
 int vdrive_insert_disk(int drive, struct vdisk *disk) {
 	if (drive < 0 || drive >= MAX_DRIVES)
 		return -1;
@@ -96,10 +106,19 @@ int vdrive_eject_disk(int drive) {
 		return -1;
 	if (!drives[drive].disk_present)
 		return -1;
+	vdisk_save(drives[drive].disk, 0);
 	vdisk_destroy(drives[drive].disk);
 	drives[drive].disk_present = 0;
 	update_signals();
 	return 0;
+}
+
+struct vdisk *vdrive_disk_in_drive(int drive) {
+	if (drive < 0 || drive >= MAX_DRIVES)
+		return NULL;
+	if (!drives[drive].disk_present)
+		return NULL;
+	return drives[drive].disk;
 }
 
 unsigned int vdrive_head_pos(void) {
