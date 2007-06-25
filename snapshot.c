@@ -28,6 +28,8 @@
 #include "snapshot.h"
 #include "tape.h"
 #include "vdg.h"
+#include "vdisk.h"
+#include "vdrive.h"
 #include "xroar.h"
 
 /* Write files in 'chunks', each with an identifying byte and a 16-bit
@@ -47,9 +49,10 @@
 #define ID_RAM_PAGE1     (7)
 #define ID_MACHINECONFIG (8)
 #define ID_SNAPVERSION   (9)
+#define ID_VDISK_FILE    (10)
 
 #define SNAPSHOT_VERSION_MAJOR 1
-#define SNAPSHOT_VERSION_MINOR 2
+#define SNAPSHOT_VERSION_MINOR 3
 
 int write_snapshot(const char *filename) {
 	int fd;
@@ -121,6 +124,22 @@ int write_snapshot(const char *filename) {
 	/* SAM */
 	fs_write_byte(fd, ID_SAM_REGISTERS); fs_write_word16(fd, 2);
 	fs_write_word16(fd, sam_register);
+	/* Attached virtual disk filenames */
+	{
+		struct vdisk *disk;
+		int drive;
+		for (drive = 0; drive < VDRIVE_MAX_DRIVES; drive++) {
+			disk = vdrive_disk_in_drive(drive);
+			if (disk != NULL && disk->filename != NULL) {
+				int length = strlen(disk->filename) + 1;
+				fs_write_byte(fd, ID_VDISK_FILE);
+				fs_write_word16(fd, 1 + length);
+				fs_write_byte(fd, drive);
+				fs_write(fd, disk->filename, length);
+			}
+		}
+	}
+	/* Finish up */
 	fs_close(fd);
 	return 0;
 }
@@ -314,6 +333,23 @@ int read_snapshot(const char *filename) {
 					LOG_WARN("Snapshot version %d.%d not supported.\n", tmp8, tmp16);
 					fs_close(fd);
 					return -1;
+				}
+				break;
+			case ID_VDISK_FILE:
+				/* Attached virtual disk filenames */
+				{
+					int drive;
+					fs_read_byte(fd, &tmp8);
+					size--;
+					drive = tmp8;
+					vdrive_eject_disk(drive);
+					if (size > 0) {
+						char *name = malloc(size);
+						if (name != NULL) {
+							size -= fs_read(fd, name, size);
+							vdrive_insert_disk(drive, vdisk_load(name));
+						}
+					}
 				}
 				break;
 			default:
