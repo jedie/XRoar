@@ -36,13 +36,10 @@ static void keyboard_poll(void *context);
 static event_t *poll_event;
 
 void keyboard_init(void) {
+	unsigned int i;
 	poll_event = event_new();
 	poll_event->dispatch = keyboard_poll;
 	keyboard_bufcur = keyboard_buflast = keyboard_buffer;
-}
-
-void keyboard_reset(void) {
-	unsigned int i;
 	for (i = 0; i < 8; i++) {
 		keyboard_column[i] = ~0;
 		keyboard_row[i] = ~0;

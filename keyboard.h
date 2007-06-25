@@ -47,7 +47,6 @@ extern unsigned int keyboard_buffer[256];
 extern unsigned int *keyboard_bufcur, *keyboard_buflast;
 
 void keyboard_init(void);
-void keyboard_reset(void);
 void keyboard_column_update(void);
 void keyboard_row_update(void);
 void keyboard_queue_string(const char *s);

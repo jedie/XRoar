@@ -11,7 +11,6 @@ extern unsigned int joystick_rightx, joystick_righty;
 
 void joystick_init(void);
 void joystick_shutdown(void);
-void joystick_reset(void);
 void joystick_poll(void);
 void joystick_update(void);
 

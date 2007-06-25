@@ -26,14 +26,11 @@ unsigned int joystick_leftx, joystick_lefty;
 unsigned int joystick_rightx, joystick_righty;
 
 void joystick_init(void) {
+	joystick_leftx = joystick_lefty = 128;
+	joystick_rightx = joystick_righty = 128;
 }
 
 void joystick_shutdown(void) {
-}
-
-void joystick_reset(void) {
-	joystick_leftx = joystick_lefty = 128;
-	joystick_rightx = joystick_righty = 128;
 }
 
 void joystick_update(void) {

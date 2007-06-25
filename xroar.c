@@ -173,8 +173,6 @@ int xroar_init(int argc, char **argv) {
 	joystick_init();
 	machine_init();
 	/* Reset everything */
-	keyboard_reset();
-	joystick_reset();
 	machine_reset(RESET_HARD);
 	if (snapshot_load)
 		read_snapshot(snapshot_load);
