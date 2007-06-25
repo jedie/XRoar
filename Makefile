@@ -59,7 +59,7 @@ else
 ifeq ($(CONFIG_NDS),yes)
 ROMPATH = \"fat:/dragon\"
 else
-ROMPATH = \".\",\"~/.xroar/roms\",\"$(prefix)/share/xroar/roms\",\"~/Library/XRoar/Roms\"
+ROMPATH = \".\",\"~/.xroar/roms\",\"~/Library/XRoar/Roms\",\"$(prefix)/share/xroar/roms\"
 endif
 endif
 endif

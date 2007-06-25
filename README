@@ -182,12 +182,23 @@ Note that currently, only DMK format files are (re-)written, as that is
 
 FILE LOCATIONS
 
-On the GP32, firmware ROMs must be in gp:/gpmm/dragon/.  For other builds,
-they should either be in the current working directory (only option for
-Windows32) when running the emulator, or in one of these directories:
+XRoar will search for firmware ROMs in standard locations depending on
+architecture:
 
- Mac OS X         ~/.xroar/roms or ~/Library/XRoar/Roms
- Other Unix       ~/.xroar/roms or /usr/local/share/xroar/roms
+----------------+--------------------------------------------------------------
+ Architecture   | Search order
+----------------+--------------------------------------------------------------
+ Linux, Unix,   | Current working directory
+ Mac OS X       | ~/.xroar/roms/
+                | ~/Library/XRoar/Roms/
+                | /usr/local/share/xroar/roms/
+----------------+--------------------------------------------------------------
+ GP32           | gp:/gpmm/dragon/
+----------------+--------------------------------------------------------------
+ NDS            | fat:/dragon/
+----------------+--------------------------------------------------------------
+ Windows32      | Current working directory
+----------------+--------------------------------------------------------------
 
 
 COMMAND LINE SWITCHES
