@@ -228,10 +228,10 @@ $(SRCROOT)/vdg_bitmaps.c: tools/font2c $(SRCROOT)/vdgfont.png
 
 $(SRCROOT)/video_gp32.c: gp32/vdg_bitmaps_gp32.c
 
-gp32/vdg_bitmaps_gp32.c: tools/prerender vdg_bitmaps.c
+gp32/vdg_bitmaps_gp32.c: tools/prerender
 	tools/prerender > $@
 
-tools/prerender: tools/prerender.c
+tools/prerender: tools/prerender.c $(SRCROOT)/vdg_bitmaps.c
 	mkdir -p tools
 	$(BUILD_CC) -o $@ $<
 
