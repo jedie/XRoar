@@ -1,3 +1,15 @@
+Changed from v0.18 to v0.19
+ * WD279x Read Address command implemented.
+ * VDG fixes.
+ * Delta bugs in initialisation and drive select fixed.
+ * Better error reporting.
+ * Better compatibility with old snapshots.
+ * Performance improvements in OpenGL driver.
+ * DMK virtual disk reading bugfix.
+ * Virtual disk image file write support (DMK format only).
+ * Write protect toggles in SDL user-interface.
+ * Attached virtual disk filenames written to snapshots.
+
 Changed from v0.17 to v0.18
  * New 'configure' script.
  * New 'null' sound driver replaces 'rtc'.
