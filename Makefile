@@ -3,7 +3,7 @@
 
 -include config.mak
 
-VERSION := 0.19
+VERSION := 0.20
 
 .PHONY: all usage gp32 windows32
 
