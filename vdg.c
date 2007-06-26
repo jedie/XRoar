@@ -208,7 +208,7 @@ void vdg_set_mode(void) {
 			vdg_render_scanline = video_module->vdg_render_cg2;
 			break;
 		case 15: default:
-			if (video_artifact_mode) {
+			if ((mode & 0x08) && video_artifact_mode) {
 				vdg_render_scanline = video_module->vdg_render_cg2;
 			} else {
 				vdg_render_scanline = video_module->vdg_render_rg6;

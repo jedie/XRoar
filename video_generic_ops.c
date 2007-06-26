@@ -87,7 +87,7 @@ static void alloc_colours(void) {
 static void set_mode(unsigned int mode) {
 	if (mode & 0x80) {
 		/* Graphics modes */
-		if (((mode & 0x70) == 0x70) && video_artifact_mode) {
+		if (((mode & 0xf0) == 0xf0) && video_artifact_mode) {
 			cg_colours = &vdg_colour[4 + video_artifact_mode * 4];
 			fg_colour = vdg_colour[(mode & 0x08) >> 1];
 		} else {
