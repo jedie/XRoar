@@ -293,11 +293,13 @@ unsigned int vdrive_time_to_next_idam(void) {
 	head_pos = 128 + ((current_cycle - track_start_cycle) / BYTE_TIME);
 	(void)vdrive_new_index_pulse();
 	next_head_pos = current_drive->disk->track_length;
-	for (i = 0; i < 64; i++) {
-		if ((unsigned)(idamptr[i] & 0x8000) == cur_density) {
-			tmp = idamptr[i] & 0x3fff;
-			if (head_pos < tmp && tmp < next_head_pos)
-				next_head_pos = tmp;
+	if (idamptr) {
+		for (i = 0; i < 64; i++) {
+			if ((unsigned)(idamptr[i] & 0x8000) == cur_density) {
+				tmp = idamptr[i] & 0x3fff;
+				if (head_pos < tmp && tmp < next_head_pos)
+					next_head_pos = tmp;
+			}
 		}
 	}
 	if (next_head_pos >= current_drive->disk->track_length)
@@ -320,11 +322,13 @@ uint8_t *vdrive_next_idam(void) {
 	unsigned int i, tmp;
 	if (!vdrive_ready) return NULL;
 	next_head_pos = current_drive->disk->track_length;
-	for (i = 0; i < 64; i++) {
-		if ((unsigned)(idamptr[i] & 0x8000) == cur_density) {
-			tmp = idamptr[i] & 0x3fff;
-			if (head_pos < tmp && tmp < next_head_pos)
-				next_head_pos = tmp;
+	if (idamptr) {
+		for (i = 0; i < 64; i++) {
+			if ((unsigned)(idamptr[i] & 0x8000) == cur_density) {
+				tmp = idamptr[i] & 0x3fff;
+				if (head_pos < tmp && tmp < next_head_pos)
+					next_head_pos = tmp;
+			}
 		}
 	}
 	if (next_head_pos >= current_drive->disk->track_length) {
