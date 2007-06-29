@@ -20,18 +20,18 @@
 */
 
 /* FCLK = 90/45/45MHz */
-
+/*
 #define SPEED_FAST GpClockSpeedChange(90000000, 0x25011, 2)
 #define SPEED_SLOW GpClockSpeedChange(45000000, 0x25012, 0)
 #define PCLK 45000000
-
+*/
 
 /* FCLK = 80/40/40MHz */
-/*
+
 #define SPEED_FAST GpClockSpeedChange(80000000, 0x48012, 2)
 #define SPEED_SLOW GpClockSpeedChange(40000000, 0x48013, 0)
 #define PCLK 40000000
-*/
+
 
 /* FCLK = 72/36/36MHz */
 /*

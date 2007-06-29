@@ -8,6 +8,7 @@
 
 #include <gpstdlib.h>
 #include <gpstdio.h>
+#include "gplib.h"
 
 #define malloc gm_malloc
 #define free gm_free
@@ -16,6 +17,7 @@
 #define memcpy gm_memcpy
 #define strcat gm_strcat
 #define strcpy gm_strcpy
+#define strdup gm_strdup
 
 #define exit(r)
 #define fprintf(...)
