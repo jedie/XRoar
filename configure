@@ -52,8 +52,8 @@ Installation directories:
   --mandir=DIR            man documentation [PREFIX/man]
 
 System types:
-  --build=BUILD   configure for building on BUILD [guessed]
-  --host=HOST     cross-compile to build programs to run on HOST [BUILD]
+  --build=BUILD     configure for building on BUILD [guessed]
+  --target=TARGET   cross-compile to build programs to run on TARGET [BUILD]
 
 Optional Features:
   --disable-sdl         don't test for SDL
@@ -222,8 +222,8 @@ __build_cc_version=`$BUILD_CC -dumpmachine`
 echo "Build system type is $__build_cc_version" >&$config_log
 echo "Build system type is $__build_cc_version"
 __target_cc_version=`$TARGET_CC -dumpmachine`
-echo "Host system type is $__target_cc_version" >&$config_log
-echo "Host system type is $__target_cc_version"
+echo "Target system type is $__target_cc_version" >&$config_log
+echo "Target system type is $__target_cc_version"
 
 # Try and determine best optimisation if user has not specified any flags.
 
