@@ -171,7 +171,7 @@ cc_check () {
 	echo "$CC $CFLAGS $1 -c -o $TMPO $TMPC" >&$config_log
 	if $CC $CFLAGS $1 -c -o $TMPO $TMPC >&$config_log 2>&1; then
 		if test -n "$cc_build_only"; then
-			unset cc_build_only
+			rm -f $TMPO
 			return 0
 		fi
 		echo "$CC $CFLAGS $1 $CRT0 $TMPO -o $TMPX $LDFLAGS $2" >&$config_log
@@ -199,6 +199,7 @@ target_cc_check () {
 target_cc_check_compile () {
 	cc_build_only=1
 	target_cc_check "$@"
+	unset cc_build_only
 	return $?
 }
 
