@@ -29,6 +29,7 @@ _mingw=auto
 _gp32=auto
 _nds=auto
 _trace=no
+_fast_vdg=auto
 
 _have_video_driver=
 
@@ -67,6 +68,7 @@ Optional Features:
   --disable-gp32        don't test for GP32
   --disable-nds         don't test for Nintendo DS
   --enable-trace        enable trace mode
+  --enable-fast-vdg     enable faster but less accurate VDG code
 
   --with-sdl-config=PATH   set path to sdl-config script
   --with-pkg-config=PATH   set path to pkg-config script
@@ -103,8 +105,8 @@ for opt do
 	--build=*) build=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--host=*) target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--target=*) target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--enable-[a-z]*) eval _`echo "$opt"|sed 's/^--enable-//'`=yes; ;;
-	--disable-[a-z]*) eval _`echo "$opt"|sed 's/^--disable-//'`=no; ;;
+	--enable-[a-z-]*) eval _`echo "$opt"|sed 's/^--enable-//;s/-/_/g'`=yes; ;;
+	--disable-[a-z-]*) eval _`echo "$opt"|sed 's/^--disable-//;s/-/_/g'`=no; ;;
 	--with-sdl-config=*) target_sdl_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--with-sdl=*)
 		_tmp=`echo "$opt"|sed 's/^[^=]*=//'`
@@ -597,6 +599,7 @@ if test "$_gp32" = "yes"; then
 	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -nostartfiles -T $SRCROOT/gp32/lnkscript -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic"
 	_gp32_def="#define HAVE_GP32"
 	_have_video_driver=yes
+	_fast_vdg=yes
 else
 	_gp32_def="#undef HAVE_GP32"
 	CRT0=
@@ -623,6 +626,7 @@ if test "$_nds" = "yes"; then
 	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $nds_ldflags"
 	_nds_def="#define HAVE_NDS"
 	_have_video_driver=yes
+	_fast_vdg=yes
 else
 	_nds_def="#undef HAVE_NDS"
 fi
@@ -666,6 +670,17 @@ if test "$_trace" = "yes"; then
 else
 	echo "Trace mode disabled"
 	_trace_def="#undef TRACE"
+fi
+
+########
+
+test "$_fast_vdg" = "auto" && _fast_vdg=no
+if test "$_fast_vdg" = "yes"; then
+	echo "Fast video enabled"
+	_fast_vdg_def="#define FAST_VDG"
+else
+	echo "Fast video disabled"
+	_fast_vdg_def="#undef FAST_VDG"
 fi
 
 ############################################################################
@@ -714,6 +729,7 @@ CONFIG_GP32 = $_gp32
 CONFIG_NDS = $_nds
 CONFIG_MINGW = $_mingw
 CONFIG_TRACE = $_trace
+CONFIG_FAST_VDG = $_fast_vdg
 EOF
 
 ############################################################################
@@ -768,6 +784,9 @@ $_mingw_def
 
 /* Build trace mode? */
 $_trace_def
+
+/* Fast VDG code? */
+$_fast_vdg_def
 
 #endif  /* def __CONFIG_H__ */
 EOF

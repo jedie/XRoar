@@ -27,7 +27,7 @@
 #include "xroar.h"
 
 #if defined(HAVE_GP32) || defined(HAVE_NDS)
-# define FAST_VDG
+# define MINIMAL_VIDEO
 #endif
 
 Cycle scanline_start;
@@ -79,14 +79,12 @@ void vdg_reset(void) {
 static void do_hs_fall(void *context) {
 	(void)context;
 	/* Finish rendering previous scanline */
-#ifdef FAST_VDG
+#ifdef MINIMAL_VIDEO
 	/* Skip borders, etc. */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START
 			&& scanline < VDG_ACTIVE_AREA_END
-//#ifdef HAVE_GP32
-			/* GP32 renders 4 scanlines at once */
+			/* GP32 & NDS render 4 scanlines at once */
 			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)
-//#endif
 			) {
 		vdg_render_scanline();
 	}

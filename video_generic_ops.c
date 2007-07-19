@@ -49,6 +49,13 @@
 	} while (0)
 #endif  /* NO_BORDER */
 
+#ifdef FAST_VDG
+#define beam_to 320
+#define GET_BEAM_TO
+#else
+#define GET_BEAM_TO int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2
+#endif
+
 #define ACTIVE_DISPLAY_AREA (beam_pos >= 32 && beam_pos < 288 && beam_pos < beam_to)
 
 static unsigned int subline;
@@ -111,7 +118,7 @@ static void set_mode(unsigned int mode) {
  * line, so need to be handled together) */
 static void render_sg4(void) {
 	unsigned int octet;
-	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -164,7 +171,7 @@ static void render_sg4(void) {
  * line, so need to be handled together) */
 static void render_sg6(void) {
 	unsigned int octet;
-	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -237,7 +244,7 @@ static void render_sg6(void) {
 /* Render a 16-byte colour graphics line (CG1) */
 static void render_cg1(void) {
 	unsigned int octet;
-	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -278,7 +285,7 @@ static void render_cg1(void) {
 /* Render a 16-byte resolution graphics line (RG1,RG2,RG3) */
 static void render_rg1(void) {
 	unsigned int octet;
-	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -314,7 +321,7 @@ static void render_rg1(void) {
 
 /* Render a 32-byte colour graphics line (CG2,CG3,CG6) */
 static void render_cg2(void) {
-	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -354,7 +361,7 @@ static void render_cg2(void) {
 /* Render a 32-byte resolution graphics line (RG6) */
 static void render_rg6(void) {
 	unsigned int octet;
-	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
