@@ -29,7 +29,6 @@ extern uint8_t *addrptr_low;
 extern uint8_t *addrptr_high;
 extern uint_least16_t sam_register;
 extern uint_least16_t sam_vdg_base;
-extern uint_least16_t sam_vdg_line_base;
 extern unsigned int  sam_vdg_mode;
 extern uint_least16_t sam_vdg_address;
 extern unsigned int  sam_vdg_mod_xdiv;
@@ -43,37 +42,38 @@ extern unsigned int  sam_vdg_ycount;
 extern unsigned int sam_topaddr_cycles;
 #endif
 
+/* Where b is the number of DA0 transitions: */
 static inline void sam_vdg_xstep(int b) {
-	sam_vdg_address += b;
-	sam_vdg_xcount++;
-	if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
-		sam_vdg_xcount = 0;
-	} else {
-		if (sam_vdg_mode != 7) {
-			if (sam_vdg_address & 8) {
-				sam_vdg_address += 6;
-			} else {
-				sam_vdg_address -= 6;
+	unsigned int b15_5 = sam_vdg_address & ~0x1f;
+	unsigned int b4 = sam_vdg_address & 0x10;
+	unsigned int b3_0 = (sam_vdg_address & 0xf) + b;
+	if (b3_0 & 0x10) {
+		b3_0 &= 0x0f;
+		sam_vdg_xcount++;
+		if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
+			sam_vdg_xcount = 0;
+			b4 += 0x10;
+			if (b4 & 0x20) {
+				b4 &= 0x10;
+				sam_vdg_ycount++;
+				if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
+					sam_vdg_ycount = 0;
+					b15_5 += 0x20;
+					b15_5 &= 0xffff;
+				}
 			}
-			sam_vdg_address &= ~15;
 		}
 	}
+	sam_vdg_address = b15_5 | b4 | b3_0;
 }
 
-static inline void sam_vdg_hsync(int a) {
-	sam_vdg_address += a;
-	sam_vdg_ycount++;
-	if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
-		sam_vdg_ycount = 0;
-	} else {
-		sam_vdg_address = sam_vdg_line_base;
-	}
+static inline void sam_vdg_hsync(int b) {
+	sam_vdg_xstep(b);
 	sam_vdg_address &= sam_vdg_mod_clear;
-	sam_vdg_line_base = sam_vdg_address;
 }
 
 static inline void sam_vdg_fsync(void) {
-	sam_vdg_line_base = sam_vdg_address = sam_vdg_base;
+	sam_vdg_address = sam_vdg_base;
 	sam_vdg_xcount = 0;
 	sam_vdg_ycount = 0;
 }
