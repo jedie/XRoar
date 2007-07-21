@@ -201,8 +201,9 @@ target_cc_check () {
 target_cc_check_compile () {
 	cc_build_only=1
 	target_cc_check "$@"
+	ret=$?
 	unset cc_build_only
-	return $?
+	return $ret
 }
 
 build_cc_check () {
