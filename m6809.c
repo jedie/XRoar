@@ -1248,10 +1248,10 @@ void m6809_cycle(Cycle until) {
 switched_block_page2:
 		BYTE_IMMEDIATE(0,op);
 		switch (op) {
-			/* 0x10 Page 2 */
-			case 0x10: goto switched_block_page2; break;
-			/* 0x11 Page 3 */
-			case 0x11: goto switched_block_page3; break;
+			/* 0x10, 0x11 Page 2 */
+			case 0x10:
+			case 0x11:
+				goto switched_block_page2; break;
 			/* 0x1021 LBRN relative */
 			case 0x21: BRANCHL(0); break;
 			/* 0x1022 LBHI relative */
@@ -1351,10 +1351,10 @@ switched_block_page2:
 switched_block_page3:
 		BYTE_IMMEDIATE(0,op);
 		switch (op) {
-			/* 0x10 Page 2 */
-			case 0x10: goto switched_block_page2; break;
-			/* 0x11 Page 3 */
-			case 0x11: goto switched_block_page3; break;
+			/* 0x10, 0x11 Page 3 */
+			case 0x10:
+			case 0x11:
+				goto switched_block_page3; break;
 			/* 0x113F SWI3 inherent */
 			case 0x3f:
 				reg_cc |= CC_E;
