@@ -273,13 +273,16 @@ int halt, nmi, firq, irq;
 #define OP_OR(r,a) { uint_least16_t octet; a(addr,octet); r |= octet; CLR_NZV; SET_NZ8(r); }
 #define OP_ADD(r,a) { uint_least16_t octet; a(addr,octet); result = r + octet; CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
 
-#define BRANCHS(cond) { SHORT_RELATIVE(addr); \
-		TAKEN_CYCLES(1); if (cond) { reg_pc += addr; } \
-	}
-#define BRANCHL(cond) { LONG_RELATIVE(addr); \
+#define BRANCHS(cond) do { \
+		SHORT_RELATIVE(addr); \
+		TAKEN_CYCLES(1); \
+		if (cond) { reg_pc += addr; } \
+	} while (0)
+#define BRANCHL(cond) do { \
+		LONG_RELATIVE(addr); \
 		if (cond) { reg_pc += addr; TAKEN_CYCLES(2); } \
 		else { TAKEN_CYCLES(1); } \
-	}
+	} while (0)
 
 /* ------------------------------------------------------------------------- */
 
@@ -413,15 +416,14 @@ void m6809_cycle(Cycle until) {
 			case 0x16: BRANCHL(1); break;
 			/* 0x17 LBSR relative */
 			case 0x17: {
-				uint_least16_t RA;
-				uint16_t dest;
-				LONG_RELATIVE(RA);
-				dest = reg_pc + RA;
+				unsigned int new_pc;
+				LONG_RELATIVE(new_pc);
+				new_pc = (reg_pc + new_pc) & 0xffff;
 				TAKEN_CYCLES(1);
-				peek_byte(dest);
+				peek_byte(new_pc);
 				TAKEN_CYCLES(1);
 				PUSHWORD(reg_s, reg_pc);
-				reg_pc = dest;
+				reg_pc = new_pc;
 			} break;
 			/* 0x19 DAA inherent */
 			case 0x19: {
@@ -431,31 +433,30 @@ void m6809_cycle(Cycle until) {
 				if (reg_a >= 0xa0 || reg_cc & CC_C) result |= 0x60;
 				result += reg_a;
 				reg_a = result & 0xff;
-				CLR_NZVC;  /* was CLR_NZV */
+				CLR_NZVC;
 				SET_NZC8(result);
 				peek_byte(reg_pc);
 			} break;
 			/* 0x1A ORCC immediate */
 			case 0x1a: {
-				unsigned int v;
-				BYTE_IMMEDIATE(0,v);
-				reg_cc |= v;
+				unsigned int data;
+				BYTE_IMMEDIATE(0,data);
+				reg_cc |= data;
 				peek_byte(reg_pc);
 			} break;
 			/* 0x1C ANDCC immediate */
 			case 0x1c: {
-				unsigned int v;
-				BYTE_IMMEDIATE(0,v);
-				reg_cc &= v;
+				unsigned int data;
+				BYTE_IMMEDIATE(0,data);
+				reg_cc &= data;
 				peek_byte(reg_pc);
 			} break;
 			/* 0x1D SEX inherent */
-			case 0x1d: {
-				reg_a = (reg_b&0x80)?0xff:0;
+			case 0x1d:
+				reg_a = (reg_b & 0x80) ? 0xff : 0;
 				CLR_NZV;
 				SET_NZ_D();
 				peek_byte(reg_pc);
-				}
 				break;
 			/* 0x1E EXG immediate */
 			case 0x1e: {
@@ -639,7 +640,7 @@ void m6809_cycle(Cycle until) {
 			} break;
 			/* 0x3D MUL inherent */
 			case 0x3d: {
-				uint16_t tmp = reg_a * reg_b;
+				unsigned int tmp = reg_a * reg_b;
 				set_reg_d(tmp);
 				CLR_ZC;
 				SET_Z(tmp);
@@ -647,8 +648,7 @@ void m6809_cycle(Cycle until) {
 					reg_cc |= CC_C;
 				peek_byte(reg_pc);
 				TAKEN_CYCLES(9);
-				}
-				break;
+			} break;
 			/* 0x3E RESET (undocumented) */
 			case 0x3e:
 				m6809_reset();
@@ -807,16 +807,14 @@ void m6809_cycle(Cycle until) {
 			case 0x8c: OP_CMP16(reg_x, WORD_IMMEDIATE); break;
 			/* 0x8D BSR relative */
 			case 0x8d: {
-				uint_least16_t RA;
-				uint16_t dest;
-				SHORT_RELATIVE(RA);
-				dest = reg_pc + RA;
-				peek_byte(dest);
+				unsigned int new_pc;
+				SHORT_RELATIVE(new_pc);
+				new_pc = (reg_pc + new_pc) & 0xffff;
+				peek_byte(new_pc);
 				TAKEN_CYCLES(1);
 				PUSHWORD(reg_s, reg_pc);
-				reg_pc = dest;
-			}
-			break;
+				reg_pc = new_pc;
+			} break;
 			/* 0x8E LDX immediate */
 			case 0x8e: OP_LD16(reg_x, WORD_IMMEDIATE); break;
 			/* 0x90 SUBA direct */
@@ -1244,6 +1242,6 @@ void m6809_set_registers(uint8_t *regs) {
 	reg_pc = regs[12] << 8 | regs[13];
 }
 
-void m6809_jump(uint_least16_t pc) {
+void m6809_jump(unsigned int pc) {
 	reg_pc = pc & 0xffff;
 }

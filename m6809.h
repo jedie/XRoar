@@ -24,7 +24,7 @@ void m6809_reset(void);
 void m6809_cycle(Cycle until);
 void m6809_get_state(M6809State *state);
 void m6809_set_state(M6809State *state);
-void m6809_jump(uint_least16_t pc);
+void m6809_jump(unsigned int pc);
 
 /* Old */
 void m6809_set_registers(uint8_t *regs);
