@@ -121,8 +121,8 @@
 		peek_byte(s); \
 	}
 
-#define INTERRUPT_REGISTER_PUSH(e) \
-	{ \
+#define INTERRUPT_REGISTER_PUSH(e) do { \
+		TAKEN_CYCLES(1); \
 		PUSHWORD(reg_s, reg_pc); \
 		if (e) { \
 			reg_cc |= CC_E; \
@@ -134,18 +134,24 @@
 			PUSHBYTE(reg_s, reg_a); \
 		} else { reg_cc &= ~CC_E; } \
 		PUSHBYTE(reg_s, reg_cc); \
-	}
+	} while (0)
 
-#define TEST_INTERRUPT(i,m,v,e,cm,cyc,nom) do { \
+#define TEST_INTERRUPT(i,m,v,e,cm) do { \
 		if (!skip_register_push) /* SYNC */ \
 			wait_for_interrupt = 0; \
 		if (!(reg_cc & m)) { \
 			IF_TRACE(LOG_DEBUG(0, "Interrupt " #i " taken\n")) \
 			wait_for_interrupt = 0; \
-			INTERRUPT_REGISTER_PUSH(e); \
+			if (!skip_register_push) { \
+				peek_byte(reg_pc); \
+				peek_byte(reg_pc); \
+				INTERRUPT_REGISTER_PUSH(e); \
+				TAKEN_CYCLES(1); \
+			} \
 			skip_register_push = 0; \
-			reg_cc |= (cm); reg_pc = fetch_word(v); \
-			TAKEN_CYCLES(cyc); \
+			reg_cc |= (cm); \
+			reg_pc = fetch_word(v); \
+			TAKEN_CYCLES(1); \
 		} \
 	} while (0)
 
@@ -165,6 +171,7 @@ static uint16_t reg_pc = 0;
 static int wait_for_interrupt = 0;
 static int skip_register_push = 0;
 static int nmi_armed = 0;
+static int halted = 0;
 
 #define reg_d ((reg_a&0xff) << 8 | (reg_b&0xff))
 #define set_reg_d(v) do { reg_a = ((v)>>8)&0xff; reg_b = (v)&0xff; } while (0)
@@ -290,7 +297,7 @@ void m6809_init(void) {
 }
 
 void m6809_reset(void) {
-	halt = nmi = firq = irq = 0;
+	halted = halt = nmi = firq = irq = 0;
 	DISARM_NMI;
 	wait_for_interrupt = 0;
 	skip_register_push = 0;
@@ -332,27 +339,28 @@ void m6809_cycle(Cycle until) {
 	uint_least16_t addr;
 	uint_least32_t result;
 
-	if (halt && !wait_for_interrupt) {
+	if (halted && halt) {
 		while ((int)(current_cycle - until) < 0)
 			TAKEN_CYCLES(1);
 		return;
 	}
 	if (nmi_armed && nmi) {
-		DISARM_NMI;
-		TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I, 7, "NMI");
+		/* DISARM_NMI; */
+		TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I);
 		/* NMI is latched.  Assume that means latched only on
 		 * high-to-low transition... */
 		nmi = 0;
 	}
 	if (firq) {
-		TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I, 7, "FIRQ");
+		TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I);
 		/* FIRQ and IRQ aren't latched: can remain set */
 	}
 	if (irq) {
-		TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I, 7, "IRQ");
+		TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I);
 		/* FIRQ and IRQ aren't latched: can remain set */
 	}
-	if (halt || wait_for_interrupt) {
+	halted = halt;
+	if (halted || wait_for_interrupt) {
 		while ((int)(current_cycle - until) < 0)
 			TAKEN_CYCLES(1);
 		return;
@@ -408,9 +416,9 @@ void m6809_cycle(Cycle until) {
 			case 0x12: peek_byte(reg_pc); break;
 			/* 0x13 SYNC inherent */
 			case 0x13:
-				wait_for_interrupt = 1;
 				peek_byte(reg_pc);
-				TAKEN_CYCLES(3);
+				wait_for_interrupt = 1;
+				TAKEN_CYCLES(1);
 				break;
 			/* 0x16 LBRA relative */
 			case 0x16: BRANCHL(1); break;
@@ -628,12 +636,11 @@ void m6809_cycle(Cycle until) {
 				break;
 			/* 0x3C CWAI immediate */
 			case 0x3c: {
-				unsigned int v;
-				BYTE_IMMEDIATE(0,v);
-				reg_cc &= v;
+				unsigned int data;
+				BYTE_IMMEDIATE(0,data);
+				reg_cc &= data;
 				peek_byte(reg_pc);
-				TAKEN_CYCLES(1);
-				//INTERRUPT_REGISTER_PUSH(1);
+				INTERRUPT_REGISTER_PUSH(1);
 				wait_for_interrupt = 1;
 				skip_register_push = 1;
 				TAKEN_CYCLES(1);
@@ -656,18 +663,9 @@ void m6809_cycle(Cycle until) {
 				break;
 			/* 0x3F SWI inherent */
 			case 0x3f:
-				reg_cc |= CC_E;
 				peek_byte(reg_pc);
-				TAKEN_CYCLES(1);
-				PUSHWORD(reg_s, reg_pc);
-				PUSHWORD(reg_s, reg_u);
-				PUSHWORD(reg_s, reg_y);
-				PUSHWORD(reg_s, reg_x);
-				PUSHBYTE(reg_s, reg_dp);
-				PUSHBYTE(reg_s, reg_b);
-				PUSHBYTE(reg_s, reg_a);
-				PUSHBYTE(reg_s, reg_cc);
-				reg_cc |= CC_F|CC_I;
+				INTERRUPT_REGISTER_PUSH(1);
+				reg_cc |= CC_F | CC_I;
 				TAKEN_CYCLES(1);
 				reg_pc = fetch_word(0xfffa);
 				TAKEN_CYCLES(1);
@@ -1079,17 +1077,8 @@ switched_block_page2:
 			case 0x2f: BRANCHL(N_EOR_V || (reg_cc & CC_Z)); break;
 			/* 0x103F SWI2 inherent */
 			case 0x3f:
-				reg_cc |= CC_E;
 				peek_byte(reg_pc);
-				TAKEN_CYCLES(1);
-				PUSHWORD(reg_s, reg_pc);
-				PUSHWORD(reg_s, reg_u);
-				PUSHWORD(reg_s, reg_y);
-				PUSHWORD(reg_s, reg_x);
-				PUSHBYTE(reg_s, reg_dp);
-				PUSHBYTE(reg_s, reg_b);
-				PUSHBYTE(reg_s, reg_a);
-				PUSHBYTE(reg_s, reg_cc);
+				INTERRUPT_REGISTER_PUSH(1);
 				TAKEN_CYCLES(1);
 				reg_pc = fetch_word(0xfff4);
 				TAKEN_CYCLES(1);
@@ -1152,17 +1141,8 @@ switched_block_page3:
 				goto switched_block_page3; break;
 			/* 0x113F SWI3 inherent */
 			case 0x3f:
-				reg_cc |= CC_E;
 				peek_byte(reg_pc);
-				TAKEN_CYCLES(1);
-				PUSHWORD(reg_s, reg_pc);
-				PUSHWORD(reg_s, reg_u);
-				PUSHWORD(reg_s, reg_y);
-				PUSHWORD(reg_s, reg_x);
-				PUSHBYTE(reg_s, reg_dp);
-				PUSHBYTE(reg_s, reg_b);
-				PUSHBYTE(reg_s, reg_a);
-				PUSHBYTE(reg_s, reg_cc);
+				INTERRUPT_REGISTER_PUSH(1);
 				TAKEN_CYCLES(1);
 				reg_pc = fetch_word(0xfff2);
 				TAKEN_CYCLES(1);
@@ -1202,6 +1182,7 @@ void m6809_get_state(M6809State *state) {
 	state->reg_s = reg_s;
 	state->reg_pc = reg_pc;
 	state->halt = halt;
+	state->halted = halted;
 	state->nmi = nmi;
 	state->firq = firq;
 	state->irq = irq;
@@ -1221,6 +1202,7 @@ void m6809_set_state(M6809State *state) {
 	reg_s = state->reg_s;
 	reg_pc = state->reg_pc;
 	halt = state->halt;
+	halted = state->halted;
 	nmi = state->nmi;
 	firq = state->firq;
 	irq = state->irq;
@@ -1231,15 +1213,25 @@ void m6809_set_state(M6809State *state) {
 
 /* Kept for old snapshots */
 void m6809_set_registers(uint8_t *regs) {
-	reg_cc = regs[0];
-	reg_a = regs[1];
-	reg_b = regs[2];
-	reg_dp = regs[3];
-	reg_x = regs[4] << 8 | regs[5];
-	reg_y = regs[6] << 8 | regs[7];
-	reg_u = regs[8] << 8 | regs[9];
-	reg_s = regs[10] << 8 | regs[11];
-	reg_pc = regs[12] << 8 | regs[13];
+	M6809State state;
+	state.reg_cc = regs[0];
+	state.reg_a = regs[1];
+	state.reg_b = regs[2];
+	state.reg_dp = regs[3];
+	state.reg_x = regs[4] << 8 | regs[5];
+	state.reg_y = regs[6] << 8 | regs[7];
+	state.reg_u = regs[8] << 8 | regs[9];
+	state.reg_s = regs[10] << 8 | regs[11];
+	state.reg_pc = regs[12] << 8 | regs[13];
+	state.wait_for_interrupt = 0;
+	state.skip_register_push = 0;
+	state.nmi_armed = 0;
+	state.halt = 0;
+	state.halted = 0;
+	state.nmi = 0;
+	state.firq = 0;
+	state.irq = 0;
+	m6809_set_state(&state);
 }
 
 void m6809_jump(unsigned int pc) {

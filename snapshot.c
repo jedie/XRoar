@@ -53,7 +53,7 @@
 #define ID_VDISK_FILE    (10)
 
 #define SNAPSHOT_VERSION_MAJOR 1
-#define SNAPSHOT_VERSION_MINOR 3
+#define SNAPSHOT_VERSION_MINOR 4
 
 int write_snapshot(const char *filename) {
 	int fd;
@@ -104,7 +104,7 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, PIA_1B.output_register);
 	fs_write_byte(fd, PIA_1B.control_register);
 	/* M6809 state */
-	fs_write_byte(fd, ID_M6809_STATE); fs_write_word16(fd, 21);
+	fs_write_byte(fd, ID_M6809_STATE); fs_write_word16(fd, 22);
 	m6809_get_state(&cpu_state);
 	fs_write_byte(fd, cpu_state.reg_cc);
 	fs_write_byte(fd, cpu_state.reg_a);
@@ -122,6 +122,7 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, cpu_state.wait_for_interrupt);
 	fs_write_byte(fd, cpu_state.skip_register_push);
 	fs_write_byte(fd, cpu_state.nmi_armed);
+	fs_write_byte(fd, cpu_state.halted);
 	/* SAM */
 	fs_write_byte(fd, ID_SAM_REGISTERS); fs_write_word16(fd, 2);
 	fs_write_word16(fd, sam_register);
@@ -234,6 +235,11 @@ int read_snapshot(const char *filename) {
 				cpu_state.irq &= 3;
 				m6809_set_state(&cpu_state);
 				size -= 21;
+				cpu_state.halted = cpu_state.halt;
+				if (size > 0) {
+					fs_read_byte(fd, &cpu_state.halted);
+					size--;
+				}
 				break;
 			case ID_MACHINECONFIG:
 				/* Machine running config */
