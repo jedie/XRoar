@@ -118,6 +118,7 @@ void rsdos_ff40_write(unsigned int octet) {
 		nmi = 1;
 	}
 	halt_enable = octet & 0x80;
+	if (intrq_flag) halt_enable = 0;
 	if (halt_enable && !drq_flag) {
 		halt = 1;
 	} else {
