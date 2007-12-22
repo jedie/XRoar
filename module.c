@@ -179,8 +179,10 @@ void module_shutdown(Module *module) {
 		module->common.shutdown();
 }
 
-void module_helptext(Module *module) {
+void module_helptext(Module *module, Module **others) {
 	if (module && module->common.helptext) {
 		module->common.helptext();
+	} else if (others) {
+		module_helptext(others[0], NULL);
 	}
 }

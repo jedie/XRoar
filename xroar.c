@@ -120,15 +120,15 @@ int xroar_init(int argc, char **argv) {
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");
-			module_helptext((Module *)ui_module);
-			module_helptext((Module *)filereq_module);
-			module_helptext((Module *)video_module);
-			module_helptext((Module *)sound_module);
-			module_helptext((Module *)keyboard_module);
-			module_helptext((Module *)joystick_module);
 			machine_helptext();
 			cart_helptext();
 			xroar_helptext();
+			module_helptext((Module *)ui_module, (Module **)ui_module_list);
+			module_helptext((Module *)filereq_module, (Module **)filereq_module_list);
+			module_helptext((Module *)video_module, (Module **)video_module_list);
+			module_helptext((Module *)sound_module, (Module **)sound_module_list);
+			module_helptext((Module *)keyboard_module, (Module **)keyboard_module_list);
+			module_helptext((Module *)joystick_module, (Module **)joystick_module_list);
 			exit(0);
 		} else if (!strcmp(argv[i], "--version")) {
 			printf("XRoar " VERSION "\n");

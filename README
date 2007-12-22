@@ -226,6 +226,7 @@ Here's a complete summary of supported command-line switches:
   -trace                start with trace mode on
   -h, --help            display this help and exit
       --version         output version information and exit
+  -keymap CODE          select host keyboard type (uk, us, fr, de)
 
 
 UNIX CONTROLS

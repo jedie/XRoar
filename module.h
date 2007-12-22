@@ -88,6 +88,6 @@ Module *module_select_by_arg(Module **list, const char *arg, int argc, char **ar
 Module *module_init(Module *module, int argc, char **argv);
 Module *module_init_from_list(Module **list, Module *module, int argc, char **argv);
 void module_shutdown(Module *module);
-void module_helptext(Module *module);
+void module_helptext(Module *module, Module **others);
 
 #endif  /* __MODULE_H__ */
