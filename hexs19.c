@@ -101,7 +101,7 @@ int intel_hex_read(char *filename) {
 int coco_bin_read(char *filename) {
 	int fd;
 	uint8_t tmp;
-	uint_least16_t length, load, exec;
+	unsigned int length, load, exec;
 	int r;
 	if (filename == NULL)
 		return -1;
@@ -115,7 +115,18 @@ int coco_bin_read(char *filename) {
 			fs_read_byte(fd, &tmp); load = (tmp << 8);
 			fs_read_byte(fd, &tmp); load |= tmp;
 			LOG_DEBUG(3,"\tLoading %d bytes to $%04x\n", length, load);
-			r = fs_read(fd, &addrptr_low[load], length);
+			if (load < 0x8000) {
+				unsigned int bytes = length;
+				if ((load + length) > 0x8000) {
+					bytes = 0x8000 - load;
+				}
+				r = fs_read(fd, &ram0[load], bytes);
+				load += bytes;
+				length -= bytes;
+			}
+			if (load >= 0x8000 && length > 0) {
+				r = fs_read(fd, &ram1[load-0x8000], length);
+			}
 			continue;
 		}
 		if (tmp == 0xff) {
