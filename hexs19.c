@@ -72,7 +72,7 @@ int intel_hex_read(char *filename) {
 		addr = read_word(fd);
 		type = read_byte(fd);
 		if (type == 0) {
-			LOG_DEBUG(3,"Loading %d bytes to %04x\n", length, addr);
+			LOG_DEBUG(3,"Loading $%x bytes to %04x\n", length, addr);
 		}
 		for (i = 0; i < length; i++) {
 			data = read_byte(fd);
@@ -114,7 +114,7 @@ int coco_bin_read(char *filename) {
 			fs_read_byte(fd, &tmp); length |= tmp;
 			fs_read_byte(fd, &tmp); load = (tmp << 8);
 			fs_read_byte(fd, &tmp); load |= tmp;
-			LOG_DEBUG(3,"\tLoading %d bytes to $%04x\n", length, load);
+			LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
 			if (load < 0x8000) {
 				unsigned int bytes = length;
 				if ((load + length) > 0x8000) {
