@@ -196,6 +196,7 @@ int halt, nmi, firq, irq;
 #define EA_RI2(b,r) case (b): ea = (r); r += 2; peek_byte(reg_pc); TAKEN_CYCLES(3)
 #define EA_RD1(b,r) case (b): r -= 1; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(2)
 #define EA_RD2(b,r) case (b): r -= 2; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(3)
+#define EA_PCOFFFF(b,r) case (b): ea = reg_pc | 0xff
 #define EA_PCOFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + reg_pc; TAKEN_CYCLES(1)
 #define EA_PCOFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += reg_pc; peek_byte(reg_pc); TAKEN_CYCLES(3)
 /* Illegal instruction, but seems to work on a real 6809: */
@@ -323,8 +324,10 @@ static unsigned int ea_indexed(void) {
 		EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94);
 		EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95);
 		EA_ALLR(EA_ROFFA,   0x86); EA_ALLRI(EA_ROFFA,   0x96);
+		EA_ALLR(EA_ROFF0,   0x87); EA_ALLRI(EA_ROFF0,   0x97);
 		EA_ALLR(EA_ROFF8,   0x88); EA_ALLRI(EA_ROFF8,   0x98);
 		EA_ALLR(EA_ROFF16,  0x89); EA_ALLRI(EA_ROFF16,  0x99);
+		EA_ALLR(EA_PCOFFFF, 0x8a); EA_ALLRI(EA_PCOFFFF, 0x9a);
 		EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
 		EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
 		EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
