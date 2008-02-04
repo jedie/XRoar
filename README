@@ -227,6 +227,10 @@ Here's a complete summary of supported command-line switches:
   -h, --help            display this help and exit
       --version         output version information and exit
   -keymap CODE          select host keyboard type (uk, us, fr, de)
+  -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB       [0,0:1:0]
+  -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB      [1,0:1:0]
+                        J = joystick number, A = axis number, B = button number
+                        a '-' before axis signifies inverted axis
 
 
 UNIX CONTROLS
@@ -274,11 +278,20 @@ In translation mode, characters typed on the host keyboard are translated
 into the correct keypresses required on the emulated machine to achieve
 the same character.
 
-Joystick support is very basic and unconfigurable at the moment, and is
-based on using a PS2 controller through a PS2-USB converter (although any
-joystick supported by the OS should work).  Alternatively, use joystick
-emulation (Ctrl+J) to simulate a joystick with the cursor keys, with
-Left Alt as fire.
+Joysticks can be mapped with the -joy-left and -joy-right options.
+The arguments are in the form of three pairs of numbers, each pair being
+in the format "<joystick-number>,<index>".  The pairs map the X axis,
+Y axis and fire button respectively, and the joystick number is optional
+if previously specified.  For example, "-joy-left 0,1:0:0" maps axes 1
+and 0 on joystick 0 to the X and Y axis on the left emulated joystick
+respectively.  Button 2 of joystick 0 is mapped to the left fire button.
+
+The default joystick mapping has changed from previous versions: to
+get the old mapping (suitable for use with a PS2 adapter), run with
+"-joy-left 0,3:2:0 -joy-right 0,0:1:1".
+
+If you have no real joysticks, you can use joystick emulation (Ctrl+J)
+to simulate a joystick with the cursor keys, with Left Alt as fire.
 
 Attaching a virtual cassette for writing will always truncate that file
 to zero bytes even if you don't then write anything, so be careful you

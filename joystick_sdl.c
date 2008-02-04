@@ -96,10 +96,9 @@ static struct joy *find_joy(int joy_num) {
 }
 
 static void helptext(void) {
-	puts("  -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB");
-	puts("  -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB");
-	puts("                        J = joystick number [left=0, right=1]");
-	puts("                        A = axis number, B = button number");
+	puts("  -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB       [0,0:1:0]");
+	puts("  -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB      [1,0:1:0]");
+	puts("                        J = joystick number, A = axis number, B = button number");
 	puts("                        a '-' before axis signifies inverted axis");
 }
 
@@ -222,12 +221,12 @@ static void do_poll(void *context) {
 	if (control[RIGHTY].joy) {
 		joystick_righty = ((SDL_JoystickGetAxis(control[RIGHTY].joy->device, control[RIGHTY].control_num)+32768) >> 8) ^ control[RIGHTY].invert;
 	}
-	if (control[LEFTFIRE].joy && SDL_JoystickGetButton(control[LEFTFIRE].joy->device, control[LEFTFIRE].control_num)) {
+	if (control[RIGHTFIRE].joy && SDL_JoystickGetButton(control[RIGHTFIRE].joy->device, control[RIGHTFIRE].control_num)) {
 		PIA_0A.tied_low &= 0xfe;
 	} else {
 		PIA_0A.tied_low |= 0x01;
 	}
-	if (control[RIGHTFIRE].joy && SDL_JoystickGetButton(control[RIGHTFIRE].joy->device, control[RIGHTFIRE].control_num)) {
+	if (control[LEFTFIRE].joy && SDL_JoystickGetButton(control[LEFTFIRE].joy->device, control[LEFTFIRE].control_num)) {
 		PIA_0A.tied_low &= 0xfd;
 	} else {
 		PIA_0A.tied_low |= 0x02;
