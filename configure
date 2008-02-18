@@ -17,7 +17,8 @@ build_gtk_config=auto
 _sdl=auto
 _sdlgl=auto
 _build_sdl=auto
-_gtk=auto
+_gtk2=auto
+_gtk1=auto
 _cli=yes
 _carbon=auto
 _oss=auto
@@ -59,7 +60,8 @@ System types:
 Optional Features:
   --disable-sdl         don't test for SDL
   --disable-sdlgl       don't test for SDL OpenGL support
-  --disable-gtk         don't test for GTK+
+  --disable-gtk2        don't test for GTK+-2
+  --disable-gtk1        don't test for GTK+-1
   --disable-carbon      don't test for Mac OS X Carbon
   --disable-oss         don't test for OSS audio
   --disable-sun         don't test for Sun audio
@@ -114,10 +116,15 @@ for opt do
 		sdl_libs="$_tmp/lib"
 		;;
 	--with-gtk-config=*) gtk_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--with-gtk=*)
+	--with-gtk2=*)
 		_tmp=`echo "$opt"|sed 's/^[^=]*=//'`
-		gtk_includes="$_tmp/include"
-		gtk_libs="$_tmp/lib"
+		gtk2_includes="$_tmp/include"
+		gtk2_libs="$_tmp/lib"
+		;;
+	--with-gtk1=*)
+		_tmp=`echo "$opt"|sed 's/^[^=]*=//'`
+		gtk1_includes="$_tmp/include"
+		gtk1_libs="$_tmp/lib"
 		;;
 	--with-pkg-config=*) target_pkg_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	-h|--help)
@@ -397,6 +404,30 @@ fi
 
 ########
 
+if test "$_gtk2" = "yes" -o "$_gtk2" = "auto"; then
+	echocheck GTK+-2
+	test -z "$gtk2_cflags" && gtk2_cflags=`$target_pkg_config --cflags gtk+-2.0 2> /dev/null`
+	test -z "$gtk2_ldflags" && gtk2_ldflags=`$target_pkg_config --libs gtk+-2.0 2> /dev/null`
+	cat > $TMPC <<EOF
+#include <gtk/gtk.h>
+int main(int argc, char **argv) { gtk_init(&argc, &argv); return 0; }
+EOF
+	_gtk2=no
+	target_cc_check "$gtk2_cflags" "$gtk2_ldflags" && _gtk2=yes
+	rm -f $TMPC
+	echo "$_gtk2"
+fi
+if test "$_gtk2" = "yes"; then
+	_gtk2_def="#define HAVE_GTK2"
+	_TARGET_CFLAGS="$_TARGET_CFLAGS $gtk2_cflags"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $gtk2_ldflags"
+	test "$_gtk1" = "auto" && _gtk1=no
+else
+	_gtk2_def="#undef HAVE_GTK2"
+fi
+
+########
+
 if test "$target_gtk_config" = "auto"; then
 	if ( $target-gtk-config --version ) > /dev/null 2>&1; then
 		target_gtk_config="$target-gtk-config"
@@ -414,27 +445,27 @@ if test "$build_gtk_config" = "auto"; then
 	fi
 fi
 
-if test "$_gtk" = "yes" -o "$_gtk" = "auto"; then
-	echocheck GTK+
-	test -z "$gtk_cflags" && gtk_cflags=`$target_gtk_config --cflags 2> /dev/null`
-	test -z "$gtk_cflags" && gtk_cflags=`$target_pkg_config --cflags gtk+ 2> /dev/null`
-	test -z "$gtk_ldflags" && gtk_ldflags=`$target_gtk_config --libs 2> /dev/null`
-	test -z "$gtk_ldflags" && gtk_ldflags=`$target_pkg_config --libs gtk+ 2> /dev/null`
+if test "$_gtk1" = "yes" -o "$_gtk1" = "auto"; then
+	echocheck GTK+-1
+	test -z "$gtk1_cflags" && gtk1_cflags=`$target_gtk_config --cflags 2> /dev/null`
+	test -z "$gtk1_cflags" && gtk1_cflags=`$target_pkg_config --cflags gtk+ 2> /dev/null`
+	test -z "$gtk1_ldflags" && gtk1_ldflags=`$target_gtk_config --libs 2> /dev/null`
+	test -z "$gtk1_ldflags" && gtk1_ldflags=`$target_pkg_config --libs gtk+ 2> /dev/null`
 	cat > $TMPC <<EOF
 #include <gtk/gtk.h>
 int main(int argc, char **argv) { gtk_init(&argc, &argv); return 0; }
 EOF
-	_gtk=no
-	target_cc_check "$gtk_cflags" "$gtk_ldflags" && _gtk=yes
+	_gtk1=no
+	target_cc_check "$gtk1_cflags" "$gtk1_ldflags" && _gtk1=yes
 	rm -f $TMPC
-	echo "$_gtk"
+	echo "$_gtk1"
 fi
-if test "$_gtk" = "yes"; then
-	_gtk_def="#define HAVE_GTK"
-	_TARGET_CFLAGS="$_TARGET_CFLAGS $gtk_cflags"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $gtk_ldflags"
+if test "$_gtk1" = "yes"; then
+	_gtk1_def="#define HAVE_GTK1"
+	_TARGET_CFLAGS="$_TARGET_CFLAGS $gtk1_cflags"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $gtk1_ldflags"
 else
-	_gtk_def="#undef HAVE_GTK"
+	_gtk1_def="#undef HAVE_GTK1"
 fi
 
 ########
@@ -717,7 +748,8 @@ BUILD_SDL_LDFLAGS = $build_sdl_ldflags
 CONFIG_SDL = $_sdl
 CONFIG_SDLGL = $_sdlgl
 CONFIG_BUILD_SDL = $_build_sdl
-CONFIG_GTK = $_gtk
+CONFIG_GTK2 = $_gtk2
+CONFIG_GTK1 = $_gtk1
 CONFIG_CLI = $_cli
 CONFIG_CARBON = $_carbon
 CONFIG_OSS = $_oss
@@ -746,8 +778,11 @@ $_sdl_def
 /* SDL OpenGL support? */
 $_sdlgl_def
 
-/* GTK+? */
-$_gtk_def
+/* GTK+-2? */
+$_gtk2_def
+
+/* GTK+-1? */
+$_gtk1_def
 
 /* CLI? */
 $_cli_def

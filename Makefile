@@ -100,10 +100,16 @@ ifeq ($(CONFIG_SDLGL),yes)
 	OBJS += $(OBJS_SDLGL)
 endif
 
-OBJS_GTK = filereq_gtk.o
-ALL_OBJS += $(OBJS_GTK)
-ifeq ($(CONFIG_GTK),yes)
-	OBJS += $(OBJS_GTK)
+OBJS_GTK2 = filereq_gtk2.o
+ALL_OBJS += $(OBJS_GTK2)
+ifeq ($(CONFIG_GTK2),yes)
+	OBJS += $(OBJS_GTK2)
+endif
+
+OBJS_GTK1 = filereq_gtk1.o
+ALL_OBJS += $(OBJS_GTK1)
+ifeq ($(CONFIG_GTK1),yes)
+	OBJS += $(OBJS_GTK1)
 endif
 
 OBJS_CLI = filereq_cli.o
@@ -332,158 +338,122 @@ depend:
 
 # DO NOT DELETE
 
-./cart.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h fs.h
-./cart.o: logging.h machine.h pia.h joystick.h keyboard.h m6809.h module.h
-./cart.o: tape.h vdg.h xroar.h cart.h
+./cart.o: types.h config.h events.h fs.h logging.h machine.h pia.h joystick.h
+./cart.o: keyboard.h m6809.h module.h tape.h vdg.h xroar.h cart.h
 ./common_windows32.o: common_windows32.h
-./crc16.o: types.h config.h gp32/types.h gp32/gplib.h types.h crc16.h
-./deltados.o: types.h config.h gp32/types.h gp32/gplib.h types.h deltados.h
-./deltados.o: logging.h vdrive.h vdisk.h wd279x.h xroar.h
-./dragondos.o: types.h config.h gp32/types.h gp32/gplib.h types.h dragondos.h
-./dragondos.o: events.h logging.h m6809.h machine.h pia.h joystick.h
-./dragondos.o: keyboard.h module.h tape.h vdg.h vdrive.h vdisk.h wd279x.h
-./dragondos.o: xroar.h
-./events.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./events.o: events.h
-./filereq_carbon.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./filereq_carbon.o: logging.h module.h
-./filereq_cli.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./filereq_cli.o: fs.h module.h
-./filereq_gtk.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./filereq_gtk.o: fs.h module.h
-./filereq_windows32.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./filereq_windows32.o: logging.h fs.h module.h common_windows32.h
-./fs_gp32.o: fs.h types.h config.h gp32/types.h gp32/gplib.h types.h
-./fs_nds.o: types.h config.h gp32/types.h gp32/gplib.h types.h fs.h
-./fs_unix.o: types.h config.h gp32/types.h gp32/gplib.h types.h fs.h
-./gp32/gpchatboard.o: ./gp32/gp32.h ./gp32/keydefines.h types.h
+./crc16.o: types.h config.h crc16.h
+./deltados.o: types.h config.h deltados.h logging.h vdrive.h vdisk.h wd279x.h
+./deltados.o: xroar.h
+./dragondos.o: types.h config.h dragondos.h events.h logging.h m6809.h
+./dragondos.o: machine.h pia.h joystick.h keyboard.h module.h tape.h vdg.h
+./dragondos.o: vdrive.h vdisk.h wd279x.h xroar.h
+./events.o: types.h config.h logging.h events.h
+./filereq_carbon.o: types.h config.h logging.h module.h
+./filereq_cli.o: types.h config.h logging.h fs.h module.h
+./filereq_gtk1.o: types.h config.h logging.h fs.h module.h
+./filereq_windows32.o: types.h config.h logging.h fs.h module.h
+./filereq_windows32.o: common_windows32.h
+./fs_gp32.o: fs.h types.h config.h
+./fs_nds.o: types.h config.h fs.h
+./fs_unix.o: types.h config.h fs.h
+./gp32/gpchatboard.o: ./gp32/gp32.h ./gp32/keydefines.h ./types.h config.h
 ./gp32/gpchatboard.o: ./gp32/gpchatboard.h
-./gp32/gpgfx.o: types.h ./gp32/gpgfx.h
+./gp32/gpgfx.o: ./types.h config.h ./gp32/gpgfx.h
 ./gp32/gpkeypad.o: ./gp32/gp32.h ./gp32/gpkeypad.h
-./gp32/gplib.o: types.h
-./gp32/gpsound.o: ./gp32/gp32.h ./gp32/udaiis.h types.h ./gp32/gpsound.h
-./gp32/udaiis.o: types.h ./gp32/udaiis.h ./gp32/gp32.h
-./hexs19.o: types.h config.h gp32/types.h gp32/gplib.h types.h sam.h
-./hexs19.o: logging.h fs.h m6809.h hexs19.h machine.h
-./joystick.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./joystick.o: module.h pia.h joystick.h keyboard.h m6809.h tape.h vdg.h
-./joystick_sdl.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./joystick_sdl.o: joystick.h logging.h machine.h module.h pia.h keyboard.h
-./joystick_sdl.o: m6809.h tape.h vdg.h
-./keyboard.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./keyboard.o: keyboard.h logging.h machine.h pia.h joystick.h m6809.h
-./keyboard.o: module.h tape.h vdg.h
-./keyboard_gp32.o: gp32/gp32.h gp32/gpgfx.h types.h gp32/gpkeypad.h
-./keyboard_gp32.o: gp32/gpchatboard.h types.h config.h gp32/types.h
-./keyboard_gp32.o: gp32/gplib.h logging.h events.h joystick.h keyboard.h
-./keyboard_gp32.o: machine.h module.h pia.h m6809.h tape.h vdg.h snapshot.h
-./keyboard_gp32.o: xroar.h
-./keyboard_sdl.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./keyboard_sdl.o: logging.h cart.h events.h hexs19.h joystick.h keyboard.h
-./keyboard_sdl.o: machine.h module.h pia.h m6809.h tape.h vdg.h snapshot.h
-./keyboard_sdl.o: vdisk.h vdrive.h xroar.h keyboard_sdl_mappings.c
-./m6809.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./m6809.o: m6809.h m6809_dasm.h machine.h sam.h xroar.h
-./m6809_dasm.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./m6809_dasm.o: m6809_dasm.h
-./machine.o: types.h config.h gp32/types.h gp32/gplib.h types.h cart.h
-./machine.o: deltados.h dragondos.h fs.h keyboard.h logging.h m6809.h
-./machine.o: machine.h pia.h joystick.h module.h tape.h vdg.h rsdos.h sam.h
-./machine.o: vdrive.h vdisk.h wd279x.h xroar.h
-./main_gp32.o: gp32/gpgfx.h types.h types.h config.h gp32/types.h
-./main_gp32.o: gp32/gplib.h xroar.h
-./main_nds7.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./main_nds9.o: config.h xroar.h types.h gp32/types.h gp32/gplib.h types.h
-./main_nds9.o: logging.h
-./main_unix.o: config.h xroar.h types.h gp32/types.h gp32/gplib.h types.h
-./main_unix.o: logging.h
-./module.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./module.o: module.h
-./nds/ndsgfx.o: types.h ./nds/ndsgfx.h
-./nds/ndsui.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./nds/ndsui.o: module.h nds/ndsui.h nds/ndsgfx.h
-./nds/ndsui_button.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./nds/ndsui_button.o: logging.h module.h nds/ndsgfx.h nds/ndsui.h
-./nds/ndsui_button.o: nds/ndsui_button.h
-./nds/ndsui_filelist.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./nds/ndsui_filelist.o: logging.h module.h nds/ndsgfx.h nds/ndsui.h
-./nds/ndsui_filelist.o: nds/ndsui_filelist.h
-./nds/ndsui_keyboard.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./nds/ndsui_keyboard.o: logging.h module.h nds/ndsgfx.h nds/ndsui.h
-./nds/ndsui_keyboard.o: nds/ndsui_keyboard.h
-./nds/ndsui_scrollbar.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./nds/ndsui_scrollbar.o: logging.h module.h nds/ndsgfx.h nds/ndsui.h
-./nds/ndsui_scrollbar.o: nds/ndsui_scrollbar.h
-./pia.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h m6809.h
-./pia.o: machine.h xroar.h pia.h joystick.h keyboard.h module.h tape.h vdg.h
-./rsdos.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./rsdos.o: logging.h m6809.h machine.h rsdos.h vdrive.h vdisk.h wd279x.h
-./rsdos.o: xroar.h
-./sam.o: types.h config.h gp32/types.h gp32/gplib.h types.h deltados.h
-./sam.o: dragondos.h joystick.h keyboard.h logging.h machine.h pia.h m6809.h
-./sam.o: module.h tape.h vdg.h rsdos.h sam.h wd279x.h xroar.h
-./snapshot.o: types.h config.h gp32/types.h gp32/gplib.h types.h fs.h
-./snapshot.o: logging.h m6809.h machine.h pia.h joystick.h keyboard.h
-./snapshot.o: module.h tape.h vdg.h sam.h snapshot.h vdisk.h vdrive.h xroar.h
-./sound_gp32.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./sound_gp32.o: machine.h module.h pia.h joystick.h keyboard.h m6809.h tape.h
-./sound_gp32.o: vdg.h sound_gp32.h xroar.h gp32/gpsound.h gp32/gp32.h
-./sound_jack.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./sound_jack.o: logging.h machine.h pia.h joystick.h keyboard.h m6809.h
-./sound_jack.o: module.h tape.h vdg.h xroar.h
-./sound_macosx.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./sound_macosx.o: logging.h events.h machine.h module.h pia.h joystick.h
-./sound_macosx.o: keyboard.h m6809.h tape.h vdg.h xroar.h
-./sound_null.o: config.h types.h gp32/types.h gp32/gplib.h types.h logging.h
-./sound_null.o: events.h machine.h module.h xroar.h
-./sound_oss.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./sound_oss.o: logging.h machine.h module.h pia.h joystick.h keyboard.h
-./sound_oss.o: m6809.h tape.h vdg.h xroar.h
-./sound_sdl.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./sound_sdl.o: logging.h machine.h module.h pia.h joystick.h keyboard.h
-./sound_sdl.o: m6809.h tape.h vdg.h xroar.h
-./sound_sun.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./sound_sun.o: logging.h machine.h module.h pia.h joystick.h keyboard.h
-./sound_sun.o: m6809.h tape.h vdg.h xroar.h
-./tape.o: config.h types.h gp32/types.h gp32/gplib.h types.h events.h fs.h
-./tape.o: logging.h machine.h pia.h joystick.h keyboard.h m6809.h module.h
-./tape.o: tape.h vdg.h xroar.h
-./tools/prerender.o: ./vdg_bitmaps.c
-./ui_gp32.o: types.h config.h gp32/types.h gp32/gplib.h types.h gp32/gp32.h
-./ui_gp32.o: gp32/gpgfx.h gp32/gpkeypad.h gp32/gpchatboard.h cart.h fs.h
-./ui_gp32.o: hexs19.h keyboard.h machine.h module.h snapshot.h sound_gp32.h
-./ui_gp32.o: tape.h vdg.h vdisk.h vdrive.h xroar.h
-./ui_nds.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./ui_nds.o: hexs19.h keyboard.h logging.h machine.h module.h snapshot.h
-./ui_nds.o: tape.h vdisk.h vdrive.h xroar.h nds/ndsgfx.h nds/ndsui.h
-./ui_nds.o: nds/ndsui_button.h nds/ndsui_filelist.h nds/ndsui_keyboard.h
-./ui_nds.o: nds/ndsui_scrollbar.h
-./ui_sdl.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./ui_sdl.o: module.h
-./vdg.o: types.h config.h gp32/types.h gp32/gplib.h types.h events.h
-./vdg.o: logging.h m6809.h machine.h pia.h joystick.h keyboard.h module.h
-./vdg.o: tape.h vdg.h sam.h xroar.h
-./vdisk.o: types.h config.h gp32/types.h gp32/gplib.h types.h crc16.h fs.h
-./vdisk.o: logging.h module.h vdisk.h xroar.h
-./vdrive.o: types.h config.h gp32/types.h gp32/gplib.h types.h crc16.h
-./vdrive.o: events.h logging.h machine.h vdisk.h vdrive.h xroar.h
-./video_generic_ops.o: machine.h types.h config.h gp32/types.h gp32/gplib.h
-./video_generic_ops.o: types.h
-./video_gp32.o: gp32/gpgfx.h types.h types.h config.h gp32/types.h
-./video_gp32.o: gp32/gplib.h module.h sam.h xroar.h gp32/vdg_bitmaps_gp32.c
-./video_nds.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./video_nds.o: module.h sam.h vdg.h xroar.h
-./video_sdl.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./video_sdl.o: module.h sam.h ui_sdl.h vdg.h xroar.h video_generic_ops.c
-./video_sdl.o: machine.h
-./video_sdlgl.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./video_sdlgl.o: module.h sam.h ui_sdl.h vdg.h xroar.h video_generic_ops.c
-./video_sdlgl.o: machine.h
-./video_sdlyuv.o: types.h config.h gp32/types.h gp32/gplib.h types.h
-./video_sdlyuv.o: logging.h module.h sam.h ui_sdl.h vdg.h xroar.h
-./video_sdlyuv.o: video_generic_ops.c machine.h
-./wd279x.o: types.h config.h gp32/types.h gp32/gplib.h types.h crc16.h
-./wd279x.o: events.h logging.h machine.h vdrive.h vdisk.h wd279x.h xroar.h
-./xroar.o: types.h config.h gp32/types.h gp32/gplib.h types.h logging.h
-./xroar.o: cart.h events.h fs.h m6809.h machine.h module.h pia.h joystick.h
-./xroar.o: keyboard.h tape.h vdg.h sam.h snapshot.h xroar.h
+./gp32/gplib.o: ./types.h config.h
+./gp32/gpsound.o: ./gp32/gp32.h ./gp32/udaiis.h ./types.h config.h
+./gp32/gpsound.o: ./gp32/gpsound.h
+./gp32/udaiis.o: ./types.h config.h ./gp32/udaiis.h ./gp32/gp32.h
+./hexs19.o: types.h config.h sam.h logging.h fs.h m6809.h hexs19.h machine.h
+./joystick.o: types.h config.h logging.h module.h pia.h joystick.h keyboard.h
+./joystick.o: m6809.h tape.h vdg.h
+./joystick_sdl.o: types.h config.h events.h joystick.h logging.h machine.h
+./joystick_sdl.o: module.h pia.h keyboard.h m6809.h tape.h vdg.h
+./keyboard.o: types.h config.h events.h keyboard.h logging.h machine.h pia.h
+./keyboard.o: joystick.h m6809.h module.h tape.h vdg.h
+./keyboard_gp32.o: gp32/gp32.h gp32/gpgfx.h ./types.h config.h
+./keyboard_gp32.o: gp32/gpkeypad.h gp32/gpchatboard.h types.h logging.h
+./keyboard_gp32.o: events.h joystick.h keyboard.h machine.h module.h pia.h
+./keyboard_gp32.o: m6809.h tape.h vdg.h snapshot.h xroar.h
+./keyboard_sdl.o: types.h config.h logging.h cart.h events.h hexs19.h
+./keyboard_sdl.o: joystick.h keyboard.h machine.h module.h pia.h m6809.h
+./keyboard_sdl.o: tape.h vdg.h snapshot.h vdisk.h vdrive.h xroar.h
+./keyboard_sdl.o: keyboard_sdl_mappings.c
+./m6809.o: types.h config.h logging.h m6809.h m6809_dasm.h machine.h sam.h
+./m6809.o: xroar.h
+./m6809_dasm.o: types.h config.h logging.h m6809_dasm.h
+./machine.o: types.h config.h cart.h deltados.h dragondos.h fs.h keyboard.h
+./machine.o: logging.h m6809.h machine.h pia.h joystick.h module.h tape.h
+./machine.o: vdg.h rsdos.h sam.h vdrive.h vdisk.h wd279x.h xroar.h
+./main_gp32.o: gp32/gpgfx.h ./types.h config.h types.h xroar.h
+./main_nds7.o: types.h config.h
+./main_nds9.o: config.h xroar.h types.h logging.h
+./main_unix.o: config.h xroar.h types.h logging.h
+./module.o: types.h config.h logging.h module.h
+./nds/ndsgfx.o: ./types.h config.h ./nds/ndsgfx.h
+./nds/ndsui.o: types.h config.h logging.h module.h nds/ndsui.h nds/ndsgfx.h
+./nds/ndsui.o: ./types.h
+./nds/ndsui_button.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_button.o: ./types.h nds/ndsui.h nds/ndsui_button.h
+./nds/ndsui_filelist.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_filelist.o: ./types.h nds/ndsui.h nds/ndsui_filelist.h
+./nds/ndsui_keyboard.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_keyboard.o: ./types.h nds/ndsui.h nds/ndsui_keyboard.h
+./nds/ndsui_scrollbar.o: types.h config.h logging.h module.h nds/ndsgfx.h
+./nds/ndsui_scrollbar.o: ./types.h nds/ndsui.h nds/ndsui_scrollbar.h
+./pia.o: types.h config.h logging.h m6809.h machine.h xroar.h pia.h
+./pia.o: joystick.h keyboard.h module.h tape.h vdg.h
+./rsdos.o: types.h config.h events.h logging.h m6809.h machine.h rsdos.h
+./rsdos.o: vdrive.h vdisk.h wd279x.h xroar.h
+./sam.o: types.h config.h deltados.h dragondos.h joystick.h keyboard.h
+./sam.o: logging.h machine.h pia.h m6809.h module.h tape.h vdg.h rsdos.h
+./sam.o: sam.h wd279x.h xroar.h
+./snapshot.o: types.h config.h fs.h logging.h m6809.h machine.h pia.h
+./snapshot.o: joystick.h keyboard.h module.h tape.h vdg.h sam.h snapshot.h
+./snapshot.o: vdisk.h vdrive.h xroar.h
+./sound_gp32.o: types.h config.h events.h machine.h module.h pia.h joystick.h
+./sound_gp32.o: keyboard.h m6809.h tape.h vdg.h sound_gp32.h xroar.h
+./sound_gp32.o: gp32/gpsound.h ./types.h gp32/gp32.h
+./sound_jack.o: types.h config.h events.h logging.h machine.h pia.h
+./sound_jack.o: joystick.h keyboard.h m6809.h module.h tape.h vdg.h xroar.h
+./sound_macosx.o: types.h config.h logging.h events.h machine.h module.h
+./sound_macosx.o: pia.h joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
+./sound_null.o: config.h types.h logging.h events.h machine.h module.h
+./sound_null.o: xroar.h
+./sound_oss.o: types.h config.h events.h logging.h machine.h module.h pia.h
+./sound_oss.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
+./sound_sdl.o: types.h config.h events.h logging.h machine.h module.h pia.h
+./sound_sdl.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
+./sound_sun.o: types.h config.h events.h logging.h machine.h module.h pia.h
+./sound_sun.o: joystick.h keyboard.h m6809.h tape.h vdg.h xroar.h
+./tape.o: config.h types.h events.h fs.h logging.h machine.h pia.h joystick.h
+./tape.o: keyboard.h m6809.h module.h tape.h vdg.h xroar.h
+./ui_gp32.o: types.h config.h gp32/gp32.h gp32/gpgfx.h ./types.h
+./ui_gp32.o: gp32/gpkeypad.h gp32/gpchatboard.h cart.h fs.h hexs19.h
+./ui_gp32.o: keyboard.h machine.h module.h snapshot.h sound_gp32.h tape.h
+./ui_gp32.o: vdg.h vdisk.h vdrive.h xroar.h
+./ui_nds.o: types.h config.h events.h hexs19.h keyboard.h logging.h machine.h
+./ui_nds.o: module.h snapshot.h tape.h vdisk.h vdrive.h xroar.h nds/ndsgfx.h
+./ui_nds.o: ./types.h nds/ndsui.h nds/ndsui_button.h nds/ndsui_filelist.h
+./ui_nds.o: nds/ndsui_keyboard.h nds/ndsui_scrollbar.h
+./ui_sdl.o: types.h config.h logging.h module.h
+./vdg.o: types.h config.h events.h logging.h m6809.h machine.h pia.h
+./vdg.o: joystick.h keyboard.h module.h tape.h vdg.h sam.h xroar.h
+./vdisk.o: types.h config.h crc16.h fs.h logging.h module.h vdisk.h xroar.h
+./vdrive.o: types.h config.h crc16.h events.h logging.h machine.h vdisk.h
+./vdrive.o: vdrive.h xroar.h
+./video_generic_ops.o: machine.h types.h config.h
+./video_gp32.o: gp32/gpgfx.h ./types.h config.h types.h module.h sam.h
+./video_gp32.o: xroar.h
+./video_nds.o: types.h config.h logging.h module.h sam.h vdg.h xroar.h
+./video_sdl.o: types.h config.h logging.h module.h sam.h ui_sdl.h vdg.h
+./video_sdl.o: xroar.h video_generic_ops.c machine.h
+./video_sdlgl.o: types.h config.h logging.h module.h sam.h ui_sdl.h vdg.h
+./video_sdlgl.o: xroar.h video_generic_ops.c machine.h
+./video_sdlyuv.o: types.h config.h logging.h module.h sam.h ui_sdl.h vdg.h
+./video_sdlyuv.o: xroar.h video_generic_ops.c machine.h
+./wd279x.o: types.h config.h crc16.h events.h logging.h machine.h vdrive.h
+./wd279x.o: vdisk.h wd279x.h xroar.h
+./xroar.o: types.h config.h logging.h cart.h events.h fs.h m6809.h machine.h
+./xroar.o: module.h pia.h joystick.h keyboard.h tape.h vdg.h sam.h snapshot.h
+./xroar.o: xroar.h

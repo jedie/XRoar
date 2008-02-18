@@ -33,8 +33,8 @@ static void shutdown(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
-FileReqModule filereq_gtk_module = {
-	{ "gtk", "GTK+ file requester",
+FileReqModule filereq_gtk1_module = {
+	{ "gtk1", "GTK+-1 file requester",
 	  init, 0, shutdown, NULL },
 	load_filename, save_filename
 };
@@ -44,7 +44,7 @@ static char *filename = NULL;
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
-	LOG_DEBUG(2, "GTK+ file requester selected.\n");
+	LOG_DEBUG(2, "GTK+-1 file requester selected.\n");
 	gtk_init(NULL, NULL);
 	return 0;
 }
