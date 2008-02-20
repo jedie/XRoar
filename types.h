@@ -7,6 +7,7 @@
 #define __TYPES_H__
 
 #include "config.h"
+#include "portalib.h"
 
 #ifdef HAVE_GP32  /* GP32 types & macros */
 

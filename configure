@@ -14,6 +14,7 @@ target_gtk_config=auto
 build_gtk_config=auto
 
 #_c_nested_funcs=auto
+_strsep=auto
 _sdl=auto
 _sdlgl=auto
 _build_sdl=auto
@@ -290,6 +291,25 @@ if test "$_c_pipe" = "yes"; then
 	_TARGET_CFLAGS="$_TARGET_CFLAGS -pipe"
 fi
 rm -f $TMPC
+
+########
+
+if test "$_strsep" = "auto"; then
+	echocheck "strsep()"
+	cat > $TMPC <<EOF
+#include <string.h>
+int main(int argc, char **argv) { (void)strsep(0,0); }
+EOF
+	_strsep=no
+	target_cc_check "" "" && _strsep=yes
+	rm -f $TMPC
+	echo "$_strsep"
+fi
+if test "$_strsep" = "yes"; then
+	_strsep_def="#undef NEED_STRSEP"
+else
+	_strsep_def="#define NEED_STRSEP"
+fi
 
 ########
 
@@ -771,6 +791,9 @@ echo "Creating config.h"
 cat > config.h <<EOF
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
+
+/* Various libc features? */
+$_strsep_def
 
 /* SDL? */
 $_sdl_def
