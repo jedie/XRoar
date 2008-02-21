@@ -20,8 +20,6 @@
 #include "logging.h"
 #include "m6809.h"
 #include "m6809_dasm.h"
-#include "machine.h"
-#include "sam.h"
 #include "xroar.h"
 
 /* Condition Code manipulation macros */
@@ -61,11 +59,11 @@
 #define SET_NZ_D() do { SET_N8(reg_a); if (!reg_a && !reg_b) reg_cc |= CC_Z; } while (0)
 
 /* CPU fetch/store goes via SAM */
-#define fetch_byte(a) (sam_read_byte(a))
+#define fetch_byte(a) m6809_read_cycle(a)
 #define fetch_word(a) (fetch_byte(a) << 8 | fetch_byte((a)+1))
-#define store_byte(a,v) do { sam_store_byte((a),(v)); } while (0)
+#define store_byte(a,v) m6809_write_cycle(a,v)
 /* This one only used to try and get correct timing: */
-#define peek_byte(a) sam_peek_byte(a)
+#define peek_byte(a) m6809_discard_read_cycle(a)
 
 #define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); IF_TRACE(m6809_dasm_byte(a & 0xff, reg_pc)) reg_pc += 1; TAKEN_CYCLES(1); } while (0)
 #define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); IF_TRACE(m6809_dasm_byte(a >> 8, reg_pc); m6809_dasm_byte(a & 0xff, reg_pc + 1)) reg_pc += 2; TAKEN_CYCLES(1); } while (0)
@@ -84,7 +82,7 @@
 #define SHORT_RELATIVE(r)	{ BYTE_IMMEDIATE(0,r); r = sex(r); }
 #define LONG_RELATIVE(r)	WORD_IMMEDIATE(0,r)
 
-#define TAKEN_CYCLES(c) current_cycle += ((c) * sam_topaddr_cycles)
+#define TAKEN_CYCLES(c) m6809_nvma_cycles(c)
 
 #define PUSHWORD(s,r)	{ s -= 2; store_byte(s+1, r & 0xff); store_byte(s, r >> 8); }
 #define PUSHBYTE(s,r)	{ s--; store_byte(s, r); }
@@ -342,32 +340,28 @@ void m6809_cycle(Cycle until) {
 	uint_least16_t addr;
 	uint_least32_t result;
 
-	if (halted && halt) {
-		while ((int)(current_cycle - until) < 0)
-			TAKEN_CYCLES(1);
-		return;
+	while (halted && halt) {
+		if ((int)(current_cycle - until) >= 0)
+			return;
+		TAKEN_CYCLES(1);
 	}
-	if (nmi_armed && nmi) {
-		/* DISARM_NMI; */
-		TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I);
-		/* NMI is latched.  Assume that means latched only on
-		 * high-to-low transition... */
-		nmi = 0;
-	}
-	if (firq) {
-		TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I);
-		/* FIRQ and IRQ aren't latched: can remain set */
-	}
-	if (irq) {
-		TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I);
-		/* FIRQ and IRQ aren't latched: can remain set */
-	}
-	halted = halt;
-	if (halted || wait_for_interrupt) {
-		while ((int)(current_cycle - until) < 0)
-			TAKEN_CYCLES(1);
-		return;
-	}
+	do {
+		if (nmi_armed && nmi) {
+			/* DISARM_NMI? */
+			TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I);
+			nmi = 0;
+		}
+		if (firq) {
+			TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I);
+		}
+		if (irq) {
+			TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I);
+		}
+		halted = halt;
+		if ((int)(current_cycle - until) >= 0)
+			return;
+		TAKEN_CYCLES(1);
+	} while (halted || wait_for_interrupt);
 
 	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt && !halt) {
 		unsigned int op;

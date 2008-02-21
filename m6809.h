@@ -7,6 +7,8 @@
 #define __M6809_H__
 
 #include "types.h"
+#include "sam.h"
+#include "machine.h"
 
 typedef struct {
 	uint8_t reg_cc, reg_a, reg_b, reg_dp;
@@ -27,7 +29,25 @@ void m6809_get_state(M6809State *state);
 void m6809_set_state(M6809State *state);
 void m6809_jump(unsigned int pc);
 
-/* Old */
+/*** Old ***/
+
 void m6809_set_registers(uint8_t *regs);
+
+/*** Private ***/
+
+/* Current cycle */
+#define m6809_current_cycle current_cycle
+
+/* Returns result of a byte read cycle */
+#define m6809_read_cycle(a) sam_read_byte(a)
+
+/* For where the CPU will discard the result of a read */
+#define m6809_discard_read_cycle(a) sam_peek_byte(a)
+
+/* Performs a byte write cycle */
+#define m6809_write_cycle(a,v) do { sam_store_byte((a),(v)); } while (0)
+
+/* Non valid memory access ("busy") cycles */
+#define m6809_nvma_cycles(c) current_cycle += ((c) * sam_topaddr_cycles)
 
 #endif  /* __M6809_H__ */
