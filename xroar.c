@@ -42,6 +42,8 @@ int video_artifact_mode = 0;
 int trace = 0;
 #endif
 
+event_t *xroar_ui_events = NULL;
+
 static const char *snapshot_load = NULL;
 
 static struct {
@@ -191,9 +193,9 @@ void xroar_shutdown(void) {
 
 void xroar_mainloop(void) {
 	while (1) {
-		while (EVENT_PENDING)
-			DISPATCH_NEXT_EVENT;
-		m6809_cycle(event_list->at_cycle);
+		while (EVENT_PENDING(xroar_ui_events))
+			DISPATCH_NEXT_EVENT(xroar_ui_events);
+		m6809_cycle(xroar_ui_events->at_cycle);
 	}
 }
 

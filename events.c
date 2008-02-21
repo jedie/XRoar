@@ -33,6 +33,7 @@ event_t *event_new(void) {
 	new->dispatch = NULL;
 	new->context = NULL;
 	new->queued = 0;
+	new->list = NULL;
 	new->next = NULL;
 	return new;
 }
@@ -42,12 +43,12 @@ void event_free(event_t *event) {
 	free(event);
 }
 
-void event_queue(event_t *event) {
+void event_queue(event_t **list, event_t *event) {
 	event_t **entry;
 	if (event->queued)
 		event_dequeue(event);
 	event->queued = 1;
-	for (entry = &event_list; *entry; entry = &((*entry)->next)) {
+	for (entry = list; *entry; entry = &((*entry)->next)) {
 		if ((int)((*entry)->at_cycle - event->at_cycle) > 0) {
 			event->next = *entry;
 			*entry = event;
@@ -55,17 +56,21 @@ void event_queue(event_t *event) {
 		}
 	}
 	*entry = event;
+	event->list = list;
 	event->next = NULL;
 }
 
 void event_dequeue(event_t *event) {
-	event_t **entry = &event_list;
+	event_t **list = event->list;
+	event_t **entry;
 	event->queued = 0;
-	if (*entry == event) {
-		event_list = event->next;
+	if (list == NULL)
+		return;
+	if (*list == event) {
+		*list = event->next;
 		return;
 	}
-	for (entry = &event_list; *entry; entry = &((*entry)->next)) {
+	for (entry = list; *entry; entry = &((*entry)->next)) {
 		if ((*entry)->next == event) {
 			(*entry)->next = event->next;
 			return;

@@ -64,6 +64,8 @@ void sam_reset(void) {
 
 unsigned int sam_read_byte(uint_least16_t addr) {
 	unsigned int ret;
+	while (EVENT_PENDING(event_list))
+		DISPATCH_NEXT_EVENT(event_list);
 	addr &= 0xffff;
 	if (addr < 0x8000) {
 		current_cycle += CPU_SLOW_DIVISOR;
@@ -135,6 +137,8 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 }
 
 void sam_store_byte(uint_least16_t addr, unsigned int octet) {
+	while (EVENT_PENDING(event_list))
+		DISPATCH_NEXT_EVENT(event_list);
 	addr &= 0xffff;
 	if (addr < 0x8000) {
 		current_cycle += CPU_SLOW_DIVISOR;

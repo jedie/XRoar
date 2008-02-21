@@ -25,6 +25,7 @@
 #include "machine.h"
 #include "module.h"
 #include "pia.h"
+#include "xroar.h"
 
 static int init(int argc, char **argv);
 static void shutdown(void);
@@ -189,7 +190,7 @@ static int init(int argc, char **argv) {
 	/* No point scheduling joystick reads if we don't have any */
 	if (valid) {
 		poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-		event_queue(poll_event); 
+		event_queue(&xroar_ui_events, poll_event);
 	} else {
 		LOG_WARN("No valid joystick mappings made.\n");
 	}
@@ -233,5 +234,5 @@ static void do_poll(void *context) {
 	}
 	joystick_update();
 	poll_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(poll_event);
+	event_queue(&xroar_ui_events, poll_event);
 }

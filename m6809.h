@@ -50,4 +50,10 @@ void m6809_set_registers(uint8_t *regs);
 /* Non valid memory access ("busy") cycles */
 #define m6809_nvma_cycles(c) current_cycle += ((c) * sam_topaddr_cycles)
 
+/* Ensure all outside events are complete up to current cycle */
+#define m6809_sync() do { \
+		while (EVENT_PENDING(event_list)) \
+			DISPATCH_NEXT_EVENT(event_list); \
+	} while (0)
+
 #endif  /* __M6809_H__ */

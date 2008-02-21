@@ -66,7 +66,7 @@ void vdg_reset(void) {
 	scanline = 0;
 	scanline_start = current_cycle;
 	hs_fall_event->at_cycle = current_cycle + VDG_LINE_DURATION;
-	event_queue(hs_fall_event);
+	event_queue(&event_list, hs_fall_event);
 	vdg_set_mode();
 	beam_pos = 0;
 #ifndef FAST_VDG
@@ -111,7 +111,7 @@ static void do_hs_fall(void *context) {
 #else
 	/* Everything else schedule HS rise for later */
 	hs_rise_event->at_cycle = scanline_start + VDG_HS_RISING_EDGE;
-	event_queue(hs_rise_event);
+	event_queue(&event_list, hs_rise_event);
 #endif
 	hs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION;
 	/* Frame sync */
@@ -133,7 +133,7 @@ static void do_hs_fall(void *context) {
 	/* FS falling edge at end of this scanline */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END - 1)) {
 		fs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION + 16;
-		event_queue(fs_fall_event);
+		event_queue(&event_list, fs_fall_event);
 	}
 #ifndef FAST_VDG
 	/* Disable mode changes after end of active area */
@@ -149,13 +149,13 @@ static void do_hs_fall(void *context) {
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 31)) {
 		/* Fig. 8, VDG data sheet: tWFS = 32 * (227.5 * 1/f) */
 		fs_rise_event->at_cycle = scanline_start + VDG_LINE_DURATION + 16;
-		event_queue(fs_rise_event);
+		event_queue(&event_list, fs_rise_event);
 		/* PAL delay after FS rising edge */
 		if (IS_PAL) {
 			hs_fall_event->at_cycle += 25 * VDG_PAL_PADDING_LINE;
 		}
 	}
-	event_queue(hs_fall_event);
+	event_queue(&event_list, hs_fall_event);
 }
 
 static void do_hs_rise(void *context) {

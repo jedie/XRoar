@@ -106,7 +106,7 @@ static void cart_load(void) {
 	fs_close(fd);
 	if (cart_autostart) {
 		cart_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
-		event_queue(cart_event);
+		event_queue(&event_list, cart_event);
 	} else {
 		event_dequeue(cart_event);
 	}
@@ -117,6 +117,6 @@ static void cart_interrupt(void *context) {
 	if (cart_filename) {
 		PIA_SET_P1CB1;
 		cart_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
-		event_queue(cart_event);
+		event_queue(&event_list, cart_event);
 	}
 }

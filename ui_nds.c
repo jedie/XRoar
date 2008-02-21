@@ -93,7 +93,7 @@ static int init(int argc, char **argv) {
 	poll_pen_event = event_new();
 	poll_pen_event->dispatch = do_poll_pen;
 	poll_pen_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(poll_pen_event);
+	event_queue(&xroar_ui_events, poll_pen_event);
 
 	show_main_input_screen();
 
@@ -146,7 +146,7 @@ static void do_poll_pen(void *context) {
 	}
 	old_keyxy = keyxy;
 	poll_pen_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(poll_pen_event);
+	event_queue(&xroar_ui_events, poll_pen_event);
 }
 
 static void add_component(struct ndsui_component *c) {

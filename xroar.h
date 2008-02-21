@@ -7,6 +7,7 @@
 #define __XROAR_H__
 
 #include "types.h"
+#include "events.h"
 
 #define RESET_SOFT 0
 #define RESET_HARD 1
@@ -33,6 +34,8 @@ extern int trace;
 # define trace 0
 # define IF_TRACE(s)
 #endif
+
+extern event_t *xroar_ui_events;
 
 void xroar_getargs(int argc, char **argv);
 int xroar_init(int argc, char **argv);

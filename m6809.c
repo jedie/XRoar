@@ -344,6 +344,7 @@ void m6809_cycle(Cycle until) {
 		if ((int)(current_cycle - until) >= 0)
 			return;
 		TAKEN_CYCLES(1);
+		m6809_sync();
 	}
 	do {
 		if (nmi_armed && nmi) {
@@ -361,6 +362,7 @@ void m6809_cycle(Cycle until) {
 		if ((int)(current_cycle - until) >= 0)
 			return;
 		TAKEN_CYCLES(1);
+		m6809_sync();
 	} while (halted || wait_for_interrupt);
 
 	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt && !halt) {

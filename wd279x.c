@@ -73,7 +73,7 @@
 #define NEXT_STATE(f,t) do { \
 		state_event->dispatch = f; \
 		state_event->at_cycle = current_cycle + t; \
-		event_queue(state_event); \
+		event_queue(&event_list, state_event); \
 	} while (0)
 
 #define SINGLE_DENSITY (0)

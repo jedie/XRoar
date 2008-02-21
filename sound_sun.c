@@ -109,7 +109,7 @@ static int init(int argc, char **argv) {
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(flush_event);
+	event_queue(&event_list, flush_event);
 	lastsample = 0x00;
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
@@ -157,7 +157,7 @@ static void flush_frame(void *context) {
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(flush_event);
+	event_queue(&event_list, flush_event);
 	wrptr = buffer;
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
 	if (noratelimit) {

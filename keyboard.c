@@ -22,6 +22,7 @@
 #include "logging.h"
 #include "machine.h"
 #include "pia.h"
+#include "xroar.h"
 
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
@@ -45,7 +46,7 @@ void keyboard_init(void) {
 		keyboard_row[i] = ~0;
 	}
 	poll_event->at_cycle = current_cycle + 141050;
-	event_queue(poll_event);
+	event_queue(&xroar_ui_events, poll_event);
 }
 
 void keyboard_column_update(void) {
@@ -115,6 +116,6 @@ static void keyboard_poll(void *context) {
 	}
 	if (KEYBOARD_HASQUEUE) {
 		poll_event->at_cycle += OSCILLATOR_RATE / 50;
-		event_queue(poll_event);
+		event_queue(&xroar_ui_events, poll_event);
 	}
 }

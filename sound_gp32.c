@@ -79,7 +79,7 @@ static int init(int argc, char **argv) {
 	writing_frame = 1;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
-	event_queue(flush_event);
+	event_queue(&event_list, flush_event);
 	lastsample = 0;
 	return 0;
 }
@@ -120,7 +120,7 @@ static void flush_frame(void *context) {
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
-	event_queue(flush_event);
+	event_queue(&event_list, flush_event);
 	writing_frame ^= 1;
 	wrptr = buffer[writing_frame];
 	if (noratelimit)

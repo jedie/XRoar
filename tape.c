@@ -120,7 +120,7 @@ int tape_open_reading(char *filename) {
 		/* If motor is on, enable the bit waggler */
 		if (motor) {
 			waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-			event_queue(waggle_event);
+			event_queue(&event_list, waggle_event);
 		}
 		LOG_DEBUG(2,"Attached virtual cassette %s\n", filename);
 		break;
@@ -246,7 +246,7 @@ void tape_update_motor(void) {
 					 * waggler */
 					fake_leader = 64;
 					waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-					event_queue(waggle_event);
+					event_queue(&event_list, waggle_event);
 				}
 				break;
 			default:
@@ -361,7 +361,7 @@ static void waggle_bit(void *context) {
 		waggle_event->at_cycle += (OSCILLATOR_RATE / 2400);
 	else
 		waggle_event->at_cycle += (OSCILLATOR_RATE / 4800);
-	event_queue(waggle_event);
+	event_queue(&event_list, waggle_event);
 }
 
 static void bit_out(int value) {
