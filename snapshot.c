@@ -151,6 +151,26 @@ static int old_arch_mapping[4] = {
 	MACHINE_COCOUS
 };
 
+static void old_set_registers(uint8_t *regs) {
+	M6809State state;
+	state.reg_cc = regs[0];
+	state.reg_a = regs[1];
+	state.reg_b = regs[2];
+	state.reg_dp = regs[3];
+	state.reg_x = regs[4] << 8 | regs[5];
+	state.reg_y = regs[6] << 8 | regs[7];
+	state.reg_u = regs[8] << 8 | regs[9];
+	state.reg_s = regs[10] << 8 | regs[11];
+	state.reg_pc = regs[12] << 8 | regs[13];
+	state.halt = 0;
+	state.nmi = 0;
+	state.firq = 0;
+	state.irq = 0;
+	state.cpu_state = M6809_COMPAT_STATE_NORMAL;
+	state.nmi_armed = 0;
+	m6809_set_state(&state);
+}
+
 int read_snapshot(const char *filename) {
 	int fd;
 	uint8_t buffer[17];
@@ -181,7 +201,7 @@ int read_snapshot(const char *filename) {
 	machine_reset(RESET_HARD);
 	/* If old snapshot, buffer contains register dump */
 	if (buffer[0] != 'X') {
-		m6809_set_registers(buffer + 3);
+		old_set_registers(buffer + 3);
 	}
 	while (fs_read_byte(fd, &section) > 0) {
 		fs_read_word16(fd, &tmp16);
@@ -208,7 +228,7 @@ int read_snapshot(const char *filename) {
 				/* Deprecated */
 				if (size < 14) break;
 				size -= fs_read(fd, buffer, 14);
-				m6809_set_registers(buffer);
+				old_set_registers(buffer);
 				break;
 			case ID_M6809_STATE:
 				/* M6809 state */

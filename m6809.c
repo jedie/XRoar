@@ -1292,27 +1292,6 @@ void m6809_set_state(M6809State *state) {
 	nmi_armed = state->nmi_armed;
 }
 
-/* Kept for old snapshots */
-void m6809_set_registers(uint8_t *regs) {
-	M6809State state;
-	state.reg_cc = regs[0];
-	state.reg_a = regs[1];
-	state.reg_b = regs[2];
-	state.reg_dp = regs[3];
-	state.reg_x = regs[4] << 8 | regs[5];
-	state.reg_y = regs[6] << 8 | regs[7];
-	state.reg_u = regs[8] << 8 | regs[9];
-	state.reg_s = regs[10] << 8 | regs[11];
-	state.reg_pc = regs[12] << 8 | regs[13];
-	state.halt = 0;
-	state.nmi = 0;
-	state.firq = 0;
-	state.irq = 0;
-	state.cpu_state = flow_label_a;
-	state.nmi_armed = 0;
-	m6809_set_state(&state);
-}
-
 void m6809_jump(unsigned int pc) {
 	reg_pc = pc & 0xffff;
 }

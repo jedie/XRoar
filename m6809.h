@@ -31,10 +31,6 @@ void m6809_get_state(M6809State *state);
 void m6809_set_state(M6809State *state);
 void m6809_jump(unsigned int pc);
 
-/*** Old ***/
-
-void m6809_set_registers(uint8_t *regs);
-
 /*** Private ***/
 
 /* Current cycle */
