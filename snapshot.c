@@ -53,7 +53,7 @@
 #define ID_VDISK_FILE    (10)
 
 #define SNAPSHOT_VERSION_MAJOR 1
-#define SNAPSHOT_VERSION_MINOR 4
+#define SNAPSHOT_VERSION_MINOR 5
 
 int write_snapshot(const char *filename) {
 	int fd;
@@ -104,7 +104,7 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, PIA_1B.output_register);
 	fs_write_byte(fd, PIA_1B.control_register);
 	/* M6809 state */
-	fs_write_byte(fd, ID_M6809_STATE); fs_write_word16(fd, 22);
+	fs_write_byte(fd, ID_M6809_STATE); fs_write_word16(fd, 20);
 	m6809_get_state(&cpu_state);
 	fs_write_byte(fd, cpu_state.reg_cc);
 	fs_write_byte(fd, cpu_state.reg_a);
@@ -119,10 +119,8 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, cpu_state.nmi);
 	fs_write_byte(fd, cpu_state.firq);
 	fs_write_byte(fd, cpu_state.irq);
-	fs_write_byte(fd, cpu_state.wait_for_interrupt);
-	fs_write_byte(fd, cpu_state.skip_register_push);
+	fs_write_byte(fd, cpu_state.cpu_state);
 	fs_write_byte(fd, cpu_state.nmi_armed);
-	fs_write_byte(fd, cpu_state.halted);
 	/* SAM */
 	fs_write_byte(fd, ID_SAM_REGISTERS); fs_write_word16(fd, 2);
 	fs_write_word16(fd, sam_register);
@@ -214,7 +212,7 @@ int read_snapshot(const char *filename) {
 				break;
 			case ID_M6809_STATE:
 				/* M6809 state */
-				if (size < 21) break;
+				if (size < 20) break;
 				fs_read_byte(fd, &cpu_state.reg_cc);
 				fs_read_byte(fd, &cpu_state.reg_a);
 				fs_read_byte(fd, &cpu_state.reg_b);
@@ -228,16 +226,31 @@ int read_snapshot(const char *filename) {
 				fs_read_byte(fd, &cpu_state.nmi);
 				fs_read_byte(fd, &cpu_state.firq);
 				fs_read_byte(fd, &cpu_state.irq);
-				fs_read_byte(fd, &cpu_state.wait_for_interrupt);
-				fs_read_byte(fd, &cpu_state.skip_register_push);
+				if (size == 21) {
+					/* Old style */
+					uint8_t wait_for_interrupt;
+					uint8_t skip_register_push;
+					fs_read_byte(fd, &wait_for_interrupt);
+					fs_read_byte(fd, &skip_register_push);
+					if (wait_for_interrupt && skip_register_push) {
+						cpu_state.cpu_state = M6809_COMPAT_STATE_CWAI;
+					} else if (wait_for_interrupt) {
+						cpu_state.cpu_state = M6809_COMPAT_STATE_SYNC;
+					} else {
+						cpu_state.cpu_state = M6809_COMPAT_STATE_NORMAL;
+					}
+					size--;
+				} else {
+					fs_read_byte(fd, &cpu_state.cpu_state);
+				}
 				fs_read_byte(fd, &cpu_state.nmi_armed);
 				cpu_state.firq &= 3;
 				cpu_state.irq &= 3;
 				m6809_set_state(&cpu_state);
-				size -= 21;
-				cpu_state.halted = cpu_state.halt;
+				size -= 20;
 				if (size > 0) {
-					fs_read_byte(fd, &cpu_state.halted);
+					/* Skip 'halted' */
+					fs_read_byte(fd, &tmp8);
 					size--;
 				}
 				break;

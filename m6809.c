@@ -119,42 +119,51 @@
 		peek_byte(s); \
 	}
 
-#define INTERRUPT_REGISTER_PUSH(e) do { \
+#define PUSH_IRQ_REGISTERS() do { \
+		reg_cc |= CC_E; \
 		TAKEN_CYCLES(1); \
 		PUSHWORD(reg_s, reg_pc); \
-		if (e) { \
-			reg_cc |= CC_E; \
-			PUSHWORD(reg_s, reg_u); \
-			PUSHWORD(reg_s, reg_y); \
-			PUSHWORD(reg_s, reg_x); \
-			PUSHBYTE(reg_s, reg_dp); \
-			PUSHBYTE(reg_s, reg_b); \
-			PUSHBYTE(reg_s, reg_a); \
-		} else { reg_cc &= ~CC_E; } \
+		PUSHWORD(reg_s, reg_u); \
+		PUSHWORD(reg_s, reg_y); \
+		PUSHWORD(reg_s, reg_x); \
+		PUSHBYTE(reg_s, reg_dp); \
+		PUSHBYTE(reg_s, reg_b); \
+		PUSHBYTE(reg_s, reg_a); \
 		PUSHBYTE(reg_s, reg_cc); \
 	} while (0)
 
-#define TEST_INTERRUPT(i,m,v,e,cm) do { \
-		if (!skip_register_push) /* SYNC */ \
-			wait_for_interrupt = 0; \
-		if (!(reg_cc & m)) { \
-			IF_TRACE(LOG_DEBUG(0, "Interrupt " #i " taken\n")) \
-			wait_for_interrupt = 0; \
-			if (!skip_register_push) { \
-				peek_byte(reg_pc); \
-				peek_byte(reg_pc); \
-				INTERRUPT_REGISTER_PUSH(e); \
-				TAKEN_CYCLES(1); \
-			} \
-			skip_register_push = 0; \
-			reg_cc |= (cm); \
-			reg_pc = fetch_word(v); \
-			TAKEN_CYCLES(1); \
-		} \
+
+#define PUSH_FIRQ_REGISTERS() do { \
+		reg_cc &= ~CC_E; \
+		TAKEN_CYCLES(1); \
+		PUSHWORD(reg_s, reg_pc); \
+		PUSHBYTE(reg_s, reg_cc); \
+	} while (0)
+
+#define TAKE_INTERRUPT(i,cm,v) do { \
+		IF_TRACE(LOG_DEBUG(0, "Interrupt " #i " taken\n")) \
+		reg_cc |= (cm); \
+		TAKEN_CYCLES(1); \
+		reg_pc = fetch_word(v); \
+		TAKEN_CYCLES(1); \
 	} while (0)
 
 #define ARM_NMI do { nmi_armed = 1; } while (0)
 #define DISARM_NMI do { nmi_armed = 0; } while (0)
+
+static enum {
+	flow_label_a      = M6809_COMPAT_STATE_NORMAL,
+	flow_sync         = M6809_COMPAT_STATE_SYNC,
+	flow_dispatch_irq = M6809_COMPAT_STATE_CWAI,
+	flow_label_b,
+	flow_reset,
+	flow_reset_check_halt,
+	flow_next_instruction,
+	flow_instruction_page_2,
+	flow_instruction_page_3,
+	flow_cwai_check_halt,
+	flow_sync_check_halt
+} cpu_state;
 
 /* MPU registers & internal state */
 static unsigned int reg_cc = 0;
@@ -166,10 +175,7 @@ static uint16_t reg_y = 0;
 static uint16_t reg_u = 0;
 static uint16_t reg_s = 0;
 static uint16_t reg_pc = 0;
-static int wait_for_interrupt = 0;
-static int skip_register_push = 0;
 static int nmi_armed = 0;
-static int halted = 0;
 
 #define reg_d ((reg_a&0xff) << 8 | (reg_b&0xff))
 #define set_reg_d(v) do { reg_a = ((v)>>8)&0xff; reg_b = (v)&0xff; } while (0)
@@ -296,16 +302,12 @@ void m6809_init(void) {
 }
 
 void m6809_reset(void) {
-	halted = halt = nmi = firq = irq = 0;
+	halt = nmi = firq = irq = 0;
 	DISARM_NMI;
-	wait_for_interrupt = 0;
-	skip_register_push = 0;
-	reg_cc = 0xff;
-	reg_a = reg_b = 0;
-	reg_dp = 0;
-	reg_x = reg_y = reg_u = reg_s = 0;
-	reg_pc = fetch_word(0xfffe);
+	reg_cc = reg_a = reg_b = reg_dp = 0;
+	reg_x = reg_y = reg_u = reg_s = reg_pc = 0;
 	m6809_dasm_reset();
+	cpu_state = flow_reset;
 }
 
 static unsigned int ea_indexed(void);
@@ -336,42 +338,120 @@ static unsigned int ea_indexed(void) {
 }
 
 void m6809_cycle(Cycle until) {
-	__label__ switched_block_page2, switched_block_page3;
+	unsigned int op;
 	uint_least16_t addr;
 	uint_least32_t result;
 
-	while (halted && halt) {
-		if ((int)(current_cycle - until) >= 0)
-			return;
-		TAKEN_CYCLES(1);
+	while ((int)(current_cycle - until) < 0) {
+
 		m6809_sync();
-	}
-	do {
-		if (nmi_armed && nmi) {
-			/* DISARM_NMI? */
-			TEST_INTERRUPT(nmi, 0, 0xfffc, CC_E, CC_F|CC_I);
+
+		switch (cpu_state) {
+
+		case flow_reset:
+			reg_dp = 0;
+			reg_cc |= (CC_F | CC_I);
 			nmi = 0;
-		}
-		if (firq) {
-			TEST_INTERRUPT(firq, CC_F, 0xfff6, 0, CC_F|CC_I);
-		}
-		if (irq) {
-			TEST_INTERRUPT(irq, CC_I, 0xfff8, CC_E, CC_I);
-		}
-		halted = halt;
-		if ((int)(current_cycle - until) >= 0)
-			return;
-		TAKEN_CYCLES(1);
-		m6809_sync();
-	} while (halted || wait_for_interrupt);
+			DISARM_NMI;
+			cpu_state = flow_reset_check_halt;
+			/* fall through */
 
-	while ((int)(current_cycle - until) < 0 && !wait_for_interrupt && !halt) {
-		unsigned int op;
+		case flow_reset_check_halt:
+			if (halt) {
+				TAKEN_CYCLES(1);
+				continue;
+			}
+			reg_pc = fetch_word(0xfffe);
+			TAKEN_CYCLES(1);
+			cpu_state = flow_label_a;
+			continue;
 
-		IF_TRACE(LOG_DEBUG(0, "%04x| ", reg_pc));
-		/* Fetch op-code and process */
-		BYTE_IMMEDIATE(0,op);
-		switch (op) {
+		case flow_label_a:
+			if (halt) {
+				TAKEN_CYCLES(1);
+				continue;
+			}
+			cpu_state = flow_label_b;
+			/* fall through */
+
+		case flow_label_b:
+			if (nmi_armed && nmi) {
+				peek_byte(reg_pc);
+				peek_byte(reg_pc);
+				PUSH_IRQ_REGISTERS();
+				cpu_state = flow_dispatch_irq;
+				continue;
+			}
+			if (firq && !(reg_cc & CC_F)) {
+				peek_byte(reg_pc);
+				peek_byte(reg_pc);
+				PUSH_FIRQ_REGISTERS();
+				cpu_state = flow_dispatch_irq;
+				continue;
+			}
+			if (irq && !(reg_cc & CC_I)) {
+				peek_byte(reg_pc);
+				peek_byte(reg_pc);
+				PUSH_IRQ_REGISTERS();
+				cpu_state = flow_dispatch_irq;
+				continue;
+			}
+			cpu_state = flow_next_instruction;
+			continue;
+
+		case flow_dispatch_irq:
+			if (nmi_armed && nmi) {
+				nmi = 0;
+				reg_cc |= (CC_F | CC_I);
+				TAKE_INTERRUPT(nmi, CC_F|CC_I, 0xfffc);
+				cpu_state = flow_label_a;
+				continue;
+			}
+			if (firq && !(reg_cc & CC_F)) {
+				reg_cc |= (CC_F | CC_I);
+				TAKE_INTERRUPT(firq, CC_F|CC_I, 0xfff6);
+				cpu_state = flow_label_a;
+				continue;
+			}
+			if (irq && !(reg_cc & CC_I)) {
+				reg_cc |= CC_I;
+				TAKE_INTERRUPT(irq, CC_I, 0xfff8);
+				cpu_state = flow_label_a;
+				continue;
+			}
+			cpu_state = flow_cwai_check_halt;
+			continue;
+
+		case flow_cwai_check_halt:
+			TAKEN_CYCLES(1);
+			if (halt) {
+				continue;
+			}
+			cpu_state = flow_dispatch_irq;
+			continue;
+
+		case flow_sync:
+			if (nmi || firq || irq) {
+				TAKEN_CYCLES(1);
+				cpu_state = flow_label_b;
+				continue;
+			}
+			cpu_state = flow_sync_check_halt;
+			continue;
+
+		case flow_sync_check_halt:
+			TAKEN_CYCLES(1);
+			if (halt) {
+				continue;
+			}
+			cpu_state = flow_sync;
+			continue;
+
+		case flow_next_instruction:
+			IF_TRACE(LOG_DEBUG(0, "%04x| ", reg_pc));
+			/* Fetch op-code and process */
+			BYTE_IMMEDIATE(0,op);
+			switch (op) {
 			/* 0x00 NEG direct */
 			case 0x00:
 			case 0x01: OP_NEG(BYTE_DIRECT); break;
@@ -408,17 +488,21 @@ void m6809_cycle(Cycle until) {
 			/* 0x0F CLR direct */
 			case 0x0F: OP_CLR(BYTE_DIRECT); break;
 			/* 0x10 Page 2 */
-			case 0x10: goto switched_block_page2; break;
+			case 0x10:
+				   cpu_state = flow_instruction_page_2;
+				   continue;
 			/* 0x11 Page 3 */
-			case 0x11: goto switched_block_page3; break;
+			case 0x11:
+				   cpu_state = flow_instruction_page_3;
+				   continue;
 			/* 0x12 NOP inherent */
 			case 0x12: peek_byte(reg_pc); break;
 			/* 0x13 SYNC inherent */
 			case 0x13:
 				peek_byte(reg_pc);
-				wait_for_interrupt = 1;
 				TAKEN_CYCLES(1);
-				break;
+				cpu_state = flow_sync;
+				continue;
 			/* 0x16 LBRA relative */
 			case 0x16: BRANCHL(1); break;
 			/* 0x17 LBSR relative */
@@ -631,7 +715,7 @@ void m6809_cycle(Cycle until) {
 					PULLWORD(reg_s, reg_pc);
 				}
 				ARM_NMI;
-				peek_byte(reg_s);
+				TAKEN_CYCLES(1);
 				break;
 			/* 0x3C CWAI immediate */
 			case 0x3c: {
@@ -639,10 +723,10 @@ void m6809_cycle(Cycle until) {
 				BYTE_IMMEDIATE(0,data);
 				reg_cc &= data;
 				peek_byte(reg_pc);
-				INTERRUPT_REGISTER_PUSH(1);
-				wait_for_interrupt = 1;
-				skip_register_push = 1;
+				PUSH_IRQ_REGISTERS();
 				TAKEN_CYCLES(1);
+				cpu_state = flow_dispatch_irq;
+				continue;
 			} break;
 			/* 0x3D MUL inherent */
 			case 0x3d: {
@@ -663,11 +747,8 @@ void m6809_cycle(Cycle until) {
 			/* 0x3F SWI inherent */
 			case 0x3f:
 				peek_byte(reg_pc);
-				INTERRUPT_REGISTER_PUSH(1);
-				reg_cc |= CC_F | CC_I;
-				TAKEN_CYCLES(1);
-				reg_pc = fetch_word(0xfffa);
-				TAKEN_CYCLES(1);
+				PUSH_IRQ_REGISTERS();
+				TAKE_INTERRUPT(swi, CC_F|CC_I, 0xfffa);
 				break;
 			/* 0x40 NEGA inherent */
 			case 0x40:
@@ -1034,16 +1115,19 @@ void m6809_cycle(Cycle until) {
 			case 0xff: OP_ST16(reg_u, EA_EXTENDED); break;
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
-		}
-		IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
-		continue;
-switched_block_page2:
-		BYTE_IMMEDIATE(0,op);
-		switch (op) {
+			}
+			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
+			cpu_state = flow_label_a;
+			continue;
+
+		case flow_instruction_page_2:
+			BYTE_IMMEDIATE(0,op);
+			switch (op) {
 			/* 0x10, 0x11 Page 2 */
 			case 0x10:
 			case 0x11:
-				goto switched_block_page2; break;
+				cpu_state = flow_instruction_page_2;
+				continue;
 			/* 0x1021 LBRN relative */
 			case 0x21: BRANCHL(0); break;
 			/* 0x1022 LBHI relative */
@@ -1077,10 +1161,8 @@ switched_block_page2:
 			/* 0x103F SWI2 inherent */
 			case 0x3f:
 				peek_byte(reg_pc);
-				INTERRUPT_REGISTER_PUSH(1);
-				TAKEN_CYCLES(1);
-				reg_pc = fetch_word(0xfff4);
-				TAKEN_CYCLES(1);
+				PUSH_IRQ_REGISTERS();
+				TAKE_INTERRUPT(swi2, 0, 0xfff4);
 				break;
 			/* 0x1083 CMPD immediate */
 			case 0x83: OP_CMPD(WORD_IMMEDIATE); break;
@@ -1128,23 +1210,24 @@ switched_block_page2:
 			case 0xff: OP_ST16(reg_s, EA_EXTENDED); break;
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
-		}
-		IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
-		continue;
-switched_block_page3:
-		BYTE_IMMEDIATE(0,op);
-		switch (op) {
+			}
+			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
+			cpu_state = flow_label_a;
+			continue;
+
+		case flow_instruction_page_3:
+			BYTE_IMMEDIATE(0,op);
+			switch (op) {
 			/* 0x10, 0x11 Page 3 */
 			case 0x10:
 			case 0x11:
-				goto switched_block_page3; break;
+				cpu_state = flow_instruction_page_3;
+				continue;
 			/* 0x113F SWI3 inherent */
 			case 0x3f:
 				peek_byte(reg_pc);
-				INTERRUPT_REGISTER_PUSH(1);
-				TAKEN_CYCLES(1);
-				reg_pc = fetch_word(0xfff2);
-				TAKEN_CYCLES(1);
+				PUSH_IRQ_REGISTERS();
+				TAKE_INTERRUPT(swi3, 0, 0xfff2);
 				break;
 			/* 0x1183 CMPU immediate */
 			case 0x83: OP_CMP16(reg_u, WORD_IMMEDIATE); break;
@@ -1164,9 +1247,12 @@ switched_block_page3:
 			case 0xbc: OP_CMP16(reg_s, WORD_EXTENDED); break;
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
+			}
+			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
+			cpu_state = flow_label_a;
+			continue;
+
 		}
-		IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
-		continue;
 	}
 }
 
@@ -1181,12 +1267,10 @@ void m6809_get_state(M6809State *state) {
 	state->reg_s = reg_s;
 	state->reg_pc = reg_pc;
 	state->halt = halt;
-	state->halted = halted;
 	state->nmi = nmi;
 	state->firq = firq;
 	state->irq = irq;
-	state->wait_for_interrupt = wait_for_interrupt;
-	state->skip_register_push = skip_register_push;
+	state->cpu_state = cpu_state;
 	state->nmi_armed = nmi_armed;
 }
 
@@ -1201,12 +1285,10 @@ void m6809_set_state(M6809State *state) {
 	reg_s = state->reg_s;
 	reg_pc = state->reg_pc;
 	halt = state->halt;
-	halted = state->halted;
 	nmi = state->nmi;
 	firq = state->firq;
 	irq = state->irq;
-	wait_for_interrupt = state->wait_for_interrupt;
-	skip_register_push = state->skip_register_push;
+	cpu_state = state->cpu_state;
 	nmi_armed = state->nmi_armed;
 }
 
@@ -1222,14 +1304,12 @@ void m6809_set_registers(uint8_t *regs) {
 	state.reg_u = regs[8] << 8 | regs[9];
 	state.reg_s = regs[10] << 8 | regs[11];
 	state.reg_pc = regs[12] << 8 | regs[13];
-	state.wait_for_interrupt = 0;
-	state.skip_register_push = 0;
-	state.nmi_armed = 0;
 	state.halt = 0;
-	state.halted = 0;
 	state.nmi = 0;
 	state.firq = 0;
 	state.irq = 0;
+	state.cpu_state = flow_label_a;
+	state.nmi_armed = 0;
 	m6809_set_state(&state);
 }
 

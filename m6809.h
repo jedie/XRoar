@@ -10,13 +10,15 @@
 #include "sam.h"
 #include "machine.h"
 
+#define M6809_COMPAT_STATE_NORMAL (0)
+#define M6809_COMPAT_STATE_SYNC   (1)
+#define M6809_COMPAT_STATE_CWAI   (2)
+
 typedef struct {
 	uint8_t reg_cc, reg_a, reg_b, reg_dp;
 	uint16_t reg_x, reg_y, reg_u, reg_s, reg_pc;
 	uint8_t halt, nmi, firq, irq;
-	uint8_t halted;
-	uint8_t wait_for_interrupt;
-	uint8_t skip_register_push;
+	uint8_t cpu_state;
 	uint8_t nmi_armed;
 } M6809State;
 
