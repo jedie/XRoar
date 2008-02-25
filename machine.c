@@ -220,8 +220,14 @@ void machine_getargs(int argc, char **argv) {
 }
 
 #define pia0a_data_postwrite keyboard_row_update
+
 #define pia0b_data_postwrite keyboard_column_update
-#define pia1a_data_preread tape_update_input
+
+#ifdef HAVE_SNDFILE
+# define pia1a_data_preread tape_update_input
+#else
+# define pia1a_data_preread NULL
+#endif
 
 static void pia1a_data_postwrite(void) {
 	sound_module->update();

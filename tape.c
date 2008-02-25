@@ -285,9 +285,8 @@ void tape_update_output(void) {
 	}
 }
 
-#ifndef HAVE_GP32
-void tape_update_input(void) {
 #ifdef HAVE_SNDFILE
+void tape_update_input(void) {
 	short sample;
 	if (!motor || input_type == FILETYPE_CAS)
 		return;
@@ -296,7 +295,6 @@ void tape_update_input(void) {
 		PIA1.a.port_input |= 0x01;
 	else
 		PIA1.a.port_input &= ~0x01;
-#endif
 }
 #endif
 
