@@ -24,7 +24,7 @@
 #include "fs.h"
 #include "logging.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
 #include "xroar.h"
 #include "cart.h"
 

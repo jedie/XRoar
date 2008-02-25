@@ -26,8 +26,8 @@
 #include "types.h"
 #include "events.h"
 #include "machine.h"
+#include "mc6821.h"
 #include "module.h"
-#include "pia.h"
 #include "sound_gp32.h"
 #include "xroar.h"
 #include "gp32/gpsound.h"
@@ -98,16 +98,16 @@ static void update(void) {
 	}
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	if (!(PIA_1B.control_register & 0x08)) {
+	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
-		lastsample = (PIA_1B.port_output & 0x02) ? 0x7c7c : 0;
+		lastsample = (PIA1.b.port_output & 0x02) ? 0x7c7c : 0;
 	} else  {
-		if (PIA_0B.control_register & 0x08) {
+		if (PIA0.b.control_register & 0x08) {
 			/* Sound disabled */
 			lastsample = 0;
 		} else {
 			/* DAC output */
-			lastsample = (PIA_1A.port_output & 0xfc) >> 1;
+			lastsample = (PIA1.a.port_output & 0xfc) >> 1;
 			lastsample |= (lastsample << 8);
 		}
 	}

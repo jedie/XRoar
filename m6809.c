@@ -181,7 +181,7 @@ static int nmi_armed = 0;
 #define set_reg_d(v) do { reg_a = ((v)>>8)&0xff; reg_b = (v)&0xff; } while (0)
 
 /* MPU interrupt state variables */
-int halt, nmi, firq, irq;
+unsigned int halt, nmi, firq, irq;
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 #define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))

@@ -21,7 +21,7 @@
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
 #include "xroar.h"
 
 /* These contain masks to be applied when the corresponding row/column is
@@ -50,25 +50,25 @@ void keyboard_init(void) {
 }
 
 void keyboard_column_update(void) {
-	unsigned int mask = PIA_0B.port_output;
+	unsigned int mask = PIA0.b.port_output;
 	unsigned int i, row = 0x7f;
 	for (i = 0; i < 8; i++) {
 		if (!(mask & (1 << i))) {
 			row &= keyboard_column[i];
 		}
 	}
-	PIA_0A.port_input = (PIA_0A.port_input & 0x80) | row;
+	PIA0.a.port_input = (PIA0.a.port_input & 0x80) | row;
 }
 
 void keyboard_row_update(void) {
-	unsigned int mask = PIA_0A.port_output;
+	unsigned int mask = PIA0.a.port_output;
 	unsigned int i, col = 0xff;
 	for (i = 0; i < 7; i++) {
 		if (!(mask & (1 << i))) {
 			col &= keyboard_row[i];
 		}
 	}
-	PIA_0B.port_input = col;
+	PIA0.b.port_input = col;
 }
 
 void keyboard_queue_string(const char *s) {

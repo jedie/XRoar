@@ -23,7 +23,7 @@
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
 #include "rsdos.h"
 #include "sam.h"
 #include "tape.h"
@@ -63,7 +63,6 @@ void sam_reset(void) {
 }
 
 unsigned int sam_read_byte(uint_least16_t addr) {
-	unsigned int ret;
 	while (EVENT_PENDING(event_list))
 		DISPATCH_NEXT_EVENT(event_list);
 	addr &= 0xffff;
@@ -80,15 +79,9 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 	if (addr < 0xff20) {
 		current_cycle += CPU_SLOW_DIVISOR;
 		if (IS_COCO) {
-			if ((addr & 3) == 0) { PIA_READ_P0DA(ret); return ret; }
-			if ((addr & 3) == 1) return PIA_READ_P0CA;
-			if ((addr & 3) == 2) { PIA_READ_P0DB(ret); return ret; }
-			if ((addr & 3) == 3) return PIA_READ_P0CB;
+			return mc6821_read(&PIA0, addr & 3);
 		} else {
-			if ((addr & 7) == 0) { PIA_READ_P0DA(ret); return ret; }
-			if ((addr & 7) == 1) return PIA_READ_P0CA;
-			if ((addr & 7) == 2) { PIA_READ_P0DB(ret); return ret; }
-			if ((addr & 7) == 3) return PIA_READ_P0CB;
+			if ((addr & 4) == 0) return mc6821_read(&PIA0, addr & 3);
 			/* Not yet implemented:
 			if ((addr & 7) == 4) return serial_stuff;
 			if ((addr & 7) == 5) return serial_stuff;
@@ -100,10 +93,7 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 	}
 	current_cycle += sam_topaddr_cycles;
 	if (addr < 0xff40) {
-		if ((addr & 3) == 0) { PIA_READ_P1DA(ret); return ret; }
-		if ((addr & 3) == 1) return PIA_READ_P1CA;
-		if ((addr & 3) == 2) { PIA_READ_P1DB(ret); return ret; }
-		return PIA_READ_P1CB;
+		return mc6821_read(&PIA1, addr & 3);
 	}
 	if (addr < 0xff60) {
 		if (!DOS_ENABLED)
@@ -163,15 +153,9 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	if (addr < 0xff20) {
 		current_cycle += CPU_SLOW_DIVISOR;
 		if (IS_COCO) {
-			if ((addr & 3) == 0) PIA_WRITE_P0DA(octet);
-			if ((addr & 3) == 1) PIA_WRITE_P0CA(octet);
-			if ((addr & 3) == 2) PIA_WRITE_P0DB(octet);
-			if ((addr & 3) == 3) PIA_WRITE_P0CB(octet);
+			mc6821_write(&PIA0, addr & 3, octet);
 		} else {
-			if ((addr & 7) == 0) PIA_WRITE_P0DA(octet);
-			if ((addr & 7) == 1) PIA_WRITE_P0CA(octet);
-			if ((addr & 7) == 2) PIA_WRITE_P0DB(octet);
-			if ((addr & 7) == 3) PIA_WRITE_P0CB(octet);
+			if ((addr & 4) == 0) mc6821_write(&PIA0, addr & 3, octet);
 			/* Not yet implemented:
 			if ((addr & 7) == 4) serial_stuff;
 			if ((addr & 7) == 5) serial_stuff;
@@ -183,15 +167,11 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 	}
 	current_cycle += sam_topaddr_cycles;
 	if (addr < 0xff40) {
-		if ((addr & 3) == 0) PIA_WRITE_P1DA(octet);
-		if ((addr & 3) == 1) PIA_WRITE_P1CA(octet);
-		if ((addr & 3) == 2) {
-			PIA_WRITE_P1DB(octet);
+		mc6821_write(&PIA1, addr & 3, octet);
+		if ((addr & 3) == 2 && IS_DRAGON64 && !map_type) {
 			/* Update ROM select on Dragon 64 */
-			if (IS_DRAGON64 && !map_type)
-				addrptr_high = (PIA_1B.port_output & 0x04) ? rom0 : rom1;
+			addrptr_high = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
 		}
-		if ((addr & 3) == 3) PIA_WRITE_P1CB(octet);
 		return;
 	}
 	if (addr < 0xff60) {
@@ -260,7 +240,7 @@ void sam_update_from_register(void) {
 			/* Page #0 */
 			addrptr_low = ram0;
 		}
-		if (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))
+		if (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))
 			addrptr_high = rom1;
 		else
 			addrptr_high = rom0;

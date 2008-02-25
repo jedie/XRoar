@@ -24,7 +24,7 @@
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
 #include "sam.h"
 #include "snapshot.h"
 #include "tape.h"
@@ -87,22 +87,22 @@ int write_snapshot(const char *filename) {
 	 * unacknowledged interrupts pending already cleared in the CPU
 	 * state */
 	fs_write_byte(fd, ID_PIA_REGISTERS); fs_write_word16(fd, 3*4);
-	/* PIA_0A */
-	fs_write_byte(fd, PIA_0A.direction_register);
-	fs_write_byte(fd, PIA_0A.output_register);
-	fs_write_byte(fd, PIA_0A.control_register);
-	/* PIA_0B */
-	fs_write_byte(fd, PIA_0B.direction_register);
-	fs_write_byte(fd, PIA_0B.output_register);
-	fs_write_byte(fd, PIA_0B.control_register);
-	/* PIA_1A */
-	fs_write_byte(fd, PIA_1A.direction_register);
-	fs_write_byte(fd, PIA_1A.output_register);
-	fs_write_byte(fd, PIA_1A.control_register);
-	/* PIA_1B */
-	fs_write_byte(fd, PIA_1B.direction_register);
-	fs_write_byte(fd, PIA_1B.output_register);
-	fs_write_byte(fd, PIA_1B.control_register);
+	/* PIA0.a */
+	fs_write_byte(fd, PIA0.a.direction_register);
+	fs_write_byte(fd, PIA0.a.output_register);
+	fs_write_byte(fd, PIA0.a.control_register);
+	/* PIA0.b */
+	fs_write_byte(fd, PIA0.b.direction_register);
+	fs_write_byte(fd, PIA0.b.output_register);
+	fs_write_byte(fd, PIA0.b.control_register);
+	/* PIA1.a */
+	fs_write_byte(fd, PIA1.a.direction_register);
+	fs_write_byte(fd, PIA1.a.output_register);
+	fs_write_byte(fd, PIA1.a.control_register);
+	/* PIA1.b */
+	fs_write_byte(fd, PIA1.b.direction_register);
+	fs_write_byte(fd, PIA1.b.output_register);
+	fs_write_byte(fd, PIA1.b.control_register);
 	/* M6809 state */
 	fs_write_byte(fd, ID_M6809_STATE); fs_write_word16(fd, 20);
 	m6809_get_state(&cpu_state);
@@ -295,50 +295,44 @@ int read_snapshot(const char *filename) {
 				size -= 7;
 				break;
 			case ID_PIA_REGISTERS:
-				/* PIA_0A */
+				/* PIA0.a */
 				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_DDR(PIA_0A);
-				PIA_WRITE_P0DA(tmp8); /* DDR */
+				PIA0.a.direction_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_PDR(PIA_0A);
-				PIA_WRITE_P0DA(tmp8); /* OR */
+				PIA0.a.output_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_WRITE_P0CA(tmp8);  /* CR */
+				PIA0.a.control_register = tmp8;
 				size -= 3;
-				/* PIA_0B */
+				/* PIA0.b */
 				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_DDR(PIA_0B);
-				PIA_WRITE_P0DB(tmp8);  /* DDR */
+				PIA0.b.direction_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_PDR(PIA_0B);
-				PIA_WRITE_P0DB(tmp8);  /* OR */
+				PIA0.b.output_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_WRITE_P0CB(tmp8);  /* CR */
+				PIA0.b.control_register = tmp8;
 				size -= 3;
-				/* PIA_1A */
+				mc6821_update_state(&PIA0);
+				/* PIA1.a */
 				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_DDR(PIA_1A);
-				PIA_WRITE_P1DA(tmp8);  /* DDR */
+				PIA1.a.direction_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_PDR(PIA_1A);
-				PIA_WRITE_P1DA(tmp8);  /* OR */
+				PIA1.a.output_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_WRITE_P1CA(tmp8);  /* CR */
+				PIA1.a.control_register = tmp8;
 				size -= 3;
-				/* PIA_1B */
+				/* PIA1.b */
 				if (size < 3) break;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_DDR(PIA_1B);
-				PIA_WRITE_P1DB(tmp8);  /* DDR */
+				PIA1.b.direction_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_SELECT_PDR(PIA_1B);
-				PIA_WRITE_P1DB(tmp8);  /* OR */
+				PIA1.b.output_register = tmp8;
 				fs_read_byte(fd, &tmp8);
-				PIA_WRITE_P1CB(tmp8);  /* CR */
+				PIA1.b.control_register = tmp8;
 				size -= 3;
+				mc6821_update_state(&PIA1);
 				break;
 			case ID_RAM_PAGE0:
 				if (size <= sizeof(ram0)) {

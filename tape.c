@@ -27,9 +27,10 @@
 #include "types.h"
 #include "events.h"
 #include "fs.h"
+#include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
 #include "tape.h"
 #include "xroar.h"
 
@@ -232,11 +233,11 @@ int tape_autorun(char *filename) {
 	return type;
 }
 
-/* Called whenever PIA_1A control register is written to.
+/* Called whenever PIA1.a control register is written to.
  * Detects changes in motor status. */
 void tape_update_motor(void) {
-	if ((PIA_1A.control_register & 0x08) != motor) {
-		motor = PIA_1A.control_register & 0x08;
+	if ((PIA1.a.control_register & 0x08) != motor) {
+		motor = PIA1.a.control_register & 0x08;
 		if (motor) {
 			switch (input_type) {
 			case FILETYPE_CAS:
@@ -261,13 +262,13 @@ void tape_update_motor(void) {
 	}
 }
 
-/* Called whenever PIA_1A data register is written to.
+/* Called whenever PIA1.a data register is written to.
  * Detects change frequency for writing out bits. */
 void tape_update_output(void) {
 	unsigned int new_sample;
 	if (!motor)
 		return;
-	new_sample = PIA_1A.port_output & 0xfc;
+	new_sample = PIA1.a.port_output & 0xfc;
 	if (!last_sample && new_sample > 0xf4) {
 		last_sample = 1;
 		last_read_time = current_cycle;
@@ -292,9 +293,9 @@ void tape_update_input(void) {
 		return;
 	sample = wav_sample_in();
 	if (sample > 0)
-		PIA_1A.port_input |= 0x01;
+		PIA1.a.port_input |= 0x01;
 	else
-		PIA_1A.port_input &= ~0x01;
+		PIA1.a.port_input &= ~0x01;
 #endif
 }
 #endif
@@ -348,11 +349,11 @@ static void waggle_bit(void *context) {
 				event_dequeue(waggle_event);
 				return;
 			}
-			PIA_1A.port_input |= 0x01;
+			PIA1.a.port_input |= 0x01;
 			waggle_state = 1;
 			break;
 		case 1:
-			PIA_1A.port_input &= 0xfe;
+			PIA1.a.port_input &= 0xfe;
 			waggle_state = 0;
 			break;
 	}

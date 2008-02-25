@@ -30,7 +30,7 @@
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
 #include "vdrive.h"
 #include "wd279x.h"
 #include "xroar.h"

@@ -18,8 +18,9 @@
 
 #include "types.h"
 #include "logging.h"
+#include "machine.h"
+#include "mc6821.h"
 #include "module.h"
-#include "pia.h"
 #include "joystick.h"
 
 unsigned int joystick_leftx, joystick_lefty;
@@ -35,25 +36,25 @@ void joystick_shutdown(void) {
 
 void joystick_update(void) {
 	int xcompare, ycompare;
-	unsigned int octet = PIA_1A.port_output & 0xfc;
-	if (PIA_0B.control_register & 0x08) {
+	unsigned int octet = PIA1.a.port_output & 0xfc;
+	if (PIA0.b.control_register & 0x08) {
 		xcompare = (joystick_leftx >= octet);
 		ycompare = (joystick_lefty >= octet);
 	} else {
 		xcompare = (joystick_rightx >= octet);
 		ycompare = (joystick_righty >= octet);
 	}
-	if (PIA_0A.control_register & 0x08) {
+	if (PIA0.a.control_register & 0x08) {
 		if (ycompare) {
-			PIA_0A.port_input |= 0x80;
+			PIA0.a.port_input |= 0x80;
 		} else {
-			PIA_0A.port_input &= 0x7f;
+			PIA0.a.port_input &= 0x7f;
 		}
 	} else {
 		if (xcompare) {
-			PIA_0A.port_input |= 0x80;
+			PIA0.a.port_input |= 0x80;
 		} else {
-			PIA_0A.port_input &= 0x7f;
+			PIA0.a.port_input &= 0x7f;
 		}
 	}
 }

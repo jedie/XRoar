@@ -21,7 +21,8 @@
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
+#include "module.h"
 #include "sam.h"
 #include "vdg.h"
 #include "xroar.h"
@@ -186,7 +187,7 @@ void vdg_set_mode(void) {
 		vdg_render_scanline();
 	}
 #endif
-	mode = PIA_1B.port_output;
+	mode = PIA1.b.port_output;
 	/* Update video module */
 	video_module->vdg_set_mode(mode);
 	switch ((mode & 0xf0) >> 4) {

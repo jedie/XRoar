@@ -23,8 +23,8 @@
 #include "joystick.h"
 #include "logging.h"
 #include "machine.h"
+#include "mc6821.h"
 #include "module.h"
-#include "pia.h"
 #include "xroar.h"
 
 static int init(int argc, char **argv);
@@ -223,14 +223,14 @@ static void do_poll(void *context) {
 		joystick_righty = ((SDL_JoystickGetAxis(control[RIGHTY].joy->device, control[RIGHTY].control_num)+32768) >> 8) ^ control[RIGHTY].invert;
 	}
 	if (control[RIGHTFIRE].joy && SDL_JoystickGetButton(control[RIGHTFIRE].joy->device, control[RIGHTFIRE].control_num)) {
-		PIA_0A.tied_low &= 0xfe;
+		PIA0.a.tied_low &= 0xfe;
 	} else {
-		PIA_0A.tied_low |= 0x01;
+		PIA0.a.tied_low |= 0x01;
 	}
 	if (control[LEFTFIRE].joy && SDL_JoystickGetButton(control[LEFTFIRE].joy->device, control[LEFTFIRE].control_num)) {
-		PIA_0A.tied_low &= 0xfd;
+		PIA0.a.tied_low &= 0xfd;
 	} else {
-		PIA_0A.tied_low |= 0x02;
+		PIA0.a.tied_low |= 0x02;
 	}
 	joystick_update();
 	poll_event->at_cycle += OSCILLATOR_RATE / 100;

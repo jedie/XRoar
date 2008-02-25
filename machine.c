@@ -25,11 +25,13 @@
 #include "deltados.h"
 #include "dragondos.h"
 #include "fs.h"
+#include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
-#include "pia.h"
+#include "mc6821.h"
+#include "module.h"
 #include "rsdos.h"
 #include "sam.h"
 #include "tape.h"
@@ -64,6 +66,7 @@ uint8_t ram0[0x8000];
 uint8_t ram1[0x8000];
 uint8_t rom0[0x8000];
 uint8_t rom1[0x8000];
+MC6821_PIA PIA0, PIA1;
 
 Cycle current_cycle;
 int noextbas;
@@ -216,9 +219,35 @@ void machine_getargs(int argc, char **argv) {
 	}
 }
 
+#define pia0a_data_postwrite keyboard_row_update
+#define pia0b_data_postwrite keyboard_column_update
+#define pia1a_data_preread tape_update_input
+
+static void pia1a_data_postwrite(void) {
+	sound_module->update();
+	joystick_update();
+	tape_update_output();
+}
+
+#define pia1a_control_postwrite tape_update_motor
+
+static void pia1b_data_postwrite(void) {
+	sound_module->update();
+	vdg_set_mode();
+}
+
 void machine_init(void) {
 	sam_init();
-	pia_init();
+	mc6821_init(&PIA0);
+	PIA0.a.irq_line = PIA0.b.irq_line = &irq;
+	PIA0.a.data_postwrite = pia0a_data_postwrite;
+	PIA0.b.data_postwrite = pia0b_data_postwrite;
+	mc6821_init(&PIA1);
+	PIA1.a.irq_line = PIA1.b.irq_line = &firq;
+	PIA1.a.data_preread = pia1a_data_preread;
+	PIA1.a.data_postwrite = pia1a_data_postwrite;
+	PIA1.a.control_postwrite = pia1a_control_postwrite;
+	PIA1.b.data_postwrite = pia1b_data_postwrite;
 	dragondos_init();
 	deltados_init();
 	rsdos_init();
@@ -290,7 +319,12 @@ void machine_reset(int hard) {
 			machine_set_page1_ram_size(0);
 		}
 	}
-	pia_reset();
+	if (IS_DRAGON64)
+		PIA1.b.port_input |= (1<<2);
+	else
+		PIA1.b.port_input &= ~(1<<2);
+	mc6821_reset(&PIA0);
+	mc6821_reset(&PIA1);
 	if (IS_DRAGONDOS)
 		dragondos_reset();
 	if (IS_RSDOS)

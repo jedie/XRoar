@@ -22,7 +22,7 @@ typedef struct {
 	uint8_t nmi_armed;
 } M6809State;
 
-extern int halt, nmi, firq, irq;
+extern unsigned int halt, nmi, firq, irq;
 
 void m6809_init(void);
 void m6809_reset(void);

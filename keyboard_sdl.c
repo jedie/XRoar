@@ -29,10 +29,11 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "machine.h"
+#include "mc6821.h"
 #include "module.h"
-#include "pia.h"
 #include "snapshot.h"
 #include "tape.h"
+#include "vdg.h"
 #include "vdisk.h"
 #include "vdrive.h"
 #include "xroar.h"
@@ -149,14 +150,14 @@ static void keypress(SDL_keysym *keysym) {
 		if (sym == SDLK_DOWN) { joystick_lefty = 255; return; }
 		if (sym == SDLK_LEFT) { joystick_leftx = 0; return; }
 		if (sym == SDLK_RIGHT) { joystick_leftx = 255; return; }
-		if (sym == SDLK_LALT) { PIA_0A.tied_low &= 0xfd; return; }
+		if (sym == SDLK_LALT) { PIA0.a.tied_low &= 0xfd; return; }
 	}
 	if (emulate_joystick == 2) {
 		if (sym == SDLK_UP) { joystick_righty = 0; return; }
 		if (sym == SDLK_DOWN) { joystick_righty = 255; return; }
 		if (sym == SDLK_LEFT) { joystick_rightx = 0; return; }
 		if (sym == SDLK_RIGHT) { joystick_rightx = 255; return; }
-		if (sym == SDLK_LALT) { PIA_0A.tied_low &= 0xfe; return; }
+		if (sym == SDLK_LALT) { PIA0.a.tied_low &= 0xfe; return; }
 	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 1;
@@ -348,7 +349,7 @@ static void keypress(SDL_keysym *keysym) {
 		if (unicode == '\\') {
 			/* CoCo and Dragon 64 in 64K mode have a different way
 			 * of scanning for '\' */
-			if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
+			if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))) {
 				KEYBOARD_PRESS(0);
 				KEYBOARD_PRESS(12);
 			} else {
@@ -394,14 +395,14 @@ static void keyrelease(SDL_keysym *keysym) {
 		if (sym == SDLK_DOWN) { JOY_UNHIGH(joystick_lefty); return; }
 		if (sym == SDLK_LEFT) { JOY_UNLOW(joystick_leftx); return; }
 		if (sym == SDLK_RIGHT) { JOY_UNHIGH(joystick_leftx); return; }
-		if (sym == SDLK_LALT) { PIA_0A.tied_low |= 0x02; return; }
+		if (sym == SDLK_LALT) { PIA0.a.tied_low |= 0x02; return; }
 	}
 	if (emulate_joystick == 2) {
 		if (sym == SDLK_UP) { JOY_UNLOW(joystick_righty); return; }
 		if (sym == SDLK_DOWN) { JOY_UNHIGH(joystick_righty); return; }
 		if (sym == SDLK_LEFT) { JOY_UNLOW(joystick_rightx); return; }
 		if (sym == SDLK_RIGHT) { JOY_UNHIGH(joystick_rightx); return; }
-		if (sym == SDLK_LALT) { PIA_0A.tied_low |= 0x01; return; }
+		if (sym == SDLK_LALT) { PIA0.a.tied_low |= 0x01; return; }
 	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 0;
@@ -426,7 +427,7 @@ static void keyrelease(SDL_keysym *keysym) {
 		if (unicode == '\\') {
 			/* CoCo and Dragon 64 in 64K mode have a different way
 			 * of scanning for '\' */
-			if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_1B.port_output & 0x04))) {
+			if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))) {
 				KEYBOARD_RELEASE(0);
 				KEYBOARD_RELEASE(12);
 			} else {

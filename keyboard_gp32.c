@@ -33,8 +33,8 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "machine.h"
+#include "mc6821.h"
 #include "module.h"
-#include "pia.h"
 #include "snapshot.h"
 #include "xroar.h"
 
@@ -143,9 +143,9 @@ static void do_poll(void *context) {
 			if (key & GPC_VK_UP) joystick_lefty = 0;
 			if (key & GPC_VK_DOWN) joystick_lefty = 255;
 			if (key & GPC_VK_FB)
-				PIA_0A.tied_low &= 0xfd;
+				PIA0.a.tied_low &= 0xfd;
 			else
-				PIA_0A.tied_low |= 0x02;
+				PIA0.a.tied_low |= 0x02;
 			KEY_UPDATE(key & GPC_VK_FR, 13);
 			KEY_UPDATE(key & GPC_VK_FA, 32);
 			KEY_UPDATE(key & GPC_VK_SELECT, 112);
@@ -159,9 +159,9 @@ static void do_poll(void *context) {
 			if (key & GPC_VK_UP) joystick_righty = 0;
 			if (key & GPC_VK_DOWN) joystick_righty = 255;
 			if (key & GPC_VK_FB)
-				PIA_0A.tied_low &= 0xfe;
+				PIA0.a.tied_low &= 0xfe;
 			else
-				PIA_0A.tied_low |= 0x01;
+				PIA0.a.tied_low |= 0x01;
 			KEY_UPDATE(key & GPC_VK_FR, 13);
 			KEY_UPDATE(key & GPC_VK_FA, 32);
 			KEY_UPDATE(key & GPC_VK_SELECT, 112);
