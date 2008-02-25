@@ -25,7 +25,6 @@
 extern int requested_frameskip;
 extern int frameskip;
 extern int noratelimit;
-extern int video_artifact_mode;
 
 #ifdef TRACE
 extern int trace;

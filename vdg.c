@@ -207,8 +207,12 @@ void vdg_set_mode(void) {
 			vdg_render_scanline = video_module->vdg_render_cg2;
 			break;
 		case 15: default:
-			if ((mode & 0x08) && video_artifact_mode) {
-				vdg_render_scanline = video_module->vdg_render_cg2;
+			if ((mode & 0x08) && running_config.cross_colour_phase) {
+				if (cross_colour_renderer == CROSS_COLOUR_5BIT) {
+					vdg_render_scanline = video_module->vdg_render_rg6a;
+				} else {
+					vdg_render_scanline = video_module->vdg_render_cg2;
+				}
 			} else {
 				vdg_render_scanline = video_module->vdg_render_rg6;
 			}

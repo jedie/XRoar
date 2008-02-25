@@ -43,6 +43,7 @@ static void render_cg1(void);
 static void render_rg1(void);
 static void render_cg2(void);
 static void render_rg6(void);
+static void render_rg6a(void);
 static void render_border(void);
 static void alloc_colours(void);
 
@@ -52,7 +53,7 @@ VideoModule video_sdl_module = {
 	NULL, set_fullscreen, 0,
 	vsync, set_mode,
 	render_sg4, render_sg6, render_cg1,
-	render_rg1, render_cg2, render_rg6,
+	render_rg1, render_cg2, render_rg6, render_rg6a,
 	render_border
 };
 

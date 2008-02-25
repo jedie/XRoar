@@ -61,6 +61,21 @@
 #define NUM_TV_STANDARDS  (2)
 #define NUM_DOS_TYPES     (4)
 
+/* NTSC cross-colour can either be rendered as a simple four colour palette,
+ * or with a 5-bit lookup table */
+#define NUM_CROSS_COLOUR_RENDERERS (2)
+#define CROSS_COLOUR_SIMPLE (0)
+#define CROSS_COLOUR_5BIT   (1)
+extern int cross_colour_renderer;
+
+/* NTSC cross-colour can either be switched off, or sychronised to one
+ * of two phases (a real CoCo does not emit a colour burst in high resolution
+ * mode, so NTSC televisions sync to one at random on machine reset) */
+#define NUM_CROSS_COLOUR_PHASES (3)
+#define CROSS_COLOUR_OFF  (0)
+#define CROSS_COLOUR_KBRW (1)
+#define CROSS_COLOUR_KRBW (2)
+
 typedef struct { unsigned int col, row; } Key;
 typedef Key Keymap[128];
 
@@ -69,6 +84,7 @@ typedef struct {
 	int romset;
 	int keymap;
 	int tv_standard;
+	int cross_colour_phase;
 	int ram;
 	int dos_type;
 	const char *bas_rom;

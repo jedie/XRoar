@@ -45,16 +45,26 @@ const char *machine_names[NUM_MACHINE_TYPES] = {
 };
 
 MachineConfig machine_defaults[NUM_MACHINE_TYPES] = {
-	{ ARCH_DRAGON32, ROMSET_DRAGON32, KEYMAP_DRAGON, TV_PAL,  32, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
-	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_PAL,  64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
-	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_NTSC, 64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
-	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_PAL,  64, DOS_RSDOS,     NULL, NULL, NULL, NULL },
-	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_NTSC, 64, DOS_RSDOS,     NULL, NULL, NULL, NULL }
+	{ ARCH_DRAGON32, ROMSET_DRAGON32, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  32, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
+	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
+	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_NTSC, CROSS_COLOUR_KBRW, 64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
+	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_PAL,  CROSS_COLOUR_OFF,  64, DOS_RSDOS,     NULL, NULL, NULL, NULL },
+	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_NTSC, CROSS_COLOUR_KBRW, 64, DOS_RSDOS,     NULL, NULL, NULL, NULL }
 };
+
+static struct {
+	const char *option;
+	const char *description;
+	int value;
+} cross_colour_options[NUM_CROSS_COLOUR_RENDERERS] = {
+	{ "simple", "four colour palette", CROSS_COLOUR_SIMPLE },
+	{ "5bit",   "5-bit lookup table",  CROSS_COLOUR_5BIT   },
+};
+int cross_colour_renderer = CROSS_COLOUR_5BIT;
 
 int requested_machine = 1;
 MachineConfig requested_config = {
-	ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, NULL, NULL, NULL, NULL
+	ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, NULL, NULL, NULL, NULL
 };
 int running_machine;
 MachineConfig running_config;
@@ -160,6 +170,7 @@ void machine_helptext(void) {
 	puts("  -nodos                disable DOS (ROM and hardware emulation)");
 	puts("  -pal                  emulate PAL (50Hz) video");
 	puts("  -ntsc                 emulate NTSC (60Hz) video");
+	puts("  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)");
 	puts("  -ram KBYTES           specify amount of RAM in K");
 }
 
@@ -215,6 +226,20 @@ void machine_getargs(int argc, char **argv) {
 			requested_config.tv_standard = TV_PAL;
 		} else if (!strcmp(argv[i], "-ntsc")) {
 			requested_config.tv_standard = TV_NTSC;
+		} else if (!strcmp(argv[i], "-ccr") && i+1<argc) {
+			int j;
+			i++;
+			if (!strcmp(argv[i], "help")) {
+				for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
+					printf("\t%-10s%s\n", cross_colour_options[j].option, cross_colour_options[j].description);
+				}
+				exit(0);
+			}
+			for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
+				if (!strcmp(argv[i], cross_colour_options[j].option)) {
+					cross_colour_renderer = cross_colour_options[j].value;
+				}
+			}
 		}
 	}
 }
@@ -286,6 +311,8 @@ void machine_reset(int hard) {
 			running_config.keymap = defaults->keymap % NUM_KEYMAPS;
 		if (running_config.tv_standard == ANY_AUTO)
 			running_config.tv_standard = defaults->tv_standard % NUM_TV_STANDARDS;
+		if (running_config.cross_colour_phase == ANY_AUTO)
+			running_config.cross_colour_phase = defaults->cross_colour_phase % NUM_CROSS_COLOUR_PHASES;
 		if (running_config.ram == ANY_AUTO)
 			running_config.ram = defaults->ram;
 		if (running_config.dos_type == ANY_AUTO)
@@ -349,6 +376,7 @@ void machine_clear_requested_config(void) {
 	requested_config.romset = ANY_AUTO;
 	requested_config.keymap = ANY_AUTO;
 	requested_config.tv_standard = ANY_AUTO;
+	requested_config.cross_colour_phase = ANY_AUTO;
 	requested_config.ram = ANY_AUTO;
 	requested_config.dos_type = ANY_AUTO;
 	requested_config.bas_rom = NULL;

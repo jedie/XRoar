@@ -34,6 +34,7 @@ typedef struct {
 	void (*vdg_render_rg1)(void);
 	void (*vdg_render_cg2)(void);
 	void (*vdg_render_rg6)(void);
+	void (*vdg_render_rg6a)(void);
 	void (*render_border)(void);
 } VideoModule;
 

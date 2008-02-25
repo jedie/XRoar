@@ -37,7 +37,6 @@
 int requested_frameskip;
 int frameskip;
 int noratelimit = 0;
-int video_artifact_mode = 0;
 
 #ifdef TRACE
 int trace = 0;

@@ -225,9 +225,9 @@ static void keypress(SDL_keysym *keysym) {
 			}
 			break;
 		case SDLK_a:
-			video_artifact_mode++;
-			if (video_artifact_mode > 2)
-				video_artifact_mode = 0;
+			running_config.cross_colour_phase++;
+			if (running_config.cross_colour_phase > 2)
+				running_config.cross_colour_phase = 0;
 			vdg_set_mode();
 			break;
 		case SDLK_c:

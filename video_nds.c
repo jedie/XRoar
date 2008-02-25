@@ -102,7 +102,7 @@ static void set_mode(unsigned int mode) {
 		/* Graphics modes */
 		if ((mode & 0x70) == 0x70) {
 			if (mode & 0x08) {
-				cg_colours = rg6_pixels[1 + video_artifact_mode];
+				cg_colours = rg6_pixels[1 + running_config.cross_colour_phase];
 			} else {
 				cg_colours = rg6_pixels[0];
 			}

@@ -215,6 +215,7 @@ Here's a complete summary of supported command-line switches:
   -nodos                disable DOS (ROM and hardware emulation)
   -pal                  emulate PAL (50Hz) video
   -ntsc                 emulate NTSC (60Hz) video
+  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)
   -ram KBYTES           specify amount of RAM in K
   -cart FILENAME        specify ROM to load into cartridge area ($C000-)
   -cartna FILENAME      as -cart, but no auto-run
@@ -240,7 +241,7 @@ Ctrl+[1-4] ........ Insert a virtual disk into drive 1-4.
 Ctrl+Shift+[1-4] .. Insert a blank virtual disk (40TSS) into drive 1-4.
 Ctrl+[5-8] ........ Toggle write protect on disk in drive 1-4.
 Ctrl+Shift+[5-8] .. Toggle write protect on file for disk in drive 1-4.
-Ctrl+A ............ Cycle through artifacted video modes (hi-res only).
+Ctrl+A ............ Cycle through cross-colour video modes (hi-res only).
 Ctrl+C ............ Quit emulator.
 Ctrl+E ............ Toggle DOS emulation on/off - reset to take effect.
 Ctrl+I ............ Insert a cartridge.
@@ -297,6 +298,14 @@ Attaching a virtual cassette for writing will always truncate that file
 to zero bytes even if you don't then write anything, so be careful you
 don't overwrite something important.  Tape files used for writing and
 those used for reading are maintained separately.
+
+Many games make use of the fact that NTSC exhibits very bad cross-colour
+artifacts in regions of high frequency luminance.  The "-ccr" option can
+choose between two cross-colour renderers: "simple", using a four-colour
+palette, or "5bit", which consults a 5-bit lookup table (2 bits either
+side of the considered pixel).  During operation, pressing Ctrl+A will
+cycle between "off" and the two phases a typical NTSC television would
+sync to on machine reset.
 
 
 GP32 CONTROLS

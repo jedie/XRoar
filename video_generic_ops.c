@@ -60,10 +60,11 @@
 
 static unsigned int subline;
 static Pixel *pixel;
-static Pixel darkgreen, black;
+static Pixel black, white, darkgreen;
 static Pixel bg_colour;
 static Pixel fg_colour;
 static Pixel vdg_colour[16];
+static Pixel artifact_colours[2][32];
 static Pixel *cg_colours;
 static Pixel border_colour;
 static uint8_t *vram_ptr;
@@ -87,22 +88,90 @@ static void alloc_colours(void) {
 	vdg_colour[14] = MAPCOLOUR(0x00, 0x80, 0xff);
 	vdg_colour[15] = MAPCOLOUR(0xff, 0xff, 0xff);
 	black = MAPCOLOUR(0x00, 0x00, 0x00);
+	white = MAPCOLOUR(0xff, 0xff, 0xff);
 	darkgreen = MAPCOLOUR(0x00, 0x20, 0x00);
+
+	artifact_colours[0][0x00] = MAPCOLOUR(0x00, 0x00, 0x00);
+	artifact_colours[0][0x01] = MAPCOLOUR(0x00, 0x00, 0x00);
+	artifact_colours[0][0x02] = MAPCOLOUR(0x00, 0x32, 0x78);
+	artifact_colours[0][0x03] = MAPCOLOUR(0x00, 0x28, 0x00);
+	artifact_colours[0][0x04] = MAPCOLOUR(0xff, 0x8c, 0x64);
+	artifact_colours[0][0x05] = MAPCOLOUR(0xff, 0x8c, 0x64);
+	artifact_colours[0][0x06] = MAPCOLOUR(0xff, 0xd2, 0xff);
+	artifact_colours[0][0x07] = MAPCOLOUR(0xff, 0xf0, 0xc8);
+	artifact_colours[0][0x08] = MAPCOLOUR(0x00, 0x32, 0x78);
+	artifact_colours[0][0x09] = MAPCOLOUR(0x00, 0x00, 0x3c);
+	artifact_colours[0][0x0a] = MAPCOLOUR(0x00, 0x80, 0xff);
+	artifact_colours[0][0x0b] = MAPCOLOUR(0x00, 0x80, 0xff);
+	artifact_colours[0][0x0c] = MAPCOLOUR(0xd2, 0xff, 0xd2);
+	artifact_colours[0][0x0d] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[0][0x0e] = MAPCOLOUR(0x64, 0xf0, 0xff);
+	artifact_colours[0][0x0f] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[0][0x10] = MAPCOLOUR(0x3c, 0x00, 0x00);
+	artifact_colours[0][0x11] = MAPCOLOUR(0x3c, 0x00, 0x00);
+	artifact_colours[0][0x12] = MAPCOLOUR(0x00, 0x00, 0x00);
+	artifact_colours[0][0x13] = MAPCOLOUR(0x00, 0x28, 0x00);
+	artifact_colours[0][0x14] = MAPCOLOUR(0xff, 0x80, 0x00);
+	artifact_colours[0][0x15] = MAPCOLOUR(0xff, 0x80, 0x00);
+	artifact_colours[0][0x16] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[0][0x17] = MAPCOLOUR(0xff, 0xf0, 0xc8);
+	artifact_colours[0][0x18] = MAPCOLOUR(0x28, 0x00, 0x28);
+	artifact_colours[0][0x19] = MAPCOLOUR(0x28, 0x00, 0x28);
+	artifact_colours[0][0x1a] = MAPCOLOUR(0x00, 0x80, 0xff);
+	artifact_colours[0][0x1b] = MAPCOLOUR(0x00, 0x80, 0xff);
+	artifact_colours[0][0x1c] = MAPCOLOUR(0xff, 0xf0, 0xc8);
+	artifact_colours[0][0x1d] = MAPCOLOUR(0xff, 0xf0, 0xc8);
+	artifact_colours[0][0x1e] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[0][0x1f] = MAPCOLOUR(0xff, 0xff, 0xff);
+
+	artifact_colours[1][0x00] = MAPCOLOUR(0x00, 0x00, 0x00);
+	artifact_colours[1][0x01] = MAPCOLOUR(0x00, 0x00, 0x00);
+	artifact_colours[1][0x02] = MAPCOLOUR(0xb4, 0x3c, 0x1e);
+	artifact_colours[1][0x03] = MAPCOLOUR(0x28, 0x00, 0x28);
+	artifact_colours[1][0x04] = MAPCOLOUR(0x46, 0xc8, 0xff);
+	artifact_colours[1][0x05] = MAPCOLOUR(0x46, 0xc8, 0xff);
+	artifact_colours[1][0x06] = MAPCOLOUR(0xd2, 0xff, 0xd2);
+	artifact_colours[1][0x07] = MAPCOLOUR(0x64, 0xf0, 0xff);
+	artifact_colours[1][0x08] = MAPCOLOUR(0xb4, 0x3c, 0x1e);
+	artifact_colours[1][0x09] = MAPCOLOUR(0x3c, 0x00, 0x00);
+	artifact_colours[1][0x0a] = MAPCOLOUR(0xff, 0x80, 0x00);
+	artifact_colours[1][0x0b] = MAPCOLOUR(0xff, 0x80, 0x00);
+	artifact_colours[1][0x0c] = MAPCOLOUR(0xff, 0xd2, 0xff);
+	artifact_colours[1][0x0d] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[1][0x0e] = MAPCOLOUR(0xff, 0xf0, 0xc8);
+	artifact_colours[1][0x0f] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[1][0x10] = MAPCOLOUR(0x00, 0x00, 0x3c);
+	artifact_colours[1][0x11] = MAPCOLOUR(0x00, 0x00, 0x3c);
+	artifact_colours[1][0x12] = MAPCOLOUR(0x00, 0x00, 0x00);
+	artifact_colours[1][0x13] = MAPCOLOUR(0x28, 0x00, 0x28);
+	artifact_colours[1][0x14] = MAPCOLOUR(0x00, 0x80, 0xff);
+	artifact_colours[1][0x15] = MAPCOLOUR(0x00, 0x80, 0xff);
+	artifact_colours[1][0x16] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[1][0x17] = MAPCOLOUR(0x64, 0xf0, 0xff);
+	artifact_colours[1][0x18] = MAPCOLOUR(0x00, 0x28, 0x00);
+	artifact_colours[1][0x19] = MAPCOLOUR(0x00, 0x28, 0x00);
+	artifact_colours[1][0x1a] = MAPCOLOUR(0xff, 0x80, 0x00);
+	artifact_colours[1][0x1b] = MAPCOLOUR(0xff, 0x80, 0x00);
+	artifact_colours[1][0x1c] = MAPCOLOUR(0x64, 0xf0, 0xff);
+	artifact_colours[1][0x1d] = MAPCOLOUR(0x64, 0xf0, 0xff);
+	artifact_colours[1][0x1e] = MAPCOLOUR(0xff, 0xff, 0xff);
+	artifact_colours[1][0x1f] = MAPCOLOUR(0xff, 0xff, 0xff);
 }
 
 /* Update graphics mode - change current select colour set */
 static void set_mode(unsigned int mode) {
 	if (mode & 0x80) {
 		/* Graphics modes */
-		if (((mode & 0xf0) == 0xf0) && video_artifact_mode) {
-			cg_colours = &vdg_colour[4 + video_artifact_mode * 4];
+		if (((mode & 0xf0) == 0xf0) && running_config.cross_colour_phase) {
+			cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
 			fg_colour = vdg_colour[(mode & 0x08) >> 1];
+			border_colour = white;
 		} else {
 			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
 			fg_colour = cg_colours[0];
+			border_colour = fg_colour;
 		}
 		bg_colour = black;
-		border_colour = fg_colour;
 	} else {
 		bg_colour = darkgreen;
 		border_colour = black;
@@ -377,6 +446,90 @@ static void render_rg6(void) {
 			sam_vdg_xstep(16);
 	}
 	RENDER_RIGHT_BORDER;
+	UNLOCK_SURFACE;
+	if (beam_pos == 320) {
+		sam_vdg_hsync(10);
+		pixel += NEXTLINE;
+		subline++;
+		if (subline > 11)
+			subline = 0;
+		beam_pos++;
+	}
+}
+
+/* Render artifacted colours */
+static void render_rg6a(void) {
+	static int aindex = 0;
+	static unsigned int octet;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+	if (beam_to < 0)
+		return;
+	LOCK_SURFACE;
+	while (beam_pos < 24 && beam_pos < beam_to) {
+		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
+			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
+			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP)
+			= *(pixel+7*XSTEP) = white;
+		pixel += 8*XSTEP;
+		beam_pos += 8;
+	}
+	if (beam_pos == 24 && beam_to > 24) {
+		int i;
+		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
+			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
+			= *(pixel+5*XSTEP) = white;
+		pixel += 6*XSTEP;
+		aindex = 31;
+		beam_pos += 8;
+		vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+		octet = *(vram_ptr++);
+		for (i = 2; i; i--) {
+			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
+			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
+			octet = (octet << 1) & 0xff;
+		}
+	}
+	while (beam_pos >= 32 && beam_pos < 280 && beam_pos < beam_to) {
+		int i;
+		for (i = 6; i; i--) {
+			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
+			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
+			octet = (octet << 1) & 0xff;
+		}
+		beam_pos += 8;
+		if (beam_pos == 160) {
+			sam_vdg_xstep(16);
+			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+		}
+		octet = *(vram_ptr++);
+		for (i = 2; i; i--) {
+			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
+			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
+			octet = (octet << 1) & 0xff;
+		}
+	}
+	if (beam_pos == 280 && beam_to > 280) {
+		int i;
+		for (i = 6; i; i--) {
+			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
+			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
+			octet = (octet << 1) & 0xff;
+		}
+		beam_pos += 8;
+		sam_vdg_xstep(16);
+		for (i = 2; i; i--) {
+			aindex = ((aindex << 1) | 1) & 0x1f;
+			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
+		}
+	}
+	while (beam_pos >= 288 && beam_pos < 320 && beam_pos < beam_to) {
+		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
+			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
+			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP)
+			= *(pixel+7*XSTEP) = white;
+		pixel += 8*XSTEP;
+		beam_pos += 8;
+	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
 		sam_vdg_hsync(10);

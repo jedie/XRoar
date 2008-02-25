@@ -53,7 +53,7 @@
 #define ID_VDISK_FILE    (10)
 
 #define SNAPSHOT_VERSION_MAJOR 1
-#define SNAPSHOT_VERSION_MINOR 5
+#define SNAPSHOT_VERSION_MINOR 6
 
 int write_snapshot(const char *filename) {
 	int fd;
@@ -66,7 +66,7 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, SNAPSHOT_VERSION_MAJOR);
 	fs_write_word16(fd, SNAPSHOT_VERSION_MINOR);
 	/* Machine running config */
-	fs_write_byte(fd, ID_MACHINECONFIG); fs_write_word16(fd, 7);
+	fs_write_byte(fd, ID_MACHINECONFIG); fs_write_word16(fd, 8);
 	fs_write_byte(fd, running_machine);
 	fs_write_byte(fd, running_config.architecture);
 	fs_write_byte(fd, running_config.romset);
@@ -74,6 +74,7 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, running_config.tv_standard);
 	fs_write_byte(fd, running_config.ram);
 	fs_write_byte(fd, running_config.dos_type);
+	fs_write_byte(fd, running_config.cross_colour_phase);
 	/* RAM page 0 */
 	fs_write_byte(fd, ID_RAM_PAGE0); fs_write_word16(fd, machine_page0_ram);
 	fs_write(fd, ram0, machine_page0_ram);
@@ -291,8 +292,13 @@ int read_snapshot(const char *filename) {
 				requested_config.ram = tmp8;
 				fs_read_byte(fd, &tmp8);
 				requested_config.dos_type = tmp8;
-				machine_reset(RESET_HARD);
 				size -= 7;
+				if (size > 0) {
+					fs_read_byte(fd, &tmp8);
+					requested_config.cross_colour_phase = tmp8;
+					size--;
+				}
+				machine_reset(RESET_HARD);
 				break;
 			case ID_PIA_REGISTERS:
 				/* PIA0.a */
@@ -392,7 +398,7 @@ int read_snapshot(const char *filename) {
 				break;
 		}
 		if (size > 0) {
-			LOG_WARN("Skipping extra bytes in snapshot chunk.\n");
+			LOG_WARN("Skipping extra bytes in snapshot chunk id=%d.\n", (int)section);
 			for (; size; size--)
 				fs_read_byte(fd, &tmp8);
 		}

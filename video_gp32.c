@@ -429,8 +429,8 @@ static void vdg_render_rg6(void) {
 static void vdg_set_mode(unsigned int mode) {
 	if (mode & 0x80) {
 		/* Graphics modes */
-		if (((mode & 0x70) == 0x70) && video_artifact_mode) {
-			cg_colours = &vdg_colour[4 + video_artifact_mode * 4];
+		if (((mode & 0x70) == 0x70) && running_config.cross_colour_phase) {
+			cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
 			fg_colour = vdg_colour[(mode & 0x08) >> 1];
 		} else {
 			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
