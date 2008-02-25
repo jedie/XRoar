@@ -6,6 +6,24 @@
 #ifndef __MC6821_H__
 #define __MC6821_H__
 
+/* 
+ * Two "sides" per PIA (A & B), each basically the same except side A
+ * initialised with "internal pull-up resistors" (effectively port_input all
+ * high).
+ *
+ * The bits specified in irq_or are set/reset in *irq_line when interrupts are
+ * set or cleared - both sides may be pointed at the same unsigned int as the
+ * default for irq_or is different per-side.
+ *
+ * Pointers to pre-read and post-write functions can be set for data & control
+ * registers.
+ *
+ * Code to set/reset Cx1 is in the form of macros for speed, as these generate
+ * interrupts and are likely to happen frequently.
+ *
+ * Not implemented: Cx2/IRQx2 behaviour.
+ */
+
 typedef struct {
 	struct {
 		unsigned int control_register;
