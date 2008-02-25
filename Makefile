@@ -393,8 +393,7 @@ depend:
 ./main_nds7.o: types.h config.h portalib.h
 ./main_nds9.o: config.h xroar.h types.h portalib.h events.h logging.h
 ./main_unix.o: config.h xroar.h types.h portalib.h events.h logging.h
-./mc6821.o: types.h config.h portalib.h logging.h m6809.h sam.h machine.h
-./mc6821.o: mc6821.h xroar.h events.h
+./mc6821.o: mc6821.h
 ./module.o: types.h config.h portalib.h logging.h module.h
 ./nds/ndsgfx.o: ./types.h config.h portalib.h ./nds/ndsgfx.h
 ./nds/ndsui.o: types.h config.h portalib.h logging.h module.h nds/ndsui.h
@@ -423,7 +422,7 @@ depend:
 ./sound_gp32.o: module.h sound_gp32.h xroar.h gp32/gpsound.h ./types.h
 ./sound_gp32.o: gp32/gp32.h
 ./sound_jack.o: types.h config.h portalib.h events.h logging.h machine.h
-./sound_jack.o: mc6821.h xroar.h
+./sound_jack.o: mc6821.h module.h xroar.h
 ./sound_macosx.o: types.h config.h portalib.h logging.h events.h machine.h
 ./sound_macosx.o: mc6821.h module.h xroar.h
 ./sound_null.o: config.h types.h portalib.h logging.h events.h machine.h
