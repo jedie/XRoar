@@ -28,7 +28,6 @@
 #include "sam.h"
 #include "tape.h"
 #include "vdg.h"
-#include "wd279x.h"
 #include "xroar.h"
 
 uint8_t *addrptr_low;
@@ -100,24 +99,15 @@ unsigned int sam_read_byte(uint_least16_t addr) {
 			return 0x7e;
 		if (IS_RSDOS) {
 			/* CoCo floppy disk controller */
-			if ((addr & 15) == 8) return wd279x_status_read();
-			if ((addr & 15) == 9) return wd279x_track_register_read();
-			if ((addr & 15) == 10) return wd279x_sector_register_read();
-			if ((addr & 15) == 11) return wd279x_data_register_read();
+			return rsdos_read(addr);
 		}
 		if (IS_DRAGONDOS) {
 			/* Dragon floppy disk controller */
-			if ((addr & 15) == 0) return wd279x_status_read();
-			if ((addr & 15) == 1) return wd279x_track_register_read();
-			if ((addr & 15) == 2) return wd279x_sector_register_read();
-			if ((addr & 15) == 3) return wd279x_data_register_read();
+			return dragondos_read(addr);
 		}
 		if (IS_DELTADOS) {
 			/* Delta floppy disk controller */
-			if ((addr & 7) == 0) return wd279x_status_read();
-			if ((addr & 7) == 1) return wd279x_track_register_read();
-			if ((addr & 7) == 2) return wd279x_sector_register_read();
-			if ((addr & 7) == 3) return wd279x_data_register_read();
+			return deltados_read(addr);
 		}
 		return 0x7e;
 	}
@@ -179,27 +169,15 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 			return;
 		if (IS_RSDOS) {
 			/* CoCo floppy disk controller */
-			if ((addr & 15) == 8) wd279x_command_write(octet);
-			if ((addr & 15) == 9) wd279x_track_register_write(octet);
-			if ((addr & 15) == 10) wd279x_sector_register_write(octet);
-			if ((addr & 15) == 11) wd279x_data_register_write(octet);
-			if (!(addr & 8)) rsdos_ff40_write(octet);
+			rsdos_write(addr, octet);
 		}
 		if (IS_DRAGONDOS) {
 			/* Dragon floppy disk controller */
-			if ((addr & 15) == 0) wd279x_command_write(octet);
-			if ((addr & 15) == 1) wd279x_track_register_write(octet);
-			if ((addr & 15) == 2) wd279x_sector_register_write(octet);
-			if ((addr & 15) == 3) wd279x_data_register_write(octet);
-			if (addr & 8) dragondos_ff48_write(octet);
+			dragondos_write(addr, octet);
 		}
 		if (IS_DELTADOS) {
 			/* Delta floppy disk controller */
-			if ((addr & 7) == 0) wd279x_command_write(octet);
-			if ((addr & 7) == 1) wd279x_track_register_write(octet);
-			if ((addr & 7) == 2) wd279x_sector_register_write(octet);
-			if ((addr & 7) == 3) wd279x_data_register_write(octet);
-			if (addr & 4) deltados_ff44_write(octet);
+			deltados_write(addr, octet);
 		}
 		return;
 	}

@@ -38,6 +38,8 @@ static unsigned int ic1_drive_select;
 static unsigned int ic1_side_select;
 static unsigned int ic1_density;
 
+static void ff44_write(unsigned int octet);
+
 void deltados_init(void) {
 }
 
@@ -51,11 +53,27 @@ void deltados_reset(void) {
 	ic1_drive_select = 0xff;
 	ic1_side_select  = 0xff;
 	ic1_density      = 0xff;
-	deltados_ff44_write(0);
+	ff44_write(0);
+}
+
+unsigned int deltados_read(unsigned int addr) {
+	if ((addr & 7) == 0) return wd279x_status_read();
+	if ((addr & 7) == 1) return wd279x_track_register_read();
+	if ((addr & 7) == 2) return wd279x_sector_register_read();
+	if ((addr & 7) == 3) return wd279x_data_register_read();
+	return 0x7e;
+}
+
+void deltados_write(unsigned int addr, unsigned int val) {
+	if ((addr & 7) == 0) wd279x_command_write(val);
+	if ((addr & 7) == 1) wd279x_track_register_write(val);
+	if ((addr & 7) == 2) wd279x_sector_register_write(val);
+	if ((addr & 7) == 3) wd279x_data_register_write(val);
+	if (addr & 4) ff44_write(val);
 }
 
 /* Delta cartridge circuitry */
-void deltados_ff44_write(unsigned int octet) {
+static void ff44_write(unsigned int octet) {
 	LOG_DEBUG(4, "Delta: Write to FF44: ");
 	if ((octet & 0x03) != ic1_drive_select) {
 		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);

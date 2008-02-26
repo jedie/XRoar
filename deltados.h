@@ -8,6 +8,8 @@
 
 void deltados_init(void);
 void deltados_reset(void);
-void deltados_ff44_write(unsigned int octet);
+
+unsigned int deltados_read(unsigned int addr);
+void deltados_write(unsigned int addr, unsigned int val);
 
 #endif  /* __DELTADOS_H__ */

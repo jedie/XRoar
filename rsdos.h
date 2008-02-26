@@ -8,6 +8,8 @@
 
 void rsdos_init(void);
 void rsdos_reset(void);
-void rsdos_ff40_write(unsigned int octet);
+
+unsigned int rsdos_read(unsigned int addr);
+void rsdos_write(unsigned int addr, unsigned int val);
 
 #endif  /* __RSDOS_H__ */

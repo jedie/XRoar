@@ -8,6 +8,8 @@
 
 void dragondos_init(void);
 void dragondos_reset(void);
-void dragondos_ff48_write(unsigned int octet);
+
+unsigned int dragondos_read(unsigned int addr);
+void dragondos_write(unsigned int addr, unsigned int val);
 
 #endif  /* __DRAGONDOS_H__ */

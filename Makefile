@@ -414,7 +414,7 @@ depend:
 ./rsdos.o: machine.h mc6821.h rsdos.h vdrive.h vdisk.h wd279x.h xroar.h
 ./sam.o: types.h config.h portalib.h deltados.h dragondos.h joystick.h
 ./sam.o: keyboard.h logging.h machine.h mc6821.h rsdos.h sam.h tape.h vdg.h
-./sam.o: wd279x.h xroar.h events.h
+./sam.o: xroar.h events.h
 ./snapshot.o: types.h config.h portalib.h fs.h logging.h m6809.h sam.h
 ./snapshot.o: machine.h mc6821.h snapshot.h tape.h vdg.h vdisk.h vdrive.h
 ./snapshot.o: xroar.h events.h

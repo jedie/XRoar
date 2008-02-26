@@ -58,6 +58,8 @@ static int drq_flag;
 static int intrq_flag;
 static unsigned int halt_enable;
 
+static void ff40_write(unsigned int octet);
+
 void rsdos_init(void) {
 	nmi_event = event_new();
 	nmi_event->dispatch = do_nmi;
@@ -76,11 +78,27 @@ void rsdos_reset(void) {
 	ic1_density = 0xff;
 	halt_enable = 0xff;
 	drq_flag = intrq_flag = 0;
-	rsdos_ff40_write(0);
+	ff40_write(0);
+}
+
+unsigned int rsdos_read(unsigned int addr) {
+	if ((addr & 15) == 8) return wd279x_status_read();
+	if ((addr & 15) == 9) return wd279x_track_register_read();
+	if ((addr & 15) == 10) return wd279x_sector_register_read();
+	if ((addr & 15) == 11) return wd279x_data_register_read();
+	return 0x7e;
+}
+
+void rsdos_write(unsigned int addr, unsigned int val) {
+	if ((addr & 15) == 8) wd279x_command_write(val);
+	if ((addr & 15) == 9) wd279x_track_register_write(val);
+	if ((addr & 15) == 10) wd279x_sector_register_write(val);
+	if ((addr & 15) == 11) wd279x_data_register_write(val);
+	if (!(addr & 8)) ff40_write(val);
 }
 
 /* RSDOS cartridge circuitry */
-void rsdos_ff40_write(unsigned int octet) {
+static void ff40_write(unsigned int octet) {
 	unsigned int new_drive_select = 0;
 	octet ^= 0x20;
 	if (octet & 0x01) {

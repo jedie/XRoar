@@ -57,6 +57,8 @@ static unsigned int ic1_precomp_enable;
 static unsigned int ic1_density;
 static unsigned int ic1_nmi_enable;
 
+static void ff48_write(unsigned int octet);
+
 void dragondos_init(void) {
 	nmi_event = event_new();
 	nmi_event->dispatch = do_nmi;
@@ -74,11 +76,27 @@ void dragondos_reset(void) {
 	ic1_precomp_enable = 0xff;
 	ic1_density = 0xff;
 	ic1_nmi_enable = 0xff;
-	dragondos_ff48_write(0);
+	ff48_write(0);
+}
+
+unsigned int dragondos_read(unsigned int addr) {
+	if ((addr & 15) == 0) return wd279x_status_read();
+	if ((addr & 15) == 1) return wd279x_track_register_read();
+	if ((addr & 15) == 2) return wd279x_sector_register_read();
+	if ((addr & 15) == 3) return wd279x_data_register_read();
+	return 0x7e;
+}
+
+void dragondos_write(unsigned int addr, unsigned int val) {
+	if ((addr & 15) == 0) wd279x_command_write(val);
+	if ((addr & 15) == 1) wd279x_track_register_write(val);
+	if ((addr & 15) == 2) wd279x_sector_register_write(val);
+	if ((addr & 15) == 3) wd279x_data_register_write(val);
+	if (addr & 8) ff48_write(val);
 }
 
 /* DragonDOS cartridge circuitry */
-void dragondos_ff48_write(unsigned int octet) {
+static void ff48_write(unsigned int octet) {
 	LOG_DEBUG(4, "DragonDOS: Write to FF48: ");
 	if ((octet & 0x03) != ic1_drive_select) {
 		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
