@@ -448,7 +448,6 @@ void m6809_cycle(Cycle until) {
 			continue;
 
 		case flow_next_instruction:
-			IF_TRACE(LOG_DEBUG(0, "%04x| ", reg_pc));
 			/* Fetch op-code and process */
 			BYTE_IMMEDIATE(0,op);
 			switch (op) {
@@ -1116,7 +1115,7 @@ void m6809_cycle(Cycle until) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
+			IF_TRACE(LOG_DEBUG(0, "cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			cpu_state = flow_label_a;
 			continue;
 
@@ -1211,7 +1210,7 @@ void m6809_cycle(Cycle until) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
+			IF_TRACE(LOG_DEBUG(0, "cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			cpu_state = flow_label_a;
 			continue;
 
@@ -1248,7 +1247,7 @@ void m6809_cycle(Cycle until) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			IF_TRACE(LOG_DEBUG(0, "\tcc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
+			IF_TRACE(LOG_DEBUG(0, "cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s));
 			cpu_state = flow_label_a;
 			continue;
 

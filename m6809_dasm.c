@@ -16,6 +16,9 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "types.h"
 #include "logging.h"
 #include "m6809_dasm.h"
@@ -853,6 +856,37 @@ static instruction instructions[3][256] = { {
 	{ "*",		ILLEGAL }
 } };
 
+#define INDEXED_WANT_REG   (1<<0)
+#define INDEXED_WANT_BYTE  (1<<1)
+#define INDEXED_WANT_WORD  (1<<2)
+
+struct {
+	const char *fmt;
+	int length;
+	unsigned int flags;
+} indexed_modes[] = {
+	{ ",%s+",      3, INDEXED_WANT_REG },
+	{ ",%s++",     4, INDEXED_WANT_REG },
+	{ ",-%s",      3, INDEXED_WANT_REG },
+	{ ",--%s",     4, INDEXED_WANT_REG },
+	{ ",%s",       2, INDEXED_WANT_REG },
+	{ "B,%s",      3, INDEXED_WANT_REG },
+	{ "A,%s",      3, INDEXED_WANT_REG },
+	{ ",%s *",     4, INDEXED_WANT_REG },
+	{ "$%02x,%s",  5, INDEXED_WANT_BYTE | INDEXED_WANT_REG },
+	{ "$%04x,%s",  7, INDEXED_WANT_WORD | INDEXED_WANT_REG },
+	{ "*",         1, 0 },
+	{ "D,%s",      3, INDEXED_WANT_REG },
+	{ "$%02x,PCR", 7, INDEXED_WANT_BYTE },
+	{ "$%04x,PCR", 9, INDEXED_WANT_WORD },
+	{ "*",         1, 0 },
+	{ "$%04X",     5, INDEXED_WANT_WORD }
+};
+
+static const char *indexed_fmt;
+static int indexed_length;
+static unsigned int indexed_flags;
+
 enum {
 	WANT_INSTRUCTION, WANT_BYTE, WANT_WORD1, WANT_WORD2
 } state_enum;
@@ -864,27 +898,43 @@ static const char *tfr_regs[16] = {
 static const char *indexed_regs[4] = { "X", "Y", "U", "S" };
 
 static int state, page, type;
-static unsigned int ins_val, byte_val, word_val, index_mode;
+static unsigned int ins_val, byte_val, word_val, indexed_mode;
+static unsigned int instr_pc;
+#define BYTES_BUF_SIZE 5
+static int bytes_count;
+static unsigned int bytes_buf[BYTES_BUF_SIZE];
 
 void m6809_dasm_reset(void) {
 	state = WANT_INSTRUCTION;
 	page = PAGE0;
 	type = 0;
 	ins_val = byte_val = word_val = 0;
+	bytes_count = 0;
 }
 
 #define STACK_PRINT(r) do { \
-		if (not_first) { LOG_DEBUG(0, "," r); } \
+		if (not_first) { LOG_DEBUG(0, "," r); operand_length += 1; } \
 		else { LOG_DEBUG(0, r); not_first = 1; } \
 	} while (0)
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 
 void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
+	int i;
 	int display = 0;
 	const char *mnemonic;
 	byte &= 0xff;
 	pc &= 0xffff;
+	int operand_length = 0;
+
+	if (bytes_count == 0) {
+		instr_pc = pc;
+	}
+
+	if (bytes_count < BYTES_BUF_SIZE) {
+		bytes_buf[bytes_count++] = byte;
+	}
+
 	switch (state) {
 		default:
 		case WANT_INSTRUCTION:
@@ -909,26 +959,21 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 			}
 			break;
 		case WANT_BYTE:
-			if (type == INDEXED && index_mode == 0) {
-				index_mode = byte;
-				if ((index_mode & 0x80) == 0) {
+			if (type == INDEXED && indexed_mode == 0) {
+				indexed_mode = byte;
+				if ((indexed_mode & 0x80) == 0) {
 					display = 1;
 					break;
 				}
-				switch (index_mode & 0x0f) {
-					case 0: case 1: case 2: case 3:
-					case 4: case 5: case 6: case 11:
-						display = 1;
-						break;
-					case 8: case 12:
-						state = WANT_BYTE;
-						break;
-					case 9: case 13: case 15:
-						state = WANT_WORD1;
-						break;
-					default:
-						display = 1;
-						break;
+				indexed_fmt = indexed_modes[byte & 0x0f].fmt;
+				indexed_length = indexed_modes[byte & 0x0f].length;
+				indexed_flags = indexed_modes[byte & 0x0f].flags;
+				if (indexed_flags & INDEXED_WANT_WORD) {
+					state = WANT_WORD1;
+				} else if (indexed_flags & INDEXED_WANT_BYTE) {
+					state = WANT_BYTE;
+				} else {
+					display = 1;
 				}
 			} else {
 				byte_val = byte;
@@ -946,170 +991,132 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 	}
 	if (!display)
 	 	return;
+
+	LOG_DEBUG(0, "%04x| ", instr_pc);
+	for (i = 0; i < bytes_count; i++) {
+		LOG_DEBUG(0, "%02x", bytes_buf[i]);
+	}
+	for (; i < BYTES_BUF_SIZE + 1; i++) {
+		LOG_DEBUG(0, "  ");
+	}
+	bytes_count = 0;
+
 	mnemonic = instructions[page][ins_val].mnemonic;
+	LOG_DEBUG(0, "%-8s", mnemonic);
 	switch (type) {
 		case ILLEGAL: case INHERENT:
-			LOG_DEBUG(0, "%-16s", mnemonic);
 			break;
+
 		case IMMEDIATE:
-			LOG_DEBUG(0, "%-8s#$%02x", mnemonic, byte_val);
+			LOG_DEBUG(0, "#$%02x", byte_val);
+			operand_length = 4;
 			break;
+
 		case DIRECT:
-			LOG_DEBUG(0, "%-8s<$%02x", mnemonic, byte_val);
+			LOG_DEBUG(0, "<$%02x", byte_val);
+			operand_length = 4;
 			break;
+
 		case WORD_IMMEDIATE:
-			LOG_DEBUG(0, "%-8s#$%04x", mnemonic, word_val);
+			LOG_DEBUG(0, "#$%04x", word_val);
+			operand_length = 6;
 			break;
+
 		case EXTENDED:
-			LOG_DEBUG(0, "%-8s$%04x", mnemonic, word_val);
+			LOG_DEBUG(0, "$%04x", word_val);
+			operand_length = 5;
 			break;
+
 		case STACKS: {
 			int not_first = 0;
-			LOG_DEBUG(0, "%-8s", mnemonic);
-			if (byte_val & 0x01) STACK_PRINT("CC");
-			if (byte_val & 0x02) STACK_PRINT("A");
-			if (byte_val & 0x04) STACK_PRINT("B");
-			if (byte_val & 0x08) STACK_PRINT("DP");
-			if (byte_val & 0x10) STACK_PRINT("X");
-			if (byte_val & 0x20) STACK_PRINT("Y");
-			if (byte_val & 0x40) STACK_PRINT("U");
-			if (byte_val & 0x80) STACK_PRINT("PC");
+			if (byte_val & 0x01) { STACK_PRINT("CC"); operand_length += 2; }
+			if (byte_val & 0x02) { STACK_PRINT("A");  operand_length += 1; }
+			if (byte_val & 0x04) { STACK_PRINT("B");  operand_length += 1; }
+			if (byte_val & 0x08) { STACK_PRINT("DP"); operand_length += 2; }
+			if (byte_val & 0x10) { STACK_PRINT("X");  operand_length += 1; }
+			if (byte_val & 0x20) { STACK_PRINT("Y");  operand_length += 1; }
+			if (byte_val & 0x40) { STACK_PRINT("U");  operand_length += 1; }
+			if (byte_val & 0x80) { STACK_PRINT("PC"); operand_length += 2; }
 		} break;
+
 		case STACKU: {
 			int not_first = 0;
-			LOG_DEBUG(0, "%-8s", mnemonic);
-			if (byte_val & 0x01) STACK_PRINT("CC");
-			if (byte_val & 0x02) STACK_PRINT("A");
-			if (byte_val & 0x04) STACK_PRINT("B");
-			if (byte_val & 0x08) STACK_PRINT("DP");
-			if (byte_val & 0x10) STACK_PRINT("X");
-			if (byte_val & 0x20) STACK_PRINT("Y");
-			if (byte_val & 0x40) STACK_PRINT("S");
-			if (byte_val & 0x80) STACK_PRINT("PC");
+			if (byte_val & 0x01) { STACK_PRINT("CC"); operand_length += 2; }
+			if (byte_val & 0x02) { STACK_PRINT("A");  operand_length += 1; }
+			if (byte_val & 0x04) { STACK_PRINT("B");  operand_length += 1; }
+			if (byte_val & 0x08) { STACK_PRINT("DP"); operand_length += 2; }
+			if (byte_val & 0x10) { STACK_PRINT("X");  operand_length += 1; }
+			if (byte_val & 0x20) { STACK_PRINT("Y");  operand_length += 1; }
+			if (byte_val & 0x40) { STACK_PRINT("S");  operand_length += 1; }
+			if (byte_val & 0x80) { STACK_PRINT("PC"); operand_length += 2; }
 		} break;
+
 		case REGISTER:
-			LOG_DEBUG(0, "%-8s%s,%s", mnemonic,
+			LOG_DEBUG(0, "%s,%s",
 					tfr_regs[(byte_val&0xf0)>>4],
 					tfr_regs[byte_val&0x0f]);
+			operand_length = 1 + strlen(tfr_regs[(byte_val&0xf0)>>4])
+				+ strlen(tfr_regs[byte_val&0x0f]);
 			break;
+
 		case INDEXED: {
-			const char *reg = indexed_regs[(index_mode>>5)&3];
-			if ((index_mode & 0x80) == 0) {
-				LOG_DEBUG(0, "%-8s%d,%s", mnemonic, sex5(index_mode & 0x1f), reg);
+			const char *reg = indexed_regs[(indexed_mode>>5)&3];
+			int value = word_val;
+			if (indexed_flags & INDEXED_WANT_BYTE) value = byte_val;
+			if ((indexed_mode & 0x80) == 0) {
+				value = sex5(indexed_mode & 0x1f);
+				LOG_DEBUG(0, "%d,%s", value, reg);
+				operand_length = 3;
+				if (value < 0) operand_length++;
+				if (abs(value) >= 10) operand_length++;
 				break;
 			}
-			if ((index_mode & 0x10) == 0) {
-
-				switch (index_mode & 0x0f) {
-					case 0:
-						LOG_DEBUG(0, "%-8s,%s+", mnemonic, reg);
-						break;
-					case 1:
-						LOG_DEBUG(0, "%-8s,%s++", mnemonic, reg);
-						break;
-					case 2:
-						LOG_DEBUG(0, "%-8s,-%s", mnemonic, reg);
-						break;
-					case 3:
-						LOG_DEBUG(0, "%-8s,--%s", mnemonic, reg);
-						break;
-					case 4:
-						LOG_DEBUG(0, "%-8s,%s", mnemonic, reg);
-						break;
-					case 5:
-						LOG_DEBUG(0, "%-8sB,%s", mnemonic, reg);
-						break;
-					case 6:
-						LOG_DEBUG(0, "%-8sA,%s", mnemonic, reg);
-						break;
-					case 8:
-						LOG_DEBUG(0, "%-8s$%02x,%s", mnemonic, byte_val, reg);
-						break;
-					case 9:
-						LOG_DEBUG(0, "%-8s$%04x,%s", mnemonic, word_val, reg);
-						break;
-					case 11:
-						LOG_DEBUG(0, "%-8sD,%s", mnemonic, reg);
-						break;
-					case 12:
-						LOG_DEBUG(0, "%-8s$%02x,PCR", mnemonic, byte_val);
-						break;
-					case 13:
-						LOG_DEBUG(0, "%-8s$%04x,PCR", mnemonic, word_val);
-						break;
-					case 15:
-						LOG_DEBUG(0, "%-8s$%04x *", mnemonic, word_val);
-						break;
-					default:
-						LOG_DEBUG(0, "%-8s$%02x *", mnemonic, index_mode);
-						break;
-				}
-
-			} else {
-
-				switch (index_mode & 0x0f) {
-					case 0:
-						LOG_DEBUG(0, "%-8s[,%s+ *]", mnemonic, reg);
-						break;
-					case 1:
-						LOG_DEBUG(0, "%-8s[,%s++]", mnemonic, reg);
-						break;
-					case 2:
-						LOG_DEBUG(0, "%-8s[,-%s *]", mnemonic, reg);
-						break;
-					case 3:
-						LOG_DEBUG(0, "%-8s[,--%s]", mnemonic, reg);
-						break;
-					case 4:
-						LOG_DEBUG(0, "%-8s[,%s]", mnemonic, reg);
-						break;
-					case 5:
-						LOG_DEBUG(0, "%-8s[B,%s]", mnemonic, reg);
-						break;
-					case 6:
-						LOG_DEBUG(0, "%-8s[A,%s]", mnemonic, reg);
-						break;
-					case 8:
-						LOG_DEBUG(0, "%-8s[$%02x,%s]", mnemonic, byte_val, reg);
-						break;
-					case 9:
-						LOG_DEBUG(0, "%-8s[$%04x,%s]", mnemonic, word_val, reg);
-						break;
-					case 11:
-						LOG_DEBUG(0, "%-8s[D,%s]", mnemonic, reg);
-						break;
-					case 12:
-						LOG_DEBUG(0, "%-8s[$%02x,PCR]", mnemonic, byte_val);
-						break;
-					case 13:
-						LOG_DEBUG(0, "%-8s[$%04x,PCR]", mnemonic, word_val);
-						break;
-					case 15:
-						LOG_DEBUG(0, "%-8s[$%04x]", mnemonic, word_val);
-						break;
-					default:
-						LOG_DEBUG(0, "%-8sillegal: $%02x *", mnemonic, index_mode);
-						break;
-				}
-
+			operand_length = indexed_length;
+			if (indexed_mode & 0x10) {
+				LOG_DEBUG(0, "[");
+				operand_length += 2;
 			}
+			if (indexed_flags & (INDEXED_WANT_WORD | INDEXED_WANT_BYTE)) {
+				if (indexed_flags & INDEXED_WANT_REG) {
+					LOG_DEBUG(0, indexed_fmt, value, reg);
+				} else {
+					LOG_DEBUG(0, indexed_fmt, value);
+				}
+			} else {
+				if (indexed_flags & INDEXED_WANT_REG) {
+					LOG_DEBUG(0, indexed_fmt, reg);
+				} else {
+					LOG_DEBUG(0, indexed_fmt);
+				}
+			}
+			if (indexed_mode & 0x10)
+				LOG_DEBUG(0, "]");
 			} break;
+
 		case RELATIVE:
 			pc += (byte_val & 0x80) ? 0xff00 : 0;
 			pc += 1 + byte_val;
 			pc &= 0xffff;
-			LOG_DEBUG(0, "%-8s$%04x", mnemonic, pc);
+			LOG_DEBUG(0, "$%04x", pc);
+			operand_length = 5;
 			break;
+
 		case LONG_RELATIVE:
 			pc += 1 + word_val;
 			pc &= 0xffff;
-			LOG_DEBUG(0, "%-8s$%04x", mnemonic, pc);
+			LOG_DEBUG(0, "$%04x", pc);
+			operand_length = 5;
 			break;
+
 		default:
-			LOG_DEBUG(0, "%-8s", mnemonic);
 			break;
 	}
-	index_mode = 0;
+	LOG_DEBUG(0, "  ");
+	while (operand_length < 18) {
+		LOG_DEBUG(0, " ");
+		operand_length++;
+	}
+	indexed_mode = 0;
 	state = WANT_INSTRUCTION;
 	page = PAGE0;
 }
