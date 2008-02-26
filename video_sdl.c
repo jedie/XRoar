@@ -43,7 +43,11 @@ static void render_cg1(void);
 static void render_rg1(void);
 static void render_cg2(void);
 static void render_rg6(void);
+#ifdef FAST_VDG
+# define render_rg6a render_cg2
+#else
 static void render_rg6a(void);
+#endif
 static void render_border(void);
 static void alloc_colours(void);
 

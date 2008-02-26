@@ -208,9 +208,12 @@ void vdg_set_mode(void) {
 			break;
 		case 15: default:
 			if ((mode & 0x08) && running_config.cross_colour_phase) {
+#ifndef FAST_VDG
 				if (cross_colour_renderer == CROSS_COLOUR_5BIT) {
 					vdg_render_scanline = video_module->vdg_render_rg6a;
-				} else {
+				} else
+#endif
+				{
 					vdg_render_scanline = video_module->vdg_render_cg2;
 				}
 			} else {

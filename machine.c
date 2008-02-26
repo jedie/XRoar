@@ -58,9 +58,15 @@ static struct {
 	int value;
 } cross_colour_options[NUM_CROSS_COLOUR_RENDERERS] = {
 	{ "simple", "four colour palette", CROSS_COLOUR_SIMPLE },
+#ifndef FAST_VDG
 	{ "5bit",   "5-bit lookup table",  CROSS_COLOUR_5BIT   },
+#endif
 };
+#ifdef FAST_VDG
+int cross_colour_renderer = CROSS_COLOUR_SIMPLE;
+#else
 int cross_colour_renderer = CROSS_COLOUR_5BIT;
+#endif
 
 int requested_machine = 1;
 MachineConfig requested_config = {

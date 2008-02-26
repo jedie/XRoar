@@ -457,6 +457,7 @@ static void render_rg6(void) {
 	}
 }
 
+#ifndef FAST_VDG
 /* Render artifacted colours */
 static void render_rg6a(void) {
 	static int aindex = 0;
@@ -540,6 +541,7 @@ static void render_rg6a(void) {
 		beam_pos++;
 	}
 }
+#endif
 
 /* Render a line of border (top/bottom) */
 static void render_border(void) {
