@@ -96,7 +96,6 @@ void tape_init(void) {
 }
 
 void tape_reset(void) {
-	tape_close_reading();
 	tape_close_writing();
 	motor = 0;
 	if (waggle_event)

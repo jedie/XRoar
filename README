@@ -297,7 +297,8 @@ to simulate a joystick with the cursor keys, with Left Alt as fire.
 Attaching a virtual cassette for writing will always truncate that file
 to zero bytes even if you don't then write anything, so be careful you
 don't overwrite something important.  Tape files used for writing and
-those used for reading are maintained separately.
+those used for reading are maintained separately.  The cassette used
+for writing is closed on machine reset, but the read image is kept open.
 
 Many games make use of the fact that NTSC exhibits very bad cross-colour
 artifacts in regions of high frequency luminance.  The "-ccr" option can
