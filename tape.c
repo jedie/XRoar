@@ -114,8 +114,10 @@ int tape_open_reading(char *filename) {
 	input_type = xroar_filetype_by_ext(filename);
 	switch (input_type) {
 	case FILETYPE_CAS:
-		if ((read_fd = fs_open(filename, FS_READ)) == -1)
+		if ((read_fd = fs_open(filename, FS_READ)) == -1) {
+			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
+		}
 		bits_remaining = bytes_remaining = 0;
 		/* If motor is on, enable the bit waggler */
 		if (motor) {
@@ -128,6 +130,10 @@ int tape_open_reading(char *filename) {
 	default:
 		info.format = 0;
 		wav_read_file = sf_open(filename, SFM_READ, &info);
+		if (wav_read_file == NULL) {
+			LOG_WARN("Failed to open '%s'\n", filename);
+			return -1;
+		}
 		wav_channels = info.channels;
 		wav_sample_rate = info.samplerate;
 		if (wav_read_buf != NULL) {

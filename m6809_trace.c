@@ -21,21 +21,22 @@
 
 #include "types.h"
 #include "logging.h"
-#include "m6809_dasm.h"
+#include "m6809_trace.h"
+
+/* 1 == enabled */
+int m6809_trace_enabled;
 
 enum {
 	PAGE0 = 0, PAGE2 = 1, PAGE3 = 2, ILLEGAL,
 	INHERENT, WORD_IMMEDIATE, IMMEDIATE, EXTENDED,
 	DIRECT, INDEXED, RELATIVE, LONG_RELATIVE,
 	STACKS, STACKU, REGISTER
-} instruction_type;
+};
 
-typedef struct {
+static struct {
 	const char *mnemonic;
 	int type;
-} instruction;
-
-static instruction instructions[3][256] = { {
+} instructions[3][256] = { {
 	/* 0x00 - 0x0F */
 	{ "NEG",	DIRECT },
 	{ "NEG *",	DIRECT },
@@ -54,8 +55,8 @@ static instruction instructions[3][256] = { {
 	{ "JMP",	DIRECT },
 	{ "CLR",	DIRECT },
 	/* 0x10 - 0x1F */
-	{ "",		PAGE2 },
-	{ "",		PAGE3 },
+	{ "*",		PAGE2 },
+	{ "*",		PAGE3 },
 	{ "NOP",	INHERENT },
 	{ "SYNC",	INHERENT },
 	{ "*"	,	ILLEGAL },
@@ -862,34 +863,30 @@ static instruction instructions[3][256] = { {
 
 struct {
 	const char *fmt;
-	int length;
 	unsigned int flags;
 } indexed_modes[] = {
-	{ ",%s+",      3, INDEXED_WANT_REG },
-	{ ",%s++",     4, INDEXED_WANT_REG },
-	{ ",-%s",      3, INDEXED_WANT_REG },
-	{ ",--%s",     4, INDEXED_WANT_REG },
-	{ ",%s",       2, INDEXED_WANT_REG },
-	{ "B,%s",      3, INDEXED_WANT_REG },
-	{ "A,%s",      3, INDEXED_WANT_REG },
-	{ ",%s *",     4, INDEXED_WANT_REG },
-	{ "$%02x,%s",  5, INDEXED_WANT_BYTE | INDEXED_WANT_REG },
-	{ "$%04x,%s",  7, INDEXED_WANT_WORD | INDEXED_WANT_REG },
-	{ "*",         1, 0 },
-	{ "D,%s",      3, INDEXED_WANT_REG },
-	{ "$%02x,PCR", 7, INDEXED_WANT_BYTE },
-	{ "$%04x,PCR", 9, INDEXED_WANT_WORD },
-	{ "*",         1, 0 },
-	{ "$%04X",     5, INDEXED_WANT_WORD }
+	{ "%s,%s+%s",      INDEXED_WANT_REG },
+	{ "%s,%s++%s",     INDEXED_WANT_REG },
+	{ "%s,-%s%s",      INDEXED_WANT_REG },
+	{ "%s,--%s%s",     INDEXED_WANT_REG },
+	{ "%s,%s%s",       INDEXED_WANT_REG },
+	{ "%sB,%s%s",      INDEXED_WANT_REG },
+	{ "%sA,%s%s",      INDEXED_WANT_REG },
+	{ "%s,%s *%s",     INDEXED_WANT_REG },
+	{ "%s$%02x,%s%s",  INDEXED_WANT_BYTE | INDEXED_WANT_REG },
+	{ "%s$%04x,%s%s",  INDEXED_WANT_WORD | INDEXED_WANT_REG },
+	{ "%s*%s",         0 },
+	{ "%sD,%s%s",      INDEXED_WANT_REG },
+	{ "%s$%02x,PCR%s", INDEXED_WANT_BYTE },
+	{ "%s$%04x,PCR%s", INDEXED_WANT_WORD },
+	{ "%s*%s",         0 },
+	{ "%s$%04X%s",     INDEXED_WANT_WORD }
 };
 
-static const char *indexed_fmt;
-static int indexed_length;
-static unsigned int indexed_flags;
-
 enum {
-	WANT_INSTRUCTION, WANT_BYTE, WANT_WORD1, WANT_WORD2
-} state_enum;
+	WANT_INSTRUCTION, WANT_BYTE, WANT_WORD1, WANT_WORD2,
+	WANT_PRINT, WANT_PRINT2
+};
 
 static const char *tfr_regs[16] = {
 	"D", "X", "Y", "U", "S", "PC", "*", "*",
@@ -897,35 +894,57 @@ static const char *tfr_regs[16] = {
 };
 static const char *indexed_regs[4] = { "X", "Y", "U", "S" };
 
-static int state, page, type;
-static unsigned int ins_val, byte_val, word_val, indexed_mode;
+static int state, page;
 static unsigned int instr_pc;
 #define BYTES_BUF_SIZE 5
 static int bytes_count;
 static unsigned int bytes_buf[BYTES_BUF_SIZE];
 
-void m6809_dasm_reset(void) {
+static const char *mnemonic;
+static char operand_text[19];
+
+void m6809_trace_helptext(void) {
+	puts("  -trace                start with trace mode on");
+}
+
+void m6809_trace_getargs(int argc, char **argv) {
+	int i;
+	m6809_trace_enabled = 0;
+	for (i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-trace")) {
+			m6809_trace_enabled = 1;
+		}
+	}
+	m6809_trace_reset();
+}
+
+void m6809_trace_reset(void) {
 	state = WANT_INSTRUCTION;
 	page = PAGE0;
-	type = 0;
-	ins_val = byte_val = word_val = 0;
 	bytes_count = 0;
+	mnemonic = "*";
+	operand_text[0] = '*';
+	operand_text[1] = '\0';
 }
 
 #define STACK_PRINT(r) do { \
-		if (not_first) { LOG_DEBUG(0, "," r); operand_length += 1; } \
-		else { LOG_DEBUG(0, r); not_first = 1; } \
+		if (not_first) { strcat(operand_text, "," r); } \
+		else { strcat(operand_text, r); not_first = 1; } \
 	} while (0)
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 
-void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
-	int i;
-	int display = 0;
-	const char *mnemonic;
+void m6809_trace_byte(unsigned int byte, unsigned int pc) {
+	static int ins_type = PAGE0;
+	static unsigned int byte_val = 0, word_val = 0;
+	static int indexed_mode = 0;
+	static const char *indexed_fmt;
+	static unsigned int indexed_flags;
+
+	if (!m6809_trace_enabled) return;
+
 	byte &= 0xff;
 	pc &= 0xffff;
-	int operand_length = 0;
 
 	if (bytes_count == 0) {
 		instr_pc = pc;
@@ -938,14 +957,14 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 	switch (state) {
 		default:
 		case WANT_INSTRUCTION:
-			ins_val = byte;
-			type = instructions[page][ins_val].type;
-			switch (type) {
+			mnemonic = instructions[page][byte].mnemonic;
+			ins_type = instructions[page][byte].type;
+			switch (ins_type) {
 				case PAGE2: case PAGE3:
-					page = type;
+					page = ins_type;
 					break;
 				default: case ILLEGAL: case INHERENT:
-					display = 1;
+					state = WANT_PRINT;
 					break;
 				case IMMEDIATE: case DIRECT: case RELATIVE:
 				case STACKS: case STACKU: case REGISTER:
@@ -959,25 +978,24 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 			}
 			break;
 		case WANT_BYTE:
-			if (type == INDEXED && indexed_mode == 0) {
+			if (ins_type == INDEXED && indexed_mode == 0) {
 				indexed_mode = byte;
 				if ((indexed_mode & 0x80) == 0) {
-					display = 1;
+					state = WANT_PRINT;
 					break;
 				}
 				indexed_fmt = indexed_modes[byte & 0x0f].fmt;
-				indexed_length = indexed_modes[byte & 0x0f].length;
 				indexed_flags = indexed_modes[byte & 0x0f].flags;
 				if (indexed_flags & INDEXED_WANT_WORD) {
 					state = WANT_WORD1;
 				} else if (indexed_flags & INDEXED_WANT_BYTE) {
 					state = WANT_BYTE;
 				} else {
-					display = 1;
+					state = WANT_PRINT;
 				}
 			} else {
 				byte_val = byte;
-				display = 1;
+				state = WANT_PRINT;
 			}
 			break;
 		case WANT_WORD1:
@@ -986,137 +1004,139 @@ void m6809_dasm_byte(unsigned int byte, unsigned int pc) {
 			break;
 		case WANT_WORD2:
 			word_val = (word_val << 8) | byte;
-			display = 1;
+			state = WANT_PRINT;
 			break;
+		case WANT_PRINT:
+			/* Should never get here */
+			LOG_WARN("Trace mode out of sync with CPU emulation.\n");
+			state = WANT_PRINT2;
+			return;
+		case WANT_PRINT2:
+			/* Already emitted the warning once. */
+			return;
 	}
-	if (!display)
+
+	/* If state got set to WANT_PRINT, create the operand text */
+	if (state != WANT_PRINT)
 	 	return;
 
-	LOG_DEBUG(0, "%04x| ", instr_pc);
-	for (i = 0; i < bytes_count; i++) {
-		LOG_DEBUG(0, "%02x", bytes_buf[i]);
-	}
-	for (; i < BYTES_BUF_SIZE + 1; i++) {
-		LOG_DEBUG(0, "  ");
-	}
-	bytes_count = 0;
-
-	mnemonic = instructions[page][ins_val].mnemonic;
-	LOG_DEBUG(0, "%-8s", mnemonic);
-	switch (type) {
+	operand_text[0] = '\0';
+	switch (ins_type) {
 		case ILLEGAL: case INHERENT:
 			break;
 
 		case IMMEDIATE:
-			LOG_DEBUG(0, "#$%02x", byte_val);
-			operand_length = 4;
+			snprintf(operand_text, sizeof(operand_text), "#$%02x", byte_val);
 			break;
 
 		case DIRECT:
-			LOG_DEBUG(0, "<$%02x", byte_val);
-			operand_length = 4;
+			snprintf(operand_text, sizeof(operand_text), "<$%02x", byte_val);
 			break;
 
 		case WORD_IMMEDIATE:
-			LOG_DEBUG(0, "#$%04x", word_val);
-			operand_length = 6;
+			snprintf(operand_text, sizeof(operand_text), "#$%04x", word_val);
 			break;
 
 		case EXTENDED:
-			LOG_DEBUG(0, "$%04x", word_val);
-			operand_length = 5;
+			snprintf(operand_text, sizeof(operand_text), "$%04x", word_val);
 			break;
 
 		case STACKS: {
 			int not_first = 0;
-			if (byte_val & 0x01) { STACK_PRINT("CC"); operand_length += 2; }
-			if (byte_val & 0x02) { STACK_PRINT("A");  operand_length += 1; }
-			if (byte_val & 0x04) { STACK_PRINT("B");  operand_length += 1; }
-			if (byte_val & 0x08) { STACK_PRINT("DP"); operand_length += 2; }
-			if (byte_val & 0x10) { STACK_PRINT("X");  operand_length += 1; }
-			if (byte_val & 0x20) { STACK_PRINT("Y");  operand_length += 1; }
-			if (byte_val & 0x40) { STACK_PRINT("U");  operand_length += 1; }
-			if (byte_val & 0x80) { STACK_PRINT("PC"); operand_length += 2; }
+			if (byte_val & 0x01) { STACK_PRINT("CC"); }
+			if (byte_val & 0x02) { STACK_PRINT("A"); }
+			if (byte_val & 0x04) { STACK_PRINT("B"); }
+			if (byte_val & 0x08) { STACK_PRINT("DP"); }
+			if (byte_val & 0x10) { STACK_PRINT("X"); }
+			if (byte_val & 0x20) { STACK_PRINT("Y"); }
+			if (byte_val & 0x40) { STACK_PRINT("U"); }
+			if (byte_val & 0x80) { STACK_PRINT("PC"); }
 		} break;
 
 		case STACKU: {
 			int not_first = 0;
-			if (byte_val & 0x01) { STACK_PRINT("CC"); operand_length += 2; }
-			if (byte_val & 0x02) { STACK_PRINT("A");  operand_length += 1; }
-			if (byte_val & 0x04) { STACK_PRINT("B");  operand_length += 1; }
-			if (byte_val & 0x08) { STACK_PRINT("DP"); operand_length += 2; }
-			if (byte_val & 0x10) { STACK_PRINT("X");  operand_length += 1; }
-			if (byte_val & 0x20) { STACK_PRINT("Y");  operand_length += 1; }
-			if (byte_val & 0x40) { STACK_PRINT("S");  operand_length += 1; }
-			if (byte_val & 0x80) { STACK_PRINT("PC"); operand_length += 2; }
+			if (byte_val & 0x01) { STACK_PRINT("CC"); }
+			if (byte_val & 0x02) { STACK_PRINT("A"); }
+			if (byte_val & 0x04) { STACK_PRINT("B"); }
+			if (byte_val & 0x08) { STACK_PRINT("DP"); }
+			if (byte_val & 0x10) { STACK_PRINT("X"); }
+			if (byte_val & 0x20) { STACK_PRINT("Y"); }
+			if (byte_val & 0x40) { STACK_PRINT("S"); }
+			if (byte_val & 0x80) { STACK_PRINT("PC"); }
 		} break;
 
 		case REGISTER:
-			LOG_DEBUG(0, "%s,%s",
+			snprintf(operand_text, sizeof(operand_text), "%s,%s",
 					tfr_regs[(byte_val&0xf0)>>4],
 					tfr_regs[byte_val&0x0f]);
-			operand_length = 1 + strlen(tfr_regs[(byte_val&0xf0)>>4])
-				+ strlen(tfr_regs[byte_val&0x0f]);
 			break;
 
 		case INDEXED: {
 			const char *reg = indexed_regs[(indexed_mode>>5)&3];
+			const char *pre = "";
+			const char *post = "";
 			int value = word_val;
 			if (indexed_flags & INDEXED_WANT_BYTE) value = byte_val;
 			if ((indexed_mode & 0x80) == 0) {
 				value = sex5(indexed_mode & 0x1f);
-				LOG_DEBUG(0, "%d,%s", value, reg);
-				operand_length = 3;
-				if (value < 0) operand_length++;
-				if (abs(value) >= 10) operand_length++;
+				snprintf(operand_text, sizeof(operand_text), "%d,%s", value, reg);
 				break;
 			}
-			operand_length = indexed_length;
 			if (indexed_mode & 0x10) {
-				LOG_DEBUG(0, "[");
-				operand_length += 2;
+				pre = "[";
+				post = "]";
 			}
 			if (indexed_flags & (INDEXED_WANT_WORD | INDEXED_WANT_BYTE)) {
 				if (indexed_flags & INDEXED_WANT_REG) {
-					LOG_DEBUG(0, indexed_fmt, value, reg);
+					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, reg, post);
+					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, reg, post);
 				} else {
-					LOG_DEBUG(0, indexed_fmt, value);
+					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, post);
 				}
 			} else {
 				if (indexed_flags & INDEXED_WANT_REG) {
-					LOG_DEBUG(0, indexed_fmt, reg);
+					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, reg, post);
 				} else {
-					LOG_DEBUG(0, indexed_fmt);
+					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, post);
 				}
 			}
-			if (indexed_mode & 0x10)
-				LOG_DEBUG(0, "]");
 			} break;
 
 		case RELATIVE:
 			pc += (byte_val & 0x80) ? 0xff00 : 0;
 			pc += 1 + byte_val;
 			pc &= 0xffff;
-			LOG_DEBUG(0, "$%04x", pc);
-			operand_length = 5;
+			snprintf(operand_text, sizeof(operand_text), "$%04x", pc);
 			break;
 
 		case LONG_RELATIVE:
 			pc += 1 + word_val;
 			pc &= 0xffff;
-			LOG_DEBUG(0, "$%04x", pc);
-			operand_length = 5;
+			snprintf(operand_text, sizeof(operand_text), "$%04x", pc);
 			break;
 
 		default:
 			break;
 	}
-	LOG_DEBUG(0, "  ");
-	while (operand_length < 18) {
-		LOG_DEBUG(0, " ");
-		operand_length++;
-	}
 	indexed_mode = 0;
-	state = WANT_INSTRUCTION;
-	page = PAGE0;
+	byte_val = word_val = 0;
+}
+
+void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
+		unsigned int reg_b, unsigned int reg_dp, unsigned int reg_x,
+		unsigned int reg_y, unsigned int reg_u, unsigned int reg_s) {
+	char bytes_string[(BYTES_BUF_SIZE*2)+1];
+	int i;
+
+	if (!m6809_trace_enabled) return;
+
+	bytes_string[0] = '\0';
+	for (i = 0; i < bytes_count; i++) {
+		snprintf(bytes_string + i*2, 3, "%02x", bytes_buf[i]);
+	}
+
+	LOG_DEBUG(0, "%04x| %-12s%-8s%-20s", instr_pc, bytes_string, mnemonic, operand_text);
+	LOG_DEBUG(0, "cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
+
+	m6809_trace_reset();
 }

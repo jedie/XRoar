@@ -224,7 +224,6 @@ Here's a complete summary of supported command-line switches:
   -ao MODULE            specify audio module (-ao help for a list)
   -fskip FRAMES         specify frameskip (default: 0)
   -snap FILENAME        load snapshot after initialising
-  -trace                start with trace mode on
   -h, --help            display this help and exit
       --version         output version information and exit
   -keymap CODE          select host keyboard type (uk, us, fr, de)
@@ -232,6 +231,9 @@ Here's a complete summary of supported command-line switches:
   -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB      [1,0:1:0]
                         J = joystick number, A = axis number, B = button number
                         a '-' before axis signifies inverted axis
+  -trace                start with trace mode on [*]
+
+[*] -trace only available if support enabled at compile time.
 
 
 UNIX CONTROLS

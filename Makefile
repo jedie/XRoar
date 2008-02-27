@@ -154,7 +154,7 @@ ifeq ($(CONFIG_MINGW),yes)
 	OBJS += $(OBJS_WINDOWS32)
 endif
 
-OBJS_TRACE = m6809_dasm.o
+OBJS_TRACE = m6809_trace.o
 ALL_OBJS += $(OBJS_TRACE)
 ifeq ($(CONFIG_TRACE),yes)
 	OBJS += $(OBJS_TRACE)

@@ -34,13 +34,13 @@
 #include "snapshot.h"
 #include "xroar.h"
 
+#ifdef TRACE
+# include "m6809_trace.h"
+#endif
+
 int requested_frameskip;
 int frameskip;
 int noratelimit = 0;
-
-#ifdef TRACE
-int trace = 0;
-#endif
 
 event_t *xroar_ui_events = NULL;
 
@@ -68,18 +68,12 @@ static void xroar_helptext(void) {
 	puts("  -ao MODULE            specify audio module (-ao help for a list)");
 	puts("  -fskip FRAMES         specify frameskip (default: 0)");
 	puts("  -snap FILENAME        load snapshot after initialising");
-#ifdef TRACE
-	puts("  -trace                start with trace mode on");
-#endif
 	puts("  -h, --help            display this help and exit");
 	puts("      --version         output version information and exit");
 }
 
 int xroar_init(int argc, char **argv) {
 	int i;
-#ifdef TRACE
-	trace = 0;
-#endif
 	requested_frameskip = 0;
 
 	/* Select a UI module then, possibly using lists specified in that
@@ -115,10 +109,6 @@ int xroar_init(int argc, char **argv) {
 			i++;
 			if (i >= argc) break;
 			snapshot_load = argv[i];
-#ifdef TRACE
-		} else if (!strcmp(argv[i], "-trace")) {
-			trace = 1;
-#endif
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");
@@ -131,6 +121,9 @@ int xroar_init(int argc, char **argv) {
 			module_helptext((Module *)sound_module, (Module **)sound_module_list);
 			module_helptext((Module *)keyboard_module, (Module **)keyboard_module_list);
 			module_helptext((Module *)joystick_module, (Module **)joystick_module_list);
+#ifdef TRACE
+			m6809_trace_helptext();
+#endif
 			exit(0);
 		} else if (!strcmp(argv[i], "--version")) {
 			printf("XRoar " VERSION "\n");
@@ -143,6 +136,9 @@ int xroar_init(int argc, char **argv) {
 	}
 	machine_getargs(argc, argv);
 	cart_getargs(argc, argv);
+#ifdef TRACE
+	m6809_trace_getargs(argc, argv);
+#endif
 
 	/* Initialise everything */
 	current_cycle = 0;

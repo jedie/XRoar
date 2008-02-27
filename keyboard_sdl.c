@@ -38,6 +38,10 @@
 #include "vdrive.h"
 #include "xroar.h"
 
+#ifdef TRACE
+# include "m6809_trace.h"
+#endif
+
 static int init(int argc, char **argv);
 static void shutdown(void);
 static void helptext(void);
@@ -321,7 +325,8 @@ static void keypress(SDL_keysym *keysym) {
 			}
 #ifdef TRACE
 		case SDLK_v:
-			trace = !trace;
+			m6809_trace_enabled = !m6809_trace_enabled;
+			m6809_trace_reset();
 			break;
 #endif
 		case SDLK_z: // running out of letters...

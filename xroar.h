@@ -26,14 +26,6 @@ extern int requested_frameskip;
 extern int frameskip;
 extern int noratelimit;
 
-#ifdef TRACE
-extern int trace;
-# define IF_TRACE(s) if (trace) { s; }
-#else
-# define trace 0
-# define IF_TRACE(s)
-#endif
-
 extern event_t *xroar_ui_events;
 
 void xroar_getargs(int argc, char **argv);
