@@ -1,3 +1,14 @@
+Changed from v0.19 to v0.20
+ * Don't show artifacted colours for CSS=0.
+ * Better emulation of undocumented 6809 behaviour.
+ * New joystick axis and button mapping options.
+ * Add GTK+-2 file requester.
+ * Mid-instruction peripheral state sync.
+ * Restructure CPU core to more accurately reflect data sheet.
+ * PIA code not so intimately tied to emulator code.
+ * New 5-bit NTSC cross-colour renderer.
+ * NTSC cross-colour phase saved with snapshots.
+
 Changed from v0.18 to v0.19
  * WD279x Read Address command implemented.
  * VDG fixes.
