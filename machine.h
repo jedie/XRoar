@@ -25,9 +25,6 @@
 #define IS_PAL (running_config.tv_standard == TV_PAL)
 #define IS_NTSC (running_config.tv_standard == TV_NTSC)
 
-#define IS_DRAGON_KEYMAP (running_config.keymap == KEYMAP_DRAGON)
-#define IS_COCO_KEYMAP (running_config.keymap == KEYMAP_COCO)
-
 #define DOS_ENABLED (running_config.dos_type != DOS_NONE)
 #define IS_DRAGONDOS (running_config.dos_type == DOS_DRAGONDOS)
 #define IS_RSDOS (running_config.dos_type == DOS_RSDOS)
@@ -45,8 +42,6 @@
 #define ROMSET_DRAGON32 (0)
 #define ROMSET_DRAGON64 (1)
 #define ROMSET_COCO     (2)
-#define KEYMAP_DRAGON (0)
-#define KEYMAP_COCO   (1)
 #define TV_PAL  (0)
 #define TV_NTSC (1)
 #define DOS_NONE      (0)
@@ -57,7 +52,6 @@
 #define NUM_MACHINE_TYPES (5)
 #define NUM_ARCHITECTURES (3)
 #define NUM_ROMSETS       (3)
-#define NUM_KEYMAPS       (2)
 #define NUM_TV_STANDARDS  (2)
 #define NUM_DOS_TYPES     (4)
 
@@ -79,9 +73,6 @@ extern int cross_colour_renderer;
 #define CROSS_COLOUR_OFF  (0)
 #define CROSS_COLOUR_KBRW (1)
 #define CROSS_COLOUR_KRBW (2)
-
-typedef struct { unsigned int col, row; } Key;
-typedef Key Keymap[128];
 
 typedef struct {
 	int architecture;
@@ -106,7 +97,6 @@ extern MachineConfig running_config;
 
 extern uint_least16_t machine_page0_ram;  /* Base RAM in bytes, up to 32K */
 extern uint_least16_t machine_page1_ram;  /* Generally 0 or 32K */
-extern Keymap keymap;
 extern uint8_t ram0[0x8000];
 extern uint8_t ram1[0x8000];
 extern uint8_t rom0[0x8000];
@@ -133,7 +123,6 @@ void machine_shutdown(void);
 void machine_reset(int hard);
 
 void machine_clear_requested_config(void);
-void machine_set_keymap(int map);
 
 void machine_set_page0_ram_size(unsigned int size);
 void machine_set_page1_ram_size(unsigned int size);

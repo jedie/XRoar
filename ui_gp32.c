@@ -531,7 +531,7 @@ static void machine_callback(unsigned int opt) {
 }
 
 static void keymap_callback(unsigned int opt) {
-	machine_set_keymap(opt - 1);
+	keyboard_set_keymap(opt - 1);
 }
 
 static void ram_callback(unsigned int opt) {

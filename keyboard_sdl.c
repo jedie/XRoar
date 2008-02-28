@@ -260,7 +260,7 @@ static void keypress(SDL_keysym *keysym) {
 				emulate_joystick = 0;
 			break;
 		case SDLK_k:
-			machine_set_keymap(running_config.keymap + 1);
+			keyboard_set_keymap(running_config.keymap + 1);
 			break;
 		case SDLK_b:
 		case SDLK_h:

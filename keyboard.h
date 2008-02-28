@@ -8,6 +8,16 @@
 
 #include "types.h"
 
+#define NUM_KEYMAPS   (2)
+#define KEYMAP_DRAGON (0)
+#define KEYMAP_COCO   (1)
+
+typedef struct { unsigned int col, row; } Keymap[128];
+extern Keymap keymap;
+
+#define IS_DRAGON_KEYMAP (running_config.keymap == KEYMAP_DRAGON)
+#define IS_COCO_KEYMAP (running_config.keymap == KEYMAP_COCO)
+
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
  * be applied on column reads */
@@ -47,6 +57,8 @@ extern unsigned int keyboard_buffer[256];
 extern unsigned int *keyboard_bufcur, *keyboard_buflast;
 
 void keyboard_init(void);
+void keyboard_set_keymap(int map);
+
 void keyboard_column_update(void);
 void keyboard_row_update(void);
 void keyboard_queue_string(const char *s);

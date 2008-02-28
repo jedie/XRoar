@@ -21,6 +21,7 @@
 
 #include "types.h"
 #include "fs.h"
+#include "keyboard.h"
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
@@ -222,7 +223,7 @@ int read_snapshot(const char *filename) {
 				if (size < 1) break;
 				fs_read_byte(fd, &tmp8);
 				requested_config.keymap = tmp8;
-				machine_set_keymap(tmp8);
+				keyboard_set_keymap(tmp8);
 				size--;
 				break;
 			case ID_REGISTER_DUMP:
