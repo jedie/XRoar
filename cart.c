@@ -115,7 +115,7 @@ static void cart_load(void) {
 static void cart_interrupt(void *context) {
 	(void)context;
 	if (cart_filename) {
-		PIA_SET_P1CB1;
+		PIA_SET_Cx1(PIA1.b);
 		cart_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
 		event_queue(&event_list, cart_event);
 	}

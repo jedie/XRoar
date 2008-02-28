@@ -124,11 +124,11 @@ static void ff48_write(unsigned int octet) {
 }
 
 static void set_drq_handler(void) {
-	PIA_SET_P1CB1;
+	PIA_SET_Cx1(PIA1.b);
 }
 
 static void reset_drq_handler(void) {
-	PIA_RESET_P1CB1;
+	PIA_RESET_Cx1(PIA1.b);
 }
 
 static void set_intrq_handler(void) {

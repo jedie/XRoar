@@ -103,16 +103,6 @@ extern uint8_t rom0[0x8000];
 extern uint8_t rom1[0x8000];
 extern MC6821_PIA PIA0, PIA1;
 
-/* Compatibility: */
-#define PIA_SET_P0CA1 PIA_SET_Cx1(PIA0.a)
-#define PIA_SET_P0CB1 PIA_SET_Cx1(PIA0.b)
-#define PIA_SET_P1CA1 PIA_SET_Cx1(PIA1.a)
-#define PIA_SET_P1CB1 PIA_SET_Cx1(PIA1.b)
-#define PIA_RESET_P0CA1 PIA_RESET_Cx1(PIA0.a)
-#define PIA_RESET_P0CB1 PIA_RESET_Cx1(PIA0.b)
-#define PIA_RESET_P1CA1 PIA_RESET_Cx1(PIA1.a)
-#define PIA_RESET_P1CB1 PIA_RESET_Cx1(PIA1.b)
-
 extern Cycle current_cycle;
 extern int noextbas;
 

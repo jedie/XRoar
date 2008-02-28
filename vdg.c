@@ -105,10 +105,10 @@ static void do_hs_fall(void *context) {
 	scanline = (scanline + 1) % VDG_FRAME_DURATION;
 	scanline_start = hs_fall_event->at_cycle;
 	beam_pos = 0;
-	PIA_RESET_P0CA1;
+	PIA_RESET_Cx1(PIA0.a);
 #ifdef FAST_VDG
 	/* Faster, less accurate timing for GP32/NDS */
-	PIA_SET_P0CA1;
+	PIA_SET_Cx1(PIA0.a);
 #else
 	/* Everything else schedule HS rise for later */
 	hs_rise_event->at_cycle = scanline_start + VDG_HS_RISING_EDGE;
@@ -161,17 +161,17 @@ static void do_hs_fall(void *context) {
 
 static void do_hs_rise(void *context) {
 	(void)context;
-	PIA_SET_P0CA1;
+	PIA_SET_Cx1(PIA0.a);
 }
 
 static void do_fs_fall(void *context) {
 	(void)context;
-	PIA_RESET_P0CB1;
+	PIA_RESET_Cx1(PIA0.b);
 }
 
 static void do_fs_rise(void *context) {
 	(void)context;
-	PIA_SET_P0CB1;
+	PIA_SET_Cx1(PIA0.b);
 }
 
 void vdg_set_mode(void) {
