@@ -60,7 +60,7 @@
 
 static unsigned int subline;
 static Pixel *pixel;
-static Pixel black, white, darkgreen;
+static Pixel black, darkgreen;
 static Pixel bg_colour;
 static Pixel fg_colour;
 static Pixel vdg_colour[16];
@@ -88,7 +88,6 @@ static void alloc_colours(void) {
 	vdg_colour[14] = MAPCOLOUR(0x00, 0x80, 0xff);
 	vdg_colour[15] = MAPCOLOUR(0xff, 0xff, 0xff);
 	black = MAPCOLOUR(0x00, 0x00, 0x00);
-	white = MAPCOLOUR(0xff, 0xff, 0xff);
 	darkgreen = MAPCOLOUR(0x00, 0x20, 0x00);
 
 	artifact_colours[0][0x00] = MAPCOLOUR(0x00, 0x00, 0x00);
@@ -165,7 +164,7 @@ static void set_mode(unsigned int mode) {
 		if (((mode & 0xf0) == 0xf0) && running_config.cross_colour_phase) {
 			cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
 			fg_colour = vdg_colour[(mode & 0x08) >> 1];
-			border_colour = white;
+			border_colour = fg_colour;
 		} else {
 			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
 			fg_colour = cg_colours[0];
@@ -470,7 +469,7 @@ static void render_rg6a(void) {
 		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
 			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
 			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP)
-			= *(pixel+7*XSTEP) = white;
+			= *(pixel+7*XSTEP) = border_colour;
 		pixel += 8*XSTEP;
 		beam_pos += 8;
 	}
@@ -478,7 +477,7 @@ static void render_rg6a(void) {
 		int i;
 		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
 			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
-			= *(pixel+5*XSTEP) = white;
+			= *(pixel+5*XSTEP) = border_colour;
 		pixel += 6*XSTEP;
 		aindex = 31;
 		beam_pos += 8;
@@ -527,7 +526,7 @@ static void render_rg6a(void) {
 		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
 			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
 			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP)
-			= *(pixel+7*XSTEP) = white;
+			= *(pixel+7*XSTEP) = border_colour;
 		pixel += 8*XSTEP;
 		beam_pos += 8;
 	}
