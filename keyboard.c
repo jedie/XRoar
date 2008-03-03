@@ -65,6 +65,25 @@ static Keymap coco_keymap = {
 };
 Keymap keymap;  /* active keymap */
 
+static unsigned int unicode_to_dragon[128] = {
+	0,       0,       0,       0,       0,       0,       0,       0,
+	8,       9,       10,      0,       12,      13,      0,       0,
+	0,       0,       0,       0,       0,       128+8,   0,       0,
+	0,       0,       0,       27,      0,       0,       0,       0,
+	' ',     128+'1', 128+'2', 128+'3', 128+'4', 128+'5', 128+'6', 128+'7',
+	128+'8', 128+'9', 128+':', 128+';', ',',     '-',     '.',     '/',
+	'0',     '1',     '2',     '3',     '4',     '5',     '6',     '7',
+	'8',     '9',     ':',     ';',     128+',', 128+'-', 128+'.', 128+'/',
+	'@',     128+'a', 128+'b', 128+'c', 128+'d', 128+'e', 128+'f', 128+'g',
+	128+'h', 128+'i', 128+'j', 128+'k', 128+'l', 128+'m', 128+'n', 128+'o',
+	128+'p', 128+'q', 128+'r', 128+'s', 128+'t', 128+'u', 128+'v', 128+'w',
+	128+'x', 128+'y', 128+'z', 128+10,  128+12,  128+9,   '^',     128+'^',
+	12,      'a',     'b',     'c',     'd',     'e',     'f',     'g',
+	'h',     'i',     'j',     'k',     'l',     'm',     'n',     'o',
+	'p',     'q',     'r',     's',     't',     'u',     'v',     'w',
+	'x',     'y',     'z',     0,       0,       0,       128+'@', 8
+};
+
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
  * be applied on column reads */
@@ -156,6 +175,64 @@ void keyboard_queue(uint_least16_t c) {
 	*(keyboard_buflast++) = (c & 0x7f) | 0x80;
 	if ((c>>8) == 3) *(keyboard_buflast++) = 0x8c;  /* unclear */
 	*(keyboard_buflast++) = shift_state ? 0x80 : 0; /* last shift state */
+}
+
+void keyboard_unicode_press(unsigned int unicode) {
+	if (unicode == '\\') {
+		/* CoCo and Dragon 64 in 64K mode have a different way
+		 * of scanning for '\' */
+		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))) {
+			KEYBOARD_PRESS(0);
+			KEYBOARD_PRESS(12);
+		} else {
+			KEYBOARD_PRESS(0);
+			KEYBOARD_PRESS(12);
+			KEYBOARD_PRESS('/');
+		}
+		return;
+	}
+	/* Pound sign */
+	if (unicode == 163) {
+		KEYBOARD_PRESS(0);
+		KEYBOARD_PRESS('3');
+		return;
+	}
+	if (unicode < 128) {
+		unsigned int code = unicode_to_dragon[unicode];
+		if (code & 128)
+			KEYBOARD_PRESS(0);
+		else
+			KEYBOARD_RELEASE(0);
+		KEYBOARD_PRESS(code & 0x7f);
+	}
+}
+
+void keyboard_unicode_release(unsigned int unicode) {
+	if (unicode == '\\') { 
+		/* CoCo and Dragon 64 in 64K mode have a different way
+		 * of scanning for '\' */
+		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))) {
+			KEYBOARD_RELEASE(0);
+			KEYBOARD_RELEASE(12);
+		} else {
+			KEYBOARD_RELEASE(0);
+			KEYBOARD_RELEASE(12);
+			KEYBOARD_RELEASE('/');
+		}
+		return;
+	}
+	/* Pound sign */
+	if (unicode == 163) {
+		KEYBOARD_RELEASE(0);
+		KEYBOARD_RELEASE('3');
+		return;
+	}
+	if (unicode < 128) {
+		unsigned int code = unicode_to_dragon[unicode];
+		if (code & 128)
+			KEYBOARD_RELEASE(0);
+		KEYBOARD_RELEASE(code & 0x7f);
+	}
 }
 
 static void keyboard_poll(void *context) {

@@ -63,5 +63,7 @@ void keyboard_column_update(void);
 void keyboard_row_update(void);
 void keyboard_queue_string(const char *s);
 void keyboard_queue(uint_least16_t c);
+void keyboard_unicode_press(unsigned int unicode);
+void keyboard_unicode_release(unsigned int unicode);
 
 #endif  /* __KEYBOARD_H__ */
