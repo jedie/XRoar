@@ -194,7 +194,7 @@ static void render_sg4(void) {
 	while (ACTIVE_DISPLAY_AREA) {
 		Pixel tmp;
 		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		if (octet & 0x80) {
 			tmp = vdg_colour[(octet & 0x70)>>4];
@@ -220,13 +220,13 @@ static void render_sg4(void) {
 		}
 		pixel += 8*XSTEP;
 		beam_pos += 8;
-		if (beam_pos == 160 || beam_pos == 288)
-			sam_vdg_xstep(16);
+		if (beam_pos == 288)
+			(void)sam_vdg_bytes(10);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(10);
+		sam_vdg_hsync();
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -247,7 +247,7 @@ static void render_sg6(void) {
 	while (ACTIVE_DISPLAY_AREA) {
 		Pixel tmp;
 		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		if (octet & 0x80) {
 			tmp = cg_colours[(octet & 0xc0)>>6];
@@ -277,13 +277,13 @@ static void render_sg6(void) {
 		}
 		pixel += 8*XSTEP;
 		beam_pos += 8;
-		if (beam_pos == 160 || beam_pos == 288)
-			sam_vdg_xstep(16);
+		if (beam_pos == 288)
+			(void)sam_vdg_bytes(10);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(10);
+		sam_vdg_hsync();
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -319,16 +319,16 @@ static void render_cg1(void) {
 	RENDER_LEFT_BORDER;
 	while (ACTIVE_DISPLAY_AREA) {
 		if (beam_pos == 32)
-			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_CG1(octet);
 		if (beam_pos == 288)
-			sam_vdg_xstep(16);
+			(void)sam_vdg_bytes(6);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(6);
+		sam_vdg_hsync();
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -360,16 +360,16 @@ static void render_rg1(void) {
 	RENDER_LEFT_BORDER;
 	while (ACTIVE_DISPLAY_AREA) {
 		if (beam_pos == 32)
-			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_RG1(octet);
 		if (beam_pos == 288)
-			sam_vdg_xstep(16);
+			(void)sam_vdg_bytes(6);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(6);
+		sam_vdg_hsync();
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -397,16 +397,16 @@ static void render_cg2(void) {
 	while (ACTIVE_DISPLAY_AREA) {
 		unsigned int octet;
 		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_CG2(octet);
-		if (beam_pos == 160 || beam_pos == 288)
-			sam_vdg_xstep(16);
+		if (beam_pos == 288)
+			(void)sam_vdg_bytes(10);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(10);
+		sam_vdg_hsync();
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -436,18 +436,18 @@ static void render_rg6(void) {
 	RENDER_LEFT_BORDER;
 	while (ACTIVE_DISPLAY_AREA) {
 		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_RG6(octet);
 		pixel += 8*XSTEP;
 		beam_pos += 8;
-		if (beam_pos == 160 || beam_pos == 288)
-			sam_vdg_xstep(16);
+		if (beam_pos == 288)
+			(void)sam_vdg_bytes(10);
 	}
 	RENDER_RIGHT_BORDER;
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(10);
+		sam_vdg_hsync();
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)
@@ -481,7 +481,7 @@ static void render_rg6a(void) {
 		pixel += 6*XSTEP;
 		aindex = 31;
 		beam_pos += 8;
-		vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+		vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		for (i = 2; i; i--) {
 			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
@@ -498,8 +498,7 @@ static void render_rg6a(void) {
 		}
 		beam_pos += 8;
 		if (beam_pos == 160) {
-			sam_vdg_xstep(16);
-			vram_ptr = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram_ptr = sam_vdg_bytes(16);
 		}
 		octet = *(vram_ptr++);
 		for (i = 2; i; i--) {
@@ -516,7 +515,7 @@ static void render_rg6a(void) {
 			octet = (octet << 1) & 0xff;
 		}
 		beam_pos += 8;
-		sam_vdg_xstep(16);
+		(void)sam_vdg_bytes(10);
 		for (i = 2; i; i--) {
 			aindex = ((aindex << 1) | 1) & 0x1f;
 			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
@@ -532,7 +531,7 @@ static void render_rg6a(void) {
 	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
-		sam_vdg_hsync(10);
+		sam_vdg_hsync();
 		pixel += NEXTLINE;
 		subline++;
 		if (subline > 11)

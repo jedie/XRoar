@@ -39,8 +39,8 @@ uint_least16_t sam_register;
 uint_least16_t sam_vdg_base;
 unsigned int  sam_vdg_mode;
 uint_least16_t sam_vdg_address;
-unsigned int  sam_vdg_mod_xdiv;
-unsigned int  sam_vdg_mod_ydiv;
+static unsigned int  sam_vdg_mod_xdiv;
+static unsigned int  sam_vdg_mod_ydiv;
 uint_least16_t sam_vdg_mod_clear;
 unsigned int  sam_vdg_xcount;
 unsigned int  sam_vdg_ycount;
@@ -191,6 +191,34 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 			sam_register &= ~(1 << (addr>>1));
 		sam_update_from_register();
 	}
+}
+
+uint8_t *sam_vdg_bytes(int number) {
+	unsigned int addr = sam_vdg_address;
+	unsigned int b15_5 = sam_vdg_address & ~0x1f;
+	unsigned int b4 = sam_vdg_address & 0x10;
+	unsigned int b3_0 = (sam_vdg_address & 0xf) + number;
+	if (b3_0 & 0x10) {
+		b3_0 &= 0x0f;
+		sam_vdg_xcount++;
+		if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
+			sam_vdg_xcount = 0;
+			b4 += 0x10;
+			if (b4 & 0x20) {
+				b4 &= 0x10;
+				sam_vdg_ycount++;
+				if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
+					sam_vdg_ycount = 0;
+					b15_5 += 0x20;
+					b15_5 &= 0xffff;
+				}
+			}
+		}
+	}
+	sam_vdg_address = b15_5 | b4 | b3_0;
+	if (addr < 0x8000)
+		return &addrptr_low[addr];
+	return &addrptr_high[addr-0x8000];
 }
 
 void sam_update_from_register(void) {

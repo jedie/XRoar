@@ -8,8 +8,6 @@
 
 #include "types.h"
 
-#define sam_vram_ptr(a) (a<0x8000 ? &addrptr_low[a] : &addrptr_high[a-0x8000])
-
 /* Simple macro for use in place of sam_read_byte() when the result isn't
  * required, just appropriate timing.  Side-effects of reads obviously won't
  * happen, but in practice that should almost certainly never matter. */
@@ -31,8 +29,6 @@ extern uint_least16_t sam_register;
 extern uint_least16_t sam_vdg_base;
 extern unsigned int  sam_vdg_mode;
 extern uint_least16_t sam_vdg_address;
-extern unsigned int  sam_vdg_mod_xdiv;
-extern unsigned int  sam_vdg_mod_ydiv;
 extern uint_least16_t sam_vdg_mod_clear;
 extern unsigned int  sam_vdg_xcount;
 extern unsigned int  sam_vdg_ycount;
@@ -42,33 +38,7 @@ extern unsigned int  sam_vdg_ycount;
 extern unsigned int sam_topaddr_cycles;
 #endif
 
-/* Where b is the number of DA0 transitions: */
-static inline void sam_vdg_xstep(int b) {
-	unsigned int b15_5 = sam_vdg_address & ~0x1f;
-	unsigned int b4 = sam_vdg_address & 0x10;
-	unsigned int b3_0 = (sam_vdg_address & 0xf) + b;
-	if (b3_0 & 0x10) {
-		b3_0 &= 0x0f;
-		sam_vdg_xcount++;
-		if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
-			sam_vdg_xcount = 0;
-			b4 += 0x10;
-			if (b4 & 0x20) {
-				b4 &= 0x10;
-				sam_vdg_ycount++;
-				if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
-					sam_vdg_ycount = 0;
-					b15_5 += 0x20;
-					b15_5 &= 0xffff;
-				}
-			}
-		}
-	}
-	sam_vdg_address = b15_5 | b4 | b3_0;
-}
-
-static inline void sam_vdg_hsync(int b) {
-	sam_vdg_xstep(b);
+static inline void sam_vdg_hsync(void) {
 	sam_vdg_address &= sam_vdg_mod_clear;
 }
 
@@ -82,6 +52,7 @@ void sam_init(void);
 void sam_reset(void);
 unsigned int sam_read_byte(uint_least16_t addr);
 void sam_store_byte(uint_least16_t addr, unsigned int octet);
+uint8_t *sam_vdg_bytes(int number);
 void sam_update_from_register(void);
 
 #endif  /* __SAM_H__ */
