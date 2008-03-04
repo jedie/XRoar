@@ -23,38 +23,27 @@
 #include "module.h"
 #include "joystick.h"
 
-unsigned int joystick_leftx, joystick_lefty;
-unsigned int joystick_rightx, joystick_righty;
+/* Some dissonance: internally, the right joystick is considered "first", but
+ * any interface presented to the user should probably consider the left
+ * joystick to be "first". */
+
+int joystick_axis[4];
 
 void joystick_init(void) {
-	joystick_leftx = joystick_lefty = 128;
-	joystick_rightx = joystick_righty = 128;
+	joystick_axis[0] = joystick_axis[1]
+		= joystick_axis[2] = joystick_axis[3] = 127;
 }
 
 void joystick_shutdown(void) {
 }
 
 void joystick_update(void) {
-	int xcompare, ycompare;
-	unsigned int octet = PIA1.a.port_output & 0xfc;
-	if (PIA0.b.control_register & 0x08) {
-		xcompare = (joystick_leftx >= octet);
-		ycompare = (joystick_lefty >= octet);
+	int axis = ((PIA0.b.control_register & 0x08) >> 2)
+		| ((PIA0.a.control_register & 0x08) >> 3);
+	int dac_value = PIA1.a.port_output & 0xfc;
+	if (joystick_axis[axis] >= dac_value) {
+		PIA0.a.port_input |= 0x80;
 	} else {
-		xcompare = (joystick_rightx >= octet);
-		ycompare = (joystick_righty >= octet);
-	}
-	if (PIA0.a.control_register & 0x08) {
-		if (ycompare) {
-			PIA0.a.port_input |= 0x80;
-		} else {
-			PIA0.a.port_input &= 0x7f;
-		}
-	} else {
-		if (xcompare) {
-			PIA0.a.port_input |= 0x80;
-		} else {
-			PIA0.a.port_input &= 0x7f;
-		}
+		PIA0.a.port_input &= 0x7f;
 	}
 }

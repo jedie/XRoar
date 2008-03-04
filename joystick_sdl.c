@@ -44,12 +44,17 @@ static struct joy {
 } joy[6];
 static int num_joys = 0;
 
-#define LEFTX     (0)
-#define LEFTY     (1)
-#define LEFTFIRE  (2)
-#define RIGHTX    (3)
-#define RIGHTY    (4)
-#define RIGHTFIRE (5)
+#define RIGHTX    (0)
+#define RIGHTY    (1)
+#define RIGHTFIRE (4)
+#define LEFTX     (2)
+#define LEFTY     (3)
+#define LEFTFIRE  (5)
+
+static int control_order[6] = {
+	RIGHTX, RIGHTY, RIGHTFIRE,
+	LEFTX,  LEFTY,  LEFTFIRE
+};
 
 static struct {
 	struct joy *joy;
@@ -62,12 +67,12 @@ static struct {
 	int control_num;
 	int invert;
 } control_config[6] = {
-	{ 0, 0, 0 },
-	{ 0, 1, 0 },
-	{ 0, 0, 0 },
-	{ 1, 0, 0 },
-	{ 1, 1, 0 },
-	{ 1, 0, 0 }
+	{ 1, 0, 0 }, /* Right X axis */
+	{ 1, 1, 0 }, /* Right Y axis */
+	{ 0, 0, 0 }, /* Left X axis */
+	{ 0, 1, 0 }, /* Left Y axis */
+	{ 1, 0, 0 }, /* Right firebutton */
+	{ 0, 0, 0 }  /* Left firebutton */
 };
 
 static event_t *poll_event;
@@ -113,6 +118,7 @@ static void parse_joystick_def(char *def, int base) {
 		char *tmp1 = strsep(&tmp2, ",");
 		int control_num = i % 2;
 		int invert = 0;
+		int control_index = control_order[base+i];
 		if (tmp2) {
 			joy_num = atoi(tmp1);
 			if (*tmp2) {
@@ -133,9 +139,9 @@ static void parse_joystick_def(char *def, int base) {
 				control_num = atoi(tmp1);
 			}
 		}
-		control_config[base+i].joy_num = joy_num;
-		control_config[base+i].control_num = control_num;
-		control_config[base+i].invert = invert;
+		control_config[control_index].joy_num = joy_num;
+		control_config[control_index].control_num = control_num;
+		control_config[control_index].invert = invert;
 	}
 }
 
@@ -145,10 +151,10 @@ static int init(int argc, char **argv) {
 	(void)argv;
 
 	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-joy-left") && i+1<argc) {
+		if (!strcmp(argv[i], "-joy-right") && i+1<argc) {
 			i++;
 			parse_joystick_def(argv[i], 0);
-		} else if (!strcmp(argv[i], "-joy-right") && i+1<argc) {
+		} else if (!strcmp(argv[i], "-joy-left") && i+1<argc) {
 			i++;
 			parse_joystick_def(argv[i], 3);
 		}
@@ -208,19 +214,13 @@ static void shutdown(void) {
 }
 
 static void do_poll(void *context) {
+	int i;
 	(void)context;
 	SDL_JoystickUpdate();
-	if (control[LEFTX].joy) {
-		joystick_leftx = ((SDL_JoystickGetAxis(control[LEFTX].joy->device, control[LEFTX].control_num)+32768) >> 8) ^ control[LEFTX].invert;
-	}
-	if (control[LEFTY].joy) {
-		joystick_lefty = ((SDL_JoystickGetAxis(control[LEFTY].joy->device, control[LEFTY].control_num)+32768) >> 8) ^ control[LEFTY].invert;
-	}
-	if (control[RIGHTX].joy) {
-		joystick_rightx = ((SDL_JoystickGetAxis(control[RIGHTX].joy->device, control[RIGHTX].control_num)+32768) >> 8) ^ control[RIGHTX].invert;
-	}
-	if (control[RIGHTY].joy) {
-		joystick_righty = ((SDL_JoystickGetAxis(control[RIGHTY].joy->device, control[RIGHTY].control_num)+32768) >> 8) ^ control[RIGHTY].invert;
+	for (i = 0; i < 4; i++) {
+		if (control[i].joy) {
+			joystick_axis[i] = ((SDL_JoystickGetAxis(control[i].joy->device, control[i].control_num)+32768) >> 8) ^ control[i].invert;
+		}
 	}
 	if (control[RIGHTFIRE].joy && SDL_JoystickGetButton(control[RIGHTFIRE].joy->device, control[RIGHTFIRE].control_num)) {
 		PIA0.a.tied_low &= 0xfe;

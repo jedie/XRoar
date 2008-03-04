@@ -6,12 +6,10 @@
 #ifndef __JOYSTICK_H__
 #define __JOYSTICK_H__
 
-extern unsigned int joystick_leftx, joystick_lefty;
-extern unsigned int joystick_rightx, joystick_righty;
+extern int joystick_axis[4];
 
 void joystick_init(void);
 void joystick_shutdown(void);
-void joystick_poll(void);
 void joystick_update(void);
 
 #endif  /* __JOYSTICK_H__ */

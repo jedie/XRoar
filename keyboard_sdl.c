@@ -26,7 +26,7 @@
 #include "cart.h"
 #include "events.h"
 #include "hexs19.h"
-#include "joystick.h"
+#include "input.h"
 #include "keyboard.h"
 #include "machine.h"
 #include "mc6821.h"
@@ -295,18 +295,18 @@ static void emulator_command(SDLKey sym) {
 static void keypress(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
 	if (emulate_joystick == 1) {
-		if (sym == SDLK_UP) { joystick_lefty = 0; return; }
-		if (sym == SDLK_DOWN) { joystick_lefty = 255; return; }
-		if (sym == SDLK_LEFT) { joystick_leftx = 0; return; }
-		if (sym == SDLK_RIGHT) { joystick_leftx = 255; return; }
-		if (sym == SDLK_LALT) { PIA0.a.tied_low &= 0xfd; return; }
+		if (sym == SDLK_UP) { input_control_press(INPUT_JOY_LEFT_Y, 0); return; }
+		if (sym == SDLK_DOWN) { input_control_press(INPUT_JOY_LEFT_Y, 255); return; }
+		if (sym == SDLK_LEFT) { input_control_press(INPUT_JOY_LEFT_X, 0); return; }
+		if (sym == SDLK_RIGHT) { input_control_press(INPUT_JOY_LEFT_X, 255); return; }
+		if (sym == SDLK_LALT) { input_control_press(INPUT_JOY_LEFT_FIRE, 0); return; }
 	}
 	if (emulate_joystick == 2) {
-		if (sym == SDLK_UP) { joystick_righty = 0; return; }
-		if (sym == SDLK_DOWN) { joystick_righty = 255; return; }
-		if (sym == SDLK_LEFT) { joystick_rightx = 0; return; }
-		if (sym == SDLK_RIGHT) { joystick_rightx = 255; return; }
-		if (sym == SDLK_LALT) { PIA0.a.tied_low &= 0xfe; return; }
+		if (sym == SDLK_UP) { input_control_press(INPUT_JOY_RIGHT_Y, 0); return; }
+		if (sym == SDLK_DOWN) { input_control_press(INPUT_JOY_RIGHT_Y, 255); return; }
+		if (sym == SDLK_LEFT) { input_control_press(INPUT_JOY_RIGHT_X, 0); return; }
+		if (sym == SDLK_RIGHT) { input_control_press(INPUT_JOY_RIGHT_X, 255); return; }
+		if (sym == SDLK_LALT) { input_control_press(INPUT_JOY_RIGHT_FIRE, 0); return; }
 	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 1;
@@ -352,18 +352,18 @@ static void keypress(SDL_keysym *keysym) {
 static void keyrelease(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
 	if (emulate_joystick == 1) {
-		if (sym == SDLK_UP) { JOY_UNLOW(joystick_lefty); return; }
-		if (sym == SDLK_DOWN) { JOY_UNHIGH(joystick_lefty); return; }
-		if (sym == SDLK_LEFT) { JOY_UNLOW(joystick_leftx); return; }
-		if (sym == SDLK_RIGHT) { JOY_UNHIGH(joystick_leftx); return; }
-		if (sym == SDLK_LALT) { PIA0.a.tied_low |= 0x02; return; }
+		if (sym == SDLK_UP) { input_control_release(INPUT_JOY_LEFT_Y, 0); return; }
+		if (sym == SDLK_DOWN) { input_control_release(INPUT_JOY_LEFT_Y, 255); return; }
+		if (sym == SDLK_LEFT) { input_control_release(INPUT_JOY_LEFT_X, 0); return; }
+		if (sym == SDLK_RIGHT) { input_control_release(INPUT_JOY_LEFT_X, 255); return; }
+		if (sym == SDLK_LALT) { input_control_release(INPUT_JOY_LEFT_FIRE, 0); return; }
 	}
 	if (emulate_joystick == 2) {
-		if (sym == SDLK_UP) { JOY_UNLOW(joystick_righty); return; }
-		if (sym == SDLK_DOWN) { JOY_UNHIGH(joystick_righty); return; }
-		if (sym == SDLK_LEFT) { JOY_UNLOW(joystick_rightx); return; }
-		if (sym == SDLK_RIGHT) { JOY_UNHIGH(joystick_rightx); return; }
-		if (sym == SDLK_LALT) { PIA0.a.tied_low |= 0x01; return; }
+		if (sym == SDLK_UP) { input_control_release(INPUT_JOY_RIGHT_Y, 0); return; }
+		if (sym == SDLK_DOWN) { input_control_release(INPUT_JOY_RIGHT_Y, 255); return; }
+		if (sym == SDLK_LEFT) { input_control_release(INPUT_JOY_RIGHT_X, 0); return; }
+		if (sym == SDLK_RIGHT) { input_control_release(INPUT_JOY_RIGHT_X, 255); return; }
+		if (sym == SDLK_LALT) { input_control_release(INPUT_JOY_RIGHT_FIRE, 0); return; }
 	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 0;
