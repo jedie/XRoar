@@ -28,6 +28,7 @@
 #include "events.h"
 #include "hexs19.h"
 #include "keyboard.h"
+#include "input.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -58,13 +59,12 @@ UIModule ui_nds_module = {
 	NULL,  /* use default filereq module list */
 	nds_video_module_list,
 	NULL,  /* use default sound module list */
-	NULL,  //nds_keyboard_module_list,
+	NULL,  /* nds_keyboard_module_list, */
 	NULL  /* use default joystick module list */
 };
 
 static struct ndsui_component *component_list = NULL;
 static struct ndsui_component *current_component = NULL;
-static unsigned int old_keyinput, old_keyxy, old_px, old_py;
 
 static void add_component(struct ndsui_component *c);
 static void draw_all_components(void);
@@ -103,12 +103,56 @@ static int init(int argc, char **argv) {
 static void shutdown(void) {
 }
 
+static struct {
+	int command;
+	int arg;
+} control_mapping[9] = {
+	{ INPUT_JOY_RIGHT_FIRE, 0 },  /* A      -> Right firebutton */
+	{ INPUT_JOY_LEFT_FIRE, 0 },   /* B      -> Left firebutton */
+	{ INPUT_KEY, 13 },            /* SELECT -> Enter */
+	{ INPUT_KEY, 27 },            /* START  -> Break */
+	{ INPUT_JOY_RIGHT_X, 255 },   /* RIGHT  -> Right joystick right */
+	{ INPUT_JOY_RIGHT_X, 0 },     /* LEFT   -> Right joystick right */
+	{ INPUT_JOY_RIGHT_Y, 0 },     /* UP     -> Right joystick up */
+	{ INPUT_JOY_RIGHT_Y, 255 },   /* DOWN   -> Right joystick down */
+	{ INPUT_KEY, 0 },             /* R      -> Shift */
+	/* { INPUT_KEY, 0 }, */             /* L      -> Shift */
+};
+
 static void do_poll_pen(void *context) {
-	unsigned int keyinput, keyxy;
+	unsigned int keyinput, keyxy, new_keyinput, rel_keyinput;
+	static unsigned int old_keyinput = 0, old_keyxy = 0;
 	int px, py;
+	int i;
+
 	(void)context;
+
+	/* Check for newly pressed or released buttons */
+	keyinput = ~(REG_KEYINPUT);
+	new_keyinput = keyinput & ~old_keyinput;
+	rel_keyinput = ~keyinput & old_keyinput;
+	old_keyinput = keyinput;
+	for (i = 0; i < 9; i++) {
+		if (new_keyinput & (1 << i)) {
+			input_control_press(control_mapping[i].command, control_mapping[i].arg);
+		}
+		if (rel_keyinput & (1 << i)) {
+			input_control_release(control_mapping[i].command, control_mapping[i].arg);
+		}
+	}
+
+	/* Complete hack!  L swaps joysticks... */
+	if (new_keyinput & (1 << 9)) {
+		control_mapping[0].command ^= 2;
+		control_mapping[1].command ^= 2;
+		control_mapping[4].command ^= 2;
+		control_mapping[5].command ^= 2;
+		control_mapping[6].command ^= 2;
+		control_mapping[7].command ^= 2;
+	}
+
 	while (IPC->mailBusy);
-	keyinput = REG_KEYINPUT;
+
 	keyxy = ~(IPC->buttons);
 	if (keyxy & (1<<6)) {
 		px = IPC->touchXpx;
