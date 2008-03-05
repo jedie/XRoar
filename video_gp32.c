@@ -21,6 +21,7 @@
 #include "gp32/gpgfx.h"
 
 #include "types.h"
+#include "machine.h"
 #include "module.h"
 #include "sam.h"
 #include "xroar.h"
@@ -42,7 +43,7 @@ VideoModule video_gp32_module = {
 	NULL, NULL, 0,
 	vdg_vsync, vdg_set_mode,
 	vdg_render_sg4, vdg_render_sg4 /* 6 */, vdg_render_cg1,
-	vdg_render_rg1, vdg_render_cg2, vdg_render_rg6,
+	vdg_render_rg1, vdg_render_cg2, vdg_render_rg6, vdg_render_rg6,
 	NULL
 };
 
@@ -104,20 +105,19 @@ static void vdg_vsync(void) {
 static inline void vram_ptrs_16(uint8_t **ptrs) {
 	int i;
 	for (i = 4; i; i--) {
-		*(ptrs++) = (uint8_t *)sam_vram_ptr(sam_vdg_address);
-		sam_vdg_xstep(16);
-		sam_vdg_hsync(6);
+		*(ptrs++) = sam_vdg_bytes(16);
+		(void)sam_vdg_bytes(6);
+		sam_vdg_hsync();
 	}
 }
 
 static inline void vram_ptrs_32(uint8_t **ptrs) {
-	int i, j;
-	for (j = 4; j; j--) {
-		for (i = 2; i; i--) {
-			*(ptrs++) = (uint8_t *)sam_vram_ptr(sam_vdg_address);
-			sam_vdg_xstep(16);
-		}
-		sam_vdg_hsync(10);
+	int i;
+	for (i = 4; i; i--) {
+		*(ptrs++) = sam_vdg_bytes(16);
+		*(ptrs++) = sam_vdg_bytes(16);
+		(void)sam_vdg_bytes(10);
+		sam_vdg_hsync();
 	}
 }
 
