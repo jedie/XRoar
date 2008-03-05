@@ -85,6 +85,8 @@ exec 3>config.log
 config_log=3
 
 EXEEXT=
+TARGET_CRT0=
+BUILD_CRT0=
 CRT0=
 TMPC=conftemp.c
 TMPO=conftemp.o
@@ -202,6 +204,7 @@ target_cc_check () {
 	CC="$TARGET_CC"
 	CFLAGS="$TARGET_CFLAGS"
 	LDFLAGS="$TARGET_LDFLAGS"
+	CRT0="$TARGET_CRT0"
 	cc_check "$@"
 	return $?
 }
@@ -218,6 +221,7 @@ build_cc_check () {
 	CC="$BUILD_CC"
 	CFLAGS="$BUILD_CFLAGS"
 	LDFLAGS="$BUILD_LDFLAGS"
+	CRT0="$BUILD_CRT0"
 	cc_check "$@"
 	return $?
 }
@@ -291,6 +295,99 @@ if test "$_c_pipe" = "yes"; then
 	_TARGET_CFLAGS="$_TARGET_CFLAGS -pipe"
 fi
 rm -f $TMPC
+
+########
+
+# Rather involved tests to see if we can build against the GP32 SDK.
+# Omits testing for the gpsound library, as I don't use that.
+if test "$_gp32" = "auto"; then
+	echocheck GP32
+	_gp32=no
+	TARGET_CRT0=gp32/crt0.o
+	mkdir -p gp32
+	echo "$TARGET_AS -o $TARGET_CRT0 $SRCROOT/gp32/crt0.s" >&$config_log
+	if $TARGET_AS -o $TARGET_CRT0 $SRCROOT/gp32/crt0.s >&$config_log 2>&1; then
+		cat > $TMPC <<EOF
+#include <gpdef.h>
+#include <gpstdlib.h>
+#include <initval_port.h>
+#ifdef USE_GP_MEM
+#include <gpmem.h>
+#endif
+#include <gpgraphic.h>
+unsigned int HEAPSTART;
+unsigned int HEAPEND;
+int Main(int argc, char *argv) { return 0; }
+int GpPredefinedStackGet(H_THREAD th) { return 0; }
+void GpMain(void *arg) { GPDRAWSURFACE g; GpGraphicModeSet(GPC_DFLAG_8BPP, NULL); GpLcdSurfaceGet(&g, 0); }
+void GpProcSound(void) { }
+EOF
+		target_cc_check "-mcpu=arm9tdmi -funroll-loops" "-nostartfiles -T $SRCROOT/gp32/lnkscript -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic" && _gp32=yes
+		rm -f $TMPC
+		rm -f $TARGET_CRT0
+	fi
+	echo "$_gp32"
+fi
+if test "$_gp32" = "yes"; then
+	EXEEXT=.elf
+	_TARGET_CFLAGS="$_TARGET_CFLAGS -mcpu=arm9tdmi -funroll-loops"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -nostartfiles -T $SRCROOT/gp32/lnkscript -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic"
+	_gp32_def="#define HAVE_GP32"
+	_have_video_driver=yes
+	_fast_vdg=yes
+	_strsep=yes
+	_sdl=no
+	_sdlgl=no
+	_gtk2=no
+	_gtk1=no
+	_carbon=no
+	_oss=no 
+	_sun=no 
+	_coreaudio=no
+	_jack=no
+	_mingw=no
+	_nds=no
+else
+	_gp32_def="#undef HAVE_GP32"
+	TARGET_CRT0=
+fi
+
+########
+
+if test "$_nds" = "auto"; then
+	echocheck NDS
+	nds_cflags="-mcpu=arm9tdmi -mtune=arm9tdmi -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM9"
+	nds_ldflags="-specs=ds_arm9.specs -lfat -lnds9"
+	cat > $TMPC <<EOF
+#include <nds.h>
+int main(int argc, char **argv) { powerON(POWER_LCD | POWER_2D_B); return 0; }
+EOF
+	_nds=no
+	target_cc_check "$nds_cflags" "$nds_ldflags" && _nds=yes
+	rm -f $TMPC
+	echo "$_nds"
+fi
+if test "$_nds" = "yes"; then
+	EXEEXT=.tmp
+	_TARGET_CFLAGS="$_TARGET_CFLAGS $nds_cflags"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $nds_ldflags"
+	_nds_def="#define HAVE_NDS"
+	_have_video_driver=yes
+	_fast_vdg=yes
+	_strsep=yes
+	_sdl=no
+	_sdlgl=no
+	_gtk2=no
+	_gtk1=no
+	_carbon=no
+	_oss=no 
+	_sun=no 
+	_coreaudio=no
+	_jack=no
+	_mingw=no
+else
+	_nds_def="#undef HAVE_NDS"
+fi
 
 ########
 
@@ -369,7 +466,7 @@ EOF
 	_sdl=no
 	target_cc_check "$sdl_cflags" "$sdl_ldflags" && _sdl=yes
 	# Save this temp .c file for build host test
-	#rm -f $TMPC
+	rm -f $TMPC
 	echo "$_sdl"
 fi
 if test "$_sdl" = "yes"; then
@@ -387,6 +484,10 @@ if test "$_build_sdl" = "yes" -o "$_build_sdl" = "auto"; then
 	test -z "$build_sdl_cflags" && build_sdl_cflags=`$build_pkg_config --cflags sdl 2> /dev/null`
 	test -z "$build_sdl_ldflags" && build_sdl_ldflags=`$build_sdl_config --libs 2> /dev/null`
 	test -z "$build_sdl_ldflags" && build_sdl_ldflags=`$build_pkg_config --libs sdl 2> /dev/null`
+	cat > $TMPC <<EOF
+#include <SDL.h>
+int main(int argc, char **argv) { SDL_Init(0); return 0; }
+EOF
 	_build_sdl=no
 	build_cc_check "$build_sdl_cflags" "$build_sdl_ldflags" && _build_sdl=yes
 	rm -f $TMPC
@@ -615,76 +716,6 @@ fi
 
 ########
 
-# Rather involved tests to see if we can build against the GP32 SDK.
-# Omits testing for the gpsound library, as I don't use that.
-if test "$_gp32" = "auto"; then
-	echocheck GP32
-	_gp32=no
-	CRT0=gp32/crt0.o
-	mkdir -p gp32
-	echo "$TARGET_AS -o $CRT0 $SRCROOT/gp32/crt0.s" >&$config_log
-	if $TARGET_AS -o $CRT0 $SRCROOT/gp32/crt0.s >&$config_log 2>&1; then
-		cat > $TMPC <<EOF
-#include <gpdef.h>
-#include <gpstdlib.h>
-#include <initval_port.h>
-#ifdef USE_GP_MEM
-#include <gpmem.h>
-#endif
-#include <gpgraphic.h>
-unsigned int HEAPSTART;
-unsigned int HEAPEND;
-int Main(int argc, char *argv) { return 0; }
-int GpPredefinedStackGet(H_THREAD th) { return 0; }
-void GpMain(void *arg) { GPDRAWSURFACE g; GpGraphicModeSet(GPC_DFLAG_8BPP, NULL); GpLcdSurfaceGet(&g, 0); }
-void GpProcSound(void) { }
-EOF
-		target_cc_check "-mcpu=arm9tdmi -funroll-loops" "-nostartfiles -T $SRCROOT/gp32/lnkscript -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic" && _gp32=yes
-		rm -f $TMPC
-		rm -f $CRT0
-	fi
-	echo "$_gp32"
-fi
-if test "$_gp32" = "yes"; then
-	EXEEXT=.elf
-	_TARGET_CFLAGS="$_TARGET_CFLAGS -mcpu=arm9tdmi -funroll-loops"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -nostartfiles -T $SRCROOT/gp32/lnkscript -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic"
-	_gp32_def="#define HAVE_GP32"
-	_have_video_driver=yes
-	_fast_vdg=yes
-else
-	_gp32_def="#undef HAVE_GP32"
-	CRT0=
-fi
-
-########
-
-if test "$_nds" = "auto"; then
-	echocheck NDS
-	nds_cflags="-mcpu=arm9tdmi -mtune=arm9tdmi -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM9"
-	nds_ldflags="-specs=ds_arm9.specs -lfat -lnds9"
-	cat > $TMPC <<EOF
-#include <nds.h>
-int main(int argc, char **argv) { powerON(POWER_LCD | POWER_2D_B); return 0; }
-EOF
-	_nds=no
-	target_cc_check "$nds_cflags" "$nds_ldflags" && _nds=yes
-	rm -f $TMPC
-	echo "$_nds"
-fi
-if test "$_nds" = "yes"; then
-	EXEEXT=.tmp
-	_TARGET_CFLAGS="$_TARGET_CFLAGS $nds_cflags"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $nds_ldflags"
-	_nds_def="#define HAVE_NDS"
-	_have_video_driver=yes
-	_fast_vdg=yes
-else
-	_nds_def="#undef HAVE_NDS"
-fi
-
-########
-
 if test "$_mingw" = "auto"; then
 	echocheck MinGW
 	cat > $TMPC <<EOF
@@ -753,7 +784,7 @@ mandir = $mandir
 SRCROOT = $SRCROOT
 
 EXEEXT = $EXEEXT
-CRT0 = $CRT0
+CRT0 = $TARGET_CRT0
 AS = $TARGET_AS
 CC = $TARGET_CC
 OBJCOPY = $TARGET_OBJCOPY
