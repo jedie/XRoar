@@ -22,6 +22,7 @@
 
 #include "types.h"
 #include "logging.h"
+#include "machine.h"
 #include "module.h"
 #include "sam.h"
 #include "vdg.h"
@@ -42,7 +43,7 @@ VideoModule video_nds_module = {
 	NULL, NULL, 0,
 	vsync, set_mode,
 	render_sg4, render_sg4, render_cg1,
-	render_rg1, render_cg2, render_cg2,
+	render_rg1, render_cg2, render_cg2, render_cg2,
 	NULL
 };
 
@@ -129,7 +130,7 @@ static void render_sg4(void) {
 	unsigned int octet;
 	for (line = 0; line < 4; line++) {
 		for (i = 2; i; i--) {
-			vram = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram = sam_vdg_bytes(16);
 			for (j = 16; j; j--) {
 				octet = *(vram++);
 				bitmap = vdg_alpha_nds[text_mode][octet][subline];
@@ -138,9 +139,9 @@ static void render_sg4(void) {
 				*(pixel++) = *(bitmap++);
 				*(pixel++) = *(bitmap++);
 			}
-			sam_vdg_xstep(16);
 		}
-		sam_vdg_hsync(10);
+		(void)sam_vdg_bytes(10);
+		sam_vdg_hsync();
 		subline++;
 	}
 	if (subline > 11)
@@ -149,7 +150,7 @@ static void render_sg4(void) {
 
 /* Render a 16-byte colour graphics line (CG1) */
 static void render_cg1(void) {
-	uint8_t *vram = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+	uint8_t *vram = sam_vdg_bytes(16);
 	int line, i;
 	unsigned int octet;
 	for (line = 0; line < 4; line++) {
@@ -164,8 +165,8 @@ static void render_cg1(void) {
 			*(pixel++) = cg_colours[octet & 0x03];
 			*(pixel++) = cg_colours[octet & 0x03];
 		}
-		sam_vdg_xstep(16);
-		sam_vdg_hsync(6);
+		(void)sam_vdg_bytes(6);
+		sam_vdg_hsync();
 	}
 	subline += 4;
 	if (subline > 11)
@@ -174,7 +175,7 @@ static void render_cg1(void) {
 
 /* Render a 16-byte resolution graphics line (RG1,RG2,RG3) */
 static void render_rg1(void) {
-	uint8_t *vram = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+	uint8_t *vram = sam_vdg_bytes(16);
 	int line, i;
 	unsigned int octet;
 	for (line = 0; line < 4; line++) {
@@ -197,8 +198,8 @@ static void render_rg1(void) {
 			*(pixel++) = (octet & 0x01) ? fg_colour : bg_colour;
 			*(pixel++) = (octet & 0x01) ? fg_colour : bg_colour;
 		}
-		sam_vdg_xstep(16);
-		sam_vdg_hsync(6);
+		(void)sam_vdg_bytes(6);
+		sam_vdg_hsync();
 	}
 	subline += 4;
 	if (subline > 11)
@@ -213,7 +214,7 @@ static void render_cg2(void) {
 	unsigned int octet;
 	for (line = 0; line < 4; line++) {
 		for (i = 2; i; i--) {
-			vram = (uint8_t *)sam_vram_ptr(sam_vdg_address);
+			vram = sam_vdg_bytes(16);
 			for (j = 16; j; j--) {
 				octet = *(vram++);
 				*(pixel++) = cg_colours[octet >> 6];
@@ -221,9 +222,9 @@ static void render_cg2(void) {
 				*(pixel++) = cg_colours[(octet >> 2) & 0x03];
 				*(pixel++) = cg_colours[octet & 0x03];
 			}
-			sam_vdg_xstep(16);
 		}
-		sam_vdg_hsync(10);
+		(void)sam_vdg_bytes(10);
+		sam_vdg_hsync();
 	}
 	subline += 4;
 	if (subline > 11)
