@@ -36,6 +36,8 @@ JoystickModule joystick_sdl_module = {
 	  init, 0, shutdown, helptext }
 };
 
+static int num_sdl_joysticks;
+
 static struct joy {
 	int joy_num;
 	SDL_Joystick *device;
@@ -81,7 +83,7 @@ static void do_poll(void *context);
 static struct joy *find_joy(int joy_num) {
 	SDL_Joystick *j;
 	int i;
-	if (joy_num >= SDL_NumJoysticks())
+	if (joy_num >= num_sdl_joysticks)
 		return NULL;
 	for (i = 0; i < num_joys; i++) {
 		if (joy[i].joy_num == joy_num)
@@ -147,8 +149,32 @@ static void parse_joystick_def(char *def, int base) {
 
 static int init(int argc, char **argv) {
 	int valid, i;
-	(void)argc;
-	(void)argv;
+
+	LOG_DEBUG(2,"Initialising SDL joystick driver\n");
+
+	poll_event = event_new();
+	if (poll_event == NULL) {
+		LOG_WARN("Couldn't create joystick polling event.\n");
+		return 1;
+	}
+	poll_event->dispatch = do_poll;
+
+	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+
+	num_sdl_joysticks = SDL_NumJoysticks();
+	if (num_sdl_joysticks < 1) {
+		LOG_WARN("No joysticks attached.\n");
+		return 1;
+	}
+
+	/* If only one joystick attached, change the right joystick defaults */
+	if (num_sdl_joysticks == 1) {
+		control_config[RIGHTX].joy_num = control_config[RIGHTY].joy_num
+			= control_config[RIGHTFIRE].joy_num = 0;
+		control_config[RIGHTX].control_num = 3;
+		control_config[RIGHTY].control_num = 2;
+		control_config[RIGHTFIRE].control_num = 1;
+	}
 
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-joy-right") && i+1<argc) {
@@ -159,15 +185,6 @@ static int init(int argc, char **argv) {
 			parse_joystick_def(argv[i], 3);
 		}
 	}
-
-	poll_event = event_new();
-	if (poll_event == NULL) {
-		LOG_WARN("Couldn't create joystick polling event.\n");
-		return 1;
-	}
-	poll_event->dispatch = do_poll;
-	LOG_DEBUG(2,"Initialising SDL joystick driver\n");
-	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
 
 	valid = 0;
 	for (i = 0; i < 6; i++) {
