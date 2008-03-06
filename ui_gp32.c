@@ -258,8 +258,12 @@ static void highlight_menu_line(Menu *m, int x, int y, int w) {
 	highlight_line(hx, y, hw);
 }
 
+#define REPEAT_MASK (GPC_VK_UP | GPC_VK_DOWN)
+
 static int show_menu(Menu *m, int x, int y, int w, int h) {
-	int newkey, rkey;
+	unsigned int old_repeat_mask;
+	int old_repeat_rate;
+	int newkey;
 	int nument;
 	int base, cur = 0, oldbase = -1, oldcur;
 	int step = h / 2;
@@ -271,6 +275,8 @@ static int show_menu(Menu *m, int x, int y, int w, int h) {
 	}
 	if (nument == 0) return -1;
 	gpgfx_backup();
+	gpkeypad_get_repeat(&old_repeat_mask, &old_repeat_rate);
+	gpkeypad_set_repeat(REPEAT_MASK, 225);
 	do {
 		base = cur - (cur % h);
 		if (base != oldbase) {
@@ -282,10 +288,10 @@ static int show_menu(Menu *m, int x, int y, int w, int h) {
 		}
 		highlight_menu_line(&m[cur], x, y + (cur - base), w);
 		SPEED_SLOW;
-		gpkeypad_poll(NULL, &newkey, &rkey);
+		gpkeypad_poll(NULL, &newkey, NULL);
 		do {
 			oldcur = cur;
-			gpkeypad_poll(NULL, &newkey, &rkey);
+			gpkeypad_poll(NULL, &newkey, NULL);
 			if (m[cur].num_opts > 0) {
 				unsigned int old_opt = m[cur].cur_opt;
 				if (newkey & GPC_VK_LEFT) {
@@ -304,10 +310,10 @@ static int show_menu(Menu *m, int x, int y, int w, int h) {
 					highlight_menu_line(&m[cur], x, y + (cur - base), w);
 				}
 			}
-			if (rkey & GPC_VK_UP) cur--;
-			if (rkey & GPC_VK_DOWN) cur++;
-			if (rkey & GPC_VK_FL) cur -= step;
-			if (rkey & GPC_VK_FR) cur += step;
+			if (newkey & GPC_VK_UP) cur--;
+			if (newkey & GPC_VK_DOWN) cur++;
+			if (newkey & GPC_VK_FL) cur -= step;
+			if (newkey & GPC_VK_FR) cur += step;
 			if (cur < 0) cur = 0;
 			if (cur >= nument) cur = nument - 1;
 			if (newkey & GPC_VK_START) {
@@ -322,6 +328,7 @@ static int show_menu(Menu *m, int x, int y, int w, int h) {
 		if (cur != oldcur)
 			show_menu_line(&m[oldcur], x, y + (oldcur - base), w);
 	} while (!done);
+	gpkeypad_set_repeat(old_repeat_mask, old_repeat_rate);
 	gpgfx_restore();
 	if ((selected != -1) && m[selected].select_callback)
 		m[selected].select_callback((unsigned int)m[selected].cur_opt);

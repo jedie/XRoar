@@ -30,6 +30,7 @@
 #include "types.h"
 #include "logging.h"
 #include "events.h"
+#include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "machine.h"
@@ -81,6 +82,8 @@ static unsigned int displayed_keyboard;
 
 static void highlight_key(void);
 
+#define REPEAT_MASK (GPC_VK_UP | GPC_VK_DOWN | GPC_VK_LEFT | GPC_VK_RIGHT)
+
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
@@ -93,7 +96,7 @@ static int init(int argc, char **argv) {
 	highlight_key();
 	rPBCON = 0x0;
 	gpkeypad_init();
-	gpkeypad_repeat_rate(225);
+	gpkeypad_set_repeat(REPEAT_MASK, 225);
 	gpchatboard_init();
 	poll_event = event_new();
 	poll_event->dispatch = do_poll;
@@ -120,13 +123,17 @@ static void highlight_key(void) {
 
 static void do_poll(void *context) {
 	unsigned int newkeyx = keyx, newkeyy = keyy;
-	int key, newkey, rkey;
+	int key, newkey, relkey;
 	(void)context;
-	gpkeypad_poll(&key, &newkey, &rkey);
+	gpkeypad_poll(&key, &newkey, &relkey);
 	if (newkey & GPC_VK_FL) {
 		keyboard_mode++;
-		if (keyboard_mode > 3)
+		if (keyboard_mode > 3) {
 			keyboard_mode = 0;
+			gpkeypad_set_repeat(REPEAT_MASK, 225);
+		} else {
+			gpkeypad_set_repeat(0, 225);
+		}
 		gpgfx_blit(8, 200, &cmode_bin[keyboard_mode]);
 	}
 	if ((key & (GPC_VK_FR|GPC_VK_FL)) == (GPC_VK_FR|GPC_VK_FL))
@@ -135,33 +142,31 @@ static void do_poll(void *context) {
 		gp32_menu();
 	switch (keyboard_mode) {
 		case 3:
-			joystick_rightx = joystick_righty = 255;
-			joystick_leftx = (joystick_leftx < 128) ? 127 : 128;
-			joystick_lefty = (joystick_lefty < 128) ? 127 : 128;
-			if (key & GPC_VK_LEFT) joystick_leftx = 0;
-			if (key & GPC_VK_RIGHT) joystick_leftx = 255;
-			if (key & GPC_VK_UP) joystick_lefty = 0;
-			if (key & GPC_VK_DOWN) joystick_lefty = 255;
-			if (key & GPC_VK_FB)
-				PIA0.a.tied_low &= 0xfd;
-			else
-				PIA0.a.tied_low |= 0x02;
+			if (newkey & GPC_VK_LEFT) input_control_press(INPUT_JOY_LEFT_X, 0);
+			if (relkey & GPC_VK_LEFT) input_control_release(INPUT_JOY_LEFT_X, 0);
+			if (newkey & GPC_VK_RIGHT) input_control_press(INPUT_JOY_LEFT_X, 255);
+			if (relkey & GPC_VK_RIGHT) input_control_release(INPUT_JOY_LEFT_X, 255);
+			if (newkey & GPC_VK_UP) input_control_press(INPUT_JOY_LEFT_Y, 0);
+			if (relkey & GPC_VK_UP) input_control_release(INPUT_JOY_LEFT_Y, 0);
+			if (newkey & GPC_VK_DOWN) input_control_press(INPUT_JOY_LEFT_Y, 255);
+			if (relkey & GPC_VK_DOWN) input_control_release(INPUT_JOY_LEFT_Y, 255);
+			if (newkey & GPC_VK_FB) input_control_press(INPUT_JOY_LEFT_FIRE, 0);
+			if (relkey & GPC_VK_FB) input_control_release(INPUT_JOY_LEFT_FIRE, 0);
 			KEY_UPDATE(key & GPC_VK_FR, 13);
 			KEY_UPDATE(key & GPC_VK_FA, 32);
 			KEY_UPDATE(key & GPC_VK_SELECT, 112);
 			break;
 		case 2:
-			joystick_leftx = joystick_lefty = 255;
-			joystick_rightx = (joystick_rightx < 128) ? 127 : 128;
-			joystick_righty = (joystick_righty < 128) ? 127 : 128;
-			if (key & GPC_VK_LEFT) joystick_rightx = 0;
-			if (key & GPC_VK_RIGHT) joystick_rightx = 255;
-			if (key & GPC_VK_UP) joystick_righty = 0;
-			if (key & GPC_VK_DOWN) joystick_righty = 255;
-			if (key & GPC_VK_FB)
-				PIA0.a.tied_low &= 0xfe;
-			else
-				PIA0.a.tied_low |= 0x01;
+			if (newkey & GPC_VK_LEFT) input_control_press(INPUT_JOY_RIGHT_X, 0);
+			if (relkey & GPC_VK_LEFT) input_control_release(INPUT_JOY_RIGHT_X, 0);
+			if (newkey & GPC_VK_RIGHT) input_control_press(INPUT_JOY_RIGHT_X, 255);
+			if (relkey & GPC_VK_RIGHT) input_control_release(INPUT_JOY_RIGHT_X, 255);
+			if (newkey & GPC_VK_UP) input_control_press(INPUT_JOY_RIGHT_Y, 0);
+			if (relkey & GPC_VK_UP) input_control_release(INPUT_JOY_RIGHT_Y, 0);
+			if (newkey & GPC_VK_DOWN) input_control_press(INPUT_JOY_RIGHT_Y, 255);
+			if (relkey & GPC_VK_DOWN) input_control_release(INPUT_JOY_RIGHT_Y, 255);
+			if (newkey & GPC_VK_FB) input_control_press(INPUT_JOY_RIGHT_FIRE, 0);
+			if (relkey & GPC_VK_FB) input_control_release(INPUT_JOY_RIGHT_FIRE, 0);
 			KEY_UPDATE(key & GPC_VK_FR, 13);
 			KEY_UPDATE(key & GPC_VK_FA, 32);
 			KEY_UPDATE(key & GPC_VK_SELECT, 112);
@@ -184,13 +189,13 @@ static void do_poll(void *context) {
 				gpgfx_blit(64, 200, &kbd_bin[displayed_keyboard]);
 				highlight_key();
 			}
-			if (rkey & GPC_VK_UP && keyy < 4)
+			if (newkey & GPC_VK_UP && keyy < 4)
 				newkeyy = keyy + 1;
-			if (rkey & GPC_VK_DOWN && keyy > 0)
+			if (newkey & GPC_VK_DOWN && keyy > 0)
 				newkeyy = keyy - 1;
-			if (rkey & GPC_VK_LEFT && keyx > 0)
+			if (newkey & GPC_VK_LEFT && keyx > 0)
 				newkeyx = keyx - 1;
-			if (rkey & GPC_VK_RIGHT && keyx < 13)
+			if (newkey & GPC_VK_RIGHT && keyx < 13)
 				newkeyx = keyx + 1;
 			while (keys[newkeyy][newkeyx].xoffset == 0)
 				newkeyx++;
