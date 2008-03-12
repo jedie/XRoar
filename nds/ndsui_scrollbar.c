@@ -36,7 +36,6 @@ struct scrollbar_data {
 	int total;
 	int visible, visible_h;
 	int current, current_h;
-	int pen_down_y;
 	void (*offset_callback)(int new);
 };
 
@@ -89,7 +88,7 @@ void ndsui_scrollbar_set_total(struct ndsui_component *self, int total) {
 	data = self->data;
 	if (total < 1) return;
 	data->total = total;
-	if (data->visible > data->total) {
+	if (data->visible >= data->total) {
 		data->visible_h = self->h;
 	} else {
 		data->visible_h = (data->visible * self->h) / data->total;
@@ -103,10 +102,13 @@ void ndsui_scrollbar_set_visible(struct ndsui_component *self, int visible) {
 	data = self->data;
 	if (visible < 1) return;
 	data->visible = visible;
-	if (data->visible > data->total) {
+	if (data->visible >= data->total) {
 		data->visible_h = self->h;
 	} else {
 		data->visible_h = (data->visible * self->h) / data->total;
+	}
+	if (data->visible_h > self->h) {
+		data->visible_h = self->h;
 	}
 	if (self->visible) show(self);
 }
@@ -130,11 +132,10 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 	(void)x;
 	if (self == NULL) return;
 	data = self->data;
-	data->pen_down_y = y;
 	new_cur = ((y - self->y) * data->total) / self->h;
-	if (new_cur < 0) new_cur = 0;
 	if (new_cur >= (data->total - data->visible))
 		new_cur = data->total - data->visible;
+	if (new_cur < 0) new_cur = 0;
 	if (new_cur == data->current) return;
 	data->current = new_cur;
 	data->current_h = (new_cur * self->h) / data->total;
