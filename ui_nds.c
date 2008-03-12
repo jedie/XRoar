@@ -174,10 +174,6 @@ static void do_poll_pen(void *context) {
 				if (current_component->pen_down) {
 					current_component->pen_down(current_component, px, py);
 				}
-			} else {
-				if (px > 0xf0 && py < 0x10) {
-					machine_reset(RESET_HARD);
-				}
 			}
 		}
 	} else {
@@ -227,12 +223,14 @@ static void clear_component_list(void) {
 
 static struct ndsui_component *mi_keyboard = NULL;
 static struct ndsui_component *mi_load_button = NULL;
+static struct ndsui_component *mi_reset_button = NULL;
 
 static void mi_key_press(int sym);
 static void mi_key_release(int sym);
 static void mi_shift_update(int shift);
 static void mi_load_release(void);
 static void mi_load_file(char *filename);
+static void mi_reset_release(void);
 
 static void show_main_input_screen(void) {
 	clear_component_list();
@@ -252,6 +250,13 @@ static void show_main_input_screen(void) {
 		ndsui_show_component(mi_load_button);
 	}
 	add_component(mi_load_button);
+
+	if (mi_reset_button == NULL) {
+		mi_reset_button = new_ndsui_button(220, 0, "Reset");
+		ndsui_button_release_callback(mi_reset_button, mi_reset_release);
+		ndsui_show_component(mi_reset_button);
+	}
+	add_component(mi_reset_button);
 
 	draw_all_components();
 }
@@ -294,6 +299,10 @@ static void mi_load_file(char *filename) {
 			tape_open_reading(filename);
 			break;
 	}
+}
+
+static void mi_reset_release(void) {
+	machine_reset(RESET_HARD);
 }
 
 /**************************************************************************/
