@@ -4,29 +4,11 @@
 
 static touchPosition tempPos;
 
-static void startSound(int sampleRate, const void *data, uint32_t bytes, uint8_t channel, uint8_t vol,  uint8_t pan, uint8_t format);
-static int getFreeSoundChannel(void);
-static void VcountHandler(void);
-static void VblankHandler(void);
+static void vcount_handler(void);
 
 /**************************************************************************/
 
-static void startSound(int sampleRate, const void* data, uint32_t bytes, uint8_t channel, uint8_t vol,  uint8_t pan, uint8_t format) {
-	SCHANNEL_TIMER(channel)  = SOUND_FREQ(sampleRate);
-	SCHANNEL_SOURCE(channel) = (uint32_t)data;
-	SCHANNEL_LENGTH(channel) = bytes >> 2 ;
-	SCHANNEL_CR(channel)     = SCHANNEL_ENABLE | SOUND_ONE_SHOT | SOUND_VOL(vol) | SOUND_PAN(pan) | (format==1?SOUND_8BIT:SOUND_16BIT);
-}
-
-static int getFreeSoundChannel(void) {
-	int i;
-	for (i=0; i<16; i++) {
-		if ( (SCHANNEL_CR(i) & SCHANNEL_ENABLE) == 0 ) return i;
-	}
-	return -1;
-}
-
-static void VcountHandler(void) {
+static void vcount_handler(void) {
 	static int lastbut = -1;
 	uint16_t but, x=0, y=0, xpx=0, ypx=0, z1=0, z2=0;
 
@@ -57,24 +39,6 @@ static void VcountHandler(void) {
 	IPC->touchZ1  = z1;
 	IPC->touchZ2  = z2;
 	IPC->buttons  = but;
-
-}
-
-static void VblankHandler(void) {
-	uint32_t i;
-
-	/* sound code  :) */
-	TransferSound *snd = IPC->soundData;
-	IPC->soundData = 0;
-
-	if (0 != snd) {
-		for (i = 0; i < snd->count; i++) {
-			int32_t chan = getFreeSoundChannel();
-			if (chan >= 0) {
-				startSound(snd->data[i].rate, snd->data[i].data, snd->data[i].len, chan, snd->data[i].vol, snd->data[i].pan, snd->data[i].format);
-			}
-		}
-	}
 }
 
 /**************************************************************************/
@@ -88,20 +52,31 @@ int main(int argc, char **argv) {
 
 	/* enable sound */
 	powerON(POWER_SOUND);
-	SOUND_CR = SOUND_ENABLE | SOUND_VOL(0x7F);
+	SOUND_CR = SOUND_ENABLE | SOUND_VOL(0x7f);
+	SOUND_BIAS = 0x200;
 
 	/* Stop power LED from blinking (DS-X sets this up) */
 	writePowerManagement(0, readPowerManagement(0) & 0xcf);
 
 	irqInit();
-	irqSet(IRQ_VBLANK, VblankHandler);
 	SetYtrigger(80);
-	irqSet(IRQ_VCOUNT, VcountHandler);
+	irqSet(IRQ_VCOUNT, vcount_handler);
 	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 
 	IPC->mailBusy = 0;
 
+	SCHANNEL_CR(0) = 0;
+	SCHANNEL_REPEAT_POINT(0) = 0;
+	SCHANNEL_SOURCE(0) = (0x02800000 - 256);
+	SCHANNEL_LENGTH(0) = 256 >> 2;
+	SCHANNEL_TIMER(0) = SOUND_FREQ(22050);
+	SCHANNEL_CR(0) = (127 << 0)
+		| (64 << 16)
+		| (1 << 27)
+		| (1 << 31);
+
 	/* Keep the ARM7 out of main RAM */
-	while (1)
-		swiWaitForVBlank();
+	while (1) {
+		swiIntrWait(1, IRQ_VBLANK | IRQ_VCOUNT);
+	}
 }

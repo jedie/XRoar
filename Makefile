@@ -173,7 +173,7 @@ OBJS_GP32 = fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
 		gp32/gplib.o
 ALL_OBJS += $(OBJS_GP32)
 
-OBJS_NDS9 = fs_unix.o main_nds9.o ui_nds.o video_nds.o \
+OBJS_NDS9 = fs_unix.o main_nds9.o ui_nds.o video_nds.o sound_nds.o \
 		nds/ndsgfx.o \
 		nds/ndsui.o nds/ndsui_button.o nds/ndsui_filelist.o \
 		nds/ndsui_keyboard.o nds/ndsui_scrollbar.o \

@@ -53,12 +53,18 @@ static VideoModule *nds_video_module_list[] = {
 	NULL
 };
 
+extern SoundModule sound_nds_module;
+static SoundModule *nds_sound_module_list[] = {
+	&sound_nds_module,
+	NULL
+};
+
 UIModule ui_nds_module = {
 	{ "nds", "SDL user-interface",
 	  init, 0, shutdown, NULL },
 	NULL,  /* use default filereq module list */
 	nds_video_module_list,
-	NULL,  /* use default sound module list */
+	nds_sound_module_list,
 	NULL,  /* nds_keyboard_module_list, */
 	NULL  /* use default joystick module list */
 };
