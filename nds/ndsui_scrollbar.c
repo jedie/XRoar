@@ -119,6 +119,10 @@ static void show(struct ndsui_component *self) {
 	struct scrollbar_data *data;
 	if (self == NULL) return;
 	data = self->data;
+	if ((data->current_h + data->visible_h) > self->h) {
+		ndsgfx_fillrect(self->x, self->y, self->w, self->h, 0x333333ff);
+		return;
+	}
 	if (data->current_h > 0)
 		ndsgfx_fillrect(self->x, self->y, self->w, data->current_h - 1, 0x333333ff);
 	ndsgfx_fillrect(self->x, self->y + data->current_h, self->w, data->visible_h, 0x999999ff);
