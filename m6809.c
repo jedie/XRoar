@@ -512,6 +512,7 @@ void m6809_cycle(Cycle until) {
 			case 0x13:
 				peek_byte(reg_pc);
 				TAKEN_CYCLES(1);
+				TRACE_PRINT(reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 				cpu_state = flow_sync;
 				continue;
 			/* 0x16 LBRA relative */
@@ -736,6 +737,7 @@ void m6809_cycle(Cycle until) {
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
 				TAKEN_CYCLES(1);
+				TRACE_PRINT(reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 				cpu_state = flow_dispatch_irq;
 				continue;
 			} break;
