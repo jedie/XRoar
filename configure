@@ -26,6 +26,7 @@ _oss=auto
 _sun=auto
 _coreaudio=auto
 _jack=auto
+_nullaudio=yes
 _sndfile=auto
 _mingw=auto
 _gp32=auto
@@ -67,6 +68,8 @@ Optional Features:
   --disable-oss         don't test for OSS audio
   --disable-sun         don't test for Sun audio
   --disable-coreaudio   don't test for Mac OS X Core Audio
+  --disable-jack        don't test for JACK audio
+  --disable-nullaudio   don't include null audio driver
   --disable-mingw       don't test for MinGW
   --disable-gp32        don't test for GP32
   --disable-nds         don't test for Nintendo DS
@@ -345,6 +348,7 @@ if test "$_gp32" = "yes"; then
 	_sun=no 
 	_coreaudio=no
 	_jack=no
+	_nullaudio=no
 	_mingw=no
 	_nds=no
 else
@@ -384,6 +388,7 @@ if test "$_nds" = "yes"; then
 	_sun=no 
 	_coreaudio=no
 	_jack=no
+	_nullaudio=no
 	_mingw=no
 else
 	_nds_def="#undef HAVE_NDS"
@@ -693,6 +698,14 @@ fi
 
 ########
 
+if test "$_nullaudio" = "yes"; then
+	_nullaudio_def="#define HAVE_NULL_AUDIO"
+else
+	_nullaudio_def="#undef HAVE_NULL_AUDIO"
+fi
+
+########
+
 if test "$_sndfile" = "auto"; then
 	echocheck libsndfile
 	test -z "$sndfile_cflags" && sndfile_cflags=`$target_pkg_config --cflags sndfile 2> /dev/null`
@@ -807,6 +820,7 @@ CONFIG_OSS = $_oss
 CONFIG_SUN = $_sun
 CONFIG_COREAUDIO = $_coreaudio
 CONFIG_JACK = $_jack
+CONFIG_NULLAUDIO = $_nullaudio
 CONFIG_SNDFILE = $_sndfile
 CONFIG_GP32 = $_gp32
 CONFIG_NDS = $_nds
@@ -855,6 +869,9 @@ $_coreaudio_def
 
 /* Jack audio? */
 $_jack_def
+
+/* Null audio? */
+$_nullaudio_def
 
 /* libsndfile? */
 $_sndfile_def

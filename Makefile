@@ -79,7 +79,7 @@ xroar.arm7: LDFLAGS = $(NDS_ARM7_LDFLAGS)
 
 OBJS := cart.o crc16.o events.o hexs19.o input.o joystick.o keyboard.o \
 		m6809.o machine.o mc6821.o module.o sam.o snapshot.o \
-		sound_null.o tape.o vdg.o vdg_bitmaps.o vdisk.o vdrive.o \
+		tape.o vdg.o vdg_bitmaps.o vdisk.o vdrive.o \
 		dragondos.o rsdos.o deltados.o wd279x.o xroar.o portalib.o
 
 ALL_OBJS := $(OBJS)
@@ -146,6 +146,12 @@ OBJS_JACK = sound_jack.o
 ALL_OBJS += $(OBJS_JACK)
 ifeq ($(CONFIG_JACK),yes)
 	OBJS += $(OBJS_JACK)
+endif
+
+OBJS_NULLAUDIO = sound_null.o
+ALL_OBJS += $(OBJS_NULLAUDIO)
+ifeq ($(CONFIG_NULLAUDIO),yes)
+	OBJS += $(OBJS_NULLAUDIO)
 endif
 
 OBJS_WINDOWS32 = common_windows32.o filereq_windows32.o

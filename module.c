@@ -91,7 +91,9 @@ static SoundModule *default_sound_module_list[] = {
 #ifdef HAVE_JACK_AUDIO
 	&sound_jack_module,
 #endif
+#ifdef HAVE_NULL_AUDIO
 	&sound_null_module,
+#endif
 	NULL
 };
 
