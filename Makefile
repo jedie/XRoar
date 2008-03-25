@@ -177,6 +177,7 @@ OBJS_NDS9 = fs_unix.o main_nds9.o ui_nds.o video_nds.o \
 		nds/ndsgfx.o \
 		nds/ndsui.o nds/ndsui_button.o nds/ndsui_filelist.o \
 		nds/ndsui_keyboard.o nds/ndsui_scrollbar.o \
+		nds/ndsui_textbox.o \
 		nds/nds_font8x8.o nds/kbd_graphics.o
 OBJS_NDS7 = main_nds7.o
 ALL_OBJS += $(OBJS_NDS9) $(OBJS_NDS7)
