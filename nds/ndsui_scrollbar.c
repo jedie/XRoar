@@ -137,6 +137,7 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 	if (self == NULL) return;
 	data = self->data;
 	new_cur = ((y - self->y) * data->total) / self->h;
+	new_cur -= data->visible / 2;
 	if (new_cur >= (data->total - data->visible))
 		new_cur = data->total - data->visible;
 	if (new_cur < 0) new_cur = 0;

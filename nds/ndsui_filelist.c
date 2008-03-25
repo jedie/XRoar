@@ -50,6 +50,7 @@ struct file_list_data {
 	int selected_file;
 	void (*num_files_callback)(int);
 	void (*visible_callback)(int);
+	void (*file_select_callback)(const char *);
 };
 
 static void show(struct ndsui_component *self);
@@ -58,6 +59,8 @@ static void pen_down(struct ndsui_component *self, int x, int y);
 static void destroy(struct ndsui_component *self);
 
 /**************************************************************************/
+
+static char fn_buf[MAXPATHLEN];
 
 static void get_directory(struct ndsui_component *self);
 static char **string_array_copy(const char **array);
@@ -164,11 +167,31 @@ void ndsui_filelist_visible_callback(struct ndsui_component *self, void (*func)(
 	data->visible_callback = func;
 }
 
+void ndsui_filelist_file_select_callback(struct ndsui_component *self, void (*func)(const char *)) {
+	struct file_list_data *data;
+	if (self == NULL || self->data == NULL) return;
+	data = self->data;
+	data->file_select_callback = func;
+}
+
+void ndsui_filelist_search_string(struct ndsui_component *self, char *str) {
+	struct file_list_data *data;
+	int j, len;
+	if (self == NULL || self->data == NULL) return;
+	data = self->data;
+	len = strlen(str);
+	for (j = 0; j < data->num_files; j++) {
+		if (strncasecmp(data->files[j].filename, str, len) == 0) {
+			ndsui_filelist_set_offset(self, j);
+			return;
+		}
+	}
+}
+
 /**************************************************************/
 
 static void show(struct ndsui_component *self) {
 	struct file_list_data *data;
-	char buf[43];
 	int j;
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
@@ -182,11 +205,11 @@ static void show(struct ndsui_component *self) {
 		}
 		if (num < data->num_files && data->files[num].filename) {
 			if (data->files[num].mode & S_IFDIR) {
-				snprintf(buf, data->w + 1, "<%s>", data->files[num].filename);
+				snprintf(fn_buf, data->w + 1, "<%s>", data->files[num].filename);
 			} else {
-				snprintf(buf, data->w + 1, "%s", data->files[num].filename);
+				snprintf(fn_buf, data->w + 1, "%s", data->files[num].filename);
 			}
-			nds_print_string(self->x, self->y + j * 9, buf);
+			nds_print_string(self->x, self->y + j * 9, fn_buf);
 		}
 	}
 }
@@ -215,8 +238,12 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 			get_directory(self);
 		}
 		data->selected_file = -1;
+		if (data->file_select_callback)
+			data->file_select_callback(NULL);
 	} else {
 		data->selected_file = sel;
+		if (data->file_select_callback)
+			data->file_select_callback(data->files[sel].filename);
 	}
 	show(self);
 }
@@ -240,11 +267,10 @@ static int compar_dirents(const void *aa, const void *bb) {
 	if (b == NULL) return 1;
 	if ((a->mode & S_IFDIR) && !(b->mode & S_IFDIR)) return -1;
 	if (!(a->mode & S_IFDIR) && (b->mode & S_IFDIR)) return 1;
-	return strcmp(a->filename, b->filename);
+	return strcasecmp(a->filename, b->filename);
 }
 
 static void get_directory(struct ndsui_component *self) {
-	char fn_buf[256];
 	struct stat stat_buf;
 	DIR_ITER *dir;
 	struct file_list_data *data;

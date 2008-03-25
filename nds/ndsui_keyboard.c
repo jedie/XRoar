@@ -50,6 +50,7 @@ static struct keydata keys[5][14] = {
 /**************************************************************************/
 
 struct keyboard_data {
+	int shift_is_toggle;
 	struct keydata *current;
 	int keyy;
 	int shifted;
@@ -67,7 +68,7 @@ static void highlight_key(struct ndsui_component *self);
 
 /**************************************************************************/
 
-struct ndsui_component *new_ndsui_keyboard(int x, int y) {
+struct ndsui_component *new_ndsui_keyboard(int x, int y, int shift_is_toggle) {
 	struct ndsui_component *new;
 	struct keyboard_data *data;
 	new = ndsui_new_component(x, y, 230, 82);
@@ -84,6 +85,7 @@ struct ndsui_component *new_ndsui_keyboard(int x, int y) {
 	new->destroy = destroy;
 	new->data = data;
 
+	data->shift_is_toggle = shift_is_toggle;
 	data->current = NULL;
 	data->shifted = 0;
 
@@ -109,6 +111,16 @@ void ndsui_keyboard_shift_callback(struct ndsui_component *self, void (*func)(in
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
 	data->shift_callback = func;
+}
+
+void ndsui_keyboard_set_shift_state(struct ndsui_component *self, int state) {
+	struct keyboard_data *data;
+	if (self == NULL || self->data == NULL) return;
+	data = self->data;
+	if (data->shifted != state) {
+		data->shifted = state ? 1 : 0;
+		show(self);
+	}
 }
 
 /**************************************************************************/
@@ -140,10 +152,18 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 	if (!data->current) return;
 
 	if (data->current->sym == 0) {
-		data->shifted ^= 1;
-		show(self);
-		if (data->shift_callback) {
-			data->shift_callback(data->shifted);
+		if (data->shift_is_toggle) {
+			data->shifted ^= 1;
+			show(self);
+			if (data->shift_callback) {
+				data->shift_callback(data->shifted);
+			}
+		} else {
+			data->shifted = 1;
+			show(self);
+			if (data->keypress_callback) {
+				data->keypress_callback(data->current->sym);
+			}
 		}
 		return;
 	}
@@ -157,15 +177,23 @@ static void pen_up(struct ndsui_component *self) {
 	struct keyboard_data *data;
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
-	if (data->current) {
-		if (data->current->sym != 0) {
-			highlight_key(self);
+	if (!data->current) return;
+
+	if (data->current->sym == 0) {
+		if (!data->shift_is_toggle) {
+			data->shifted = 0;
+			show(self);
 			if (data->keyrelease_callback) {
 				data->keyrelease_callback(data->current->sym);
 			}
 		}
-		data->current = NULL;
+	} else {
+		highlight_key(self);
+		if (data->keyrelease_callback) {
+			data->keyrelease_callback(data->current->sym);
+		}
 	}
+	data->current = NULL;
 }
 
 static void destroy(struct ndsui_component *self) {

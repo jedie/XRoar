@@ -19,5 +19,7 @@ char *ndsui_filelist_filename(struct ndsui_component *self);
 void ndsui_filelist_set_offset(struct ndsui_component *self, int offset);
 void ndsui_filelist_num_files_callback(struct ndsui_component *self, void (*func)(int));
 void ndsui_filelist_visible_callback(struct ndsui_component *self, void (*func)(int));
+void ndsui_filelist_file_select_callback(struct ndsui_component *self, void (*func)(const char *));
+void ndsui_filelist_search_string(struct ndsui_component *self, char *str);
 
 #endif  /* __NDSUI_FILELIST_H__ */

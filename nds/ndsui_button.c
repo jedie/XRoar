@@ -37,19 +37,22 @@
 
 struct button_data {
 	char *label;
+	int id;
+	int is_toggle;
 	int pressed;
-	void (*press_callback)(void);
-	void (*release_callback)(void);
+	void (*press_callback)(int id);
+	void (*release_callback)(int id);
 };
 
 static void show(struct ndsui_component *self);
 static void pen_down(struct ndsui_component *self, int x, int y);
+static void pen_move(struct ndsui_component *self, int x, int y);
 static void pen_up(struct ndsui_component *self);
 static void destroy(struct ndsui_component *self);
 
 /**************************************************************************/
 
-struct ndsui_component *new_ndsui_button(int x, int y, const char *label) {
+struct ndsui_component *new_ndsui_button(int x, int y, const char *label, int id, int is_toggle) {
 	struct ndsui_component *new;
 	struct button_data *data;
 	int w = (strlen(label) * FONT_WIDTH) + 6;
@@ -67,46 +70,66 @@ struct ndsui_component *new_ndsui_button(int x, int y, const char *label) {
 
 	new->show = show;
 	new->pen_down = pen_down;
+	new->pen_move = pen_move;
 	new->pen_up = pen_up;
 	new->destroy = destroy;
 	new->data = data;
 
 	data->label = strdup(label);
+	data->id = id;
+	data->is_toggle = is_toggle;
 	data->pressed = 0;
 
 	return new;
 }
 
-void ndsui_button_press_callback(struct ndsui_component *self, void (*func)(void)) {
+void ndsui_button_press_callback(struct ndsui_component *self, void (*func)(int)) {
 	struct button_data *data;
 	if (self == NULL) return;
 	data = self->data;
 	data->press_callback = func;
 }
 
-void ndsui_button_release_callback(struct ndsui_component *self, void (*func)(void)) {
+void ndsui_button_release_callback(struct ndsui_component *self, void (*func)(int)) {
 	struct button_data *data;
 	if (self == NULL) return;
 	data = self->data;
 	data->release_callback = func;
 }
 
+void ndsui_button_set_label(struct ndsui_component *self, const char *label) {
+	struct button_data *data;
+	if (self == NULL) return;
+	data = self->data;
+	if (data->label) {
+		free(data->label);
+		data->label = NULL;
+	}
+	data->label = strdup(label);
+	show(self);
+}
+
+void ndsui_button_set_state(struct ndsui_component *self, int pressed) {
+	struct button_data *data;
+	if (self == NULL) return;
+	data = self->data;
+	data->pressed = pressed;
+	show(self);
+}
+
 /**************************************************************************/
 
 static void show(struct ndsui_component *self) {
-	unsigned int fgcolour, bgcolour;
 	struct button_data *data;
 	if (self == NULL) return;
 	data = self->data;
 	if (data->pressed) {
-		fgcolour = ~0;
-		bgcolour = 0x333333ff;
+		ndsgfx_fillrect(self->x+1, self->y+1, self->w-2, self->h-2, 0x333333ff);
+		nds_set_text_colour(~0, 0x333333ff);
 	} else {
-		fgcolour = 0x333333ff;
-		bgcolour = ~0;
+		ndsgfx_fillrect(self->x, self->y, self->w, self->h, ~0);
+		nds_set_text_colour(0x333333ff, ~0);
 	}
-	ndsgfx_fillrect(self->x, self->y, self->w, self->h, bgcolour);
-	nds_set_text_colour(fgcolour, bgcolour);
 	nds_print_string(self->x + 3, self->y + 2, data->label);
 }
 
@@ -116,26 +139,55 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 	(void)y;
 	if (self == NULL) return;
 	data = self->data;
-	data->pressed = 1;
+	if (data->is_toggle)
+		data->pressed = !data->pressed;
+	else
+		data->pressed = 1;
 	show(self);
-	if (data->press_callback)
-		data->press_callback();
+	if (data->pressed && data->press_callback)
+		data->press_callback(data->id);
+	if (!data->pressed && data->release_callback)
+		data->release_callback(data->id);
+}
+
+static void pen_move(struct ndsui_component *self, int x, int y) {
+	struct button_data *data;
+	int old_pressed;
+	if (self == NULL) return;
+	data = self->data;
+	if (data->is_toggle)
+		return;
+	old_pressed = data->pressed;
+	if (x >= self->x && x < (self->x + self->w)
+			&& y >= self->y && y < (self->y + self->h)) {
+		data->pressed = 1;
+	} else {
+		data->pressed = 0;
+	}
+	if (old_pressed != data->pressed)
+		show(self);
 }
 
 static void pen_up(struct ndsui_component *self) {
 	struct button_data *data;
+	int old_pressed;
 	if (self == NULL) return;
 	data = self->data;
+	if (data->is_toggle)
+		return;
+	old_pressed = data->pressed;
 	data->pressed = 0;
 	show(self);
-	if (data->release_callback)
-		data->release_callback();
+	if (old_pressed && data->release_callback)
+		data->release_callback(data->id);
 }
 
 static void destroy(struct ndsui_component *self) {
 	struct button_data *data;
 	if (self == NULL) return;
 	data = self->data;
+	if (data->label)
+		free(data->label);
 	free(self->data);
 	self->data = NULL;
 }
