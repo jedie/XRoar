@@ -24,6 +24,20 @@
 #include "xroar.h"
 #include "logging.h"
 
+#include <errno.h>
+#include <sys/time.h>
+int _gettimeofday(struct timeval *, struct timezone *);
+int _gettimeofday_r(struct _reent *, struct timeval *, struct timezone *);
+int _gettimeofday_r(struct _reent *ptr,
+	struct timeval *ptimeval,
+	struct timezone *ptimezone) {
+	int ret;
+	errno = 0;
+	if ((ret = _gettimeofday (ptimeval, ptimezone)) == -1 && errno != 0)
+		ptr->_errno = errno;
+	return ret;
+}
+
 int main(int argc, char **argv) {
 	xroar_init(argc, argv);
 	xroar_mainloop();
