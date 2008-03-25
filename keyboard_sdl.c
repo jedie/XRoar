@@ -210,9 +210,10 @@ static void emulator_command(SDLKey sym) {
 		}
 		break;
 	case SDLK_j:
-		emulate_joystick++;
-		if (emulate_joystick > 2)
-			emulate_joystick = 0;
+		if (emulate_joystick || input_joysticks_swapped)
+			input_control_press(INPUT_SWAP_JOYSTICKS, 0);
+		if (!input_joysticks_swapped)
+			emulate_joystick = !emulate_joystick;
 		break;
 	case SDLK_k:
 		keyboard_set_keymap(running_config.keymap + 1);
@@ -294,14 +295,7 @@ static void emulator_command(SDLKey sym) {
 
 static void keypress(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
-	if (emulate_joystick == 1) {
-		if (sym == SDLK_UP) { input_control_press(INPUT_JOY_LEFT_Y, 0); return; }
-		if (sym == SDLK_DOWN) { input_control_press(INPUT_JOY_LEFT_Y, 255); return; }
-		if (sym == SDLK_LEFT) { input_control_press(INPUT_JOY_LEFT_X, 0); return; }
-		if (sym == SDLK_RIGHT) { input_control_press(INPUT_JOY_LEFT_X, 255); return; }
-		if (sym == SDLK_LALT) { input_control_press(INPUT_JOY_LEFT_FIRE, 0); return; }
-	}
-	if (emulate_joystick == 2) {
+	if (emulate_joystick) {
 		if (sym == SDLK_UP) { input_control_press(INPUT_JOY_RIGHT_Y, 0); return; }
 		if (sym == SDLK_DOWN) { input_control_press(INPUT_JOY_RIGHT_Y, 255); return; }
 		if (sym == SDLK_LEFT) { input_control_press(INPUT_JOY_RIGHT_X, 0); return; }
@@ -351,14 +345,7 @@ static void keypress(SDL_keysym *keysym) {
 
 static void keyrelease(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
-	if (emulate_joystick == 1) {
-		if (sym == SDLK_UP) { input_control_release(INPUT_JOY_LEFT_Y, 0); return; }
-		if (sym == SDLK_DOWN) { input_control_release(INPUT_JOY_LEFT_Y, 255); return; }
-		if (sym == SDLK_LEFT) { input_control_release(INPUT_JOY_LEFT_X, 0); return; }
-		if (sym == SDLK_RIGHT) { input_control_release(INPUT_JOY_LEFT_X, 255); return; }
-		if (sym == SDLK_LALT) { input_control_release(INPUT_JOY_LEFT_FIRE, 0); return; }
-	}
-	if (emulate_joystick == 2) {
+	if (emulate_joystick) {
 		if (sym == SDLK_UP) { input_control_release(INPUT_JOY_RIGHT_Y, 0); return; }
 		if (sym == SDLK_DOWN) { input_control_release(INPUT_JOY_RIGHT_Y, 255); return; }
 		if (sym == SDLK_LEFT) { input_control_release(INPUT_JOY_RIGHT_X, 0); return; }
