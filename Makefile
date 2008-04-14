@@ -226,7 +226,7 @@ xroar.arm9.bin: xroar.arm9
 	$(OBJCOPY) -O binary $< $@
 
 xroar.nds: xroar.arm7.bin xroar.arm9.bin
-	ndstool -c $@ -7 xroar.arm7.bin -9 xroar.arm9.bin
+	ndstool -c $@ -b $(SRCROOT)/nds/icon.bmp "XRoar $(VERSION)" -7 xroar.arm7.bin -9 xroar.arm9.bin
 	dsbuild $@
 endif
 

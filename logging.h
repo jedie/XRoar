@@ -6,7 +6,7 @@
 #ifndef __LOGGING_H__
 #define __LOGGING_H__
 
-#ifdef HAVE_GP32
+#if defined(HAVE_GP32) || defined(HAVE_NDS)
 
 #define LOG_DEBUG(...)
 #define LOG_WARN(...)
