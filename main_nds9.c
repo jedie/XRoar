@@ -20,9 +20,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <nds.h>
+#include <fat.h>
 
 #include "xroar.h"
+#include "events.h"
 #include "logging.h"
+#include "m6809.h"
 
 #include <errno.h>
 #include <sys/time.h>
@@ -39,7 +43,16 @@ int _gettimeofday_r(struct _reent *ptr,
 }
 
 int main(int argc, char **argv) {
+	if (!fatInitDefault()) {
+		LOG_ERROR("fatInitDefault() failed.\n");
+	}
+	irqInit();
 	xroar_init(argc, argv);
-	xroar_mainloop();
+	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
+	while (1) {
+		while (EVENT_PENDING(event_list))
+			DISPATCH_NEXT_EVENT(event_list);
+		m6809_cycle(event_list->at_cycle);
+	}
 	return 0;
 }

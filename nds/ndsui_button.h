@@ -3,7 +3,7 @@
 
 #include "nds/ndsui.h"
 
-struct ndsui_component *new_ndsui_button(int x, int y, const char *label, int id, int is_toggle);
+struct ndsui_component *new_ndsui_button(int x, int y, int w, const char *label, int is_toggle);
 
 void ndsui_button_press_callback(struct ndsui_component *self, void (*func)(int));
 void ndsui_button_release_callback(struct ndsui_component *self, void (*func)(int));

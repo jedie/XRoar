@@ -29,11 +29,74 @@
 #include "nds/ndsui.h"
 #include "nds/ndsgfx.h"
 
+static struct ndsui_component *component_list = NULL;
+static struct ndsui_component *current_component = NULL;
+
+/* All components have a unique id, but it's not used internally */
+static unsigned int next_id = 0;
+
+void ndsui_add_component(struct ndsui_component *c) {
+	if (c == NULL) return;
+	/* c->next being set implies component is already on the list */
+	if (c->next != NULL) return;
+	c->next = component_list;
+	component_list = c;
+}
+
+void ndsui_show_all_components(void) {
+	struct ndsui_component *c;
+	for (c = component_list; c; c = c->next) {
+		ndsui_show_component(c);
+	}
+}
+
+void ndsui_clear_component_list(void) {
+	struct ndsui_component **cp = &component_list;
+	while (*cp) {
+		struct ndsui_component **next = &((*cp)->next);
+		ndsui_hide_component(*cp);
+		*cp = NULL;
+		cp = next;
+	}
+}
+
+void ndsui_pen_down(int x, int y) {
+	struct ndsui_component *c;
+	for (c = component_list; c; c = c->next) {
+		if (c->visible && x >= c->x && x < (c->x+c->w) && y >= c->y && y < (c->y+c->h)) {
+			current_component = c;
+		}
+	}
+	if (current_component) {
+		if (current_component->pen_down) {
+			current_component->pen_down(current_component, x, y);
+		}
+	}
+}
+
+void ndsui_pen_move(int x, int y) {
+	if (current_component) {
+		if (current_component->pen_move) {
+			current_component->pen_move(current_component, x, y);
+		}
+	}
+}
+
+void ndsui_pen_up(void) {
+	if (current_component) {
+		if (current_component->pen_up) {
+			current_component->pen_up(current_component);
+		}
+		current_component = NULL;
+	}
+}
+
 struct ndsui_component *ndsui_new_component(int x, int y, int w, int h) {
 	struct ndsui_component *new;
 	new = malloc(sizeof(struct ndsui_component));
 	if (new == NULL) return NULL;
 	memset(new, 0, sizeof(struct ndsui_component));
+	new->id = next_id++;
 	new->x = x;
 	new->y = y;
 	new->w = w;
@@ -57,7 +120,7 @@ void ndsui_draw_component(struct ndsui_component *c) {
 }
 
 void ndsui_undraw_component(struct ndsui_component *c) {
-	if (c->visible) ndsgfx_fillrect(c->x, c->y, c->w, c->h, 0);
+	if (c->visible) ndsgfx_fillrect(c->x, c->y, c->w, c->h, NDS_DARKPURPLE);
 }
 
 void ndsui_resize_component(struct ndsui_component *c, int w, int h) {

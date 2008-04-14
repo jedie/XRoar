@@ -38,17 +38,18 @@ SoundModule sound_nds_module = {
 	update
 };
 
-typedef uint8_t Sample;  /* 8-bit mono (SDL type) */
-
-#define SAMPLE_RATE 22050
+/* 32728 here as that's what it *actually* is */
+#define SAMPLE_RATE 32728
 #define FRAME_SIZE 256
 #define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
 static Cycle frame_cycle_base;
-#define buffer ((uint8_t *)0x02800000 - FRAME_SIZE*sizeof(Sample))
-static Sample *wrptr;
-static Sample lastsample;
+static uint8_t buf[FRAME_SIZE * 2];
+static uint8_t *frame_base;
+static uint8_t *wrptr;
+static unsigned int lastsample;
+static int writing_buf;
 
 static void flush_frame(void *context);
 static event_t *flush_event;
@@ -56,15 +57,29 @@ static event_t *flush_event;
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
+	LOG_DEBUG(2,"Initialising NDS audio (ARM9 side)\n");
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
-	wrptr = buffer;
+	memset(buf, 0x80, sizeof(buf));
+	writing_buf = 0;
+	frame_base = buf;
+	wrptr = buf;
+
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&event_list, flush_event);
-	lastsample = 0;
+	lastsample = 0x80; //0;
+
+	/* handshake with ARM7 to pass sound buffer address */
+	REG_IPC_FIFO_CR = (1 << 3) | (1 << 15);  /* enable FIFO, clear sendq */
+	REG_IPC_SYNC = (14 << 8);
+	while ((REG_IPC_SYNC & 15) != 14);
+	REG_IPC_FIFO_TX = (uint32_t)buf;
+	REG_IPC_SYNC = (0 << 8);
+	
+	/* now wait for ARM7 to be playing frame 1 */
+	while ((REG_IPC_SYNC & 15) != 1);
 	return 0;
 }
 
@@ -74,36 +89,40 @@ static void shutdown(void) {
 
 static void update(void) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample *fill_to;
+	uint8_t *fill_to;
 	if (elapsed_cycles >= FRAME_CYCLES) {
-		fill_to = buffer + FRAME_SIZE;
+		fill_to = frame_base + FRAME_SIZE;
 	} else {
-		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
+		fill_to = frame_base + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
 	}
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
-		lastsample = (PIA1.b.port_output & 0x02) ? 0x7c : 0;
+		lastsample = (PIA1.b.port_output & 0x02) ? 0xfc : 0x80; //0x7c : 0;
 	} else  {
 		if (PIA0.b.control_register & 0x08) {
 			/* Sound disabled */
-			lastsample = 0;
+			lastsample = 0x80; //0;
 		} else {
 			/* DAC output */
-			lastsample = (PIA1.a.port_output & 0xfc) >> 1;
+			lastsample = (PIA1.a.port_output & 0xfc) ^ 0x80; // >> 1;
 		}
 	}
 }
 
 static void flush_frame(void *context) {
-	Sample *fill_to = buffer + FRAME_SIZE;
+	uint8_t *fill_to = frame_base + FRAME_SIZE;
 	(void)context;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
+	DC_FlushRange(frame_base, FRAME_SIZE);
 	frame_cycle_base += FRAME_CYCLES;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&event_list, flush_event);
-	wrptr = buffer;
+	writing_buf ^= 1;
+	frame_base = buf + (writing_buf * FRAME_SIZE);
+	wrptr = frame_base;
 	/* wait here */
+	while ((REG_IPC_SYNC & 1) == writing_buf);
 }

@@ -115,8 +115,8 @@ static void show(struct ndsui_component *self) {
 	int length;
 	if (self == NULL) return;
 	data = self->data;
-	ndsgfx_fillrect(self->x, self->y, self->w, self->h, ~0);
-	nds_set_text_colour(0x333333ff, ~0);
+	ndsgfx_fillrect(self->x, self->y, self->w, self->h, NDS_WHITE);
+	nds_set_text_colour(NDS_GREY20, NDS_WHITE);
 	length = strlen(data->text);
 	if (length > data->w) {
 		nds_print_string(self->x, self->y + 2, &data->text[length-data->w]);

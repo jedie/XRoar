@@ -35,6 +35,7 @@
 #include "module.h"
 #include "snapshot.h"
 #include "tape.h"
+#include "vdg.h"
 #include "vdisk.h"
 #include "vdrive.h"
 #include "xroar.h"
@@ -62,7 +63,7 @@ static SoundModule *nds_sound_module_list[] = {
 };
 
 UIModule ui_nds_module = {
-	{ "nds", "SDL user-interface",
+	{ "nds", "NDS user-interface",
 	  init, 0, shutdown, NULL },
 	NULL,  /* use default filereq module list */
 	nds_video_module_list,
@@ -70,13 +71,6 @@ UIModule ui_nds_module = {
 	NULL,  /* nds_keyboard_module_list, */
 	NULL  /* use default joystick module list */
 };
-
-static struct ndsui_component *component_list = NULL;
-static struct ndsui_component *current_component = NULL;
-
-static void add_component(struct ndsui_component *c);
-static void draw_all_components(void);
-static void clear_component_list(void);
 
 static event_t *poll_pen_event;
 static void do_poll_pen(void *context);
@@ -86,27 +80,25 @@ static void show_machine_configuration_screen(void);
 static void show_input_configuration_screen(void);
 static void show_input_control_select_screen(void);
 static void show_file_requester(const char **extensions);
+static void show_joystick_screen(void);
 static void file_requester_callback(void (*func)(char *));
 static void update_joystick_swap_state_text(void);
+static char *ic_construct_button_label(int i);
 
 static int init(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
+
 	powerSET(POWER_ALL_2D|POWER_SWAP_LCDS);
-	if (!fatInitDefault()) {
-		LOG_ERROR("fatInitDefault() failed.\n");
-	}
-	chdir("fat:/dragon");
+	chdir("/dragon");
 
 	ndsgfx_init();
-	ndsgfx_fillrect(0, 0, 256, 192, 0);
-	ndsgfx_fillrect(0, 101, 256, 9, 0);
-	component_list = current_component = NULL;
+	ndsgfx_fillrect(0, 0, 256, 192, NDS_DARKPURPLE);
 
 	poll_pen_event = event_new();
 	poll_pen_event->dispatch = do_poll_pen;
 	poll_pen_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(&xroar_ui_events, poll_pen_event);
+	event_queue(&event_list, poll_pen_event);
 
 	show_main_input_screen();
 
@@ -116,51 +108,64 @@ static int init(int argc, char **argv) {
 static void shutdown(void) {
 }
 
+/* NDS-specific UI commands supplementing those in input.h */
 #define UI_SWAP_SCREENS   (256)
 
+#define NUM_BUTTONS (12)
 static struct {
 	int command;
 	int arg;
-} control_mapping[10] = {
+} control_mapping[NUM_BUTTONS] = {
 	{ INPUT_JOY_RIGHT_FIRE, 0 },  /* A      -> Right firebutton */
-	{ INPUT_JOY_LEFT_FIRE, 0 },   /* B      -> Left firebutton */
+	{ INPUT_KEY, 32 },            /* B      -> Space */
 	{ INPUT_KEY, 13 },            /* SELECT -> Enter */
 	{ UI_SWAP_SCREENS, 0 },       /* START  -> Swap screens */
 	{ INPUT_JOY_RIGHT_X, 255 },   /* RIGHT  -> Right joystick right */
 	{ INPUT_JOY_RIGHT_X, 0 },     /* LEFT   -> Right joystick right */
 	{ INPUT_JOY_RIGHT_Y, 0 },     /* UP     -> Right joystick up */
 	{ INPUT_JOY_RIGHT_Y, 255 },   /* DOWN   -> Right joystick down */
-	{ INPUT_KEY, 0 },             /* R      -> Shift */
-	{ INPUT_SWAP_JOYSTICKS, 0 },  /* L      -> Shift */
+	{ INPUT_JOY_RIGHT_FIRE, 0 },  /* R      -> Right firebutton */
+	{ INPUT_JOY_RIGHT_FIRE, 0 },  /* L      -> Right firebutton */
+	{ INPUT_KEY, 0 },             /* X      -> Shift */
+	{ INPUT_SWAP_JOYSTICKS, 0 },  /* Y      -> Swap joysticks */
 };
 
+static void ui_input_control_press(int command, int arg) {
+	(void)arg;
+	switch (command) {
+		case UI_SWAP_SCREENS:
+			REG_POWERCNT ^= POWER_SWAP_LCDS;
+			if (REG_POWERCNT & POWER_SWAP_LCDS)
+				show_main_input_screen();
+			else
+				show_joystick_screen();
+			break;
+		case INPUT_SWAP_JOYSTICKS:
+			input_control_press(command, arg);
+			update_joystick_swap_state_text();
+			break;
+		default:
+			input_control_press(command, arg);
+			break;
+	}
+}
+
 static void do_poll_pen(void *context) {
-	unsigned int keyinput, keyxy, new_keyinput, rel_keyinput;
-	static unsigned int old_keyinput = 0, old_keyxy = 0;
+	unsigned int keyinput, new_keyinput, rel_keyinput;
+	static unsigned int old_keyinput = 0;
 	int px, py;
 	int i;
 
 	(void)context;
 
 	/* Check for newly pressed or released buttons */
-	keyinput = ~(REG_KEYINPUT);
+	keyinput = ~((REG_KEYINPUT & 0x3ff) | (IPC->buttons << 10));
 	new_keyinput = keyinput & ~old_keyinput;
 	rel_keyinput = ~keyinput & old_keyinput;
-	old_keyinput = keyinput;
-	for (i = 0; i < 10; i++) {
+
+	for (i = 0; i < NUM_BUTTONS; i++) {
 		if (new_keyinput & (1 << i)) {
-			if (control_mapping[i].command < 256) {
-				input_control_press(control_mapping[i].command, control_mapping[i].arg);
-				if (control_mapping[i].command == INPUT_SWAP_JOYSTICKS) {
-					update_joystick_swap_state_text();
-				}
-			} else {
-				switch (control_mapping[i].command) {
-				case UI_SWAP_SCREENS:
-					REG_POWERCNT ^= POWER_SWAP_LCDS;
-					break;
-				}
-			}
+			ui_input_control_press(control_mapping[i].command, control_mapping[i].arg);
 		}
 		if (rel_keyinput & (1 << i)) {
 			if (control_mapping[i].command < 256) {
@@ -169,70 +174,20 @@ static void do_poll_pen(void *context) {
 		}
 	}
 
-	while (IPC->mailBusy);
-
-	keyxy = ~(IPC->buttons);
-	if (keyxy & (1<<6)) {
+	if (keyinput & (1 << 16)) {
 		px = IPC->touchXpx;
 		py = IPC->touchYpx;
-		if (old_keyxy & (1<<6)) {
-			if (current_component) {
-				if (current_component->pen_move) {
-					current_component->pen_move(current_component, px, py);
-				}
-			}
+		if (old_keyinput & (1 << 16)) {
+			ndsui_pen_move(px, py);
 		} else {
-			struct ndsui_component *c;
-			for (c = component_list; c; c = c->next) {
-				if (c->visible && px >= c->x && px < (c->x+c->w) && py >= c->y && py < (c->y+c->h)) {
-					current_component = c;
-				}
-			}
-			if (current_component) {
-				if (current_component->pen_down) {
-					current_component->pen_down(current_component, px, py);
-				}
-			}
+			ndsui_pen_down(px, py);
 		}
 	} else {
-		if (current_component) {
-			if (current_component->pen_up) {
-				current_component->pen_up(current_component);
-			}
-			current_component = NULL;
-		}
+		ndsui_pen_up();
 	}
-	old_keyxy = keyxy;
+	old_keyinput = keyinput;
 	poll_pen_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&xroar_ui_events, poll_pen_event);
-}
-
-static void add_component(struct ndsui_component *c) {
-	if (c == NULL) return;
-	/* c->next being set implies component is already on the list */
-	if (c->next != NULL) return;
-	c->next = component_list;
-	component_list = c;
-	ndsui_draw_component(c);
-}
-
-/* Draw all visible components */
-static void draw_all_components(void) {
-	struct ndsui_component *c;
-	for (c = component_list; c; c = c->next) {
-		ndsui_draw_component(c);
-	}
-}
-
-/* Undraw all visible components and clear the component list */
-static void clear_component_list(void) {
-	struct ndsui_component **c = &component_list;
-	while (*c) {
-		struct ndsui_component **next = &((*c)->next);
-		ndsui_undraw_component(*c);
-		*c = NULL;
-		c = next;
-	}
+	event_queue(&event_list, poll_pen_event);
 }
 
 /**************************************************************************/
@@ -260,69 +215,66 @@ static void mi_joystick_swap_state_release(int id);
 static void mi_reset_release(int id);
 
 static void show_main_input_screen(void) {
-	clear_component_list();
+	ndsui_clear_component_list();
 
 	if (mi_keyboard == NULL) {
-		mi_keyboard = new_ndsui_keyboard(13, 110, 1);
+		mi_keyboard = new_ndsui_keyboard(15, 113, 1);
 		ndsui_keyboard_keypress_callback(mi_keyboard, mi_key_press);
 		ndsui_keyboard_keyrelease_callback(mi_keyboard, mi_key_release);
 		ndsui_keyboard_shift_callback(mi_keyboard, mi_shift_update);
-		ndsui_show_component(mi_keyboard);
 	}
-	add_component(mi_keyboard);
+	ndsui_add_component(mi_keyboard);
 
 	if (mi_load_button == NULL) {
-		mi_load_button = new_ndsui_button(0, 0, "Load...", 0, 0);
+		mi_load_button = new_ndsui_button(0, 0, -1, "Load...", 0);
 		ndsui_button_release_callback(mi_load_button, mi_load_release);
-		ndsui_show_component(mi_load_button);
 	}
-	add_component(mi_load_button);
+	ndsui_add_component(mi_load_button);
 
 	if (mi_machine_button == NULL) {
-		mi_machine_button = new_ndsui_button(0, 18, "Machine configuration", 0, 0);
+		mi_machine_button = new_ndsui_button(0, 18, -1, "Machine configuration", 0);
 		ndsui_button_release_callback(mi_machine_button, mi_machine_release);
-		ndsui_show_component(mi_machine_button);
 	}
-	add_component(mi_machine_button);
+	ndsui_add_component(mi_machine_button);
 
 	if (mi_input_button == NULL) {
-		mi_input_button = new_ndsui_button(0, 36, "Input configuration", 0, 0);
+		mi_input_button = new_ndsui_button(0, 36, -1, "Input configuration", 0);
 		ndsui_button_release_callback(mi_input_button, mi_input_release);
-		ndsui_show_component(mi_input_button);
 	}
-	add_component(mi_input_button);
+	ndsui_add_component(mi_input_button);
 
 	if (mi_save_snapshot_button == NULL) {
-		mi_save_snapshot_button = new_ndsui_button(0, 54, "Save snapshot", 0, 0);
+		mi_save_snapshot_button = new_ndsui_button(0, 54, -1, "Save snapshot", 0);
 		ndsui_button_release_callback(mi_save_snapshot_button, mi_save_snapshot_release);
-		ndsui_show_component(mi_save_snapshot_button);
 	}
-	add_component(mi_save_snapshot_button);
+	ndsui_add_component(mi_save_snapshot_button);
 
 	if (mi_joystick_swap_state == NULL) {
-		mi_joystick_swap_state = new_ndsui_button(65, 86, "J0: Right | J1: Left ", 0, 0);
+		mi_joystick_swap_state = new_ndsui_button(65, 86, -1, "J0: Right | J1: Left ", 0);
 		ndsui_button_release_callback(mi_joystick_swap_state, mi_joystick_swap_state_release);
-		ndsui_show_component(mi_joystick_swap_state);
 	}
 	update_joystick_swap_state_text();
-	add_component(mi_joystick_swap_state);
+	ndsui_add_component(mi_joystick_swap_state);
 
 	if (mi_reset_button == NULL) {
-		mi_reset_button = new_ndsui_button(220, 0, "Reset", 0, 0);
+		mi_reset_button = new_ndsui_button(220, 0, -1, "Reset", 0);
 		ndsui_button_release_callback(mi_reset_button, mi_reset_release);
-		ndsui_show_component(mi_reset_button);
 	}
-	add_component(mi_reset_button);
+	ndsui_add_component(mi_reset_button);
 
-	draw_all_components();
+	ndsui_show_all_components();
 }
 
 static void mi_key_press(int sym) {
 	KEYBOARD_PRESS(sym);
+	keyboard_column_update();
+	keyboard_row_update();
 }
 
 static void mi_key_release(int sym) {
 	KEYBOARD_RELEASE(sym);
+	keyboard_column_update();
+	keyboard_row_update();
 }
 
 static void mi_shift_update(int state) {
@@ -330,6 +282,8 @@ static void mi_shift_update(int state) {
 		KEYBOARD_PRESS(0);
 	else
 		KEYBOARD_RELEASE(0);
+	keyboard_column_update();
+	keyboard_row_update();
 }
 
 static void mi_load_release(int id) {
@@ -340,6 +294,7 @@ static void mi_load_release(int id) {
 
 static void mi_load_file(char *filename) {
 	int type = xroar_filetype_by_ext(filename);
+	irqDisable(IRQ_VBLANK | IRQ_VCOUNT);
 	switch (type) {
 		case FILETYPE_VDK: case FILETYPE_JVC:
 		case FILETYPE_DMK:
@@ -356,6 +311,7 @@ static void mi_load_file(char *filename) {
 			tape_open_reading(filename);
 			break;
 	}
+	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 }
 
 static void mi_machine_release(int id) {
@@ -375,7 +331,9 @@ static void mi_save_snapshot_release(int id) {
 }
 
 static void mi_save_snapshot(char *filename) {
+	irqDisable(IRQ_VBLANK | IRQ_VCOUNT);
 	write_snapshot(filename);
+	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 }
 
 static void update_joystick_swap_state_text(void) {
@@ -397,49 +355,92 @@ static void mi_reset_release(int id) {
 
 /* Machine configuration screen, setup and callbacks */
 
+static const char *cross_colour_labels[] = {
+	"No cross-colour",
+	"Blue-red cross-colour",
+	"Red-blue cross-colour"
+};
+
 static struct ndsui_component *mc_machine_button = NULL;
+static struct ndsui_component *mc_dos_type_button = NULL;
+static struct ndsui_component *mc_cross_colour_button = NULL;
 static struct ndsui_component *mc_close_button = NULL;
 
 static void mc_machine_release(int id);
+static void mc_dos_type_release(int id);
+static void mc_cross_colour_release(int id);
 static void mc_close_release(int id);
 
-static void show_machine_configuration_screen(void) {
-	int i;
-	clear_component_list();
-
-	if (mc_machine_button == NULL) {
-		int name_len = 0, longest_name = 0;
-		for (i = 0; i < NUM_MACHINE_TYPES; i++) {
-			if (strlen(machine_names[i]) > name_len) {
-				name_len = strlen(machine_names[i]);
-				longest_name = i;
-			}
-		}
-		mc_machine_button = new_ndsui_button(0, 0, machine_names[longest_name], 0, 0);
-		ndsui_button_release_callback(mc_machine_button, mc_machine_release);
-		ndsui_show_component(mc_machine_button);
+static void mc_update_labels(void) {
+	const char *dos_type_label = "Machine default";
+	const char *cross_colour_label = cross_colour_labels[0];
+	if (requested_config.dos_type >= 0) {
+		dos_type_label = dos_type_names[requested_config.dos_type];
+	}
+	if (running_config.cross_colour_phase >= 0) {
+		cross_colour_label = cross_colour_labels[running_config.cross_colour_phase];
 	}
 	ndsui_button_set_label(mc_machine_button, machine_names[requested_machine]);
-	add_component(mc_machine_button);
+	ndsui_button_set_label(mc_dos_type_button, dos_type_label);
+	ndsui_button_set_label(mc_cross_colour_button, cross_colour_label);
+}
+
+static void show_machine_configuration_screen(void) {
+	ndsui_clear_component_list();
+
+	if (mc_machine_button == NULL) {
+		mc_machine_button = new_ndsui_button(0, 0, 132, NULL, 0);
+		ndsui_button_release_callback(mc_machine_button, mc_machine_release);
+	}
+	ndsui_add_component(mc_machine_button);
+
+	if (mc_dos_type_button == NULL) {
+		mc_dos_type_button = new_ndsui_button(0, 18, 132, NULL, 0);
+		ndsui_button_release_callback(mc_dos_type_button, mc_dos_type_release);
+	}
+	ndsui_add_component(mc_dos_type_button);
+
+	if (mc_cross_colour_button == NULL) {
+		mc_cross_colour_button = new_ndsui_button(0, 36, 132, NULL, 0);
+		ndsui_button_release_callback(mc_cross_colour_button, mc_cross_colour_release);
+	}
+	ndsui_add_component(mc_cross_colour_button);
 
 	if (mc_close_button == NULL) {
-		mc_close_button = new_ndsui_button(220, 87, "Close", 0, 0);
+		mc_close_button = new_ndsui_button(220, 87, -1, "Close", 0);
 		ndsui_button_release_callback(mc_close_button, mc_close_release);
-		ndsui_show_component(mc_close_button);
 	}
-	add_component(mc_close_button);
+	ndsui_add_component(mc_close_button);
 
 	/* Borrow this from main input screen */
-	add_component(mi_reset_button);
+	ndsui_add_component(mi_reset_button);
 
-	draw_all_components();
+	mc_update_labels();
+
+	ndsui_show_all_components();
 }
 
 static void mc_machine_release(int id) {
 	(void)id;
 	requested_machine = (requested_machine + 1) % NUM_MACHINE_TYPES;
-	ndsui_button_set_label(mc_machine_button, machine_names[requested_machine]);
 	machine_clear_requested_config();
+	mc_update_labels();
+}
+
+static void mc_dos_type_release(int id) {
+	(void)id;
+	requested_config.dos_type++;
+	if (requested_config.dos_type >= NUM_DOS_TYPES)
+		requested_config.dos_type = ANY_AUTO;
+	mc_update_labels();
+}
+
+static void mc_cross_colour_release(int id) {
+	(void)id;
+	running_config.cross_colour_phase++;
+	running_config.cross_colour_phase %= NUM_CROSS_COLOUR_PHASES;
+	vdg_set_mode();
+	mc_update_labels();
 }
 
 static void mc_close_release(int id) {
@@ -455,7 +456,7 @@ static struct {
 	struct ndsui_component *component;
 	const char *label;
 	int x, y;
-} ic_button[10] = {
+} ic_button[NUM_BUTTONS] = {
 	{ NULL, "A",      0,   52 },
 	{ NULL, "B",      0,   65 },
 	{ NULL, "Select", 128, 39 },
@@ -465,37 +466,9 @@ static struct {
 	{ NULL, "Up",     0,   0 },
 	{ NULL, "Down",   0,   13 },
 	{ NULL, "R",      128, 13 },
-	{ NULL, "L",      128, 0 }
-};
-
-#define INPUTARG_NONE  (0)
-#define INPUTARG_XAXIS (1)
-#define INPUTARG_YAXIS (2)
-#define INPUTARG_KEY   (3)
-static struct {
-	const char *name;
-	int arg_type;
-} command_types[] = {
-	{ "JoyR",         INPUTARG_XAXIS },
-	{ "JoyR",         INPUTARG_YAXIS },
-	{ "JoyL",         INPUTARG_XAXIS },
-	{ "JoyL",         INPUTARG_YAXIS },
-	{ "JoyR Fire",    INPUTARG_NONE },
-	{ "",             INPUTARG_NONE },
-	{ "JoyL Fire",    INPUTARG_NONE },
-	{ "",             INPUTARG_NONE },
-	{ "Key",          INPUTARG_KEY },
-	{ "",             INPUTARG_NONE },
-	{ "Swap joystks", INPUTARG_NONE },
-	{ "Swap screens", INPUTARG_NONE }
-};
-
-static const char *key_names[] = {
-	"Shift", "", "", "", "", "", "", "",
-	"Left", "Right", "Down", "", "Clear", "Enter", "", "",
-	"", "", "", "", "", "", "", "",
-	"", "", "", "Break", "", "", "", "",
-	"Space"
+	{ NULL, "L",      128, 0 },
+	{ NULL, "X",      0,   78 },
+	{ NULL, "Y",      0,   91 },
 };
 
 static int ic_selected_button = -1;
@@ -504,61 +477,26 @@ static struct ndsui_component *ic_close_button = NULL;
 static void ic_button_release(int id);
 static void ic_close_release(int id);
 
-static char *ic_construct_button_label(int i) {
-	static char buf[21];
-	const char *button_label = ic_button[i].label;
-	int command = control_mapping[i].command;
-	int arg = control_mapping[i].arg;
-	const char *command_name = command_types[command].name;
-	const char *arg_label;
-	int arg_type = command_types[command].arg_type;
-	buf[0] = 0;
-	switch (arg_type) {
-		case INPUTARG_NONE:
-			snprintf(buf, sizeof(buf), "%6s | %-12s", button_label, command_name);
-			break;
-		case INPUTARG_XAXIS:
-			arg_label = (arg < 128) ? "Left" : "Right";
-			snprintf(buf, sizeof(buf), "%6s | %-4s %-7s", button_label, command_name, arg_label);
-			break;
-		case INPUTARG_YAXIS:
-			arg_label = (arg < 128) ? "Up" : "Down";
-			snprintf(buf, sizeof(buf), "%6s | %-4s %-7s", button_label, command_name, arg_label);
-			break;
-		case INPUTARG_KEY:
-			if (arg > 0x20) {
-				snprintf(buf, sizeof(buf), "%6s | %-3s %-8c", button_label, command_name, arg);
-			} else {
-				snprintf(buf, sizeof(buf), "%6s | %-3s %-8s", button_label, command_name, key_names[arg]);
-			}
-			break;
-		default:
-			break;
-	}
-	return buf;
-}
-
 static void show_input_configuration_screen(void) {
 	int i;
-	clear_component_list();
+	ndsui_clear_component_list();
 
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < NUM_BUTTONS; i++) {
 		if (ic_button[i].component == NULL) {
-			ic_button[i].component = new_ndsui_button(ic_button[i].x, ic_button[i].y, ic_construct_button_label(i), i, 0);
+			ic_button[i].component = new_ndsui_button(ic_button[i].x, ic_button[i].y, -1, ic_construct_button_label(i), 0);
+			ic_button[i].component->id = i;
 			ndsui_button_release_callback(ic_button[i].component, ic_button_release);
-			ndsui_show_component(ic_button[i].component);
 		}
-		add_component(ic_button[i].component);
+		ndsui_add_component(ic_button[i].component);
 	}
 
 	if (ic_close_button == NULL) {
-		ic_close_button = new_ndsui_button(220, 87, "Close", 0, 0);
+		ic_close_button = new_ndsui_button(220, 87, -1, "Close", 0);
 		ndsui_button_release_callback(ic_close_button, ic_close_release);
-		ndsui_show_component(ic_close_button);
 	}
-	add_component(ic_close_button);
+	ndsui_add_component(ic_close_button);
 
-	draw_all_components();
+	ndsui_show_all_components();
 }
 
 static void ic_button_release(int id) {
@@ -575,12 +513,13 @@ static void ic_close_release(int id) {
 
 /* Input control select screen, setup and callbacks */
 
+#define NUM_CONTROL_SELECTIONS (12)
 static struct {
 	struct ndsui_component *component;
 	const char *label;
 	int x, y;
 	int command, arg;
-} ics_button[12] = {
+} ics_button[NUM_CONTROL_SELECTIONS] = {
 	{ NULL, "JoyR Up",    0, 0,    INPUT_JOY_RIGHT_Y, 0 },
 	{ NULL, "JoyR Down",  0, 13,   INPUT_JOY_RIGHT_Y, 255 },
 	{ NULL, "JoyR Left",  0, 26,   INPUT_JOY_RIGHT_X, 0 },
@@ -603,33 +542,31 @@ static void ics_cancel_release(int id);
 
 static void show_input_control_select_screen(void) {
 	int i;
-	clear_component_list();
+	ndsui_clear_component_list();
 
-	for (i = 0; i < 12; i++) {
+	for (i = 0; i < NUM_CONTROL_SELECTIONS; i++) {
 		if (ics_button[i].component == NULL) {
-			ics_button[i].component = new_ndsui_button(ics_button[i].x, ics_button[i].y, ics_button[i].label, i, 0);
+			ics_button[i].component = new_ndsui_button(ics_button[i].x, ics_button[i].y, -1, ics_button[i].label, 0);
+			ics_button[i].component->id = i;
 			ndsui_button_release_callback(ics_button[i].component, ics_button_release);
-			ndsui_show_component(ics_button[i].component);
 		}
-		add_component(ics_button[i].component);
+		ndsui_add_component(ics_button[i].component);
 	}
 
 	if (ics_keyboard == NULL) {
-		ics_keyboard = new_ndsui_keyboard(13, 110, 0);
+		ics_keyboard = new_ndsui_keyboard(15, 113, 0);
 		ndsui_keyboard_keyrelease_callback(ics_keyboard, ics_key_release);
-		ndsui_show_component(ics_keyboard);
 	}
 	ndsui_keyboard_set_shift_state(ics_keyboard, 0);
-	add_component(ics_keyboard);
+	ndsui_add_component(ics_keyboard);
 
 	if (ics_cancel_button == NULL) {
-		ics_cancel_button = new_ndsui_button(214, 87, "Cancel", 0, 0);
+		ics_cancel_button = new_ndsui_button(214, 87, -1, "Cancel", 0);
 		ndsui_button_release_callback(ics_cancel_button, ics_cancel_release);
-		ndsui_show_component(ics_cancel_button);
 	}
-	add_component(ics_cancel_button);
+	ndsui_add_component(ics_cancel_button);
 
-	draw_all_components();
+	ndsui_show_all_components();
 }
 
 static void ics_button_release(int id) {
@@ -657,6 +594,34 @@ static void ics_cancel_release(int id) {
 
 /**************************************************************************/
 
+/* Joystick touch screen, setup and callbacks */
+
+static struct ndsui_component *js_screen = NULL;
+
+static void js_pen(struct ndsui_component *self, int x, int y);
+
+static void show_joystick_screen(void) {
+	ndsui_clear_component_list();
+
+	if (js_screen == NULL) {
+		js_screen = ndsui_new_component(0, 0, 256, 192);
+		js_screen->pen_down = js_pen;
+		js_screen->pen_move = js_pen;
+	}
+	ndsui_add_component(js_screen);
+
+	ndsui_show_all_components();
+}
+
+static void js_pen(struct ndsui_component *self, int x, int y) {
+	(void)self;
+	if (y >= 128) y |= 3;  /* bias y downwards a bit */
+	input_control_press(INPUT_JOY_RIGHT_X, x);
+	input_control_press(INPUT_JOY_RIGHT_Y, (y * 4) / 3);
+}
+
+/**************************************************************************/
+
 /* File requester screen, setup and callbacks */
 
 static struct ndsui_component *fr_scrollbar = NULL;
@@ -679,59 +644,53 @@ static void fr_ok_release(int id);
 static void fr_cancel_release(int id);
 
 static void show_file_requester(const char **extensions) {
-	clear_component_list();
+	ndsui_clear_component_list();
 
 	if (fr_scrollbar == NULL) {
 		fr_scrollbar = new_ndsui_scrollbar(144, 0, 16, 99);
 		ndsui_scrollbar_offset_callback(fr_scrollbar, fr_scrollbar_callback);
-		ndsui_show_component(fr_scrollbar);
 	}
-	add_component(fr_scrollbar);
+	ndsui_add_component(fr_scrollbar);
 
 	if (fr_filelist == NULL) {
 		fr_filelist = new_ndsui_filelist(0, 0, 144, 99);
 		ndsui_filelist_num_files_callback(fr_filelist, fr_num_files_callback);
 		ndsui_filelist_visible_callback(fr_filelist, fr_visible_callback);
 		ndsui_filelist_file_select_callback(fr_filelist, fr_file_select_callback);
-		ndsui_show_component(fr_filelist);
 	}
-	add_component(fr_filelist);
+	ndsui_add_component(fr_filelist);
 
 	if (fr_filename_text == NULL) {
 		fr_filename_text = new_ndsui_textbox(0, 100, 160, 128);
-		ndsui_show_component(fr_filename_text);
 	}
-	add_component(fr_filename_text);
+	ndsui_add_component(fr_filename_text);
 
 	if (fr_keyboard == NULL) {
-		fr_keyboard = new_ndsui_keyboard(13, 110, 1);
+		fr_keyboard = new_ndsui_keyboard(15, 113, 1);
 		ndsui_keyboard_keypress_callback(fr_keyboard, fr_key_press);
 		ndsui_keyboard_shift_callback(fr_keyboard, fr_shift_update);
-		ndsui_show_component(fr_keyboard);
 	}
 	ndsui_keyboard_set_shift_state(fr_keyboard, 0);
-	add_component(fr_keyboard);
+	ndsui_add_component(fr_keyboard);
 
 	if (fr_ok_button == NULL) {
-		fr_ok_button = new_ndsui_button(238, 87, "OK", 0, 0);
+		fr_ok_button = new_ndsui_button(238, 87, -1, "OK", 0);
 		ndsui_button_release_callback(fr_ok_button, fr_ok_release);
-		ndsui_show_component(fr_ok_button);
 	}
-	add_component(fr_ok_button);
+	ndsui_add_component(fr_ok_button);
 
 	if (fr_cancel_button == NULL) {
-		fr_cancel_button = new_ndsui_button(195, 87, "Cancel", 0, 0);
+		fr_cancel_button = new_ndsui_button(195, 87, -1, "Cancel", 0);
 		ndsui_button_release_callback(fr_cancel_button, fr_cancel_release);
-		ndsui_show_component(fr_cancel_button);
 	}
-	add_component(fr_cancel_button);
+	ndsui_add_component(fr_cancel_button);
 
 	if (fr_filename != NULL) {
 		free(fr_filename);
 		fr_filename = NULL;
 	}
 
-	draw_all_components();
+	ndsui_show_all_components();
 	ndsui_filelist_open(fr_filelist, ".", extensions);
 }
 
@@ -793,4 +752,83 @@ static void fr_cancel_release(int id) {
 	(void)id;
 	ndsui_filelist_close(fr_filelist);
 	show_main_input_screen();
+}
+
+/**************************************************************************/
+
+/* Misc helper functions */
+
+#define INPUTARG_NONE  (0)
+#define INPUTARG_XAXIS (1)
+#define INPUTARG_YAXIS (2)
+#define INPUTARG_KEY   (3)
+
+#define NUM_COMMAND_TYPES (9)
+static struct {
+	int command;
+	const char *name;
+	int arg_type;
+} command_types[NUM_COMMAND_TYPES] = {
+	{ INPUT_JOY_RIGHT_X,    "JoyR",         INPUTARG_XAXIS },
+	{ INPUT_JOY_RIGHT_Y,    "JoyR",         INPUTARG_YAXIS },
+	{ INPUT_JOY_LEFT_X,     "JoyL",         INPUTARG_XAXIS },
+	{ INPUT_JOY_LEFT_Y,     "JoyL",         INPUTARG_YAXIS },
+	{ INPUT_JOY_RIGHT_FIRE, "JoyR Fire",    INPUTARG_NONE },
+	{ INPUT_JOY_LEFT_FIRE,  "JoyL Fire",    INPUTARG_NONE },
+	{ INPUT_KEY,            "Key",          INPUTARG_KEY },
+	{ INPUT_SWAP_JOYSTICKS, "Swap Joystks", INPUTARG_NONE },
+	{ UI_SWAP_SCREENS,      "Swap Screens", INPUTARG_NONE }
+};
+
+static const char *key_names[] = {
+	"Shift", "", "", "", "", "", "", "",
+	"Left", "Right", "Down", "", "Clear", "Enter", "", "",
+	"", "", "", "", "", "", "", "",
+	"", "", "", "Break", "", "", "", "",
+	"Space"
+};
+
+static char label_buf[21];
+
+static char *ic_construct_button_label(int i) {
+	const char *button_label = ic_button[i].label;
+	int command = control_mapping[i].command;
+	int arg = control_mapping[i].arg;
+	const char *command_name = "";
+	int arg_type = INPUTARG_NONE;
+	const char *arg_label;
+	int j;
+	for (j = 0; j < NUM_COMMAND_TYPES; j++) {
+		if (command == command_types[j].command) {
+			command_name = command_types[j].name;
+			arg_type = command_types[j].arg_type;
+			break;
+		}
+	}
+	label_buf[0] = 0;
+	switch (arg_type) {
+		case INPUTARG_NONE:
+			snprintf(label_buf, sizeof(label_buf), "%6s | %-12s", button_label, command_name);
+			break;
+		case INPUTARG_XAXIS:
+			arg_label = (arg < 128) ? "Left" : "Right";
+			snprintf(label_buf, sizeof(label_buf), "%6s | %-4s %-7s", button_label, command_name, arg_label);
+			break;
+		case INPUTARG_YAXIS:
+			arg_label = (arg < 128) ? "Up" : "Down";
+			snprintf(label_buf, sizeof(label_buf), "%6s | %-4s %-7s", button_label, command_name, arg_label);
+			break;
+		case INPUTARG_KEY:
+			if (arg == 94) {
+				snprintf(label_buf, sizeof(label_buf), "%6s | %-3s Up", button_label, command_name);
+			} else if (arg > 0x20) {
+				snprintf(label_buf, sizeof(label_buf), "%6s | %-3s %-8c", button_label, command_name, arg);
+			} else {
+				snprintf(label_buf, sizeof(label_buf), "%6s | %-3s %-8s", button_label, command_name, key_names[arg]);
+			}
+			break;
+		default:
+			break;
+	}
+	return label_buf;
 }

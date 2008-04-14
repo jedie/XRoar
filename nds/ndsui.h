@@ -2,6 +2,7 @@
 #define __NDS_UI_H__
 
 struct ndsui_component {
+	unsigned int id;  /* incrementing - not used internally */
 	int x, y;  /* top-left */
 	int w, h;  /* in pixels */
 	int visible;
@@ -14,6 +15,14 @@ struct ndsui_component {
 	void *data;
 	struct ndsui_component *next;
 };
+
+void ndsui_add_component(struct ndsui_component *c);
+void ndsui_show_all_components(void);
+void ndsui_clear_component_list(void);
+
+void ndsui_pen_down(int x, int y);
+void ndsui_pen_move(int x, int y);
+void ndsui_pen_up(void);
 
 struct ndsui_component *ndsui_new_component(int x, int y, int w, int h);
 void ndsui_show_component(struct ndsui_component *c);

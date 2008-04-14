@@ -63,6 +63,10 @@ void swi_mmu_change(void *mempos_start, void *mempos_end, int mode);
 
 #else  /* Unix types & macros */
 
+#ifdef HAVE_NDS
+# include "nds/types.h"
+#endif
+
 #include <sys/types.h>
 #include <inttypes.h>
 

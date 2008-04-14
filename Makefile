@@ -57,7 +57,7 @@ ifeq ($(CONFIG_GP32),yes)
 ROMPATH = \"gp:/gpmm/dragon\"
 else
 ifeq ($(CONFIG_NDS),yes)
-ROMPATH = \"fat:/dragon\"
+ROMPATH = \"/dragon/roms\",\"/dragon\",\".\"
 else
 ROMPATH = \".\",\"~/.xroar/roms\",\"~/Library/XRoar/Roms\",\"$(prefix)/share/xroar/roms\"
 endif

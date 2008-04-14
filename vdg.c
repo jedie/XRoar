@@ -50,6 +50,17 @@ static void do_fs_rise(void *context);
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
+#ifdef HAVE_NDS
+#include <nds.h>
+static void vcount_handle(void) {
+	if (scanline < 168 || scanline > 230) {
+		REG_VCOUNT = 202;
+	} else if (scanline < 178) {
+		REG_VCOUNT = 210;
+	}
+}
+#endif
+
 void vdg_init(void) {
 	vdg_render_scanline = video_module->vdg_render_sg4;
 	hs_fall_event = event_new();
@@ -60,6 +71,10 @@ void vdg_init(void) {
 	fs_fall_event->dispatch = do_fs_fall;
 	fs_rise_event = event_new();
 	fs_rise_event->dispatch = do_fs_rise;
+#ifdef HAVE_NDS
+	SetYtrigger(211);
+	irqSet(IRQ_VCOUNT, vcount_handle);
+#endif
 }
 
 void vdg_reset(void) {
@@ -82,6 +97,7 @@ static void do_hs_fall(void *context) {
 	/* Finish rendering previous scanline */
 #ifdef MINIMAL_VIDEO
 	/* Skip borders, etc. */
+#ifndef HAVE_NDS
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START
 			&& scanline < VDG_ACTIVE_AREA_END
 			/* GP32 & NDS render 4 scanlines at once */
@@ -89,6 +105,7 @@ static void do_hs_fall(void *context) {
 			) {
 		vdg_render_scanline();
 	}
+#endif
 #else
 	/* Normal code */
 	if (frame == 0 && scanline >= (VDG_TOP_BORDER_START + 1)) {
@@ -116,6 +133,7 @@ static void do_hs_fall(void *context) {
 #endif
 	hs_fall_event->at_cycle = scanline_start + VDG_LINE_DURATION;
 	/* Frame sync */
+#ifndef HAVE_NDS
 	if (scanline == SCANLINE(VDG_VBLANK_START)) {
 		sam_vdg_fsync();
 		frame--;
@@ -124,6 +142,7 @@ static void do_hs_fall(void *context) {
 		if (frame == 0)
 			video_module->vdg_vsync();
 	}
+#endif
 #ifndef FAST_VDG
 	/* Enable mode changes at beginning of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_START)) {
@@ -190,6 +209,7 @@ void vdg_set_mode(void) {
 	mode = PIA1.b.port_output;
 	/* Update video module */
 	video_module->vdg_set_mode(mode);
+#ifndef HAVE_NDS
 	switch ((mode & 0xf0) >> 4) {
 		case 0: case 2: case 4: case 6:
 			vdg_render_scanline = video_module->vdg_render_sg4;
@@ -221,4 +241,5 @@ void vdg_set_mode(void) {
 			}
 			break;
 	}
+#endif
 }

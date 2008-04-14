@@ -6,8 +6,7 @@
 
 extern unsigned char nds_font8x8[768];
 
-static uint16_t fg_colour, bg_colour;
-static uint16_t screen_backup[320*240];
+static unsigned int fg_colour, bg_colour;
 
 int ndsgfx_init(void) {
 	videoSetModeSub(MODE_5_2D | DISPLAY_BG2_ACTIVE);
@@ -19,19 +18,17 @@ int ndsgfx_init(void) {
 	SUB_BG2_YDY = 1 << 8;
 	SUB_BG2_CX = 0;
 	SUB_BG2_CY = 0;
-	nds_set_text_colour(0xffffffff, 0x000000ff);
+	nds_set_text_colour(NDS_WHITE, NDS_BLACK);
 	return 0;
 }
 
-void ndsgfx_fillrect(int x, int y, int w, int h, uint32_t colour) {
+void ndsgfx_fillrect(int x, int y, int w, int h, unsigned int colour) {
 	uint16_t *d = (uint16_t *)BG_GFX_SUB + (y*256) + x;
-	uint16_t c = NDS_MAPCOLOUR(colour >> 24, (colour >> 16) & 0xff,
-			(colour >> 8) & 0xff);
 	int skip = 256 - w;
 	int i;
 	for (; h; h--) {
 		for (i = w; i; i--) {
-			*(d++) = c;
+			*(d++) = colour;
 		}
 		d += skip;
 	}
@@ -50,19 +47,9 @@ void ndsgfx_blit(int x, int y, Sprite *src) {
 	}
 }
 
-void ndsgfx_backup(void) {
-	memcpy(screen_backup, BG_GFX_SUB, 320*240*sizeof(uint8_t));
-}
-
-void ndsgfx_restore(void) {
-	memcpy(BG_GFX_SUB, screen_backup, 320*240*sizeof(uint8_t));
-}
-
-void nds_set_text_colour(uint32_t fg, uint32_t bg) {
-	fg_colour = NDS_MAPCOLOUR(fg >> 24, (fg >> 16) & 0xff,
-			(fg >> 8) & 0xff);
-	bg_colour = NDS_MAPCOLOUR(bg >> 24, (bg >> 16) & 0xff,
-			(bg >> 8) & 0xff);
+void nds_set_text_colour(unsigned int fg, unsigned int bg) {
+	fg_colour = fg;
+	bg_colour = bg;
 }
 
 /* Assumes 6x8 font in 8x8 representation (2 left bits clear).

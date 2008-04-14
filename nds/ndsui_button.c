@@ -37,11 +37,11 @@
 
 struct button_data {
 	char *label;
-	int id;
+	int label_size;
 	int is_toggle;
 	int pressed;
-	void (*press_callback)(int id);
-	void (*release_callback)(int id);
+	void (*press_callback)(int);
+	void (*release_callback)(int);
 };
 
 static void show(struct ndsui_component *self);
@@ -52,13 +52,23 @@ static void destroy(struct ndsui_component *self);
 
 /**************************************************************************/
 
-struct ndsui_component *new_ndsui_button(int x, int y, const char *label, int id, int is_toggle) {
+struct ndsui_component *new_ndsui_button(int x, int y, int w, const char *label, int is_toggle) {
 	struct ndsui_component *new;
 	struct button_data *data;
-	int w = (strlen(label) * FONT_WIDTH) + 6;
+	int lsize;
 	int h = FONT_HEIGHT + 3;
+	char *new_label;
 
-	if (label == NULL) return NULL;
+	if (w >= 12) {
+		lsize = w / 6;
+	} else {
+		lsize = strlen(label) + 1;
+		w = lsize * FONT_WIDTH;
+	}
+	if (lsize < 2) return NULL;
+	new_label = malloc(lsize);
+	if (new_label == NULL) return NULL;
+
 	new = ndsui_new_component(x, y, w, h);
 	if (new == NULL) return NULL;
 	data = malloc(sizeof(struct button_data));
@@ -75,8 +85,13 @@ struct ndsui_component *new_ndsui_button(int x, int y, const char *label, int id
 	new->destroy = destroy;
 	new->data = data;
 
-	data->label = strdup(label);
-	data->id = id;
+	if (label) {
+		strncpy(new_label, label, lsize);
+	} else {
+		memset(new_label, 0, lsize);
+	}
+	data->label = new_label;
+	data->label_size = lsize;
 	data->is_toggle = is_toggle;
 	data->pressed = 0;
 
@@ -101,12 +116,9 @@ void ndsui_button_set_label(struct ndsui_component *self, const char *label) {
 	struct button_data *data;
 	if (self == NULL) return;
 	data = self->data;
-	if (data->label) {
-		free(data->label);
-		data->label = NULL;
-	}
-	data->label = strdup(label);
-	show(self);
+	strncpy(data->label, label, data->label_size);
+	if (self->visible)
+		show(self);
 }
 
 void ndsui_button_set_state(struct ndsui_component *self, int pressed) {
@@ -124,11 +136,11 @@ static void show(struct ndsui_component *self) {
 	if (self == NULL) return;
 	data = self->data;
 	if (data->pressed) {
-		ndsgfx_fillrect(self->x+1, self->y+1, self->w-2, self->h-2, 0x333333ff);
-		nds_set_text_colour(~0, 0x333333ff);
+		ndsgfx_fillrect(self->x+1, self->y+1, self->w-2, self->h-2, NDS_GREY20);
+		nds_set_text_colour(NDS_WHITE, NDS_GREY20);
 	} else {
-		ndsgfx_fillrect(self->x, self->y, self->w, self->h, ~0);
-		nds_set_text_colour(0x333333ff, ~0);
+		ndsgfx_fillrect(self->x, self->y, self->w, self->h, NDS_WHITE);
+		nds_set_text_colour(NDS_GREY20, NDS_WHITE);
 	}
 	nds_print_string(self->x + 3, self->y + 2, data->label);
 }
@@ -145,9 +157,9 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 		data->pressed = 1;
 	show(self);
 	if (data->pressed && data->press_callback)
-		data->press_callback(data->id);
+		data->press_callback(self->id);
 	if (!data->pressed && data->release_callback)
-		data->release_callback(data->id);
+		data->release_callback(self->id);
 }
 
 static void pen_move(struct ndsui_component *self, int x, int y) {
@@ -179,7 +191,7 @@ static void pen_up(struct ndsui_component *self) {
 	data->pressed = 0;
 	show(self);
 	if (old_pressed && data->release_callback)
-		data->release_callback(data->id);
+		data->release_callback(self->id);
 }
 
 static void destroy(struct ndsui_component *self) {

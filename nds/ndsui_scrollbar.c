@@ -120,14 +120,14 @@ static void show(struct ndsui_component *self) {
 	if (self == NULL) return;
 	data = self->data;
 	if ((data->current_h + data->visible_h) > self->h) {
-		ndsgfx_fillrect(self->x, self->y, self->w, self->h, 0x333333ff);
+		ndsgfx_fillrect(self->x, self->y, self->w, self->h, NDS_GREY20);
 		return;
 	}
 	if (data->current_h > 0)
-		ndsgfx_fillrect(self->x, self->y, self->w, data->current_h - 1, 0x333333ff);
-	ndsgfx_fillrect(self->x, self->y + data->current_h, self->w, data->visible_h, 0x999999ff);
+		ndsgfx_fillrect(self->x, self->y, self->w, data->current_h - 1, NDS_GREY20);
+	ndsgfx_fillrect(self->x, self->y + data->current_h, self->w, data->visible_h, NDS_GREY60);
 	if ((data->current_h + data->visible_h) < self->h)
-		ndsgfx_fillrect(self->x, self->y + data->current_h + data->visible_h, self->w, self->h - (data->current_h + data->visible_h), 0x333333ff);
+		ndsgfx_fillrect(self->x, self->y + data->current_h + data->visible_h, self->w, self->h - (data->current_h + data->visible_h), NDS_GREY20);
 }
 
 static void pen_down(struct ndsui_component *self, int x, int y) {

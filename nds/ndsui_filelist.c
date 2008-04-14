@@ -195,13 +195,13 @@ static void show(struct ndsui_component *self) {
 	int j;
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
-	ndsgfx_fillrect(self->x, self->y, self->w, self->h, 0xff);
+	ndsgfx_fillrect(self->x, self->y, self->w, self->h, NDS_BLACK);
 	for (j = 0; j < data->h; j++) {
 		int num = data->offset + j;
 		if (num == data->selected_file) {
-			nds_set_text_colour(0xff, ~0);
+			nds_set_text_colour(NDS_BLACK, NDS_WHITE);
 		} else {
-			nds_set_text_colour(~0, 0xff);
+			nds_set_text_colour(NDS_WHITE, NDS_BLACK);
 		}
 		if (num < data->num_files && data->files[num].filename) {
 			if (data->files[num].mode & S_IFDIR) {

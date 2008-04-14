@@ -34,26 +34,42 @@
 
 extern Sprite kbd_bin[2];
 
-struct keydata {
-	int xoffset, width;
-	int sym;
-};
+#define KEY_HEIGHT (15)
+#define NUM_KEY_GROUPS (9)
 
-static struct keydata keys[5][14] = { 
-	{ {5,7,49}, {13,7,50}, {21,7,51}, {29,7,52}, {37,7,53}, {45,7,54}, {53,7,55}, {61,7,56}, {69,7,57}, {77,7,48}, {85,7,58}, {93,7,45}, {101,7,27}, {255,0,0} },
-	{ {1,7,94}, {9,7,113}, {17,7,119}, {25,7,101}, {33,7,114}, {41,7,116}, {49,7,121}, {57,7,117}, {65,7,105}, {73,7,111}, {81,7,112}, {89,7,64}, {97,7,8}, {105,7,9} },
-	{ {3,7,10}, {11,7,97}, {19,7,115}, {27,7,100}, {35,7,102}, {43,7,103}, {51,7,104}, {59,7,106}, {67,7,107}, {75,7,108}, {83,7,59}, {91,15,13}, {107,7,12}, {255,0,0} },
-	{ {3,11,0}, {15,7,122}, {23,7,120}, {31,7,99}, {39,7,118}, {47,7,98}, {55,7,110}, {63,7,109}, {71,7,44}, {79,7,46}, {87,7,47}, {95,11,0}, {255,0,0}, {255,0,0} }, 
-	{ {23,63,32}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0}, {255,0,0} }
+static int row1_keys[13] = { 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 58, 45, 27 };
+static int row2_keys[14] = { 94, 113, 119, 101, 114, 116, 121, 117, 105, 111, 112, 64, 8, 9 };
+static int row3_1_keys[11] = { 10, 97, 115, 100, 102, 103, 104, 106, 107, 108, 59 };
+static int row3_2_keys[1] = { 13 };
+static int row3_3_keys[1] = { 12 };
+static int row4_1_keys[1] = { 0 };
+static int row4_2_keys[10] = { 122, 120, 99, 118, 98, 110, 109, 44, 46, 47 };
+static int row5_keys[1] = { 32 };
+
+static struct key_group {
+	int xoffset, yoffset;
+	int num_keys;
+	int key_width;
+	int *key_values;
+} key_groups[NUM_KEY_GROUPS] = {
+	{ 8, 0, 13, 15, row1_keys },
+	{ 0, 16, 14, 15, row2_keys },
+	{ 4, 32, 11, 15, row3_1_keys },
+	{ 180, 32, 1, 31, row3_2_keys },
+	{ 212, 32, 1, 15, row3_3_keys },
+	{ 4, 48, 1, 23, row4_1_keys },
+	{ 28, 48, 10, 15, row4_2_keys },
+	{ 188, 48, 1, 23, row4_1_keys },
+	{ 44, 64, 1, 127, row5_keys }
 };
 
 /**************************************************************************/
 
 struct keyboard_data {
 	int shift_is_toggle;
-	struct keydata *current;
-	int keyy;
 	int shifted;
+	int key_xoffset, key_yoffset;  /* currently pressed key */
+	int key_w, key_value;          /* currently pressed key */
 	void (*keypress_callback)(int sym);
 	void (*keyrelease_callback)(int sym);
 	void (*shift_callback)(int state);
@@ -71,7 +87,7 @@ static void highlight_key(struct ndsui_component *self);
 struct ndsui_component *new_ndsui_keyboard(int x, int y, int shift_is_toggle) {
 	struct ndsui_component *new;
 	struct keyboard_data *data;
-	new = ndsui_new_component(x, y, 230, 82);
+	new = ndsui_new_component(x, y, 227, 79);
 	if (new == NULL) return NULL;
 	data = malloc(sizeof(struct keyboard_data));
 	if (data == NULL) {
@@ -86,8 +102,7 @@ struct ndsui_component *new_ndsui_keyboard(int x, int y, int shift_is_toggle) {
 	new->data = data;
 
 	data->shift_is_toggle = shift_is_toggle;
-	data->current = NULL;
-	data->shifted = 0;
+	data->key_value = -1;
 
 	return new;
 }
@@ -138,20 +153,26 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
 
-	if (data->current) return;
+	if (data->key_value >= 0) return;
 	x -= self->x;
 	y -= self->y;
-	if (y < 2 || y > 81) return;
 
-	data->keyy = (y - 2) >> 4;
-	for (i = 0; i < 14; i++) {
-		if (keys[data->keyy][i].width > 0 && x >= (keys[data->keyy][i].xoffset*2) && x <= ((keys[data->keyy][i].xoffset*2) + (keys[data->keyy][i].width*2))) {
-			data->current = &keys[data->keyy][i];
+	for (i = 0; i < NUM_KEY_GROUPS; i++) {
+		if (y >= key_groups[i].yoffset
+				&& y < (key_groups[i].yoffset + KEY_HEIGHT)
+				&& x >= key_groups[i].xoffset
+				&& x < (key_groups[i].xoffset + (key_groups[i].num_keys * (key_groups[i].key_width + 1)))) {
+			int num = (x - key_groups[i].xoffset) / (key_groups[i].key_width + 1);
+			data->key_w = key_groups[i].key_width;
+			data->key_xoffset = key_groups[i].xoffset + num * (key_groups[i].key_width + 1);
+			data->key_yoffset = key_groups[i].yoffset;
+			data->key_value = key_groups[i].key_values[num];
 		}
 	}
-	if (!data->current) return;
 
-	if (data->current->sym == 0) {
+	if (data->key_value < 0) return;
+
+	if (data->key_value == 0) {
 		if (data->shift_is_toggle) {
 			data->shifted ^= 1;
 			show(self);
@@ -162,14 +183,14 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 			data->shifted = 1;
 			show(self);
 			if (data->keypress_callback) {
-				data->keypress_callback(data->current->sym);
+				data->keypress_callback(data->key_value);
 			}
 		}
 		return;
 	}
 	highlight_key(self);
 	if (data->keypress_callback) {
-		data->keypress_callback(data->current->sym);
+		data->keypress_callback(data->key_value);
 	}
 }
 
@@ -177,23 +198,23 @@ static void pen_up(struct ndsui_component *self) {
 	struct keyboard_data *data;
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
-	if (!data->current) return;
+	if (data->key_value < 0) return;
 
-	if (data->current->sym == 0) {
+	if (data->key_value == 0) {
 		if (!data->shift_is_toggle) {
 			data->shifted = 0;
 			show(self);
 			if (data->keyrelease_callback) {
-				data->keyrelease_callback(data->current->sym);
+				data->keyrelease_callback(data->key_value);
 			}
 		}
 	} else {
 		highlight_key(self);
 		if (data->keyrelease_callback) {
-			data->keyrelease_callback(data->current->sym);
+			data->keyrelease_callback(data->key_value);
 		}
 	}
-	data->current = NULL;
+	data->key_value = -1;
 }
 
 static void destroy(struct ndsui_component *self) {
@@ -208,9 +229,9 @@ static void highlight_key(struct ndsui_component *self) {
 	struct keyboard_data *data;
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
-	int x = self->x + (data->current->xoffset * 2);
-	int y = self->y + (data->keyy * 16) + 2;
-	int w = (data->current->width * 2) + 1;
+	int x = self->x + data->key_xoffset;
+	int y = self->y + data->key_yoffset;
+	int w = data->key_w;
 	uint16_t *p = (uint16_t *)BG_GFX_SUB + (y*256) + x;
 	int skip = 256 - w;
 	int i, j;
