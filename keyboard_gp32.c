@@ -122,9 +122,23 @@ static void highlight_key(void) {
 }
 
 static void do_poll(void *context) {
+	unsigned int chatboard_key;
 	unsigned int newkeyx = keyx, newkeyy = keyy;
 	int key, newkey, relkey;
 	(void)context;
+
+	poll_event->at_cycle += OSCILLATOR_RATE / 100;
+	event_queue(&xroar_ui_events, poll_event);
+
+	/* Poll chatboard - doesn't matter if it's not actually there */
+	chatboard_key = gpchatboard_scan();
+	if (chatboard_key) {
+		keyboard_queue(chatboard_key);
+	}
+	/* While there's stuff in the queue, don't do anything else */
+	if (KEYBOARD_HASQUEUE)
+		return;
+
 	gpkeypad_poll(&key, &newkey, &relkey);
 	if (newkey & GPC_VK_FL) {
 		keyboard_mode++;
@@ -211,13 +225,4 @@ static void do_poll(void *context) {
 			KEY_UPDATE(key & GPC_VK_FB, current->sym);
 			break;
 	}
-	/* Poll chatboard - doesn't matter if it's not actually there */
-	{
-		unsigned char chatboard_key = gpchatboard_scan();
-		if (chatboard_key) {
-			KEYBOARD_QUEUE(chatboard_key);
-		}
-	}
-	poll_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&xroar_ui_events, poll_event);
 }

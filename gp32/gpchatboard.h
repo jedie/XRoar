@@ -16,4 +16,4 @@
 
 int gpchatboard_init(void);
 void gpchatboard_shutdown(void);
-unsigned char gpchatboard_scan(void);
+unsigned int gpchatboard_scan(void);

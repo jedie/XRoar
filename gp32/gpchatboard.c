@@ -24,67 +24,161 @@
  *  25 Oct 2004 - Ciaran Anscomb <xroar@6809.org.uk>
  *   adapted for use with Gamepark SDK - a temporary measure until I port
  *   XRoar to use Mirko's SDK
+ *  5 Apr 2008 - Ciaran Anscomb
+ *   update to use a state machine approximating mobile phone response
  */
 
 
-// Hardware project from: http://www.deadcoderssociety.tk 
-// This file is written 2004 Mirko Roller
+/* Hardware project from: http://www.deadcoderssociety.tk  */
+/* This file is written 2004 Mirko Roller */
 
 #include <string.h>
 #include "gp32.h"
-#include "keydefines.h"
 #include "../types.h"
 #include "gpchatboard.h"
 
+#define BUFFER_QUEUE(c) do { \
+		buffer[buffer_next] = c; \
+		buffer_next = (buffer_next + 1) % sizeof(buffer); \
+	} while (0)
+#define BUFFER_HASQUEUE (buffer_next != buffer_cursor)
+#define BUFFER_DEQUEUE(into) do { \
+		into = buffer[buffer_cursor]; \
+		buffer_cursor = (buffer_cursor + 1) % sizeof(buffer); \
+	} while (0)
+static volatile unsigned char buffer[8];
+static volatile int buffer_next, buffer_cursor;
 
-#define CHA_KEY_NUMBER (sizeof(cha01KeyMap) / sizeof(struct threeMap))
-// 13 = CR
-// 10 = LF
+static const char *keypad_map[] = {
+	"+&@/_%$[____0__\014\033",  /* 0 */
+	" -?!,.:_\042'___()1",      /* 1 */
+	"abc\176)?^?2",             /* 2 */
+	"def=?3",                   /* 3 */
+	"ghi?4",                    /* 4 */
+	"jkl5",                     /* 5 */
+	"mno(_(?6",                 /* 6 */
+	"pqrs\0107<>",              /* 7 */
+	"tuv\011\0128",             /* 8 */
+	"wxyz9",                    /* 9 */
+	"#*",                       /* # */
+	"\010",                     /* < */
+	"\011",                     /* > */
+	"__\015",                   /* e */
+	"\015",                     /* c */
+};
+static int button_select, button_index, button_char;
 
-static volatile unsigned char chatboard_buffer[256];
-static volatile unsigned int  chatboard_buffer_pos=0;
-static volatile unsigned char chatboard_tx[32];
-static volatile int seq_ok;
+static const char *keypad_chars = "0123456789#<>ecs";
+
+static char command_buf[10];
+static int command_length = 0;
 
 static void ChatBoardSendOKIRQ(void) {
 	const char *s = "OK\015\012";
 	while (*s) {
-		while (rUFSTAT0 & 0x100);
+		while (rUFSTAT0 & (1 << 9));  /* Wait until Tx FIFO not full */
 		rUTXH0 = *(s++);
 	}
 }
 
+enum {
+	WANT_CKPD, WANT_FIRST_BUTTON, CONTINUE_STRING, CHECK_COMMA, CONSUME_REST
+};
+
 void UART0Rx(void) __attribute__ ((interrupt ("IRQ")));
 void UART0Rx(void) {
-	uint8_t chars, c, i;
-	if (rUFSTAT0 & 0x100) chars = 16;
-	else chars = rUFSTAT0 & 0x0F;   //  Number of data in rx fifo
-	for (i = 0; i < chars; i++) {
-		c = rURXH0;
-		if (chatboard_buffer_pos < 255)
-			chatboard_buffer[chatboard_buffer_pos++] = c;
-		if (c == 13) {
-			chatboard_buffer[chatboard_buffer_pos] = 0;
-			seq_ok = 1;
-			chatboard_buffer_pos = 0;
+	char *tmp;
+	static int state = WANT_CKPD;
+	int num_chars;
+	if (rUFSTAT0 & (1 << 8))
+		num_chars = 16;
+	else
+		num_chars = rUFSTAT0 & 15;
+	while (num_chars > 0) {
+		char c = rURXH0;
+		num_chars--;
+		if (c == '\r') {
+			/* \r always resets the state machine */
+			if (button_select >= 0) {
+				BUFFER_QUEUE(button_char);
+			}
+			button_select = -1;
+			command_length = 0;
+			state = WANT_CKPD;
 			ChatBoardSendOKIRQ();
+			return;
+		}
+		switch (state) {
+			case WANT_CKPD:
+				if (command_length < 9) {
+					command_buf[command_length++] = c;
+					if (command_length == 9) {
+						command_buf[9] = 0;
+						if (0 == strcmp(command_buf, "AT+CKPD=\"")) {
+							state = WANT_FIRST_BUTTON;
+						} else {
+							state = CONSUME_REST;
+						}
+					}
+				}
+				break;
+			case WANT_FIRST_BUTTON:
+				tmp = strchr(keypad_chars, c);
+				if (tmp == NULL) {
+					button_select = -1;
+					state = CONSUME_REST;
+					break;
+				}
+				button_select = tmp - keypad_chars;
+				button_index = 0;
+				button_char = keypad_map[button_select][0];
+				state = CONTINUE_STRING;
+				break;
+			case CONTINUE_STRING:
+				if (c == '\"') {
+					state = CHECK_COMMA;
+					break;
+				}
+				if (c == 'c') {
+					state = WANT_FIRST_BUTTON;
+					break;
+				}
+				tmp = strchr(keypad_chars, c);
+				if (tmp == NULL || button_select != (tmp - keypad_chars)) {
+					button_select = -1;
+					state = CONSUME_REST;
+					break;
+				}
+				button_index++;
+				if (keypad_map[button_select][button_index] == 0)
+					button_index = 0;
+				button_char = keypad_map[button_select][button_index];
+				break;
+			case CHECK_COMMA:
+				if (c == ',' && button_select <= 9) {
+					button_char = button_select + '0';
+				} else {
+					button_select = -1;
+				}
+				state = CONSUME_REST;
+				break;
+			default:
+			case CONSUME_REST:
+				/* Eat characters until the test for '\r' resets state machine */
+				break;
 		}
 	}
 }
 
-// Not used yet....
+/* Not used yet.... */
 void UART0Tx(void) __attribute__ ((interrupt ("IRQ")));
 void UART0Tx(void) {
-     /* volatile uint8_t i; */
 }
 
 
 int gpchatboard_init(void) {
 	int SPEED = 9600;
 
-	seq_ok = 0;
-	chatboard_buffer_pos=0;
-	   
 	rCLKCON |= 0x100;	/* Controls PCLK into UART0 block */
 	/* Set up UART line control register: */
 	rULCON0 = (0<<6) |	/* Normal operation (1=IRDA mode) */
@@ -102,12 +196,18 @@ int gpchatboard_init(void) {
 		  (1<<0);	/* Rx IRQ/polling mode */
 	/* Set up FIFO control register: */
 	rUFCON0 = (0<<6) |	/* Tx trigger level = 0 bytes */
-		  (2<<4) |	/* Rx trigger level = 12 bytes (3->16) */
+		  (3<<4) |	/* Rx trigger level = 16 bytes (3->16) */
 		  (1<<2) |	/* Reset Tx FIFO */
 		  (1<<1) |	/* Reset Rx FIFO */
 		  (1<<0);	/* Enable FIFO mode */
 
 	rUBRDIV0 = (PCLK / (SPEED * 16)) - 1;
+
+	buffer_next = 0;
+	buffer_cursor = 0;
+	button_select = -1;
+	button_index = 0;
+	command_length = 0;
 
 	ARMDisableInterrupt();
 	swi_install_irq(23, UART0Rx);
@@ -124,30 +224,11 @@ void gpchatboard_shutdown(void) {
 	ARMEnableInterrupt();
 }
 
-unsigned char gpchatboard_scan(void) {
-	unsigned int x = 0, mark;
-	unsigned char search[256];
-	unsigned char seq[] = "AT+CKPD=\"";
-
-	if (seq_ok) {
-		seq_ok = 0;
-		/* Search for seq in chatboard_buffer[] */
-		for (x = 0; x < 256; x++)
-			search[x]=0;
-		for (x = 0; x < 250; x++) {
-			search[x] = chatboard_buffer[x+9];
-			if (search[x]==13) break;
-		}
-		if (!strncmp(seq,search,sizeof(seq))) return 0;
-
-		mark = x;
-		for (x = 0; x < CHA_KEY_NUMBER; x++) {
-			if (!strncmp(cha01KeyMap[x].map1,search,mark+1))
-				return (cha01KeyMap[x].key);
-			if (!strncmp(cha01KeyMap[x].map2,search,mark+1))
-				return (cha01KeyMap[x].key);
-		}
+unsigned int gpchatboard_scan(void) {
+	unsigned char c;
+	if (BUFFER_HASQUEUE) {
+		BUFFER_DEQUEUE(c);
+		return c;
 	}
 	return 0;
 }
-
