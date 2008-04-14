@@ -64,6 +64,7 @@ void mc6821_reset(MC6821_PIA *pia) {
 
 #define UPDATE_OUTPUT(p) do { \
 		p.port_output = ((p.output_register & p.direction_register) | (p.port_input & ~(p.direction_register))) & p.tied_low; \
+		if (p.data_postwrite) p.data_postwrite(); \
 	} while (0)
 
 void mc6821_update_state(MC6821_PIA *pia) {
