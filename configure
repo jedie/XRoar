@@ -343,6 +343,7 @@ if test "$_gp32" = "yes"; then
 	_sdlgl=no
 	_gtk2=no
 	_gtk1=no
+	_cli=no
 	_carbon=no
 	_oss=no 
 	_sun=no 
