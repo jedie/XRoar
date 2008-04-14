@@ -91,22 +91,20 @@ unsigned int keyboard_column[9];
 unsigned int keyboard_row[9];
 
 unsigned int keyboard_buffer[256];
-unsigned int *keyboard_bufcur, *keyboard_buflast;
+int keyboard_buffer_next, keyboard_buffer_cursor;
 
-static void keyboard_poll(void *context);
-static event_t *poll_event;
+static void keyboard_press_queued(void *context);
+static void keyboard_release_queued(void *context);
+static event_t *queue_event;
 
 void keyboard_init(void) {
 	unsigned int i;
-	poll_event = event_new();
-	poll_event->dispatch = keyboard_poll;
-	keyboard_bufcur = keyboard_buflast = keyboard_buffer;
+	queue_event = event_new();
+	keyboard_buffer_next = keyboard_buffer_cursor = 0;
 	for (i = 0; i < 8; i++) {
 		keyboard_column[i] = ~0;
 		keyboard_row[i] = ~0;
 	}
-	poll_event->at_cycle = current_cycle + 141050;
-	event_queue(&xroar_ui_events, poll_event);
 }
 
 void keyboard_set_keymap(int map) {
@@ -146,35 +144,24 @@ void keyboard_row_update(void) {
 }
 
 void keyboard_queue_string(const char *s) {
-	uint_least16_t c;
+	unsigned int c;
 	while ( (c = *(s++)) ) {
-		*(keyboard_buflast++) = (~c)&0x80; /* shift/unshift */
-		*(keyboard_buflast++) = c & 0x7f;
-		*(keyboard_buflast++) = (c & 0x7f) | 0x80;
+		KEYBOARD_QUEUE(c);
 	}
-	*(keyboard_buflast++) = 0x80; /* unshift */
+	if (!queue_event->queued) {
+		queue_event->dispatch = keyboard_press_queued;
+		queue_event->at_cycle = current_cycle + OSCILLATOR_RATE / 20;
+		event_queue(&event_list, queue_event);
+	}
 }
 
-void keyboard_queue(uint_least16_t c) {
-	int shift_state = keyboard_column[keymap[0].col] & (1<<keymap[0].row);
-	switch (c>>8) {
-		case 1:
-			*(keyboard_buflast++) = 0;  /* shift */
-			break;
-		case 2:
-			*(keyboard_buflast++) = 0x80;  /* unshift */
-			break;
-		case 3:
-			*(keyboard_buflast++) = 0;     /* shift */
-			*(keyboard_buflast++) = 0x0c;  /* clear */
-			break;
-		default:
-			break;
+void keyboard_queue(unsigned int c) {
+	KEYBOARD_QUEUE(c);
+	if (!queue_event->queued) {
+		queue_event->dispatch = keyboard_press_queued;
+		queue_event->at_cycle = current_cycle + OSCILLATOR_RATE / 20;
+		event_queue(&event_list, queue_event);
 	}
-	*(keyboard_buflast++) = c & 0x7f;
-	*(keyboard_buflast++) = (c & 0x7f) | 0x80;
-	if ((c>>8) == 3) *(keyboard_buflast++) = 0x8c;  /* unclear */
-	*(keyboard_buflast++) = shift_state ? 0x80 : 0; /* last shift state */
 }
 
 void keyboard_unicode_press(unsigned int unicode) {
@@ -189,15 +176,11 @@ void keyboard_unicode_press(unsigned int unicode) {
 			KEYBOARD_PRESS(12);
 			KEYBOARD_PRESS('/');
 		}
-		return;
-	}
-	/* Pound sign */
-	if (unicode == 163) {
+	} else if (unicode == 163) {
+		/* Pound sign */
 		KEYBOARD_PRESS(0);
 		KEYBOARD_PRESS('3');
-		return;
-	}
-	if (unicode < 128) {
+	} else if (unicode < 128) {
 		unsigned int code = unicode_to_dragon[unicode];
 		if (code & 128)
 			KEYBOARD_PRESS(0);
@@ -205,6 +188,8 @@ void keyboard_unicode_press(unsigned int unicode) {
 			KEYBOARD_RELEASE(0);
 		KEYBOARD_PRESS(code & 0x7f);
 	}
+	keyboard_column_update();
+	keyboard_row_update();
 }
 
 void keyboard_unicode_release(unsigned int unicode) {
@@ -219,35 +204,44 @@ void keyboard_unicode_release(unsigned int unicode) {
 			KEYBOARD_RELEASE(12);
 			KEYBOARD_RELEASE('/');
 		}
-		return;
-	}
-	/* Pound sign */
-	if (unicode == 163) {
+	} else if (unicode == 163) {
+		/* Pound sign */
 		KEYBOARD_RELEASE(0);
 		KEYBOARD_RELEASE('3');
-		return;
-	}
-	if (unicode < 128) {
+	} else if (unicode < 128) {
 		unsigned int code = unicode_to_dragon[unicode];
 		if (code & 128)
 			KEYBOARD_RELEASE(0);
 		KEYBOARD_RELEASE(code & 0x7f);
 	}
+	keyboard_column_update();
+	keyboard_row_update();
 }
 
-static void keyboard_poll(void *context) {
+static unsigned int key_pressed;
+
+static void keyboard_press_queued(void *context) {
 	(void)context;
 	if (KEYBOARD_HASQUEUE) {
-		unsigned int k;
-		KEYBOARD_DEQUEUE(k);
-		if (k & 0x80) {
-			KEYBOARD_RELEASE(k & 0x7f);
-		} else {
-			KEYBOARD_PRESS(k);
+		key_pressed = keyboard_buffer[keyboard_buffer_cursor];
+		if (key_pressed) {
+			keyboard_unicode_press(key_pressed);
+			/* Schedule key release event */
+			queue_event->dispatch = keyboard_release_queued;
+			queue_event->at_cycle += OSCILLATOR_RATE / 20;
+			event_queue(&event_list, queue_event);
 		}
 	}
+}
+
+static void keyboard_release_queued(void *context) {
+	(void)context;
+	keyboard_unicode_release(key_pressed);
+	KEYBOARD_DEQUEUE();
+	/* Schedule another key press event only if queue not empty */
 	if (KEYBOARD_HASQUEUE) {
-		poll_event->at_cycle += OSCILLATOR_RATE / 50;
-		event_queue(&xroar_ui_events, poll_event);
+		queue_event->dispatch = keyboard_press_queued;
+		queue_event->at_cycle += OSCILLATOR_RATE / 20;
+		event_queue(&event_list, queue_event);
 	}
 }

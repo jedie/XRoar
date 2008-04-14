@@ -33,28 +33,17 @@ extern unsigned int keyboard_row[9];
 		keyboard_row[keymap[s].row] |= 1<<keymap[s].col; \
 	} while (0)
 
-#define KEYBOARD_HASQUEUE (keyboard_buflast > keyboard_bufcur)
-/* For each key, queue: shift up/down as appropriate, key down, key up,
- * shift up */
-#define KEYBOARD_QUEUE(c) do {  \
-		if ((c) & 0x80) \
-			*(keyboard_buflast++) = 0; \
-		else \
-			*(keyboard_buflast++) = 0x80; \
-		*(keyboard_buflast++) = (c) & 0x7f; \
-		*(keyboard_buflast++) = (c) | 0x80; \
-		*(keyboard_buflast++) = 0x80; \
+#define KEYBOARD_QUEUE(c) do { \
+		keyboard_buffer[keyboard_buffer_next] = c; \
+		keyboard_buffer_next = (keyboard_buffer_next + 1) % sizeof(keyboard_buffer); \
 	} while (0)
-
-#define KEYBOARD_DEQUEUE(c) do { \
-		c = *(keyboard_bufcur++); \
-		if (keyboard_bufcur >= keyboard_buflast) { \
-			keyboard_bufcur = keyboard_buflast = keyboard_buffer; \
-		} \
+#define KEYBOARD_HASQUEUE (keyboard_buffer_next != keyboard_buffer_cursor)
+#define KEYBOARD_DEQUEUE() do { \
+		keyboard_buffer_cursor = (keyboard_buffer_cursor + 1) % sizeof(keyboard_buffer); \
 	} while (0)
 
 extern unsigned int keyboard_buffer[256];
-extern unsigned int *keyboard_bufcur, *keyboard_buflast;
+extern int keyboard_buffer_next, keyboard_buffer_cursor;
 
 void keyboard_init(void);
 void keyboard_set_keymap(int map);
@@ -62,7 +51,7 @@ void keyboard_set_keymap(int map);
 void keyboard_column_update(void);
 void keyboard_row_update(void);
 void keyboard_queue_string(const char *s);
-void keyboard_queue(uint_least16_t c);
+void keyboard_queue(unsigned int c);
 void keyboard_unicode_press(unsigned int unicode);
 void keyboard_unicode_release(unsigned int unicode);
 
