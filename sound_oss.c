@@ -142,6 +142,7 @@ static void shutdown(void) {
 	event_free(flush_event);
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
+	free(convbuf);
 	free(buffer);
 }
 
