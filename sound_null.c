@@ -71,6 +71,7 @@ static int init(int argc, char **argv) {
 }
 
 static void shutdown(void) {
+	event_free(flush_event);
 }
 
 static void update(void) {
