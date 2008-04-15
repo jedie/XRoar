@@ -228,6 +228,7 @@ static void shutdown(void) {
 	}
 	num_joys = 0;
 	SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+	event_free(poll_event);
 }
 
 static void do_poll(void *context) {
