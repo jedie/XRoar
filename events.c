@@ -27,15 +27,19 @@ event_t *event_list = NULL;
 
 event_t *event_new(void) {
 	event_t *new = malloc(sizeof(event_t));
-	if (new == NULL)
-		return NULL;
-	new->at_cycle = 0;
-	new->dispatch = NULL;
-	new->context = NULL;
-	new->queued = 0;
-	new->list = NULL;
-	new->next = NULL;
+	if (new == NULL) return NULL;
+	event_init(new);
 	return new;
+}
+
+void event_init(event_t *event) {
+	if (event == NULL) return;
+	event->at_cycle = 0;
+	event->dispatch = NULL;
+	event->context = NULL;
+	event->queued = 0;
+	event->list = NULL;
+	event->next = NULL;
 }
 
 void event_free(event_t *event) {

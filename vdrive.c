@@ -58,8 +58,8 @@ static void update_signals(void);
 
 static Cycle last_update_cycle;
 static Cycle track_start_cycle;
-static event_t *index_pulse_event;
-static event_t *reset_index_pulse_event;
+static event_t index_pulse_event;
+static event_t reset_index_pulse_event;
 static void do_index_pulse(void *context);
 static void do_reset_index_pulse(void *context);
 
@@ -72,10 +72,10 @@ void vdrive_init(void) {
 	}
 	vdrive_set_density(VDISK_DOUBLE_DENSITY);
 	vdrive_set_drive(0);
-	index_pulse_event = event_new();
-	index_pulse_event->dispatch = do_index_pulse;
-	reset_index_pulse_event = event_new();
-	reset_index_pulse_event->dispatch = do_reset_index_pulse;
+	event_init(&index_pulse_event);
+	index_pulse_event.dispatch = do_index_pulse;
+	event_init(&reset_index_pulse_event);
+	reset_index_pulse_event.dispatch = do_reset_index_pulse;
 }
 
 void vdrive_shutdown(void) {
@@ -161,11 +161,11 @@ static void update_signals(void) {
 		idamptr = NULL;
 	}
 	track_base = (uint8_t *)idamptr;
-	if (!index_pulse_event->queued) {
+	if (!index_pulse_event.queued) {
 		head_pos = 128;
 		track_start_cycle = current_cycle;
-		index_pulse_event->at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
-		event_queue(&event_list, index_pulse_event);
+		index_pulse_event.at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
+		event_queue(&event_list, &index_pulse_event);
 	}
 }
 
@@ -303,7 +303,7 @@ unsigned int vdrive_time_to_next_idam(void) {
 		}
 	}
 	if (next_head_pos >= current_drive->disk->track_length)
-		return (index_pulse_event->at_cycle - current_cycle) + 1;
+		return (index_pulse_event.at_cycle - current_cycle) + 1;
 	next_cycle = track_start_cycle + (next_head_pos - 128) * BYTE_TIME;
 	to_time = next_cycle - current_cycle;
 	if (to_time < 0) {
@@ -357,12 +357,12 @@ static void do_index_pulse(void *context) {
 	}
 	vdrive_index_pulse = 1;
 	head_pos = 128;
-	last_update_cycle = index_pulse_event->at_cycle;
-	track_start_cycle = index_pulse_event->at_cycle;
-	index_pulse_event->at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
-	event_queue(&event_list, index_pulse_event);
-	reset_index_pulse_event->at_cycle = track_start_cycle + ((current_drive->disk->track_length - 128)/100) * BYTE_TIME;
-	event_queue(&event_list, reset_index_pulse_event);
+	last_update_cycle = index_pulse_event.at_cycle;
+	track_start_cycle = index_pulse_event.at_cycle;
+	index_pulse_event.at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
+	event_queue(&event_list, &index_pulse_event);
+	reset_index_pulse_event.at_cycle = track_start_cycle + ((current_drive->disk->track_length - 128)/100) * BYTE_TIME;
+	event_queue(&event_list, &reset_index_pulse_event);
 }
 
 static void do_reset_index_pulse(void *context) {

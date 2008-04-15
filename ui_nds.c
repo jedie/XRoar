@@ -72,7 +72,7 @@ UIModule ui_nds_module = {
 	NULL  /* use default joystick module list */
 };
 
-static event_t *poll_pen_event;
+static event_t poll_pen_event;
 static void do_poll_pen(void *context);
 
 static void show_main_input_screen(void);
@@ -95,10 +95,10 @@ static int init(int argc, char **argv) {
 	ndsgfx_init();
 	ndsgfx_fillrect(0, 0, 256, 192, NDS_DARKPURPLE);
 
-	poll_pen_event = event_new();
-	poll_pen_event->dispatch = do_poll_pen;
-	poll_pen_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(&event_list, poll_pen_event);
+	event_init(&poll_pen_event);
+	poll_pen_event.dispatch = do_poll_pen;
+	poll_pen_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
+	event_queue(&event_list, &poll_pen_event);
 
 	show_main_input_screen();
 
@@ -186,8 +186,8 @@ static void do_poll_pen(void *context) {
 		ndsui_pen_up();
 	}
 	old_keyinput = keyinput;
-	poll_pen_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&event_list, poll_pen_event);
+	poll_pen_event.at_cycle += OSCILLATOR_RATE / 100;
+	event_queue(&event_list, &poll_pen_event);
 }
 
 /**************************************************************************/

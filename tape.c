@@ -38,7 +38,7 @@ static int read_fd, write_fd;
 static unsigned int motor;
 
 static void waggle_bit(void *context);
-static event_t *waggle_event;
+static event_t waggle_event;
 
 /* For reading */
 static int input_type;
@@ -89,8 +89,8 @@ void tape_init(void) {
 	read_buf_ptr = read_buf;
 	bits_remaining = bytes_remaining = 0;
 	fake_leader = 0;
-	waggle_event = event_new();
-	waggle_event->dispatch = waggle_bit;
+	event_init(&waggle_event);
+	waggle_event.dispatch = waggle_bit;
 	write_buf_ptr = write_buf;
 	have_bits = have_bytes = 0;
 }
@@ -98,8 +98,7 @@ void tape_init(void) {
 void tape_reset(void) {
 	tape_close_writing();
 	motor = 0;
-	if (waggle_event)
-		event_dequeue(waggle_event);
+	event_dequeue(&waggle_event);
 }
 
 void tape_shutdown(void) {
@@ -121,8 +120,8 @@ int tape_open_reading(char *filename) {
 		bits_remaining = bytes_remaining = 0;
 		/* If motor is on, enable the bit waggler */
 		if (motor) {
-			waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-			event_queue(&event_list, waggle_event);
+			waggle_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
+			event_queue(&event_list, &waggle_event);
 		}
 		LOG_DEBUG(2,"Attached virtual cassette %s\n", filename);
 		break;
@@ -251,8 +250,8 @@ void tape_update_motor(void) {
 					 * attached, enable the tape input bit
 					 * waggler */
 					fake_leader = 64;
-					waggle_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-					event_queue(&event_list, waggle_event);
+					waggle_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
+					event_queue(&event_list, &waggle_event);
 				}
 				break;
 			default:
@@ -262,7 +261,7 @@ void tape_update_motor(void) {
 				break;
 			}
 		} else {
-			event_dequeue(waggle_event);
+			event_dequeue(&waggle_event);
 		}
 	}
 }
@@ -349,7 +348,7 @@ static void waggle_bit(void *context) {
 		default:
 		case 0:
 			if (!motor || (cur_bit = bit_in()) == -1) {
-				event_dequeue(waggle_event);
+				event_dequeue(&waggle_event);
 				return;
 			}
 			PIA1.a.port_input |= 0x01;
@@ -362,10 +361,10 @@ static void waggle_bit(void *context) {
 	}
 	/* Single cycles of 1200 baud for 0s, and 2400 baud for 1s */
 	if (cur_bit == 0)
-		waggle_event->at_cycle += (OSCILLATOR_RATE / 2400);
+		waggle_event.at_cycle += (OSCILLATOR_RATE / 2400);
 	else
-		waggle_event->at_cycle += (OSCILLATOR_RATE / 4800);
-	event_queue(&event_list, waggle_event);
+		waggle_event.at_cycle += (OSCILLATOR_RATE / 4800);
+	event_queue(&event_list, &waggle_event);
 }
 
 static void bit_out(int value) {

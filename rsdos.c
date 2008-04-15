@@ -35,8 +35,8 @@
 #include "xroar.h"
 
 #define QUEUE_NMI() do { \
-		nmi_event->at_cycle = current_cycle + 1; \
-		event_queue(&event_list, nmi_event); \
+		nmi_event.at_cycle = current_cycle + 1; \
+		event_queue(&event_list, &nmi_event); \
 	} while (0)
 
 /* Handle signals from WD2793 */
@@ -46,7 +46,7 @@ static void set_intrq_handler(void);
 static void reset_intrq_handler(void);
 
 /* NMIs queued to allow CPU to run next instruction */
-static event_t *nmi_event;
+static event_t nmi_event;
 static void do_nmi(void *context);
 
 /* Latch that's part of the RSDOS cart: */
@@ -61,8 +61,8 @@ static unsigned int halt_enable;
 static void ff40_write(unsigned int octet);
 
 void rsdos_init(void) {
-	nmi_event = event_new();
-	nmi_event->dispatch = do_nmi;
+	event_init(&nmi_event);
+	nmi_event.dispatch = do_nmi;
 }
 
 void rsdos_reset(void) {

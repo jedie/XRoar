@@ -95,11 +95,11 @@ int keyboard_buffer_next, keyboard_buffer_cursor;
 
 static void keyboard_press_queued(void *context);
 static void keyboard_release_queued(void *context);
-static event_t *queue_event;
+static event_t queue_event;
 
 void keyboard_init(void) {
 	unsigned int i;
-	queue_event = event_new();
+	event_init(&queue_event);
 	keyboard_buffer_next = keyboard_buffer_cursor = 0;
 	for (i = 0; i < 8; i++) {
 		keyboard_column[i] = ~0;
@@ -148,19 +148,19 @@ void keyboard_queue_string(const char *s) {
 	while ( (c = *(s++)) ) {
 		KEYBOARD_QUEUE(c);
 	}
-	if (!queue_event->queued) {
-		queue_event->dispatch = keyboard_press_queued;
-		queue_event->at_cycle = current_cycle + OSCILLATOR_RATE / 20;
-		event_queue(&event_list, queue_event);
+	if (!queue_event.queued) {
+		queue_event.dispatch = keyboard_press_queued;
+		queue_event.at_cycle = current_cycle + OSCILLATOR_RATE / 20;
+		event_queue(&event_list, &queue_event);
 	}
 }
 
 void keyboard_queue(unsigned int c) {
 	KEYBOARD_QUEUE(c);
-	if (!queue_event->queued) {
-		queue_event->dispatch = keyboard_press_queued;
-		queue_event->at_cycle = current_cycle + OSCILLATOR_RATE / 20;
-		event_queue(&event_list, queue_event);
+	if (!queue_event.queued) {
+		queue_event.dispatch = keyboard_press_queued;
+		queue_event.at_cycle = current_cycle + OSCILLATOR_RATE / 20;
+		event_queue(&event_list, &queue_event);
 	}
 }
 
@@ -227,9 +227,9 @@ static void keyboard_press_queued(void *context) {
 		if (key_pressed) {
 			keyboard_unicode_press(key_pressed);
 			/* Schedule key release event */
-			queue_event->dispatch = keyboard_release_queued;
-			queue_event->at_cycle += OSCILLATOR_RATE / 20;
-			event_queue(&event_list, queue_event);
+			queue_event.dispatch = keyboard_release_queued;
+			queue_event.at_cycle += OSCILLATOR_RATE / 20;
+			event_queue(&event_list, &queue_event);
 		}
 	}
 }
@@ -240,8 +240,8 @@ static void keyboard_release_queued(void *context) {
 	KEYBOARD_DEQUEUE();
 	/* Schedule another key press event only if queue not empty */
 	if (KEYBOARD_HASQUEUE) {
-		queue_event->dispatch = keyboard_press_queued;
-		queue_event->at_cycle += OSCILLATOR_RATE / 20;
-		event_queue(&event_list, queue_event);
+		queue_event.dispatch = keyboard_press_queued;
+		queue_event.at_cycle += OSCILLATOR_RATE / 20;
+		event_queue(&event_list, &queue_event);
 	}
 }

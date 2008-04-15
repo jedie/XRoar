@@ -28,7 +28,7 @@
 #include "xroar.h"
 #include "cart.h"
 
-static event_t *cart_event;
+static event_t cart_event;
 static char *cart_filename;
 static int cart_autostart;
 
@@ -59,12 +59,8 @@ void cart_getargs(int argc, char **argv) {
 }
 
 void cart_init(void) {
-	cart_event = event_new();
-	if (cart_event == NULL) {
-		LOG_WARN("Couldn't create cartridge event.\n");
-		return;
-	}
-	cart_event->dispatch = cart_interrupt;
+	event_init(&cart_event);
+	cart_event.dispatch = cart_interrupt;
 }
 
 void cart_reset(void) {
@@ -105,10 +101,10 @@ static void cart_load(void) {
 	fs_read(fd, rom0+0x4000, sizeof(rom0)-0x4000);
 	fs_close(fd);
 	if (cart_autostart) {
-		cart_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
-		event_queue(&event_list, cart_event);
+		cart_event.at_cycle = current_cycle + (OSCILLATOR_RATE/10);
+		event_queue(&event_list, &cart_event);
 	} else {
-		event_dequeue(cart_event);
+		event_dequeue(&cart_event);
 	}
 }
 
@@ -116,7 +112,7 @@ static void cart_interrupt(void *context) {
 	(void)context;
 	if (cart_filename) {
 		PIA_SET_Cx1(PIA1.b);
-		cart_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
-		event_queue(&event_list, cart_event);
+		cart_event.at_cycle = current_cycle + (OSCILLATOR_RATE/10);
+		event_queue(&event_list, &cart_event);
 	}
 }

@@ -71,9 +71,9 @@
 	} while (0)
 
 #define NEXT_STATE(f,t) do { \
-		state_event->dispatch = f; \
-		state_event->at_cycle = current_cycle + t; \
-		event_queue(&event_list, state_event); \
+		state_event.dispatch = f; \
+		state_event.at_cycle = current_cycle + t; \
+		event_queue(&event_list, &state_event); \
 	} while (0)
 
 #define SINGLE_DENSITY (0)
@@ -127,7 +127,7 @@ static void write_track_state_2(void *context);
 static void write_track_state_2b(void *context);
 static void write_track_state_3(void *context);
 
-static event_t *state_event;
+static event_t state_event;
 
 /* WD279X registers */
 static unsigned int status_register;
@@ -160,11 +160,11 @@ void wd279x_init(void) {
 	wd279x_reset_drq_handler = NULL;
 	wd279x_set_intrq_handler = NULL;
 	wd279x_reset_intrq_handler = NULL;
-	state_event = event_new();
+	event_init(&state_event);
 }
 
 void wd279x_reset(void) {
-	event_dequeue(state_event);
+	event_dequeue(&state_event);
 	status_register = 0;
 	track_register = 0;
 	sector_register = 0;
@@ -249,12 +249,12 @@ void wd279x_command_write(unsigned int cmd) {
 	if ((cmd & 0xf0) == 0xd0) {
 		LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",cmd&0x0f);
 		if ((cmd & 0x0f) == 0) {
-			event_dequeue(state_event);
+			event_dequeue(&state_event);
 			status_register &= ~(STATUS_BUSY);
 			return;
 		}
 		if (cmd & 0x08) {
-			event_dequeue(state_event);
+			event_dequeue(&state_event);
 			status_register &= ~(STATUS_BUSY);
 			SET_INTRQ;
 			return;

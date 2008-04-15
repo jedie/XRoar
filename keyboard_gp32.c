@@ -49,7 +49,7 @@ KeyboardModule keyboard_gp32_module = {
 	  init, 0, shutdown, NULL }
 };
 
-static event_t *poll_event;
+static event_t poll_event;
 static void do_poll(void *context);
 
 #define KEY_UPDATE(t,s) if (t) { KEYBOARD_PRESS(s); } else { KEYBOARD_RELEASE(s); }
@@ -98,16 +98,15 @@ static int init(int argc, char **argv) {
 	gpkeypad_init();
 	gpkeypad_set_repeat(REPEAT_MASK, 225);
 	gpchatboard_init();
-	poll_event = event_new();
-	poll_event->dispatch = do_poll;
-	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(&xroar_ui_events, poll_event);
+	event_init(&poll_event);
+	poll_event.dispatch = do_poll;
+	poll_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
+	event_queue(&xroar_ui_events, &poll_event);
 	return 0;
 }
 
 static void shutdown(void) {
 	gpchatboard_shutdown();
-	event_free(poll_event);
 }
 
 static void highlight_key(void) {
@@ -127,8 +126,8 @@ static void do_poll(void *context) {
 	int key, newkey, relkey;
 	(void)context;
 
-	poll_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&xroar_ui_events, poll_event);
+	poll_event.at_cycle += OSCILLATOR_RATE / 100;
+	event_queue(&xroar_ui_events, &poll_event);
 
 	/* Poll chatboard - doesn't matter if it's not actually there */
 	chatboard_key = gpchatboard_scan();
