@@ -78,10 +78,7 @@ int intel_hex_read(char *filename) {
 			data = read_byte(fd);
 			if (type == 0) {
 				LOG_DEBUG(5,"%02x ", (int)data);
-				if (addr < 0x8000)
-					ram0[addr] = data;
-				else
-					ram1[addr-0x8000] = data;
+				ram0[addr] = data;
 				addr++;
 			}
 		}
@@ -115,18 +112,7 @@ int coco_bin_read(char *filename) {
 			fs_read_byte(fd, &tmp); load = (tmp << 8);
 			fs_read_byte(fd, &tmp); load |= tmp;
 			LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
-			if (load < 0x8000) {
-				unsigned int bytes = length;
-				if ((load + length) > 0x8000) {
-					bytes = 0x8000 - load;
-				}
-				r = fs_read(fd, &ram0[load], bytes);
-				load += bytes;
-				length -= bytes;
-			}
-			if (load >= 0x8000 && length > 0) {
-				r = fs_read(fd, &ram1[load-0x8000], length);
-			}
+			r = fs_read(fd, &ram0[load], length);
 			continue;
 		}
 		if (tmp == 0xff) {

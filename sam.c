@@ -134,7 +134,7 @@ void sam_store_byte(uint_least16_t addr, unsigned int octet) {
 				return;
 			}
 			if ((addr-0x8000) < machine_page1_ram) {
-				ram1[addr-0x8000] = octet;
+				ram0[addr] = octet;
 				return;
 			}
 		}
@@ -233,7 +233,7 @@ void sam_update_from_register(void) {
 		if (machine_page1_ram == 0)
 			addrptr_high = ram0;
 		else
-			addrptr_high = ram1;
+			addrptr_high = ram0 + 0x8000;
 #if !defined(HAVE_GP32) && !defined(HAVE_NDS)
 		sam_topaddr_cycles = CPU_SLOW_DIVISOR;
 #endif
@@ -241,7 +241,7 @@ void sam_update_from_register(void) {
 		/* Map type 0 */
 		if (sam_register & 0x0400) {
 			/* Page #1 */
-			addrptr_low = ram1;
+			addrptr_low = ram0 + 0x8000;
 		} else {
 			/* Page #0 */
 			addrptr_low = ram0;

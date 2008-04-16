@@ -83,7 +83,7 @@ int write_snapshot(const char *filename) {
 	if (machine_page1_ram > 0) {
 		fs_write_byte(fd, ID_RAM_PAGE1);
 		fs_write_word16(fd, machine_page1_ram);
-		fs_write(fd, ram1, machine_page1_ram);
+		fs_write(fd, ram0 + 0x8000, machine_page1_ram);
 	}
 	/* PIA state written before CPU state because PIA may have
 	 * unacknowledged interrupts pending already cleared in the CPU
@@ -349,10 +349,10 @@ int read_snapshot(const char *filename) {
 				}
 				break;
 			case ID_RAM_PAGE1:
-				if (size <= sizeof(ram1)) {
-					size -= fs_read(fd, ram1, size);
+				if (size <= (sizeof(ram0) - 0x8000)) {
+					size -= fs_read(fd, ram0 + 0x8000, size);
 				} else {
-					size -= fs_read(fd, ram1, sizeof(ram1));
+					size -= fs_read(fd, ram0 + 0x8000, sizeof(ram0) - 0x8000);
 				}
 				break;
 			case ID_SAM_REGISTERS:

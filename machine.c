@@ -77,8 +77,7 @@ MachineConfig running_config;
 
 uint_least16_t machine_page0_ram = 0x8000;  /* Base RAM in bytes, up to 32K */
 uint_least16_t machine_page1_ram = 0x8000;  /* Generally 0 or 32K */
-uint8_t ram0[0x8000];
-uint8_t ram1[0x8000];
+uint8_t ram0[0x10000];
 uint8_t rom0[0x8000];
 uint8_t rom1[0x8000];
 MC6821_PIA PIA0, PIA1;
@@ -312,7 +311,6 @@ void machine_reset(int hard) {
 		keyboard_set_keymap(running_config.keymap);
 		/* Configure RAM */
 		memset(ram0, 0x00, sizeof(ram0));
-		memset(ram1, 0x00, sizeof(ram1));
 		machine_set_page0_ram_size(running_config.ram * 1024);
 		if (running_config.ram > 32) {
 			machine_set_page1_ram_size((running_config.ram-32) * 1024);
@@ -367,7 +365,7 @@ void machine_set_page1_ram_size(unsigned int size) {
 		size = 0x8000;
 	machine_page1_ram = size;
 	if (size < 0x8000)
-		memset(ram1 + size, 0x7e, 0x8000 - size);
+		memset(ram0 + 0x8000 + size, 0x7e, 0x8000 - size);
 }
 
 /**************************************************************************/
