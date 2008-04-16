@@ -96,7 +96,7 @@
 
 #define TAKEN_CYCLES(c) m6809_nvma_cycles(c)
 
-#define PUSHWORD(s,r)	{ s -= 2; store_byte(s+1, r & 0xff); store_byte(s, r >> 8); }
+#define PUSHWORD(s,r)	{ s -= 2; store_byte(s+1, r); store_byte(s, r >> 8); }
 #define PUSHBYTE(s,r)	{ s--; store_byte(s, r); }
 #define PULLBYTE(s,r)	{ r = fetch_byte(s); s++; }
 #define PULLWORD(s,r)	{ r = fetch_byte(s) << 8; r |= fetch_byte(s+1); s += 2; }
@@ -189,8 +189,8 @@ static uint16_t reg_s = 0;
 static uint16_t reg_pc = 0;
 static int nmi_armed = 0;
 
-#define reg_d ((reg_a&0xff) << 8 | (reg_b&0xff))
-#define set_reg_d(v) do { reg_a = ((v)>>8)&0xff; reg_b = (v)&0xff; } while (0)
+#define reg_d ((reg_a << 8) | reg_b)
+#define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
 
 /* MPU interrupt state variables */
 unsigned int halt, nmi, firq, irq;
@@ -245,57 +245,57 @@ unsigned int halt, nmi, firq, irq;
 
 /* Operation templates */
 
-#define OP_NEG(a) { uint_least16_t octet; a(addr,octet); result = ~(octet) + 1; CLR_NZVC; SET_NZVC8(0, octet, result); TAKEN_CYCLES(1); store_byte(addr,result); }
-#define OP_COM(a) { uint_least16_t octet; a(addr,octet); octet = ~(octet); CLR_NZV; SET_NZ8(octet); reg_cc |= CC_C; TAKEN_CYCLES(1); store_byte(addr,octet); }
-#define OP_LSR(a) { uint_least16_t octet; a(addr,octet); CLR_NZC; reg_cc |= (octet & CC_C); octet &= 0xff; octet >>= 1; SET_Z(octet); TAKEN_CYCLES(1); store_byte(addr,octet); }
-#define OP_ROR(a) { uint_least16_t octet; a(addr,octet); result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= octet & CC_C; result |= (octet & 0xff) >> 1; SET_NZ8(result); TAKEN_CYCLES(1); store_byte(addr,result); }
-#define OP_ASR(a) { uint_least16_t octet; CLR_NZC; a(addr,octet); reg_cc |= (octet & CC_C); octet = (octet & 0x80) | ((octet & 0xff) >> 1); SET_NZ8(octet); TAKEN_CYCLES(1); store_byte(addr,octet); }
-#define OP_ASL(a) { uint_least16_t octet; a(addr,octet); result = octet << 1; CLR_NZVC; SET_NZVC8(octet, octet, result); TAKEN_CYCLES(1); store_byte(addr,result); }
-#define OP_ROL(a) { uint_least16_t octet; a(addr,octet); result = (octet<<1)|(reg_cc & 1); CLR_NZVC; SET_NZVC8(octet, octet, result); TAKEN_CYCLES(1); store_byte(addr,result); }
-#define OP_DEC(a) { uint_least16_t octet; a(addr,octet); octet--; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x7f) reg_cc |= CC_V; TAKEN_CYCLES(1); store_byte(addr,octet); }
-#define OP_INC(a) { uint_least16_t octet; a(addr,octet); octet++; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x80) reg_cc |= CC_V; TAKEN_CYCLES(1); store_byte(addr,octet); }
-#define OP_TST(a) { uint_least16_t octet; a(addr,octet); CLR_NZV; SET_NZ8(octet); TAKEN_CYCLES(2); }
+#define OP_NEG(a) { unsigned int octet; a(addr,octet); result = ~(octet) + 1; CLR_NZVC; SET_NZVC8(0, octet, result); TAKEN_CYCLES(1); store_byte(addr,result); }
+#define OP_COM(a) { unsigned int octet; a(addr,octet); octet = ~(octet); CLR_NZV; SET_NZ8(octet); reg_cc |= CC_C; TAKEN_CYCLES(1); store_byte(addr,octet); }
+#define OP_LSR(a) { unsigned int octet; a(addr,octet); CLR_NZC; reg_cc |= (octet & CC_C); octet &= 0xff; octet >>= 1; SET_Z(octet); TAKEN_CYCLES(1); store_byte(addr,octet); }
+#define OP_ROR(a) { unsigned int octet; a(addr,octet); result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= octet & CC_C; result |= (octet & 0xff) >> 1; SET_NZ8(result); TAKEN_CYCLES(1); store_byte(addr,result); }
+#define OP_ASR(a) { unsigned int octet; CLR_NZC; a(addr,octet); reg_cc |= (octet & CC_C); octet = (octet & 0x80) | ((octet & 0xff) >> 1); SET_NZ8(octet); TAKEN_CYCLES(1); store_byte(addr,octet); }
+#define OP_ASL(a) { unsigned int octet; a(addr,octet); result = octet << 1; CLR_NZVC; SET_NZVC8(octet, octet, result); TAKEN_CYCLES(1); store_byte(addr,result); }
+#define OP_ROL(a) { unsigned int octet; a(addr,octet); result = (octet<<1)|(reg_cc & 1); CLR_NZVC; SET_NZVC8(octet, octet, result); TAKEN_CYCLES(1); store_byte(addr,result); }
+#define OP_DEC(a) { unsigned int octet; a(addr,octet); octet--; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x7f) reg_cc |= CC_V; TAKEN_CYCLES(1); store_byte(addr,octet); }
+#define OP_INC(a) { unsigned int octet; a(addr,octet); octet++; octet &= 0xff; CLR_NZV; SET_NZ8(octet); if (octet == 0x80) reg_cc |= CC_V; TAKEN_CYCLES(1); store_byte(addr,octet); }
+#define OP_TST(a) { unsigned int octet; a(addr,octet); CLR_NZV; SET_NZ8(octet); TAKEN_CYCLES(2); }
 #define OP_JMP(a) { a(addr); reg_pc = addr; }
-#define OP_CLR(a) { uint_least16_t octet; a(addr,octet); TAKEN_CYCLES(1); store_byte(addr,0); CLR_NVC; reg_cc |= CC_Z; }
+#define OP_CLR(a) { unsigned int octet; a(addr,octet); TAKEN_CYCLES(1); store_byte(addr,0); CLR_NVC; reg_cc |= CC_Z; }
 
 #define OP_NEGR(r) { result = ~(r) + 1; CLR_NZVC; SET_NZVC8(0, r, result); r = result; peek_byte(reg_pc); }
 #define OP_COMR(r) { r = ~(r); CLR_NZV; SET_NZ8(r); reg_cc |= CC_C; peek_byte(reg_pc); }
 #define OP_LSRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r >>= 1; SET_Z(r); peek_byte(reg_pc); }
-#define OP_RORR(r) { result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= r & CC_C; result |= (r & 0xff) >> 1; SET_NZ8(result); r = result; peek_byte(reg_pc); }
-#define OP_ASRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r = (r & 0x80) | ((r & 0xff) >> 1); SET_NZ8(r); peek_byte(reg_pc); }
+#define OP_RORR(r) { result = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= r & CC_C; result |= r >> 1; SET_NZ8(result); r = result; peek_byte(reg_pc); }
+#define OP_ASRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r = (r & 0x80) | (r >> 1); SET_NZ8(r); peek_byte(reg_pc); }
 #define OP_ASLR(r) { result = r << 1; CLR_NZVC; SET_NZVC8(r, r, result); r = result; peek_byte(reg_pc); }
 #define OP_ROLR(r) { result = (reg_cc & CC_C) | (r << 1); CLR_NZVC; SET_NZVC8(r, r, result); r = result; peek_byte(reg_pc); }
 /* Note: this used to be "r--; r &= 0xff;", but gcc optimises too much away */
-#define OP_DECR(r) { r = (r - 1) & 0xff; CLR_NZV; SET_NZ8(r); if (r == 0x7f) reg_cc |= CC_V; peek_byte(reg_pc); }
-#define OP_INCR(r) { r = (r + 1) & 0xff; CLR_NZV; SET_NZ8(r); if (r == 0x80) reg_cc |= CC_V; peek_byte(reg_pc); }
+#define OP_DECR(r) { r = r - 1; CLR_NZV; SET_NZ8(r); if (r == 0x7f) reg_cc |= CC_V; peek_byte(reg_pc); }
+#define OP_INCR(r) { r = r + 1; CLR_NZV; SET_NZ8(r); if (r == 0x80) reg_cc |= CC_V; peek_byte(reg_pc); }
 #define OP_TSTR(r) { CLR_NZV; SET_NZ8(r); peek_byte(reg_pc); }
 #define OP_CLRR(r) { r = 0; CLR_NVC; reg_cc |= CC_Z; peek_byte(reg_pc); }
 
-#define OP_SUBD(a) { uint_least32_t tmp = reg_d, octet; a(addr,octet); result = tmp - octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); set_reg_d(result); TAKEN_CYCLES(1); }
-#define OP_ADDD(a) { uint_least32_t tmp = reg_d, octet; a(addr,octet); result = tmp + octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); set_reg_d(result); TAKEN_CYCLES(1); }
-#define OP_CMPD(a) { uint_least32_t tmp = reg_d, octet; a(addr,octet); result = tmp - octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); TAKEN_CYCLES(1); }
+#define OP_SUBD(a) { unsigned int tmp = reg_d, octet; a(addr,octet); result = tmp - octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); set_reg_d(result); TAKEN_CYCLES(1); }
+#define OP_ADDD(a) { unsigned int tmp = reg_d, octet; a(addr,octet); result = tmp + octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); set_reg_d(result); TAKEN_CYCLES(1); }
+#define OP_CMPD(a) { unsigned int tmp = reg_d, octet; a(addr,octet); result = tmp - octet; CLR_NZVC; SET_NZVC16(tmp, octet, result); TAKEN_CYCLES(1); }
 #define OP_LDD(a) { a(addr); reg_a = fetch_byte(addr); reg_b = fetch_byte(addr+1); CLR_NZV; SET_NZ_D(); }
 #define OP_LDD_IMM() { BYTE_IMMEDIATE(0,reg_a); BYTE_IMMEDIATE(0,reg_b); CLR_NZV; SET_NZ_D(); }
 #define OP_STD(a) { a(addr); store_byte(addr, reg_a); store_byte(addr+1, reg_b); CLR_NZV; SET_NZ_D(); }
 
-#define OP_SUB16(r,a) { uint_least32_t octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; TAKEN_CYCLES(1); }
-#define OP_ADD16(r,a) { uint_least32_t octet; a(addr,octet); result = r + octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; TAKEN_CYCLES(1); }
-#define OP_CMP16(r,a) { uint_least32_t octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); TAKEN_CYCLES(1); }
+#define OP_SUB16(r,a) { unsigned int octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; TAKEN_CYCLES(1); }
+#define OP_ADD16(r,a) { unsigned int octet; a(addr,octet); result = r + octet; CLR_NZVC; SET_NZVC16(r, octet, result); r = result; TAKEN_CYCLES(1); }
+#define OP_CMP16(r,a) { unsigned int octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC16(r, octet, result); TAKEN_CYCLES(1); }
 #define OP_LD16(r,a) { a(addr,r); CLR_NZV; SET_NZ16(r); }
-#define OP_ST16(r,a) { a(addr); store_byte(addr, r >> 8); store_byte(addr+1, r & 0xff); CLR_NZV; SET_NZ16(r); }
+#define OP_ST16(r,a) { a(addr); store_byte(addr, r >> 8); store_byte(addr+1, r); CLR_NZV; SET_NZ16(r); }
 #define OP_JSR(a) { a(addr); peek_byte(addr); PUSHWORD(reg_s, reg_pc); reg_pc = addr; }
 
-#define OP_SUB(r,a) { uint_least16_t octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
-#define OP_CMP(r,a) { uint_least16_t octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); }
-#define OP_SBC(r,a) { uint_least16_t octet; a(addr,octet); result = r - octet - (reg_cc & CC_C); CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
-#define OP_AND(r,a) { uint_least16_t octet; a(addr,octet); r &= octet; CLR_NZV; SET_NZ8(r); }
-#define OP_BIT(r,a) { uint_least16_t octet; a(addr,octet); result = r & octet; CLR_NZV; SET_NZ8(result); }
+#define OP_SUB(r,a) { unsigned int octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
+#define OP_CMP(r,a) { unsigned int octet; a(addr,octet); result = r - octet; CLR_NZVC; SET_NZVC8(r, octet, result); }
+#define OP_SBC(r,a) { unsigned int octet; a(addr,octet); result = r - octet - (reg_cc & CC_C); CLR_NZVC; SET_NZVC8(r, octet, result); r = result; }
+#define OP_AND(r,a) { unsigned int octet; a(addr,octet); r &= octet; CLR_NZV; SET_NZ8(r); }
+#define OP_BIT(r,a) { unsigned int octet; a(addr,octet); result = r & octet; CLR_NZV; SET_NZ8(result); }
 #define OP_LD(r,a) { a(addr,r); CLR_NZV; SET_NZ8(r); }
 #define OP_ST(r,a) { a(addr); store_byte(addr, r); CLR_NZV; SET_NZ8(r); }
-#define OP_EOR(r,a) { uint_least16_t octet; a(addr,octet); r ^= octet; CLR_NZV; SET_NZ8(r); }
-#define OP_ADC(r,a) { uint_least16_t octet; a(addr,octet); result = r + octet + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
-#define OP_OR(r,a) { uint_least16_t octet; a(addr,octet); r |= octet; CLR_NZV; SET_NZ8(r); }
-#define OP_ADD(r,a) { uint_least16_t octet; a(addr,octet); result = r + octet; CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
+#define OP_EOR(r,a) { unsigned int octet; a(addr,octet); r ^= octet; CLR_NZV; SET_NZ8(r); }
+#define OP_ADC(r,a) { unsigned int octet; a(addr,octet); result = r + octet + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
+#define OP_OR(r,a) { unsigned int octet; a(addr,octet); r |= octet; CLR_NZV; SET_NZ8(r); }
+#define OP_ADD(r,a) { unsigned int octet; a(addr,octet); result = r + octet; CLR_HNZVC; SET_NZVC8(r, octet, result); SET_H(r, octet, result); r = result; }
 
 #define BRANCHS(cond) do { \
 		SHORT_RELATIVE(addr); \
@@ -351,8 +351,8 @@ static unsigned int ea_indexed(void) {
 
 void m6809_cycle(Cycle until) {
 	unsigned int op;
-	uint_least16_t addr;
-	uint_least32_t result;
+	unsigned int addr;
+	unsigned int result;
 
 	while ((int)(current_cycle - until) < 0) {
 
@@ -521,7 +521,7 @@ void m6809_cycle(Cycle until) {
 			case 0x17: {
 				unsigned int new_pc;
 				LONG_RELATIVE(new_pc);
-				new_pc = (reg_pc + new_pc) & 0xffff;
+				new_pc = reg_pc + new_pc;
 				TAKEN_CYCLES(1);
 				peek_byte(new_pc);
 				TAKEN_CYCLES(1);
@@ -535,7 +535,7 @@ void m6809_cycle(Cycle until) {
 				if (reg_a >= 0x90 && (reg_a&0x0f) >= 0x0a) result |= 0x60;
 				if (reg_a >= 0xa0 || reg_cc & CC_C) result |= 0x60;
 				result += reg_a;
-				reg_a = result & 0xff;
+				reg_a = result;
 				CLR_NZVC;
 				SET_NZC8(result);
 				peek_byte(reg_pc);
@@ -586,8 +586,8 @@ void m6809_cycle(Cycle until) {
 					case 0x3: tmp2 = reg_u; reg_u = tmp1; break;
 					case 0x4: tmp2 = reg_s; reg_s = tmp1; break;
 					case 0x5: tmp2 = reg_pc; reg_pc = tmp1; break;
-					case 0x8: tmp2 = reg_a | 0xff00; reg_a = tmp1 & 0xff; break;
-					case 0x9: tmp2 = reg_b | 0xff00; reg_b = tmp1 & 0xff; break;
+					case 0x8: tmp2 = reg_a | 0xff00; reg_a = tmp1; break;
+					case 0x9: tmp2 = reg_b | 0xff00; reg_b = tmp1; break;
 					case 0xa: tmp2 = reg_cc | 0xff00; reg_cc = tmp1 & 0xff; break;
 					case 0xb: tmp2 = reg_dp | 0xff00; reg_dp = tmp1 & 0xff; break;
 					default:  tmp2 = 0xffff; break;
@@ -599,8 +599,8 @@ void m6809_cycle(Cycle until) {
 					case 0x3: reg_u = tmp2; break;
 					case 0x4: reg_s = tmp2; break;
 					case 0x5: reg_pc = tmp2; break;
-					case 0x8: reg_a = tmp2 & 0xff; break;
-					case 0x9: reg_b = tmp2 & 0xff; break;
+					case 0x8: reg_a = tmp2; break;
+					case 0x9: reg_b = tmp2; break;
 					case 0xa: reg_cc = tmp2 & 0xff; break;
 					case 0xb: reg_dp = tmp2 & 0xff; break;
 				}
@@ -631,8 +631,8 @@ void m6809_cycle(Cycle until) {
 					case 0x3: reg_u = tmp1; break;
 					case 0x4: reg_s = tmp1; break;
 					case 0x5: reg_pc = tmp1; break; 
-					case 0x8: reg_a = tmp1 & 0xff; break;
-					case 0x9: reg_b = tmp1 & 0xff; break;
+					case 0x8: reg_a = tmp1; break;
+					case 0x9: reg_b = tmp1; break;
 					case 0xa: reg_cc = tmp1 & 0xff; break;
 					case 0xb: reg_dp = tmp1 & 0xff; break;
 				}
@@ -900,7 +900,7 @@ void m6809_cycle(Cycle until) {
 			case 0x8d: {
 				unsigned int new_pc;
 				SHORT_RELATIVE(new_pc);
-				new_pc = (reg_pc + new_pc) & 0xffff;
+				new_pc = reg_pc + new_pc;
 				peek_byte(new_pc);
 				TAKEN_CYCLES(1);
 				PUSHWORD(reg_s, reg_pc);
