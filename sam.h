@@ -23,15 +23,10 @@
 	} while(0)
 #endif
 
-extern uint8_t *addrptr_low;
-extern uint8_t *addrptr_high;
-extern uint_least16_t sam_register;
-extern uint_least16_t sam_vdg_base;
-extern unsigned int  sam_vdg_mode;
-extern uint_least16_t sam_vdg_address;
-extern uint_least16_t sam_vdg_mod_clear;
-extern unsigned int  sam_vdg_xcount;
-extern unsigned int  sam_vdg_ycount;
+extern unsigned int sam_register;
+extern unsigned int sam_vdg_mode;
+extern unsigned int sam_vdg_address;
+extern unsigned int sam_vdg_mod_clear;
 #if defined(HAVE_GP32) || defined(HAVE_NDS)
 # define sam_topaddr_cycles CPU_SLOW_DIVISOR
 #else
@@ -42,17 +37,12 @@ static inline void sam_vdg_hsync(void) {
 	sam_vdg_address &= sam_vdg_mod_clear;
 }
 
-static inline void sam_vdg_fsync(void) {
-	sam_vdg_address = sam_vdg_base;
-	sam_vdg_xcount = 0;
-	sam_vdg_ycount = 0;
-}
-
 void sam_init(void);
 void sam_reset(void);
-unsigned int sam_read_byte(uint_least16_t addr);
-void sam_store_byte(uint_least16_t addr, unsigned int octet);
+unsigned int sam_read_byte(unsigned int addr);
+void sam_store_byte(unsigned int addr, unsigned int octet);
+void sam_vdg_fsync(void);
 uint8_t *sam_vdg_bytes(int number);
-void sam_update_from_register(void);
+void sam_set_register(unsigned int value);
 
 #endif  /* __SAM_H__ */

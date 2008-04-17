@@ -96,8 +96,7 @@ extern int running_machine;
 extern MachineConfig requested_config;
 extern MachineConfig running_config;
 
-extern uint_least16_t machine_page0_ram;  /* Base RAM in bytes, up to 32K */
-extern uint_least16_t machine_page1_ram;  /* Generally 0 or 32K */
+extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
 extern uint8_t ram0[0x10000];
 extern uint8_t rom0[0x8000];
 extern uint8_t rom1[0x8000];
@@ -114,7 +113,6 @@ void machine_reset(int hard);
 
 void machine_clear_requested_config(void);
 
-void machine_set_page0_ram_size(unsigned int size);
-void machine_set_page1_ram_size(unsigned int size);
+void machine_set_ram_size(unsigned int size);
 
 #endif  /* __MACHINE_H__ */

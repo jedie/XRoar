@@ -77,13 +77,14 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, running_config.dos_type);
 	fs_write_byte(fd, running_config.cross_colour_phase);
 	/* RAM page 0 */
-	fs_write_byte(fd, ID_RAM_PAGE0); fs_write_word16(fd, machine_page0_ram);
-	fs_write(fd, ram0, machine_page0_ram);
+	fs_write_byte(fd, ID_RAM_PAGE0);
+	fs_write_word16(fd, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
+	fs_write(fd, ram0, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
 	/* RAM page 1 */
-	if (machine_page1_ram > 0) {
+	if (machine_ram_size > 0x8000) {
 		fs_write_byte(fd, ID_RAM_PAGE1);
-		fs_write_word16(fd, machine_page1_ram);
-		fs_write(fd, ram0 + 0x8000, machine_page1_ram);
+		fs_write_word16(fd, machine_ram_size - 0x8000);
+		fs_write(fd, ram0 + 0x8000, machine_ram_size - 0x8000);
 	}
 	/* PIA state written before CPU state because PIA may have
 	 * unacknowledged interrupts pending already cleared in the CPU
@@ -360,8 +361,7 @@ int read_snapshot(const char *filename) {
 				if (size < 2) break;
 				fs_read_word16(fd, &tmp16);
 				size -= 2;
-				sam_register = tmp16;
-				sam_update_from_register();
+				sam_set_register(tmp16);
 				break;
 			case ID_SNAPVERSION:
 				/* Snapshot version - abort if snapshot

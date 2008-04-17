@@ -75,8 +75,7 @@ MachineConfig requested_config = {
 int running_machine;
 MachineConfig running_config;
 
-uint_least16_t machine_page0_ram = 0x8000;  /* Base RAM in bytes, up to 32K */
-uint_least16_t machine_page1_ram = 0x8000;  /* Generally 0 or 32K */
+unsigned int machine_ram_size = 0x10000;  /* RAM in bytes, up to 64K */
 uint8_t ram0[0x10000];
 uint8_t rom0[0x8000];
 uint8_t rom1[0x8000];
@@ -311,12 +310,7 @@ void machine_reset(int hard) {
 		keyboard_set_keymap(running_config.keymap);
 		/* Configure RAM */
 		memset(ram0, 0x00, sizeof(ram0));
-		machine_set_page0_ram_size(running_config.ram * 1024);
-		if (running_config.ram > 32) {
-			machine_set_page1_ram_size((running_config.ram-32) * 1024);
-		} else {
-			machine_set_page1_ram_size(0);
-		}
+		machine_set_ram_size(running_config.ram * 1024);
 	}
 	if (IS_DRAGON64)
 		PIA1.b.port_input |= (1<<2);
@@ -351,21 +345,13 @@ void machine_clear_requested_config(void) {
 	requested_config.dos_rom = NULL;
 }
 
-/* Set RAM sizes for page0, page1 */
-void machine_set_page0_ram_size(unsigned int size) {
-	if (size > 0x8000)
-		size = 0x8000;
-	machine_page0_ram = size;
-	if (size < 0x8000)
-		memset(ram0 + size, 0x7e, 0x8000 - size);
-}
-
-void machine_set_page1_ram_size(unsigned int size) {
-	if (size > 0x8000)
-		size = 0x8000;
-	machine_page1_ram = size;
-	if (size < 0x8000)
-		memset(ram0 + 0x8000 + size, 0x7e, 0x8000 - size);
+/* Set RAM size */
+void machine_set_ram_size(unsigned int size) {
+	if (size > 0x10000)
+		size = 0x10000;
+	machine_ram_size = size;
+	if (size < 0x10000)
+		memset(ram0 + size, 0x7e, 0x10000 - size);
 }
 
 /**************************************************************************/
