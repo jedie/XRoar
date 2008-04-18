@@ -178,15 +178,15 @@ static enum {
 } cpu_state;
 
 /* MPU registers & internal state */
-static unsigned int reg_cc = 0;
-static uint8_t reg_a = 0;
-static uint8_t reg_b = 0;
-static unsigned int reg_dp = 0;
-static uint16_t reg_x = 0;
-static uint16_t reg_y = 0;
-static uint16_t reg_u = 0;
-static uint16_t reg_s = 0;
-static uint16_t reg_pc = 0;
+static unsigned int register_cc = 0;
+static unsigned int register_a = 0;
+static unsigned int register_b = 0;
+static unsigned int register_dp = 0;
+static unsigned int register_x = 0;
+static unsigned int register_y = 0;
+static unsigned int register_u = 0;
+static unsigned int register_s = 0;
+static unsigned int register_pc = 0;
 static int nmi_armed = 0;
 
 #define reg_d ((reg_a << 8) | reg_b)
@@ -316,37 +316,10 @@ void m6809_init(void) {
 void m6809_reset(void) {
 	halt = nmi = firq = irq = 0;
 	DISARM_NMI;
-	reg_cc = reg_a = reg_b = reg_dp = 0;
-	reg_x = reg_y = reg_u = reg_s = reg_pc = 0;
+	register_cc = register_a = register_b = register_dp = 0;
+	register_x = register_y = register_u = register_s = register_pc = 0;
 	TRACE_RESET();
 	cpu_state = flow_reset;
-}
-
-static unsigned int ea_indexed(void);
-static unsigned int ea_indexed(void) {
-	unsigned int ea;
-	uint8_t postbyte;
-	BYTE_IMMEDIATE(0,postbyte);
-	switch (postbyte) {
-		EA_ALLR(EA_ROFF5,   0x00);
-		EA_ALLR(EA_RI1,     0x80); EA_ALLRI(EA_RI1,     0x90);
-		EA_ALLR(EA_RI2,     0x81); EA_ALLRI(EA_RI2,     0x91);
-		EA_ALLR(EA_RD1,     0x82); EA_ALLRI(EA_RD1,     0x92);
-		EA_ALLR(EA_RD2,     0x83); EA_ALLRI(EA_RD2,     0x93);
-		EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94);
-		EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95);
-		EA_ALLR(EA_ROFFA,   0x86); EA_ALLRI(EA_ROFFA,   0x96);
-		EA_ALLR(EA_ROFF0,   0x87); EA_ALLRI(EA_ROFF0,   0x97);
-		EA_ALLR(EA_ROFF8,   0x88); EA_ALLRI(EA_ROFF8,   0x98);
-		EA_ALLR(EA_ROFF16,  0x89); EA_ALLRI(EA_ROFF16,  0x99);
-		EA_ALLR(EA_PCOFFFF, 0x8a); EA_ALLRI(EA_PCOFFFF, 0x9a);
-		EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
-		EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
-		EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
-		EA_ALLR(EA_EXT,     0x8f); EA_ALLRI(EA_EXTIND,  0x9f);
-		default: ea = 0; break;
-	}
-	return ea & 0xffff;
 }
 
 void m6809_cycle(Cycle until) {
@@ -354,7 +327,44 @@ void m6809_cycle(Cycle until) {
 	unsigned int addr;
 	unsigned int result;
 
-	while ((int)(current_cycle - until) < 0) {
+	unsigned int reg_cc = register_cc;
+	uint8_t reg_a  = register_a;
+	uint8_t reg_b  = register_b;
+	unsigned int reg_dp = register_dp;
+	uint16_t reg_x  = register_x;
+	uint16_t reg_y  = register_y;
+	uint16_t reg_u  = register_u;
+	uint16_t reg_s  = register_s;
+	uint16_t reg_pc = register_pc;
+
+	auto unsigned int ea_indexed(void);
+	auto unsigned int ea_indexed(void) {
+		unsigned int ea;
+		unsigned int postbyte;
+		BYTE_IMMEDIATE(0,postbyte);
+		switch (postbyte) {
+			EA_ALLR(EA_ROFF5,   0x00);
+			EA_ALLR(EA_RI1,     0x80); EA_ALLRI(EA_RI1,     0x90);
+			EA_ALLR(EA_RI2,     0x81); EA_ALLRI(EA_RI2,     0x91);
+			EA_ALLR(EA_RD1,     0x82); EA_ALLRI(EA_RD1,     0x92);
+			EA_ALLR(EA_RD2,     0x83); EA_ALLRI(EA_RD2,     0x93);
+			EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94);
+			EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95);
+			EA_ALLR(EA_ROFFA,   0x86); EA_ALLRI(EA_ROFFA,   0x96);
+			EA_ALLR(EA_ROFF0,   0x87); EA_ALLRI(EA_ROFF0,   0x97);
+			EA_ALLR(EA_ROFF8,   0x88); EA_ALLRI(EA_ROFF8,   0x98);
+			EA_ALLR(EA_ROFF16,  0x89); EA_ALLRI(EA_ROFF16,  0x99);
+			EA_ALLR(EA_PCOFFFF, 0x8a); EA_ALLRI(EA_PCOFFFF, 0x9a);
+			EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
+			EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
+			EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
+			EA_ALLR(EA_EXT,     0x8f); EA_ALLRI(EA_EXTIND,  0x9f);
+			default: ea = 0; break;
+		}
+		return ea;
+	}
+
+	while ((int)(m6809_current_cycle - until) < 0) {
 
 		m6809_sync();
 
@@ -1267,18 +1277,28 @@ void m6809_cycle(Cycle until) {
 
 		}
 	}
+
+	register_cc = reg_cc;
+	register_a  = reg_a;
+	register_b  = reg_b;
+	register_dp = reg_dp;
+	register_x  = reg_x;
+	register_y  = reg_y;
+	register_u  = reg_u;
+	register_s  = reg_s;
+	register_pc = reg_pc;
 }
 
 void m6809_get_state(M6809State *state) {
-	state->reg_cc = reg_cc;
-	state->reg_a = reg_a;
-	state->reg_b = reg_b;
-	state->reg_dp = reg_dp;
-	state->reg_x = reg_x;
-	state->reg_y = reg_y;
-	state->reg_u = reg_u;
-	state->reg_s = reg_s;
-	state->reg_pc = reg_pc;
+	state->reg_cc = register_cc;
+	state->reg_a = register_a;
+	state->reg_b = register_b;
+	state->reg_dp = register_dp;
+	state->reg_x = register_x;
+	state->reg_y = register_y;
+	state->reg_u = register_u;
+	state->reg_s = register_s;
+	state->reg_pc = register_pc;
 	state->halt = halt;
 	state->nmi = nmi;
 	state->firq = firq;
@@ -1288,15 +1308,15 @@ void m6809_get_state(M6809State *state) {
 }
 
 void m6809_set_state(M6809State *state) {
-	reg_cc = state->reg_cc;
-	reg_a = state->reg_a;
-	reg_b = state->reg_b;
-	reg_dp = state->reg_dp;
-	reg_x = state->reg_x;
-	reg_y = state->reg_y;
-	reg_u = state->reg_u;
-	reg_s = state->reg_s;
-	reg_pc = state->reg_pc;
+	register_cc = state->reg_cc;
+	register_a = state->reg_a;
+	register_b = state->reg_b;
+	register_dp = state->reg_dp;
+	register_x = state->reg_x;
+	register_y = state->reg_y;
+	register_u = state->reg_u;
+	register_s = state->reg_s;
+	register_pc = state->reg_pc;
 	halt = state->halt;
 	nmi = state->nmi;
 	firq = state->firq;
@@ -1306,5 +1326,5 @@ void m6809_set_state(M6809State *state) {
 }
 
 void m6809_jump(unsigned int pc) {
-	reg_pc = pc & 0xffff;
+	register_pc = pc & 0xffff;
 }
