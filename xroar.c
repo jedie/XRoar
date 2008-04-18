@@ -25,6 +25,7 @@
 #include "cart.h"
 #include "events.h"
 #include "fs.h"
+#include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "m6809.h"
@@ -32,6 +33,9 @@
 #include "module.h"
 #include "sam.h"
 #include "snapshot.h"
+#include "tape.h"
+#include "vdisk.h"
+#include "vdrive.h"
 #include "xroar.h"
 
 #ifdef TRACE
@@ -59,6 +63,7 @@ static struct {
 	{ "CAS", FILETYPE_CAS },
 	{ "WAV", FILETYPE_WAV },
 	{ "SN",  FILETYPE_SNA },
+	{ "ROM", FILETYPE_ROM },
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
@@ -207,4 +212,38 @@ int xroar_filetype_by_ext(const char *filename) {
 			return filetypes[i].filetype;
 	}
 	return FILETYPE_UNKNOWN;
+}
+
+/* Bits set in 'mode' affect behaviour per-filetype:
+ *   XROAR_AUTORUN_CAS: try to autorun any CAS file
+ *   XROAR_AUTORUN_CART: enable cartridge FIRQ autostarter
+ */
+int xroar_load_file(const char *filename, int mode) {
+	int filetype;
+	if (filename == NULL)
+		return 1;
+	filetype = xroar_filetype_by_ext(filename);
+	switch (filetype) {
+		case FILETYPE_VDK:
+		case FILETYPE_JVC:
+		case FILETYPE_DMK:
+			vdrive_eject_disk(0);
+			return vdrive_insert_disk(0, vdisk_load(filename));
+		case FILETYPE_BIN:
+			return coco_bin_read(filename);
+		case FILETYPE_HEX:
+			return intel_hex_read(filename);
+		case FILETYPE_SNA:
+			return read_snapshot(filename);
+		case FILETYPE_ROM:
+			return cart_insert(filename, mode & XROAR_AUTORUN_CART);
+		case FILETYPE_CAS:
+			if (mode & XROAR_AUTORUN_CAS)
+				return tape_autorun(filename);
+			else
+				return tape_open_reading(filename);
+		case FILETYPE_WAV:
+		default:
+			return tape_open_reading(filename);
+	}
 }

@@ -6,7 +6,7 @@
 #ifndef __HEXS19_H__
 #define __HEXS19_H__
 
-int intel_hex_read(char *filename);
-int coco_bin_read(char *filename);
+int intel_hex_read(const char *filename);
+int coco_bin_read(const char *filename);
 
 #endif  /* __HEXS19_H__ */

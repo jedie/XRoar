@@ -54,7 +54,7 @@ static int skip_eol(int fd) {
 	return 0;
 }
 
-int intel_hex_read(char *filename) {
+int intel_hex_read(const char *filename) {
 	int fd;
 	int i, length, addr, type, sum;
 	uint8_t data;
@@ -95,7 +95,7 @@ int intel_hex_read(char *filename) {
 	return 0;
 }
 
-int coco_bin_read(char *filename) {
+int coco_bin_read(const char *filename) {
 	int fd;
 	uint8_t tmp;
 	unsigned int length, load, exec;

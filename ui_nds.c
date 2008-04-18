@@ -295,22 +295,7 @@ static void mi_load_release(int id) {
 static void mi_load_file(char *filename) {
 	int type = xroar_filetype_by_ext(filename);
 	irqDisable(IRQ_VBLANK | IRQ_VCOUNT);
-	switch (type) {
-		case FILETYPE_VDK: case FILETYPE_JVC:
-		case FILETYPE_DMK:
-			vdrive_eject_disk(0);
-			vdrive_insert_disk(0, vdisk_load(filename));
-			break;
-		case FILETYPE_BIN:
-			coco_bin_read(filename); break;
-		case FILETYPE_HEX:
-			intel_hex_read(filename); break;
-		case FILETYPE_SNA:
-			read_snapshot(filename); break;
-		case FILETYPE_CAS: default:
-			tape_open_reading(filename);
-			break;
-	}
+	xroar_load_file(filename, XROAR_AUTORUN_CAS | XROAR_AUTORUN_CART);
 	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 }
 

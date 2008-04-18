@@ -128,6 +128,9 @@ static void shutdown(void) {
 	event_free(poll_event);
 }
 
+#define LOAD_FILE_MODE       (XROAR_AUTORUN_CART)
+#define LOAD_FILE_MODE_SHIFT (XROAR_AUTORUN_CAS)
+
 static void emulator_command(SDLKey sym) {
 	switch (sym) {
 	case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
@@ -199,16 +202,6 @@ static void emulator_command(SDLKey sym) {
 		if (video_module->set_fullscreen)
 			video_module->set_fullscreen(!video_module->is_fullscreen);
 		break;
-	case SDLK_i:
-		{
-		const char *cart_exts[] = { "ROM", NULL };
-		char *filename = filereq_module->load_filename(cart_exts);
-		if (filename)
-			cart_insert(filename, shift ? 0 : 1);
-		else
-			cart_remove();
-		}
-		break;
 	case SDLK_j:
 		if (emulate_joystick || input_joysticks_swapped)
 			input_control_press(INPUT_SWAP_JOYSTICKS, 0);
@@ -220,34 +213,13 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_b:
 	case SDLK_h:
-	case SDLK_l:
+	case SDLK_i:
 	case SDLK_t:
+	case SDLK_l:
 		{
-		char *filename;
-		int type;
-		filename = filereq_module->load_filename(NULL);
-		if (filename == NULL)
-			break;
-		type = xroar_filetype_by_ext(filename);
-		switch (type) {
-		case FILETYPE_VDK: case FILETYPE_JVC:
-		case FILETYPE_DMK:
-			vdrive_eject_disk(0);
-			vdrive_insert_disk(0, vdisk_load(filename));
-			break;
-		case FILETYPE_BIN:
-			coco_bin_read(filename); break;
-		case FILETYPE_HEX:
-			intel_hex_read(filename); break;
-		case FILETYPE_SNA:
-			read_snapshot(filename); break;
-		case FILETYPE_CAS: default:
-			if (shift)
-				tape_autorun(filename);
-			else
-				tape_open_reading(filename);
-			break;
-		}
+		char *filename = filereq_module->load_filename(NULL);
+		xroar_load_file(filename,
+		                shift ? LOAD_FILE_MODE_SHIFT : LOAD_FILE_MODE);
 		}
 		break;
 	case SDLK_m:

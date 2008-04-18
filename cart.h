@@ -10,7 +10,7 @@ void cart_helptext(void);
 void cart_getargs(int argc, char **argv);
 void cart_init(void);
 void cart_reset(void);
-void cart_insert(char *filename, int autostart);
+int cart_insert(const char *filename, int autostart);
 void cart_remove(void);
 
 #endif  /* __CART_H__ */

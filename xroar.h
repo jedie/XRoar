@@ -21,6 +21,10 @@
 #define FILETYPE_CAS (6)
 #define FILETYPE_WAV (7)
 #define FILETYPE_SNA (8)
+#define FILETYPE_ROM (9)
+
+#define XROAR_AUTORUN_CAS  (1 << 0)
+#define XROAR_AUTORUN_CART (1 << 1)
 
 extern int requested_frameskip;
 extern int frameskip;
@@ -33,5 +37,6 @@ int xroar_init(int argc, char **argv);
 void xroar_shutdown(void);
 void xroar_mainloop(void);
 int xroar_filetype_by_ext(const char *filename);
+int xroar_load_file(const char *filename, int mode);
 
 #endif  /* __XROAR_H__ */

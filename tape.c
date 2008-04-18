@@ -105,7 +105,7 @@ void tape_shutdown(void) {
 	tape_reset();
 }
 
-int tape_open_reading(char *filename) {
+int tape_open_reading(const char *filename) {
 #ifdef HAVE_SNDFILE
 	SF_INFO info;
 #endif
@@ -164,7 +164,7 @@ void tape_close_reading(void) {
 	read_fd = -1;
 }
 
-int tape_open_writing(char *filename) {
+int tape_open_writing(const char *filename) {
 	tape_close_writing();
 	if ((write_fd = fs_open(filename, FS_WRITE)) == -1)
 		return -1;
@@ -185,7 +185,7 @@ void tape_close_writing(void) {
 /* Close any currently-open tape file, open a new one and read the first
  * bufferful of data.  Tries to guess the filetype.  Returns -1 on error,
  * 0 for a BASIC program, 1 for data and 2 for M/C. */
-int tape_autorun(char *filename) {
+int tape_autorun(const char *filename) {
 	int state, type, count = 0;
 	if (filename == NULL)
 		return -1;

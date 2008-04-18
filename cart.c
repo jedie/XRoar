@@ -33,7 +33,7 @@ static char *cart_filename;
 static int cart_autostart;
 
 static void cart_configure(const char *filename, int autostart);
-static void cart_load(void);
+static int cart_load(void);
 static void cart_interrupt(void *context);
 
 void cart_helptext(void) {
@@ -67,9 +67,9 @@ void cart_reset(void) {
 	cart_load();
 }
 
-void cart_insert(char *filename, int autostart) {
+int cart_insert(const char *filename, int autostart) {
 	cart_configure(filename, autostart);
-	cart_load();
+	return cart_load();
 }
 
 void cart_remove(void) {
@@ -89,13 +89,13 @@ static void cart_configure(const char *filename, int autostart) {
 	cart_autostart = autostart;
 }
 
-static void cart_load(void) {
+static int cart_load(void) {
 	int fd;
 	if (cart_filename == NULL)
-		return;
+		return -1;
 	if ((fd = fs_open(cart_filename, FS_READ)) == -1) {
 		cart_remove();
-		return;
+		return -1;
 	}
 	LOG_DEBUG(3, "Loading cartridge: %s\n", cart_filename);
 	fs_read(fd, rom0+0x4000, sizeof(rom0)-0x4000);
@@ -106,6 +106,7 @@ static void cart_load(void) {
 	} else {
 		event_dequeue(&cart_event);
 	}
+	return 0;
 }
 
 static void cart_interrupt(void *context) {

@@ -12,12 +12,12 @@ void tape_init(void);
 void tape_reset(void);
 void tape_shutdown(void);
 
-int tape_open_reading(char *filename);
+int tape_open_reading(const char *filename);
 void tape_close_reading(void);
-int tape_open_writing(char *filename);
+int tape_open_writing(const char *filename);
 void tape_close_writing(void);
 
-int tape_autorun(char *filename);
+int tape_autorun(const char *filename);
 
 void tape_update_motor(void);
 void tape_update_output(void);

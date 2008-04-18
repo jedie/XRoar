@@ -434,6 +434,7 @@ static void load_file_callback(unsigned int opt) {
 		"SN7", "SN8", "SN9",
 		"CAS", "BIN", "HEX",
 		"DMK", "JVC", "VDK", "DSK",
+		"ROM",
 		NULL };
 	char *filename;
 	int type;
@@ -442,24 +443,7 @@ static void load_file_callback(unsigned int opt) {
 	if (filename == NULL)
 		return;
 	set_save_basename(filename);
-	type = xroar_filetype_by_ext(filename);
-	switch (type) {
-		case FILETYPE_VDK: case FILETYPE_JVC:
-		case FILETYPE_DMK:
-			vdrive_eject_disk(0);
-			vdrive_insert_disk(0, vdisk_load(filename));
-			break;
-		case FILETYPE_BIN:
-			coco_bin_read(filename); break;
-		case FILETYPE_HEX:
-			intel_hex_read(filename); break;
-		case FILETYPE_SNA:
-			read_snapshot(filename); break;
-		case FILETYPE_CAS:
-			tape_autorun(filename); break;
-		default:
-			break;
-	}
+	xroar_load_file(filename, XROAR_AUTORUN_CAS | XROAR_AUTORUN_CART);
 }
 
 static void snapshot_save_callback(unsigned int opt) {
