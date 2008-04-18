@@ -31,6 +31,7 @@ _sndfile=auto
 _mingw=auto
 _gp32=auto
 _nds=auto
+_mpu_rate=auto
 _trace=no
 _fast_vdg=auto
 
@@ -43,8 +44,8 @@ esac
 
 helptext () {
 	cat <<EOF
-Usage: $0 [OPTION]... 
-  
+Usage: $0 [OPTION]...
+
 Installation directories:
   --prefix=PREFIX         install architecture-independent files in PREFIX
                           [$prefix]
@@ -74,6 +75,7 @@ Optional Features:
   --disable-gp32        don't test for GP32
   --disable-nds         don't test for Nintendo DS
   --enable-trace        enable trace mode
+  --disable-mpu-rate    disable setting of emulated MPU rate
   --enable-fast-vdg     enable faster but less accurate VDG code
 
   --with-sdl-config=PATH   set path to sdl-config script
@@ -280,7 +282,7 @@ fi
 if test "$build_pkg_config" = "auto"; then
 	if ( pkg-config --version ) > /dev/null 2>&1; then
 		build_pkg_config="pkg-config"
-	else    
+	else
 		build_pkg_config="false"
 	fi
 fi
@@ -345,13 +347,14 @@ if test "$_gp32" = "yes"; then
 	_gtk1=no
 	_cli=no
 	_carbon=no
-	_oss=no 
-	_sun=no 
+	_oss=no
+	_sun=no
 	_coreaudio=no
 	_jack=no
 	_nullaudio=no
 	_mingw=no
 	_nds=no
+	test "$_mpu_rate" = "auto" && _mpu_rate=no
 else
 	_gp32_def="#undef HAVE_GP32"
 	TARGET_CRT0=
@@ -386,12 +389,13 @@ if test "$_nds" = "yes"; then
 	_gtk1=no
 	_cli=no
 	_carbon=no
-	_oss=no 
-	_sun=no 
+	_oss=no
+	_sun=no
 	_coreaudio=no
 	_jack=no
 	_nullaudio=no
 	_mingw=no
+	test "$_mpu_rate" = "auto" && _mpu_rate=no
 else
 	_nds_def="#undef HAVE_NDS"
 fi
@@ -764,6 +768,15 @@ fi
 
 ########
 
+test "$_mpu_rate" = "auto" && _mpu_rate=yes
+if test "$_mpu_rate" = "yes"; then
+	_mpu_rate_def="#define VARIABLE_MPU_RATE"
+else
+	_mpu_rate_def="#undef VARIABLE_MPU_RATE"
+fi
+
+########
+
 if test "$_trace" = "yes"; then
 	echo "Trace mode enabled"
 	_trace_def="#define TRACE"
@@ -892,6 +905,9 @@ $_nds_def
 
 /* MinGW (Windows32)? */
 $_mingw_def
+
+/* MPU rate adjustable? */
+$_mpu_rate_def
 
 /* Build trace mode? */
 $_trace_def

@@ -274,13 +274,17 @@ static void update_from_register(void) {
 
 	if ((map_type = sam_register & 0x8000)) {
 		/* Map type 1 */
+#ifdef VARIABLE_MPU_RATE
 		sam_topaddr_cycles = CPU_SLOW_DIVISOR;
+#endif
 	} else {
 		/* Map type 0 */
 		if (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))
 			selected_rom = rom1;
 		else
 			selected_rom = rom0;
+#ifdef VARIABLE_MPU_RATE
 		sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
+#endif
 	}
 }
