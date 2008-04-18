@@ -177,23 +177,38 @@ static enum {
 	flow_sync_check_halt
 } cpu_state;
 
+/* Registers:
+ *   These definitions hold the current state of the MPU registers.  If
+ *   HAVE_C_NESTED_FUNCTIONS is defined, m6809_cycle() will copy them to local
+ *   variables to allow gcc to better optimise their use, and then copy
+ *   them back before it returns.  In that case, to save changing all the
+ *   macros, we change the names used here from reg_* to register_*.
+ *   Outside of m6809_cycle() we get their real name by using the REGISTER
+ *   macro.  */
+
+#ifdef HAVE_C_NESTED_FUNCTIONS
+# define REGISTER(r) register_##r
+#else
+# define REGISTER(r) reg_##r
+#endif
+
 /* MPU registers & internal state */
-static unsigned int register_cc = 0;
-static unsigned int register_a = 0;
-static unsigned int register_b = 0;
-static unsigned int register_dp = 0;
-static unsigned int register_x = 0;
-static unsigned int register_y = 0;
-static unsigned int register_u = 0;
-static unsigned int register_s = 0;
-static unsigned int register_pc = 0;
-static int nmi_armed = 0;
+static unsigned int REGISTER(cc) = 0;
+static uint8_t REGISTER(a) = 0;
+static uint8_t REGISTER(b) = 0;
+static unsigned int REGISTER(dp) = 0;
+static uint16_t REGISTER(x) = 0;
+static uint16_t REGISTER(y) = 0;
+static uint16_t REGISTER(u) = 0;
+static uint16_t REGISTER(s) = 0;
+static uint16_t REGISTER(pc) = 0;
 
 #define reg_d ((reg_a << 8) | reg_b)
 #define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
 
 /* MPU interrupt state variables */
 unsigned int halt, nmi, firq, irq;
+static int nmi_armed = 0;
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 #define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))
@@ -240,6 +255,32 @@ unsigned int halt, nmi, firq, irq;
 #define EA_IND(m,b,r) m(b,r); ea = fetch_byte(ea) << 8 | fetch_byte(ea+1); TAKEN_CYCLES(1)
 
 #define EA_INDEXED(a) do { a = ea_indexed(); } while (0)
+
+#define EA_INDEXED_FUNC unsigned int ea_indexed(void)
+#define EA_INDEXED_BODY \
+	unsigned int ea; \
+	unsigned int postbyte; \
+	BYTE_IMMEDIATE(0,postbyte); \
+	switch (postbyte) { \
+		EA_ALLR(EA_ROFF5,   0x00); \
+		EA_ALLR(EA_RI1,     0x80); EA_ALLRI(EA_RI1,     0x90); \
+		EA_ALLR(EA_RI2,     0x81); EA_ALLRI(EA_RI2,     0x91); \
+		EA_ALLR(EA_RD1,     0x82); EA_ALLRI(EA_RD1,     0x92); \
+		EA_ALLR(EA_RD2,     0x83); EA_ALLRI(EA_RD2,     0x93); \
+		EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94); \
+		EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95); \
+		EA_ALLR(EA_ROFFA,   0x86); EA_ALLRI(EA_ROFFA,   0x96); \
+		EA_ALLR(EA_ROFF0,   0x87); EA_ALLRI(EA_ROFF0,   0x97); \
+		EA_ALLR(EA_ROFF8,   0x88); EA_ALLRI(EA_ROFF8,   0x98); \
+		EA_ALLR(EA_ROFF16,  0x89); EA_ALLRI(EA_ROFF16,  0x99); \
+		EA_ALLR(EA_PCOFFFF, 0x8a); EA_ALLRI(EA_PCOFFFF, 0x9a); \
+		EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b); \
+		EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c); \
+		EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d); \
+		EA_ALLR(EA_EXT,     0x8f); EA_ALLRI(EA_EXTIND,  0x9f); \
+		default: ea = 0; break; \
+	} \
+	return ea
 
 /* ------------------------------------------------------------------------- */
 
@@ -310,14 +351,23 @@ unsigned int halt, nmi, firq, irq;
 
 /* ------------------------------------------------------------------------- */
 
+/* If nested functions aren't supported, define ea_indexed() here. */
+#ifndef HAVE_C_NESTED_FUNCTIONS
+static EA_INDEXED_FUNC;
+static EA_INDEXED_FUNC {
+	EA_INDEXED_BODY;
+}
+#endif
+
 void m6809_init(void) {
 }
 
 void m6809_reset(void) {
 	halt = nmi = firq = irq = 0;
 	DISARM_NMI;
-	register_cc = register_a = register_b = register_dp = 0;
-	register_x = register_y = register_u = register_s = register_pc = 0;
+	REGISTER(cc) = REGISTER(a) = REGISTER(b) = REGISTER(dp) = 0;
+	REGISTER(x) = REGISTER(y) = REGISTER(u) = REGISTER(s) = 0;
+	REGISTER(pc) = 0;
 	TRACE_RESET();
 	cpu_state = flow_reset;
 }
@@ -327,6 +377,10 @@ void m6809_cycle(Cycle until) {
 	unsigned int addr;
 	unsigned int result;
 
+	/* If nested functions are available, we can nest ea_indexed() and
+	 * copy registers to local variables, allowing for better
+	 * optimisation.  */
+#ifdef HAVE_C_NESTED_FUNCTIONS
 	unsigned int reg_cc = register_cc;
 	uint8_t reg_a  = register_a;
 	uint8_t reg_b  = register_b;
@@ -337,32 +391,11 @@ void m6809_cycle(Cycle until) {
 	uint16_t reg_s  = register_s;
 	uint16_t reg_pc = register_pc;
 
-	auto unsigned int ea_indexed(void);
-	auto unsigned int ea_indexed(void) {
-		unsigned int ea;
-		unsigned int postbyte;
-		BYTE_IMMEDIATE(0,postbyte);
-		switch (postbyte) {
-			EA_ALLR(EA_ROFF5,   0x00);
-			EA_ALLR(EA_RI1,     0x80); EA_ALLRI(EA_RI1,     0x90);
-			EA_ALLR(EA_RI2,     0x81); EA_ALLRI(EA_RI2,     0x91);
-			EA_ALLR(EA_RD1,     0x82); EA_ALLRI(EA_RD1,     0x92);
-			EA_ALLR(EA_RD2,     0x83); EA_ALLRI(EA_RD2,     0x93);
-			EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94);
-			EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95);
-			EA_ALLR(EA_ROFFA,   0x86); EA_ALLRI(EA_ROFFA,   0x96);
-			EA_ALLR(EA_ROFF0,   0x87); EA_ALLRI(EA_ROFF0,   0x97);
-			EA_ALLR(EA_ROFF8,   0x88); EA_ALLRI(EA_ROFF8,   0x98);
-			EA_ALLR(EA_ROFF16,  0x89); EA_ALLRI(EA_ROFF16,  0x99);
-			EA_ALLR(EA_PCOFFFF, 0x8a); EA_ALLRI(EA_PCOFFFF, 0x9a);
-			EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
-			EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
-			EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
-			EA_ALLR(EA_EXT,     0x8f); EA_ALLRI(EA_EXTIND,  0x9f);
-			default: ea = 0; break;
-		}
-		return ea;
+	auto EA_INDEXED_FUNC;
+	auto EA_INDEXED_FUNC {
+		EA_INDEXED_BODY;
 	}
+#endif
 
 	while ((int)(m6809_current_cycle - until) < 0) {
 
@@ -1278,6 +1311,8 @@ void m6809_cycle(Cycle until) {
 		}
 	}
 
+	/* Record changed register values if we kept them local. */
+#ifdef HAVE_C_NESTED_FUNCTIONS
 	register_cc = reg_cc;
 	register_a  = reg_a;
 	register_b  = reg_b;
@@ -1287,18 +1322,19 @@ void m6809_cycle(Cycle until) {
 	register_u  = reg_u;
 	register_s  = reg_s;
 	register_pc = reg_pc;
+#endif
 }
 
 void m6809_get_state(M6809State *state) {
-	state->reg_cc = register_cc;
-	state->reg_a = register_a;
-	state->reg_b = register_b;
-	state->reg_dp = register_dp;
-	state->reg_x = register_x;
-	state->reg_y = register_y;
-	state->reg_u = register_u;
-	state->reg_s = register_s;
-	state->reg_pc = register_pc;
+	state->reg_cc = REGISTER(cc);
+	state->reg_a = REGISTER(a);
+	state->reg_b = REGISTER(b);
+	state->reg_dp = REGISTER(dp);
+	state->reg_x = REGISTER(x);
+	state->reg_y = REGISTER(y);
+	state->reg_u = REGISTER(u);
+	state->reg_s = REGISTER(s);
+	state->reg_pc = REGISTER(pc);
 	state->halt = halt;
 	state->nmi = nmi;
 	state->firq = firq;
@@ -1308,15 +1344,15 @@ void m6809_get_state(M6809State *state) {
 }
 
 void m6809_set_state(M6809State *state) {
-	register_cc = state->reg_cc;
-	register_a = state->reg_a;
-	register_b = state->reg_b;
-	register_dp = state->reg_dp;
-	register_x = state->reg_x;
-	register_y = state->reg_y;
-	register_u = state->reg_u;
-	register_s = state->reg_s;
-	register_pc = state->reg_pc;
+	REGISTER(cc) = state->reg_cc;
+	REGISTER(a) = state->reg_a;
+	REGISTER(b) = state->reg_b;
+	REGISTER(dp) = state->reg_dp;
+	REGISTER(x) = state->reg_x;
+	REGISTER(y) = state->reg_y;
+	REGISTER(u) = state->reg_u;
+	REGISTER(s) = state->reg_s;
+	REGISTER(pc) = state->reg_pc;
 	halt = state->halt;
 	nmi = state->nmi;
 	firq = state->firq;
@@ -1326,5 +1362,5 @@ void m6809_set_state(M6809State *state) {
 }
 
 void m6809_jump(unsigned int pc) {
-	register_pc = pc & 0xffff;
+	REGISTER(pc) = pc;
 }

@@ -13,7 +13,7 @@ build_sdl_config=auto
 target_gtk_config=auto
 build_gtk_config=auto
 
-#_c_nested_funcs=auto
+_c_nested_funcs=auto
 _strsep=auto
 _sdl=auto
 _sdlgl=auto
@@ -417,27 +417,29 @@ fi
 
 ########
 
-#echocheck $TARGET_CC allowing nested functions
-#_c_nested_funcs=no
-#cat > $TMPC <<EOF
-#int main(int argc, char **argv) { int a; int next(void) { return a; } return 0; }
-#EOF
-#target_cc_check_compile "" "" && _c_nested_funcs=yes
-#echo "$_c_nested_funcs"
-#if test "$_c_nested_funcs" = "no"; then
-#	echocheck $TARGET_CC accepting -fnested-functions
-#	target_cc_check "-fnested-functions" "" && _c_nested_funcs=yes
-#	echo "$_c_nested_funcs"
-#	if test "$_c_nested_funcs" = "yes"; then
-#		_TARGET_CFLAGS="$_TARGET_CFLAGS -fnested-functions"
-#	fi
-#fi
-#rm -f $TMPC
-#if test "$_c_nested_funcs" = "yes"; then
-#	_c_nested_funcs_def="#define NESTED_FUNCTIONS_ALLOWED"
-#else
-#	_c_nested_funcs_def="#undef NESTED_FUNCTIONS_ALLOWED"
-#fi
+if test "$_c_nested_funcs" = "yes" -o "$_c_nested_funcs" = "auto"; then
+	echocheck $TARGET_CC allowing nested functions
+	cat > $TMPC <<EOF
+int main(int argc, char **argv) { int a; int next(void) { return a; } return 0; }
+EOF
+	_c_nested_funcs=no
+	target_cc_check_compile "" "" && _c_nested_funcs=yes
+	echo "$_c_nested_funcs"
+fi
+if test "$_c_nested_funcs" = "no"; then
+	echocheck $TARGET_CC accepting -fnested-functions
+	target_cc_check "-fnested-functions" "" && _c_nested_funcs=yes
+	echo "$_c_nested_funcs"
+	if test "$_c_nested_funcs" = "yes"; then
+		_TARGET_CFLAGS="$_TARGET_CFLAGS -fnested-functions"
+	fi
+fi
+rm -f $TMPC
+if test "$_c_nested_funcs" = "yes"; then
+	_c_nested_funcs_def="#define HAVE_C_NESTED_FUNCTIONS"
+else
+	_c_nested_funcs_def="#undef HAVE_C_NESTED_FUNCTIONS"
+fi
 
 ########
 
@@ -811,6 +813,7 @@ BUILD_CFLAGS = $BUILD_CFLAGS
 BUILD_SDL_CFLAGS = $build_sdl_cflags
 BUILD_SDL_LDFLAGS = $build_sdl_ldflags
 
+CONFIG_C_NESTED_FUNCS = $_c_nested_funcs
 CONFIG_SDL = $_sdl
 CONFIG_SDLGL = $_sdlgl
 CONFIG_BUILD_SDL = $_build_sdl
@@ -841,6 +844,9 @@ cat > config.h <<EOF
 
 /* Various libc features? */
 $_strsep_def
+
+/* Nested functions allowed? */
+$_c_nested_funcs_def
 
 /* SDL? */
 $_sdl_def
