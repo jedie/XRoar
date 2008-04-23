@@ -100,7 +100,7 @@ static void update(void) {
 		*(wrptr++) = lastsample;
 	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
-		lastsample = (PIA1.b.port_output & 0x02) ? 0x7c7c : 0;
+		lastsample = (PIA1.b.port_output & PIA1.b.direction_register & 0x02) ? 0x3f3f : 0;
 	} else  {
 		if (PIA0.b.control_register & 0x08) {
 			/* Sound disabled */

@@ -135,7 +135,7 @@ static void update(void) {
 	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
 		/* The zero level of this might depend on joystick position? */
-		lastsample = (PIA1.b.port_output & 0x02) ? 0.42 : -0.42;
+		lastsample = (PIA1.b.port_output & PIA1.b.direction_register & 0x02) ? 0. : -0.42;
 	} else  {
 		if (PIA0.b.control_register & 0x08) {
 			/* Sound disabled */

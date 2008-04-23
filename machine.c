@@ -211,8 +211,10 @@ void machine_getargs(int argc, char **argv) {
 }
 
 #define pia0a_data_postwrite keyboard_row_update
+#define pia0a_control_postwrite sound_module->update
 
 #define pia0b_data_postwrite keyboard_column_update
+#define pia0b_control_postwrite sound_module->update
 
 #ifdef HAVE_SNDFILE
 # define pia1a_data_preread tape_update_input
@@ -232,19 +234,23 @@ static void pia1b_data_postwrite(void) {
 	sound_module->update();
 	vdg_set_mode();
 }
+#define pia1b_control_postwrite sound_module->update
 
 void machine_init(void) {
 	sam_init();
 	mc6821_init(&PIA0);
 	PIA0.a.irq_line = PIA0.b.irq_line = &irq;
 	PIA0.a.data_postwrite = pia0a_data_postwrite;
+	PIA0.a.control_postwrite = pia0a_control_postwrite;
 	PIA0.b.data_postwrite = pia0b_data_postwrite;
+	PIA0.b.control_postwrite = pia0b_control_postwrite;
 	mc6821_init(&PIA1);
 	PIA1.a.irq_line = PIA1.b.irq_line = &firq;
 	PIA1.a.data_preread = pia1a_data_preread;
 	PIA1.a.data_postwrite = pia1a_data_postwrite;
 	PIA1.a.control_postwrite = pia1a_control_postwrite;
 	PIA1.b.data_postwrite = pia1b_data_postwrite;
+	PIA1.b.control_postwrite = pia1b_control_postwrite;
 	dragondos_init();
 	deltados_init();
 	rsdos_init();
