@@ -37,7 +37,7 @@ static int init(int argc, char **argv);
 static void shutdown(void);
 static void update(void);
 
-static void flush_frame(void *context);
+static void flush_frame(void);
 static int jack_callback(jack_nframes_t nframes, void *arg);
 
 SoundModule sound_jack_module = {
@@ -154,9 +154,8 @@ static void update(void) {
 	}
 }
 
-static void flush_frame(void *context) {
+static void flush_frame(void) {
 	Sample *fill_to = buffer + frame_size;
-	(void)context;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;

@@ -36,7 +36,6 @@ void event_init(event_t *event) {
 	if (event == NULL) return;
 	event->at_cycle = 0;
 	event->dispatch = NULL;
-	event->context = NULL;
 	event->queued = 0;
 	event->list = NULL;
 	event->next = NULL;

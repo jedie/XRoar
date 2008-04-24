@@ -93,8 +93,8 @@ unsigned int keyboard_row[9];
 unsigned int keyboard_buffer[256];
 int keyboard_buffer_next, keyboard_buffer_cursor;
 
-static void keyboard_press_queued(void *context);
-static void keyboard_release_queued(void *context);
+static void keyboard_press_queued(void);
+static void keyboard_release_queued(void);
 static event_t queue_event;
 
 void keyboard_init(void) {
@@ -220,8 +220,7 @@ void keyboard_unicode_release(unsigned int unicode) {
 
 static unsigned int key_pressed;
 
-static void keyboard_press_queued(void *context) {
-	(void)context;
+static void keyboard_press_queued(void) {
 	if (KEYBOARD_HASQUEUE) {
 		key_pressed = keyboard_buffer[keyboard_buffer_cursor];
 		if (key_pressed) {
@@ -234,8 +233,7 @@ static void keyboard_press_queued(void *context) {
 	}
 }
 
-static void keyboard_release_queued(void *context) {
-	(void)context;
+static void keyboard_release_queued(void) {
 	keyboard_unicode_release(key_pressed);
 	KEYBOARD_DEQUEUE();
 	/* Schedule another key press event only if queue not empty */

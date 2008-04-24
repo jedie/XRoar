@@ -73,7 +73,7 @@ UIModule ui_nds_module = {
 };
 
 static event_t poll_pen_event;
-static void do_poll_pen(void *context);
+static void do_poll_pen(void);
 
 static void show_main_input_screen(void);
 static void show_machine_configuration_screen(void);
@@ -150,13 +150,11 @@ static void ui_input_control_press(int command, int arg) {
 	}
 }
 
-static void do_poll_pen(void *context) {
+static void do_poll_pen(void) {
 	unsigned int keyinput, new_keyinput, rel_keyinput;
 	static unsigned int old_keyinput = 0;
 	int px, py;
 	int i;
-
-	(void)context;
 
 	/* Check for newly pressed or released buttons */
 	keyinput = ~((REG_KEYINPUT & 0x3ff) | (IPC->buttons << 10));

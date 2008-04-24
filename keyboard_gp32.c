@@ -50,7 +50,7 @@ KeyboardModule keyboard_gp32_module = {
 };
 
 static event_t poll_event;
-static void do_poll(void *context);
+static void do_poll(void);
 
 #define KEY_UPDATE(t,s) if (t) { KEYBOARD_PRESS(s); } else { KEYBOARD_RELEASE(s); }
 
@@ -120,11 +120,10 @@ static void highlight_key(void) {
 	}
 }
 
-static void do_poll(void *context) {
+static void do_poll(void) {
 	unsigned int chatboard_key;
 	unsigned int newkeyx = keyx, newkeyy = keyy;
 	int key, newkey, relkey;
-	(void)context;
 
 	poll_event.at_cycle += OSCILLATOR_RATE / 100;
 	event_queue(&xroar_ui_events, &poll_event);

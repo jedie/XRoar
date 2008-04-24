@@ -38,10 +38,10 @@ static int frame;
 
 static event_t hs_fall_event, hs_rise_event;
 static event_t fs_fall_event, fs_rise_event;
-static void do_hs_fall(void *context);
-static void do_hs_rise(void *context);
-static void do_fs_fall(void *context);
-static void do_fs_rise(void *context);
+static void do_hs_fall(void);
+static void do_hs_rise(void);
+static void do_fs_fall(void);
+static void do_fs_rise(void);
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
@@ -86,8 +86,7 @@ void vdg_reset(void) {
 	frame = 0;
 }
 
-static void do_hs_fall(void *context) {
-	(void)context;
+static void do_hs_fall(void) {
 	/* Finish rendering previous scanline */
 #ifdef HAVE_GP32
 	/* GP32 renders 4 scanlines at once */
@@ -169,18 +168,15 @@ static void do_hs_fall(void *context) {
 	event_queue(&event_list, &hs_fall_event);
 }
 
-static void do_hs_rise(void *context) {
-	(void)context;
+static void do_hs_rise(void) {
 	PIA_SET_Cx1(PIA0.a);
 }
 
-static void do_fs_fall(void *context) {
-	(void)context;
+static void do_fs_fall(void) {
 	PIA_RESET_Cx1(PIA0.b);
 }
 
-static void do_fs_rise(void *context) {
-	(void)context;
+static void do_fs_rise(void) {
 	PIA_SET_Cx1(PIA0.b);
 }
 

@@ -78,7 +78,7 @@ static struct {
 };
 
 static event_t *poll_event;
-static void do_poll(void *context);
+static void do_poll(void);
 
 static struct joy *find_joy(int joy_num) {
 	SDL_Joystick *j;
@@ -231,9 +231,8 @@ static void shutdown(void) {
 	event_free(poll_event);
 }
 
-static void do_poll(void *context) {
+static void do_poll(void) {
 	int i;
-	(void)context;
 	SDL_JoystickUpdate();
 	for (i = 0; i < 4; i++) {
 		if (control[i].joy) {

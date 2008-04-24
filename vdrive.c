@@ -60,8 +60,8 @@ static Cycle last_update_cycle;
 static Cycle track_start_cycle;
 static event_t index_pulse_event;
 static event_t reset_index_pulse_event;
-static void do_index_pulse(void *context);
-static void do_reset_index_pulse(void *context);
+static void do_index_pulse(void);
+static void do_reset_index_pulse(void);
 
 void vdrive_init(void) {
 	int i;
@@ -349,8 +349,7 @@ int vdrive_new_index_pulse(void) {
 	return 0;
 }
 
-static void do_index_pulse(void *context) {
-	(void)context;
+static void do_index_pulse(void) {
 	if (!vdrive_ready) {
 		vdrive_index_pulse = 0;
 		return;
@@ -365,8 +364,7 @@ static void do_index_pulse(void *context) {
 	event_queue(&event_list, &reset_index_pulse_event);
 }
 
-static void do_reset_index_pulse(void *context) {
-	(void)context;
+static void do_reset_index_pulse(void) {
 	vdrive_index_pulse = 0;
 	/* reset latch */
 	(void)vdrive_new_index_pulse();

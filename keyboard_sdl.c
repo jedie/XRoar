@@ -52,7 +52,7 @@ KeyboardModule keyboard_sdl_module = {
 };
 
 static event_t *poll_event;
-static void do_poll(void *context);
+static void do_poll(void);
 
 struct keymap {
 	const char *name;
@@ -360,8 +360,7 @@ static void keyrelease(SDL_keysym *keysym) {
 	}
 }
 
-static void do_poll(void *context) {
-	(void)context;
+static void do_poll(void) {
 	SDL_Event event;
 	while (SDL_PollEvent(&event) == 1) {
 		switch(event.type) {

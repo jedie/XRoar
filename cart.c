@@ -34,7 +34,7 @@ static int cart_autostart;
 
 static void cart_configure(const char *filename, int autostart);
 static int cart_load(void);
-static void cart_interrupt(void *context);
+static void cart_interrupt(void);
 
 void cart_helptext(void) {
 	puts("  -cart FILENAME        specify ROM to load into cartridge area ($C000-)");
@@ -109,8 +109,7 @@ static int cart_load(void) {
 	return 0;
 }
 
-static void cart_interrupt(void *context) {
-	(void)context;
+static void cart_interrupt(void) {
 	if (cart_filename) {
 		PIA_SET_Cx1(PIA1.b);
 		cart_event.at_cycle = current_cycle + (OSCILLATOR_RATE/10);

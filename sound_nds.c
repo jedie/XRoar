@@ -51,7 +51,7 @@ static uint8_t *wrptr;
 static unsigned int lastsample;
 static int writing_buf;
 
-static void flush_frame(void *context);
+static void flush_frame(void);
 static event_t *flush_event;
 
 static int init(int argc, char **argv) {
@@ -111,9 +111,8 @@ static void update(void) {
 	}
 }
 
-static void flush_frame(void *context) {
+static void flush_frame(void) {
 	uint8_t *fill_to = frame_base + FRAME_SIZE;
-	(void)context;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	DC_FlushRange(frame_base, FRAME_SIZE);
