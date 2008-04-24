@@ -113,7 +113,7 @@ static int init(int argc, char **argv) {
 
 	alloc_colours();
 	prerender_bitmaps();
-	render_screen = render_sg4;
+	set_mode(0);
 
 	/* Set up VBLANK handler */
 	irqSet(IRQ_VBLANK, vblank_handle);
