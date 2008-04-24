@@ -1,3 +1,16 @@
+Changed from v0.20 to v0.21
+ * Fix border colour in RG6, CSS=0.
+ * Input abstraction layer.
+ * NDS: Render video as 4 x 3 grid of 4-bit colour sprites.
+ * NDS: Use NDS VCOUNT writability to lock display to 50Hz when appropriate.
+ * NDS: Major UI improvements.
+ * NDS: Sound support.
+ * GP32: Fix chatboard support with new state-machine based scanner.
+ * Trace mode fixes (SYNC, CWAI).
+ * Support changing of SAM RAM configuration.
+ * More accurate single-bit sound.
+ * Variable MPU rate support configurable.
+
 Changed from v0.19 to v0.20
  * Don't show artifacted colours for CSS=0.
  * Better emulation of undocumented 6809 behaviour.
