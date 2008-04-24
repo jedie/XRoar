@@ -6,10 +6,9 @@ Homepage: http://www.6809.org.uk/dragon/xroar.shtml
 
 
 The aim of this project is to develop a fully usable Dragon emulator for
-Unix-like operating systems and the GP32 handheld device.  Because the
-architecture of the Tandy CoCo 2 was very similar to the Dragon, it is
-also possible to use it to emulate those machines too (the only major
-differences are: ROM BASIC, keyboard layout).
+a variety of platforms.  Because the architecture of the Tandy CoCo 2 was
+very similar to the Dragon, it is also possible to use it to emulate those
+machines too (the only major differences are: ROM BASIC, keyboard layout).
 
 
 ACKNOWLEDGEMENTS
@@ -48,6 +47,9 @@ Unix: Copy the file 'xroar' to somewhere in your path.
 GP32: Upload the file 'xroar.fxe' to gp:/gpmm/.  The ROM files, all
       cassette images, snapshots and disk images should be in
       gp:/gpmm/dragon/.
+
+NDS: Copy the file 'xroar.nds' to your flash device.  ROM files should be
+     in fat:/dragon/roms/.
 
 Windows: The file 'xroar.exe' needs to be run from the directory that
          contains your firmware ROMs.
@@ -195,7 +197,8 @@ architecture:
 ----------------+--------------------------------------------------------------
  GP32           | gp:/gpmm/dragon/
 ----------------+--------------------------------------------------------------
- NDS            | fat:/dragon/
+ NDS            | fat:/dragon/roms/
+                | fat:/dragon/
 ----------------+--------------------------------------------------------------
  Windows32      | Current working directory
 ----------------+--------------------------------------------------------------
@@ -344,11 +347,26 @@ If the tape is accessed (eg, you typed 'CLOADM' or 'CLOAD'), you need
 to remember to insert a cassette file (".cas") from the menu.
 
 
+NINTENDO DS (NDS) CONTROLS
+
+The touch screen interface is currently quite basic, but functional.
+Files can be loaded by selecting "Load...", the emulated machine can be
+changed in the "Machine configuration" menu, and snapshots can be taken
+with "Save snapshot".
+
+In the "Input configuration" menu, each of the DS buttons can be mapped
+to an input function - a keypress, a joystick direction or an emulator
+configuration command.  By default, the D-pad buttons are mapped to the
+right joystick, and 'A' to the right firebutton.  'Y' swaps joysticks
+for convenience, and 'Start' swaps the DS screens, allowing you to use
+the touch screen as an analogue joystick input.
+
+
 CASSETTE IMAGES
 
 Tools exist online to generate ".cas" cassette images, but they only
 work under DOS (or presumably Windows).  Check the software section of
-http://www.dragon-archive.co.uk/ for details.  That site also includes
+http://archive.worldofdragon.org/ for details.  That site also includes
 quite a few titles that have already been converted for your convenience.
 If you wish to play the game 'Buzzard Bait' (an excellent Joust clone),
 you'll *have* to download the version there, because the original
