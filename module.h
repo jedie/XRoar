@@ -28,14 +28,8 @@ typedef struct {
 	int is_fullscreen;
 	void (*vdg_vsync)(void);
 	void (*vdg_set_mode)(unsigned int mode);
-	void (*vdg_render_sg4)(void);
-	void (*vdg_render_sg6)(void);
-	void (*vdg_render_cg1)(void);
-	void (*vdg_render_rg1)(void);
-	void (*vdg_render_cg2)(void);
-	void (*vdg_render_rg6)(void);
-	void (*vdg_render_rg6a)(void);
 	void (*render_border)(void);
+	void (*render_scanline)(void);
 } VideoModule;
 
 typedef struct {

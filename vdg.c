@@ -27,14 +27,9 @@
 #include "vdg.h"
 #include "xroar.h"
 
-#if defined(HAVE_GP32) || defined(HAVE_NDS)
-# define MINIMAL_VIDEO
-#endif
-
 Cycle scanline_start;
 int beam_pos;
 
-static void (*vdg_render_scanline)(void);
 static int_least16_t scanline;
 #ifndef FAST_VDG
 static int inhibit_mode_change;
@@ -62,7 +57,6 @@ static void vcount_handle(void) {
 #endif
 
 void vdg_init(void) {
-	vdg_render_scanline = video_module->vdg_render_sg4;
 	event_init(&hs_fall_event);
 	hs_fall_event.dispatch = do_hs_fall;
 	event_init(&hs_rise_event);
@@ -95,24 +89,21 @@ void vdg_reset(void) {
 static void do_hs_fall(void *context) {
 	(void)context;
 	/* Finish rendering previous scanline */
-#ifdef MINIMAL_VIDEO
-	/* Skip borders, etc. */
-#ifndef HAVE_NDS
+#ifdef HAVE_GP32
+	/* GP32 renders 4 scanlines at once */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START
 			&& scanline < VDG_ACTIVE_AREA_END
-			/* GP32 & NDS render 4 scanlines at once */
 			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)
 			) {
-		vdg_render_scanline();
+		video_module->render_scanline();
 	}
-#endif
-#else
+#elif !defined(HAVE_NDS)  /* NDS video module does its own thing */
 	/* Normal code */
 	if (frame == 0 && scanline >= (VDG_TOP_BORDER_START + 1)) {
 		if (scanline < VDG_ACTIVE_AREA_START) {
 			video_module->render_border();
 		} else if (scanline < VDG_ACTIVE_AREA_END) {
-			vdg_render_scanline();
+			video_module->render_scanline();
 		} else if (scanline < (VDG_BOTTOM_BORDER_END - 2)) {
 			video_module->render_border();
 		}
@@ -194,7 +185,6 @@ static void do_fs_rise(void *context) {
 }
 
 void vdg_set_mode(void) {
-	unsigned int mode;
 #ifndef FAST_VDG
 	/* No need to inhibit mode changes during borders on GP32/NDS, as
 	 * they're not rendered anyway. */
@@ -203,43 +193,9 @@ void vdg_set_mode(void) {
 	/* Render scanline so far before changing modes (disabled for speed
 	 * on GP32/NDS). */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
-		vdg_render_scanline();
+		video_module->render_scanline();
 	}
 #endif
-	mode = PIA1.b.port_output;
 	/* Update video module */
-	video_module->vdg_set_mode(mode);
-#ifndef HAVE_NDS
-	switch ((mode & 0xf0) >> 4) {
-		case 0: case 2: case 4: case 6:
-			vdg_render_scanline = video_module->vdg_render_sg4;
-			break;
-		case 1: case 3: case 5: case 7:
-			vdg_render_scanline = video_module->vdg_render_sg6;
-			break;
-		case 8:
-			vdg_render_scanline = video_module->vdg_render_cg1;
-			break;
-		case 9: case 11: case 13:
-			vdg_render_scanline = video_module->vdg_render_rg1;
-			break;
-		case 10: case 12: case 14:
-			vdg_render_scanline = video_module->vdg_render_cg2;
-			break;
-		case 15: default:
-			if ((mode & 0x08) && running_config.cross_colour_phase) {
-#ifndef FAST_VDG
-				if (cross_colour_renderer == CROSS_COLOUR_5BIT) {
-					vdg_render_scanline = video_module->vdg_render_rg6a;
-				} else
-#endif
-				{
-					vdg_render_scanline = video_module->vdg_render_cg2;
-				}
-			} else {
-				vdg_render_scanline = video_module->vdg_render_rg6;
-			}
-			break;
-	}
-#endif
+	video_module->vdg_set_mode(PIA1.b.port_output);
 }

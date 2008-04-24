@@ -37,17 +37,6 @@ static void shutdown(void);
 static int set_fullscreen(int fullscreen);
 static void vsync(void);
 static void set_mode(unsigned int mode);
-static void render_sg4(void);
-static void render_sg6(void);
-static void render_cg1(void);
-static void render_rg1(void);
-static void render_cg2(void);
-static void render_rg6(void);
-#ifdef FAST_VDG
-# define render_rg6a render_cg2
-#else
-static void render_rg6a(void);
-#endif
 static void render_border(void);
 static void alloc_colours(void);
 
@@ -56,9 +45,7 @@ VideoModule video_sdl_module = {
 	  init, 0, shutdown, NULL },
 	NULL, set_fullscreen, 0,
 	vsync, set_mode,
-	render_sg4, render_sg6, render_cg1,
-	render_rg1, render_cg2, render_rg6, render_rg6a,
-	render_border
+	render_border, NULL
 };
 
 typedef Uint8 Pixel;
@@ -70,6 +57,7 @@ typedef Uint8 Pixel;
 #define VIDEO_VIEWPORT_YOFFSET (0)
 #define LOCK_SURFACE SDL_LockSurface(screen)
 #define UNLOCK_SURFACE SDL_UnlockSurface(screen)
+#define VIDEO_MODULE_NAME video_sdl_module
 
 static SDL_Surface *screen;
 
@@ -106,6 +94,7 @@ static int init(int argc, char **argv) {
 		windows32_main_hwnd = sdlinfo.window;
 	}
 #endif
+	set_mode(0);
 	return 0;
 }
 

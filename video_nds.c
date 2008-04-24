@@ -41,9 +41,7 @@ VideoModule video_nds_module = {
 	  init, 0, shutdown, NULL },
 	NULL, NULL, 0,
 	vsync, set_mode,
-	NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL,
-	NULL
+	NULL, NULL
 };
 
 /* This is now implemented a set of 12 64x64 sprites pulling tiles

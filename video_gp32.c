@@ -30,21 +30,18 @@ static int init(int argc, char **argv);
 static void shutdown(void);
 static void vdg_vsync(void);
 static void vdg_set_mode(unsigned int mode);
-static void vdg_render_sg4(void);
-/* static void vdg_render_sg6(void); */
-static void vdg_render_cg1(void);
-static void vdg_render_rg1(void);
-static void vdg_render_cg2(void);
-static void vdg_render_rg6(void);
+static void render_sg4(void);
+static void render_cg1(void);
+static void render_rg1(void);
+static void render_cg2(void);
+static void render_rg6(void);
 
 VideoModule video_gp32_module = {
 	{ "gp32", "GP32 video driver",
 	  init, 0, shutdown, NULL },
 	NULL, NULL, 0,
 	vdg_vsync, vdg_set_mode,
-	vdg_render_sg4, vdg_render_sg4 /* 6 */, vdg_render_cg1,
-	vdg_render_rg1, vdg_render_cg2, vdg_render_rg6, vdg_render_rg6,
-	NULL
+	NULL, NULL
 };
 
 #define MAPCOLOUR GPGFX_MAPCOLOUR
@@ -73,7 +70,7 @@ static int init(int argc, char **argv) {
 	vdg_colour[1] = MAPCOLOUR(0xff, 0xff, 0x00);
 	vdg_colour[2] = MAPCOLOUR(0x00, 0x00, 0xff);
 	vdg_colour[3] = MAPCOLOUR(0xff, 0x00, 0x00);
-	vdg_colour[4] = MAPCOLOUR(0xff, 0xe0, 0xe0);
+	vdg_colour[4] = MAPCOLOUR(0xff, 0xff, 0xff);
 	vdg_colour[5] = MAPCOLOUR(0x00, 0xff, 0xff);
 	vdg_colour[6] = MAPCOLOUR(0xff, 0x00, 0xff);
 	vdg_colour[7] = MAPCOLOUR(0xff, 0xa5, 0x00);
@@ -102,6 +99,45 @@ static void vdg_vsync(void) {
 	subline = 0;
 }
 
+static void vdg_set_mode(unsigned int mode) {
+	switch ((mode & 0xf0) >> 4) {
+		case 0: case 2: case 4: case 6:
+		case 1: case 3: case 5: case 7:
+			video_gp32_module.render_scanline = render_sg4;
+			border_colour = black;
+			text_mode = (mode & 0x18) >> 3;
+			break;
+		case 8:
+			video_gp32_module.render_scanline = render_cg1;
+			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
+			border_colour = (cg_colours[0]<<24)|(cg_colours[0]<<16)|(cg_colours[0]<<8)|cg_colours[0];
+			break;
+		case 9: case 11: case 13:
+			video_gp32_module.render_scanline = render_rg1;
+			fg_colour = vdg_colour[(mode & 0x08) >> 1];
+			bg_colour = black;
+			border_colour = (fg_colour<<24)|(fg_colour<<16)|(fg_colour<<8)|fg_colour;
+			break;
+		case 10: case 12: case 14:
+			video_gp32_module.render_scanline = render_cg2;
+			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
+			border_colour = (cg_colours[0]<<24)|(cg_colours[0]<<16)|(cg_colours[0]<<8)|cg_colours[0];
+			break;
+		case 15: default:
+			if ((mode & 0x08) && running_config.cross_colour_phase) {
+				video_gp32_module.render_scanline = render_cg2;
+				cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
+				border_colour = (vdg_colour[4]<<24)|(vdg_colour[4]<<16)|(vdg_colour[4]<<8)|vdg_colour[4];
+			} else {
+				video_gp32_module.render_scanline = render_rg6;
+				fg_colour = vdg_colour[(mode & 0x08) >> 1];
+				border_colour = (fg_colour<<24)|(fg_colour<<16)|(fg_colour<<8)|fg_colour;
+			}
+			bg_colour = black;
+			break;
+	}
+}
+
 static inline void vram_ptrs_16(uint8_t **ptrs) {
 	int i;
 	for (i = 4; i; i--) {
@@ -121,7 +157,7 @@ static inline void vram_ptrs_32(uint8_t **ptrs) {
 	}
 }
 
-static void vdg_render_sg4(void) {
+static void render_sg4(void) {
 	uint8_t *vram0, *vram1, *vram2, *vram3;
 	uint32_t in4, in5, in6, in7, out, i, j, k;
 	uint32_t *dest;
@@ -162,7 +198,7 @@ static void vdg_render_sg4(void) {
 	if (subline > 2) subline = 0;
 }
 
-static void vdg_render_cg1(void) {
+static void render_cg1(void) {
 	uint8_t *vram0, *vram1, *vram2, *vram3;
 	uint32_t in4, in5, in6, in7, out, i, j;
 	uint32_t *dest;
@@ -221,7 +257,7 @@ static void vdg_render_cg1(void) {
 	if (subline > 2) subline = 0;
 }
 
-static void vdg_render_rg1(void) {
+static void render_rg1(void) {
 	uint8_t *vram0, *vram1, *vram2, *vram3;
 	uint32_t in4, in5, in6, in7, out, i, j;
 	uint32_t *dest;
@@ -296,7 +332,7 @@ static void vdg_render_rg1(void) {
 	if (subline > 2) subline = 0;
 }
 
-static void vdg_render_cg2(void) {
+static void render_cg2(void) {
 	uint8_t *vram0, *vram1, *vram2, *vram3;
 	uint32_t in4, in5, in6, in7, out, i, j, k;
 	uint32_t *dest;
@@ -357,7 +393,7 @@ static void vdg_render_cg2(void) {
 	if (subline > 2) subline = 0;
 }
 
-static void vdg_render_rg6(void) {
+static void render_rg6(void) {
 	uint8_t *vram0, *vram1, *vram2, *vram3;
 	uint32_t in4, in5, in6, in7, out, i, j, k;
 	uint32_t *dest;
@@ -424,23 +460,4 @@ static void vdg_render_rg6(void) {
 	}
 	subline++;
 	if (subline > 2) subline = 0;
-}
-
-static void vdg_set_mode(unsigned int mode) {
-	if (mode & 0x80) {
-		/* Graphics modes */
-		if (((mode & 0x70) == 0x70) && running_config.cross_colour_phase) {
-			cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
-			fg_colour = vdg_colour[(mode & 0x08) >> 1];
-		} else {
-			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
-			fg_colour = cg_colours[0];
-		}
-		bg_colour = black;
-		border_colour = (fg_colour<<24)|(fg_colour<<16)|(fg_colour<<8)|fg_colour;
-	} else {
-		bg_colour = darkgreen;
-		border_colour = black;
-		text_mode = (mode & 0x18) >> 3;
-	}
 }

@@ -9,6 +9,19 @@
 
 #include "machine.h"
 
+static void render_sg4(void);
+static void render_sg6(void);
+static void render_cg1(void);
+static void render_rg1(void);
+static void render_cg2(void);
+static void render_rg6(void);
+#ifndef FAST_VDG
+static void render_rg6a(void);
+# define RENDER_CROSS_COLOUR ((cross_colour_renderer == CROSS_COLOUR_5BIT) ? render_rg6a : render_cg2)
+#else
+# define RENDER_CROSS_COLOUR (render_cg2)
+#endif
+
 /* VDG_tFP here is a kludge - I don't know why it's needed, but without it,
  * DragonFire doesn't render correctly.  Everything *should* be relative to
  * the horizontal sync pulse which occurs *after* the front porch. */
@@ -159,26 +172,53 @@ static void alloc_colours(void) {
 
 /* Update graphics mode - change current select colour set */
 static void set_mode(unsigned int mode) {
-	if (mode & 0x80) {
-		/* Graphics modes */
-		if (((mode & 0xf0) == 0xf0) && running_config.cross_colour_phase) {
-			cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
-			fg_colour = vdg_colour[(mode & 0x08) >> 1];
-			border_colour = fg_colour;
-		} else {
+	switch ((mode & 0xf0) >> 4) {
+		case 0: case 2: case 4: case 6:
+			VIDEO_MODULE_NAME.render_scanline = render_sg4;
+			if (mode & 0x08)
+				fg_colour = vdg_colour[7];
+			else
+				fg_colour = vdg_colour[0];
+			bg_colour = darkgreen;
+			border_colour = black;
+			break;
+		case 1: case 3: case 5: case 7:
+			VIDEO_MODULE_NAME.render_scanline = render_sg6;
 			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
-			fg_colour = cg_colours[0];
+			if (mode & 0x08)
+				fg_colour = vdg_colour[7];
+			else
+				fg_colour = vdg_colour[0];
+			bg_colour = darkgreen;
+			border_colour = black;
+			break;
+		case 8:
+			VIDEO_MODULE_NAME.render_scanline = render_cg1;
+			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
+			border_colour = cg_colours[0];
+			break;
+		case 9: case 11: case 13:
+			VIDEO_MODULE_NAME.render_scanline = render_rg1;
+			fg_colour = vdg_colour[(mode & 0x08) >> 1];
+			bg_colour = black;
 			border_colour = fg_colour;
-		}
-		bg_colour = black;
-	} else {
-		bg_colour = darkgreen;
-		border_colour = black;
-		if (mode & 0x08)
-			fg_colour = vdg_colour[7];
-		else
-			fg_colour = vdg_colour[0];
-		cg_colours = &vdg_colour[(mode & 0x08) >> 1];
+			break;
+		case 10: case 12: case 14:
+			VIDEO_MODULE_NAME.render_scanline = render_cg2;
+			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
+			border_colour = cg_colours[0];
+			break;
+		case 15: default:
+			if ((mode & 0x08) && running_config.cross_colour_phase) {
+				VIDEO_MODULE_NAME.render_scanline = RENDER_CROSS_COLOUR;
+				cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
+			} else {
+				VIDEO_MODULE_NAME.render_scanline = render_rg6;
+				fg_colour = vdg_colour[(mode & 0x08) >> 1];
+			}
+			bg_colour = black;
+			border_colour = fg_colour;
+			break;
 	}
 }
 
