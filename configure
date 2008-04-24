@@ -34,6 +34,7 @@ _nds=auto
 _mpu_rate=auto
 _trace=no
 _fast_vdg=auto
+_fast_sound=auto
 
 _have_video_driver=
 
@@ -77,6 +78,7 @@ Optional Features:
   --enable-trace        enable trace mode
   --disable-mpu-rate    disable setting of emulated MPU rate
   --enable-fast-vdg     enable faster but less accurate VDG code
+  --enable-fast-sound   enable faster but less accurate sound code
 
   --with-sdl-config=PATH   set path to sdl-config script
   --with-pkg-config=PATH   set path to pkg-config script
@@ -355,6 +357,7 @@ if test "$_gp32" = "yes"; then
 	_mingw=no
 	_nds=no
 	test "$_mpu_rate" = "auto" && _mpu_rate=no
+	test "$_fast_sound" = "auto" && _fast_sound=yes
 else
 	_gp32_def="#undef HAVE_GP32"
 	TARGET_CRT0=
@@ -396,6 +399,7 @@ if test "$_nds" = "yes"; then
 	_nullaudio=no
 	_mingw=no
 	test "$_mpu_rate" = "auto" && _mpu_rate=no
+	test "$_fast_sound" = "auto" && _fast_sound=yes
 else
 	_nds_def="#undef HAVE_NDS"
 fi
@@ -796,6 +800,17 @@ else
 	_fast_vdg_def="#undef FAST_VDG"
 fi
 
+########
+
+test "$_fast_sound" = "auto" && _fast_sound=no
+if test "$_fast_sound" = "yes"; then
+	echo "Fast audio enabled"
+	_fast_sound_def="#define FAST_SOUND"
+else
+	echo "Fast audio disabled"
+	_fast_sound_def="#undef FAST_SOUND"
+fi
+
 ############################################################################
 # Write config.mak
 
@@ -914,6 +929,9 @@ $_trace_def
 
 /* Fast VDG code? */
 $_fast_vdg_def
+
+/* Fast audio code? */
+$_fast_sound_def
 
 #endif  /* def __CONFIG_H__ */
 EOF

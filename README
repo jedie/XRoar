@@ -217,6 +217,7 @@ Here's a complete summary of supported command-line switches:
   -ntsc                 emulate NTSC (60Hz) video
   -ccr RENDERER         specify cross-colour renderer (-ccr help for list)
   -ram KBYTES           specify amount of RAM in K
+  -fast-sound           faster but less accurate sound
   -cart FILENAME        specify ROM to load into cartridge area ($C000-)
   -cartna FILENAME      as -cart, but no auto-run
   -ui MODULE            specify user-interface module (-ui help for a list)
@@ -309,6 +310,14 @@ palette, or "5bit", which consults a 5-bit lookup table (2 bits either
 side of the considered pixel).  During operation, pressing Ctrl+A will
 cycle between "off" and the two phases a typical NTSC television would
 sync to on machine reset.
+
+Some games generate audio by switching the sound select lines rapidly
+(instead of writing to the DAC or the single-bit sound output line).
+XRoar supports these, but at the cost of far more frequent updates
+to the audio, meaning increased CPU usage.  The "-fast-sound" option
+disables these additional updates (as a side-effect, this "cleans" the
+audio for certain games that use the DAC for both joystick polling and
+audio output).
 
 
 GP32 CONTROLS
