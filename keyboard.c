@@ -151,7 +151,7 @@ void keyboard_queue_string(const char *s) {
 	if (!queue_event.queued) {
 		queue_event.dispatch = keyboard_press_queued;
 		queue_event.at_cycle = current_cycle + OSCILLATOR_RATE / 20;
-		event_queue(&event_list, &queue_event);
+		event_queue(&MACHINE_EVENT_LIST, &queue_event);
 	}
 }
 
@@ -160,7 +160,7 @@ void keyboard_queue(unsigned int c) {
 	if (!queue_event.queued) {
 		queue_event.dispatch = keyboard_press_queued;
 		queue_event.at_cycle = current_cycle + OSCILLATOR_RATE / 20;
-		event_queue(&event_list, &queue_event);
+		event_queue(&MACHINE_EVENT_LIST, &queue_event);
 	}
 }
 
@@ -228,7 +228,7 @@ static void keyboard_press_queued(void) {
 			/* Schedule key release event */
 			queue_event.dispatch = keyboard_release_queued;
 			queue_event.at_cycle += OSCILLATOR_RATE / 20;
-			event_queue(&event_list, &queue_event);
+			event_queue(&MACHINE_EVENT_LIST, &queue_event);
 		}
 	}
 }
@@ -240,6 +240,6 @@ static void keyboard_release_queued(void) {
 	if (KEYBOARD_HASQUEUE) {
 		queue_event.dispatch = keyboard_press_queued;
 		queue_event.at_cycle += OSCILLATOR_RATE / 20;
-		event_queue(&event_list, &queue_event);
+		event_queue(&MACHINE_EVENT_LIST, &queue_event);
 	}
 }

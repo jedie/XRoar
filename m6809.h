@@ -7,8 +7,10 @@
 #define __M6809_H__
 
 #include "types.h"
+#include "events.h"
 #include "sam.h"
 #include "machine.h"
+#include "xroar.h"
 
 #define M6809_COMPAT_STATE_NORMAL (0)
 #define M6809_COMPAT_STATE_SYNC   (1)
@@ -50,8 +52,8 @@ void m6809_jump(unsigned int pc);
 
 /* Ensure all outside events are complete up to current cycle */
 #define m6809_sync() do { \
-		while (EVENT_PENDING(event_list)) \
-			DISPATCH_NEXT_EVENT(event_list); \
+		while (EVENT_PENDING(MACHINE_EVENT_LIST)) \
+			DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST); \
 	} while (0)
 
 #endif  /* __M6809_H__ */

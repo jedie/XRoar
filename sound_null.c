@@ -66,7 +66,7 @@ static int init(int argc, char **argv) {
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 	flush_event->at_cycle = current_cycle + (10 * CYCLES_PER_MS);
-	event_queue(&event_list, flush_event);
+	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	return 0;
 }
 
@@ -124,5 +124,5 @@ static void flush_frame(void) {
 		}
 	}
 	flush_event->at_cycle = current_cycle + (10 * CYCLES_PER_MS);
-	event_queue(&event_list, flush_event);
+	event_queue(&MACHINE_EVENT_LIST, flush_event);
 }

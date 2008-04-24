@@ -50,9 +50,9 @@ int main(int argc, char **argv) {
 	xroar_init(argc, argv);
 	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 	while (1) {
-		while (EVENT_PENDING(event_list))
-			DISPATCH_NEXT_EVENT(event_list);
-		m6809_cycle(event_list->at_cycle);
+		while (EVENT_PENDING(UI_EVENT_LIST))
+			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+		m6809_cycle(UI_EVENT_LIST->at_cycle);
 	}
 	return 0;
 }

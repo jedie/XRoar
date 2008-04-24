@@ -120,7 +120,7 @@ static int init(int argc, char **argv) {
 	poll_event = event_new();
 	poll_event->dispatch = do_poll;
 	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(&xroar_ui_events, poll_event);
+	event_queue(&UI_EVENT_LIST, poll_event);
 	return 0;
 }
 
@@ -386,5 +386,5 @@ static void do_poll(void) {
 		}
 	}
 	poll_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&xroar_ui_events, poll_event);
+	event_queue(&UI_EVENT_LIST, poll_event);
 }

@@ -101,7 +101,7 @@ static int init(int argc, char **argv) {
 	event_init(&poll_event);
 	poll_event.dispatch = do_poll;
 	poll_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(&xroar_ui_events, &poll_event);
+	event_queue(&UI_EVENT_LIST, &poll_event);
 	return 0;
 }
 
@@ -126,7 +126,7 @@ static void do_poll(void) {
 	int key, newkey, relkey;
 
 	poll_event.at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&xroar_ui_events, &poll_event);
+	event_queue(&UI_EVENT_LIST, &poll_event);
 
 	/* Poll chatboard - doesn't matter if it's not actually there */
 	chatboard_key = gpchatboard_scan();

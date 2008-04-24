@@ -15,14 +15,12 @@ struct event_t {
 	event_t *next;
 };
 
-extern event_t *event_list;
-
-#define EVENT_EXISTS(l) (l)
-#define EVENT_PENDING(l) (l && \
-		(int)(current_cycle - l->at_cycle) >= 0)
-#define DISPATCH_NEXT_EVENT(l) do { \
-		event_t *e = l; \
-		l = l->next; \
+#define EVENT_EXISTS(list) (list)
+#define EVENT_PENDING(list) (list && \
+		(int)(current_cycle - list->at_cycle) >= 0)
+#define DISPATCH_NEXT_EVENT(list) do { \
+		event_t *e = list; \
+		list = list->next; \
 		e->queued = 0; \
 		e->dispatch(); \
 	} while (0)

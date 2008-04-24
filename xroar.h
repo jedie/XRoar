@@ -30,7 +30,10 @@ extern int requested_frameskip;
 extern int frameskip;
 extern int noratelimit;
 
+#define UI_EVENT_LIST xroar_ui_events
+#define MACHINE_EVENT_LIST xroar_machine_events
 extern event_t *xroar_ui_events;
+extern event_t *xroar_machine_events;
 
 void xroar_getargs(int argc, char **argv);
 int xroar_init(int argc, char **argv);

@@ -213,7 +213,7 @@ static int init(int argc, char **argv) {
 	/* No point scheduling joystick reads if we don't have any */
 	if (valid) {
 		poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-		event_queue(&xroar_ui_events, poll_event);
+		event_queue(&UI_EVENT_LIST, poll_event);
 	} else {
 		LOG_WARN("No valid joystick mappings made.\n");
 	}
@@ -251,5 +251,5 @@ static void do_poll(void) {
 	}
 	joystick_update();
 	poll_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&xroar_ui_events, poll_event);
+	event_queue(&UI_EVENT_LIST, poll_event);
 }

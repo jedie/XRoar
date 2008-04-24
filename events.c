@@ -23,8 +23,6 @@
 
 #include "events.h"
 
-event_t *event_list = NULL;
-
 event_t *event_new(void) {
 	event_t *new = malloc(sizeof(event_t));
 	if (new == NULL) return NULL;

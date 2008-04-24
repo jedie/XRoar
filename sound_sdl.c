@@ -113,7 +113,7 @@ static int init(int argc, char **argv) {
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&event_list, flush_event);
+	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	lastsample = 0;
 	return 0;
 }
@@ -158,7 +158,7 @@ static void flush_frame(void) {
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&event_list, flush_event);
+	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	wrptr = buffer;
 	if (!noratelimit) {
 		SDL_LockMutex(halt_mutex);

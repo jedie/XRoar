@@ -68,7 +68,7 @@ static int init(int argc, char **argv) {
 
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&event_list, flush_event);
+	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	lastsample = 0x80; //0;
 
 	/* handshake with ARM7 to pass sound buffer address */
@@ -118,7 +118,7 @@ static void flush_frame(void) {
 	DC_FlushRange(frame_base, FRAME_SIZE);
 	frame_cycle_base += FRAME_CYCLES;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&event_list, flush_event);
+	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	writing_buf ^= 1;
 	frame_base = buf + (writing_buf * FRAME_SIZE);
 	wrptr = frame_base;

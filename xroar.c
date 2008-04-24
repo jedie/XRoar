@@ -47,6 +47,7 @@ int frameskip;
 int noratelimit = 0;
 
 event_t *xroar_ui_events = NULL;
+event_t *xroar_machine_events = NULL;
 
 static const char *snapshot_load = NULL;
 
@@ -194,9 +195,9 @@ void xroar_shutdown(void) {
 
 void xroar_mainloop(void) {
 	while (1) {
-		while (EVENT_PENDING(xroar_ui_events))
-			DISPATCH_NEXT_EVENT(xroar_ui_events);
-		m6809_cycle(xroar_ui_events->at_cycle);
+		while (EVENT_PENDING(UI_EVENT_LIST))
+			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+		m6809_cycle(UI_EVENT_LIST->at_cycle);
 	}
 }
 

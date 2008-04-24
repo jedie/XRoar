@@ -165,7 +165,7 @@ static void update_signals(void) {
 		head_pos = 128;
 		track_start_cycle = current_cycle;
 		index_pulse_event.at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
-		event_queue(&event_list, &index_pulse_event);
+		event_queue(&MACHINE_EVENT_LIST, &index_pulse_event);
 	}
 }
 
@@ -359,9 +359,9 @@ static void do_index_pulse(void) {
 	last_update_cycle = index_pulse_event.at_cycle;
 	track_start_cycle = index_pulse_event.at_cycle;
 	index_pulse_event.at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
-	event_queue(&event_list, &index_pulse_event);
+	event_queue(&MACHINE_EVENT_LIST, &index_pulse_event);
 	reset_index_pulse_event.at_cycle = track_start_cycle + ((current_drive->disk->track_length - 128)/100) * BYTE_TIME;
-	event_queue(&event_list, &reset_index_pulse_event);
+	event_queue(&MACHINE_EVENT_LIST, &reset_index_pulse_event);
 }
 
 static void do_reset_index_pulse(void) {

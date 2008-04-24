@@ -79,8 +79,8 @@ void sam_reset(void) {
 }
 
 unsigned int sam_read_byte(unsigned int addr) {
-	while (EVENT_PENDING(event_list))
-		DISPATCH_NEXT_EVENT(event_list);
+	while (EVENT_PENDING(MACHINE_EVENT_LIST))
+		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 	addr &= 0xffff;
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
 		/* RAM access */
@@ -138,8 +138,8 @@ unsigned int sam_read_byte(unsigned int addr) {
 }
 
 void sam_store_byte(unsigned int addr, unsigned int octet) {
-	while (EVENT_PENDING(event_list))
-		DISPATCH_NEXT_EVENT(event_list);
+	while (EVENT_PENDING(MACHINE_EVENT_LIST))
+		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 	addr &= 0xffff;
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
 		/* RAM access */

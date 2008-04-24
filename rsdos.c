@@ -36,7 +36,7 @@
 
 #define QUEUE_NMI() do { \
 		nmi_event.at_cycle = current_cycle + 1; \
-		event_queue(&event_list, &nmi_event); \
+		event_queue(&MACHINE_EVENT_LIST, &nmi_event); \
 	} while (0)
 
 /* Handle signals from WD2793 */

@@ -98,7 +98,7 @@ static int init(int argc, char **argv) {
 	event_init(&poll_pen_event);
 	poll_pen_event.dispatch = do_poll_pen;
 	poll_pen_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(&event_list, &poll_pen_event);
+	event_queue(&UI_EVENT_LIST, &poll_pen_event);
 
 	show_main_input_screen();
 
@@ -185,7 +185,7 @@ static void do_poll_pen(void) {
 	}
 	old_keyinput = keyinput;
 	poll_pen_event.at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&event_list, &poll_pen_event);
+	event_queue(&UI_EVENT_LIST, &poll_pen_event);
 }
 
 /**************************************************************************/
