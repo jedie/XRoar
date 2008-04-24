@@ -212,12 +212,13 @@ static void set_mode(unsigned int mode) {
 			if ((mode & 0x08) && running_config.cross_colour_phase) {
 				VIDEO_MODULE_NAME.render_scanline = RENDER_CROSS_COLOUR;
 				cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
+				border_colour = vdg_colour[4];;
 			} else {
 				VIDEO_MODULE_NAME.render_scanline = render_rg6;
 				fg_colour = vdg_colour[(mode & 0x08) >> 1];
+				border_colour = fg_colour;
 			}
 			bg_colour = black;
-			border_colour = fg_colour;
 			break;
 	}
 }
