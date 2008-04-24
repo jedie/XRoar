@@ -437,7 +437,6 @@ static void load_file_callback(unsigned int opt) {
 		"ROM",
 		NULL };
 	char *filename;
-	int type;
 	(void)opt;  /* unused */
 	filename = get_filename(exts);
 	if (filename == NULL)

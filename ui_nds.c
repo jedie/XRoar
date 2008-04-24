@@ -293,7 +293,6 @@ static void mi_load_release(int id) {
 }
 
 static void mi_load_file(char *filename) {
-	int type = xroar_filetype_by_ext(filename);
 	irqDisable(IRQ_VBLANK | IRQ_VCOUNT);
 	xroar_load_file(filename, XROAR_AUTORUN_CAS | XROAR_AUTORUN_CART);
 	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
