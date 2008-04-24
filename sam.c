@@ -44,7 +44,7 @@ static unsigned int sam_vdg_mod_ydiv;
 unsigned int sam_vdg_mod_clear;
 static unsigned int sam_vdg_xcount;
 static unsigned int sam_vdg_ycount;
-#if !defined(HAVE_GP32) && !defined(HAVE_NDS)
+#ifdef VARIABLE_MPU_RATE
 unsigned int sam_topaddr_cycles;
 #endif
 
