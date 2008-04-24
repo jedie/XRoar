@@ -275,7 +275,8 @@ tools/img2c_nds: tools/img2c_nds.c
 ############################################################################
 # Distribution creation and cleanup
 
-.PHONY: clean distclean dist dist-gp32 dist-windows32 dist-macos dist-macosx
+.PHONY: clean distclean dist dist-gp32 dist-nds dist-windows32 \
+	dist-macos dist-macosx
 
 CLEAN_FILES = $(CRT0) $(ALL_OBJS) tools/img2c tools/img2c_nds tools/prerender \
 	tools/font2c vdg_bitmaps.c \
@@ -308,6 +309,13 @@ dist-gp32: all
 	rm -f ../$(DISTNAME)-gp32.zip
 	zip -r ../$(DISTNAME)-gp32.zip $(DISTNAME)-gp32
 	rm -rf $(DISTNAME)-gp32/
+
+dist-nds: all
+	mkdir $(DISTNAME)-nds
+	cp COPYING.GPL ChangeLog README xroar.nds xroar.ds.gba $(DISTNAME)-nds/
+	rm -f ../$(DISTNAME)-nds.zip
+	zip -r ../$(DISTNAME)-nds.zip $(DISTNAME)-nds
+	rm -rf $(DISTNAME)-nds/
 
 dist-windows32: all
 	mkdir $(DISTNAME)-windows32
