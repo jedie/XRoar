@@ -111,6 +111,7 @@ static void update(void) {
 			lastsample |= (lastsample << 8);
 		}
 	}
+	/* Don't feed back in GP32 driver */
 }
 
 static void flush_frame(void) {

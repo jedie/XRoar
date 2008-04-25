@@ -99,7 +99,7 @@ static void update(void) {
 		*(wrptr++) = lastsample;
 	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
-		lastsample = (PIA1.b.port_output & 0x02) ? 0xbf : 0x80;
+		lastsample = (PIA1.b.port_output & 0x02) ? 0xfe : 0x80;
 	} else  {
 		if (PIA0.b.control_register & 0x08) {
 			/* Sound disabled */
@@ -109,6 +109,7 @@ static void update(void) {
 			lastsample = (PIA1.a.port_output & 0xfc) ^ 0x80;
 		}
 	}
+	/* Don't feed back in NDS driver */
 }
 
 static void flush_frame(void) {

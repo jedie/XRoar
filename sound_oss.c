@@ -168,6 +168,12 @@ static void update(void) {
 			lastsample = (PIA1.a.port_output & 0xfc) >> 1;
 		}
 	}
+#ifndef FAST_SOUND
+	if (lastsample >= 0x4c)
+		PIA1.b.port_input |= 0x02;
+	else
+		PIA1.b.port_input &= 0xfd;
+#endif
 }
 
 static void flush_frame(void) {

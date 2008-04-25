@@ -75,6 +75,25 @@ static void shutdown(void) {
 }
 
 static void update(void) {
+	int lastsample;
+	if (!(PIA1.b.control_register & 0x08)) {
+		/* Single-bit sound */
+		lastsample = (PIA1.b.port_output & 0x02) ? 0x7e : 0;
+	} else {
+		if (PIA0.b.control_register & 0x08) {
+			/* Sound disabled */
+			lastsample = 0;
+		} else {
+			/* DAC output */
+			lastsample = (PIA1.a.port_output & 0xfc);
+		}
+	}
+#ifndef FAST_SOUND
+	if (lastsample >= 0x98)
+		PIA1.b.port_input |= 0x02;
+	else
+		PIA1.b.port_input &= 0xfd;
+#endif
 }
 
 static unsigned int current_time(void) {

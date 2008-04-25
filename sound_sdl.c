@@ -141,7 +141,7 @@ static void update(void) {
 	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
 		lastsample = (PIA1.b.port_output & 0x02) ? 0x3f : 0;
-	} else  {
+	} else {
 		if (PIA0.b.control_register & 0x08) {
 			/* Sound disabled */
 			lastsample = 0;
@@ -150,6 +150,12 @@ static void update(void) {
 			lastsample = (PIA1.a.port_output & 0xfc) >> 1;
 		}
 	}
+#ifndef FAST_SOUND
+	if (lastsample >= 0x4c)
+		PIA1.b.port_input |= 0x02;
+	else
+		PIA1.b.port_input &= 0xfd;
+#endif
 }
 
 static void flush_frame(void) {
