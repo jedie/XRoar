@@ -305,16 +305,26 @@ rm -f $TMPC
 
 ########
 
+# Check for specific architectures being selected
+
+if test "$_gp32" = "yes"; then
+	_nds=no
+fi
+
+if test "$_nds" = "yes"; then
+	_gp32=no
+fi
+
+########
+
 # Rather involved tests to see if we can build against the GP32 SDK.
 # Omits testing for the gpsound library, as I don't use that.
-if test "$_gp32" = "auto"; then
+if test "$_gp32" = "yes" -o "$_gp32" = "auto"; then
 	echocheck GP32
+	gp32_cflags="-march=armv4t -mtune=arm920t -fomit-frame-pointer -ffast-math"
+	gp32_ldflags="-specs=gp32_gpsdk.specs -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic"
 	_gp32=no
-	TARGET_CRT0=gp32/crt0.o
-	mkdir -p gp32
-	echo "$TARGET_AS -o $TARGET_CRT0 $SRCROOT/gp32/crt0.s" >&$config_log
-	if $TARGET_AS -o $TARGET_CRT0 $SRCROOT/gp32/crt0.s >&$config_log 2>&1; then
-		cat > $TMPC <<EOF
+	cat > $TMPC <<EOF
 #include <gpdef.h>
 #include <gpstdlib.h>
 #include <initval_port.h>
@@ -324,21 +334,19 @@ if test "$_gp32" = "auto"; then
 #include <gpgraphic.h>
 unsigned int HEAPSTART;
 unsigned int HEAPEND;
-int Main(int argc, char *argv) { return 0; }
+int main(int argc, char *argv) { return 0; }
 int GpPredefinedStackGet(H_THREAD th) { return 0; }
 void GpMain(void *arg) { GPDRAWSURFACE g; GpGraphicModeSet(GPC_DFLAG_8BPP, NULL); GpLcdSurfaceGet(&g, 0); }
 void GpProcSound(void) { }
 EOF
-		target_cc_check "-mcpu=arm9tdmi -funroll-loops" "-nostartfiles -T $SRCROOT/gp32/lnkscript -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic" && _gp32=yes
-		rm -f $TMPC
-		rm -f $TARGET_CRT0
-	fi
+	target_cc_check "$gp32_cflags" "$gp32_ldflags" && _gp32=yes
+	rm -f $TMPC
 	echo "$_gp32"
 fi
 if test "$_gp32" = "yes"; then
 	EXEEXT=.elf
-	_TARGET_CFLAGS="$_TARGET_CFLAGS -mcpu=arm9tdmi -funroll-loops"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -nostartfiles -T $SRCROOT/gp32/lnkscript -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic"
+	_TARGET_CFLAGS="$_TARGET_CFLAGS $gp32_cflags"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $gp32_ldflags"
 	_gp32_def="#define HAVE_GP32"
 	_have_video_driver=yes
 	_fast_vdg=yes
@@ -365,7 +373,7 @@ fi
 
 ########
 
-if test "$_nds" = "auto"; then
+if test "$_nds" = "yes" -o "$_nds" = "auto"; then
 	echocheck NDS
 	nds_cflags="-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM9"
 	nds_ldflags="-specs=ds_arm9.specs -lfat -lnds9"

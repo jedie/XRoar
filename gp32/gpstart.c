@@ -11,14 +11,14 @@ unsigned int HEAPEND;
 
 extern void GpKeyPollingTimeSet(int loop_cnt);
 
-/* No need for a prototype for Main in a header file as it's called by crt0.s,
+/* No need for a prototype for main in a header file as it's called by crt0.s,
  * but will put one here to avoid compiler warnings. */
-void Main(int arg_len, char *arg_v);
+void main(int argc, char **argv);
 
-void Main(int arg_len, char *arg_v) {
+void main(int argc, char **argv) {
 	GM_HEAP_DEF gm_heap_def;
-	(void)arg_len;  /* unused */
-	(void)arg_v;  /* unused */
+	(void)argc;  /* unused */
+	(void)argv;  /* unused */
 	
 	_gp_sdk_init();
 	

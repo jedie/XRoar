@@ -33,7 +33,7 @@ and which libraries to link against, including any optional libraries.
 
 Use the '--host' switch to cross-compile.  For example:
 
-        ./configure --host=arm-elf
+        ./configure --host=arm-gp32-eabi
     or: ./configure --host=i586-mingw32
 
 If 'configure' is run from outside the source directory, object files
