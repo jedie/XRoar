@@ -375,7 +375,7 @@ fi
 
 if test "$_nds" = "yes" -o "$_nds" = "auto"; then
 	echocheck NDS
-	nds_cflags="-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM9"
+	nds_cflags="-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -mthumb-interwork -DARM9"
 	nds_ldflags="-specs=ds_arm9.specs -lfat -lnds9"
 	cat > $TMPC <<EOF
 #include <nds.h>
