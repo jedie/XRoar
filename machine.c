@@ -333,7 +333,6 @@ void machine_reset(int hard) {
 		/* Configure keymap */
 		keyboard_set_keymap(running_config.keymap);
 		/* Configure RAM */
-		memset(ram0, 0x00, sizeof(ram0));
 		machine_set_ram_size(running_config.ram * 1024);
 	}
 	if (IS_DRAGON64)
@@ -369,13 +368,22 @@ void machine_clear_requested_config(void) {
 	requested_config.dos_rom = NULL;
 }
 
-/* Set RAM size */
+/* Set RAM size, intialise contents */
 void machine_set_ram_size(unsigned int size) {
+	int loc = 0, byte = 0xff;
 	if (size > 0x10000)
 		size = 0x10000;
 	machine_ram_size = size;
-	if (size < 0x10000)
-		memset(ram0 + size, 0x7e, 0x10000 - size);
+	/* Don't know why, but RAM seems to start in
+	 * this state: */
+	while (loc < 0x10000) {
+		ram0[loc++] = byte;
+		ram0[loc++] = byte;
+		ram0[loc++] = byte;
+		ram0[loc++] = byte;
+		if ((loc & 0xff) != 0)
+			byte ^= 0xff;
+	}
 }
 
 /**************************************************************************/
