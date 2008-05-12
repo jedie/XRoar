@@ -370,19 +370,19 @@ void machine_clear_requested_config(void) {
 
 /* Set RAM size, intialise contents */
 void machine_set_ram_size(unsigned int size) {
-	int loc = 0, byte = 0xff;
+	int loc = 0, val = 0xff;
 	if (size > 0x10000)
 		size = 0x10000;
 	machine_ram_size = size;
 	/* Don't know why, but RAM seems to start in
 	 * this state: */
 	while (loc < 0x10000) {
-		ram0[loc++] = byte;
-		ram0[loc++] = byte;
-		ram0[loc++] = byte;
-		ram0[loc++] = byte;
+		ram0[loc++] = val;
+		ram0[loc++] = val;
+		ram0[loc++] = val;
+		ram0[loc++] = val;
 		if ((loc & 0xff) != 0)
-			byte ^= 0xff;
+			val ^= 0xff;
 	}
 }
 
