@@ -170,7 +170,7 @@ OBJS_GP32 = fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
 		ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
 		gp32/gpgfx.o gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
 		gp32/cmode_bin.o gp32/copyright.o gp32/kbd_graphics.o \
-		gp32/gplib.o
+		gp32/gplib.o gp32/vdg_bitmaps_gp32.o
 ALL_OBJS += $(OBJS_GP32)
 
 OBJS_NDS9 = fs_unix.o main_nds9.o ui_nds.o video_nds.o sound_nds.o \

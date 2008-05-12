@@ -61,7 +61,7 @@ static uint32_t border_colour;
 
 static unsigned int text_mode;
 
-#include "gp32/vdg_bitmaps_gp32.c"
+extern const uint8_t vdg_alpha_gp32[4][3][8192];
 
 static int init(int argc, char **argv) {
 	(void)argc;

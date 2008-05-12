@@ -174,7 +174,9 @@ int main(int argc, char **argv) {
 			bitmaps[3][2*8192 + l*32 + 3*8 + k] = (l & 0x01) ? tmp2 : black;
 		}
 	}
-	printf("const uint8_t vdg_alpha_gp32[4][3][8192] = {\n");
+	puts("/* This is a generated file. */");
+	puts("#include \"types.h\"");
+	puts("const uint8_t vdg_alpha_gp32[4][3][8192] = {\n");
 	for (l = 0; l < 4; l++) {
 		printf("\t{\n");
 		for (i = 0; i < 3; i++) {
