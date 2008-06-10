@@ -120,6 +120,7 @@ int tape_open_reading(const char *filename) {
 		bits_remaining = bytes_remaining = 0;
 		/* If motor is on, enable the bit waggler */
 		if (motor) {
+			fake_leader = 64;
 			waggle_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 		}
