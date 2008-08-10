@@ -185,6 +185,12 @@ static int set_fullscreen(int fullscreen) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	/* There must be a better way of just clearing the texture? */
+	memset(screen_tex, 0, 512 * sizeof(Pixel));
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 320,   0,   1, 256,
+			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
+	glTexSubImage2D(GL_TEXTURE_2D, 0,   0, 240, 512,   1,
+			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
 
 	return 0;
 }
