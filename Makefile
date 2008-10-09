@@ -59,7 +59,7 @@ else
 ifeq ($(CONFIG_NDS),yes)
 ROMPATH = \"/dragon/roms\",\"/dragon\",\".\"
 else
-ROMPATH = \".\",\"~/.xroar/roms\",\"~/Library/XRoar/Roms\",\"$(prefix)/share/xroar/roms\"
+ROMPATH = \".\",\"~/.xroar/roms\",\"~/Library/XRoar/Roms\",\"$(datadir)/xroar/roms\"
 endif
 endif
 endif
@@ -204,6 +204,13 @@ $(TARGET): $(CRT0) $(OBJS)
 	$(CC) $(CFLAGS) $(CRT0) $(OBJS) -o $@ $(LDFLAGS)
 
 ############################################################################
+# Install rules
+
+install: $(TARGET)
+	mkdir -p $(DESTDIR)$(bindir)
+	install -s $(TARGET) $(DESTDIR)$(bindir)
+
+############################################################################
 # Targets where output of gcc is not the end result
 
 ifeq ($(CONFIG_GP32),yes)
@@ -346,6 +353,14 @@ dist-macosx dist-macos: all
 	chmod -R o+rX,g+rX XRoar-$(VERSION)/
 	hdiutil create -srcfolder XRoar-$(VERSION) -uid 99 -gid 99 ../XRoar-$(VERSION).dmg
 	rm -rf XRoar-$(VERSION)/
+
+debuild: dist
+	-cd ..; rm -rf $(DISTNAME)/ $(DISTNAME).orig/
+	cd ..; mv $(DISTNAME).tar.gz xroar_$(VERSION).orig.tar.gz
+	cd ..; tar xfz xroar_$(VERSION).orig.tar.gz
+	cp -a debian ../$(DISTNAME)/
+	rm -rf ../$(DISTNAME)/debian/_darcs/
+	cd ../$(DISTNAME); debuild
 
 .PHONY: depend
 depend:
