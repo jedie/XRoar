@@ -120,6 +120,7 @@ static int init(int argc, char **argv) {
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
 	event_free(flush_event);
+	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	close(sound_fd);
 	free(buffer);
 }
