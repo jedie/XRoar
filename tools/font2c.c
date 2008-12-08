@@ -29,6 +29,10 @@ enum { NORMAL, VDG } output_mode = NORMAL;
 Uint32 getpixel(SDL_Surface *surface, int x, int y);
 void print_usage(FILE *f);
 
+#ifdef main
+#undef main
+#endif
+
 int main(int argc, char **argv) {
 	SDL_Surface *in;
 	int i, num_chars, char_height;

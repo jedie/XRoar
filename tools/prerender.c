@@ -11,6 +11,10 @@ unsigned int bitmaps[4][8 * 12 * 256];
 uint8_t vdg_colour[8];
 uint8_t fg, fg2, bg, black;
 
+#ifdef main
+#undef main
+#endif
+
 int main(int argc, char **argv) {
 	int i,j,k,l;
 	const unsigned int *s = vdg_alpha;

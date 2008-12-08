@@ -29,6 +29,10 @@
 
 Uint32 getpixel(SDL_Surface *surface, int x, int y);
 
+#ifdef main
+#undef main
+#endif
+
 int main(int argc, char **argv) {
 	Uint32 p;
 	Uint8 r,g,b;
