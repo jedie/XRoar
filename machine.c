@@ -490,7 +490,7 @@ static char *find_rom(const char *romname) {
 
 	/* If name includes a '/', just stat and return */
 	if (strchr(romname, '/') || strchr(romname, '\\')) {
-		if (stat(romname, &statbuf))
+		if (stat(romname, &statbuf) == 0)
 			return strdup(romname);
 		return NULL;
 	}
