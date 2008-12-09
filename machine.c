@@ -482,7 +482,7 @@ static char *construct_path(const char *path, const char *filename) {
 static char *find_rom(const char *romname) {
 	struct stat statbuf;
 	char *filename[3];
-	char *path;
+	char *path = NULL;
 	int i, j;
 
 	if (romname == NULL)
