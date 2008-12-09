@@ -51,6 +51,7 @@ static event_t nmi_event;
 static void do_nmi(void);
 
 /* Latch that's part of the DragonDOS cart: */
+static unsigned int ic1_old;
 static unsigned int ic1_drive_select;
 static unsigned int ic1_motor_enable;
 static unsigned int ic1_precomp_enable;
@@ -71,6 +72,7 @@ void dragondos_reset(void) {
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
 	wd279x_reset();
+	ic1_old = 0xff;
 	ic1_drive_select = 0xff;
 	ic1_motor_enable = 0xff;
 	ic1_precomp_enable = 0xff;
@@ -97,23 +99,26 @@ void dragondos_write(unsigned int addr, unsigned int val) {
 
 /* DragonDOS cartridge circuitry */
 static void ff48_write(unsigned int octet) {
-	LOG_DEBUG(4, "DragonDOS: Write to FF48: ");
-	if ((octet & 0x03) != ic1_drive_select) {
-		LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
+	if (octet != ic1_old) {
+		LOG_DEBUG(4, "DragonDOS: Write to FF48: ");
+		if ((octet ^ ic1_old) & 0x03) {
+			LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
+		}
+		if ((octet ^ ic1_old) & 0x04) {
+			LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x04)?"ON":"OFF");
+		}
+		if ((octet ^ ic1_old) & 0x08) {
+			LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x08)?"SINGLE":"DOUBLE");
 	}
-	if ((octet & 0x04) != ic1_motor_enable) {
-		LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x04)?"ON":"OFF");
+		if ((octet ^ ic1_old) & 0x10) {
+			LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
+		}
+		if ((octet ^ ic1_old) & 0x20) {
+			LOG_DEBUG(4, "NMI %s, ", (octet & 0x20)?"ENABLED":"DISABLED");
+		}
+		LOG_DEBUG(4, "\n");
+		ic1_old = octet;
 	}
-	if ((octet & 0x08) != ic1_density) {
-		LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x08)?"SINGLE":"DOUBLE");
-	}
-	if ((octet & 0x10) != ic1_precomp_enable) {
-		LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
-	}
-	if ((octet & 0x20) != ic1_nmi_enable) {
-		LOG_DEBUG(4, "NMI %s, ", (octet & 0x20)?"ENABLED":"DISABLED");
-	}
-	LOG_DEBUG(4, "\n");
 	ic1_drive_select = octet & 0x03;
 	vdrive_set_drive(ic1_drive_select);
 	ic1_motor_enable = octet & 0x04;
