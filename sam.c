@@ -86,7 +86,7 @@ unsigned int sam_read_byte(unsigned int addr) {
 		/* RAM access */
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
 		current_cycle += CPU_SLOW_DIVISOR;
-		if (ram_addr < machine_ram_size)
+		if (addr < machine_ram_size)
 			return ram0[ram_addr];
 		return 0x7e;
 	}
@@ -150,7 +150,7 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 				ram0[ram_addr] = rom0[addr & 0x7fff];
 			return;
 		}
-		if (ram_addr < machine_ram_size)
+		if (addr < machine_ram_size)
 			ram0[ram_addr] = octet;
 		return;
 	}
