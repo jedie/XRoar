@@ -50,9 +50,8 @@ static event_t nmi_event;
 static void do_nmi(void);
 
 /* Latch that's part of the RSDOS cart: */
+static unsigned int ic1_old;
 static unsigned int ic1_drive_select;
-static unsigned int ic1_motor_enable;
-static unsigned int ic1_precomp_enable;
 static unsigned int ic1_density;
 static int drq_flag;
 static int intrq_flag;
@@ -72,9 +71,8 @@ void rsdos_reset(void) {
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
 	wd279x_reset();
+	ic1_old = 0xff;
 	ic1_drive_select = 0xff;
-	ic1_motor_enable = 0xff;
-	ic1_precomp_enable = 0xff;
 	ic1_density = 0xff;
 	halt_enable = 0xff;
 	drq_flag = intrq_flag = 0;
@@ -109,27 +107,31 @@ static void ff40_write(unsigned int octet) {
 		new_drive_select = 2;
 	}
 	vdrive_set_side(octet & 0x40 ? 1 : 0);
-	LOG_DEBUG(4, "RSDOS: Write to FF40: ");
-	if (new_drive_select != ic1_drive_select) {
-		LOG_DEBUG(4, "DRIVE SELECT %d, ", new_drive_select);
+	if (octet != ic1_old) {
+		LOG_DEBUG(4, "RSDOS: Write to FF40: ");
+		if (new_drive_select != ic1_drive_select) {
+			LOG_DEBUG(4, "DRIVE SELECT %d, ", new_drive_select);
+		}
+		if ((octet ^ ic1_old) & 0x08) {
+			LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x08)?"ON":"OFF");
+		}
+		if ((octet ^ ic1_old) & 0x20) {
+			LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x20)?"SINGLE":"DOUBLE");
+		}
+		if ((octet ^ ic1_old) & 0x10) {
+			LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
+		}
+		if ((octet ^ ic1_old) & 0x40) {
+			LOG_DEBUG(4, "SIDE %d, ", (octet & 0x40) >> 6);
+		}
+		if ((octet ^ ic1_old) & 0x80) {
+			LOG_DEBUG(4, "HALT %s, ", (octet & 0x80)?"ENABLED":"DISABLED");
+		}
+		LOG_DEBUG(4, "\n");
+		ic1_old = octet;
 	}
-	if ((octet & 0x08) != ic1_motor_enable) {
-		LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x08)?"ON":"OFF");
-	}
-	if ((octet & 0x20) != ic1_density) {
-		LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x20)?"SINGLE":"DOUBLE");
-	}
-	if ((octet & 0x10) != ic1_precomp_enable) {
-		LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
-	}
-	if ((octet & 0x80) != halt_enable) {
-		LOG_DEBUG(4, "HALT %s, ", (octet & 0x80)?"ENABLED":"DISABLED");
-	}
-	LOG_DEBUG(4, "\n");
 	ic1_drive_select = new_drive_select;
 	vdrive_set_drive(ic1_drive_select);
-	ic1_motor_enable = octet & 0x08;
-	ic1_precomp_enable = octet & 0x10;
 	ic1_density = octet & 0x20;
 	wd279x_set_density(ic1_density);
 	if (ic1_density && intrq_flag) {
