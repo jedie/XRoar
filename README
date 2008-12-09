@@ -227,7 +227,8 @@ Here's a complete summary of supported command-line switches:
   -vo MODULE            specify video module (-vo help for a list)
   -ao MODULE            specify audio module (-ao help for a list)
   -fskip FRAMES         specify frameskip (default: 0)
-  -snap FILENAME        load snapshot after initialising
+  -load FILENAME        load or attach FILE
+  -run FILENAME         load or attach FILE and attempt autorun
   -h, --help            display this help and exit
       --version         output version information and exit
   -keymap CODE          select host keyboard type (uk, us, fr, de)

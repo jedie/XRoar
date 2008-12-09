@@ -49,7 +49,11 @@ int noratelimit = 0;
 event_t *xroar_ui_events = NULL;
 event_t *xroar_machine_events = NULL;
 
-static const char *snapshot_load = NULL;
+static event_t load_file_event;
+static void do_load_file(void);
+static const char *load_file = NULL;
+static int load_file_type = FILETYPE_UNKNOWN;
+static int autorun_loaded_file = 0;
 
 static struct {
 	const char *ext;
@@ -73,7 +77,8 @@ static void xroar_helptext(void) {
 	puts("  -vo MODULE            specify video module (-vo help for a list)");
 	puts("  -ao MODULE            specify audio module (-ao help for a list)");
 	puts("  -fskip FRAMES         specify frameskip (default: 0)");
-	puts("  -snap FILENAME        load snapshot after initialising");
+	puts("  -load FILE            load or attach FILE");
+	puts("  -run FILE             load or attach FILE and attempt autorun");
 	puts("  -h, --help            display this help and exit");
 	puts("      --version         output version information and exit");
 }
@@ -111,10 +116,17 @@ int xroar_init(int argc, char **argv) {
 			requested_frameskip = strtol(argv[++i], NULL, 0);
 			if (requested_frameskip < 0)
 				requested_frameskip = 0;
-		} else if (!strcmp(argv[i], "-snap")) {
+		} else if (!strcmp(argv[i], "-load")
+				|| !strcmp(argv[i], "-snap")) {
 			i++;
 			if (i >= argc) break;
-			snapshot_load = argv[i];
+			load_file = argv[i];
+			autorun_loaded_file = 0;
+		} else if (!strcmp(argv[i], "-run")) {
+			i++;
+			if (i >= argc) break;
+			load_file = argv[i];
+			autorun_loaded_file = 1;
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");
@@ -145,6 +157,20 @@ int xroar_init(int argc, char **argv) {
 #ifdef TRACE
 	m6809_trace_getargs(argc, argv);
 #endif
+
+	/* Disable DOS if a cassette or cartridge is being loaded */
+	if (load_file) {
+		load_file_type = xroar_filetype_by_ext(load_file);
+		switch (load_file_type) {
+			case FILETYPE_CAS:
+			case FILETYPE_WAV:
+			case FILETYPE_ROM:
+				requested_config.dos_type = DOS_NONE;
+				break;
+			default:
+				break;
+		}
+	}
 
 	/* Initialise everything */
 	current_cycle = 0;
@@ -178,8 +204,25 @@ int xroar_init(int argc, char **argv) {
 	machine_init();
 	/* Reset everything */
 	machine_reset(RESET_HARD);
-	if (snapshot_load)
-		read_snapshot(snapshot_load);
+	if (load_file) {
+		int filetype = xroar_filetype_by_ext(load_file);
+		switch (filetype) {
+			/* Snapshots and carts need to load immediately; the
+			   rest can wait */
+			case FILETYPE_SNA:
+				read_snapshot(load_file);
+				break;
+			case FILETYPE_ROM:
+				cart_insert(load_file, autorun_loaded_file);
+				break;
+			default:
+				event_init(&load_file_event);
+				load_file_event.dispatch = do_load_file;
+				load_file_event.at_cycle = current_cycle + OSCILLATOR_RATE * 1.5;
+				event_queue(&UI_EVENT_LIST, &load_file_event);
+				break;
+		}
+	}
 	return 0;
 }
 
@@ -246,5 +289,26 @@ int xroar_load_file(const char *filename, int mode) {
 		case FILETYPE_WAV:
 		default:
 			return tape_open_reading(filename);
+	}
+}
+
+static void do_load_file(void) {
+	int flags = 0;
+	if (autorun_loaded_file)
+		flags = XROAR_AUTORUN_CAS;
+	xroar_load_file(load_file, flags);
+	if (autorun_loaded_file) {
+		switch (load_file_type) {
+			case FILETYPE_VDK:
+			case FILETYPE_JVC:
+			case FILETYPE_DMK:
+				if (IS_DRAGON)
+					keyboard_queue_string("\rboot\r");
+				else
+					keyboard_queue_string("\rdos\r");
+				break;
+			default:
+				break;
+		}
 	}
 }
