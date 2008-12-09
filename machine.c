@@ -19,6 +19,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "types.h"
 #include "cart.h"
@@ -68,7 +71,7 @@ int cross_colour_renderer = CROSS_COLOUR_SIMPLE;
 int cross_colour_renderer = CROSS_COLOUR_5BIT;
 #endif
 
-int requested_machine = 1;
+int requested_machine;
 MachineConfig requested_config = {
 	ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, NULL, NULL, NULL, NULL
 };
@@ -122,9 +125,10 @@ static const char *dos_type_options[NUM_DOS_TYPES] = {
 	"none", "dragondos", "rsdos", "delta"
 };
 
+static char *find_rom(const char *romname);
+static char *find_rom_in_list(const char *preferred, const char **list);
 static int load_rom_from_list(const char *preferred, const char **list,
 		uint8_t *dest, size_t max_size);
-static int load_rom(const char *romname, uint8_t *dest, size_t max_size);
 
 /**************************************************************************/
 
@@ -153,6 +157,7 @@ void machine_getargs(int argc, char **argv) {
 #ifndef FAST_SOUND
 	fast_sound = 0;
 #endif
+	requested_machine = ANY_AUTO;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-machine") && i+1<argc) {
 			int j;
@@ -286,6 +291,29 @@ void machine_shutdown(void) {
 }
 
 void machine_reset(int hard) {
+	/* If user didn't specify a machine, find the first one that
+	 * has the bare minimum of ROMs to get going */
+	if (requested_machine == ANY_AUTO) {
+		char *tmp = NULL;
+		if ((tmp = find_rom_in_list(requested_config.extbas_rom, d64_extbas_roms))) {
+			if (requested_config.tv_standard == TV_NTSC)
+				requested_machine = MACHINE_TANO;
+			else
+				requested_machine = MACHINE_DRAGON64;
+		} else if ((tmp = find_rom_in_list(NULL, d32_extbas_roms))) {
+			requested_machine = MACHINE_DRAGON32;
+		} else if ((tmp = find_rom_in_list(requested_config.bas_rom, coco_bas_roms))) {
+			if (requested_config.tv_standard == TV_NTSC)
+				requested_machine = MACHINE_COCOUS;
+			else
+				requested_machine = MACHINE_COCO;
+		} else {
+			/* Fall back to this, which won't start up properly */
+			requested_machine = MACHINE_DRAGON64;
+		}
+		if (tmp)
+			free(tmp);
+	}
 	if (hard) {
 		MachineConfig *defaults;
 		running_machine = requested_machine % NUM_MACHINE_TYPES;
@@ -388,37 +416,16 @@ void machine_set_ram_size(unsigned int size) {
 
 /**************************************************************************/
 
-/* load_rom searches a path (specified in ROMPATH macro at compile time) to
- * find roms.  It searches each element in the (colon separated) path for
- * the supplied rom name with ".rom" or ".dgn" as a suffix.  load_rom_f does
- * the actual loading. */
+/* load_rom_from_list searches a path (specified in ROMPATH macro at compile
+ * time) to find the preferred ROM, or one from the supplied list.  It searches
+ * each element in the path for each rom name with ".rom" or ".dgn" as a
+ * suffix.  */
 
 #ifndef ROMPATH
 # define ROMPATH ".","/usr/local/share/xroar/roms"
 #endif
 
 static const char *rom_path[] = { ROMPATH, NULL };
-
-static int load_rom_f(const char *filename, uint8_t *dest, size_t max_size) {
-	int fd;
-	if ((fd = fs_open(filename, FS_READ)) == -1)
-		return -1;
-	LOG_DEBUG(3, "Loading ROM: %s\n", filename);
-	fs_read(fd, dest, max_size);
-	fs_close(fd);
-	return 0;
-}
-
-static int load_dgn_f(const char *filename, uint8_t *dest, size_t max_size) {
-	int fd;
-	if ((fd = fs_open(filename, FS_READ)) == -1)
-		return -1;
-	LOG_DEBUG(3, "Loading DGN: %s\n", filename);
-	fs_read(fd, dest, 16);
-	fs_read(fd, dest, max_size);
-	fs_close(fd);
-	return 0;
-}
 
 static char *construct_path(const char *path, const char *filename) {
 	char *buf;
@@ -451,48 +458,86 @@ static char *construct_path(const char *path, const char *filename) {
 	return buf;
 }
 
-static int load_rom(const char *romname, uint8_t *dest, size_t max_size) {
-	int i;
-	char *filename;
-	char name_dot_rom[13], name_dot_dgn[13];
-	unsigned int ret;
-	if (!romname)
-		return -1;
-	/* Try ROM without any extension first */
-	if (load_rom_f(romname, dest, max_size) == 0)
-		return 0;
-	if (strlen(romname) > 8)
-		return -1;
-	strcpy(name_dot_rom, romname);
-	strcat(name_dot_rom, ".rom");
-	strcpy(name_dot_dgn, romname);
-	strcat(name_dot_dgn, ".dgn");
-	for (i = 0; rom_path[i]; i++) {
-		filename = construct_path(rom_path[i], name_dot_rom);
-		if (filename == NULL)
-			return -1;
-		ret = load_rom_f(filename, dest, max_size);
-		free(filename);
-		if (ret == 0)
-			return 0;
-		filename = construct_path(rom_path[i], name_dot_dgn);
-		if (filename == NULL)
-			return -1;
-		ret = load_dgn_f(filename, dest, max_size);
-		free(filename);
-		if (ret == 0)
-			return 0;
+/* Find a ROM within rom path.  Returns malloced string containing path to ROM
+ * or NULL if not found. */
+static char *find_rom(const char *romname) {
+	struct stat statbuf;
+	char *filename[3];
+	char *path;
+	int i, j;
+
+	if (romname == NULL)
+		return NULL;
+
+	/* If name includes a '/', just stat and return */
+	if (strchr(romname, '/') || strchr(romname, '\\')) {
+		if (stat(romname, &statbuf))
+			return strdup(romname);
+		return NULL;
 	}
-	return -1;
+
+	/* Otherwise try a path search of name, name.rom and name.dgn */
+	filename[0] = romname;
+	filename[1] = malloc(strlen(romname) + 5);
+	strcpy(filename[1], romname);
+	strcat(filename[1], ".rom");
+	filename[2] = malloc(strlen(romname) + 5);
+	strcpy(filename[2], romname);
+	strcat(filename[2], ".dgn");
+	for (i = 0; rom_path[i]; i++) {
+		for (j = 0; j < 3; j++) {
+			path = construct_path(rom_path[i], filename[j]);
+			if (path) {
+				if (stat(path, &statbuf) == 0)
+					break;
+				free(path);
+				path = NULL;
+			}
+		}
+		if (path)
+			break;
+	}
+
+	free(filename[1]);
+	free(filename[2]);
+	return path;
+}
+
+static char *find_rom_in_list(const char *preferred, const char **list) {
+	char *path;
+	int i;
+	if (preferred && (path = find_rom(preferred)))
+		return path;
+	if (list == NULL)
+		return NULL;
+	for (i = 0; list[i]; i++) {
+		if ((path = find_rom(list[i])))
+			return path;
+	}
+	return NULL;
 }
 
 static int load_rom_from_list(const char *preferred, const char **list,
 		uint8_t *dest, size_t max_size) {
-	int i;
-	if (list == NULL)
-		return 1;
-	if (preferred && !load_rom(preferred, dest, max_size))
-		return 1;
-	for (i = 0; list[i] && load_rom(list[i], dest, max_size); i++);
-	return 1;
+	char *path, *dot;
+	int fd;
+
+	path = find_rom_in_list(preferred, list);
+	if (path == NULL)
+		return -1;
+	dot = strrchr(path, '.');
+	if ((fd = fs_open(path, FS_READ)) == -1) {
+		free(path);
+		return -1;
+	}
+	if (dot && strcmp(dot, ".dgn") == 0) {
+		LOG_DEBUG(3, "Loading DGN: %s\n", path);
+		fs_read(fd, dest, 16);
+	} else {
+		LOG_DEBUG(3, "Loading ROM: %s\n", path);
+	}
+	fs_read(fd, dest, max_size);
+	fs_close(fd);
+	free(path);
+	return 0;
 }
