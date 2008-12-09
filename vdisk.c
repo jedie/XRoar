@@ -25,6 +25,7 @@
 #include "crc16.h"
 #include "fs.h"
 #include "logging.h"
+#include "machine.h"
 #include "module.h"
 #include "vdisk.h"
 #include "xroar.h"
@@ -410,7 +411,10 @@ int vdisk_format_disk(struct vdisk *disk, int density,
 				idams[idam++] = offset | density;
 				WRITE_BYTE_CRC(0xfe);
 				WRITE_BYTE_CRC(track);
-				WRITE_BYTE_CRC(side);
+				if (IS_DRAGON)
+					WRITE_BYTE_CRC(side);
+				else
+					WRITE_BYTE_CRC(0);
 				WRITE_BYTE_CRC(sect_interleave[sector] + first_sector);
 				WRITE_BYTE_CRC(ssize_code);
 				WRITE_CRC();
@@ -438,13 +442,18 @@ int vdisk_update_sector(struct vdisk *disk, int side, int track,
 	uint16_t *idams;
 	unsigned int offset;
 	int ssize, i;
+	int rside;
 	if (disk == NULL) return -1;
+	if (IS_DRAGON)
+		rside = side;
+	else
+		rside = 0;
 	idams = vdisk_track_base(disk, side, track);
 	if (idams == NULL) return -1;
 	data = (uint8_t *)idams;
 	for (i = 0; i < 64; i++) {
 		offset = idams[i] & 0x3fff;
-		if (data[offset + 1] == track && data[offset + 2] == side
+		if (data[offset + 1] == track && data[offset + 2] == rside
 				&& data[offset + 3] == sector)
 			break;
 	}
