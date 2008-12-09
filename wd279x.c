@@ -86,7 +86,11 @@
 #define RESET_DIRECTION do { \
 		direction = -1; vdrive_set_direction(-1); \
 	} while (0)
-#define SET_SIDE(s) do { side = (s) ? 1 : 0; vdrive_set_side(side); } while (0)
+#define SET_SIDE(s) do { \
+		side = (s) ? 1 : 0; \
+		if (HAS_SSO) \
+			vdrive_set_side(side); \
+	} while (0)
 
 /* From enum WD279X_type */
 unsigned int wd279x_type;
@@ -319,6 +323,8 @@ void wd279x_command_write(unsigned int cmd) {
 		}
 		if (HAS_SSO)
 			SET_SIDE(cmd & 0x02);  /* 'U' */
+		else
+			SET_SIDE(cmd & 0x08);  /* 'S' */
 		if (cmd & 0x04) {  /* 'E' set */
 			NEXT_STATE(type_2_state_1, W_MILLISEC(30));
 			return;
@@ -343,6 +349,8 @@ void wd279x_command_write(unsigned int cmd) {
 		}
 		if (HAS_SSO)
 			SET_SIDE(cmd & 0x02);  /* 'U' */
+		else
+			SET_SIDE(cmd & 0x08);  /* 'S' */
 		if (cmd & 0x04) {  /* 'E' set */
 			NEXT_STATE(type_3_state_1, W_MILLISEC(30));
 			return;
@@ -486,8 +494,11 @@ static void type_2_state_2(void) {
 		return;
 	}
 	if (side != vdrive_read()) {
-		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
-		return;
+		/* No error if no SSO or 'C' not set */
+		if (HAS_SSO || cmd_copy & 0x02) {
+			NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
+			return;
+		}
 	}
 	if (sector_register != vdrive_read()) {
 		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
@@ -746,7 +757,9 @@ static void write_track_state_1(void) {
 		return;
 	}
 	SET_DRQ;
-	NEXT_STATE(write_track_state_2, 3 * W_BYTE_TIME);
+	/* Data sheet says 3 byte times, but CoCo NitrOS9 fails unless I set
+	 * this delay higher. */
+	NEXT_STATE(write_track_state_2, 6 * W_BYTE_TIME);
 }
 
 static void write_track_state_2(void) {
