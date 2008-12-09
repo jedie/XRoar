@@ -251,17 +251,19 @@ Ctrl+Shift+[5-8] .. Toggle write protect on file for disk in drive 1-4.
 Ctrl+A ............ Cycle through cross-colour video modes (hi-res only).
 Ctrl+C ............ Quit emulator.
 Ctrl+E ............ Toggle DOS emulation on/off - reset to take effect.
+Ctrl+F ............ Toggle full screen mode.
 Ctrl+I ............ Insert a cartridge.
 Ctrl+Shift+I ...... Insert a cartridge, no autorun.
 Ctrl+J ............ Cycle through joystick emulation modes (None, Left, Right).
 Ctrl+K ............ Toggle between Dragon and CoCo keyboard layout.
 Ctrl+L ............ Load a file (see below).
-Ctrl+M ............ Toggle between Dragon and CoCo emulation (resets machine).
+Ctrl+M ............ Cycle through emulated machine types (resets machine).
 Ctrl+R ............ Soft reset.
 Ctrl+Shift+R ...... Hard reset.
 Ctrl+S ............ Save a snapshot.
 Ctrl+W ............ Attach a virtual cassette file for writing.
 Ctrl+Z ............ Enable keyboard translation mode (see below).
+F12 ............... Run with no speed throttling while held.
 
 Loading a file with Ctrl+L autodetects the file type by extension, and
 acts accordingly:
