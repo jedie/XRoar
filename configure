@@ -18,6 +18,7 @@ _strsep=auto
 _sdl=auto
 _sdlgl=auto
 _build_sdl=auto
+_build_sdl_image=auto
 _gtk2=auto
 _gtk1=auto
 _cli=yes
@@ -521,6 +522,29 @@ fi
 
 ########
 
+if test "$_build_sdl_image" = "yes" -o "$_build_sdl_image" = "auto"; then
+	echocheck SDL_image on build host
+	test -z "$build_sdl_image_ldflags" && build_sdl_image_ldflags="-lSDL_image"
+	cat > $TMPC <<EOF
+#include <SDL.h>
+#include <SDL_image.h>
+int main(int argc, char **argv) { SDL_Init(0); IMG_Load(""); return 0; }
+EOF
+	_build_sdl_image=no
+	build_cc_check "$build_sdl_cflags" "$build_sdl_ldflags $build_sdl_image_ldflags" && _build_sdl_image=yes
+	rm -f $TMPC
+	echo "$_build_sdl_image"
+fi
+
+########
+
+if test "$_build_sdl" = "no" -o "$_build_sdl_image" = "no"; then
+	echo "Both SDL and SDL_image are needed by the build process!"
+	exit 1
+fi
+
+########
+
 if test "$_sdlgl" = "auto" -a "$_sdl" = "yes"; then
 	echocheck SDL OpenGL support
 	cat > $TMPC <<EOF
@@ -848,11 +872,13 @@ BUILD_CC = $BUILD_CC
 BUILD_CFLAGS = $BUILD_CFLAGS
 BUILD_SDL_CFLAGS = $build_sdl_cflags
 BUILD_SDL_LDFLAGS = $build_sdl_ldflags
+BUILD_SDL_IMAGE_LDFLAGS = $build_sdl_image_ldflags
 
 CONFIG_C_NESTED_FUNCS = $_c_nested_funcs
 CONFIG_SDL = $_sdl
 CONFIG_SDLGL = $_sdlgl
 CONFIG_BUILD_SDL = $_build_sdl
+CONFIG_BUILD_SDL_IMAGE = $_build_sdl_image
 CONFIG_GTK2 = $_gtk2
 CONFIG_GTK1 = $_gtk1
 CONFIG_CLI = $_cli

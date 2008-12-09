@@ -242,7 +242,7 @@ endif
 
 tools/font2c: tools/font2c.c
 	mkdir -p tools
-	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) -lSDL_image
+	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
 
 $(SRCROOT)/vdg_bitmaps.c: tools/font2c $(SRCROOT)/vdgfont.png
 	tools/font2c --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
@@ -267,7 +267,7 @@ gp32/kbd_graphics.c: tools/img2c gp32/kbd.png gp32/kbd_shift.png
 
 tools/img2c: tools/img2c.c
 	mkdir -p tools
-	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) -lSDL_image
+	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
 
 nds/kbd_graphics.c: tools/img2c_nds nds/kbd.png nds/kbd_shift.png
 	tools/img2c_nds kbd_bin $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png > $@
@@ -277,7 +277,7 @@ nds/nds_font8x8.c: tools/font2c vdgfont.png
 
 tools/img2c_nds: tools/img2c_nds.c
 	mkdir -p tools
-	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) -lSDL_image
+	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
 
 ############################################################################
 # Distribution creation and cleanup
