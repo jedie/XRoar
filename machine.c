@@ -314,6 +314,22 @@ static void find_working_machine(void) {
 		free(tmp);
 }
 
+static void find_working_dos_type(void) {
+	char *tmp = NULL;
+	running_config.dos_type = DOS_NONE;  /* default to none */
+	if (IS_DRAGON) {
+		if ((tmp = find_rom_in_list(requested_config.dos_rom, dragondos_roms))) {
+			running_config.dos_type = DOS_DRAGONDOS;
+		} else if ((tmp = find_rom_in_list(NULL, deltados_roms))) {
+			running_config.dos_type = DOS_DELTADOS;
+		}
+	} else {
+		if ((tmp = find_rom_in_list(requested_config.dos_rom, rsdos_roms))) {
+			running_config.dos_type = DOS_DRAGONDOS;
+		}
+	}
+}
+
 void machine_reset(int hard) {
 	if (hard) {
 		MachineConfig *defaults;
@@ -337,7 +353,7 @@ void machine_reset(int hard) {
 		if (running_config.ram == ANY_AUTO)
 			running_config.ram = defaults->ram;
 		if (running_config.dos_type == ANY_AUTO)
-			running_config.dos_type = defaults->dos_type % NUM_DOS_TYPES;
+			find_working_dos_type();
 		/* Load appropriate ROMs */
 		memset(rom0, 0x7e, sizeof(rom0));
 		memset(rom1, 0x7e, sizeof(rom1));
