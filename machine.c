@@ -325,7 +325,7 @@ static void find_working_dos_type(void) {
 		}
 	} else {
 		if ((tmp = find_rom_in_list(requested_config.dos_rom, rsdos_roms))) {
-			running_config.dos_type = DOS_DRAGONDOS;
+			running_config.dos_type = DOS_RSDOS;
 		}
 	}
 }
