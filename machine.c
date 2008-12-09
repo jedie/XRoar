@@ -290,32 +290,35 @@ void machine_shutdown(void) {
 	vdrive_shutdown();
 }
 
-void machine_reset(int hard) {
-	/* If user didn't specify a machine, find the first one that
-	 * has the bare minimum of ROMs to get going */
-	if (requested_machine == ANY_AUTO) {
-		char *tmp = NULL;
-		if ((tmp = find_rom_in_list(requested_config.extbas_rom, d64_extbas_roms))) {
-			if (requested_config.tv_standard == TV_NTSC)
-				requested_machine = MACHINE_TANO;
-			else
-				requested_machine = MACHINE_DRAGON64;
-		} else if ((tmp = find_rom_in_list(NULL, d32_extbas_roms))) {
-			requested_machine = MACHINE_DRAGON32;
-		} else if ((tmp = find_rom_in_list(requested_config.bas_rom, coco_bas_roms))) {
-			if (requested_config.tv_standard == TV_NTSC)
-				requested_machine = MACHINE_COCOUS;
-			else
-				requested_machine = MACHINE_COCO;
-		} else {
-			/* Fall back to this, which won't start up properly */
+/* If user didn't specify a machine, find the first one that has the bare
+ * minimum of ROMs to get going */
+static void find_working_machine(void) {
+	char *tmp = NULL;
+	if ((tmp = find_rom_in_list(requested_config.extbas_rom, d64_extbas_roms))) {
+		if (requested_config.tv_standard == TV_NTSC)
+			requested_machine = MACHINE_TANO;
+		else
 			requested_machine = MACHINE_DRAGON64;
-		}
-		if (tmp)
-			free(tmp);
+	} else if ((tmp = find_rom_in_list(NULL, d32_extbas_roms))) {
+		requested_machine = MACHINE_DRAGON32;
+	} else if ((tmp = find_rom_in_list(requested_config.bas_rom, coco_bas_roms))) {
+		if (requested_config.tv_standard == TV_NTSC)
+			requested_machine = MACHINE_COCOUS;
+		else
+			requested_machine = MACHINE_COCO;
+	} else {
+		/* Fall back to this, which won't start up properly */
+		requested_machine = MACHINE_DRAGON64;
 	}
+	if (tmp)
+		free(tmp);
+}
+
+void machine_reset(int hard) {
 	if (hard) {
 		MachineConfig *defaults;
+		if (requested_machine == ANY_AUTO)
+			find_working_machine();
 		running_machine = requested_machine % NUM_MACHINE_TYPES;
 		LOG_DEBUG(2, "%s selected\n", machine_names[running_machine]);
 		defaults = &machine_defaults[running_machine];
