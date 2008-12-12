@@ -169,6 +169,7 @@ static void flush_frame(void) {
 	if (noratelimit) {
 		ioctl(sound_fd, I_FLUSH, FLUSHW);
 		samples_written = device_info.play.samples;
+		return;
 	}
 	samples_left = samples_written - device_info.play.samples;
 	if (samples_left > FRAME_SIZE) {
