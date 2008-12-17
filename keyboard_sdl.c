@@ -203,10 +203,14 @@ static void emulator_command(SDLKey sym) {
 			video_module->set_fullscreen(!video_module->is_fullscreen);
 		break;
 	case SDLK_j:
-		if (emulate_joystick || input_joysticks_swapped)
+		if (shift) {
 			input_control_press(INPUT_SWAP_JOYSTICKS, 0);
-		if (!input_joysticks_swapped)
-			emulate_joystick = !emulate_joystick;
+		} else {
+			if (emulate_joystick || input_joysticks_swapped)
+				input_control_press(INPUT_SWAP_JOYSTICKS, 0);
+			if (!input_joysticks_swapped)
+				emulate_joystick = !emulate_joystick;
+		}
 		break;
 	case SDLK_k:
 		keyboard_set_keymap(running_config.keymap + 1);

@@ -20,6 +20,7 @@
 
 #include "types.h"
 #include "events.h"
+#include "input.h"
 #include "joystick.h"
 #include "logging.h"
 #include "machine.h"
@@ -46,16 +47,9 @@ static struct joy {
 } joy[6];
 static int num_joys = 0;
 
-#define RIGHTX    (0)
-#define RIGHTY    (1)
-#define RIGHTFIRE (4)
-#define LEFTX     (2)
-#define LEFTY     (3)
-#define LEFTFIRE  (5)
-
 static int control_order[6] = {
-	RIGHTX, RIGHTY, RIGHTFIRE,
-	LEFTX,  LEFTY,  LEFTFIRE
+	INPUT_JOY_RIGHT_X, INPUT_JOY_RIGHT_Y, INPUT_JOY_RIGHT_FIRE,
+	INPUT_JOY_LEFT_X,  INPUT_JOY_LEFT_Y,  INPUT_JOY_LEFT_FIRE
 };
 
 static struct {
@@ -169,11 +163,11 @@ static int init(int argc, char **argv) {
 
 	/* If only one joystick attached, change the right joystick defaults */
 	if (num_sdl_joysticks == 1) {
-		control_config[RIGHTX].joy_num = control_config[RIGHTY].joy_num
-			= control_config[RIGHTFIRE].joy_num = 0;
-		control_config[RIGHTX].control_num = 3;
-		control_config[RIGHTY].control_num = 2;
-		control_config[RIGHTFIRE].control_num = 1;
+		control_config[INPUT_JOY_RIGHT_X].joy_num = control_config[INPUT_JOY_RIGHT_Y].joy_num
+			= control_config[INPUT_JOY_RIGHT_FIRE].joy_num = 0;
+		control_config[INPUT_JOY_RIGHT_X].control_num = 3;
+		control_config[INPUT_JOY_RIGHT_Y].control_num = 2;
+		control_config[INPUT_JOY_RIGHT_FIRE].control_num = 1;
 	}
 
 	for (i = 1; i < argc; i++) {
@@ -234,17 +228,19 @@ static void shutdown(void) {
 static void do_poll(void) {
 	int i;
 	SDL_JoystickUpdate();
+	/* Scan axes */
 	for (i = 0; i < 4; i++) {
 		if (control[i].joy) {
-			joystick_axis[i] = ((SDL_JoystickGetAxis(control[i].joy->device, control[i].control_num)+32768) >> 8) ^ control[i].invert;
+			joystick_axis[i ^ input_joysticks_swapped] = ((SDL_JoystickGetAxis(control[i].joy->device, control[i].control_num)+32768) >> 8) ^ control[i].invert;
 		}
 	}
-	if (control[RIGHTFIRE].joy && SDL_JoystickGetButton(control[RIGHTFIRE].joy->device, control[RIGHTFIRE].control_num)) {
+	/* And buttons */
+	if (control[INPUT_JOY_RIGHT_FIRE ^ input_joysticks_swapped].joy && SDL_JoystickGetButton(control[INPUT_JOY_RIGHT_FIRE ^ input_joysticks_swapped].joy->device, control[INPUT_JOY_RIGHT_FIRE ^ input_joysticks_swapped].control_num)) {
 		PIA0.a.tied_low &= 0xfe;
 	} else {
 		PIA0.a.tied_low |= 0x01;
 	}
-	if (control[LEFTFIRE].joy && SDL_JoystickGetButton(control[LEFTFIRE].joy->device, control[LEFTFIRE].control_num)) {
+	if (control[INPUT_JOY_LEFT_FIRE ^ input_joysticks_swapped].joy && SDL_JoystickGetButton(control[INPUT_JOY_LEFT_FIRE ^ input_joysticks_swapped].joy->device, control[INPUT_JOY_LEFT_FIRE ^ input_joysticks_swapped].control_num)) {
 		PIA0.a.tied_low &= 0xfd;
 	} else {
 		PIA0.a.tied_low |= 0x02;
