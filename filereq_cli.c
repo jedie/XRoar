@@ -48,11 +48,18 @@ static void shutdown(void) {
 
 static char *get_filename(const char **extensions) {
 	char *cr;
+	int was_fullscreen;
 	(void)extensions;  /* unused */
+
+	was_fullscreen = video_module->is_fullscreen;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(0);
 	printf("Filename? ");
 	fgets(fnbuf, sizeof(fnbuf), stdin);
 	cr = strrchr(fnbuf, '\n');
 	if (cr)
 		*cr = 0;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(1);
 	return fnbuf;
 }

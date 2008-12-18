@@ -69,11 +69,17 @@ static void file_selected(GtkWidget *w, GtkFileSelection *fs) {
 }
 
 static char *load_filename(const char **extensions) {
-	GtkWidget *fs = gtk_file_selection_new("Load file");
+	GtkWidget *fs;
+	int was_fullscreen;
 	(void)extensions;  /* unused */
+
+	was_fullscreen = video_module->is_fullscreen;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(0);
 	if (filename)
 		free(filename);
 	filename = NULL;
+	fs = gtk_file_selection_new("Load file");
 	gtk_signal_connect(GTK_OBJECT(fs), "destroy",
 			GTK_SIGNAL_FUNC(cancel), NULL);
 	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->ok_button),
@@ -84,15 +90,23 @@ static char *load_filename(const char **extensions) {
 			GTK_OBJECT (fs));
 	gtk_widget_show(fs);
 	gtk_main();
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(1);
 	return filename;
 }
 
 static char *save_filename(const char **extensions) {
-	GtkWidget *fs = gtk_file_selection_new("Save file");
+	GtkWidget *fs;
+	int was_fullscreen;
 	(void)extensions;  /* unused */
+
+	was_fullscreen = video_module->is_fullscreen;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(0);
 	if (filename)
 		free(filename);
 	filename = NULL;
+	fs = gtk_file_selection_new("Save file");
 	gtk_signal_connect(GTK_OBJECT(fs), "destroy",
 			GTK_SIGNAL_FUNC(cancel), NULL);
 	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->ok_button),
@@ -103,5 +117,7 @@ static char *save_filename(const char **extensions) {
 			GTK_OBJECT (fs));
 	gtk_widget_show(fs);
 	gtk_main();
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(1);
 	return filename;
 }

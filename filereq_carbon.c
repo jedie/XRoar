@@ -48,19 +48,24 @@ static void shutdown(void) {
 static char *load_filename(const char **extensions) {
 	NavDialogCreationOptions options;
 	NavDialogRef load_dialog;
-
 	OSStatus status;
         NavReplyRecord replyrecord;
         AEDesc filedesc;
         FSRef fileref;
         static UInt8 filename[768];
+	int was_fullscreen;
 
 	(void)extensions;  /* unused */
+	was_fullscreen = video_module->is_fullscreen;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(0);
        	status = NavGetDefaultDialogCreationOptions(&options);
        	status = NavCreateChooseFileDialog(&options, NULL, NULL, NULL, NULL, NULL, &load_dialog);
 	status = NavDialogRun(load_dialog);
         status = NavDialogGetReply(load_dialog, &replyrecord);
 	NavDialogDispose(load_dialog);
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(1);
         status = AEGetNthDesc(&replyrecord.selection, 1, typeWildCard, NULL, &filedesc);
 	status = NavDisposeReply(&replyrecord);
 	status = AEGetDescData(&filedesc, &fileref, sizeof(FSRef));
@@ -77,13 +82,19 @@ static char *save_filename(const char **extensions) {
         FSRef fileref;
         static char savename[768];
         static char filename[768];
+	int was_fullscreen;
 
 	(void)extensions;  /* unused */
+	was_fullscreen = video_module->is_fullscreen;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(0);
        	NavGetDefaultDialogCreationOptions(&options);
        	NavCreatePutFileDialog(&options, 0, 0, NULL, NULL, &save_dialog);
 	NavDialogRun(save_dialog);
         NavDialogGetReply(save_dialog, &replyrecord);
 	NavDialogDispose(save_dialog);
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(1);
 	if (!replyrecord.validRecord) {
 		NavDisposeReply(&replyrecord);
 		return NULL;

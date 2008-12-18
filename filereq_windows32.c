@@ -55,8 +55,12 @@ static void shutdown_module(void) {
 static char *load_filename(const char **extensions) {
 	OPENFILENAME ofn;
 	char fn_buf[260];
+	int was_fullscreen;
 
 	(void)extensions;  /* unused */
+	was_fullscreen = video_module->is_fullscreen;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(0);
 
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
@@ -79,14 +83,20 @@ static char *load_filename(const char **extensions) {
 		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
 		strcpy(filename, ofn.lpstrFile);
 	}
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(1);
 	return filename;
 }
 
 static char *save_filename(const char **extensions) {
 	OPENFILENAME ofn;
 	char fn_buf[260];
+	int was_fullscreen;
 
 	(void)extensions;  /* unused */
+	was_fullscreen = video_module->is_fullscreen;
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(0);
 
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
@@ -109,5 +119,7 @@ static char *save_filename(const char **extensions) {
 		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
 		strcpy(filename, ofn.lpstrFile);
 	}
+	if (video_module->set_fullscreen && was_fullscreen)
+		video_module->set_fullscreen(1);
 	return filename;
 }
