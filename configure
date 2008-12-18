@@ -11,7 +11,6 @@ build_pkg_config=auto
 target_sdl_config=auto
 build_sdl_config=auto
 target_gtk_config=auto
-build_gtk_config=auto
 
 _c_nested_funcs=auto
 _strsep=auto
@@ -605,13 +604,6 @@ if test "$target_gtk_config" = "auto"; then
 		target_gtk_config="gtk-config"
 	else
 		target_gtk_config="false"
-	fi
-fi
-if test "$build_gtk_config" = "auto"; then
-	if ( gtk-config --version ) > /dev/null 2>&1; then
-		build_gtk_config="gtk-config"
-	else
-		build_gtk_config="false"
 	fi
 fi
 
