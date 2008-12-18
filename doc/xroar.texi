@@ -251,6 +251,12 @@ To specify a cross-compile, use the @option{--target=TARGET} argument to
 @samp{./configure --target=i586-mingw32}.  @command{configure} will detect
 Windows headers and configure the build accordingly.
 
+A patch is available for download that increases the overall speed at the
+expense of some accuracy.  This patch is required for the emulator to be fast
+enough on the GP32 and Nintendo DS.  It is available from the
+@uref{http://www.6809.org.uk/dragon/xroar.shtml, XRoar home page}, and can be
+applied to the unpacked source tree with the @command{patch} command.
+
 @node Emulated hardware
 @chapter Emulated hardware
 
