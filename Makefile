@@ -10,16 +10,7 @@ VERSION := 0.21
 # TARGET is the output from gcc, not necessarily the final binary
 TARGET = xroar$(EXEEXT)
 
-# Make default target depend on appropriate final binary
-ifeq ($(CONFIG_GP32),yes)
-all: xroar.fxe
-else
-ifeq ($(CONFIG_NDS),yes)
-all: xroar.nds
-else
-all: $(TARGET)
-endif
-endif
+all: build
 
 usage:
 	@echo
@@ -196,6 +187,11 @@ endif
 endif
 
 ############################################################################
+# Documentation
+
+ALL_DOCS = doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
+
+############################################################################
 # Build rules
 
 $(OBJS): config.h config.mak
@@ -203,12 +199,73 @@ $(OBJS): config.h config.mak
 $(TARGET): $(CRT0) $(OBJS)
 	$(CC) $(CFLAGS) $(CRT0) $(OBJS) -o $@ $(LDFLAGS)
 
+doc/xroar.info: doc/xroar.texi
+	$(MAKEINFO) -D "VERSION $(VERSION)" -o $@ $<
+
+doc/xroar.pdf: doc/xroar.texi
+	$(TEXI2PDF) -t "@set VERSION $(VERSION)" --build=tidy -o $@ $<
+
+doc/xroar.html: doc/xroar.texi
+	$(MAKEINFO) --html --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
+
+doc/xroar.txt: doc/xroar.texi
+	$(MAKEINFO) --plaintext --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
+
+# Make default target depend on appropriate final binary
+.PHONY: build
+ifeq ($(CONFIG_GP32),yes)
+build: xroar.fxe $(DOCS)
+else
+ifeq ($(CONFIG_NDS),yes)
+build: xroar.nds $(DOCS)
+else
+build: $(TARGET) $(DOCS)
+endif
+endif
+
 ############################################################################
 # Install rules
 
-install: $(TARGET)
-	mkdir -p $(DESTDIR)$(bindir)
-	install -s $(TARGET) $(DESTDIR)$(bindir)
+ifeq ($(CONFIG_INSTALL),yes)
+INSTALL_FILE    = $(INSTALL) -m 0644
+ifeq (,$(filter nostrip,$(DEB_BUILD_OPTIONS)))
+INSTALL_PROGRAM = $(INSTALL) -m 0755 -s
+else
+INSTALL_PROGRAM = $(INSTALL) -m 0755
+endif
+INSTALL_SCRIPT  = $(INSTALL) -m 0755
+INSTALL_DIR     = $(INSTALL) -d -m 0755
+else
+INSTALL_FILE    = cp
+INSTALL_PROGRAM = cp -p
+INSTALL_SCRIPT  = cp
+INSTALL_DIR     = mkdir -p
+endif
+
+.PHONY: install install-bin install-doc
+install: install-bin install-doc
+
+install-bin: $(TARGET)
+	$(INSTALL_DIR) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(bindir)
+install: install-bin
+
+install-doc:
+	@
+
+ifeq ($(CONFIG_MAKEINFO),yes)
+install-doc: install-info
+endif
+
+.PHONY: install-info
+install-info: doc/xroar.info
+	$(INSTALL_DIR) $(DESTDIR)$(infodir)
+	$(INSTALL_FILE) doc/xroar.info $(DESTDIR)$(infodir)
+
+.PHONY: install-pdf
+install-pdf: doc/xroar.pdf
+	$(INSTALL_DIR) $(DESTDIR)$(infodir)
+	$(INSTALL_FILE) doc/xroar.pdf $(DESTDIR)$(pdfdir)
 
 ############################################################################
 # Targets where output of gcc is not the end result
@@ -285,8 +342,8 @@ tools/img2c_nds: tools/img2c_nds.c
 .PHONY: clean distclean dist dist-gp32 dist-nds dist-windows32 \
 	dist-macos dist-macosx
 
-CLEAN_FILES = $(CRT0) $(ALL_OBJS) tools/img2c tools/img2c_nds tools/prerender \
-	tools/font2c vdg_bitmaps.c \
+CLEAN_FILES = $(CRT0) $(ALL_OBJS) $(ALL_DOCS) tools/img2c tools/img2c_nds \
+	tools/prerender tools/font2c vdg_bitmaps.c \
 	gp32/copyright.c gp32/cmode_bin.c gp32/kbd_graphics.c \
 	gp32/vdg_bitmaps_gp32.c xroar.bin xroar.fxe xroar.elf \
 	nds/kbd_graphics.c nds/nds_font8x8.c xroar.nds xroar.ds.gba \

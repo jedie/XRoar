@@ -35,6 +35,9 @@ _mpu_rate=auto
 _trace=no
 _fast_vdg=auto
 _fast_sound=auto
+_makeinfo=auto
+_texi2pdf=auto
+_install=auto
 
 _have_video_driver=
 
@@ -54,8 +57,9 @@ Installation directories:
                           [PREFIX]
   --bindir=DIR            user executables [EPREFIX/bin]
   --datadir=DIR           read-only architecture-independent data [PREFIX/share]
-  --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
-  --mandir=DIR            man documentation [PREFIX/man]
+  --infodir=DIR           info documentation [DATADIR/info]
+  --docdir=DIR            documentation root [DATADIR/doc/xroar]
+  --pdfdir=DIR            pdf documentation [DOCDIR]
 
 System types:
   --build=BUILD     configure for building on BUILD [guessed]
@@ -83,6 +87,9 @@ Optional Features:
   --with-sdl-config=PATH   set path to sdl-config script
   --with-pkg-config=PATH   set path to pkg-config script
   --with-gtk-config=PATH   set path to gtk-config script
+  --with-makeinfo=PATH     set path to makeinfo
+  --with-texi2pdf=PATH     set path to texi2pdf
+  --with-install=PATH      set path to install
 
   -h, --help            display this help and exit
 EOF
@@ -113,7 +120,10 @@ for opt do
 	--datadir=*) datadir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--sysconfdir=*) sysconfdir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--includedir=*) includedir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--infodir=*) infodir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--mandir=*) mandir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--docdir=*) docdir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--pdfdir=*) pdfdir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--build=*) build=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--host=*) target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--target=*) target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -137,6 +147,9 @@ for opt do
 		gtk1_libs="$_tmp/lib"
 		;;
 	--with-pkg-config=*) target_pkg_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--with-makeinfo=*) MAKEINFO=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--with-texi2pdf=*) TEXI2PDF=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--with-install=*) INSTALL=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	-h|--help)
 		helptext
 		exit 0
@@ -154,7 +167,10 @@ test -z "$sysconfdir" && sysconfdir=$prefix/etc
 test -z "$localstatedir" && localstatedir=$exec_prefix/var
 test -z "$libdir" && libdir=$exec_prefix/lib
 test -z "$includedir" && includedir=$prefix/include
+test -z "$infodir" && infodir=$datadir/info
 test -z "$mandir" && mandir=$prefix/man
+test -z "$docdir" && docdir=$datadir/doc/xroar
+test -z "$pdfdir" && pdfdir=$docdir
 
 test -z "$BUILD_CC" && BUILD_CC=gcc
 if test -z "$TARGET_CC"; then
@@ -182,6 +198,10 @@ if test -z "$TARGET_OBJCOPY"; then
 		TARGET_OBJCOPY=$BUILD_OBJCOPY
 	fi
 fi
+
+test -z "$MAKEINFO" && MAKEINFO=makeinfo
+test -z "$TEXI2PDF" && TEXI2PDF=texi2pdf
+test -z "$INSTALL" && INSTALL=install
 
 ########
 
@@ -788,6 +808,38 @@ fi
 
 ########
 
+if test "$_makeinfo" = "auto"; then
+	echocheck makeinfo
+	if ( $MAKEINFO --version ) > /dev/null 2>&1; then
+		_makeinfo=yes
+	else
+		_makeinfo=no
+	fi
+	echo $_makeinfo
+fi
+
+if test "$_texi2pdf" = "auto"; then
+	echocheck texi2pdf
+	if ( $TEXI2PDF --version ) > /dev/null 2>&1; then
+		_texi2pdf=yes
+	else
+		_texi2pdf=no
+	fi
+	echo $_texi2pdf
+fi
+
+if test "$_install" = "auto"; then
+	echocheck install
+	if ( $INSTALL --version ) > /dev/null 2>&1; then
+		_install=yes
+	else
+		_install=no
+	fi
+	echo $_install
+fi
+
+########
+
 if test "$_cli" = "yes"; then
 	_cli_def="#define HAVE_CLI"
 else
@@ -848,7 +900,10 @@ libdir = $libdir
 datadir = $datadir
 sysconfdir = $sysconfdir
 includedir = $includedir
+infodir = $infodir
 mandir = $mandir
+docdir = $docdir
+pdfdir = $pdfdir
 
 SRCROOT = $SRCROOT
 
@@ -865,6 +920,10 @@ BUILD_CFLAGS = $BUILD_CFLAGS
 BUILD_SDL_CFLAGS = $build_sdl_cflags
 BUILD_SDL_LDFLAGS = $build_sdl_ldflags
 BUILD_SDL_IMAGE_LDFLAGS = $build_sdl_image_ldflags
+
+MAKEINFO = $MAKEINFO
+TEXI2PDF = $TEXI2PDF
+INSTALL = $INSTALL
 
 CONFIG_C_NESTED_FUNCS = $_c_nested_funcs
 CONFIG_SDL = $_sdl
@@ -886,6 +945,9 @@ CONFIG_NDS = $_nds
 CONFIG_MINGW = $_mingw
 CONFIG_TRACE = $_trace
 CONFIG_FAST_VDG = $_fast_vdg
+CONFIG_MAKEINFO = $_makeinfo
+CONFIG_TEXI2PDF = $_texi2pdf
+CONFIG_INSTALL = $_install
 EOF
 
 ############################################################################

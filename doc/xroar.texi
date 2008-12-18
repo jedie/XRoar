@@ -1,0 +1,877 @@
+\input texinfo   @c -*-texinfo-*-
+
+@c %**start of header
+@setfilename xroar.info
+@settitle XRoar Dragon Emulator Manual
+@c @setchapternewpage off
+@ifclear VERSION
+@set VERSION Unknown
+@end ifclear
+@c %**end of header
+
+@macro myuref {link, text}
+@uref{\link\, \text\}
+@iftex
+@footnote{\link\}
+@end iftex
+@end macro
+
+@copying
+This manual is for XRoar (version @value{VERSION}), a Dragon and
+Tandy Colour Computer emulator.
+
+Copyright @copyright{} 2008
+Ciaran Anscomb.
+@end copying
+
+@titlepage
+@title XRoar @value{VERSION}
+@subtitle Dragon and Tandy Colour Computer emulator
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@contents
+
+@node Top
+@top Introduction
+
+XRoar is a Dragon emulator that runs on a wide variety of platforms.  Due to
+hardware similarities, XRoar also emulates the Tandy Colour Computer (CoCo)
+models 1 & 2.  Some features are:
+
+@itemize @bullet
+@item
+Emulates Dragon 32, Dragon 64, Tano Dragon, Tandy CoCo 1 & 2.
+@item
+Emulates DragonDOS, Delta and RSDOS disk systems.
+@item
+Raw and translated keyboard modes.
+@item
+Reads and writes virtual cassettes (@file{.cas} files).
+@item
+Reads audio files as cassette input.
+@item
+Reads and writes DMK format virtual floppy diskettes.
+@item
+Reads (and supports in-memory writing of) JVC and VDK format virtual
+floppy diskettes.
+@item
+Save and load snapshots.
+@end itemize
+
+@ifnottex
+@menu
+* Getting started::
+* Installation::
+* Emulated hardware::
+* User interface::
+* Supported file types::
+* Firmware ROM image names::
+* GP32 user interface::
+* Nintendo DS user interface::
+* Acknowledgements::
+@end menu
+@end ifnottex
+
+@node Getting started, Installation, Top, Top
+@chapter Getting started
+
+To start, you will need to acquire (and maybe build) the software and install
+it.  Pre-built binary packages are available from the
+@myuref{http://www.6809.org.uk/dragon/xroar.shtml, XRoar home page}.  If one is
+not available for your architecture, you will have to build from source.  XRoar
+should build and run on any POSIX-like system for which
+@myuref{http://www.libsdl.org/, SDL} is available.
+
+You'll also need to get hold of firmware ROM images for the machine you wish to
+emulate.  As Microsoft wrote the BASIC ROM, I don't feel comfortable offering
+them up myself, but they may well be obtainable elsewhere on the Web.
+
+For instructions on installing from source or binary package, and where to put
+firmware images, see @ref{Installation}.
+
+Once you've installed XRoar, run it and an emulator screen should appear.  It
+tries to be a Dragon 64 first, but if ROM images can't be found for that, it
+then tries Dragon 32 and CoCo in that order.  If you just get a strange
+checkerboard pattern of orange and inverse '@@' signs, it probably failed to
+find any ROM images - check that first.
+
+@image{xroar-screens,,, Emulator with and without BASIC ROM, png}
+
+From here you can attach tapes (@file{.cas} or @file{.wav} files) with
+@kbd{Control+L}.  To load a program from tape, type @command{CLOADM} (machine
+code) or @command{CLOAD} (BASIC).  You can hold down @kbd{F12} to force the
+emulator to run as fast as possible while loading.  If the program does not
+start automatically when it has loaded (i.e., returns you to the "OK" prompt),
+you will have to type @command{EXEC} (machine code) or @command{RUN} (BASIC) to
+start it.
+
+XRoar will make use of attached joysticks, but can also emulate them with the
+cursor keys and @kbd{Left Alt}.  Press @kbd{Control+J} to cycle through three
+emulation modes: No joystick emulation (default), Left joystick, Right
+joystick.
+
+Most of this manual documents how to use the PC builds, where a full keyboard
+is available.  See @ref{GP32 user interface} or @ref{Nintendo DS user
+interface} for information about using the hand-held versions.
+
+@node Installation
+@chapter Installation
+
+@menu
+* Mac OS X binary package::
+* Nintendo DS binary package::
+* GP32 binary package::
+* Windows binary package::
+* Building from source code::
+* Cross-compilation of source code::
+@end menu
+
+@node Mac OS X binary package
+@section Mac OS X binary package
+
+Mount the downloaded disk image and drag the XRoar application icon into your
+Applications directory.
+
+Firmware ROM images can be stored either in @file{~/Library/XRoar/Roms/} or
+@file{~/.xroar/roms/}.  See @ref{Firmware ROM image names} for filenames the
+emulator will search for.
+
+XRoar can be started by double-clicking the application icon.
+
+@node Nintendo DS binary package
+@section Nintendo DS binary package
+
+Unpack the downloaded ZIP file and copy @file{xroar.nds} to your flash
+cartridge.  Older flash cartridges may need you to DLDI patch the binary in
+order for the emulator to see files on it.  The
+@myuref{http://chishm.drunkencoders.com/DLDI/, DLDI wiki} has more information.
+
+Create a directory on your flash cartridge called @file{/dragon/roms} and copy
+any firmware ROM images into this directory.  See @ref{Firmware ROM image
+names} for filenames the emulator will search for.
+
+How to start the XRoar application will depend on your flash cartridge, but you
+probably just need to pick it from a menu (it should appear with a Dragon
+logo).
+
+@node GP32 binary package
+@section GP32 binary package
+
+Unpack the downloaded ZIP file and copy @file{xroar.fxe} to your SmartMedia
+card (usually this would be under the @file{/gpmm/} directory).
+
+Create a directory on the card called @file{/gpmm/dragon} to copy your firmware
+ROM images to.  See @ref{Firmware ROM image names} for filenames the emulator
+will search for.
+
+XRoar should appear in the menu when you start up your GP32.
+
+@node Windows binary package
+@section Windows binary package
+
+First, unpack the downloaded ZIP file.  A subdirectory should be created
+containing the main binary, supporting DLL files and documentation.
+
+Copy your firmware ROM images into this directory: the Windows build of XRoar
+looks only in its current working directory for them.  See @ref{Firmware ROM
+image names} for filenames the emulator will search for.
+
+XRoar can be started by running @file{xroar.exe} either from a file browser or
+the command line.
+
+@node Building from source code
+@section Building from source code
+
+If there is no binary package for your system, you will have to build from
+source.  Before doing so, you should ensure you have the dependencies required
+to build:
+
+@itemize @bullet
+@item
+@strong{SDL}, Simple Directmedia Layer, is used for video and
+audio output on most supported platforms, and is required to build for all of
+them.  It can be obtained from the
+@myuref{http://www.libsdl.org/, SDL home page}.
+@item
+@strong{SDL_image} is an add-on to SDL that provides the ability
+to manipulate various graphics formats.  It's used in the build process to
+generate font data from a supplied image file.  It can be downloaded from the
+@myuref{http://www.libsdl.org/projects/SDL_image/, SDL_image project page}.
+@item
+@strong{libsndfile} is optional but recommended.  It allows XRoar
+to use audio files (such as WAVs) as a source for cassette input.  It
+is available on the
+@myuref{http://www.mega-nerd.com/libsndfile/, libsndfile home page}.
+@item
+@strong{GTK+}, the GIMP tookit, is used to provide a file
+requester on Linux and Unix builds.  It is available from the
+@myuref{http://www.gtk.org/, GTK+ home page}.
+@end itemize
+
+If you use a modern Linux or Unix distribution, it's likely that most of these
+packages will be installed by default, or easily available through its package
+management system.
+
+The actual build process should be fairly straightforward and follows the same
+steps as many other software packages.  Unpack the source code, change into the
+created source directory, run @command{configure} and then if everything looks
+good, run @command{make}.  Example:
+
+@example
+$ gzip -dc xroar-VERSION.tar.gz | tar xvf -
+$ cd xroar-VERSION
+$ ./configure
+$ make
+@end example
+
+By default, @command{configure} will set things up to install to
+@file{/usr/local}, but this can be changed by using the
+@option{--prefix=/path/to/destination} option.
+
+@command{configure} will detect any optionally supported drivers like Sun
+audio, OpenGL video, etc.
+
+Once built, run @command{make install} to install the binary and info
+documentation on your system.  Firmware ROM images should be placed either in
+your home directory under @file{.xroar/roms/}, or in
+@file{@emph{PREFIX}/share/xroar/roms/}, where @emph{PREFIX} is the install
+prefix as above.
+
+@node Cross-compilation of source code
+@section Cross-compilation of source code
+
+XRoar can be built on one platform to run on another.  The Nintendo DS, GP32
+and Windows binary packages are all built like this.
+
+To specify a cross-compile, use the @option{--target=TARGET} argument to
+@command{configure}.  For example, to build for Windows, you might use
+@samp{./configure --target=i586-mingw32}.  @command{configure} will detect
+Windows headers and configure the build accordingly.
+
+@node Emulated hardware
+@chapter Emulated hardware
+
+@menu
+* Emulated machines::
+* Video hardware::
+* Audio hardware::
+* Keyboard::
+* Joysticks::
+* Cassette images: Cassettes.
+* Floppy disk images: Disks.
+* Cartridge ROM images: Cartridges.
+@end menu
+
+@node Emulated machines
+@section Emulated machines
+
+XRoar will emulate the following machines:
+
+@table @option
+@item dragon32
+Dragon 32 (PAL).
+@item dragon64
+Dragon 64 (PAL).
+@item tano
+Tano Dragon (NTSC).
+@item coco
+Tandy Colour Computer (PAL).
+@item cocous
+Tandy Color Computer (NTSC).
+@end table
+
+XRoar will try and find a good default machine to emulate based on which ROM
+images you have installed (see @ref{Firmware ROM image names}), but you can
+change it by using the @option{-machine MACHINE} command line argument.
+Alternatively, once started, pressing @kbd{Control+M} cycles through all the
+supported machine types.
+
+Command-line options can be used to specify alternate ROM image files to load:
+
+@table @option
+@item -bas FILENAME
+Specify BASIC ROM to use (CoCo only).
+@item -extbas FILENAME
+Specify Extended BASIC ROM to use.
+@item -altbas FILENAME
+Specify alternate BASIC ROM (Dragon 64).
+@item -noextbas
+Disable Extended BASIC.
+@end table
+
+Dragon machines all contain a complete version of Extended BASIC; CoCo's are
+able to run with a much reduced Color BASIC, with Extended BASIC being
+optional.
+
+@node Video hardware
+@section Video hardware
+
+The Dragon is a UK machine, and as such generates a 50Hz PAL output.  The video
+chip targets 60Hz NTSC displays, so extra work is required to pad this out to a
+50Hz signal.  On the Dragon 64 this is done by stopping the video chip at two
+points each field and generating extra scanlines.  The Dragon 32 seems to take
+a different approach, but I've seen no schematics for the Dragon 32 mainboard,
+so XRoar emulates it in the same way.
+
+However a US version, the Tano Dragon, exists for use with 60Hz NTSC
+televisions and US CoCo machines all use NTSC.  When you select which machine
+to emulate (see @ref{Emulated machines}), XRoar picks the appropriate mode.  This can
+be overridden with the @option{-pal} or @option{-ntsc} command line options.
+
+On NTSC televisions, high frequency changes in luminance create cross-colour
+artifacts (harmonics that interfere with the embedded chroma signal).  Some
+games use this to their advantage, creating colours in the otherwise black and
+white high resolution video modes.  XRoar can approximate the colours generated
+in these modes to varying levels of detail.  The default approach is to use a 5
+bit lookup table, but a faster four colour mode can be selected by running with
+@option{-ccr simple}.
+
+NTSC machines have another peculiarity in that from reset, the video chip could
+settle into one of two states (180@textdegree{} out of phase with each other)
+that affected how the cross-colour interference was interpreted by the
+television.  Games often prompt the user to ``Press Enter if the screen is
+red'' (for example) to identify which phase the machine started in.  You can
+adjust which state it's in by pressing @kbd{Control+A}, which cycles through
+three artifacted colour modes: Off, Blue-red and Red-blue.
+
+@node Audio hardware
+@section Audio hardware
+
+The Dragon can route analogue audio from three different sources: attached
+cartridges, the cassette port and an internal 6-bit DAC.  Additionally, a PIA
+line is connected to the audio output stage, so manipulating that gives a
+single-bit sound source.  XRoar supports the DAC and the single bit audio.
+
+Rarely, a game generates audio by toggling the analogue sound select source
+rapidly.  XRoar will cope with this, but needs to work harder.  Disable support
+for this with the @option{-fast-sound} command line option.
+
+As it is connected to the output of the analogue mux, if the single bit sound
+output is instead configured as an input, the analogue level will be reflected
+fed back.  While I can't claim that XRoar exactly simulates the electrical
+characteristics, it will emulate this as a trigger level from the DAC output
+derived from experimentation.
+
+@node Keyboard
+@section Keyboard
+
+The layout of the Dragon's keyboard is a little different to that of modern
+PCs, so XRoar tries to approximate the Dragon's layout on your PC keyboard as
+closely as possible, so that game controls will remain in usable positions.
+That said, they @emph{are} different, so some compromises need to be made:
+@kbd{Escape} is mapped to the Dragon's @kbd{BREAK} key and @kbd{`} (grave /
+back-tick) maps to the Dragon's @kbd{CLEAR} key.  There is no good nearby PC
+keys that directly correspond to the Dragon's cursor keys, so the PC's cursors
+are used for these.
+
+If you don't use a UK keyboard, but want a close Dragon keyboard layout, you
+can run with the @option{-keymap CODE} command-line option, where @option{CODE}
+is a country code: "uk" (British), "us" (American), "fr" (French AZERTY) or
+"de" (German QWERTZ).
+
+XRoar can also be put into "translated" keyboard mode, where characters typed
+on a PC keyboard are translated into the equivalent keystrokes on the Dragon.
+Press @kbd{Control+Z} to toggle this mode.
+
+The keyboards of the Dragon and Tandy CoCo are connected in the same way, but
+the matrix is layed out slightly differently.  When you select a machine (see
+@ref{Emulated machines}), the appropriate matrix layout is selected for you, but you can
+toggle between the two layouts by pressing @kbd{Control+K}.
+
+Additionally, most emulator functions are currently accessed through key
+combinations.  See @ref{Keyboard commands} for a list.
+
+@node Joysticks
+@section Joysticks
+
+XRoar supports attached joysticks, or can emulate them from the keyboard.
+
+Joystick emulation starts off disabled, but you can cycle through three states
+by pressing @kbd{Control+J}: Off, Left Joystick and Right Joystick.
+
+By default, the first real joystick found is mapped to the Dragon's left
+joystick port, and the second real joystick to the right port.  Left and right
+joystick mapping can be easily swapped by pressing @kbd{Control+Shift+J}.
+
+More fine-grained mappings can be specified with the @option{-joy-left} and
+@option{-joy-right} command line options.  The argument to these command
+consists of three pairs of numbers in the format
+@option{JOYSTICK-NUMBER,INDEX}.  The pairs map the X axis, Y axis and fire
+button respectively, and the joystick number is optional if previously
+specified.  For example, @option{-joy-left 0,1:0:0} maps axes 1 and 0 on
+joystick 0 to the X and Y axis on the left emulated joystick respectively.
+Button 2 of joystick 0 is mapped to the left fire button.
+
+Previous versions defaulted to a mapping suitable for using a PS2 adaptor.  To
+get this old behaviour, use the command line options @option{-joy-left 0,3:2:0
+-joy-right 0,0:1:1}.
+
+@node Cassettes
+@section Cassette images
+
+XRoar supports two types of cassette image: @file{.cas} files and audio files
+such as @file{.wav}.  @file{.cas} files contain a binary representation of what
+would be loaded from tape, whereas audio files are a recording of the tape
+itself.
+
+To attach a cassette image, press @kbd{Control+L} and select it from the file
+requester.  If instead you press @kbd{Control+Shift+L} and select a @file{.cas}
+file, XRoar can attempt to look into the file and determine whether the program
+is BASIC or machine code and then autorun it by typing the appropriate BASIC
+command for you (either @command{CLOAD} or @command{CLOADM:EXEC}).
+
+To create a cassette image for writing to (with @command{CSAVE} or
+@command{CSAVEM} for example), press @kbd{Control+W} and enter a filename.
+Created files will be truncated to zero length, so be careful not to overwrite
+any existing files with this command.
+
+The currently open tape files used for reading and writing are distinct.  There
+is currently no good user interface for tape control, so if you want to rewind
+a tape, reattach it.
+
+@node Disks
+@section Floppy disk images
+
+XRoar supports virtual disks by emulating three different types of disk
+controller cartridge (the default depending on which machine is selected):
+
+@table @option
+@item dragondos
+DragonDOS, official DOS cartridge from Dragon Data Ltd.
+@item delta
+Delta System, Premier Microsystems' DOS for the Dragon.
+@item rsdos
+RSDOS, Tandy's DOS cartridge for use with the CoCo.
+@end table
+
+If you want to use the virtual disk support, you will also need a DOS firmware
+ROM.  See @ref{Firmware ROM image names} for a list of compatible ROM images
+per-controller.
+
+To override the defaults, use the following command-line options:
+
+@table @option
+@item -dostype DOS
+Type of DOS cartridge (@option{-dostype help} for a list).
+@item -dos FILENAME
+Specify DOS ROM (or CoCo Disk BASIC).
+@item -nodos
+Disable DOS (ROM and hardware emulation).
+@end table
+
+Within the emulator, DOS can be enabled or disabled by pressing
+@kbd{Control+E}.  Follow this with a hard reset (@kbd{Control+Shift+R}) for it
+to take effect.
+
+Three virtual disk formats are supported (see @ref{Supported file types}).  Of
+these, DMK retains the most information about the actual layout of the floppy
+disk, and is the only one that XRoar will recognise as containing
+single-density data (as used by the Delta system).  It is also the only format
+for which write-back is supported (actually updating the image file).
+
+When you attach a disk, it is read into memory, and subsequent disk operations
+are performed on this in-memory copy.  Write protect defaults to off (so write
+operations on the copy will work), but write back also defaults to off, so
+updates will not be written to disk.  To toggle write protect, press
+@kbd{Control+[5-8]}, where the number to press is the drive number plus 4.  To
+toggle write back, press @kbd{Control+Shift+[5-8]}.  Even with write back
+enabled, image files will not be updated until the disk in a virtual drive is
+changed, or you quit the emulator.
+
+You can create a new blank disk in a virtual drive by pressing
+@kbd{Control+Shift+[1-4]}.  When blank disks are created, the default filename
+is @file{newdisk@emph{n}.dmk}, where @emph{n} is the drive number it is created
+in.
+
+@node Cartridges
+@section Cartridge ROM images
+
+Some Dragon games are distributed as ROMs on a cartridge ("program pak", in
+CoCo terminology).  These are generally mapped to a specific area in the
+machine's address space, and trigger an interrupt causing them to be
+auto-started when the machine is powered on.  XRoar can load dumps of these
+cartridges, and will simulate the auto-start interrupt if requested.
+
+Press @kbd{Control+L} to insert a cartridge (files should have the extension
+@file{.rom}).  If you press @kbd{Control+Shift+L} instead, the cartridge will be
+automatically started (you might need to reset the machine with @kbd{Control+R}
+if this doesn't work straight away).
+
+
+@node User interface
+@chapter User interface
+
+@menu
+* Video output::
+* Audio output::
+* Keyboard commands::
+* Snapshots::
+* Trace mode::
+* Command line options::
+@end menu
+
+@node Video output
+@section Video output
+
+Under the SDL user interface, three video output modules are available,
+selectable with the @option{-vo MODULE} command line option:
+
+@table @option
+@item sdlgl
+OpenGL accelerated video output.
+@item sdlyuv
+YUV overlay accelerated video output.
+@item sdlgl
+Basic unaccelerated unscalable video output.
+@end table
+
+OpenGL output might not be available if you built from source without the
+appropriate support.  Use @option{-vo help} for a list of available modules.
+
+On slower machines, you can specify a value for frameskip with @option{-fskip
+FRAMES}.  For every frame drawn to screen this amount of frames are then
+skipped before the next one is drawn, reducing the amount of work needed.  The
+default is @option{-fskip 0}, meaning no frames are skipped.
+
+@node Audio output
+@section Audio output
+
+Specific audio modules exist for OSS audio, Sun audio and Mac OS X coreaudio.
+If none of these are available, generic SDL audio will be used.
+
+Use of a specific module can be forced using @option{-ao MODULE}.  Use
+@option{-ao null} to disable audio, or @option{-ao help} for a list of
+available modules.
+
+@node Keyboard commands
+@section Keyboard commands
+
+XRoar's user interface is currently based around @myuref{http://www.libsdl.org/,
+SDL}.  The emulator video output window is shown, and all operations are
+performed with keyboard combinations, usually accessed as @kbd{Control+KEY}:
+
+@table @kbd
+@item Control+[1-4]
+Insert a virtual disk into drive 1-4.  @xref{Disks}.
+@item Control+Shift+[1-4]
+Insert a blank virtual disk (40TSS) into drive 1-4.  @xref{Disks}.
+@item Control+[5-8]
+Toggle write protect on disk in drive 1-4.  @xref{Disks}.
+@item Control+Shift+[5-8]
+Toggle write back on disk in drive 1-4.  @xref{Disks}.
+@item Control+A
+Cycle through cross-colour video modes (hi-res only).  @xref{Video hardware}.
+@item Control+C
+Quit emulator.
+@item Control+E
+Toggle DOS emulation on/off - reset to take effect.  @xref{Disks}.
+@item Control+F
+Toggle full screen mode.
+@item Control+I
+Insert a cartridge.  @xref{Cartridges}.
+@item Control+Shift+I
+Insert a cartridge, no autorun.  @xref{Cartridges}.
+@item Control+J
+Cycle through joystick emulation modes (None, Left, Right).  @xref{Joysticks}.
+@item Control+Shift+J
+Swap joystick mapping (left/right).  @xref{Joysticks}.
+@item Control+K
+Toggle between Dragon and CoCo keyboard layout.  @xref{Keyboard}.
+@item Control+L
+Load a file (see below).
+@item Control+Shift+L
+Load a file and attempt to autorun it where appropriate.
+@item Control+M
+Cycle through emulated machine types (resets machine).  @xref{Emulated machines}.
+@item Control+R
+Soft reset emulated machine.
+@item Control+Shift+R
+Hard reset emulated machine.
+@item Control+S
+Save a snapshot.  @xref{Snapshots}.
+@item Control+W
+Attach a virtual cassette file for writing.  @xref{Cassettes}.
+@item Control+Z
+Enable keyboard translation mode.  @xref{Keyboard}.
+@item F12
+While held, the emulator will run at the maximum possible speed.
+@end table
+
+When using @kbd{Control+L} or @kbd{Control+Shift+L} to load a file, the action
+to be taken is determined by its extension.  See @ref{Supported file types} for
+details.
+
+XRoar still supports the use of old keyboard commands that were used to attach
+specific types of file.  @kbd{Control+B}, @kbd{Control+H} and @kbd{Control+T}
+are all now synonymous with @kbd{Control+T}.
+
+@node Snapshots
+@section Machine snapshots
+
+XRoar can save out a snapshot of the emulated machine state and read such
+snapshots back in later.  To save a snapshot, press @kbd{Control+S}.  When
+using @kbd{Control+L} to load a file, anything ending in @file{.sna} will be
+recognised as a snapshot.
+
+What is included in snapshots: Selected machine architecture, complete hardware
+state, current keyboard map, filenames of attached disk image files.
+
+What is @emph{not} (yet) included: Actual disk image data (only where to find
+it), attached cassettes or cartridges.
+
+@node Trace mode
+@section Trace mode
+
+If you specify @option{--enable-trace} while building XRoar from source (see
+@ref{Building from source code}), the emulator contains a "trace mode",
+where it will dump a disassembly of every instruction it executes to the
+console.  Trace mode defaults to off unless you run with @option{-trace}.
+Toggle trace mode on or off with @kbd{Control+V}.
+
+@node Command line options
+@section Command line options
+
+Many emulator functions can be changed using keyboard shortcuts (see
+@ref{Keyboard commands}), but some behaviour can also be changed from the
+command line.  Here's a summary of supported command-line options:
+
+@table @option
+@item -machine MACHINE
+Emulated machine (@option{-machine help} for a list).  @xref{Emulated machines}.
+@item -bas FILENAME
+Specify BASIC ROM to use (CoCo only)
+@item -extbas FILENAME
+Specify Extended BASIC ROM to use
+@item -altbas FILENAME
+Specify alternate BASIC ROM (Dragon 64)
+@item -noextbas
+Disable Extended BASIC
+@item -dostype DOS
+Type of DOS cartridge (@option{-dostype help} for a list).  @xref{Disks}.
+@item -dos FILENAME
+Specify DOS ROM (or CoCo Disk BASIC)
+@item -nodos
+Disable DOS (ROM and hardware emulation)
+@item -pal
+Emulate PAL (50Hz) video.  @xref{Video hardware}.
+@item -ntsc
+Emulate NTSC (60Hz) video.  @xref{Video hardware}.
+@item -ccr RENDERER
+Specify cross-colour renderer (@option{-ccr help} for list).
+@xref{Video hardware}.
+@item -ram SIZE
+Specify amount of RAM in kilobytes
+@item -fast-sound
+Faster but less accurate sound.  @xref{Audio hardware}.
+@item -ui MODULE
+Specify user interface module (@option{-ui help} for a list)
+@item -vo MODULE
+Specify video module (@option{-vo help} for a list)
+@item -ao MODULE
+Specify audio module (@option{-ao help} for a list)
+@item -fskip FRAMES
+Specify frameskip (default: 0).  @xref{Video output}.
+@item -load FILENAME
+Load or attach @file{FILENAME}.  @xref{Supported file types}.
+@item -run FILE
+Load or attach @file{FILENAME} and attempt autorun.
+@item -h, --help
+Display help text and exit
+@item --version
+Output version information and exit
+@item -keymap CODE
+Select host keyboard type by country code (uk, us, fr, de).  @xref{Keyboard}.
+@item -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB
+@itemx -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB
+Map a joystick.  @emph{J} = joystick number, @emph{A} = axis number,
+@emph{B} = button number a @emph{-} before axis signifies inverted axis.
+@xref{Joysticks}.
+@item -trace
+Start with trace mode on.  @xref{Trace mode}.
+@end table
+
+If you run the Windows pre-built binary, you might find that emulator output
+gets written to a file called @file{stderr.txt} instead of to the console.
+
+@node Supported file types
+@chapter Supported file types
+
+XRoar can do useful things with a variety of file types.  The type of a file is
+determined by its extension.  Supported file extensions are:
+
+@multitable {Extension} {1234567890123456789012345678901234567890} {Read & write}
+@headitem Extension @tab Description @tab Read/write?
+@item .dmk
+@tab Disk image file in a format defined by David Keil. They store a lot of
+information about the structure of a disk and support both single and double
+density data. All disk images are manipulated internally in (near enough) this
+format.  @xref{Disks}.
+@tab Read & write
+@item .jvc@*.dsk
+@tab Disk image file in a basic sector-by-sector format with optional
+header information.  @xref{Disks}.
+@tab Read-only
+@item .vdk
+@tab Another disk image file format.  @xref{Disks}.
+@tab Read-only
+@item .bin
+@tab CoCo binary file. XRoar can load these directly into memory and run them.
+@tab Read-only
+@item .sna
+@tab XRoar snapshot. Contains a complete dump of RAM from a running
+emulator session along with information like which machine was being
+emulated, what DOS was attached, etc.  @xref{Snapshots}.
+@tab Read & write
+@item .hex
+@tab Intel hex record. An ASCII format that encodes binary data and
+where in memory to load it.
+@tab Read-only
+@item .cas
+@tab Cassette file. Simple binary representation of data contained on a
+tape. Cannot represent silence, or some custom encodings.  @xref{Cassettes}.
+@tab Read & write
+@item .wav
+@tab Cassette audio file. XRoar can read sampled audio from original
+cassettes. Actually, as audio input uses libsndfile, any file with an
+unknown extension is passed to libsndfile to see if it recognises it as
+an audio file.  @xref{Cassettes}.
+@tab Read-only
+@item .rom
+@tab This represents two things: when starting, XRoar looks for them
+firmware ROM images with this extension. When subsequently told to load
+one, however, they are assumed to be dumps of cartridge ROMs.
+@xref{Cartridges}.
+@tab Read-only
+@end multitable
+
+In general, to load or attach a file, press @kbd{Control+L} and choose a file
+from the requester that appears.  What XRoar does with it will depend on its
+file extension.  You can also automatically attach (and optionally start) files
+from the command line by using the @option{-load FILE} or @option{-run FILE}
+options.  If you @option{-load} or @option{-run} a cassette image, XRoar will
+automatically disable any DOS cartridge emulation for you, as this can
+interfere with some cassette-based games.
+
+@node Firmware ROM image names
+@chapter Firmware ROM image names
+
+XRoar searches for ROM images in a variety of locations (see
+@ref{Installation}), but it expects the images to have certain names.  Here's a
+table showing the names it searches for each ROM in each system.  ROM images
+can have either a @file{.rom} or a @file{.dgn} extension.
+
+@multitable {Controller type} {ROM search order} {Disk Extended Color BASIC 1.1 or 1.0.}
+@headitem Machine @tab ROM search order @tab Description
+@item dragon32
+@tab d32@*
+dragon32@*
+d32rom@*
+dragon
+@tab Dragon BASIC.
+@item dragon64@*
+tano
+@tab d64_1@*
+d64rom1@*
+dragrom@*
+dragon
+@tab 32K-mode Dragon BASIC.
+@item
+@tab d64_2@*
+d64rom2
+@tab 64K-mode Dragon BASIC.
+@item coco@*
+cocous
+@tab bas13@*
+bas12@*
+bas11@*
+bas10
+@tab Color BASIC 1.3, 1.2, 1.1 or 1.0.
+@item
+@tab extbas11@*
+extbas10
+@tab Extended Color BASIC 1.1 or 1.0.
+@end multitable
+
+Further, emulating a floppy drive controller cartridge requires that you have
+an image of the DOS ROM that would have been part of it.
+
+@multitable {Controller type} {ROM search order} {Disk Extended Color BASIC 1.1 or 1.0.}
+@headitem Controller type @tab ROM search order @tab Description
+@item dragondos
+@tab dplus49b@*
+dplus48@*
+sdose6@*
+sdose5@*
+sdose4@*
+ddos40@*
+ddos15@*
+ddos10
+@tab DragonDOS (using DOSplus, SuperDOS or original DragonDOS ROM).
+@item delta
+@tab delta@*
+deltados
+@tab Delta System.
+@item rsdos
+@tab disk11@*
+disk10
+@tab Disk Extended Color BASIC 1.1 or 1.0.
+@end multitable
+
+@node GP32 user interface
+@chapter GP32 user interface
+
+The controller can be cycled through four modes by pressing the left
+shoulder button.  These modes are:
+
+@multitable {Right joystickzzz} {12345678901234567890123456789012345678901234567890}
+@headitem Mode @tab Button mappings
+@item Keyboard
+@tab @kbd{D-pad} selects a key, @kbd{B} presses a key, hold down
+@kbd{Right shoulder button} to press shift.
+@item Cursors
+@tab @kbd{D-pad} maps to Dragon's cursor keys.  @kbd{B} is shift, @kbd{A} is
+space, @kbd{Right shoulder button} is enter.
+@item Right joystick
+@tab @kbd{D-pad} controls right joystick motion.  @kbd{B} is fire button.
+@kbd{A} is space, @kbd{Right shoulder button} is enter.
+@item Left joystick
+@tab @kbd{D-pad} controls left joystick motion, with other controls as with
+right joystick mode.
+@end multitable
+
+At any time, pressing @kbd{Select} will bring up a menu allowing you to load or
+save snapshots, toggle DOS emulation, insert a tape or disk, switch between
+Dragon & CoCo, switch keymaps and reset the machine.
+
+@node Nintendo DS user interface
+@chapter Nintendo DS user interface
+
+The touch screen interface is currently quite basic, but functional.  Files can
+be loaded by selecting "Load...", the emulated machine can be changed in the
+"Machine configuration" menu, and snapshots can be taken with "Save snapshot".
+
+In the "Input configuration" menu, each of the DS buttons can be mapped to an
+input function - a keypress, a joystick direction or an emulator configuration
+command.  By default, the @kbd{D-pad} buttons are mapped to the right joystick,
+and @kbd{A} to the right firebutton.  @kbd{Y} swaps joysticks for convenience,
+and @kbd{Start} swaps the DS screens, allowing you to use the touch screen as
+an analogue joystick input.
+
+@node Acknowledgements
+@chapter Acknowledgements
+
+The Mac OS X 'Carbon' file requester code is based on a contribution by Stuart
+Teasdale.
+
+I made reference to the MAME 6809 core for clues on how the overflow bit in the
+condition code register was handled.
+
+The rest is the result of reading too many datasheets.
+
+Thanks to all the people on the @myuref{http://archive.worldofdragon.org/phpBB3/,
+Dragon Archive Forums} for helpful feedback and insight.
+
+@bye
