@@ -221,8 +221,8 @@ created source directory, run @command{configure} and then if everything looks
 good, run @command{make}.  Example:
 
 @example
-$ gzip -dc xroar-VERSION.tar.gz | tar xvf -
-$ cd xroar-VERSION
+$ gzip -dc xroar-@value{VERSION}.tar.gz | tar xvf -
+$ cd xroar-@value{VERSION}
 $ ./configure
 $ make
 @end example
