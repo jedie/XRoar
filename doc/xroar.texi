@@ -708,7 +708,7 @@ gets written to a file called @file{stderr.txt} instead of to the console.
 XRoar can do useful things with a variety of file types.  The type of a file is
 determined by its extension.  Supported file extensions are:
 
-@multitable {Extension} {1234567890123456789012345678901234567890} {Read & write}
+@multitable {Extension} {12345678901234567890123456789012345678901234567890} {Read & write}
 @headitem Extension @tab Description @tab Read/write?
 @item .dmk
 @tab Disk image file in a format defined by David Keil. They store a lot of
