@@ -203,7 +203,7 @@ doc/xroar.info: doc/xroar.texi
 	$(MAKEINFO) -D "VERSION $(VERSION)" -o $@ $<
 
 doc/xroar.pdf: doc/xroar.texi
-	$(TEXI2PDF) -t "@set VERSION $(VERSION)" --build=tidy -o $@ $<
+	$(TEXI2PDF) -t "@set VERSION $(VERSION)" --build=clean -o $@ $<
 
 doc/xroar.html: doc/xroar.texi
 	$(MAKEINFO) --html --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
