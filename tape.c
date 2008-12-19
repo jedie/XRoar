@@ -43,6 +43,7 @@ static event_t waggle_event;
 /* For reading */
 static int input_type;
 static int fake_leader;
+static int fake_last_byte;
 static int bytes_remaining = 0;
 static int bits_remaining = 0;
 static uint8_t read_buf[512];
@@ -88,7 +89,7 @@ void tape_init(void) {
 	read_fd = write_fd = -1;
 	read_buf_ptr = read_buf;
 	bits_remaining = bytes_remaining = 0;
-	fake_leader = 0;
+	fake_leader = fake_last_byte = 0;
 	event_init(&waggle_event);
 	waggle_event.dispatch = waggle_bit;
 	write_buf_ptr = write_buf;
@@ -324,8 +325,13 @@ static int byte_in(void) {
 	}
 	if (bytes_remaining == 0) {
 		buffer_in();
-		if (bytes_remaining <= 0)
+		if (bytes_remaining <= 0) {
+			if (fake_last_byte) {
+				fake_last_byte = 0;
+				return 0x55;
+			}
 			return -1;
+		}
 	}
 	bytes_remaining--;
 	return *(read_buf_ptr++);
@@ -336,8 +342,10 @@ static void buffer_in(void) {
 	bytes_remaining = 0;
 	if (read_fd != -1) {
 		bytes_remaining = fs_read(read_fd, read_buf, sizeof(read_buf));
-		if (bytes_remaining < (int)sizeof(read_buf))
+		if (bytes_remaining < (int)sizeof(read_buf)) {
 			tape_close_reading();
+			fake_last_byte = 1;
+		}
 	}
 }
 
