@@ -366,21 +366,21 @@ dist:
 
 dist-gp32: all doc/xroar.pdf
 	mkdir $(DISTNAME)-gp32
-	cp COPYING.GPL ChangeLog README xroar.pdf xroar.fxe $(DISTNAME)-gp32/
+	cp COPYING.GPL ChangeLog README doc/xroar.pdf xroar.fxe $(DISTNAME)-gp32/
 	rm -f ../$(DISTNAME)-gp32.zip
 	zip -r ../$(DISTNAME)-gp32.zip $(DISTNAME)-gp32
 	rm -rf $(DISTNAME)-gp32/
 
 dist-nds: all doc/xroar.pdf
 	mkdir $(DISTNAME)-nds
-	cp COPYING.GPL ChangeLog README xroar.pdf xroar.nds xroar.ds.gba $(DISTNAME)-nds/
+	cp COPYING.GPL ChangeLog README doc/xroar.pdf xroar.nds xroar.ds.gba $(DISTNAME)-nds/
 	rm -f ../$(DISTNAME)-nds.zip
 	zip -r ../$(DISTNAME)-nds.zip $(DISTNAME)-nds
 	rm -rf $(DISTNAME)-nds/
 
 dist-windows32: all doc/xroar.pdf
 	mkdir $(DISTNAME)-windows32
-	cp COPYING.GPL ChangeLog README xroar.pdf xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
+	cp COPYING.GPL ChangeLog README doc/xroar.pdf xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
 	cp COPYING.LGPL-2.1 $(DISTNAME)-windows32/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/xroar.exe
 	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/SDL.dll
