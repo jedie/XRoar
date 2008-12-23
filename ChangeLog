@@ -1,3 +1,19 @@
+Changed from v0.21 to v0.22
+ * Feed audio output back to single bit sound input.
+ * Update GP32 build to use EABI libs and devkitARM crt0.
+ * Don't build DS stuff in thumb mode.
+ * Initialise RAM to pattern.
+ * Insert fake leader on tape change.
+ * Fix OpenGL texture "fringing".
+ * Sun audio fixes.
+ * Fix WD2791/3 side compare plus other fixes to help CoCo NitrOS9.
+ * Find a machine the user has ROMs for if they don't specify.
+ * Add -load and -run options.
+ * Add simple joystick swap with Control+Shift+J.
+ * Disable fullscreen while showing a file requester.
+ * Replace README with a manual.
+ * Fake trailing leader byte for CAS files.
+
 Changed from v0.20 to v0.21
  * Fix border colour in RG6, CSS=0.
  * Input abstraction layer.
