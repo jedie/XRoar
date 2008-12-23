@@ -6,6 +6,7 @@ Changed from v0.21 to v0.22
  * Insert fake leader on tape change.
  * Fix OpenGL texture "fringing".
  * Sun audio fixes.
+ * Honour user-specified RAM size again.
  * Fix WD2791/3 side compare plus other fixes to help CoCo NitrOS9.
  * Find a machine the user has ROMs for if they don't specify.
  * Add -load and -run options.
