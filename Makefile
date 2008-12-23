@@ -16,10 +16,7 @@ usage:
 	@echo
 	@echo "Usage: \"make system-type\", where system-type is one of:"
 	@echo
-	@echo " gp32 linux macosx solaris windows32"
-	@echo
-	@echo "You can append options to determine which tools are used to compile."
-	@echo "e.g., \"make gp32 TARGET_ARCH=arm-elf\""
+	@echo " gp32 nds windows32"
 	@echo
 
 gp32:
