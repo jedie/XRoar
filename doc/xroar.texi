@@ -308,7 +308,7 @@ Specify alternate BASIC ROM (Dragon 64).
 Disable Extended BASIC.
 @end table
 
-Dragon machines all contain a complete version of Extended BASIC; CoCo's are
+Dragon machines all contain a complete version of Extended BASIC; CoCos are
 able to run with a much reduced Color BASIC, with Extended BASIC being
 optional.
 
@@ -369,7 +369,7 @@ PCs, so XRoar tries to approximate the Dragon's layout on your PC keyboard as
 closely as possible, so that game controls will remain in usable positions.
 That said, they @emph{are} different, so some compromises need to be made:
 @kbd{Escape} is mapped to the Dragon's @kbd{BREAK} key and @kbd{`} (grave /
-back-tick) maps to the Dragon's @kbd{CLEAR} key.  There is no good nearby PC
+back-tick) maps to the Dragon's @kbd{CLEAR} key.  There are no good nearby PC
 keys that directly correspond to the Dragon's cursor keys, so the PC's cursors
 are used for these.
 
