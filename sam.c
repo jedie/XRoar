@@ -146,6 +146,7 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
 		current_cycle += CPU_SLOW_DIVISOR;
 		if (IS_DRAGON32 && addr >= 0x8000 && machine_ram_size <= 0x8000) {
+			ram_addr &= 0x7fff;
 			if (ram_addr < machine_ram_size)
 				ram0[ram_addr] = rom0[addr & 0x7fff];
 			return;
