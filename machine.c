@@ -235,6 +235,19 @@ void machine_getargs(int argc, char **argv) {
 #define pia0b_data_postwrite keyboard_column_update
 #define pia0b_control_postwrite sound_module->update
 
+static void pia0b_data_postwrite_coco64k(void) {
+	keyboard_column_update();
+	if (IS_COCO && machine_ram_size > 0x4000) {
+		/* TODO: identify *which* of the top five bits of PIA0.b
+		 * is actually connected on a 64K CoCo (ROM setup isn't
+		 * specific).  Assume bit 7 for now. */
+		if (PIA0.b.port_output & 0x80)
+			PIA1.b.port_input |= (1<<2);
+		else
+			PIA1.b.port_input &= ~(1<<2);
+	}
+}
+
 #ifdef HAVE_SNDFILE
 # define pia1a_data_preread tape_update_input
 #else
@@ -381,11 +394,26 @@ void machine_reset(int hard) {
 		keyboard_set_keymap(running_config.keymap);
 		/* Configure RAM */
 		machine_set_ram_size(running_config.ram * 1024);
-	}
-	if (IS_DRAGON64)
-		PIA1.b.port_input |= (1<<2);
-	else
+		/* Machine-specific PIA connections */
+		PIA1.b.tied_low |= (1<<2);
 		PIA1.b.port_input &= ~(1<<2);
+		if (IS_DRAGON64) {
+			PIA1.b.port_input |= (1<<2);
+		} else if (IS_COCO && machine_ram_size <= 0x1000) {
+			/* 4K CoCo ties PB2 of PIA1 low */
+			PIA1.b.tied_low &= ~(1<<2);
+		} else if (IS_COCO && machine_ram_size <= 0x4000) {
+			/* 16K CoCo pulls PB2 of PIA1 high */
+			PIA1.b.port_input |= (1<<2);
+		}
+		PIA0.b.data_postwrite = pia0b_data_postwrite;
+		if (IS_COCO && machine_ram_size > 0x4000) {
+			/* TODO: See pia0b_data_postwrite_coco64k() */
+			/* 64K CoCo connects PB? of PIA0 to PB2 of PIA1.
+			 * Deal with this through a postwrite. */
+			PIA0.b.data_postwrite = pia0b_data_postwrite_coco64k;
+		}
+	}
 	mc6821_reset(&PIA0);
 	mc6821_reset(&PIA1);
 	if (IS_DRAGONDOS)
