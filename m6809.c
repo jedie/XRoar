@@ -213,6 +213,13 @@ static int nmi_armed = 0;
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 #define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))
 
+/* External handlers */
+unsigned int (*m6809_read_cycle)(unsigned int addr);
+unsigned int (*m6809_discard_read_cycle)(unsigned int addr);
+void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
+void (*m6809_nvma_cycles)(int cycles);
+void (*m6809_sync)(void);
+
 /* ------------------------------------------------------------------------- */
 
 #define EA_ROFF0(b,r) case (b): ea = (r); peek_byte(reg_pc)

@@ -36,21 +36,19 @@ void m6809_jump(unsigned int pc);
 /*** Private ***/
 
 /* Returns result of a byte read cycle */
-#define m6809_read_cycle(a) sam_read_byte(a)
+extern unsigned int (*m6809_read_cycle)(unsigned int addr);
 
-/* For where the CPU will discard the result of a read */
-#define m6809_discard_read_cycle(a) sam_peek_byte(a)
+/* For where the CPU will discard the result of a read - can be the
+ * same as m6809_read_cycle, but could be a quicker implementation. */
+extern unsigned int (*m6809_discard_read_cycle)(unsigned int addr);
 
 /* Performs a byte write cycle */
-#define m6809_write_cycle(a,v) do { sam_store_byte((a),(v)); } while (0)
+extern void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
 
 /* Non valid memory access ("busy") cycles */
-#define m6809_nvma_cycles(c) current_cycle += ((c) * sam_rom_cycles)
+extern void (*m6809_nvma_cycles)(int cycles);
 
 /* Ensure all outside events are complete up to current cycle */
-#define m6809_sync() do { \
-		while (EVENT_PENDING(MACHINE_EVENT_LIST)) \
-			DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST); \
-	} while (0)
+extern void (*m6809_sync)(void);
 
 #endif  /* __M6809_H__ */

@@ -72,6 +72,9 @@ static struct {
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
+static void do_m6809_nvma_cycles(int cycles);
+static void do_m6809_sync(void);
+
 static void xroar_helptext(void) {
 	puts("  -ui MODULE            specify user-interface module (-ui help for a list)");
 	puts("  -vo MODULE            specify video module (-vo help for a list)");
@@ -237,10 +240,16 @@ void xroar_shutdown(void) {
 }
 
 void xroar_mainloop(void) {
+	m6809_read_cycle = sam_read_byte;
+	m6809_discard_read_cycle = sam_read_byte;
+	m6809_write_cycle = sam_store_byte;
+	m6809_nvma_cycles = do_m6809_nvma_cycles;
+	m6809_sync = do_m6809_sync;
+
 	while (1) {
+		m6809_run(456);
 		while (EVENT_PENDING(UI_EVENT_LIST))
 			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
-		m6809_run(456);
 	}
 }
 
@@ -312,3 +321,13 @@ static void do_load_file(void) {
 		}
 	}
 }
+
+static void do_m6809_nvma_cycles(int cycles) {
+	current_cycle += cycles * sam_rom_cycles;
+}
+
+static void do_m6809_sync(void) {
+	while (EVENT_PENDING(MACHINE_EVENT_LIST))
+		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+}
+
