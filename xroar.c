@@ -45,6 +45,11 @@
 int requested_frameskip;
 int frameskip;
 int noratelimit = 0;
+#ifdef TRACE
+int xroar_trace_enabled = 0;
+#else
+# define xroar_trace_enabled (0)
+#endif
 
 event_t *xroar_ui_events = NULL;
 event_t *xroar_machine_events = NULL;
@@ -74,6 +79,7 @@ static struct {
 
 static void do_m6809_nvma_cycles(int cycles);
 static void do_m6809_sync(void);
+static unsigned int trace_read_byte(unsigned int addr);
 
 static void xroar_helptext(void) {
 	puts("  -ui MODULE            specify user-interface module (-ui help for a list)");
@@ -82,6 +88,9 @@ static void xroar_helptext(void) {
 	puts("  -fskip FRAMES         specify frameskip (default: 0)");
 	puts("  -load FILE            load or attach FILE");
 	puts("  -run FILE             load or attach FILE and attempt autorun");
+#ifdef TRACE
+	puts("  -trace                start with trace mode on");
+#endif
 	puts("  -h, --help            display this help and exit");
 	puts("      --version         output version information and exit");
 }
@@ -130,6 +139,10 @@ int xroar_init(int argc, char **argv) {
 			if (i >= argc) break;
 			load_file = argv[i];
 			autorun_loaded_file = 1;
+#ifdef TRACE
+		} else if (!strcmp(argv[i], "-trace")) {
+			xroar_trace_enabled = 1;
+#endif
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
 			printf("Usage: xroar [OPTION]...\n\n");
@@ -142,9 +155,6 @@ int xroar_init(int argc, char **argv) {
 			module_helptext((Module *)sound_module, (Module **)sound_module_list);
 			module_helptext((Module *)keyboard_module, (Module **)keyboard_module_list);
 			module_helptext((Module *)joystick_module, (Module **)joystick_module_list);
-#ifdef TRACE
-			m6809_trace_helptext();
-#endif
 			exit(0);
 		} else if (!strcmp(argv[i], "--version")) {
 			printf("XRoar " VERSION "\n");
@@ -157,9 +167,6 @@ int xroar_init(int argc, char **argv) {
 	}
 	machine_getargs(argc, argv);
 	cart_getargs(argc, argv);
-#ifdef TRACE
-	m6809_trace_getargs(argc, argv);
-#endif
 
 	/* Disable DOS if a cassette or cartridge is being loaded */
 	if (load_file) {
@@ -240,16 +247,39 @@ void xroar_shutdown(void) {
 }
 
 void xroar_mainloop(void) {
-	m6809_read_cycle = sam_read_byte;
+	M6809State cpu_state;
+
 	m6809_discard_read_cycle = sam_read_byte;
 	m6809_write_cycle = sam_store_byte;
 	m6809_nvma_cycles = do_m6809_nvma_cycles;
 	m6809_sync = do_m6809_sync;
 
 	while (1) {
-		m6809_run(456);
-		while (EVENT_PENDING(UI_EVENT_LIST))
-			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+
+		/* Not tracing: */
+		m6809_read_cycle = sam_read_byte;
+		while (!xroar_trace_enabled) {
+			m6809_run(456);
+			while (EVENT_PENDING(UI_EVENT_LIST))
+				DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+		}
+
+#ifdef TRACE
+		/* Tracing: */
+		m6809_trace_reset();
+		m6809_read_cycle = trace_read_byte;
+		while (xroar_trace_enabled) {
+			m6809_run(1);
+			m6809_get_state(&cpu_state);
+			m6809_trace_print(cpu_state.reg_cc, cpu_state.reg_a,
+					cpu_state.reg_b, cpu_state.reg_dp,
+					cpu_state.reg_x, cpu_state.reg_y,
+					cpu_state.reg_u, cpu_state.reg_s);
+			while (EVENT_PENDING(UI_EVENT_LIST))
+				DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+		}
+#endif
+
 	}
 }
 
@@ -331,3 +361,10 @@ static void do_m6809_sync(void) {
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 }
 
+#ifdef TRACE
+static unsigned int trace_read_byte(unsigned int addr) {
+	unsigned int value = sam_read_byte(addr);
+	m6809_trace_byte(value, addr);
+	return value;
+}
+#endif

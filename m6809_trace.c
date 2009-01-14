@@ -23,9 +23,6 @@
 #include "logging.h"
 #include "m6809_trace.h"
 
-/* 1 == enabled */
-int m6809_trace_enabled;
-
 enum {
 	PAGE0 = 0, PAGE2 = 1, PAGE3 = 2, ILLEGAL,
 	INHERENT, WORD_IMMEDIATE, IMMEDIATE, EXTENDED,
@@ -885,7 +882,7 @@ struct {
 
 enum {
 	WANT_INSTRUCTION, WANT_BYTE, WANT_WORD1, WANT_WORD2,
-	WANT_PRINT, WANT_PRINT2
+	WANT_PRINT
 };
 
 static const char *tfr_regs[16] = {
@@ -902,21 +899,6 @@ static unsigned int bytes_buf[BYTES_BUF_SIZE];
 
 static const char *mnemonic;
 static char operand_text[19];
-
-void m6809_trace_helptext(void) {
-	puts("  -trace                start with trace mode on");
-}
-
-void m6809_trace_getargs(int argc, char **argv) {
-	int i;
-	m6809_trace_enabled = 0;
-	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-trace")) {
-			m6809_trace_enabled = 1;
-		}
-	}
-	m6809_trace_reset();
-}
 
 void m6809_trace_reset(void) {
 	state = WANT_INSTRUCTION;
@@ -940,8 +922,6 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 	static int indexed_mode = 0;
 	static const char *indexed_fmt;
 	static unsigned int indexed_flags;
-
-	if (!m6809_trace_enabled) return;
 
 	byte &= 0xff;
 	pc &= 0xffff;
@@ -1007,12 +987,7 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 			state = WANT_PRINT;
 			break;
 		case WANT_PRINT:
-			/* Should never get here */
-			LOG_WARN("Trace mode out of sync with CPU emulation.\n");
-			state = WANT_PRINT2;
-			return;
-		case WANT_PRINT2:
-			/* Already emitted the warning once. */
+			/* Now waiting for a call to m6809_trace_print() */
 			return;
 	}
 
@@ -1128,7 +1103,7 @@ void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
 	char bytes_string[(BYTES_BUF_SIZE*2)+1];
 	int i;
 
-	if (!m6809_trace_enabled) return;
+	if (bytes_count == 0) return;
 
 	bytes_string[0] = '\0';
 	for (i = 0; i < bytes_count; i++) {

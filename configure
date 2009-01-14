@@ -32,7 +32,7 @@ _mingw=auto
 _gp32=auto
 _nds=auto
 _mpu_rate=auto
-_trace=no
+_trace=yes
 _fast_vdg=auto
 _fast_sound=auto
 _makeinfo=auto
@@ -79,7 +79,7 @@ Optional Features:
   --disable-mingw       don't test for MinGW
   --disable-gp32        don't test for GP32
   --disable-nds         don't test for Nintendo DS
-  --enable-trace        enable trace mode
+  --disable-trace       disable trace mode
   --disable-mpu-rate    disable setting of emulated MPU rate
   --enable-fast-vdg     enable faster but less accurate VDG code
   --enable-fast-sound   enable faster but less accurate sound code
@@ -384,6 +384,7 @@ if test "$_gp32" = "yes"; then
 	_nullaudio=no
 	_mingw=no
 	_nds=no
+	_trace=no
 	test "$_mpu_rate" = "auto" && _mpu_rate=no
 	test "$_fast_sound" = "auto" && _fast_sound=yes
 else
@@ -426,6 +427,7 @@ if test "$_nds" = "yes"; then
 	_jack=no
 	_nullaudio=no
 	_mingw=no
+	_trace=no
 	test "$_mpu_rate" = "auto" && _mpu_rate=no
 	test "$_fast_sound" = "auto" && _fast_sound=yes
 else

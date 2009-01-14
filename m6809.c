@@ -21,19 +21,6 @@
 #include "m6809.h"
 #include "xroar.h"
 
-#ifdef TRACE
-# include "m6809_trace.h"
-# define TRACE_RESET(...) m6809_trace_reset(__VA_ARGS__)
-# define TRACE_BYTE(...)  m6809_trace_byte(__VA_ARGS__)
-# define TRACE_PRINT(...) m6809_trace_print(__VA_ARGS__)
-# define TRACE_NOTE(...)  m6809_trace_note(__VA_ARGS__)
-#else
-# define TRACE_RESET(...)
-# define TRACE_BYTE(...)
-# define TRACE_PRINT(...)
-# define TRACE_NOTE(...)
-#endif
-
 /* Condition Code manipulation macros */
 
 #define CC_E 0x80
@@ -77,16 +64,16 @@
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) do { cycles--; m6809_discard_read_cycle(a); } while (0)
 
-#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); TRACE_BYTE(a & 0xff, reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
-#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); TRACE_BYTE(a >> 8, reg_pc); TRACE_BYTE(a & 0xff, reg_pc + 1); reg_pc += 2; TAKEN_CYCLES(1); } while (0)
+#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
+#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; TAKEN_CYCLES(1); } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
  * macros.  */
-#define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); TRACE_BYTE(v, reg_pc); reg_pc++; }
+#define BYTE_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc); reg_pc++; }
 #define BYTE_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a); }
 #define BYTE_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a); }
 #define BYTE_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a); }
-#define WORD_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); TRACE_BYTE(v >> 8, reg_pc); TRACE_BYTE(v & 0xff, reg_pc + 1); reg_pc += 2; }
+#define WORD_IMMEDIATE(a,v)	{ v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; }
 #define WORD_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 #define WORD_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 #define WORD_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
@@ -153,7 +140,6 @@
 	} while (0)
 
 #define TAKE_INTERRUPT(i,cm,v) do { \
-		TRACE_NOTE("Interrupt " #i " taken\n"); \
 		reg_cc |= (cm); \
 		TAKEN_CYCLES(1); \
 		reg_pc = fetch_word(v); \
@@ -375,7 +361,6 @@ void m6809_reset(void) {
 	REGISTER(cc) = REGISTER(a) = REGISTER(b) = REGISTER(dp) = 0;
 	REGISTER(x) = REGISTER(y) = REGISTER(u) = REGISTER(s) = 0;
 	REGISTER(pc) = 0;
-	TRACE_RESET();
 	cpu_state = flow_reset;
 }
 
@@ -565,7 +550,6 @@ void m6809_run(int cycles) {
 			case 0x13:
 				peek_byte(reg_pc);
 				TAKEN_CYCLES(1);
-				TRACE_PRINT(reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 				cpu_state = flow_sync;
 				continue;
 			/* 0x16 LBRA relative */
@@ -790,7 +774,6 @@ void m6809_run(int cycles) {
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
 				TAKEN_CYCLES(1);
-				TRACE_PRINT(reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 				cpu_state = flow_dispatch_irq;
 				continue;
 			} break;
@@ -1182,7 +1165,6 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			TRACE_PRINT(reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 			cpu_state = flow_label_a;
 			continue;
 
@@ -1277,7 +1259,6 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			TRACE_PRINT(reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 			cpu_state = flow_label_a;
 			continue;
 
@@ -1314,7 +1295,6 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			TRACE_PRINT(reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 			cpu_state = flow_label_a;
 			continue;
 

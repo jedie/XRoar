@@ -38,10 +38,6 @@
 #include "vdrive.h"
 #include "xroar.h"
 
-#ifdef TRACE
-# include "m6809_trace.h"
-#endif
-
 static int init(int argc, char **argv);
 static void shutdown(void);
 static void helptext(void);
@@ -253,8 +249,7 @@ static void emulator_command(SDLKey sym) {
 		}
 #ifdef TRACE
 	case SDLK_v:
-		m6809_trace_enabled = !m6809_trace_enabled;
-		m6809_trace_reset();
+		xroar_trace_enabled = !xroar_trace_enabled;
 		break;
 #endif
 	case SDLK_z: // running out of letters...

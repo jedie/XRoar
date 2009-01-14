@@ -29,6 +29,7 @@
 extern int requested_frameskip;
 extern int frameskip;
 extern int noratelimit;
+extern int xroar_trace_enabled;
 
 #define UI_EVENT_LIST xroar_ui_events
 #define MACHINE_EVENT_LIST xroar_machine_events
