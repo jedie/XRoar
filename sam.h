@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -12,16 +12,18 @@
  * required, just appropriate timing.  Side-effects of reads obviously won't
  * happen, but in practice that should almost certainly never matter. */
 #ifdef VARIABLE_MPU_RATE
-extern unsigned int sam_topaddr_cycles;
+extern unsigned int sam_ram_cycles;
+extern unsigned int sam_rom_cycles;
 # define sam_peek_byte(a) do { \
 		if ((((a)&0xffff) >= 0x8000) && ((((a)&0xffff) < 0xff00) \
 					|| (((a)&0xffff) >= 0xff20))) \
-			current_cycle += sam_topaddr_cycles; \
+			current_cycle += sam_rom_cycles; \
 		else \
-			current_cycle += CPU_SLOW_DIVISOR; \
+			current_cycle += sam_ram_cycles; \
 	} while(0)
 #else
-# define sam_topaddr_cycles CPU_SLOW_DIVISOR
+# define sam_ram_cycles CPU_SLOW_DIVISOR
+# define sam_rom_cycles CPU_SLOW_DIVISOR
 # define sam_peek_byte(a) do { current_cycle += CPU_SLOW_DIVISOR; } while (0)
 #endif
 

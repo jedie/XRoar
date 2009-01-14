@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -45,7 +45,8 @@ unsigned int sam_vdg_mod_clear;
 static unsigned int sam_vdg_xcount;
 static unsigned int sam_vdg_ycount;
 #ifdef VARIABLE_MPU_RATE
-unsigned int sam_topaddr_cycles;
+unsigned int sam_ram_cycles;
+unsigned int sam_rom_cycles;
 #endif
 
 static unsigned int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
@@ -85,19 +86,19 @@ unsigned int sam_read_byte(unsigned int addr) {
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
 		/* RAM access */
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
-		current_cycle += CPU_SLOW_DIVISOR;
+		current_cycle += sam_ram_cycles;
 		if (addr < machine_ram_size)
 			return ram0[ram_addr];
 		return 0x7e;
 	}
 	if (addr < 0xff00) {
 		/* ROM access */
-		current_cycle += sam_topaddr_cycles;
+		current_cycle += sam_rom_cycles;
 		return selected_rom[addr-0x8000];
 	}
 	if (addr < 0xff20) {
 		/* PIA0 */
-		current_cycle += CPU_SLOW_DIVISOR;
+		current_cycle += sam_ram_cycles;
 		if (IS_COCO) {
 			return mc6821_read(&PIA0, addr & 3);
 		} else {
@@ -111,7 +112,7 @@ unsigned int sam_read_byte(unsigned int addr) {
 		}
 		return 0x7e;
 	}
-	current_cycle += sam_topaddr_cycles;
+	current_cycle += sam_rom_cycles;
 	if (addr < 0xff40) {
 		return mc6821_read(&PIA1, addr & 3);
 	}
@@ -144,7 +145,7 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
 		/* RAM access */
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
-		current_cycle += CPU_SLOW_DIVISOR;
+		current_cycle += sam_ram_cycles;
 		if (IS_DRAGON32 && addr >= 0x8000 && machine_ram_size <= 0x8000) {
 			ram_addr &= 0x7fff;
 			if (ram_addr < machine_ram_size)
@@ -157,11 +158,11 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 	}
 	if (addr < 0xff00) {
 		/* ROM access */
-		current_cycle += sam_topaddr_cycles;
+		current_cycle += sam_rom_cycles;
 		return;
 	}
 	if (addr < 0xff20) {
-		current_cycle += CPU_SLOW_DIVISOR;
+		current_cycle += sam_ram_cycles;
 		if (IS_COCO) {
 			mc6821_write(&PIA0, addr & 3, octet);
 		} else {
@@ -175,7 +176,7 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 		}
 		return;
 	}
-	current_cycle += sam_topaddr_cycles;
+	current_cycle += sam_rom_cycles;
 	if (addr < 0xff40) {
 		mc6821_write(&PIA1, addr & 3, octet);
 		if ((addr & 3) == 2 && IS_DRAGON64 && !map_type) {
@@ -252,6 +253,7 @@ void sam_set_register(unsigned int value) {
 
 static void update_from_register(void) {
 	int memory_size = (sam_register >> 13) & 3;
+	int mpu_rate = (sam_register >> 11) & 3;
 	sam_vdg_mode = sam_register & 0x0007;
 	sam_vdg_base = (sam_register & 0x03f8) << 6;
 	sam_vdg_mod_xdiv = vdg_mod_xdiv[sam_vdg_mode];
@@ -276,7 +278,8 @@ static void update_from_register(void) {
 	if ((map_type = sam_register & 0x8000)) {
 		/* Map type 1 */
 #ifdef VARIABLE_MPU_RATE
-		sam_topaddr_cycles = CPU_SLOW_DIVISOR;
+		sam_ram_cycles = CPU_SLOW_DIVISOR;
+		sam_rom_cycles = CPU_SLOW_DIVISOR;
 #endif
 	} else {
 		/* Map type 0 */
@@ -285,7 +288,20 @@ static void update_from_register(void) {
 		else
 			selected_rom = rom0;
 #ifdef VARIABLE_MPU_RATE
-		sam_topaddr_cycles = (sam_register & 0x0800) ? CPU_FAST_DIVISOR : CPU_SLOW_DIVISOR;
+		switch (mpu_rate) {
+			case 0:
+				sam_ram_cycles = CPU_SLOW_DIVISOR;
+				sam_rom_cycles = CPU_SLOW_DIVISOR;
+				break;
+			case 1:
+				sam_ram_cycles = CPU_SLOW_DIVISOR;
+				sam_rom_cycles = CPU_FAST_DIVISOR;
+				break;
+			default:
+				sam_ram_cycles = CPU_FAST_DIVISOR;
+				sam_rom_cycles = CPU_FAST_DIVISOR;
+				break;
+		}
 #endif
 	}
 }

@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -48,7 +48,7 @@ void m6809_jump(unsigned int pc);
 #define m6809_write_cycle(a,v) do { sam_store_byte((a),(v)); } while (0)
 
 /* Non valid memory access ("busy") cycles */
-#define m6809_nvma_cycles(c) current_cycle += ((c) * sam_topaddr_cycles)
+#define m6809_nvma_cycles(c) current_cycle += ((c) * sam_rom_cycles)
 
 /* Ensure all outside events are complete up to current cycle */
 #define m6809_sync() do { \
