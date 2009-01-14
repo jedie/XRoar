@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -71,11 +71,11 @@
 #define SET_NZ_D() do { SET_N8(reg_a); if (!reg_a && !reg_b) reg_cc |= CC_Z; } while (0)
 
 /* CPU fetch/store goes via SAM */
-#define fetch_byte(a) m6809_read_cycle(a)
+#define fetch_byte(a) (cycles--, m6809_read_cycle(a))
 #define fetch_word(a) (fetch_byte(a) << 8 | fetch_byte((a)+1))
-#define store_byte(a,v) m6809_write_cycle(a,v)
+#define store_byte(a,v) do { cycles--; m6809_write_cycle(a,v); } while (0)
 /* This one only used to try and get correct timing: */
-#define peek_byte(a) m6809_discard_read_cycle(a)
+#define peek_byte(a) do { cycles--; m6809_discard_read_cycle(a); } while (0)
 
 #define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); TRACE_BYTE(a & 0xff, reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
 #define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); TRACE_BYTE(a >> 8, reg_pc); TRACE_BYTE(a & 0xff, reg_pc + 1); reg_pc += 2; TAKEN_CYCLES(1); } while (0)
@@ -94,7 +94,7 @@
 #define SHORT_RELATIVE(r)	{ BYTE_IMMEDIATE(0,r); r = sex(r); }
 #define LONG_RELATIVE(r)	WORD_IMMEDIATE(0,r)
 
-#define TAKEN_CYCLES(c) m6809_nvma_cycles(c)
+#define TAKEN_CYCLES(c) do { cycles -= c; m6809_nvma_cycles(c); } while (0)
 
 #define PUSHWORD(s,r)	{ s -= 2; store_byte(s+1, r); store_byte(s, r >> 8); }
 #define PUSHBYTE(s,r)	{ s--; store_byte(s, r); }
@@ -179,11 +179,11 @@ static enum {
 
 /* Registers:
  *   These definitions hold the current state of the MPU registers.  If
- *   HAVE_C_NESTED_FUNCTIONS is defined, m6809_cycle() will copy them to local
+ *   HAVE_C_NESTED_FUNCTIONS is defined, m6809_run() will copy them to local
  *   variables to allow gcc to better optimise their use, and then copy
  *   them back before it returns.  In that case, to save changing all the
  *   macros, we change the names used here from reg_* to register_*.
- *   Outside of m6809_cycle() we get their real name by using the REGISTER
+ *   Outside of m6809_run() we get their real name by using the REGISTER
  *   macro.  */
 
 #ifdef HAVE_C_NESTED_FUNCTIONS
@@ -372,7 +372,10 @@ void m6809_reset(void) {
 	cpu_state = flow_reset;
 }
 
-void m6809_cycle(Cycle until) {
+/* Run CPU for a number of cycles.  More cycles may actually be run, as
+ * instructions are not broken up. */
+
+void m6809_run(int cycles) {
 	unsigned int op;
 	unsigned int addr;
 	unsigned int result;
@@ -397,7 +400,7 @@ void m6809_cycle(Cycle until) {
 	}
 #endif
 
-	while ((int)(m6809_current_cycle - until) < 0) {
+	while (cycles > 0) {
 
 		m6809_sync();
 

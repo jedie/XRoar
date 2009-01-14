@@ -28,15 +28,12 @@ extern unsigned int halt, nmi, firq, irq;
 
 void m6809_init(void);
 void m6809_reset(void);
-void m6809_cycle(Cycle until);
+void m6809_run(int cycles);
 void m6809_get_state(M6809State *state);
 void m6809_set_state(M6809State *state);
 void m6809_jump(unsigned int pc);
 
 /*** Private ***/
-
-/* Current cycle */
-#define m6809_current_cycle current_cycle
 
 /* Returns result of a byte read cycle */
 #define m6809_read_cycle(a) sam_read_byte(a)
