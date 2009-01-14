@@ -65,14 +65,16 @@ typedef uint16_t Pixel;
 
 static SDL_Surface *screen;
 static Pixel *screen_tex;
-static unsigned int screen_width = 640;
-static unsigned int screen_height = 480;
+static unsigned int screen_width, screen_height;
+static unsigned int window_width, window_height;
 static GLuint texnum = 0;
 static GLint xoffset, yoffset;
 
 #include "video_generic_ops.c"
 
 static int init(int argc, char **argv) {
+	const SDL_VideoInfo *video_info;
+
 	(void)argc;
 	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL OpenGL driver\n");
@@ -100,6 +102,12 @@ static int init(int argc, char **argv) {
 		LOG_ERROR("Failed to allocate memory for screen texture\n");
 		return 1;
 	}
+
+	video_info = SDL_GetVideoInfo();
+	screen_width = video_info->current_w;
+	screen_height = video_info->current_h;
+	window_width = 640;
+	window_height = 480;
 
 	if (set_fullscreen(sdl_video_want_fullscreen))
 		return 1;
@@ -130,29 +138,35 @@ static void shutdown(void) {
 }
 
 static void resize(unsigned int w, unsigned int h) {
-	screen_width = w;
-	screen_height = h;
+	window_width = w;
+	window_height = h;
 	set_fullscreen(video_sdlgl_module.is_fullscreen);
 }
 
 static int set_fullscreen(int fullscreen) {
+	unsigned int want_width, want_height;
 	uint_least16_t width, height;
-	if (screen_width < 320) screen_width = 320;
-	if (screen_height < 240) screen_height = 240;
+
 	if (fullscreen) {
-		screen_width = 640;
-		screen_height = 480;
+		want_width = screen_width;
+		want_height = screen_height;
+	} else {
+		want_width = window_width;
+		want_height = window_height;
 	}
-	if (((float)screen_width/(float)screen_height)>(4.0/3.0)) {
-		width = ((float)screen_height/3.0)*4;
-		xoffset = (screen_width - width) / 2;
+	if (want_width < 320) want_width = 320;
+	if (want_height < 240) want_height = 240;
+
+	if (((float)want_width/(float)want_height)>(4.0/3.0)) {
+		width = ((float)want_height/3.0)*4;
+		xoffset = (want_width - width) / 2;
 		yoffset = 0;
 	} else {
-		height = ((float)screen_width/4.0)*3;
+		height = ((float)want_width/4.0)*3;
 		xoffset = 0;
-		yoffset = (screen_height - height)/2;
+		yoffset = (want_height - height)/2;
 	}
-	screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_OPENGL|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
+	screen = SDL_SetVideoMode(want_width, want_height, 0, SDL_OPENGL|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to initialise display\n");
 		return 1;
