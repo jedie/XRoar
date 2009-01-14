@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -22,10 +22,10 @@ static void render_rg6a(void);
 # define RENDER_CROSS_COLOUR (render_cg2)
 #endif
 
-/* VDG_tFP here is a kludge - I don't know why it's needed, but without it,
+/* 44 here is a kludge - I don't know why it's needed, but without it,
  * DragonFire doesn't render correctly.  Everything *should* be relative to
- * the horizontal sync pulse which occurs *after* the front porch. */
-#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + VDG_tFP)
+ * the horizontal sync pulse. */
+#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 44)
 
 #ifdef NO_BORDER
 #define RENDER_LEFT_BORDER do { \
