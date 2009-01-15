@@ -133,21 +133,23 @@ static int load_rom_from_list(const char *preferred, const char **list,
 /**************************************************************************/
 
 void machine_helptext(void) {
-	puts("  -machine MACHINE      emulated machine (-machine help for a list)");
-	puts("  -bas FILENAME         specify BASIC ROM to use (CoCo only)");
-	puts("  -extbas FILENAME      specify Extended BASIC ROM to use");
-	puts("  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)");
-	puts("  -noextbas             disable Extended BASIC");
-	puts("  -dostype DOS          type of DOS cartridge (-dostype help for a list)");
-	puts("  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)");
-	puts("  -nodos                disable DOS (ROM and hardware emulation)");
-	puts("  -pal                  emulate PAL (50Hz) video");
-	puts("  -ntsc                 emulate NTSC (60Hz) video");
-	puts("  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)");
-	puts("  -ram KBYTES           specify amount of RAM in K");
+	puts(
+"  -machine MACHINE      emulated machine (-machine help for a list)\n"
+"  -bas FILENAME         specify BASIC ROM to use (CoCo only)\n"
+"  -extbas FILENAME      specify Extended BASIC ROM to use\n"
+"  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)\n"
+"  -noextbas             disable Extended BASIC\n"
+"  -dostype DOS          type of DOS cartridge (-dostype help for a list)\n"
+"  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)\n"
+"  -nodos                disable DOS (ROM and hardware emulation)\n"
+"  -pal                  emulate PAL (50Hz) video\n"
+"  -ntsc                 emulate NTSC (60Hz) video\n"
+"  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)\n"
+"  -ram KBYTES           specify amount of RAM in K"
 #ifndef FAST_SOUND
-	puts("  -fast-sound           faster but less accurate sound");
+"\n  -fast-sound           faster but less accurate sound"
 #endif
+	    );
 }
 
 void machine_getargs(int argc, char **argv) {

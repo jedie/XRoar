@@ -98,10 +98,12 @@ static struct joy *find_joy(int joy_num) {
 }
 
 static void helptext(void) {
-	puts("  -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB       [0,0:1:0]");
-	puts("  -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB      [1,0:1:0]");
-	puts("                        J = joystick number, A = axis number, B = button number");
-	puts("                        a '-' before axis signifies inverted axis");
+	puts(
+"  -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB       [0,0:1:0]\n"
+"  -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB      [1,0:1:0]\n"
+"                        J = joystick number, A = axis number, B = button number\n"
+"                        a '-' before axis signifies inverted axis"
+	    );
 }
 
 static void parse_joystick_def(char *def, int base) {

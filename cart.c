@@ -37,8 +37,10 @@ static int cart_load(void);
 static void cart_interrupt(void);
 
 void cart_helptext(void) {
-	puts("  -cart FILENAME        specify ROM to load into cartridge area ($C000-)");
-	puts("  -cartna FILENAME      as -cart, but no auto-run");
+	puts(
+"  -cart FILENAME        specify ROM to load into cartridge area ($C000-)\n"
+"  -cartna FILENAME      as -cart, but no auto-run"
+	    );
 }
 
 void cart_getargs(int argc, char **argv) {

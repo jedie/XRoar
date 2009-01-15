@@ -81,17 +81,19 @@ static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 
 static void xroar_helptext(void) {
-	puts("  -ui MODULE            specify user-interface module (-ui help for a list)");
-	puts("  -vo MODULE            specify video module (-vo help for a list)");
-	puts("  -ao MODULE            specify audio module (-ao help for a list)");
-	puts("  -fskip FRAMES         specify frameskip (default: 0)");
-	puts("  -load FILE            load or attach FILE");
-	puts("  -run FILE             load or attach FILE and attempt autorun");
+	puts(
+"  -ui MODULE            specify user-interface module (-ui help for a list)\n"
+"  -vo MODULE            specify video module (-vo help for a list)\n"
+"  -ao MODULE            specify audio module (-ao help for a list)\n"
+"  -fskip FRAMES         specify frameskip (default: 0)\n"
+"  -load FILE            load or attach FILE\n"
+"  -run FILE             load or attach FILE and attempt autorun\n"
 #ifdef TRACE
-	puts("  -trace                start with trace mode on");
+"  -trace                start with trace mode on\n"
 #endif
-	puts("  -h, --help            display this help and exit");
-	puts("      --version         output version information and exit");
+"  -h, --help            display this help and exit\n"
+"      --version         output version information and exit"
+	    );
 }
 
 int xroar_init(int argc, char **argv) {
@@ -144,7 +146,7 @@ int xroar_init(int argc, char **argv) {
 #endif
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
-			printf("Usage: xroar [OPTION]...\n\n");
+			puts("Usage: xroar [OPTION]...\n");
 			machine_helptext();
 			cart_helptext();
 			xroar_helptext();
@@ -156,11 +158,13 @@ int xroar_init(int argc, char **argv) {
 			module_helptext((Module *)joystick_module, (Module **)joystick_module_list);
 			exit(0);
 		} else if (!strcmp(argv[i], "--version")) {
-			printf("XRoar " VERSION "\n");
-			puts("Copyright (C) 2009 Ciaran Anscomb");
-			puts("This is free software.  You may redistribute copies of it under the terms of");
-			puts("the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.");
-			puts("There is NO WARRANTY, to the extent permitted by law.");
+			puts(
+"XRoar " VERSION "\n"
+"Copyright (C) 2009 Ciaran Anscomb\n"
+"This is free software.  You may redistribute copies of it under the terms of\n"
+"the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
+"There is NO WARRANTY, to the extent permitted by law.\n"
+			    );
 			exit(0);
 		}
 	}
