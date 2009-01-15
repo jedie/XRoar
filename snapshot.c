@@ -126,7 +126,7 @@ int write_snapshot(const char *filename) {
 	fs_write_byte(fd, cpu_state.nmi_armed);
 	/* SAM */
 	fs_write_byte(fd, ID_SAM_REGISTERS); fs_write_word16(fd, 2);
-	fs_write_word16(fd, sam_register);
+	fs_write_word16(fd, sam_get_register());
 	/* Attached virtual disk filenames */
 	{
 		struct vdisk *disk;

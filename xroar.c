@@ -77,7 +77,6 @@ static struct {
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
-static void do_m6809_nvma_cycles(int cycles);
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 
@@ -158,7 +157,7 @@ int xroar_init(int argc, char **argv) {
 			exit(0);
 		} else if (!strcmp(argv[i], "--version")) {
 			printf("XRoar " VERSION "\n");
-			puts("Copyright (C) 2008 Ciaran Anscomb");
+			puts("Copyright (C) 2009 Ciaran Anscomb");
 			puts("This is free software.  You may redistribute copies of it under the terms of");
 			puts("the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.");
 			puts("There is NO WARRANTY, to the extent permitted by law.");
@@ -249,9 +248,8 @@ void xroar_shutdown(void) {
 void xroar_mainloop(void) {
 	M6809State cpu_state;
 
-	m6809_discard_read_cycle = sam_read_byte;
 	m6809_write_cycle = sam_store_byte;
-	m6809_nvma_cycles = do_m6809_nvma_cycles;
+	m6809_nvma_cycles = sam_nvma_cycles;
 	m6809_sync = do_m6809_sync;
 
 	while (1) {
@@ -350,10 +348,6 @@ static void do_load_file(void) {
 				break;
 		}
 	}
-}
-
-static void do_m6809_nvma_cycles(int cycles) {
-	current_cycle += cycles * sam_rom_cycles;
 }
 
 static void do_m6809_sync(void) {

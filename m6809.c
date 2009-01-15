@@ -62,7 +62,7 @@
 #define fetch_word(a) (fetch_byte(a) << 8 | fetch_byte((a)+1))
 #define store_byte(a,v) do { cycles--; m6809_write_cycle(a,v); } while (0)
 /* This one only used to try and get correct timing: */
-#define peek_byte(a) do { cycles--; m6809_discard_read_cycle(a); } while (0)
+#define peek_byte(a) do { cycles--; (void)m6809_read_cycle(a); } while (0)
 
 #define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
 #define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; TAKEN_CYCLES(1); } while (0)
@@ -201,7 +201,6 @@ static int nmi_armed = 0;
 
 /* External handlers */
 unsigned int (*m6809_read_cycle)(unsigned int addr);
-unsigned int (*m6809_discard_read_cycle)(unsigned int addr);
 void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
 void (*m6809_nvma_cycles)(int cycles);
 void (*m6809_sync)(void);

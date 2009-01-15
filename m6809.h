@@ -38,10 +38,6 @@ void m6809_jump(unsigned int pc);
 /* Returns result of a byte read cycle */
 extern unsigned int (*m6809_read_cycle)(unsigned int addr);
 
-/* For where the CPU will discard the result of a read - can be the
- * same as m6809_read_cycle, but could be a quicker implementation. */
-extern unsigned int (*m6809_discard_read_cycle)(unsigned int addr);
-
 /* Performs a byte write cycle */
 extern void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
 

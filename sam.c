@@ -37,7 +37,7 @@ static unsigned int ram_page_bit;
 unsigned int sam_register;
 
 static unsigned int sam_vdg_base;
-unsigned int sam_vdg_mode;
+static unsigned int sam_vdg_mode;
 unsigned int sam_vdg_address;
 static unsigned int sam_vdg_mod_xdiv;
 static unsigned int sam_vdg_mod_ydiv;
@@ -45,8 +45,11 @@ unsigned int sam_vdg_mod_clear;
 static unsigned int sam_vdg_xcount;
 static unsigned int sam_vdg_ycount;
 #ifdef VARIABLE_MPU_RATE
-unsigned int sam_ram_cycles;
-unsigned int sam_rom_cycles;
+static unsigned int sam_ram_cycles;
+static unsigned int sam_rom_cycles;
+#else
+# define sam_ram_cycles CPU_SLOW_DIVISOR
+# define sam_rom_cycles CPU_SLOW_DIVISOR
 #endif
 
 static unsigned int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
@@ -80,25 +83,26 @@ void sam_reset(void) {
 }
 
 unsigned int sam_read_byte(unsigned int addr) {
+	addr &= 0xffff;
+	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20))
+		current_cycle += sam_ram_cycles;
+	else
+		current_cycle += sam_rom_cycles;
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
-	addr &= 0xffff;
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
 		/* RAM access */
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
-		current_cycle += sam_ram_cycles;
 		if (addr < machine_ram_size)
 			return ram0[ram_addr];
 		return 0x7e;
 	}
 	if (addr < 0xff00) {
 		/* ROM access */
-		current_cycle += sam_rom_cycles;
 		return selected_rom[addr-0x8000];
 	}
 	if (addr < 0xff20) {
 		/* PIA0 */
-		current_cycle += sam_ram_cycles;
 		if (IS_COCO) {
 			return mc6821_read(&PIA0, addr & 3);
 		} else {
@@ -112,7 +116,6 @@ unsigned int sam_read_byte(unsigned int addr) {
 		}
 		return 0x7e;
 	}
-	current_cycle += sam_rom_cycles;
 	if (addr < 0xff40) {
 		return mc6821_read(&PIA1, addr & 3);
 	}
@@ -139,13 +142,16 @@ unsigned int sam_read_byte(unsigned int addr) {
 }
 
 void sam_store_byte(unsigned int addr, unsigned int octet) {
+	addr &= 0xffff;
+	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20))
+		current_cycle += sam_ram_cycles;
+	else
+		current_cycle += sam_rom_cycles;
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
-	addr &= 0xffff;
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
 		/* RAM access */
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
-		current_cycle += sam_ram_cycles;
 		if (IS_DRAGON32 && addr >= 0x8000 && machine_ram_size <= 0x8000) {
 			ram_addr &= 0x7fff;
 			if (ram_addr < machine_ram_size)
@@ -158,11 +164,9 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 	}
 	if (addr < 0xff00) {
 		/* ROM access */
-		current_cycle += sam_rom_cycles;
 		return;
 	}
 	if (addr < 0xff20) {
-		current_cycle += sam_ram_cycles;
 		if (IS_COCO) {
 			mc6821_write(&PIA0, addr & 3, octet);
 		} else {
@@ -176,7 +180,6 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 		}
 		return;
 	}
-	current_cycle += sam_rom_cycles;
 	if (addr < 0xff40) {
 		mc6821_write(&PIA1, addr & 3, octet);
 		if ((addr & 3) == 2 && IS_DRAGON64 && !map_type) {
@@ -214,6 +217,10 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 	}
 }
 
+void sam_nvma_cycles(int cycles) {
+	current_cycle += cycles * sam_rom_cycles;
+}
+
 void sam_vdg_fsync(void) {
 	sam_vdg_address = sam_vdg_base;
 	sam_vdg_xcount = 0;
@@ -249,6 +256,10 @@ uint8_t *sam_vdg_bytes(int number) {
 void sam_set_register(unsigned int value) {
 	sam_register = value;
 	update_from_register();
+}
+
+unsigned int sam_get_register(void) {
+	return sam_register;
 }
 
 static void update_from_register(void) {
