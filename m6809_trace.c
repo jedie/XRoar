@@ -1104,6 +1104,7 @@ void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
 	int i;
 
 	if (bytes_count == 0) return;
+	if (state != WANT_PRINT) return;
 
 	bytes_string[0] = '\0';
 	for (i = 0; i < bytes_count; i++) {
