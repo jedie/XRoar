@@ -23,9 +23,8 @@
 #define FILETYPE_SNA (8)
 #define FILETYPE_ROM (9)
 
-extern int requested_frameskip;
-extern int frameskip;
-extern int noratelimit;
+extern int xroar_frameskip;
+extern int xroar_noratelimit;
 extern int xroar_trace_enabled;
 
 #define UI_EVENT_LIST xroar_ui_events

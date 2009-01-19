@@ -42,9 +42,8 @@
 # include "m6809_trace.h"
 #endif
 
-int requested_frameskip;
-int frameskip;
-int noratelimit = 0;
+int xroar_frameskip = 0;
+int xroar_noratelimit = 0;
 #ifdef TRACE
 int xroar_trace_enabled = 0;
 #else
@@ -98,7 +97,6 @@ static void xroar_helptext(void) {
 
 int xroar_init(int argc, char **argv) {
 	int i;
-	requested_frameskip = 0;
 
 	/* Select a UI module then, possibly using lists specified in that
 	 * module, select all other modules */
@@ -126,9 +124,9 @@ int xroar_init(int argc, char **argv) {
 	/* Look for other relevant command-line options */
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-fskip") && i+1<argc) {
-			requested_frameskip = strtol(argv[++i], NULL, 0);
-			if (requested_frameskip < 0)
-				requested_frameskip = 0;
+			xroar_frameskip = strtol(argv[++i], NULL, 0);
+			if (xroar_frameskip < 0)
+				xroar_frameskip = 0;
 		} else if (!strcmp(argv[i], "-load")
 				|| !strcmp(argv[i], "-snap")) {
 			i++;

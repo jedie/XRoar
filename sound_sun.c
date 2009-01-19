@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -166,7 +166,7 @@ static void flush_frame(void) {
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	wrptr = buffer;
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
-	if (noratelimit) {
+	if (xroar_noratelimit) {
 		ioctl(sound_fd, I_FLUSH, FLUSHW);
 		samples_written = device_info.play.samples;
 		return;

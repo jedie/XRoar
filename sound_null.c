@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -132,7 +132,7 @@ static void flush_frame(void) {
 	actual_elapsed_ms = current_time() - last_pause_ms;
 	difference_ms = expected_elapsed_ms - actual_elapsed_ms;
 	if (difference_ms >= 10) {
-		if (noratelimit || difference_ms > 1000) {
+		if (xroar_noratelimit || difference_ms > 1000) {
 			last_pause_ms = current_time();
 			last_pause_cycle = current_cycle;
 		} else {

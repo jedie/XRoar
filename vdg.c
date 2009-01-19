@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -82,7 +82,6 @@ void vdg_reset(void) {
 #ifndef FAST_VDG
 	inhibit_mode_change = 0;
 #endif
-	frameskip = requested_frameskip;
 	frame = 0;
 }
 
@@ -128,7 +127,7 @@ static void do_hs_fall(void) {
 		sam_vdg_fsync();
 		frame--;
 		if (frame < 0)
-			frame = frameskip;
+			frame = xroar_frameskip;
 		if (frame == 0)
 			video_module->vdg_vsync();
 	}
