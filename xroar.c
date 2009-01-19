@@ -42,6 +42,23 @@
 # include "m6809_trace.h"
 #endif
 
+#ifdef FAST_VDG
+int xroar_cross_colour_renderer = CROSS_COLOUR_SIMPLE;
+#else
+int xroar_cross_colour_renderer = CROSS_COLOUR_5BIT;
+#endif
+
+static struct {
+	const char *option;
+	const char *description;
+	int value;
+} cross_colour_options[NUM_CROSS_COLOUR_RENDERERS] = {
+	{ "simple", "four colour palette", CROSS_COLOUR_SIMPLE },
+#ifndef FAST_VDG
+	{ "5bit",   "5-bit lookup table",  CROSS_COLOUR_5BIT   },
+#endif
+};
+
 int xroar_frameskip = 0;
 int xroar_noratelimit = 0;
 #ifdef TRACE
@@ -85,6 +102,7 @@ static void xroar_helptext(void) {
 "  -vo MODULE            specify video module (-vo help for a list)\n"
 "  -ao MODULE            specify audio module (-ao help for a list)\n"
 "  -fskip FRAMES         specify frameskip (default: 0)\n"
+"  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)\n"
 "  -load FILE            load or attach FILE\n"
 "  -run FILE             load or attach FILE and attempt autorun\n"
 #ifdef TRACE
@@ -127,6 +145,20 @@ int xroar_init(int argc, char **argv) {
 			xroar_frameskip = strtol(argv[++i], NULL, 0);
 			if (xroar_frameskip < 0)
 				xroar_frameskip = 0;
+		} else if (!strcmp(argv[i], "-ccr") && i+1<argc) {
+			int j;
+			i++;
+			if (!strcmp(argv[i], "help")) {
+				for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
+					printf("\t%-10s%s\n", cross_colour_options[j].option, cross_colour_options[j].description);
+				}
+				exit(0);
+			}
+			for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
+				if (!strcmp(argv[i], cross_colour_options[j].option)) {
+					xroar_cross_colour_renderer = cross_colour_options[j].value;
+				}
+			}
 		} else if (!strcmp(argv[i], "-load")
 				|| !strcmp(argv[i], "-snap")) {
 			i++;

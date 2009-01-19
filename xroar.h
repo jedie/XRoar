@@ -23,6 +23,17 @@
 #define FILETYPE_SNA (8)
 #define FILETYPE_ROM (9)
 
+/* NTSC cross-colour can either be rendered as a simple four colour palette,
+ *  * or with a 5-bit lookup table */
+#ifdef FAST_VDG
+# define NUM_CROSS_COLOUR_RENDERERS (1)
+#else
+# define NUM_CROSS_COLOUR_RENDERERS (2)
+#endif
+#define CROSS_COLOUR_SIMPLE (0)
+#define CROSS_COLOUR_5BIT   (1)
+extern int xroar_cross_colour_renderer;
+
 extern int xroar_frameskip;
 extern int xroar_noratelimit;
 extern int xroar_trace_enabled;

@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -54,17 +54,6 @@
 #define NUM_ROMSETS       (3)
 #define NUM_TV_STANDARDS  (2)
 #define NUM_DOS_TYPES     (4)
-
-/* NTSC cross-colour can either be rendered as a simple four colour palette,
- * or with a 5-bit lookup table */
-#ifdef FAST_VDG
-# define NUM_CROSS_COLOUR_RENDERERS (1)
-#else
-# define NUM_CROSS_COLOUR_RENDERERS (2)
-#endif
-#define CROSS_COLOUR_SIMPLE (0)
-#define CROSS_COLOUR_5BIT   (1)
-extern int cross_colour_renderer;
 
 /* NTSC cross-colour can either be switched off, or sychronised to one
  * of two phases (a real CoCo does not emit a colour burst in high resolution

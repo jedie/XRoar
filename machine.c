@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -54,22 +54,6 @@ MachineConfig machine_defaults[NUM_MACHINE_TYPES] = {
 	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_PAL,  CROSS_COLOUR_OFF,  64, DOS_RSDOS,     NULL, NULL, NULL, NULL },
 	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_NTSC, CROSS_COLOUR_KBRW, 64, DOS_RSDOS,     NULL, NULL, NULL, NULL }
 };
-
-static struct {
-	const char *option;
-	const char *description;
-	int value;
-} cross_colour_options[NUM_CROSS_COLOUR_RENDERERS] = {
-	{ "simple", "four colour palette", CROSS_COLOUR_SIMPLE },
-#ifndef FAST_VDG
-	{ "5bit",   "5-bit lookup table",  CROSS_COLOUR_5BIT   },
-#endif
-};
-#ifdef FAST_VDG
-int cross_colour_renderer = CROSS_COLOUR_SIMPLE;
-#else
-int cross_colour_renderer = CROSS_COLOUR_5BIT;
-#endif
 
 int requested_machine;
 MachineConfig requested_config = {
@@ -146,7 +130,6 @@ void machine_helptext(void) {
 "  -nodos                disable DOS (ROM and hardware emulation)\n"
 "  -pal                  emulate PAL (50Hz) video\n"
 "  -ntsc                 emulate NTSC (60Hz) video\n"
-"  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)\n"
 "  -ram KBYTES           specify amount of RAM in K"
 #ifndef FAST_SOUND
 "\n  -fast-sound           faster but less accurate sound"
@@ -210,20 +193,6 @@ void machine_getargs(int argc, char **argv) {
 			requested_config.tv_standard = TV_PAL;
 		} else if (!strcmp(argv[i], "-ntsc")) {
 			requested_config.tv_standard = TV_NTSC;
-		} else if (!strcmp(argv[i], "-ccr") && i+1<argc) {
-			int j;
-			i++;
-			if (!strcmp(argv[i], "help")) {
-				for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
-					printf("\t%-10s%s\n", cross_colour_options[j].option, cross_colour_options[j].description);
-				}
-				exit(0);
-			}
-			for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
-				if (!strcmp(argv[i], cross_colour_options[j].option)) {
-					cross_colour_renderer = cross_colour_options[j].value;
-				}
-			}
 		}
 #ifndef FAST_SOUND
 		else if (!strcmp(argv[i], "-fast-sound")) {
