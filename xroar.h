@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -23,9 +23,6 @@
 #define FILETYPE_SNA (8)
 #define FILETYPE_ROM (9)
 
-#define XROAR_AUTORUN_CAS  (1 << 0)
-#define XROAR_AUTORUN_CART (1 << 1)
-
 extern int requested_frameskip;
 extern int frameskip;
 extern int noratelimit;
@@ -41,6 +38,6 @@ int xroar_init(int argc, char **argv);
 void xroar_shutdown(void);
 void xroar_mainloop(void);
 int xroar_filetype_by_ext(const char *filename);
-int xroar_load_file(const char *filename, int mode);
+int xroar_load_file(const char *filename, int autorun);
 
 #endif  /* __XROAR_H__ */

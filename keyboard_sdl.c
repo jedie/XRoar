@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -124,9 +124,6 @@ static void shutdown(void) {
 	event_free(poll_event);
 }
 
-#define LOAD_FILE_MODE       (XROAR_AUTORUN_CART)
-#define LOAD_FILE_MODE_SHIFT (XROAR_AUTORUN_CAS)
-
 static void emulator_command(SDLKey sym) {
 	switch (sym) {
 	case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
@@ -198,6 +195,13 @@ static void emulator_command(SDLKey sym) {
 		if (video_module->set_fullscreen)
 			video_module->set_fullscreen(!video_module->is_fullscreen);
 		break;
+	case SDLK_i:
+		{
+		const char *cart_exts[] = { "ROM", NULL };
+		char *filename = filereq_module->load_filename(cart_exts);
+		xroar_load_file(filename, !shift);
+		}
+		break;
 	case SDLK_j:
 		if (shift) {
 			input_control_press(INPUT_SWAP_JOYSTICKS, 0);
@@ -213,13 +217,11 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_b:
 	case SDLK_h:
-	case SDLK_i:
 	case SDLK_t:
 	case SDLK_l:
 		{
 		char *filename = filereq_module->load_filename(NULL);
-		xroar_load_file(filename,
-		                shift ? LOAD_FILE_MODE_SHIFT : LOAD_FILE_MODE);
+		xroar_load_file(filename, shift);
 		}
 		break;
 	case SDLK_m:

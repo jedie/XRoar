@@ -299,11 +299,7 @@ int xroar_filetype_by_ext(const char *filename) {
 	return FILETYPE_UNKNOWN;
 }
 
-/* Bits set in 'mode' affect behaviour per-filetype:
- *   XROAR_AUTORUN_CAS: try to autorun any CAS file
- *   XROAR_AUTORUN_CART: enable cartridge FIRQ autostarter
- */
-int xroar_load_file(const char *filename, int mode) {
+int xroar_load_file(const char *filename, int autorun) {
 	int filetype;
 	if (filename == NULL)
 		return 1;
@@ -313,7 +309,17 @@ int xroar_load_file(const char *filename, int mode) {
 		case FILETYPE_JVC:
 		case FILETYPE_DMK:
 			vdrive_eject_disk(0);
-			return vdrive_insert_disk(0, vdisk_load(filename));
+			if (vdrive_insert_disk(0, vdisk_load(filename)) == 0) {
+				if (autorun) {
+					if (IS_DRAGON) {
+						keyboard_queue_string("\033BOOT\r");
+					} else {
+						keyboard_queue_string("\033DOS\r");
+					}
+				}
+				return 0;
+			}
+			return 1;
 		case FILETYPE_BIN:
 			return coco_bin_read(filename);
 		case FILETYPE_HEX:
@@ -321,9 +327,9 @@ int xroar_load_file(const char *filename, int mode) {
 		case FILETYPE_SNA:
 			return read_snapshot(filename);
 		case FILETYPE_ROM:
-			return cart_insert(filename, mode & XROAR_AUTORUN_CART);
+			return cart_insert(filename, autorun);
 		case FILETYPE_CAS:
-			if (mode & XROAR_AUTORUN_CAS)
+			if (autorun)
 				return tape_autorun(filename);
 			else
 				return tape_open_reading(filename);
@@ -334,24 +340,7 @@ int xroar_load_file(const char *filename, int mode) {
 }
 
 static void do_load_file(void) {
-	int flags = 0;
-	if (autorun_loaded_file)
-		flags = XROAR_AUTORUN_CAS;
-	xroar_load_file(load_file, flags);
-	if (autorun_loaded_file) {
-		switch (load_file_type) {
-			case FILETYPE_VDK:
-			case FILETYPE_JVC:
-			case FILETYPE_DMK:
-				if (IS_DRAGON)
-					keyboard_queue_string("\rboot\r");
-				else
-					keyboard_queue_string("\rdos\r");
-				break;
-			default:
-				break;
-		}
-	}
+	xroar_load_file(load_file, autorun_loaded_file);
 }
 
 static void do_m6809_sync(void) {
