@@ -113,6 +113,4 @@ void machine_reset(int hard);
 
 void machine_clear_requested_config(void);
 
-void machine_set_ram_size(unsigned int size);
-
 #endif  /* __MACHINE_H__ */

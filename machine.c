@@ -125,6 +125,8 @@ static const char *dos_type_options[NUM_DOS_TYPES] = {
 	"none", "dragondos", "rsdos", "delta"
 };
 
+static void initialise_ram(void);
+
 static char *find_rom(const char *romname);
 static char *find_rom_in_list(const char *preferred, const char **list);
 static int load_rom_from_list(const char *preferred, const char **list,
@@ -395,7 +397,10 @@ void machine_reset(int hard) {
 		/* Configure keymap */
 		keyboard_set_keymap(running_config.keymap);
 		/* Configure RAM */
-		machine_set_ram_size(running_config.ram * 1024);
+		if (running_config.ram < 4) running_config.ram = 4;
+		if (running_config.ram > 64) running_config.ram = 64;
+		machine_ram_size = running_config.ram * 1024;
+		initialise_ram();
 		/* Machine-specific PIA connections */
 		PIA1.b.tied_low |= (1<<2);
 		PIA1.b.port_input &= ~(1<<2);
@@ -445,14 +450,10 @@ void machine_clear_requested_config(void) {
 	requested_config.dos_rom = NULL;
 }
 
-/* Set RAM size, intialise contents */
-void machine_set_ram_size(unsigned int size) {
+/* Intialise RAM contents */
+static void initialise_ram(void) {
 	int loc = 0, val = 0xff;
-	if (size > 0x10000)
-		size = 0x10000;
-	machine_ram_size = size;
-	/* Don't know why, but RAM seems to start in
-	 * this state: */
+	/* Don't know why, but RAM seems to start in this state: */
 	while (loc < 0x10000) {
 		ram0[loc++] = val;
 		ram0[loc++] = val;
