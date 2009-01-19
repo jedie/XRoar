@@ -37,6 +37,9 @@ extern int xroar_cross_colour_renderer;
 extern int xroar_frameskip;
 extern int xroar_noratelimit;
 extern int xroar_trace_enabled;
+#ifndef FAST_SOUND
+extern int xroar_fast_sound;
+#endif
 
 #define UI_EVENT_LIST xroar_ui_events
 #define MACHINE_EVENT_LIST xroar_machine_events

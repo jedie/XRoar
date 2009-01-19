@@ -66,6 +66,9 @@ int xroar_trace_enabled = 0;
 #else
 # define xroar_trace_enabled (0)
 #endif
+#ifndef FAST_SOUND
+int xroar_fast_sound;
+#endif
 
 event_t *xroar_ui_events = NULL;
 event_t *xroar_machine_events = NULL;
@@ -103,6 +106,9 @@ static void xroar_helptext(void) {
 "  -ao MODULE            specify audio module (-ao help for a list)\n"
 "  -fskip FRAMES         specify frameskip (default: 0)\n"
 "  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)\n"
+#ifndef FAST_SOUND
+"  -fast-sound           faster but less accurate sound\n"
+#endif
 "  -load FILE            load or attach FILE\n"
 "  -run FILE             load or attach FILE and attempt autorun\n"
 #ifdef TRACE
@@ -159,6 +165,10 @@ int xroar_init(int argc, char **argv) {
 					xroar_cross_colour_renderer = cross_colour_options[j].value;
 				}
 			}
+#ifndef FAST_SOUND
+		} else if (!strcmp(argv[i], "-fast-sound")) {
+			xroar_fast_sound = 1;
+#endif
 		} else if (!strcmp(argv[i], "-load")
 				|| !strcmp(argv[i], "-snap")) {
 			i++;

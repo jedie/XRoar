@@ -70,9 +70,6 @@ MC6821_PIA PIA0, PIA1;
 
 Cycle current_cycle;
 int noextbas;
-#ifndef FAST_SOUND
-static int fast_sound;  /* don't update on control reg writes */
-#endif
 
 static const char *d32_extbas_roms[] = { "d32", "dragon32", "d32rom", "dragon", NULL };
 static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "dragrom", "dragon", NULL };
@@ -131,9 +128,6 @@ void machine_helptext(void) {
 "  -pal                  emulate PAL (50Hz) video\n"
 "  -ntsc                 emulate NTSC (60Hz) video\n"
 "  -ram KBYTES           specify amount of RAM in K"
-#ifndef FAST_SOUND
-"\n  -fast-sound           faster but less accurate sound"
-#endif
 	    );
 }
 
@@ -141,9 +135,6 @@ void machine_getargs(int argc, char **argv) {
 	int i;
 	machine_clear_requested_config();
 	noextbas = 0;
-#ifndef FAST_SOUND
-	fast_sound = 0;
-#endif
 	requested_machine = ANY_AUTO;
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-machine") && i+1<argc) {
@@ -194,11 +185,6 @@ void machine_getargs(int argc, char **argv) {
 		} else if (!strcmp(argv[i], "-ntsc")) {
 			requested_config.tv_standard = TV_NTSC;
 		}
-#ifndef FAST_SOUND
-		else if (!strcmp(argv[i], "-fast-sound")) {
-			fast_sound = 1;
-		}
-#endif
 	}
 }
 
@@ -254,7 +240,7 @@ void machine_init(void) {
 	PIA1.a.control_postwrite = pia1a_control_postwrite;
 	PIA1.b.data_postwrite = pia1b_data_postwrite;
 #ifndef FAST_SOUND
-	if (!fast_sound) {
+	if (!xroar_fast_sound) {
 		PIA0.a.control_postwrite = pia0a_control_postwrite;
 		PIA0.b.control_postwrite = pia0b_control_postwrite;
 		PIA1.b.control_postwrite = pia1b_control_postwrite;
