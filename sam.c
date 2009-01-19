@@ -17,6 +17,7 @@
  */
 
 #include "types.h"
+#include "cart.h"
 #include "deltados.h"
 #include "dragondos.h"
 #include "joystick.h"
@@ -97,9 +98,13 @@ unsigned int sam_read_byte(unsigned int addr) {
 			return ram0[ram_addr];
 		return 0x7e;
 	}
+	if (addr < 0xc000) {
+		/* BASIC ROM access */
+		return selected_rom[addr & 0x3fff];
+	}
 	if (addr < 0xff00) {
-		/* ROM access */
-		return selected_rom[addr-0x8000];
+		/* Cartridge ROM access */
+		return cart_data[addr & 0x3fff];
 	}
 	if (addr < 0xff20) {
 		/* PIA0 */
@@ -154,16 +159,24 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
 		if (IS_DRAGON32 && addr >= 0x8000 && machine_ram_size <= 0x8000) {
 			ram_addr &= 0x7fff;
-			if (ram_addr < machine_ram_size)
-				ram0[ram_addr] = rom0[addr & 0x7fff];
+			/* TODO: Assuming cartridge ROM doesn't get selected
+			 * here if present? */
+			if (ram_addr < machine_ram_size && addr < 0xc000)
+					ram0[ram_addr] = rom0[addr & 0x3fff];
 			return;
 		}
 		if (addr < machine_ram_size)
 			ram0[ram_addr] = octet;
 		return;
 	}
+	if (addr < 0xc000) {
+		/* BASIC ROM access */
+		return;
+	}
 	if (addr < 0xff00) {
-		/* ROM access */
+		/* Cartridge ROM access */
+		if (cart_data_writable)
+			cart_data[addr & 0x3fff] = octet;
 		return;
 	}
 	if (addr < 0xff20) {

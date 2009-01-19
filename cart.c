@@ -28,6 +28,9 @@
 #include "xroar.h"
 #include "cart.h"
 
+uint8_t cart_data[0x4000];
+int cart_data_writable;
+
 static event_t cart_event;
 static char *cart_filename;
 static int cart_autostart;
@@ -63,6 +66,8 @@ void cart_getargs(int argc, char **argv) {
 void cart_init(void) {
 	event_init(&cart_event);
 	cart_event.dispatch = cart_interrupt;
+	memset(cart_data, 0x7e, sizeof(cart_data));
+	cart_data_writable = 0;
 }
 
 void cart_reset(void) {
@@ -100,7 +105,7 @@ static int cart_load(void) {
 		return -1;
 	}
 	LOG_DEBUG(3, "Loading cartridge: %s\n", cart_filename);
-	fs_read(fd, rom0+0x4000, sizeof(rom0)-0x4000);
+	fs_read(fd, cart_data, sizeof(cart_data));
 	fs_close(fd);
 	if (cart_autostart) {
 		cart_event.at_cycle = current_cycle + (OSCILLATOR_RATE/10);
@@ -108,6 +113,7 @@ static int cart_load(void) {
 	} else {
 		event_dequeue(&cart_event);
 	}
+	cart_data_writable = 0;
 	return 0;
 }
 

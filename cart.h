@@ -6,6 +6,11 @@
 #ifndef __CART_H__
 #define __CART_H__
 
+#include "types.h"
+
+extern uint8_t cart_data[0x4000];
+extern int cart_data_writable;
+
 void cart_helptext(void);
 void cart_getargs(int argc, char **argv);
 void cart_init(void);

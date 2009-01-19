@@ -64,8 +64,8 @@ MachineConfig running_config;
 
 unsigned int machine_ram_size = 0x10000;  /* RAM in bytes, up to 64K */
 uint8_t ram0[0x10000];
-uint8_t rom0[0x8000];
-uint8_t rom1[0x8000];
+uint8_t rom0[0x4000];
+uint8_t rom1[0x4000];
 MC6821_PIA PIA0, PIA1;
 
 Cycle current_cycle;
@@ -343,7 +343,8 @@ void machine_reset(int hard) {
 		if (DOS_ENABLED) {
 			load_rom_from_list(running_config.dos_rom,
 					dos_rom_list[running_config.dos_type - 1],
-					rom0 + 0x4000, sizeof(rom0) - 0x4000);
+					cart_data, sizeof(cart_data));
+			cart_data_writable = 0;
 		}
 		/* ... Alternate BASIC ROM */
 		load_rom_from_list(running_config.altbas_rom,
