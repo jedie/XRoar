@@ -7,10 +7,6 @@
 #define __M6809_H__
 
 #include "types.h"
-#include "events.h"
-#include "sam.h"
-#include "machine.h"
-#include "xroar.h"
 
 #define M6809_COMPAT_STATE_NORMAL (0)
 #define M6809_COMPAT_STATE_SYNC   (1)

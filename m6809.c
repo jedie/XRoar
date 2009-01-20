@@ -17,9 +17,7 @@
  */
 
 #include "types.h"
-#include "logging.h"
 #include "m6809.h"
-#include "xroar.h"
 
 /* Condition Code manipulation macros */
 
