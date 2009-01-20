@@ -31,7 +31,7 @@ static char *save_filename(const char **extensions);
 
 FileReqModule filereq_carbon_module = {
 	{ "carbon", "Carbon file requester",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	load_filename, save_filename
 };
 

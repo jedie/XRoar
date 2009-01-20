@@ -39,7 +39,7 @@ static void update(void);
 
 SoundModule sound_oss_module = {
 	{ "oss", "OSS audio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

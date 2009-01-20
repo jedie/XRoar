@@ -38,7 +38,7 @@ static void render_rg6(void);
 
 VideoModule video_gp32_module = {
 	{ "gp32", "GP32 video driver",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	NULL, NULL, 0,
 	vdg_vsync, vdg_set_mode,
 	NULL, NULL

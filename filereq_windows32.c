@@ -36,7 +36,7 @@ static char *save_filename(const char **extensions);
 
 FileReqModule filereq_windows32_module = {
 	{ "windows32", "Windows32 file requester",
-	  init, 0, shutdown_module, NULL },
+	  init, 0, shutdown_module },
 	load_filename, save_filename
 };
 

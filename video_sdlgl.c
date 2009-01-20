@@ -44,7 +44,7 @@ static void alloc_colours(void);
 
 VideoModule video_sdlgl_module = {
 	{ "sdlgl", "SDL OpenGL",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	resize, set_fullscreen, 0,
 	vsync, set_mode,
 	render_border, NULL

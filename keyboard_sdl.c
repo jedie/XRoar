@@ -40,11 +40,10 @@
 
 static int init(int argc, char **argv);
 static void shutdown(void);
-static void helptext(void);
 
 KeyboardModule keyboard_sdl_module = {
 	{ "sdl", "SDL keyboard driver",
-	  init, 0, shutdown, helptext }
+	  init, 0, shutdown }
 };
 
 static event_t *poll_event;
@@ -84,10 +83,6 @@ static void map_keyboard(unsigned int *map) {
 		unsigned int dgnkey = *(map++);
 		sdl_to_keymap[sdlkey & 0xff] = dgnkey & 0x7f;
 	}
-}
-
-static void helptext(void) {
-	puts("  -keymap CODE          select host keyboard type (uk, us, fr, de)");
 }
 
 static int init(int argc, char **argv) {

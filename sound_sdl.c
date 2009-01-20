@@ -36,7 +36,7 @@ static void update(void);
 
 SoundModule sound_sdl_module = {
 	{ "sdl", "SDL ring-buffer audio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

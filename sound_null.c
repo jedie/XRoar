@@ -42,7 +42,7 @@ static void update(void);
 
 SoundModule sound_null_module = {
 	{ "null", "No audio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

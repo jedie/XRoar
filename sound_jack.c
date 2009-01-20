@@ -42,7 +42,7 @@ static int jack_callback(jack_nframes_t nframes, void *arg);
 
 SoundModule sound_jack_module = {
 	{ "jack", "JACK audio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

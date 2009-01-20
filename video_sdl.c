@@ -42,7 +42,7 @@ static void alloc_colours(void);
 
 VideoModule video_sdl_module = {
 	{ "sdl", "Standard SDL surface",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	NULL, set_fullscreen, 0,
 	vsync, set_mode,
 	render_border, NULL

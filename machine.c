@@ -115,22 +115,6 @@ static int load_rom_from_list(const char *preferred, const char **list,
 
 /**************************************************************************/
 
-void machine_helptext(void) {
-	puts(
-"  -machine MACHINE      emulated machine (-machine help for a list)\n"
-"  -bas FILENAME         specify BASIC ROM to use (CoCo only)\n"
-"  -extbas FILENAME      specify Extended BASIC ROM to use\n"
-"  -altbas FILENAME      specify alternate BASIC ROM (Dragon 64)\n"
-"  -noextbas             disable Extended BASIC\n"
-"  -dostype DOS          type of DOS cartridge (-dostype help for a list)\n"
-"  -dos FILENAME         specify DOS ROM (or CoCo Disk BASIC)\n"
-"  -nodos                disable DOS (ROM and hardware emulation)\n"
-"  -pal                  emulate PAL (50Hz) video\n"
-"  -ntsc                 emulate NTSC (60Hz) video\n"
-"  -ram KBYTES           specify amount of RAM in K"
-	    );
-}
-
 void machine_getargs(int argc, char **argv) {
 	int i;
 	machine_clear_requested_config();

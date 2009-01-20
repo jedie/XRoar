@@ -184,11 +184,3 @@ void module_shutdown(Module *module) {
 	if (module && module->common.initialised)
 		module->common.shutdown();
 }
-
-void module_helptext(Module *module, Module **others) {
-	if (module && module->common.helptext) {
-		module->common.helptext();
-	} else if (others) {
-		module_helptext(others[0], NULL);
-	}
-}

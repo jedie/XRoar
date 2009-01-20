@@ -43,7 +43,7 @@ static void alloc_colours(void);
 
 VideoModule video_sdlyuv_module = {
 	{ "sdlyuv", "SDL YUV overlay, hopefully uses Xv acceleration",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	resize, set_fullscreen, 0,
 	vsync, set_mode,
 	render_border, NULL

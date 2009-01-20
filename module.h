@@ -12,7 +12,6 @@ typedef struct {
 	int (*init)(int argc, char **argv); 
 	int initialised;
 	void (*shutdown)(void);
-	void (*helptext)(void);
 } Module_Common;
 
 typedef struct {
@@ -83,6 +82,5 @@ Module *module_select_by_arg(Module **list, const char *arg, int argc, char **ar
 Module *module_init(Module *module, int argc, char **argv);
 Module *module_init_from_list(Module **list, Module *module, int argc, char **argv);
 void module_shutdown(Module *module);
-void module_helptext(Module *module, Module **others);
 
 #endif  /* __MODULE_H__ */

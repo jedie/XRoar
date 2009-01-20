@@ -43,7 +43,7 @@ static event_t *flush_event;
 
 SoundModule sound_sun_module = {
 	{ "sun", "Sun audio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

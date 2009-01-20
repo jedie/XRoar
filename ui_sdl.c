@@ -56,7 +56,7 @@ static KeyboardModule *sdl_keyboard_module_list[] = {
 
 UIModule ui_sdl_module = {
 	{ "sdl", "SDL user-interface",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	NULL,  /* use default filereq module list */
 	sdl_video_module_list,
 	NULL,  /* use default sound module list */

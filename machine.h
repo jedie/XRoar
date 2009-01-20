@@ -94,7 +94,6 @@ extern MC6821_PIA PIA0, PIA1;
 extern Cycle current_cycle;
 extern int noextbas;
 
-void machine_helptext(void);
 void machine_getargs(int argc, char **argv);
 void machine_init(void);
 void machine_shutdown(void);

@@ -30,11 +30,10 @@
 
 static int init(int argc, char **argv);
 static void shutdown(void);
-static void helptext(void);
 
 JoystickModule joystick_sdl_module = {
 	{ "sdl", "SDL joystick driver",
-	  init, 0, shutdown, helptext }
+	  init, 0, shutdown }
 };
 
 static int num_sdl_joysticks;
@@ -95,15 +94,6 @@ static struct joy *find_joy(int joy_num) {
 	LOG_DEBUG(2,"\tNumber of Axes: %d\n", joy[i].num_axes);
 	LOG_DEBUG(2,"\tNumber of Buttons: %d\n", joy[i].num_buttons);
 	return &joy[i];
-}
-
-static void helptext(void) {
-	puts(
-"  -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB       [0,0:1:0]\n"
-"  -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB      [1,0:1:0]\n"
-"                        J = joystick number, A = axis number, B = button number\n"
-"                        a '-' before axis signifies inverted axis"
-	    );
 }
 
 static void parse_joystick_def(char *def, int base) {

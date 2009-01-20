@@ -34,7 +34,7 @@ static void update(void);
 
 SoundModule sound_nds_module = {
 	{ "nds", "NDS audio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

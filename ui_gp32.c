@@ -66,7 +66,7 @@ static KeyboardModule *gp32_keyboard_module_list[] = {
 
 UIModule ui_gp32_module = {
 	{ "gp32", "GP32 user-interface",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	(FileReqModule **)empty_module_list,
 	gp32_video_module_list,
 	gp32_sound_module_list,

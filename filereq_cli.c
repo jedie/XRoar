@@ -30,7 +30,7 @@ static char *get_filename(const char **extensions);
 
 FileReqModule filereq_cli_module = {
 	{ "cli", "Command-line file requester",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	get_filename, get_filename
 };
 

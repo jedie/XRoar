@@ -11,8 +11,6 @@
 extern uint8_t cart_data[0x4000];
 extern int cart_data_writable;
 
-void cart_helptext(void);
-void cart_getargs(int argc, char **argv);
 void cart_init(void);
 void cart_reset(void);
 int cart_insert(const char *filename, int autostart);

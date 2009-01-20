@@ -38,7 +38,7 @@ static void render_cg2(void);
 
 VideoModule video_nds_module = {
 	{ "nds", "NDS video",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	NULL, NULL, 0,
 	vsync, set_mode,
 	NULL, NULL

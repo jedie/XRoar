@@ -46,7 +46,7 @@ static void shutdown(void);
 
 KeyboardModule keyboard_gp32_module = {
 	{ "gp32", "GP32 virtual keyboard driver",
-	  init, 0, shutdown, NULL }
+	  init, 0, shutdown }
 };
 
 static event_t poll_event;

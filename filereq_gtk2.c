@@ -35,7 +35,7 @@ static char *save_filename(const char **extensions);
 
 FileReqModule filereq_gtk2_module = {
 	{ "gtk2", "GTK+-2 file requester",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	load_filename, save_filename
 };
 

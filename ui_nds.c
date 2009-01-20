@@ -64,7 +64,7 @@ static SoundModule *nds_sound_module_list[] = {
 
 UIModule ui_nds_module = {
 	{ "nds", "NDS user-interface",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	NULL,  /* use default filereq module list */
 	nds_video_module_list,
 	nds_sound_module_list,

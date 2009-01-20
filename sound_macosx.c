@@ -36,7 +36,7 @@ static void update(void);
 
 SoundModule sound_macosx_module = {
 	{ "macosx", "Mac OS X CoreAudio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

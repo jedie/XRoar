@@ -39,7 +39,7 @@ static void update(void);
 
 SoundModule sound_gp32_module = {
 	{ "gp32", "GP32 audio",
-	  init, 0, shutdown, NULL },
+	  init, 0, shutdown },
 	update
 };
 

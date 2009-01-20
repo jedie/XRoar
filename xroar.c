@@ -99,24 +99,64 @@ static struct {
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 
-static void xroar_helptext(void) {
+static void versiontext(void) {
 	puts(
-"  -ui MODULE            specify user-interface module (-ui help for a list)\n"
-"  -vo MODULE            specify video module (-vo help for a list)\n"
-"  -ao MODULE            specify audio module (-ao help for a list)\n"
-"  -fskip FRAMES         specify frameskip (default: 0)\n"
-"  -ccr RENDERER         specify cross-colour renderer (-ccr help for list)\n"
+"XRoar " VERSION "\n"
+"Copyright (C) 2009 Ciaran Anscomb\n"
+"This is free software.  You may redistribute copies of it under the terms of\n"
+"the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
+"There is NO WARRANTY, to the extent permitted by law."
+	    );
+}
+
+static void helptext(void) {
+	puts(
+"Usage: xroar [OPTION]...\n"
+"XRoar is a Dragon emulator.  Due to hardware similarities, XRoar also\n"
+"emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
+
+"\n Emulator interface:\n"
+"  -ui MODULE            user-interface module (-ui help for list)\n"
+"  -vo MODULE            video module (-vo help for list)\n"
+"  -ao MODULE            audio module (-ao help for list)\n"
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
 #endif
-"  -load FILE            load or attach FILE\n"
-"  -run FILE             load or attach FILE and attempt autorun\n"
+"  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
+"  -fskip FRAMES         frameskip (default: 0)\n"
+"  -keymap CODE          host keyboard type (uk, us, fr, de)\n"
+"  -joy-left JOYSPEC     map left joystick\n"
+"  -joy-right JOYSPEC    map right joystick\n"
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
+
+"\n Emulated machine:\n"
+"  -machine MACHINE      emulated machine (-machine help for list)\n"
+"  -bas FILENAME         BASIC ROM to use (CoCo only)\n"
+"  -extbas FILENAME      Extended BASIC ROM to use\n"
+"  -altbas FILENAME      alternate BASIC ROM (Dragon 64)\n"
+"  -noextbas             disable Extended BASIC\n"
+"  -dostype DOS          type of DOS cartridge (-dostype help for list)\n"
+"  -dos FILENAME         DOS ROM (or CoCo Disk BASIC)\n"
+"  -nodos                disable DOS (ROM and hardware emulation)\n"
+"  -pal                  emulate PAL (50Hz) video\n"
+"  -ntsc                 emulate NTSC (60Hz) video\n"
+"  -ram KBYTES           specify amount of RAM in K\n"
+
+"\n Automatically load or run files:\n"
+"  -load FILENAME        load or attach FILENAME\n"
+"  -run FILENAME         load or attach FILENAME and attempt autorun\n"
+
+"\n Other options:\n"
 "  -h, --help            display this help and exit\n"
-"      --version         output version information and exit"
-	    );
+"      --version         output version information and exit\n"
+
+"\nA JOYSPEC maps physical joystick axes and buttons to one of the emulated\n"
+"machine's joysticks.  JOYSPEC is of the form 'DEV,AXIS:DEV,AXIS:DEV,BUTTON',\n"
+"mapping two axes and a button to the X, Y and firebutton on the emulated\n"
+"joystick respectively."
+	);
 }
 
 int xroar_init(int argc, char **argv) {
@@ -170,12 +210,14 @@ int xroar_init(int argc, char **argv) {
 			xroar_fast_sound = 1;
 #endif
 		} else if (!strcmp(argv[i], "-load")
+				|| !strcmp(argv[i], "-cartna")
 				|| !strcmp(argv[i], "-snap")) {
 			i++;
 			if (i >= argc) break;
 			load_file = argv[i];
 			autorun_loaded_file = 0;
-		} else if (!strcmp(argv[i], "-run")) {
+		} else if (!strcmp(argv[i], "-run")
+				|| !strcmp(argv[i], "-cart")) {
 			i++;
 			if (i >= argc) break;
 			load_file = argv[i];
@@ -186,30 +228,14 @@ int xroar_init(int argc, char **argv) {
 #endif
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
 				|| !strcmp(argv[i], "-help")) {
-			puts("Usage: xroar [OPTION]...\n");
-			machine_helptext();
-			cart_helptext();
-			xroar_helptext();
-			module_helptext((Module *)ui_module, (Module **)ui_module_list);
-			module_helptext((Module *)filereq_module, (Module **)filereq_module_list);
-			module_helptext((Module *)video_module, (Module **)video_module_list);
-			module_helptext((Module *)sound_module, (Module **)sound_module_list);
-			module_helptext((Module *)keyboard_module, (Module **)keyboard_module_list);
-			module_helptext((Module *)joystick_module, (Module **)joystick_module_list);
+			helptext();
 			exit(0);
 		} else if (!strcmp(argv[i], "--version")) {
-			puts(
-"XRoar " VERSION "\n"
-"Copyright (C) 2009 Ciaran Anscomb\n"
-"This is free software.  You may redistribute copies of it under the terms of\n"
-"the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
-"There is NO WARRANTY, to the extent permitted by law.\n"
-			    );
+			versiontext();
 			exit(0);
 		}
 	}
 	machine_getargs(argc, argv);
-	cart_getargs(argc, argv);
 
 	/* Disable DOS if a cassette or cartridge is being loaded */
 	if (load_file) {
