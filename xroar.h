@@ -41,6 +41,8 @@ extern int xroar_trace_enabled;
 extern int xroar_fast_sound;
 #endif
 
+extern const char *xroar_rom_path;
+
 #define UI_EVENT_LIST xroar_ui_events
 #define MACHINE_EVENT_LIST xroar_machine_events
 extern event_t *xroar_ui_events;

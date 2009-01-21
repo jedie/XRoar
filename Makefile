@@ -42,12 +42,12 @@ ifeq ($(CONFIG_MINGW),yes)
 ROMPATH = \".\"
 else
 ifeq ($(CONFIG_GP32),yes)
-ROMPATH = \"gp:/gpmm/dragon\"
+ROMPATH = \"gp\\\\:/gpmm/dragon\"
 else
 ifeq ($(CONFIG_NDS),yes)
-ROMPATH = \"/dragon/roms\",\"/dragon\",\".\"
+ROMPATH = \"/dragon/roms:/dragon:\"
 else
-ROMPATH = \".\",\"~/.xroar/roms\",\"~/Library/XRoar/Roms\",\"$(datadir)/xroar/roms\"
+ROMPATH = \":~/.xroar/roms:~/Library/XRoar/Roms:$(datadir)/xroar/roms\"
 endif
 endif
 endif
@@ -66,7 +66,7 @@ xroar.arm7: LDFLAGS = $(NDS_ARM7_LDFLAGS)
 # Base object files required by all builds
 
 OBJS := cart.o crc16.o events.o hexs19.o input.o joystick.o keyboard.o \
-		m6809.o machine.o mc6821.o module.o sam.o snapshot.o \
+		m6809.o machine.o mc6821.o module.o path.o sam.o snapshot.o \
 		tape.o vdg.o vdg_bitmaps.o vdisk.o vdrive.o \
 		dragondos.o rsdos.o deltados.o wd279x.o xroar.o portalib.o
 

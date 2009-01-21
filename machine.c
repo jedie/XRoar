@@ -35,6 +35,7 @@
 #include "machine.h"
 #include "mc6821.h"
 #include "module.h"
+#include "path.h"
 #include "rsdos.h"
 #include "sam.h"
 #include "tape.h"
@@ -406,90 +407,31 @@ static void initialise_ram(void) {
 
 /**************************************************************************/
 
-/* load_rom_from_list searches a path (specified in ROMPATH macro at compile
- * time) to find the preferred ROM, or one from the supplied list.  It searches
- * each element in the path for each rom name with ".rom" or ".dgn" as a
- * suffix.  */
+/* load_rom_from_list searches a path to find the preferred ROM, or one from
+ * the supplied list.  It searches for each rom name as-is, and with ".rom" or
+ * ".dgn" extensions added.  */
 
-#ifndef ROMPATH
-# define ROMPATH ".","/usr/local/share/xroar/roms"
-#endif
-
-static const char *rom_path[] = { ROMPATH, NULL };
-
-static char *construct_path(const char *path, const char *filename) {
-	char *buf;
-	char *home = NULL;
-	int path_length;
-
-	/* Account for path, "/", filename and trailing null */
-	path_length = strlen(path) + strlen(filename) + 2;
-	if (path[0] == '~' && (path[1] == '/' || path[1] == '\\')) {
-		home = getenv("HOME");
-		if (home) {
-			/* Skip "~/" */
-			path += 2;
-			path_length -= 2;
-			/* Account for home, "/" */
-			path_length += strlen(home) + 1;  /* trailing '/' */
-		}
-	}
-	buf = malloc(path_length);
-	if (!buf)
-		return NULL;
-	buf[0] = 0;
-	if (home) {
-		strcpy(buf, home);
-		strcat(buf, "/");
-	}
-	strcat(buf, path);
-	strcat(buf, "/");
-	strcat(buf, filename);
-	return buf;
-}
-
-/* Find a ROM within rom path.  Returns malloced string containing path to ROM
- * or NULL if not found. */
+/* Find a ROM within rom path. */
 static char *find_rom(const char *romname) {
-	struct stat statbuf;
-	char *filename[3];
+	char *filename;
 	char *path = NULL;
-	int i, j;
 
 	if (romname == NULL)
 		return NULL;
 
-	/* If name includes a '/', just stat and return */
-	if (strchr(romname, '/') || strchr(romname, '\\')) {
-		if (stat(romname, &statbuf) == 0)
-			return strdup(romname);
-		return NULL;
+	filename = malloc(strlen(romname) + 5);
+	strcpy(filename, romname);
+	path = find_in_path(xroar_rom_path, filename);
+	if (path == NULL) {
+		strcat(filename, ".rom");
+		path = find_in_path(xroar_rom_path, filename);
 	}
-
-	/* Otherwise try a path search of name, name.rom and name.dgn */
-	filename[0] = romname;
-	filename[1] = malloc(strlen(romname) + 5);
-	strcpy(filename[1], romname);
-	strcat(filename[1], ".rom");
-	filename[2] = malloc(strlen(romname) + 5);
-	strcpy(filename[2], romname);
-	strcat(filename[2], ".dgn");
-	for (i = 0; rom_path[i]; i++) {
-		for (j = 0; j < 3; j++) {
-			path = construct_path(rom_path[i], filename[j]);
-			if (path) {
-				if (stat(path, &statbuf) == 0)
-					break;
-				free(path);
-				path = NULL;
-			}
-		}
-		if (path)
-			break;
+	if (path == NULL) {
+		strcpy(filename, romname);
+		strcat(filename, ".dgn");
+		path = find_in_path(xroar_rom_path, filename);
 	}
-
-	free(filename[1]);
-	free(filename[2]);
+	free(filename);
 	return path;
 }
 

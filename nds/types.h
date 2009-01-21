@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING for redistribution conditions. */
 
@@ -10,5 +10,6 @@
 #define printf(...)
 #define sprintf siprintf
 #define snprintf sniprintf
+#define getenv(e) (NULL)
 
 #endif  /* __NDS_TYPES_H__ */

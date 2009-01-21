@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING for redistribution conditions. */
 
@@ -23,6 +23,7 @@
 #define fprintf(...)
 #define printf(...)
 #define puts(...)
+#define getenv(e) (NULL)
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;

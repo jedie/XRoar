@@ -31,6 +31,7 @@
 #include "m6809.h"
 #include "machine.h"
 #include "module.h"
+#include "path.h"
 #include "sam.h"
 #include "snapshot.h"
 #include "tape.h"
@@ -69,6 +70,8 @@ int xroar_trace_enabled = 0;
 #ifndef FAST_SOUND
 int xroar_fast_sound;
 #endif
+
+const char *xroar_rom_path;
 
 event_t *xroar_ui_events = NULL;
 event_t *xroar_machine_events = NULL;
@@ -159,8 +162,16 @@ static void helptext(void) {
 	);
 }
 
+#ifndef ROMPATH
+# define ROMPATH "."
+#endif
+
 int xroar_init(int argc, char **argv) {
 	int i;
+
+	xroar_rom_path = getenv("XROAR_ROM_PATH");
+	if (!xroar_rom_path)
+		xroar_rom_path = ROMPATH;
 
 	/* Select a UI module then, possibly using lists specified in that
 	 * module, select all other modules */
