@@ -46,7 +46,8 @@ static char *strcattoc_esc(char *dst, const char *src, char c);
 char *find_in_path(const char *path, const char *filename) {
 	struct stat statbuf;
 	const char *home;
-	char buf[MAXNAMLEN];
+	char *buf;
+	int buf_size;
 
 	if (filename == NULL)
 		return NULL;
@@ -54,11 +55,21 @@ char *find_in_path(const char *path, const char *filename) {
 	if (path == NULL || strchr(filename, '/')) {
 		if (stat(filename, &statbuf) == 0)
 			if (statbuf.st_mode & S_IFREG)
-				if (access(filename, R_OK) == 0)
+				if (access(filename, R_OK) == 0) {
 					return strdup(filename);
+				}
 		return NULL;
 	}
 	home = getenv("HOME");
+	/* Buffer at most could hold <path> (or ".") + '/' + <filename> + NUL.
+	 * Two characters in <path> may be replaced with $HOME + '/'. */
+	buf_size = strlen(path) + strlen(filename) + 3;
+	if (home) {
+		buf_size += strlen(home) - 1;
+	}
+	buf = malloc(buf_size);
+	if (buf == NULL)
+		return NULL;
 	while (*path) {
 		*buf = 0;
 		/* Prefix $HOME if path elem starts "~/" */
@@ -79,8 +90,9 @@ char *find_in_path(const char *path, const char *filename) {
 		/* Return this one if file is valid */
 		if (stat(buf, &statbuf) == 0) 
 			if (statbuf.st_mode & S_IFREG)
-				if (access(buf, R_OK) == 0)
-					return strdup(buf);
+				if (access(buf, R_OK) == 0) {
+					return buf;
+				}
 		/* Skip to next path element */
 		while (*path && *path != ':') {
 			if (*path == '\\' && *(path+1) != 0)
@@ -90,6 +102,7 @@ char *find_in_path(const char *path, const char *filename) {
 		if (*path == ':')
 			path++;
 	}
+	free(buf);
 	return NULL;
 }
 

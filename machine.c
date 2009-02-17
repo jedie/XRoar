@@ -285,6 +285,8 @@ static void find_working_dos_type(void) {
 			running_config.dos_type = DOS_RSDOS;
 		}
 	}
+	if (tmp)
+		free(tmp);
 }
 
 void machine_reset(int hard) {
