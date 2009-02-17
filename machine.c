@@ -314,6 +314,8 @@ void machine_reset(int hard) {
 		/* Load appropriate ROMs */
 		memset(rom0, 0x7e, sizeof(rom0));
 		memset(rom1, 0x7e, sizeof(rom1));
+		memset(cart_data, 0x7e, sizeof(cart_data));
+		cart_data_writable = 0;
 		/* ... BASIC */
 		load_rom_from_list(running_config.bas_rom,
 				rom_list[running_config.romset].bas,
