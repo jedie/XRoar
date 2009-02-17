@@ -100,7 +100,7 @@ static int init(int argc, char **argv) {
 		LOG_ERROR("Couldn't set desired (%dHz) audio rate.  Got %dHz.\n", rate, device_info.play.sample_rate);
 		return 1;
 	}
-	LOG_DEBUG(0,"Set up audio device at %dHz, %d channels.\n", rate, channels);
+	LOG_DEBUG(2, "Set up audio device at %dHz, %d channels.\n", rate, channels);
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
