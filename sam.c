@@ -241,10 +241,17 @@ void sam_vdg_fsync(void) {
 }
 
 uint8_t *sam_vdg_bytes(int number) {
-	unsigned int addr = VRAM_TRANSLATE(sam_vdg_address);
-	unsigned int b15_5 = sam_vdg_address & ~0x1f;
-	unsigned int b4 = sam_vdg_address & 0x10;
-	unsigned int b3_0 = (sam_vdg_address & 0xf) + number;
+	unsigned int addr, b15_5, b4, b3_0;
+	if (sam_ram_cycles == CPU_FAST_DIVISOR) {
+		/* In FAST mode, the VDG does not get access to RAM.
+		 * Simulate a wrong situation by always returning the same
+		 * address: */
+		return ram0;
+	}
+	addr = VRAM_TRANSLATE(sam_vdg_address);
+	b15_5 = sam_vdg_address & ~0x1f;
+	b4 = sam_vdg_address & 0x10;
+	b3_0 = (sam_vdg_address & 0xf) + number;
 	if (b3_0 & 0x10) {
 		b3_0 &= 0x0f;
 		sam_vdg_xcount++;
@@ -278,6 +285,7 @@ unsigned int sam_get_register(void) {
 static void update_from_register(void) {
 	int memory_size = (sam_register >> 13) & 3;
 	int mpu_rate = (sam_register >> 11) & 3;
+
 	sam_vdg_mode = sam_register & 0x0007;
 	sam_vdg_base = (sam_register & 0x03f8) << 6;
 	sam_vdg_mod_xdiv = vdg_mod_xdiv[sam_vdg_mode];
@@ -301,31 +309,32 @@ static void update_from_register(void) {
 
 	if ((map_type = sam_register & 0x8000)) {
 		/* Map type 1 */
-#ifdef VARIABLE_MPU_RATE
-		sam_ram_cycles = CPU_SLOW_DIVISOR;
-		sam_rom_cycles = CPU_SLOW_DIVISOR;
-#endif
+		if (mpu_rate == 1) {
+			/* Disallow address-dependent MPU rate in map type 1 */
+			mpu_rate = 0;
+		}
 	} else {
 		/* Map type 0 */
 		if (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))
 			selected_rom = rom1;
 		else
 			selected_rom = rom0;
-#ifdef VARIABLE_MPU_RATE
-		switch (mpu_rate) {
-			case 0:
-				sam_ram_cycles = CPU_SLOW_DIVISOR;
-				sam_rom_cycles = CPU_SLOW_DIVISOR;
-				break;
-			case 1:
-				sam_ram_cycles = CPU_SLOW_DIVISOR;
-				sam_rom_cycles = CPU_FAST_DIVISOR;
-				break;
-			default:
-				sam_ram_cycles = CPU_FAST_DIVISOR;
-				sam_rom_cycles = CPU_FAST_DIVISOR;
-				break;
-		}
-#endif
 	}
+
+#ifdef VARIABLE_MPU_RATE
+	switch (mpu_rate) {
+		case 0:
+			sam_ram_cycles = CPU_SLOW_DIVISOR;
+			sam_rom_cycles = CPU_SLOW_DIVISOR;
+			break;
+		case 1:
+			sam_ram_cycles = CPU_SLOW_DIVISOR;
+			sam_rom_cycles = CPU_FAST_DIVISOR;
+			break;
+		default:
+			sam_ram_cycles = CPU_FAST_DIVISOR;
+			sam_rom_cycles = CPU_FAST_DIVISOR;
+			break;
+	}
+#endif
 }
