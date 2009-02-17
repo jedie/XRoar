@@ -631,11 +631,9 @@ it), attached cassettes or cartridges.
 @node Trace mode
 @section Trace mode
 
-If you specify @option{--enable-trace} while building XRoar from source (see
-@ref{Building from source code}), the emulator contains a "trace mode",
-where it will dump a disassembly of every instruction it executes to the
-console.  Trace mode defaults to off unless you run with @option{-trace}.
-Toggle trace mode on or off with @kbd{Control+V}.
+XRoar contains a "trace mode", where it will dump a disassembly of every
+instruction it executes to the console.  Trace mode defaults to off unless you
+run with @option{-trace}.  Toggle trace mode on or off with @kbd{Control+V}.
 
 @node Command line options
 @section Command line options
@@ -764,10 +762,15 @@ interfere with some cassette-based games.
 @node Firmware ROM image names
 @chapter Firmware ROM image names
 
-XRoar searches for ROM images in a variety of locations (see
-@ref{Installation}), but it expects the images to have certain names.  Here's a
-table showing the names it searches for each ROM in each system.  ROM images
-can have either a @file{.rom} or a @file{.dgn} extension.
+XRoar searches for ROM images in a variety of locations.  See
+@ref{Installation} for where your particular platform will search.  The search
+path can be overridden by including a colon-separated list of paths in the
+@env{XROAR_ROM_PATH} environment variable.
+
+Images are expected to have certain names.  Here's a table showing the names it
+searches for each ROM in each system.  ROM images can have either a @file{.rom}
+or a @file{.dgn} extension.  @file{.dgn} files contain a 16 byte header, which
+is ignored.
 
 @multitable {Controller type} {ROM search order} {Disk Extended Color BASIC 1.1 or 1.0.}
 @headitem Machine @tab ROM search order @tab Description
