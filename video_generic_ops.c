@@ -22,54 +22,33 @@ static void render_rg6a(void);
 # define RENDER_CROSS_COLOUR (render_cg2)
 #endif
 
-/* 44 here is a kludge - I don't know why it's needed, but without it,
- * DragonFire doesn't render correctly.  Everything *should* be relative to
- * the horizontal sync pulse. */
-#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 44)
-
-#ifdef NO_BORDER
-#define RENDER_LEFT_BORDER do { \
-		while (beam_pos < 32 && beam_pos < beam_to) { \
-			beam_pos += 8; \
-		} \
-	} while (0)
-#define RENDER_RIGHT_BORDER do { \
-		while (beam_pos >= 288 && beam_pos < 320 && beam_pos < beam_to) { \
-			beam_pos += 8; \
-		} \
-	} while (0)
-#else  /* NO_BORDER */
-#define RENDER_LEFT_BORDER do { \
-		while (beam_pos < 32 && beam_pos < beam_to) { \
-			*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) \
-				= *(pixel+3*XSTEP) = *(pixel+4*XSTEP) \
-				= *(pixel+5*XSTEP) = *(pixel+6*XSTEP) \
-				= *(pixel+7*XSTEP) = border_colour; \
-			pixel += 8*XSTEP; \
-			beam_pos += 8; \
-		} \
-	} while (0)
-
-#define RENDER_RIGHT_BORDER do { \
-		while (beam_pos >= 288 && beam_pos < 320 && beam_pos < beam_to) { \
-			*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) \
-				= *(pixel+3*XSTEP) = *(pixel+4*XSTEP) \
-				= *(pixel+5*XSTEP) = *(pixel+6*XSTEP) \
-				= *(pixel+7*XSTEP) = border_colour; \
-			pixel += 8*XSTEP; \
-			beam_pos += 8; \
-		} \
-	} while (0)
-#endif  /* NO_BORDER */
+/* The extra 16 clock offset delays a single CPU cycle so that Dragonfire
+ * renders properly. */
+#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 16)
 
 #ifdef FAST_VDG
-#define beam_to 320
-#define GET_BEAM_TO
+# define beam_to 320
+# define GET_BEAM_TO
 #else
-#define GET_BEAM_TO int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2
+# define GET_BEAM_TO int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2
 #endif
 
-#define ACTIVE_DISPLAY_AREA (beam_pos >= 32 && beam_pos < 288 && beam_pos < beam_to)
+#define IS_LEFT_BORDER (beam_pos < beam_to && beam_pos >= 0 && beam_pos < 32)
+#define IS_ACTIVE_LINE (beam_pos < beam_to && beam_pos >= 32 && beam_pos < 288)
+#define IS_RIGHT_BORDER (beam_pos < beam_to && beam_pos >= 288 && beam_pos < 320)
+
+#ifdef NO_BORDER
+# define RENDER_BORDER do { beam_pos += 8; } while (0)
+#else
+# define RENDER_BORDER do { \
+		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) \
+			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP) \
+			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP) \
+			= *(pixel+7*XSTEP) = border_colour; \
+		pixel += 8*XSTEP; \
+		beam_pos += 8; \
+	} while (0)
+#endif
 
 static unsigned int subline;
 static Pixel *pixel;
@@ -231,8 +210,10 @@ static void render_sg4(void) {
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
-	RENDER_LEFT_BORDER;
-	while (ACTIVE_DISPLAY_AREA) {
+	while (IS_LEFT_BORDER) {
+		RENDER_BORDER;
+	}
+	while (IS_ACTIVE_LINE) {
 		Pixel tmp;
 		if (beam_pos == 32 || beam_pos == 160)
 			vram_ptr = sam_vdg_bytes(16);
@@ -264,7 +245,9 @@ static void render_sg4(void) {
 		if (beam_pos == 288)
 			(void)sam_vdg_bytes(10);
 	}
-	RENDER_RIGHT_BORDER;
+	while (IS_RIGHT_BORDER) {
+		RENDER_BORDER;
+	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
 		sam_vdg_hsync();
@@ -284,8 +267,10 @@ static void render_sg6(void) {
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
-	RENDER_LEFT_BORDER;
-	while (ACTIVE_DISPLAY_AREA) {
+	while (IS_LEFT_BORDER) {
+		RENDER_BORDER;
+	}
+	while (IS_ACTIVE_LINE) {
 		Pixel tmp;
 		if (beam_pos == 32 || beam_pos == 160)
 			vram_ptr = sam_vdg_bytes(16);
@@ -321,7 +306,9 @@ static void render_sg6(void) {
 		if (beam_pos == 288)
 			(void)sam_vdg_bytes(10);
 	}
-	RENDER_RIGHT_BORDER;
+	while (IS_RIGHT_BORDER) {
+		RENDER_BORDER;
+	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
 		sam_vdg_hsync();
@@ -357,8 +344,10 @@ static void render_cg1(void) {
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
-	RENDER_LEFT_BORDER;
-	while (ACTIVE_DISPLAY_AREA) {
+	while (IS_LEFT_BORDER) {
+		RENDER_BORDER;
+	}
+	while (IS_ACTIVE_LINE) {
 		if (beam_pos == 32)
 			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
@@ -366,7 +355,9 @@ static void render_cg1(void) {
 		if (beam_pos == 288)
 			(void)sam_vdg_bytes(6);
 	}
-	RENDER_RIGHT_BORDER;
+	while (IS_RIGHT_BORDER) {
+		RENDER_BORDER;
+	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
 		sam_vdg_hsync();
@@ -398,8 +389,10 @@ static void render_rg1(void) {
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
-	RENDER_LEFT_BORDER;
-	while (ACTIVE_DISPLAY_AREA) {
+	while (IS_LEFT_BORDER) {
+		RENDER_BORDER;
+	}
+	while (IS_ACTIVE_LINE) {
 		if (beam_pos == 32)
 			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
@@ -407,7 +400,9 @@ static void render_rg1(void) {
 		if (beam_pos == 288)
 			(void)sam_vdg_bytes(6);
 	}
-	RENDER_RIGHT_BORDER;
+	while (IS_RIGHT_BORDER) {
+		RENDER_BORDER;
+	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
 		sam_vdg_hsync();
@@ -434,8 +429,10 @@ static void render_cg2(void) {
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
-	RENDER_LEFT_BORDER;
-	while (ACTIVE_DISPLAY_AREA) {
+	while (IS_LEFT_BORDER) {
+		RENDER_BORDER;
+	}
+	while (IS_ACTIVE_LINE) {
 		unsigned int octet;
 		if (beam_pos == 32 || beam_pos == 160)
 			vram_ptr = sam_vdg_bytes(16);
@@ -444,7 +441,9 @@ static void render_cg2(void) {
 		if (beam_pos == 288)
 			(void)sam_vdg_bytes(10);
 	}
-	RENDER_RIGHT_BORDER;
+	while (IS_RIGHT_BORDER) {
+		RENDER_BORDER;
+	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
 		sam_vdg_hsync();
@@ -474,8 +473,10 @@ static void render_rg6(void) {
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
-	RENDER_LEFT_BORDER;
-	while (ACTIVE_DISPLAY_AREA) {
+	while (IS_LEFT_BORDER) {
+		RENDER_BORDER;
+	}
+	while (IS_ACTIVE_LINE) {
 		if (beam_pos == 32 || beam_pos == 160)
 			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
@@ -485,7 +486,9 @@ static void render_rg6(void) {
 		if (beam_pos == 288)
 			(void)sam_vdg_bytes(10);
 	}
-	RENDER_RIGHT_BORDER;
+	while (IS_RIGHT_BORDER) {
+		RENDER_BORDER;
+	}
 	UNLOCK_SURFACE;
 	if (beam_pos == 320) {
 		sam_vdg_hsync();

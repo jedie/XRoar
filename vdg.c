@@ -141,7 +141,7 @@ static void do_hs_fall(void) {
 #endif
 	/* FS falling edge at end of this scanline */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END - 1)) {
-		fs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION + 16;
+		fs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION;
 		event_queue(&MACHINE_EVENT_LIST, &fs_fall_event);
 	}
 #ifndef FAST_VDG
@@ -157,7 +157,7 @@ static void do_hs_fall(void) {
 	/* FS rising edge at end of this scanline */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 31)) {
 		/* Fig. 8, VDG data sheet: tWFS = 32 * (227.5 * 1/f) */
-		fs_rise_event.at_cycle = scanline_start + VDG_LINE_DURATION + 16;
+		fs_rise_event.at_cycle = scanline_start + VDG_LINE_DURATION;
 		event_queue(&MACHINE_EVENT_LIST, &fs_rise_event);
 		/* PAL delay after FS rising edge */
 		if (IS_PAL) {

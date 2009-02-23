@@ -11,18 +11,19 @@
 #define VDG_CYCLES(c) ((c) * 4)
 
 #define VDG_tFP   VDG_CYCLES(7.0)
-#define VDG_tBP   VDG_CYCLES(17.5)
-#define VDG_tLB   VDG_CYCLES(29.5)
-#define VDG_tRB   VDG_CYCLES(28.0)
 #define VDG_tWHS  VDG_CYCLES(17.5)
+#define VDG_tBP   VDG_CYCLES(17.5)
+#define VDG_tHBNK (VDG_tFP + VDG_tWHS + VDG_tBP)
+#define VDG_tLB   VDG_CYCLES(29.5)
 #define VDG_tAV   VDG_CYCLES(128)
+#define VDG_tRB   VDG_CYCLES(28.0)
 
 #define VDG_LEFT_BORDER_UNSEEN    (VDG_tLB - VDG_CYCLES(16))
 
 /* All horizontal timings shall remain relative to the HS pulse falling edge */
 #define VDG_HS_FALLING_EDGE    (0)
 #define VDG_HS_RISING_EDGE     (VDG_HS_FALLING_EDGE + VDG_tWHS)
-#define VDG_LEFT_BORDER_START  (VDG_HS_RISING_EDGE + VDG_tBP)
+#define VDG_LEFT_BORDER_START  (VDG_HS_FALLING_EDGE + VDG_tHBNK)
 #define VDG_ACTIVE_LINE_START  (VDG_LEFT_BORDER_START + VDG_tLB)
 #define VDG_RIGHT_BORDER_START (VDG_ACTIVE_LINE_START + VDG_tAV)
 #define VDG_RIGHT_BORDER_END   (VDG_RIGHT_BORDER_START + VDG_tRB)
