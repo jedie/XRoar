@@ -71,10 +71,11 @@
 	} while (0)
 
 #define NEXT_STATE(f,t) do { \
-		state_event.dispatch = f; \
+		state = f; \
 		state_event.at_cycle = current_cycle + t; \
 		event_queue(&MACHINE_EVENT_LIST, &state_event); \
 	} while (0)
+#define GOTO_STATE(f) state = f; continue
 
 #define SINGLE_DENSITY (0)
 #define DOUBLE_DENSITY (1)
@@ -105,33 +106,37 @@ void (*wd279x_reset_drq_handler)(void);
 void (*wd279x_set_intrq_handler)(void);
 void (*wd279x_reset_intrq_handler)(void);
 
-/* Functions used in state machines: */
-static void type_1_state_1(void);
-static void type_1_state_2(void);
-static void type_1_state_3(void);
-static void verify_track_state_1(void);
-static void verify_track_state_2(void);
-static void type_2_state_1(void);
-static void type_2_state_2(void);
-static void read_sector_state_1(void);
-static void read_sector_state_2(void);
-static void read_sector_state_3(void);
-static void write_sector_state_1(void);
-static void write_sector_state_2(void);
-static void write_sector_state_3(void);
-static void write_sector_state_4(void);
-static void write_sector_state_5(void);
-static void write_sector_state_6(void);
-static void type_3_state_1(void);
-static void read_address_state_1(void);
-static void read_address_state_2(void);
-static void read_address_state_3(void);
-static void write_track_state_1(void);
-static void write_track_state_2(void);
-static void write_track_state_2b(void);
-static void write_track_state_3(void);
+/* FDC states: */
+enum wd279x_state {
+	type_1_state_1,
+	type_1_state_2,
+	type_1_state_3,
+	verify_track_state_1,
+	verify_track_state_2,
+	type_2_state_1,
+	type_2_state_2,
+	read_sector_state_1,
+	read_sector_state_2,
+	read_sector_state_3,
+	write_sector_state_1,
+	write_sector_state_2,
+	write_sector_state_3,
+	write_sector_state_4,
+	write_sector_state_5,
+	write_sector_state_6,
+	type_3_state_1,
+	read_address_state_1,
+	read_address_state_2,
+	read_address_state_3,
+	write_track_state_1,
+	write_track_state_2,
+	write_track_state_2b,
+	write_track_state_3
+};
 
+static void state_machine(void);
 static event_t state_event;
+static enum wd279x_state state;
 
 /* WD279X registers */
 static unsigned int status_register;
@@ -165,6 +170,7 @@ void wd279x_init(void) {
 	wd279x_set_intrq_handler = NULL;
 	wd279x_reset_intrq_handler = NULL;
 	event_init(&state_event);
+	state_event.dispatch = state_machine;
 }
 
 void wd279x_reset(void) {
@@ -291,9 +297,10 @@ void wd279x_command_write(unsigned int cmd) {
 		}
 		if (is_step_cmd) {
 			if (cmd & 0x10)
-				type_1_state_2();
+				state = type_1_state_2;
 			else
-				type_1_state_3();
+				state = type_1_state_3;
+			state_machine();
 			return;
 		}
 		if ((cmd & 0xf0) == 0x00) {
@@ -303,7 +310,8 @@ void wd279x_command_write(unsigned int cmd) {
 		} else {
 			LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", data_register);
 		}
-		type_1_state_1();
+		state = type_1_state_1;
+		state_machine();
 		return;
 	}
 	/* 10xxxxxx = READ/WRITE SECTOR */
@@ -329,7 +337,8 @@ void wd279x_command_write(unsigned int cmd) {
 			NEXT_STATE(type_2_state_1, W_MILLISEC(30));
 			return;
 		}
-		type_2_state_1();
+		state = type_2_state_1;
+		state_machine();
 		return;
 	}
 	/* 11000xx0 = READ ADDRESS */
@@ -355,501 +364,531 @@ void wd279x_command_write(unsigned int cmd) {
 			NEXT_STATE(type_3_state_1, W_MILLISEC(30));
 			return;
 		}
-		return type_3_state_1();
+		state = type_3_state_1;
+		state_machine();
+		return;
 	}
 	LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd);
 }
 
-static void type_1_state_1(void) {
-	LOG_DEBUG(5, " type_1_state_1()\n");
-	if (data_register == track_register) {
-		verify_track_state_1();
-		return;
-	}
-	if (data_register > track_register)
-		SET_DIRECTION;
-	else
-		RESET_DIRECTION;
-	type_1_state_2();
-}
-
-static void type_1_state_2(void) {
-	LOG_DEBUG(5, " type_1_state_2()\n");
-	track_register += direction;
-	type_1_state_3();
-}
-
-static void type_1_state_3(void) {
-	LOG_DEBUG(5, " type_1_state_3()\n");
-	if (vdrive_tr00 && direction == -1) {
-		LOG_DEBUG(4,"WD279X: TR00!\n");
-		track_register = 0;
-		verify_track_state_1();
-		return;
-	}
-	vdrive_step();
-	if (is_step_cmd) {
-		NEXT_STATE(verify_track_state_1, W_MILLISEC(step_delay));
-		return;
-	}
-	NEXT_STATE(type_1_state_1, W_MILLISEC(step_delay));
-}
-
-static void verify_track_state_1(void) {
-	LOG_DEBUG(5, " verify_track_state_1()\n");
-	if (!(cmd_copy & 0x04)) {
-		status_register &= ~(STATUS_BUSY);
-		SET_INTRQ;
-		return;
-	}
-	index_holes_count = 0;
-	NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
-}
-
-static void verify_track_state_2(void) {
+/* One big state machine.  This is called from an event dispatch and from the
+ * write command function. */
+ 
+static void state_machine(void) {
 	uint8_t *idam;
+	unsigned int data;
 	int i;
-	LOG_DEBUG(5, " verify_track_state_2()\n");
-	idam = vdrive_next_idam();
-	if (vdrive_new_index_pulse()) {
-		index_holes_count++;
-		if (index_holes_count >= 5) {
-			LOG_DEBUG(5, "index_holes_count >= 5: seek error\n");
-			status_register &= ~(STATUS_BUSY);
-			status_register |= STATUS_SEEK_ERROR;
-			SET_INTRQ;
-			return;
-		}
-	}
-	if (idam == NULL) {
-		LOG_DEBUG(5, "null IDAM: -> verify_track_state_2\n");
-		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
-		return;
-	}
-	crc16_reset();
-	if (IS_DOUBLE_DENSITY) {
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-	}
-	(void)vdrive_read();  /* Include IDAM in CRC */
-	if (track_register != vdrive_read()) {
-		LOG_DEBUG(5, "track_register != idam[1]: -> verify_track_state_2\n");
-		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
-		return;
-	}
-	/* Include rest of ID field - should result in computed CRC = 0 */
-	for (i = 0; i < 5; i++)
-		(void)vdrive_read();
-	if (crc16_value() != 0) {
-		LOG_DEBUG(3, "Verify track %d CRC16 error: $%04x != 0\n", track_register, crc16_value());
-		status_register |= STATUS_CRC_ERROR;
-		NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
-		return;
-	}
-	LOG_DEBUG(5, "finished.\n");
-	status_register &= ~(STATUS_CRC_ERROR|STATUS_BUSY);
-	SET_INTRQ;
-}
+	for (;;) {
+		switch (state) {
 
-static void type_2_state_1(void) {
-	LOG_DEBUG(5, " type_2_state_1()\n");
-	if ((cmd_copy & 0x20) && vdrive_write_protect) {
-		status_register &= ~(STATUS_BUSY);
-		status_register |= STATUS_WRITE_PROTECT;
-		SET_INTRQ;
-		return;
-	}
-	index_holes_count = 0;
-	NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
-}
+		case type_1_state_1:
+			LOG_DEBUG(5, " type_1_state_1()\n");
+			if (data_register == track_register) {
+				GOTO_STATE(verify_track_state_1);
+			}
+			if (data_register > track_register)
+				SET_DIRECTION;
+			else
+				RESET_DIRECTION;
+			/* GOTO_STATE(type_1_state_2); */
+			/* fall through */
 
-static void type_2_state_2(void) {
-	uint8_t *idam;
-	int i;
-	LOG_DEBUG(5, " type_2_state_2()\n");
-	idam = vdrive_next_idam();
-	if (vdrive_new_index_pulse()) {
-		index_holes_count++;
-		if (index_holes_count >= 5) {
-			status_register &= ~(STATUS_BUSY);
-			status_register |= STATUS_RNF;
-			SET_INTRQ;
-			return;
-		}
-	}
-	if (idam == NULL) {
-		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
-		return;
-	}
-	crc16_reset();
-	if (IS_DOUBLE_DENSITY) {
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-	}
-	(void)vdrive_read();  /* Include IDAM in CRC */
-	if (track_register != vdrive_read()) {
-		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
-		return;
-	}
-	if (side != vdrive_read()) {
-		/* No error if no SSO or 'C' not set */
-		if (HAS_SSO || cmd_copy & 0x02) {
-			NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
-			return;
-		}
-	}
-	if (sector_register != vdrive_read()) {
-		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
-		return;
-	}
-	i = vdrive_read();
-	if (HAS_LENGTH_FLAG)
-		bytes_left = sector_size[(cmd_copy & 0x08)?1:0][i&3];
-	else
-		bytes_left = sector_size[1][i&3];
-	/* Including CRC bytes should result in computed CRC = 0 */
-	(void)vdrive_read();
-	(void)vdrive_read();
-	if (crc16_value() != 0) {
-		status_register |= STATUS_CRC_ERROR;
-		LOG_DEBUG(3, "Type 2 tr %d se %d CRC16 error: $%04x != 0\n", track_register, sector_register, crc16_value());
-		NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
-		return;
-	}
 
-	if ((cmd_copy & 0x20) == 0) {
-		unsigned int bytes_to_scan, j, tmp;
-		if (IS_SINGLE_DENSITY)
-			bytes_to_scan = 30;
-		else
-			bytes_to_scan = 43;
-		j = 0;
-		dam = 0;
-		do {
+		case type_1_state_2:
+			LOG_DEBUG(5, " type_1_state_2()\n");
+			track_register += direction;
+			/* GOTO_STATE(type_1_state_3); */
+			/* fall through */
+
+
+		case type_1_state_3:
+			LOG_DEBUG(5, " type_1_state_3()\n");
+			if (vdrive_tr00 && direction == -1) {
+				LOG_DEBUG(4,"WD279X: TR00!\n");
+				track_register = 0;
+				GOTO_STATE(verify_track_state_1);
+			}
+			vdrive_step();
+			if (is_step_cmd) {
+				NEXT_STATE(verify_track_state_1, W_MILLISEC(step_delay));
+				return;
+			}
+			NEXT_STATE(type_1_state_1, W_MILLISEC(step_delay));
+			return;
+
+
+		case verify_track_state_1:
+			LOG_DEBUG(5, " verify_track_state_1()\n");
+			if (!(cmd_copy & 0x04)) {
+				status_register &= ~(STATUS_BUSY);
+				SET_INTRQ;
+				return;
+			}
+			index_holes_count = 0;
+			NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
+			return;
+
+
+		case verify_track_state_2:
+			LOG_DEBUG(5, " verify_track_state_2()\n");
+			idam = vdrive_next_idam();
+			if (vdrive_new_index_pulse()) {
+				index_holes_count++;
+				if (index_holes_count >= 5) {
+					LOG_DEBUG(5, "index_holes_count >= 5: seek error\n");
+					status_register &= ~(STATUS_BUSY);
+					status_register |= STATUS_SEEK_ERROR;
+					SET_INTRQ;
+					return;
+				}
+			}
+			if (idam == NULL) {
+				LOG_DEBUG(5, "null IDAM: -> verify_track_state_2\n");
+				NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
+				return;
+			}
 			crc16_reset();
 			if (IS_DOUBLE_DENSITY) {
 				crc16_byte(0xa1);
 				crc16_byte(0xa1);
 				crc16_byte(0xa1);
 			}
-			tmp = vdrive_read();
-			if (tmp == 0xfb || tmp == 0xf8)
-				dam = tmp;
-			j++;
-		} while (j < bytes_to_scan && dam == 0);
-		if (dam == 0) {
-			NEXT_STATE(type_2_state_2, vdrive_time_to_next_byte());
+			(void)vdrive_read();  /* Include IDAM in CRC */
+			if (track_register != vdrive_read()) {
+				LOG_DEBUG(5, "track_register != idam[1]: -> verify_track_state_2\n");
+				NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
+				return;
+			}
+			/* Include rest of ID field - should result in computed CRC = 0 */
+			for (i = 0; i < 5; i++)
+				(void)vdrive_read();
+			if (crc16_value() != 0) {
+				LOG_DEBUG(3, "Verify track %d CRC16 error: $%04x != 0\n", track_register, crc16_value());
+				status_register |= STATUS_CRC_ERROR;
+				NEXT_STATE(verify_track_state_2, vdrive_time_to_next_idam());
+				return;
+			}
+			LOG_DEBUG(5, "finished.\n");
+			status_register &= ~(STATUS_CRC_ERROR|STATUS_BUSY);
+			SET_INTRQ;
 			return;
-		}
-		NEXT_STATE(read_sector_state_1, vdrive_time_to_next_byte());
-		return;
-	}
-	vdrive_skip();
-	vdrive_skip();
-	NEXT_STATE(write_sector_state_1, vdrive_time_to_next_byte());
-}
 
-static void read_sector_state_1(void) {
-	LOG_DEBUG(5, " read_sector_state_1()\n");
-	LOG_DEBUG(4,"Reading %d-byte sector (Tr %d, Se %d) from head_pos=%04x\n", bytes_left, track_register, sector_register, vdrive_head_pos());
-	status_register |= ((~dam & 1) << 5);
-	data_register = vdrive_read();
-	bytes_left--;
-	SET_DRQ;
-	NEXT_STATE(read_sector_state_2, vdrive_time_to_next_byte());
-}
 
-static void read_sector_state_2(void) {
-	LOG_DEBUG(5, " read_sector_state_2()\n");
-	if (status_register & STATUS_DRQ) {
-		status_register |= STATUS_LOST_DATA;
-		//RESET_DRQ;  // XXX
-	}
-	if (bytes_left > 0) {
-		data_register = vdrive_read();
-		bytes_left--;
-		SET_DRQ;
-		NEXT_STATE(read_sector_state_2, vdrive_time_to_next_byte());
-		return;
-	}
-	/* Including CRC bytes should result in computed CRC = 0 */
-	(void)vdrive_read();
-	(void)vdrive_read();
-	NEXT_STATE(read_sector_state_3, vdrive_time_to_next_byte());
-}
-
-static void read_sector_state_3(void) {
-	LOG_DEBUG(5, " read_sector_state_3()\n");
-	if (crc16_value() != 0) {
-		LOG_DEBUG(3, "Read sector data tr %d se %d CRC16 error: $%04x != 0\n", track_register, sector_register, crc16_value());
-		status_register |= STATUS_CRC_ERROR;
-	}
-	/* TODO: M == 1 */
-	if (cmd_copy & 0x10) {
-		LOG_DEBUG(2, "WD279X: TODO: multi-sector read will fail.\n");
-	}
-	status_register &= ~(STATUS_BUSY);
-	SET_INTRQ;
-}
-
-static void write_sector_state_1(void) {
-	unsigned int i;
-	LOG_DEBUG(5, " write_sector_state_1()\n");
-	SET_DRQ;
-	for (i = 0; i < 8; i++)
-		vdrive_skip();
-	NEXT_STATE(write_sector_state_2, vdrive_time_to_next_byte());
-}
-
-static void write_sector_state_2(void) {
-	LOG_DEBUG(5, " write_sector_state_2()\n");
-	if (status_register & STATUS_DRQ) {
-		status_register &= ~(STATUS_BUSY);
-		RESET_DRQ;  // XXX
-		status_register |= STATUS_LOST_DATA;
-		SET_INTRQ;
-		return;
-	}
-	vdrive_skip();
-	NEXT_STATE(write_sector_state_3, vdrive_time_to_next_byte());
-}
-
-static void write_sector_state_3(void) {
-	unsigned int i;
-	LOG_DEBUG(5, " write_sector_state_3()\n");
-	if (IS_DOUBLE_DENSITY) {
-		for (i = 0; i < 11; i++)
-			vdrive_skip();
-		for (i = 0; i < 12; i++)
-			vdrive_write(0);
-		NEXT_STATE(write_sector_state_4, vdrive_time_to_next_byte());
-		return;
-	}
-	for (i = 0; i < 6; i++)
-		vdrive_write(0);
-	NEXT_STATE(write_sector_state_4, vdrive_time_to_next_byte());
-}
-
-static void write_sector_state_4(void) {
-	LOG_DEBUG(5, " write_sector_state_4()\n");
-	crc16_reset();
-	if (IS_DOUBLE_DENSITY) {
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-	}
-	if (cmd_copy & 1)
-		vdrive_write(0xf8);
-	else
-		vdrive_write(0xfb);
-	NEXT_STATE(write_sector_state_5, vdrive_time_to_next_byte());
-}
-
-static void write_sector_state_5(void) {
-	unsigned int data = data_register;
-	LOG_DEBUG(5, " write_sector_state_5()\n");
-	if (status_register & STATUS_DRQ) {
-		data = 0;
-		status_register |= STATUS_LOST_DATA;
-		RESET_DRQ;  // XXX
-	}
-	vdrive_write(data_register);
-	bytes_left--;
-	if (bytes_left > 0) {
-		SET_DRQ;
-		NEXT_STATE(write_sector_state_5, vdrive_time_to_next_byte());
-		return;
-	}
-	VDRIVE_WRITE_CRC16;
-	NEXT_STATE(write_sector_state_6, vdrive_time_to_next_byte() + W_MICROSEC(20));
-}
-
-static void write_sector_state_6(void) {
-	LOG_DEBUG(5, " write_sector_state_6()\n");
-	vdrive_write(0xfe);
-	/* TODO: M = 1 */
-	status_register &= ~(STATUS_BUSY);
-	SET_INTRQ;
-}
-
-static void type_3_state_1(void) {
-	LOG_DEBUG(5, " type_3_state_1()\n");
-	switch (cmd_copy & 0xf0) {
-		case 0xc0:
+		case type_2_state_1:
+			LOG_DEBUG(5, " type_2_state_1()\n");
+			if ((cmd_copy & 0x20) && vdrive_write_protect) {
+				status_register &= ~(STATUS_BUSY);
+				status_register |= STATUS_WRITE_PROTECT;
+				SET_INTRQ;
+				return;
+			}
 			index_holes_count = 0;
-			NEXT_STATE(read_address_state_1, vdrive_time_to_next_idam());
+			NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 			return;
-		case 0xe0:
-			LOG_WARN("WD279X: CMD: Read track not implemented\n");
-			SET_INTRQ;
-			break;
-		case 0xf0:
-			LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", track_register);
-			return write_track_state_1();
-		default:
-			LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd_copy);
-			break;
-	}
-}
 
-static void read_address_state_1(void) {
-	uint8_t *idam;
-	LOG_DEBUG(5, " read_address_state_1()\n");
-	idam = vdrive_next_idam();
-	if (vdrive_new_index_pulse()) {
-		index_holes_count++;
-		if (index_holes_count >= 6) {
-			status_register &= ~(STATUS_BUSY);
-			status_register |= STATUS_RNF;
-			SET_INTRQ;
-			return;
-		}
-	}
-	if (idam == NULL) {
-		NEXT_STATE(read_address_state_1, vdrive_time_to_next_idam());
-		return;
-	}
-	crc16_reset();
-	if (IS_DOUBLE_DENSITY) {
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-	}
-	(void)vdrive_read();
-	NEXT_STATE(read_address_state_2, vdrive_time_to_next_byte());
-}
 
-static void read_address_state_2(void) {
-	bytes_left = 5;
-	data_register = vdrive_read();
-	/* At end of command, this is transferred to the sector register: */
-	track_register_tmp = data_register;
-	SET_DRQ;
-	NEXT_STATE(read_address_state_3, vdrive_time_to_next_byte());
-}
-
-static void read_address_state_3(void) {
-	/* Lost data not mentioned in data sheet, so not checking
-	   for now */
-	if (bytes_left > 0) {
-		data_register = vdrive_read();
-		bytes_left--;
-		SET_DRQ;
-		NEXT_STATE(read_address_state_3, vdrive_time_to_next_byte());
-		return;
-	}
-	sector_register = track_register_tmp;
-	if (crc16_value() != 0) {
-		status_register |= STATUS_CRC_ERROR;
-	}
-	status_register &= ~(STATUS_BUSY);
-	SET_INTRQ;
-}
-
-static void write_track_state_1(void) {
-	LOG_DEBUG(5, " write_track_state_1()\n");
-	if (vdrive_write_protect) {
-		status_register &= ~(STATUS_BUSY);
-		status_register |= STATUS_WRITE_PROTECT;
-		SET_INTRQ;
-		return;
-	}
-	SET_DRQ;
-	/* Data sheet says 3 byte times, but CoCo NitrOS9 fails unless I set
-	 * this delay higher. */
-	NEXT_STATE(write_track_state_2, 6 * W_BYTE_TIME);
-}
-
-static void write_track_state_2(void) {
-	LOG_DEBUG(5, " write_track_state_2()\n");
-	if (status_register & STATUS_DRQ) {
-		RESET_DRQ;  // XXX
-		status_register |= STATUS_LOST_DATA;
-		status_register &= ~(STATUS_BUSY);
-		SET_INTRQ;
-		return;
-	}
-	NEXT_STATE(write_track_state_2b, vdrive_time_to_next_idam());
-}
-
-static void write_track_state_2b(void) {
-	LOG_DEBUG(5, " write_track_state_2b()\n");
-	if (!vdrive_new_index_pulse()) {
-		LOG_DEBUG(4,"Waiting for index pulse, head_pos=%04x\n", vdrive_head_pos());
-		NEXT_STATE(write_track_state_2b, vdrive_time_to_next_idam());
-		return;
-	}
-	LOG_DEBUG(4,"Writing track from head_pos=%04x\n", vdrive_head_pos());
-	return write_track_state_3();
-}
-
-static void write_track_state_3(void) {
-	unsigned int data = data_register;
-	LOG_DEBUG(5, " write_track_state_3()\n");
-	if (vdrive_new_index_pulse()) {
-		LOG_DEBUG(4,"Finished writing track at head_pos=%04x\n", vdrive_head_pos());
-		RESET_DRQ;  // XXX
-		status_register &= ~(STATUS_BUSY);
-		SET_INTRQ;
-		return;
-	}
-	if (status_register & STATUS_DRQ) {
-		data = 0;
-		status_register |= STATUS_LOST_DATA;
-	}
-	SET_DRQ;
-	if (IS_SINGLE_DENSITY) {
-		/* Single density */
-		if (data == 0xf5 || data == 0xf6) {
-			LOG_DEBUG(4, "Illegal value in single-density track write: %02x\n", data);
-		}
-		if (data == 0xf7) {
-			VDRIVE_WRITE_CRC16;
-			NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
-			return;
-		}
-		if (data >= 0xf8 && data <= 0xfb) {
+		case type_2_state_2:
+			LOG_DEBUG(5, " type_2_state_2()\n");
+			idam = vdrive_next_idam();
+			if (vdrive_new_index_pulse()) {
+				index_holes_count++;
+				if (index_holes_count >= 5) {
+					status_register &= ~(STATUS_BUSY);
+					status_register |= STATUS_RNF;
+					SET_INTRQ;
+					return;
+				}
+			}
+			if (idam == NULL) {
+				NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
+				return;
+			}
 			crc16_reset();
+			if (IS_DOUBLE_DENSITY) {
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+			}
+			(void)vdrive_read();  /* Include IDAM in CRC */
+			if (track_register != vdrive_read()) {
+				NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
+				return;
+			}
+			if (side != vdrive_read()) {
+				/* No error if no SSO or 'C' not set */
+				if (HAS_SSO || cmd_copy & 0x02) {
+					NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
+					return;
+				}
+			}
+			if (sector_register != vdrive_read()) {
+				NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
+				return;
+			}
+			i = vdrive_read();
+			if (HAS_LENGTH_FLAG)
+				bytes_left = sector_size[(cmd_copy & 0x08)?1:0][i&3];
+			else
+				bytes_left = sector_size[1][i&3];
+			/* Including CRC bytes should result in computed CRC = 0 */
+			(void)vdrive_read();
+			(void)vdrive_read();
+			if (crc16_value() != 0) {
+				status_register |= STATUS_CRC_ERROR;
+				LOG_DEBUG(3, "Type 2 tr %d se %d CRC16 error: $%04x != 0\n", track_register, sector_register, crc16_value());
+				NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
+				return;
+			}
+
+			if ((cmd_copy & 0x20) == 0) {
+				unsigned int bytes_to_scan, j, tmp;
+				if (IS_SINGLE_DENSITY)
+					bytes_to_scan = 30;
+				else
+					bytes_to_scan = 43;
+				j = 0;
+				dam = 0;
+				do {
+					crc16_reset();
+					if (IS_DOUBLE_DENSITY) {
+						crc16_byte(0xa1);
+						crc16_byte(0xa1);
+						crc16_byte(0xa1);
+					}
+					tmp = vdrive_read();
+					if (tmp == 0xfb || tmp == 0xf8)
+						dam = tmp;
+					j++;
+				} while (j < bytes_to_scan && dam == 0);
+				if (dam == 0) {
+					NEXT_STATE(type_2_state_2, vdrive_time_to_next_byte());
+					return;
+				}
+				NEXT_STATE(read_sector_state_1, vdrive_time_to_next_byte());
+				return;
+			}
+			vdrive_skip();
+			vdrive_skip();
+			NEXT_STATE(write_sector_state_1, vdrive_time_to_next_byte());
+			return;
+
+
+		case read_sector_state_1:
+			LOG_DEBUG(5, " read_sector_state_1()\n");
+			LOG_DEBUG(4,"Reading %d-byte sector (Tr %d, Se %d) from head_pos=%04x\n", bytes_left, track_register, sector_register, vdrive_head_pos());
+			status_register |= ((~dam & 1) << 5);
+			data_register = vdrive_read();
+			bytes_left--;
+			SET_DRQ;
+			NEXT_STATE(read_sector_state_2, vdrive_time_to_next_byte());
+			return;
+
+
+		case read_sector_state_2:
+			LOG_DEBUG(5, " read_sector_state_2()\n");
+			if (status_register & STATUS_DRQ) {
+				status_register |= STATUS_LOST_DATA;
+				//RESET_DRQ;  // XXX
+			}
+			if (bytes_left > 0) {
+				data_register = vdrive_read();
+				bytes_left--;
+				SET_DRQ;
+				NEXT_STATE(read_sector_state_2, vdrive_time_to_next_byte());
+				return;
+			}
+			/* Including CRC bytes should result in computed CRC = 0 */
+			(void)vdrive_read();
+			(void)vdrive_read();
+			NEXT_STATE(read_sector_state_3, vdrive_time_to_next_byte());
+			return;
+
+
+		case read_sector_state_3:
+			LOG_DEBUG(5, " read_sector_state_3()\n");
+			if (crc16_value() != 0) {
+				LOG_DEBUG(3, "Read sector data tr %d se %d CRC16 error: $%04x != 0\n", track_register, sector_register, crc16_value());
+				status_register |= STATUS_CRC_ERROR;
+			}
+			/* TODO: M == 1 */
+			if (cmd_copy & 0x10) {
+				LOG_DEBUG(2, "WD279X: TODO: multi-sector read will fail.\n");
+			}
+			status_register &= ~(STATUS_BUSY);
+			SET_INTRQ;
+			return;
+
+
+		case write_sector_state_1:
+			LOG_DEBUG(5, " write_sector_state_1()\n");
+			SET_DRQ;
+			for (i = 0; i < 8; i++)
+				vdrive_skip();
+			NEXT_STATE(write_sector_state_2, vdrive_time_to_next_byte());
+			return;
+
+
+		case write_sector_state_2:
+			LOG_DEBUG(5, " write_sector_state_2()\n");
+			if (status_register & STATUS_DRQ) {
+				status_register &= ~(STATUS_BUSY);
+				RESET_DRQ;  // XXX
+				status_register |= STATUS_LOST_DATA;
+				SET_INTRQ;
+				return;
+			}
+			vdrive_skip();
+			NEXT_STATE(write_sector_state_3, vdrive_time_to_next_byte());
+			return;
+
+
+		case write_sector_state_3:
+			LOG_DEBUG(5, " write_sector_state_3()\n");
+			if (IS_DOUBLE_DENSITY) {
+				for (i = 0; i < 11; i++)
+					vdrive_skip();
+				for (i = 0; i < 12; i++)
+					vdrive_write(0);
+				NEXT_STATE(write_sector_state_4, vdrive_time_to_next_byte());
+				return;
+			}
+			for (i = 0; i < 6; i++)
+				vdrive_write(0);
+			NEXT_STATE(write_sector_state_4, vdrive_time_to_next_byte());
+			return;
+
+
+		case write_sector_state_4:
+			LOG_DEBUG(5, " write_sector_state_4()\n");
+			crc16_reset();
+			if (IS_DOUBLE_DENSITY) {
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+			}
+			if (cmd_copy & 1)
+				vdrive_write(0xf8);
+			else
+				vdrive_write(0xfb);
+			NEXT_STATE(write_sector_state_5, vdrive_time_to_next_byte());
+			return;
+
+
+		case write_sector_state_5:
+			data = data_register;
+			LOG_DEBUG(5, " write_sector_state_5()\n");
+			if (status_register & STATUS_DRQ) {
+				data = 0;
+				status_register |= STATUS_LOST_DATA;
+				RESET_DRQ;  // XXX
+			}
+			vdrive_write(data_register);
+			bytes_left--;
+			if (bytes_left > 0) {
+				SET_DRQ;
+				NEXT_STATE(write_sector_state_5, vdrive_time_to_next_byte());
+				return;
+			}
+			VDRIVE_WRITE_CRC16;
+			NEXT_STATE(write_sector_state_6, vdrive_time_to_next_byte() + W_MICROSEC(20));
+			return;
+
+
+		case write_sector_state_6:
+			LOG_DEBUG(5, " write_sector_state_6()\n");
+			vdrive_write(0xfe);
+			/* TODO: M = 1 */
+			status_register &= ~(STATUS_BUSY);
+			SET_INTRQ;
+			return;
+
+
+		case type_3_state_1:
+			LOG_DEBUG(5, " type_3_state_1()\n");
+			switch (cmd_copy & 0xf0) {
+				case 0xc0:
+					index_holes_count = 0;
+					NEXT_STATE(read_address_state_1, vdrive_time_to_next_idam());
+					return;
+				case 0xe0:
+					LOG_WARN("WD279X: CMD: Read track not implemented\n");
+					SET_INTRQ;
+					break;
+				case 0xf0:
+					LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", track_register);
+					GOTO_STATE(write_track_state_1);
+				default:
+					LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd_copy);
+					break;
+			}
+			return;
+
+
+		case read_address_state_1:
+			LOG_DEBUG(5, " read_address_state_1()\n");
+			idam = vdrive_next_idam();
+			if (vdrive_new_index_pulse()) {
+				index_holes_count++;
+				if (index_holes_count >= 6) {
+					status_register &= ~(STATUS_BUSY);
+					status_register |= STATUS_RNF;
+					SET_INTRQ;
+					return;
+				}
+			}
+			if (idam == NULL) {
+				NEXT_STATE(read_address_state_1, vdrive_time_to_next_idam());
+				return;
+			}
+			crc16_reset();
+			if (IS_DOUBLE_DENSITY) {
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+			}
+			(void)vdrive_read();
+			NEXT_STATE(read_address_state_2, vdrive_time_to_next_byte());
+			return;
+
+
+		case read_address_state_2:
+			bytes_left = 5;
+			data_register = vdrive_read();
+			/* At end of command, this is transferred to the sector register: */
+			track_register_tmp = data_register;
+			SET_DRQ;
+			NEXT_STATE(read_address_state_3, vdrive_time_to_next_byte());
+			return;
+
+
+		case read_address_state_3:
+			/* Lost data not mentioned in data sheet, so not checking
+			   for now */
+			if (bytes_left > 0) {
+				data_register = vdrive_read();
+				bytes_left--;
+				SET_DRQ;
+				NEXT_STATE(read_address_state_3, vdrive_time_to_next_byte());
+				return;
+			}
+			sector_register = track_register_tmp;
+			if (crc16_value() != 0) {
+				status_register |= STATUS_CRC_ERROR;
+			}
+			status_register &= ~(STATUS_BUSY);
+			SET_INTRQ;
+			return;
+
+
+		case write_track_state_1:
+			LOG_DEBUG(5, " write_track_state_1()\n");
+			if (vdrive_write_protect) {
+				status_register &= ~(STATUS_BUSY);
+				status_register |= STATUS_WRITE_PROTECT;
+				SET_INTRQ;
+				return;
+			}
+			SET_DRQ;
+			/* Data sheet says 3 byte times, but CoCo NitrOS9 fails unless I set
+			 * this delay higher. */
+			NEXT_STATE(write_track_state_2, 6 * W_BYTE_TIME);
+			return;
+
+
+		case write_track_state_2:
+			LOG_DEBUG(5, " write_track_state_2()\n");
+			if (status_register & STATUS_DRQ) {
+				RESET_DRQ;  // XXX
+				status_register |= STATUS_LOST_DATA;
+				status_register &= ~(STATUS_BUSY);
+				SET_INTRQ;
+				return;
+			}
+			NEXT_STATE(write_track_state_2b, vdrive_time_to_next_idam());
+			return;
+
+
+		case write_track_state_2b:
+			LOG_DEBUG(5, " write_track_state_2b()\n");
+			if (!vdrive_new_index_pulse()) {
+				LOG_DEBUG(4,"Waiting for index pulse, head_pos=%04x\n", vdrive_head_pos());
+				NEXT_STATE(write_track_state_2b, vdrive_time_to_next_idam());
+				return;
+			}
+			LOG_DEBUG(4,"Writing track from head_pos=%04x\n", vdrive_head_pos());
+			/* GOTO_STATE(write_track_state_3); */
+			/* fall through */
+
+
+		case write_track_state_3:
+			data = data_register;
+			LOG_DEBUG(5, " write_track_state_3()\n");
+			if (vdrive_new_index_pulse()) {
+				LOG_DEBUG(4,"Finished writing track at head_pos=%04x\n", vdrive_head_pos());
+				RESET_DRQ;  // XXX
+				status_register &= ~(STATUS_BUSY);
+				SET_INTRQ;
+				return;
+			}
+			if (status_register & STATUS_DRQ) {
+				data = 0;
+				status_register |= STATUS_LOST_DATA;
+			}
+			SET_DRQ;
+			if (IS_SINGLE_DENSITY) {
+				/* Single density */
+				if (data == 0xf5 || data == 0xf6) {
+					LOG_DEBUG(4, "Illegal value in single-density track write: %02x\n", data);
+				}
+				if (data == 0xf7) {
+					VDRIVE_WRITE_CRC16;
+					NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+					return;
+				}
+				if (data >= 0xf8 && data <= 0xfb) {
+					crc16_reset();
+					vdrive_write(data);
+					NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+					return;
+				}
+				if (data == 0xfe) {
+					LOG_DEBUG(4,"IDAM at head_pos=%04x\n", vdrive_head_pos());
+					crc16_reset();
+					vdrive_write_idam();
+					NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+					return;
+				}
+				vdrive_write(data);
+				NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+				return;
+			}
+			/* Double density */
+			if (data == 0xf7) {
+				VDRIVE_WRITE_CRC16;
+				NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+				return;
+			}
+			if (data == 0xfe) {
+				LOG_DEBUG(4,"IDAM at head_pos=%04x\n", vdrive_head_pos());
+				vdrive_write_idam();
+				NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+				return;
+			}
+			if (data == 0xf5) {
+				crc16_reset();
+				crc16_byte(0xa1);
+				crc16_byte(0xa1);
+				vdrive_write(0xa1);
+				NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
+				return;
+			}
+			if (data == 0xf6) {
+				data = 0xc2;
+			}
 			vdrive_write(data);
 			NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 			return;
+
 		}
-		if (data == 0xfe) {
-			LOG_DEBUG(4,"IDAM at head_pos=%04x\n", vdrive_head_pos());
-			crc16_reset();
-			vdrive_write_idam();
-			NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
-			return;
-		}
-		vdrive_write(data);
-		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
-		return;
 	}
-	/* Double density */
-	if (data == 0xf7) {
-		VDRIVE_WRITE_CRC16;
-		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
-		return;
-	}
-	if (data == 0xfe) {
-		LOG_DEBUG(4,"IDAM at head_pos=%04x\n", vdrive_head_pos());
-		vdrive_write_idam();
-		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
-		return;
-	}
-	if (data == 0xf5) {
-		crc16_reset();
-		crc16_byte(0xa1);
-		crc16_byte(0xa1);
-		vdrive_write(0xa1);
-		NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
-		return;
-	}
-	if (data == 0xf6) {
-		data = 0xc2;
-	}
-	vdrive_write(data);
-	NEXT_STATE(write_track_state_3, vdrive_time_to_next_byte());
 }
