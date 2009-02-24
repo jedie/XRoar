@@ -930,7 +930,7 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 		instr_pc = pc;
 	}
 
-	if (bytes_count < BYTES_BUF_SIZE) {
+	if (bytes_count < BYTES_BUF_SIZE && state != WANT_PRINT) {
 		bytes_buf[bytes_count++] = byte;
 	}
 
