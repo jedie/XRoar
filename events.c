@@ -48,6 +48,7 @@ void event_queue(event_t **list, event_t *event) {
 	event_t **entry;
 	if (event->queued)
 		event_dequeue(event);
+	event->list = list;
 	event->queued = 1;
 	for (entry = list; *entry; entry = &((*entry)->next)) {
 		if ((int)((*entry)->at_cycle - event->at_cycle) > 0) {
@@ -57,7 +58,6 @@ void event_queue(event_t **list, event_t *event) {
 		}
 	}
 	*entry = event;
-	event->list = list;
 	event->next = NULL;
 }
 
