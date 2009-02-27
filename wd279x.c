@@ -108,6 +108,7 @@ void (*wd279x_reset_intrq_handler)(void);
 
 /* FDC states: */
 enum wd279x_state {
+	accept_command,
 	type_1_state_1,
 	type_1_state_2,
 	type_1_state_3,
@@ -145,7 +146,7 @@ static unsigned int sector_register;
 static unsigned int data_register;
 
 /* WD279X internal state */
-static unsigned int cmd_copy;
+static unsigned int command_register;
 static unsigned int is_step_cmd;
 static int direction;
 static unsigned int side;
@@ -179,7 +180,7 @@ void wd279x_reset(void) {
 	track_register = 0;
 	sector_register = 0;
 	data_register = 0;
-	cmd_copy = 0;
+	command_register = 0;
 	RESET_DIRECTION;
 	SET_SIDE(0);
 }
@@ -234,7 +235,7 @@ unsigned int wd279x_status_read(void) {
 		status_register &= ~STATUS_NOT_READY;
 	else
 		status_register |= STATUS_NOT_READY;
-	if ((cmd_copy & 0xf0) == 0xd0 || (cmd_copy & 0x80) == 0x00) {
+	if ((command_register & 0xf0) == 0xd0 || (command_register & 0x80) == 0x00) {
 		if (vdrive_tr00)
 			status_register |= STATUS_TRACK_0;
 		else
@@ -252,18 +253,18 @@ unsigned int wd279x_status_read(void) {
 void wd279x_command_write(unsigned int cmd) {
 	RESET_INTRQ;
 	if (INVERTED_DATA)
-		cmd = ~cmd;
-	cmd &= 0xff;
-	cmd_copy = cmd;
+		command_register = ~cmd & 0xff;
+	else
+		command_register = cmd & 0xff;
 	/* FORCE INTERRUPT */
-	if ((cmd & 0xf0) == 0xd0) {
-		LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",cmd&0x0f);
-		if ((cmd & 0x0f) == 0) {
+	if ((command_register & 0xf0) == 0xd0) {
+		LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",command_register&0x0f);
+		if ((command_register & 0x0f) == 0) {
 			event_dequeue(&state_event);
 			status_register &= ~(STATUS_BUSY);
 			return;
 		}
-		if (cmd & 0x08) {
+		if (command_register & 0x08) {
 			event_dequeue(&state_event);
 			status_register &= ~(STATUS_BUSY);
 			SET_INTRQ;
@@ -276,99 +277,8 @@ void wd279x_command_write(unsigned int cmd) {
 		LOG_DEBUG(4,"WD279X: Command received while busy!\n");
 		return;
 	}
-	/* 0xxxxxxx = RESTORE / SEEK / STEP / STEP-IN / STEP-OUT */
-	if ((cmd & 0x80) == 0x00) {
-		status_register |= STATUS_BUSY;
-		status_register &= ~(STATUS_CRC_ERROR|STATUS_SEEK_ERROR);
-		RESET_DRQ;
-		step_delay = stepping_rate[cmd & 3];
-		is_step_cmd = 0;
-		if ((cmd & 0xe0) == 0x20) {
-			LOG_DEBUG(4, "WD279X: CMD: Step\n");
-			is_step_cmd = 1;
-		} else if ((cmd & 0xe0) == 0x40) {
-			LOG_DEBUG(4, "WD279X: CMD: Step-in\n");
-			is_step_cmd = 1;
-			SET_DIRECTION;
-		} else if ((cmd & 0xe0) == 0x60) {
-			LOG_DEBUG(4, "WD279X: CMD: Step-out\n");
-			is_step_cmd = 1;
-			RESET_DIRECTION;
-		}
-		if (is_step_cmd) {
-			if (cmd & 0x10)
-				state = type_1_state_2;
-			else
-				state = type_1_state_3;
-			state_machine();
-			return;
-		}
-		if ((cmd & 0xf0) == 0x00) {
-			track_register = 0xff;
-			data_register = 0x00;
-			LOG_DEBUG(4, "WD279X: CMD: Restore\n");
-		} else {
-			LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", data_register);
-		}
-		state = type_1_state_1;
-		state_machine();
-		return;
-	}
-	/* 10xxxxxx = READ/WRITE SECTOR */
-	if ((cmd & 0xc0) == 0x80) {
-		if ((cmd & 0xe0) == 0x80) {
-			LOG_DEBUG(4, "WD279X: CMD: Read sector (Tr %d, Side %d, Sector %d)\n", track_register, side, sector_register);
-		} else {
-			LOG_DEBUG(4, "WD279X: CMD: Write sector\n");
-		}
-		status_register |= STATUS_BUSY;
-		status_register &= ~(STATUS_LOST_DATA|STATUS_RNF|(1<<5)|(1<<6));
-		RESET_DRQ;
-		if (!vdrive_ready) {
-			status_register &= ~(STATUS_BUSY);
-			SET_INTRQ;
-			return;
-		}
-		if (HAS_SSO)
-			SET_SIDE(cmd & 0x02);  /* 'U' */
-		else
-			SET_SIDE(cmd & 0x08);  /* 'S' */
-		if (cmd & 0x04) {  /* 'E' set */
-			NEXT_STATE(type_2_state_1, W_MILLISEC(30));
-			return;
-		}
-		state = type_2_state_1;
-		state_machine();
-		return;
-	}
-	/* 11000xx0 = READ ADDRESS */
-	/* 11100xx0 = READ TRACK */
-	/* 11110xx0 = WRITE TRACK */
-	if (((cmd & 0xf9) == 0xc0)
-			|| ((cmd & 0xf9) == 0xe0)
-			|| ((cmd & 0xf9) == 0xf0)) {
-		status_register |= STATUS_BUSY;
-		status_register &= ~(STATUS_LOST_DATA|(1<<4)|(1<<5));
-		if ((cmd & 0xf0) == 0xf0)
-			RESET_DRQ;
-		if (!vdrive_ready) {
-			status_register &= ~(STATUS_BUSY);
-			SET_INTRQ;
-			return;
-		}
-		if (HAS_SSO)
-			SET_SIDE(cmd & 0x02);  /* 'U' */
-		else
-			SET_SIDE(cmd & 0x08);  /* 'S' */
-		if (cmd & 0x04) {  /* 'E' set */
-			NEXT_STATE(type_3_state_1, W_MILLISEC(30));
-			return;
-		}
-		state = type_3_state_1;
-		state_machine();
-		return;
-	}
-	LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd);
+	state = accept_command;
+	state_machine();
 }
 
 /* One big state machine.  This is called from an event dispatch and from the
@@ -380,6 +290,96 @@ static void state_machine(void) {
 	int i;
 	for (;;) {
 		switch (state) {
+
+		case accept_command:
+			/* 0xxxxxxx = RESTORE / SEEK / STEP / STEP-IN / STEP-OUT */
+			if ((command_register & 0x80) == 0x00) {
+				status_register |= STATUS_BUSY;
+				status_register &= ~(STATUS_CRC_ERROR|STATUS_SEEK_ERROR);
+				RESET_DRQ;
+				step_delay = stepping_rate[command_register & 3];
+				is_step_cmd = 0;
+				if ((command_register & 0xe0) == 0x20) {
+					LOG_DEBUG(4, "WD279X: CMD: Step\n");
+					is_step_cmd = 1;
+				} else if ((command_register & 0xe0) == 0x40) {
+					LOG_DEBUG(4, "WD279X: CMD: Step-in\n");
+					is_step_cmd = 1;
+					SET_DIRECTION;
+				} else if ((command_register & 0xe0) == 0x60) {
+					LOG_DEBUG(4, "WD279X: CMD: Step-out\n");
+					is_step_cmd = 1;
+					RESET_DIRECTION;
+				}
+				if (is_step_cmd) {
+					if (command_register & 0x10)
+						GOTO_STATE(type_1_state_2);
+					GOTO_STATE(type_1_state_3);
+				}
+				if ((command_register & 0xf0) == 0x00) {
+					track_register = 0xff;
+					data_register = 0x00;
+					LOG_DEBUG(4, "WD279X: CMD: Restore\n");
+				} else {
+					LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", data_register);
+				}
+				GOTO_STATE(type_1_state_1);
+			}
+
+			/* 10xxxxxx = READ/WRITE SECTOR */
+			if ((command_register & 0xc0) == 0x80) {
+				if ((command_register & 0xe0) == 0x80) {
+					LOG_DEBUG(4, "WD279X: CMD: Read sector (Tr %d, Side %d, Sector %d)\n", track_register, side, sector_register);
+				} else {
+					LOG_DEBUG(4, "WD279X: CMD: Write sector\n");
+				}
+				status_register |= STATUS_BUSY;
+				status_register &= ~(STATUS_LOST_DATA|STATUS_RNF|(1<<5)|(1<<6));
+				RESET_DRQ;
+				if (!vdrive_ready) {
+					status_register &= ~(STATUS_BUSY);
+					SET_INTRQ;
+					return;
+				}
+				if (HAS_SSO)
+					SET_SIDE(command_register & 0x02);  /* 'U' */
+				else
+					SET_SIDE(command_register & 0x08);  /* 'S' */
+				if (command_register & 0x04) {  /* 'E' set */
+					NEXT_STATE(type_2_state_1, W_MILLISEC(30));
+					return;
+				}
+				GOTO_STATE(type_2_state_1);
+			}
+
+			/* 11000xx0 = READ ADDRESS */
+			/* 11100xx0 = READ TRACK */
+			/* 11110xx0 = WRITE TRACK */
+			if (((command_register & 0xf9) == 0xc0)
+					|| ((command_register & 0xf9) == 0xe0)
+					|| ((command_register & 0xf9) == 0xf0)) {
+				status_register |= STATUS_BUSY;
+				status_register &= ~(STATUS_LOST_DATA|(1<<4)|(1<<5));
+				if ((command_register & 0xf0) == 0xf0)
+					RESET_DRQ;
+				if (!vdrive_ready) {
+					status_register &= ~(STATUS_BUSY);
+					SET_INTRQ;
+					return;
+				}
+				if (HAS_SSO)
+					SET_SIDE(command_register & 0x02);  /* 'U' */
+				else
+					SET_SIDE(command_register & 0x08);  /* 'S' */
+				if (command_register & 0x04) {  /* 'E' set */
+					NEXT_STATE(type_3_state_1, W_MILLISEC(30));
+					return;
+				}
+				GOTO_STATE(type_3_state_1);
+			}
+			LOG_WARN("WD279X: CMD: Unknown command %02x\n", command_register);
+			return;
+
 
 		case type_1_state_1:
 			LOG_DEBUG(5, " type_1_state_1()\n");
@@ -419,7 +419,7 @@ static void state_machine(void) {
 
 		case verify_track_state_1:
 			LOG_DEBUG(5, " verify_track_state_1()\n");
-			if (!(cmd_copy & 0x04)) {
+			if (!(command_register & 0x04)) {
 				status_register &= ~(STATUS_BUSY);
 				SET_INTRQ;
 				return;
@@ -476,7 +476,7 @@ static void state_machine(void) {
 
 		case type_2_state_1:
 			LOG_DEBUG(5, " type_2_state_1()\n");
-			if ((cmd_copy & 0x20) && vdrive_write_protect) {
+			if ((command_register & 0x20) && vdrive_write_protect) {
 				status_register &= ~(STATUS_BUSY);
 				status_register |= STATUS_WRITE_PROTECT;
 				SET_INTRQ;
@@ -516,7 +516,7 @@ static void state_machine(void) {
 			}
 			if (side != vdrive_read()) {
 				/* No error if no SSO or 'C' not set */
-				if (HAS_SSO || cmd_copy & 0x02) {
+				if (HAS_SSO || command_register & 0x02) {
 					NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 					return;
 				}
@@ -527,7 +527,7 @@ static void state_machine(void) {
 			}
 			i = vdrive_read();
 			if (HAS_LENGTH_FLAG)
-				bytes_left = sector_size[(cmd_copy & 0x08)?1:0][i&3];
+				bytes_left = sector_size[(command_register & 0x08)?1:0][i&3];
 			else
 				bytes_left = sector_size[1][i&3];
 			/* Including CRC bytes should result in computed CRC = 0 */
@@ -540,7 +540,7 @@ static void state_machine(void) {
 				return;
 			}
 
-			if ((cmd_copy & 0x20) == 0) {
+			if ((command_register & 0x20) == 0) {
 				unsigned int bytes_to_scan, j, tmp;
 				if (IS_SINGLE_DENSITY)
 					bytes_to_scan = 30;
@@ -611,7 +611,7 @@ static void state_machine(void) {
 				status_register |= STATUS_CRC_ERROR;
 			}
 			/* TODO: M == 1 */
-			if (cmd_copy & 0x10) {
+			if (command_register & 0x10) {
 				LOG_DEBUG(2, "WD279X: TODO: multi-sector read will fail.\n");
 			}
 			status_register &= ~(STATUS_BUSY);
@@ -666,7 +666,7 @@ static void state_machine(void) {
 				crc16_byte(0xa1);
 				crc16_byte(0xa1);
 			}
-			if (cmd_copy & 1)
+			if (command_register & 1)
 				vdrive_write(0xf8);
 			else
 				vdrive_write(0xfb);
@@ -705,7 +705,7 @@ static void state_machine(void) {
 
 		case type_3_state_1:
 			LOG_DEBUG(5, " type_3_state_1()\n");
-			switch (cmd_copy & 0xf0) {
+			switch (command_register & 0xf0) {
 				case 0xc0:
 					index_holes_count = 0;
 					NEXT_STATE(read_address_state_1, vdrive_time_to_next_idam());
@@ -718,7 +718,7 @@ static void state_machine(void) {
 					LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", track_register);
 					GOTO_STATE(write_track_state_1);
 				default:
-					LOG_WARN("WD279X: CMD: Unknown command %02x\n", cmd_copy);
+					LOG_WARN("WD279X: CMD: Unknown command %02x\n", command_register);
 					break;
 			}
 			return;
