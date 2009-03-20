@@ -43,7 +43,6 @@ static event_t waggle_event;
 /* For reading */
 static int input_type;
 static int fake_leader;
-static int fake_last_byte;
 static int bytes_remaining = 0;
 static int bits_remaining = 0;
 static uint8_t read_buf[512];
@@ -89,7 +88,7 @@ void tape_init(void) {
 	read_fd = write_fd = -1;
 	read_buf_ptr = read_buf;
 	bits_remaining = bytes_remaining = 0;
-	fake_leader = fake_last_byte = 0;
+	fake_leader = 0;
 	event_init(&waggle_event);
 	waggle_event.dispatch = waggle_bit;
 	write_buf_ptr = write_buf;
@@ -297,7 +296,7 @@ void tape_update_input(void) {
 	if (!motor || input_type == FILETYPE_CAS)
 		return;
 	sample = wav_sample_in();
-	if (sample > 0)
+	if (sample >= 0)
 		PIA1.a.port_input |= 0x01;
 	else
 		PIA1.a.port_input &= ~0x01;
@@ -326,10 +325,6 @@ static int byte_in(void) {
 	if (bytes_remaining == 0) {
 		buffer_in();
 		if (bytes_remaining <= 0) {
-			if (fake_last_byte) {
-				fake_last_byte = 0;
-				return 0x55;
-			}
 			return -1;
 		}
 	}
@@ -344,7 +339,6 @@ static void buffer_in(void) {
 		bytes_remaining = fs_read(read_fd, read_buf, sizeof(read_buf));
 		if (bytes_remaining < (int)sizeof(read_buf)) {
 			tape_close_reading();
-			fake_last_byte = 1;
 		}
 	}
 }
@@ -355,12 +349,12 @@ static void waggle_bit(void) {
 	switch (waggle_state) {
 		default:
 		case 0:
+			PIA1.a.port_input |= 0x01;
+			waggle_state = 1;
 			if (!motor || (cur_bit = bit_in()) == -1) {
 				event_dequeue(&waggle_event);
 				return;
 			}
-			PIA1.a.port_input |= 0x01;
-			waggle_state = 1;
 			break;
 		case 1:
 			PIA1.a.port_input &= 0xfe;
