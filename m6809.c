@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdlib.h>
+
 #include "types.h"
 #include "m6809.h"
 
@@ -202,6 +204,7 @@ unsigned int (*m6809_read_cycle)(unsigned int addr);
 void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
 void (*m6809_nvma_cycles)(int cycles);
 void (*m6809_sync)(void);
+void (*m6809_instruction_hook)(M6809State *state);
 
 /* ------------------------------------------------------------------------- */
 
@@ -350,6 +353,11 @@ static EA_INDEXED_FUNC {
 #endif
 
 void m6809_init(void) {
+	m6809_read_cycle = NULL;
+	m6809_write_cycle = NULL;
+	m6809_nvma_cycles = NULL;
+	m6809_sync = NULL;
+	m6809_instruction_hook = NULL;
 }
 
 void m6809_reset(void) {
@@ -495,6 +503,20 @@ void m6809_run(int cycles) {
 			continue;
 
 		case flow_next_instruction:
+			/* Instruction fetch hook */
+			if (m6809_instruction_hook) {
+				M6809State state;
+				state.reg_cc = reg_cc;
+				state.reg_a  = reg_a;
+				state.reg_b  = reg_b;
+				state.reg_dp = reg_dp;
+				state.reg_x  = reg_x;
+				state.reg_y  = reg_y;
+				state.reg_u  = reg_u;
+				state.reg_s  = reg_s;
+				state.reg_pc = reg_pc;
+				m6809_instruction_hook(&state);
+			}
 			/* Fetch op-code and process */
 			BYTE_IMMEDIATE(0,op);
 			switch (op) {

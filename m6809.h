@@ -43,4 +43,7 @@ extern void (*m6809_nvma_cycles)(int cycles);
 /* Ensure all outside events are complete up to current cycle */
 extern void (*m6809_sync)(void);
 
+/* Called just before instruction fetch if non-NULL */
+extern void (*m6809_instruction_hook)(M6809State *state);
+
 #endif  /* __M6809_H__ */
