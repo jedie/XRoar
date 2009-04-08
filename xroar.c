@@ -296,21 +296,20 @@ int xroar_init(int argc, char **argv) {
 	machine_reset(RESET_HARD);
 	if (load_file) {
 		int filetype = xroar_filetype_by_ext(load_file);
-		switch (filetype) {
-			/* Snapshots and carts need to load immediately; the
-			   rest can wait */
-			case FILETYPE_SNA:
-				read_snapshot(load_file);
-				break;
-			case FILETYPE_ROM:
-				cart_insert(load_file, autorun_loaded_file);
-				break;
-			default:
-				event_init(&load_file_event);
-				load_file_event.dispatch = do_load_file;
-				load_file_event.at_cycle = current_cycle + OSCILLATOR_RATE * 1.5;
-				event_queue(&UI_EVENT_LIST, &load_file_event);
-				break;
+		if (filetype == FILETYPE_SNA || filetype == FILETYPE_ROM) {
+			/* Load snapshots and carts immediately */
+			xroar_load_file(load_file, autorun_loaded_file);
+		} else if (!autorun_loaded_file && filetype != FILETYPE_BIN
+				&& filetype != FILETYPE_HEX) {
+			/* Everything else except CoCo binaries and hex
+			 * records can be attached now if not autorunning */
+			xroar_load_file(load_file, 0);
+		} else {
+			/* For everything else, defer loading the file */
+			event_init(&load_file_event);
+			load_file_event.dispatch = do_load_file;
+			load_file_event.at_cycle = current_cycle + OSCILLATOR_RATE * 2;
+			event_queue(&UI_EVENT_LIST, &load_file_event);
 		}
 	}
 	return 0;
