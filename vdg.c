@@ -27,7 +27,11 @@
 #include "vdg.h"
 #include "xroar.h"
 
-Cycle scanline_start;
+/* The extra 16 clock offset delays a single CPU cycle so that Dragonfire
+ * renders properly. */
+#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 16)
+
+static Cycle scanline_start;
 int beam_pos;
 
 static int_least16_t scanline;
@@ -101,7 +105,11 @@ static void do_hs_fall(void) {
 		if (scanline < VDG_ACTIVE_AREA_START) {
 			video_module->render_border();
 		} else if (scanline < VDG_ACTIVE_AREA_END) {
+#ifdef FAST_VDG
 			video_module->render_scanline();
+#else
+			video_module->render_scanline(320);
+#endif
 		} else if (scanline < (VDG_BOTTOM_BORDER_END - 2)) {
 			video_module->render_border();
 		}
@@ -181,14 +189,16 @@ static void do_fs_rise(void) {
 
 void vdg_set_mode(void) {
 #ifndef FAST_VDG
+	int beam_to;
 	/* No need to inhibit mode changes during borders on GP32/NDS, as
 	 * they're not rendered anyway. */
 	if (inhibit_mode_change)
 		return;
+	beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	/* Render scanline so far before changing modes (disabled for speed
 	 * on GP32/NDS). */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
-		video_module->render_scanline();
+		video_module->render_scanline(beam_to);
 	}
 #endif
 	/* Update video module */

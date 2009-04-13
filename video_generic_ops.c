@@ -9,28 +9,24 @@
 
 #include "machine.h"
 
-static void render_sg4(void);
-static void render_sg6(void);
-static void render_cg1(void);
-static void render_rg1(void);
-static void render_cg2(void);
-static void render_rg6(void);
+#ifdef FAST_VDG
+# define RENDER_ARGS void
+# define beam_to 320
+#else
+# define RENDER_ARGS int beam_to
+#endif
+
+static void render_sg4(RENDER_ARGS);
+static void render_sg6(RENDER_ARGS);
+static void render_cg1(RENDER_ARGS);
+static void render_rg1(RENDER_ARGS);
+static void render_cg2(RENDER_ARGS);
+static void render_rg6(RENDER_ARGS);
 #ifndef FAST_VDG
-static void render_rg6a(void);
+static void render_rg6a(RENDER_ARGS);
 # define RENDER_CROSS_COLOUR ((xroar_cross_colour_renderer == CROSS_COLOUR_5BIT) ? render_rg6a : render_cg2)
 #else
 # define RENDER_CROSS_COLOUR (render_cg2)
-#endif
-
-/* The extra 16 clock offset delays a single CPU cycle so that Dragonfire
- * renders properly. */
-#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 16)
-
-#ifdef FAST_VDG
-# define beam_to 320
-# define GET_BEAM_TO
-#else
-# define GET_BEAM_TO int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2
 #endif
 
 #define IS_LEFT_BORDER (beam_pos < beam_to && beam_pos >= 0 && beam_pos < 32)
@@ -204,9 +200,8 @@ static void set_mode(unsigned int mode) {
 
 /* Renders a line of alphanumeric/semigraphics 4 (mode is selected by data
  * line, so need to be handled together) */
-static void render_sg4(void) {
+static void render_sg4(RENDER_ARGS) {
 	unsigned int octet;
-	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -261,9 +256,8 @@ static void render_sg4(void) {
 
 /* Renders a line of external-alpha/semigraphics 6 (mode is selected by data
  * line, so need to be handled together) */
-static void render_sg6(void) {
+static void render_sg6(RENDER_ARGS) {
 	unsigned int octet;
-	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -338,9 +332,8 @@ static void render_sg6(void) {
 	} while (0);
 
 /* Render a 16-byte colour graphics line (CG1) */
-static void render_cg1(void) {
+static void render_cg1(RENDER_ARGS) {
 	unsigned int octet;
-	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -383,9 +376,8 @@ static void render_cg1(void) {
 	} while (0)
 
 /* Render a 16-byte resolution graphics line (RG1,RG2,RG3) */
-static void render_rg1(void) {
+static void render_rg1(RENDER_ARGS) {
 	unsigned int octet;
-	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -424,8 +416,7 @@ static void render_rg1(void) {
 	} while (0)
 
 /* Render a 32-byte colour graphics line (CG2,CG3,CG6) */
-static void render_cg2(void) {
-	GET_BEAM_TO;
+static void render_cg2(RENDER_ARGS) {
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -467,9 +458,8 @@ static void render_cg2(void) {
 	} while (0)
 
 /* Render a 32-byte resolution graphics line (RG6) */
-static void render_rg6(void) {
+static void render_rg6(RENDER_ARGS) {
 	unsigned int octet;
-	GET_BEAM_TO;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;
@@ -502,10 +492,9 @@ static void render_rg6(void) {
 
 #ifndef FAST_VDG
 /* Render artifacted colours */
-static void render_rg6a(void) {
+static void render_rg6a(RENDER_ARGS) {
 	static int aindex = 0;
 	static unsigned int octet;
-	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	if (beam_to < 0)
 		return;
 	LOCK_SURFACE;

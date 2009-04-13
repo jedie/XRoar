@@ -28,7 +28,11 @@ typedef struct {
 	void (*vdg_vsync)(void);
 	void (*vdg_set_mode)(unsigned int mode);
 	void (*render_border)(void);
+#ifdef FAST_VDG
 	void (*render_scanline)(void);
+#else
+	void (*render_scanline)(int beam_to);
+#endif
 } VideoModule;
 
 typedef struct {

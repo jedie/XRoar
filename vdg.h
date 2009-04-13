@@ -39,7 +39,6 @@
 #define VDG_FRAME_DURATION     (262)
 
 extern const unsigned int vdg_alpha[768];
-extern Cycle scanline_start;
 extern int beam_pos;
 
 void vdg_init(void);
