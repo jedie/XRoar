@@ -9,11 +9,11 @@
 
 #include "machine.h"
 
-#ifdef FAST_VDG
-# define RENDER_ARGS void
-# define beam_to 320
+#ifndef FAST_VDG
+# define RENDER_ARGS uint8_t *vram_ptr, int beam_to
 #else
-# define RENDER_ARGS int beam_to
+# define RENDER_ARGS uint8_t *vram_ptr
+# define beam_to (320)
 #endif
 
 static void render_sg4(RENDER_ARGS);
@@ -55,7 +55,7 @@ static Pixel vdg_colour[16];
 static Pixel artifact_colours[2][32];
 static Pixel *cg_colours;
 static Pixel border_colour;
-static uint8_t *vram_ptr;
+static int beam_pos;
 
 /* Allocate colours */
 static void alloc_colours(void) {
@@ -202,16 +202,12 @@ static void set_mode(unsigned int mode) {
  * line, so need to be handled together) */
 static void render_sg4(RENDER_ARGS) {
 	unsigned int octet;
-	if (beam_to < 0)
-		return;
 	LOCK_SURFACE;
 	while (IS_LEFT_BORDER) {
 		RENDER_BORDER;
 	}
 	while (IS_ACTIVE_LINE) {
 		Pixel tmp;
-		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		if (octet & 0x80) {
 			tmp = vdg_colour[(octet & 0x70)>>4];
@@ -237,37 +233,23 @@ static void render_sg4(RENDER_ARGS) {
 		}
 		pixel += 8*XSTEP;
 		beam_pos += 8;
-		if (beam_pos == 288)
-			(void)sam_vdg_bytes(10);
 	}
 	while (IS_RIGHT_BORDER) {
 		RENDER_BORDER;
 	}
 	UNLOCK_SURFACE;
-	if (beam_pos == 320) {
-		sam_vdg_hsync();
-		pixel += NEXTLINE;
-		subline++;
-		if (subline > 11)
-			subline = 0;
-		beam_pos++;
-	}
 }
 
 /* Renders a line of external-alpha/semigraphics 6 (mode is selected by data
  * line, so need to be handled together) */
 static void render_sg6(RENDER_ARGS) {
 	unsigned int octet;
-	if (beam_to < 0)
-		return;
 	LOCK_SURFACE;
 	while (IS_LEFT_BORDER) {
 		RENDER_BORDER;
 	}
 	while (IS_ACTIVE_LINE) {
 		Pixel tmp;
-		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		if (octet & 0x80) {
 			tmp = cg_colours[(octet & 0xc0)>>6];
@@ -297,21 +279,11 @@ static void render_sg6(RENDER_ARGS) {
 		}
 		pixel += 8*XSTEP;
 		beam_pos += 8;
-		if (beam_pos == 288)
-			(void)sam_vdg_bytes(10);
 	}
 	while (IS_RIGHT_BORDER) {
 		RENDER_BORDER;
 	}
 	UNLOCK_SURFACE;
-	if (beam_pos == 320) {
-		sam_vdg_hsync();
-		pixel += NEXTLINE;
-		subline++;
-		if (subline > 11)
-			subline = 0;
-		beam_pos++;
-	}
 }
 
 #define RENDER_BYTE_CG1(b) do { \
@@ -334,32 +306,18 @@ static void render_sg6(RENDER_ARGS) {
 /* Render a 16-byte colour graphics line (CG1) */
 static void render_cg1(RENDER_ARGS) {
 	unsigned int octet;
-	if (beam_to < 0)
-		return;
 	LOCK_SURFACE;
 	while (IS_LEFT_BORDER) {
 		RENDER_BORDER;
 	}
 	while (IS_ACTIVE_LINE) {
-		if (beam_pos == 32)
-			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_CG1(octet);
-		if (beam_pos == 288)
-			(void)sam_vdg_bytes(6);
 	}
 	while (IS_RIGHT_BORDER) {
 		RENDER_BORDER;
 	}
 	UNLOCK_SURFACE;
-	if (beam_pos == 320) {
-		sam_vdg_hsync();
-		pixel += NEXTLINE;
-		subline++;
-		if (subline > 11)
-			subline = 0;
-		beam_pos++;
-	}
 }
 
 #define RENDER_BYTE_RG1(b) do { \
@@ -378,32 +336,18 @@ static void render_cg1(RENDER_ARGS) {
 /* Render a 16-byte resolution graphics line (RG1,RG2,RG3) */
 static void render_rg1(RENDER_ARGS) {
 	unsigned int octet;
-	if (beam_to < 0)
-		return;
 	LOCK_SURFACE;
 	while (IS_LEFT_BORDER) {
 		RENDER_BORDER;
 	}
 	while (IS_ACTIVE_LINE) {
-		if (beam_pos == 32)
-			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_RG1(octet);
-		if (beam_pos == 288)
-			(void)sam_vdg_bytes(6);
 	}
 	while (IS_RIGHT_BORDER) {
 		RENDER_BORDER;
 	}
 	UNLOCK_SURFACE;
-	if (beam_pos == 320) {
-		sam_vdg_hsync();
-		pixel += NEXTLINE;
-		subline++;
-		if (subline > 11)
-			subline = 0;
-		beam_pos++;
-	}
 }
 
 #define RENDER_BYTE_CG2(o) do { \
@@ -417,33 +361,19 @@ static void render_rg1(RENDER_ARGS) {
 
 /* Render a 32-byte colour graphics line (CG2,CG3,CG6) */
 static void render_cg2(RENDER_ARGS) {
-	if (beam_to < 0)
-		return;
 	LOCK_SURFACE;
 	while (IS_LEFT_BORDER) {
 		RENDER_BORDER;
 	}
 	while (IS_ACTIVE_LINE) {
 		unsigned int octet;
-		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_CG2(octet);
-		if (beam_pos == 288)
-			(void)sam_vdg_bytes(10);
 	}
 	while (IS_RIGHT_BORDER) {
 		RENDER_BORDER;
 	}
 	UNLOCK_SURFACE;
-	if (beam_pos == 320) {
-		sam_vdg_hsync();
-		pixel += NEXTLINE;
-		subline++;
-		if (subline > 11)
-			subline = 0;
-		beam_pos++;
-	}
 }
 
 #define RENDER_BYTE_RG6(o) do { \
@@ -460,34 +390,20 @@ static void render_cg2(RENDER_ARGS) {
 /* Render a 32-byte resolution graphics line (RG6) */
 static void render_rg6(RENDER_ARGS) {
 	unsigned int octet;
-	if (beam_to < 0)
-		return;
 	LOCK_SURFACE;
 	while (IS_LEFT_BORDER) {
 		RENDER_BORDER;
 	}
 	while (IS_ACTIVE_LINE) {
-		if (beam_pos == 32 || beam_pos == 160)
-			vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		RENDER_BYTE_RG6(octet);
 		pixel += 8*XSTEP;
 		beam_pos += 8;
-		if (beam_pos == 288)
-			(void)sam_vdg_bytes(10);
 	}
 	while (IS_RIGHT_BORDER) {
 		RENDER_BORDER;
 	}
 	UNLOCK_SURFACE;
-	if (beam_pos == 320) {
-		sam_vdg_hsync();
-		pixel += NEXTLINE;
-		subline++;
-		if (subline > 11)
-			subline = 0;
-		beam_pos++;
-	}
 }
 
 #ifndef FAST_VDG
@@ -495,8 +411,6 @@ static void render_rg6(RENDER_ARGS) {
 static void render_rg6a(RENDER_ARGS) {
 	static int aindex = 0;
 	static unsigned int octet;
-	if (beam_to < 0)
-		return;
 	LOCK_SURFACE;
 	while (beam_pos < 24 && beam_pos < beam_to) {
 		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
@@ -514,7 +428,6 @@ static void render_rg6a(RENDER_ARGS) {
 		pixel += 6*XSTEP;
 		aindex = 31;
 		beam_pos += 8;
-		vram_ptr = sam_vdg_bytes(16);
 		octet = *(vram_ptr++);
 		for (i = 2; i; i--) {
 			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
@@ -530,9 +443,6 @@ static void render_rg6a(RENDER_ARGS) {
 			octet = (octet << 1) & 0xff;
 		}
 		beam_pos += 8;
-		if (beam_pos == 160) {
-			vram_ptr = sam_vdg_bytes(16);
-		}
 		octet = *(vram_ptr++);
 		for (i = 2; i; i--) {
 			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
@@ -548,7 +458,6 @@ static void render_rg6a(RENDER_ARGS) {
 			octet = (octet << 1) & 0xff;
 		}
 		beam_pos += 8;
-		(void)sam_vdg_bytes(10);
 		for (i = 2; i; i--) {
 			aindex = ((aindex << 1) | 1) & 0x1f;
 			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
@@ -563,14 +472,6 @@ static void render_rg6a(RENDER_ARGS) {
 		beam_pos += 8;
 	}
 	UNLOCK_SURFACE;
-	if (beam_pos == 320) {
-		sam_vdg_hsync();
-		pixel += NEXTLINE;
-		subline++;
-		if (subline > 11)
-			subline = 0;
-		beam_pos++;
-	}
 }
 #endif
 
@@ -586,4 +487,12 @@ static void render_border(void) {
 	UNLOCK_SURFACE;
 	pixel += NEXTLINE;
 #endif
+}
+
+static void hsync(void) {
+	pixel += NEXTLINE;
+	subline++;
+	if (subline > 11)
+		subline = 0;
+	beam_pos = 0;
 }

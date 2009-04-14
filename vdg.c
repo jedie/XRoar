@@ -31,13 +31,25 @@
  * renders properly. */
 #define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 16)
 
-static Cycle scanline_start;
-int beam_pos;
+#define IS_ACTIVE_LINE (beam_pos < beam_to && beam_pos >= 32 && beam_pos < 288)
 
-static int_least16_t scanline;
+static uint8_t scanline_data[32];
+static uint8_t *vram_ptr;
+
+static Cycle scanline_start;
+static int is_32byte;
+static void render_scanline(void);
+
 #ifndef FAST_VDG
+static int beam_pos;
 static int inhibit_mode_change;
+# define RESET_BEAM_POS do { beam_pos = 0; } while (0)
+#else
+# define beam_to (320)
+# define RESET_BEAM_POS
 #endif
+
+static int scanline;
 static int frame;
 
 static event_t hs_fall_event, hs_rise_event;
@@ -82,11 +94,11 @@ void vdg_reset(void) {
 	hs_fall_event.at_cycle = current_cycle + VDG_LINE_DURATION;
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
 	vdg_set_mode();
-	beam_pos = 0;
+	frame = 0;
+	RESET_BEAM_POS;
 #ifndef FAST_VDG
 	inhibit_mode_change = 0;
 #endif
-	frame = 0;
 }
 
 static void do_hs_fall(void) {
@@ -105,11 +117,9 @@ static void do_hs_fall(void) {
 		if (scanline < VDG_ACTIVE_AREA_START) {
 			video_module->render_border();
 		} else if (scanline < VDG_ACTIVE_AREA_END) {
-#ifdef FAST_VDG
-			video_module->render_scanline();
-#else
-			video_module->render_scanline(320);
-#endif
+			render_scanline();
+			sam_vdg_hsync(); 
+			video_module->hsync();
 		} else if (scanline < (VDG_BOTTOM_BORDER_END - 2)) {
 			video_module->render_border();
 		}
@@ -118,7 +128,7 @@ static void do_hs_fall(void) {
 	/* Next scanline */
 	scanline = (scanline + 1) % VDG_FRAME_DURATION;
 	scanline_start = hs_fall_event.at_cycle;
-	beam_pos = 0;
+	RESET_BEAM_POS;
 	PIA_RESET_Cx1(PIA0.a);
 #ifdef FAST_VDG
 	/* Faster, less accurate timing for GP32/NDS */
@@ -187,20 +197,72 @@ static void do_fs_rise(void) {
 	PIA_SET_Cx1(PIA0.b);
 }
 
-void vdg_set_mode(void) {
+static void render_scanline(void) {
 #ifndef FAST_VDG
-	int beam_to;
+	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
+#else
+	int beam_pos = 32;
+#endif
+	int i = 0;
+#ifndef FAST_VDG
+	if (beam_to < 0)
+		return;
+	if (beam_pos < 32) {
+		if (beam_to < 32)
+			beam_pos = beam_to & ~7;
+		else
+			beam_pos = 32;
+	}
+#endif
+	if (!is_32byte) {
+		while (IS_ACTIVE_LINE) {
+			if (beam_pos == 32)
+				vram_ptr = sam_vdg_bytes(16);
+			scanline_data[i++] = *(vram_ptr++);
+			beam_pos += 16;
+			if (beam_pos == 288)
+				(void)sam_vdg_bytes(6);
+		}
+	} else {
+		while (IS_ACTIVE_LINE) {
+			if (beam_pos == 32 || beam_pos == 160)
+				vram_ptr = sam_vdg_bytes(16);
+			scanline_data[i++] = *(vram_ptr++);
+			beam_pos += 8;
+			if (beam_pos == 288)
+				(void)sam_vdg_bytes(10);
+		}
+	}
+#ifndef FAST_VDG
+	video_module->render_scanline(scanline_data, beam_to);
+#else
+	video_module->render_scanline(scanline_data);
+#endif
+}
+
+void vdg_set_mode(void) {
+	int mode;
+#ifndef FAST_VDG
 	/* No need to inhibit mode changes during borders on GP32/NDS, as
 	 * they're not rendered anyway. */
 	if (inhibit_mode_change)
 		return;
-	beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
 	/* Render scanline so far before changing modes (disabled for speed
 	 * on GP32/NDS). */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
-		video_module->render_scanline(beam_to);
+		render_scanline();
 	}
 #endif
+	/* 16 or 32 byte mode? */
+	mode = PIA1.b.port_output;
+	switch ((mode & 0xf0) >> 4) {
+		case 8: case 9: case 11: case 13:
+			is_32byte = 0;
+			break;
+		default:
+			is_32byte = 1;
+			break;
+	}
 	/* Update video module */
-	video_module->vdg_set_mode(PIA1.b.port_output);
+	video_module->vdg_set_mode(mode);
 }

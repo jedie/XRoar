@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -39,7 +39,6 @@
 #define VDG_FRAME_DURATION     (262)
 
 extern const unsigned int vdg_alpha[768];
-extern int beam_pos;
 
 void vdg_init(void);
 void vdg_reset(void);

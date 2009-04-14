@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 #include "types.h"
 #include "logging.h"
 #include "module.h"
-#include "sam.h"
 #include "ui_sdl.h"
 #include "vdg.h"
 #include "xroar.h"
@@ -40,13 +39,14 @@ static void vsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
 static void alloc_colours(void);
+static void hsync(void);
 
 VideoModule video_sdlyuv_module = {
 	{ "sdlyuv", "SDL YUV overlay, hopefully uses Xv acceleration",
 	  init, 0, shutdown },
 	resize, set_fullscreen, 0,
 	vsync, set_mode,
-	render_border, NULL
+	render_border, NULL, hsync
 };
 
 typedef Uint32 Pixel;
@@ -186,4 +186,5 @@ static void vsync(void) {
 	SDL_DisplayYUVOverlay(overlay, &dstrect);
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	subline = 0;
+	beam_pos = 0;
 }

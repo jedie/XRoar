@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -28,11 +28,12 @@ typedef struct {
 	void (*vdg_vsync)(void);
 	void (*vdg_set_mode)(unsigned int mode);
 	void (*render_border)(void);
-#ifdef FAST_VDG
-	void (*render_scanline)(void);
+#ifndef FAST_VDG
+	void (*render_scanline)(uint8_t *vram_ptr, int beam_to);
 #else
-	void (*render_scanline)(int beam_to);
+	void (*render_scanline)(uint8_t *vram_ptr);
 #endif
+	void (*hsync)(void);
 } VideoModule;
 
 typedef struct {
