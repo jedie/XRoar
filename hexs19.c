@@ -17,7 +17,6 @@
  */
 
 #include "types.h"
-#include "sam.h"
 #include "logging.h"
 #include "fs.h"
 #include "m6809.h"
