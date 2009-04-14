@@ -80,12 +80,15 @@ OBJS_SDL = ui_sdl.o video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o \
 ALL_OBJS += $(OBJS_SDL)
 ifeq ($(CONFIG_SDL),yes)
 	OBJS += $(OBJS_SDL)
+video_sdl.o: vdg_bitmaps.h
+video_sdlyuv.o: vdg_bitmaps.h
 endif
 
 OBJS_SDLGL = video_sdlgl.o
 ALL_OBJS += $(OBJS_SDLGL)
 ifeq ($(CONFIG_SDLGL),yes)
 	OBJS += $(OBJS_SDLGL)
+video_sdlgl.o: vdg_bitmaps.h
 endif
 
 OBJS_GTK2 = filereq_gtk2.o
@@ -298,7 +301,10 @@ tools/font2c: tools/font2c.c
 	mkdir -p tools
 	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
 
-$(SRCROOT)/vdg_bitmaps.c: tools/font2c $(SRCROOT)/vdgfont.png
+vdg_bitmaps.h: tools/font2c $(SRCROOT)/vdgfont.png
+	tools/font2c --header --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
+
+vdg_bitmaps.c: tools/font2c $(SRCROOT)/vdgfont.png
 	tools/font2c --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
 
 $(SRCROOT)/video_gp32.c: gp32/vdg_bitmaps_gp32.c
@@ -340,7 +346,7 @@ tools/img2c_nds: tools/img2c_nds.c
 	dist-macos dist-macosx
 
 CLEAN_FILES = $(CRT0) $(ALL_OBJS) $(ALL_DOCS) tools/img2c tools/img2c_nds \
-	tools/prerender tools/font2c vdg_bitmaps.c \
+	tools/prerender tools/font2c vdg_bitmaps.h vdg_bitmaps.c \
 	gp32/copyright.c gp32/cmode_bin.c gp32/kbd_graphics.c \
 	gp32/vdg_bitmaps_gp32.c xroar.bin xroar.fxe xroar.elf \
 	nds/kbd_graphics.c nds/nds_font8x8.c xroar.nds xroar.ds.gba \

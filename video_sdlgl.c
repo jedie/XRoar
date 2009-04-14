@@ -26,7 +26,7 @@
 #include "logging.h"
 #include "module.h"
 #include "ui_sdl.h"
-#include "vdg.h"
+#include "vdg_bitmaps.h"
 #include "xroar.h"
 #ifdef WINDOWS32
 #include "common_windows32.h"

@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ void print_usage(FILE *f);
 int main(int argc, char **argv) {
 	SDL_Surface *in;
 	int i, num_chars, char_height;
+	int header_only = 0;
 
 	argv0 = argv[0];
 	for (i = 1; i < argc; i++) {
@@ -55,6 +56,8 @@ int main(int argc, char **argv) {
 			array_name = argv[++i];
 		} else if (0 == strcmp(argv[i], "--type") && i+1 < argc) {
 			array_type = argv[++i];
+		} else if (0 == strcmp(argv[i], "--header")) {
+			header_only = 1;
 		} else {
 			fprintf(stderr, "%s: unrecognised option '%s'\nTry '%s --help' for more information.\n", argv0, argv[i], argv0);
 			exit(1);
@@ -85,6 +88,10 @@ int main(int argc, char **argv) {
 	}
 
 	printf("/* This file was automatically generated\n * by %s from %s */\n\n", argv0, argv[i]);
+	if (header_only) {
+		printf("extern const %s %s[%d];\n", array_type, array_name, num_chars * char_height);
+		return 0;
+	}
 	printf("const %s %s[%d] = {\n", array_type, array_name, num_chars * char_height);
 
 	for (i = 0; i < num_chars; i++) {
