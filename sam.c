@@ -22,15 +22,11 @@
 #include "cart.h"
 #include "deltados.h"
 #include "dragondos.h"
-#include "joystick.h"
-#include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "rsdos.h"
 #include "sam.h"
-#include "tape.h"
-#include "vdg.h"
 #include "xroar.h"
 
 static uint8_t *selected_rom;
