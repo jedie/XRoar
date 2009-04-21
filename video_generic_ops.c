@@ -37,12 +37,9 @@ static void render_rg6a(RENDER_ARGS);
 # define RENDER_BORDER do { beam_pos += 8; } while (0)
 #else
 # define RENDER_BORDER do { \
-		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP) \
-			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP) \
-			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP) \
-			= *(pixel+7*XSTEP) = border_colour; \
-		pixel += 8*XSTEP; \
-		beam_pos += 8; \
+		*(pixel) = border_colour; \
+		pixel += XSTEP; \
+		beam_pos++; \
 	} while (0)
 #endif
 
@@ -409,67 +406,42 @@ static void render_rg6(RENDER_ARGS) {
 #ifndef FAST_VDG
 /* Render artifacted colours */
 static void render_rg6a(RENDER_ARGS) {
-	static int aindex = 0;
-	static unsigned int octet;
+	static int aindex = 31;
+	unsigned int octet;
 	LOCK_SURFACE;
-	while (beam_pos < 24 && beam_pos < beam_to) {
-		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
-			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
-			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP)
-			= *(pixel+7*XSTEP) = border_colour;
-		pixel += 8*XSTEP;
-		beam_pos += 8;
+	while (beam_pos < 2 && beam_pos < beam_to) {
+		pixel += XSTEP;
+		beam_pos++;
 	}
-	if (beam_pos == 24 && beam_to > 24) {
+	while (beam_pos >= 2 && beam_pos < 32 && beam_pos < beam_to) {
+		*(pixel-2*XSTEP) = border_colour;
+		pixel += XSTEP;
+		beam_pos++;
+	}
+	while (beam_pos >= 32 && beam_pos < 288 && beam_pos < beam_to) {
 		int i;
-		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
-			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
-			= *(pixel+5*XSTEP) = border_colour;
-		pixel += 6*XSTEP;
-		aindex = 31;
-		beam_pos += 8;
 		octet = *(vram_ptr++);
-		for (i = 2; i; i--) {
+		for (i = 0; i < 8; i++) {
 			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
-			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
+			*(pixel-2*XSTEP) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
 			octet = (octet << 1) & 0xff;
-		}
-	}
-	while (beam_pos >= 32 && beam_pos < 280 && beam_pos < beam_to) {
-		int i;
-		for (i = 6; i; i--) {
-			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
-			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
-			octet = (octet << 1) & 0xff;
+			pixel += XSTEP;
 		}
 		beam_pos += 8;
-		octet = *(vram_ptr++);
-		for (i = 2; i; i--) {
-			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
-			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
-			octet = (octet << 1) & 0xff;
-		}
 	}
-	if (beam_pos == 280 && beam_to > 280) {
-		int i;
-		for (i = 6; i; i--) {
-			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
-			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
-			octet = (octet << 1) & 0xff;
-		}
-		beam_pos += 8;
-		for (i = 2; i; i--) {
-			aindex = ((aindex << 1) | 1) & 0x1f;
-			*(pixel++) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
-		}
+	while (beam_pos >= 288 && beam_pos < 293 && beam_pos < beam_to) {
+		aindex = ((aindex << 1) | 1) & 0x1f;
+		*(pixel-2*XSTEP) = artifact_colours[(beam_pos&1)^(running_config.cross_colour_phase-1)][aindex];
+		pixel += XSTEP;
+		beam_pos++;
 	}
-	while (beam_pos >= 288 && beam_pos < 320 && beam_pos < beam_to) {
-		*(pixel) = *(pixel+1*XSTEP) = *(pixel+2*XSTEP)
-			= *(pixel+3*XSTEP) = *(pixel+4*XSTEP)
-			= *(pixel+5*XSTEP) = *(pixel+6*XSTEP)
-			= *(pixel+7*XSTEP) = border_colour;
-		pixel += 8*XSTEP;
-		beam_pos += 8;
+	while (beam_pos >= 293 && beam_pos < 320 && beam_pos < beam_to) {
+		*(pixel-2*XSTEP) = border_colour;
+		pixel += XSTEP;
+		beam_pos++;
+		if (beam_pos == 320) {
+			*(pixel-2*XSTEP) = *(pixel-XSTEP) = border_colour;
+		}
 	}
 	UNLOCK_SURFACE;
 }
