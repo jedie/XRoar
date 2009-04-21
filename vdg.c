@@ -27,14 +27,8 @@
 #include "vdg.h"
 #include "xroar.h"
 
-/* The extra 16 clock offset delays a single CPU cycle so that Dragonfire
- * renders properly. */
-#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 16)
-
-#define IS_ACTIVE_LINE (beam_pos < beam_to && beam_pos >= 32 && beam_pos < 288)
-
-static uint8_t scanline_data[32];
-static uint8_t *vram_ptr;
+/* Offset to account for unseen portion of left border */
+#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN)
 
 static Cycle scanline_start;
 static int is_32byte;
@@ -43,10 +37,10 @@ static void render_scanline(void);
 #ifndef FAST_VDG
 static int beam_pos;
 static int inhibit_mode_change;
-# define RESET_BEAM_POS do { beam_pos = 0; } while (0)
+# define SET_BEAM_POS(v) do { beam_pos = (v); } while (0)
 #else
+# define SET_BEAM_POS(v)
 # define beam_to (320)
-# define RESET_BEAM_POS
 #endif
 
 static int scanline;
@@ -95,7 +89,7 @@ void vdg_reset(void) {
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
 	vdg_set_mode();
 	frame = 0;
-	RESET_BEAM_POS;
+	SET_BEAM_POS(0);
 #ifndef FAST_VDG
 	inhibit_mode_change = 0;
 #endif
@@ -128,7 +122,7 @@ static void do_hs_fall(void) {
 	/* Next scanline */
 	scanline = (scanline + 1) % VDG_FRAME_DURATION;
 	scanline_start = hs_fall_event.at_cycle;
-	RESET_BEAM_POS;
+	SET_BEAM_POS(0);
 	PIA_RESET_Cx1(PIA0.a);
 #ifdef FAST_VDG
 	/* Faster, less accurate timing for GP32/NDS */
@@ -197,48 +191,60 @@ static void do_fs_rise(void) {
 	PIA_SET_Cx1(PIA0.b);
 }
 
+/* Two versions of render_scanline(): first accounts for mid-scanline mode
+ * changes and only fetches as many bytes from the SAM as required, second
+ * does a whole scanline at a time. */
+
+#ifndef FAST_VDG
+
 static void render_scanline(void) {
-#ifndef FAST_VDG
+	uint8_t scanline_data[42];
 	int beam_to = (current_cycle - scanline_start - SCAN_OFFSET) / 2;
-#else
-	int beam_pos = 32;
-#endif
-	int i = 0;
-#ifndef FAST_VDG
 	if (beam_to < 0)
 		return;
-	if (beam_pos < 32) {
-		if (beam_to < 32)
-			beam_pos = beam_to & ~7;
+	if (beam_to > 32 && beam_to < 288) {
+		if (!is_32byte)
+			beam_to &= ~15;
 		else
+			beam_to &= ~7;
+	}
+	if (beam_to <= beam_pos)
+		return;
+	if (beam_to > 32 && beam_pos < 288) {
+		int draw_to = (beam_to > 288) ? 288 : beam_to;
+		if (beam_pos < 32)
 			beam_pos = 32;
-	}
-#endif
-	if (!is_32byte) {
-		while (IS_ACTIVE_LINE) {
-			if (beam_pos == 32)
-				vram_ptr = sam_vdg_bytes(16);
-			scanline_data[i++] = *(vram_ptr++);
-			beam_pos += 16;
-			if (beam_pos == 288)
-				(void)sam_vdg_bytes(6);
-		}
-	} else {
-		while (IS_ACTIVE_LINE) {
-			if (beam_pos == 32 || beam_pos == 160)
-				vram_ptr = sam_vdg_bytes(16);
-			scanline_data[i++] = *(vram_ptr++);
-			beam_pos += 8;
-			if (beam_pos == 288)
-				(void)sam_vdg_bytes(10);
+		if (!is_32byte) {
+			int nbytes = (draw_to - beam_pos) >> 4;
+			sam_vdg_bytes(nbytes, scanline_data);
+			if (draw_to == 288)
+				sam_vdg_bytes(6, NULL);
+		} else {
+			int nbytes = (draw_to - beam_pos) >> 3;
+			sam_vdg_bytes(nbytes, scanline_data);
+			if (draw_to == 288)
+				sam_vdg_bytes(10, NULL);
 		}
 	}
-#ifndef FAST_VDG
+	beam_pos = beam_to;
 	video_module->render_scanline(scanline_data, beam_to);
-#else
-	video_module->render_scanline(scanline_data);
-#endif
 }
+
+#else  /* ndef FAST_VDG */
+
+static void render_scanline(void) {
+	uint8_t scanline_data[32];
+	if (!is_32byte) {
+		sam_vdg_bytes(16, scanline_data);
+		sam_vdg_bytes(6, NULL);
+	} else {
+		sam_vdg_bytes(32, scanline_data);
+		sam_vdg_bytes(10, NULL);
+	}
+	video_module->render_scanline(scanline_data);
+}
+
+#endif  /* ndef FAST_VDG */
 
 void vdg_set_mode(void) {
 	int mode;

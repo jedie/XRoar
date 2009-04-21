@@ -21,7 +21,7 @@ unsigned int sam_read_byte(unsigned int addr);
 void sam_store_byte(unsigned int addr, unsigned int octet);
 void sam_nvma_cycles(int cycles);
 void sam_vdg_fsync(void);
-uint8_t *sam_vdg_bytes(int number);
+void sam_vdg_bytes(int nbytes, uint8_t *dest);
 void sam_set_register(unsigned int value);
 unsigned int sam_get_register(void);
 

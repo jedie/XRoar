@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <string.h>
+
 #include "types.h"
 #include "cart.h"
 #include "deltados.h"
@@ -240,37 +242,51 @@ void sam_vdg_fsync(void) {
 	sam_vdg_ycount = 0;
 }
 
-uint8_t *sam_vdg_bytes(int number) {
-	unsigned int addr, b15_5, b4, b3_0;
-	if (sam_ram_cycles == CPU_FAST_DIVISOR) {
-		/* In FAST mode, the VDG does not get access to RAM.
-		 * Simulate a wrong situation by always returning the same
-		 * address: */
-		return ram0;
-	}
-	addr = VRAM_TRANSLATE(sam_vdg_address);
+void sam_vdg_bytes(int nbytes, uint8_t *dest) {
+	unsigned int b15_5, b4, b3_0;
 	b15_5 = sam_vdg_address & ~0x1f;
 	b4 = sam_vdg_address & 0x10;
-	b3_0 = (sam_vdg_address & 0xf) + number;
-	if (b3_0 & 0x10) {
-		b3_0 &= 0x0f;
-		sam_vdg_xcount++;
-		if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
-			sam_vdg_xcount = 0;
-			b4 += 0x10;
-			if (b4 & 0x20) {
-				b4 &= 0x10;
-				sam_vdg_ycount++;
-				if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
-					sam_vdg_ycount = 0;
-					b15_5 += 0x20;
-					b15_5 &= 0xffff;
+	b3_0 = sam_vdg_address & 0xf;
+	while (nbytes > 0) {
+		int n;
+		if (b3_0 + nbytes >= 16) {
+			n = 16 - b3_0;
+		} else {
+			n = nbytes;
+		}
+		if (dest) {
+			uint8_t *src;
+			/* In FAST mode, the VDG does not get access to RAM.
+			 * Simulate by copying random data: */
+			if (sam_ram_cycles == CPU_FAST_DIVISOR) {
+				src = ram0;
+			} else {
+				src = ram0 + VRAM_TRANSLATE(sam_vdg_address);
+			}
+			memcpy(dest, src, n);
+			dest += n;
+		}
+		b3_0 += n;
+		nbytes -= n;
+		if (b3_0 & 0x10) {
+			b3_0 &= 0x0f;
+			sam_vdg_xcount++;
+			if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
+				sam_vdg_xcount = 0;
+				b4 += 0x10;
+				if (b4 & 0x20) {
+					b4 &= 0x10;
+					sam_vdg_ycount++;
+					if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
+						sam_vdg_ycount = 0;
+						b15_5 += 0x20;
+						b15_5 &= 0xffff;
+					}
 				}
 			}
 		}
+		sam_vdg_address = b15_5 | b4 | b3_0;
 	}
-	sam_vdg_address = b15_5 | b4 | b3_0;
-	return &ram0[addr];
 }
 
 void sam_set_register(unsigned int value) {
