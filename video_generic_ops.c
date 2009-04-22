@@ -45,7 +45,7 @@ static void render_rg6a(RENDER_ARGS);
 
 static unsigned int subline;
 static Pixel *pixel;
-static Pixel black, darkgreen;
+static Pixel black, darkgreen, darkorange;
 static Pixel bg_colour;
 static Pixel fg_colour;
 static Pixel vdg_colour[16];
@@ -74,6 +74,7 @@ static void alloc_colours(void) {
 	vdg_colour[15] = MAPCOLOUR(0xff, 0xff, 0xff);
 	black = MAPCOLOUR(0x00, 0x00, 0x00);
 	darkgreen = MAPCOLOUR(0x00, 0x20, 0x00);
+	darkorange = MAPCOLOUR(0x20, 0x14, 0x00);
 
 	artifact_colours[0][0x00] = MAPCOLOUR(0x00, 0x00, 0x00);
 	artifact_colours[0][0x01] = MAPCOLOUR(0x00, 0x00, 0x00);
@@ -147,21 +148,25 @@ static void set_mode(unsigned int mode) {
 	switch ((mode & 0xf0) >> 4) {
 		case 0: case 2: case 4: case 6:
 			VIDEO_MODULE_NAME.render_scanline = render_sg4;
-			if (mode & 0x08)
+			if (mode & 0x08) {
 				fg_colour = vdg_colour[7];
-			else
+				bg_colour = darkorange;
+			} else {
 				fg_colour = vdg_colour[0];
-			bg_colour = darkgreen;
+				bg_colour = darkgreen;
+			}
 			border_colour = black;
 			break;
 		case 1: case 3: case 5: case 7:
 			VIDEO_MODULE_NAME.render_scanline = render_sg6;
 			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
-			if (mode & 0x08)
+			if (mode & 0x08) {
 				fg_colour = vdg_colour[7];
-			else
+				bg_colour = darkorange;
+			} else {
 				fg_colour = vdg_colour[0];
-			bg_colour = darkgreen;
+				bg_colour = darkgreen;
+			}
 			border_colour = black;
 			break;
 		case 8:
