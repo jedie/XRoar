@@ -28,14 +28,13 @@
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "module.h"
 #include "types.h"
 #include "xroar.h"
 
 static int init(int argc, char **argv);
 static void shutdown(void);
-static void update(void);
+static void update(int value);
 
 static void flush_frame(void);
 static int jack_callback(jack_nframes_t nframes, void *arg);
@@ -130,7 +129,7 @@ static void shutdown(void) {
 	buffer = NULL;
 }
 
-static void update(void) {
+static void update(int value) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
@@ -140,24 +139,7 @@ static void update(void) {
 	}
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	if (!(PIA1.b.control_register & 0x08)) {
-		/* Single-bit sound */
-		lastsample = (PIA1.b.port_output & 0x02) ? 0. : -0.42;
-	} else  {
-		if (PIA0.b.control_register & 0x08) {
-			/* Sound disabled */
-			lastsample = 0.;
-		} else {
-			/* DAC output */
-			lastsample = ((Sample)(PIA1.a.port_output & 0xfc) / 300.) - 0.42;
-		}
-	}
-#ifndef FAST_SOUND
-	if (lastsample >= 0.08)
-		PIA1.b.port_input |= 0x02;
-	else
-		PIA1.b.port_input &= 0xfd;
-#endif
+	lastsample = (Sample)(value - 64) / 150.;
 }
 
 static void flush_frame(void) {

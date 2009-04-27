@@ -26,7 +26,6 @@
 #include "types.h"
 #include "events.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "module.h"
 #include "sound_gp32.h"
 #include "xroar.h"
@@ -35,7 +34,7 @@
 
 static int init(int argc, char **argv);
 static void shutdown(void);
-static void update(void);
+static void update(int value);
 
 SoundModule sound_gp32_module = {
 	{ "gp32", "GP32 audio",
@@ -88,7 +87,7 @@ static void shutdown(void) {
 	event_free(flush_event);
 }
 
-static void update(void) {
+static void update(int value) {
 	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
 	Sample *fill_to;
 	if (elapsed_cycles >= frame_cycles) {
@@ -98,20 +97,7 @@ static void update(void) {
 	}
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	if (!(PIA1.b.control_register & 0x08)) {
-		/* Single-bit sound */
-		lastsample = (PIA1.b.port_output & 0x02) ? 0x3f3f : 0;
-	} else  {
-		if (PIA0.b.control_register & 0x08) {
-			/* Sound disabled */
-			lastsample = 0;
-		} else {
-			/* DAC output */
-			lastsample = (PIA1.a.port_output & 0xfc) >> 1;
-			lastsample |= (lastsample << 8);
-		}
-	}
-	/* Don't feed back in GP32 driver */
+	lastsample = (value << 8) | value;
 }
 
 static void flush_frame(void) {

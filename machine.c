@@ -173,11 +173,34 @@ void machine_getargs(int argc, char **argv) {
 	}
 }
 
+static void update_sound(void) {
+	int value;
+	if (!(PIA1.b.control_register & 0x08)) {
+		/* Single-bit sound */
+		value = (PIA1.b.port_output & 0x02) ? 0x3f : 0;
+	} else {
+		if (PIA0.b.control_register & 0x08) {
+			/* Sound disabled */
+			value = 0;
+		} else {
+			/* DAC output */
+			value = (PIA1.a.port_output & 0xfc) >> 1;
+		}
+	}
+#ifndef FAST_SOUND
+	if (value >= 0x4c)
+		PIA1.b.port_input |= 0x02;
+	else
+		PIA1.b.port_input &= 0xfd;
+#endif
+	sound_module->update(value);
+}
+
 #define pia0a_data_postwrite keyboard_row_update
-#define pia0a_control_postwrite sound_module->update
+#define pia0a_control_postwrite update_sound
 
 #define pia0b_data_postwrite keyboard_column_update
-#define pia0b_control_postwrite sound_module->update
+#define pia0b_control_postwrite update_sound
 
 static void pia0b_data_postwrite_coco64k(void) {
 	keyboard_column_update();
@@ -199,7 +222,7 @@ static void pia0b_data_postwrite_coco64k(void) {
 #endif
 
 static void pia1a_data_postwrite(void) {
-	sound_module->update();
+	update_sound();
 	joystick_update();
 	tape_update_output();
 }
@@ -207,10 +230,10 @@ static void pia1a_data_postwrite(void) {
 #define pia1a_control_postwrite tape_update_motor
 
 static void pia1b_data_postwrite(void) {
-	sound_module->update();
+	update_sound();
 	vdg_set_mode();
 }
-#define pia1b_control_postwrite sound_module->update
+#define pia1b_control_postwrite update_sound
 
 void machine_init(void) {
 	sam_init();

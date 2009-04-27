@@ -38,7 +38,7 @@ typedef struct {
 
 typedef struct {
 	Module_Common common;
-	void (*update)(void);
+	void (*update)(int value);
 } SoundModule;
 
 typedef struct {
