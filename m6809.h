@@ -46,4 +46,10 @@ extern void (*m6809_sync)(void);
 /* Called just before instruction fetch if non-NULL */
 extern void (*m6809_instruction_hook)(M6809State *state);
 
+/* Called after instruction is executed */
+extern void (*m6809_instruction_posthook)(M6809State *state);
+
+/* Called just before an interrupt vector is read */
+extern void (*m6809_interrupt_hook)(unsigned int vector);
+
 #endif  /* __M6809_H__ */

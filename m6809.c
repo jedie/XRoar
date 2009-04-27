@@ -142,6 +142,9 @@
 #define TAKE_INTERRUPT(i,cm,v) do { \
 		reg_cc |= (cm); \
 		TAKEN_CYCLES(1); \
+		if (m6809_interrupt_hook) { \
+			m6809_interrupt_hook(v); \
+		} \
 		reg_pc = fetch_word(v); \
 		TAKEN_CYCLES(1); \
 	} while (0)
@@ -160,7 +163,8 @@ static enum {
 	flow_instruction_page_2,
 	flow_instruction_page_3,
 	flow_cwai_check_halt,
-	flow_sync_check_halt
+	flow_sync_check_halt,
+	flow_done_instruction
 } cpu_state;
 
 /* Registers:
@@ -205,6 +209,8 @@ void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
 void (*m6809_nvma_cycles)(int cycles);
 void (*m6809_sync)(void);
 void (*m6809_instruction_hook)(M6809State *state);
+void (*m6809_instruction_posthook)(M6809State *state);
+void (*m6809_interrupt_hook)(unsigned int vector);
 
 /* ------------------------------------------------------------------------- */
 
@@ -370,6 +376,8 @@ void m6809_init(void) {
 	m6809_nvma_cycles = NULL;
 	m6809_sync = NULL;
 	m6809_instruction_hook = NULL;
+	m6809_instruction_posthook = NULL;
+	m6809_interrupt_hook = NULL;
 }
 
 void m6809_reset(void) {
@@ -1194,7 +1202,7 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = flow_label_a;
+			cpu_state = flow_done_instruction;
 			continue;
 			}
 
@@ -1291,7 +1299,7 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = flow_label_a;
+			cpu_state = flow_done_instruction;
 			continue;
 			}
 
@@ -1330,9 +1338,27 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = flow_label_a;
+			cpu_state = flow_done_instruction;
 			continue;
 			}
+
+		case flow_done_instruction:
+			/* Instruction post-hook */
+			if (m6809_instruction_posthook) {
+				M6809State state;
+				state.reg_cc = reg_cc;
+				state.reg_a  = reg_a;
+				state.reg_b  = reg_b;
+				state.reg_dp = reg_dp;
+				state.reg_x  = reg_x;
+				state.reg_y  = reg_y;
+				state.reg_u  = reg_u;
+				state.reg_s  = reg_s;
+				state.reg_pc = reg_pc;
+				m6809_instruction_posthook(&state);
+			}
+			cpu_state = flow_label_a;
+			continue;
 
 		}
 	}
