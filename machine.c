@@ -238,11 +238,9 @@ static void pia1b_data_postwrite(void) {
 void machine_init(void) {
 	sam_init();
 	mc6821_init(&PIA0);
-	PIA0.a.irq_line = PIA0.b.irq_line = &irq;
 	PIA0.a.data_postwrite = pia0a_data_postwrite;
 	PIA0.b.data_postwrite = pia0b_data_postwrite;
 	mc6821_init(&PIA1);
-	PIA1.a.irq_line = PIA1.b.irq_line = &firq;
 	PIA1.a.data_preread = pia1a_data_preread;
 	PIA1.a.data_postwrite = pia1a_data_postwrite;
 	PIA1.a.control_postwrite = pia1a_control_postwrite;

@@ -11,10 +11,6 @@
  * initialised with "internal pull-up resistors" (effectively port_input all
  * high).
  *
- * The bits specified in irq_or are set/reset in *irq_line when interrupts are
- * set or cleared - both sides may be pointed at the same unsigned int as the
- * default for irq_or is different per-side.
- *
  * Pointers to pre-read and post-write functions can be set for data & control
  * registers.
  *
@@ -33,8 +29,7 @@ typedef struct {
 		unsigned int port_input;
 		unsigned int tied_low;
 		unsigned int interrupt_received;
-		unsigned int *irq_line;
-		unsigned int irq_or;
+		unsigned int irq;
 		void (*control_preread)(void);
 		void (*control_postwrite)(void);
 		void (*data_preread)(void);
@@ -51,9 +46,9 @@ typedef struct {
 		if (PIA_ACTIVE_TRANSITION(p)) { \
 			p.interrupt_received = 0x80; \
 			if (PIA_INTERRUPT_ENABLED(p)) { \
-				if (p.irq_line) *(p.irq_line) |= (p.irq_or); \
+				p.irq = 1; \
 			} else { \
-				if (p.irq_line) *(p.irq_line) &= ~(p.irq_or); \
+				p.irq = 0; \
 			} \
 		} \
 	} while (0)
@@ -62,9 +57,9 @@ typedef struct {
 		if (!PIA_ACTIVE_TRANSITION(p)) { \
 			p.interrupt_received = 0x80; \
 			if (PIA_INTERRUPT_ENABLED(p)) { \
-				if (p.irq_line) *(p.irq_line) |= (p.irq_or); \
+				p.irq = 1; \
 			} else { \
-				if (p.irq_line) *(p.irq_line) &= ~(p.irq_or); \
+				p.irq = 0; \
 			} \
 		} \
 	} while (0)

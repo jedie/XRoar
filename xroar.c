@@ -101,6 +101,7 @@ static struct {
 
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
+static void trace_done_instruction(M6809State *state);
 
 static void versiontext(void) {
 	puts(
@@ -326,8 +327,6 @@ void xroar_shutdown(void) {
 }
 
 void xroar_mainloop(void) {
-	M6809State cpu_state;
-
 	m6809_write_cycle = sam_store_byte;
 	m6809_nvma_cycles = sam_nvma_cycles;
 	m6809_sync = do_m6809_sync;
@@ -336,6 +335,8 @@ void xroar_mainloop(void) {
 
 		/* Not tracing: */
 		m6809_read_cycle = sam_read_byte;
+		m6809_interrupt_hook = NULL;
+		m6809_instruction_posthook = NULL;
 		while (!xroar_trace_enabled) {
 			m6809_run(456);
 			while (EVENT_PENDING(UI_EVENT_LIST))
@@ -346,13 +347,10 @@ void xroar_mainloop(void) {
 		/* Tracing: */
 		m6809_trace_reset();
 		m6809_read_cycle = trace_read_byte;
+		m6809_interrupt_hook = m6809_trace_irq;
+		m6809_instruction_posthook = trace_done_instruction;
 		while (xroar_trace_enabled) {
-			m6809_run(1);
-			m6809_get_state(&cpu_state);
-			m6809_trace_print(cpu_state.reg_cc, cpu_state.reg_a,
-					cpu_state.reg_b, cpu_state.reg_dp,
-					cpu_state.reg_x, cpu_state.reg_y,
-					cpu_state.reg_u, cpu_state.reg_s);
+			m6809_run(456);
 			while (EVENT_PENDING(UI_EVENT_LIST))
 				DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
 		}
@@ -422,6 +420,8 @@ static void do_load_file(void) {
 static void do_m6809_sync(void) {
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+	irq  = PIA0.a.irq | PIA0.b.irq;
+	firq = PIA1.a.irq | PIA1.b.irq;
 }
 
 #ifdef TRACE
@@ -429,5 +429,12 @@ static unsigned int trace_read_byte(unsigned int addr) {
 	unsigned int value = sam_read_byte(addr);
 	m6809_trace_byte(value, addr);
 	return value;
+}
+
+static void trace_done_instruction(M6809State *state) {
+	m6809_trace_print(state->reg_cc, state->reg_a,
+			state->reg_b, state->reg_dp,
+			state->reg_x, state->reg_y,
+			state->reg_u, state->reg_s);
 }
 #endif

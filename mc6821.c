@@ -33,8 +33,6 @@ void mc6821_init(MC6821_PIA *pia) {
 	pia->a.tied_low = 0xff;
 	pia->b.tied_low = 0xff;
 	pia->a.port_input = 0xff;
-	pia->a.irq_or = 1;
-	pia->b.irq_or = 2;
 }
 
 void mc6821_destroy(MC6821_PIA *pia) {
@@ -53,12 +51,12 @@ void mc6821_reset(MC6821_PIA *pia) {
 	pia->a.direction_register = 0;
 	pia->a.output_register = 0;
 	pia->a.interrupt_received = 0;
-	if (pia->a.irq_line) *(pia->a.irq_line) &= ~(pia->a.irq_or);
+	pia->a.irq = 0;
 	pia->b.control_register = 0;
 	pia->b.direction_register = 0;
 	pia->b.output_register = 0;
 	pia->b.interrupt_received = 0;
-	if (pia->b.irq_line) *(pia->b.irq_line) &= ~(pia->b.irq_or);
+	pia->b.irq = 0;
 	mc6821_update_state(pia);
 }
 
@@ -76,7 +74,7 @@ void mc6821_update_state(MC6821_PIA *pia) {
 		if (PDR_SELECTED(p)) { \
 			if (p.data_preread) p.data_preread(); \
 			p.interrupt_received = 0; \
-			if (p.irq_line) *(p.irq_line) &= ~(p.irq_or); \
+			p.irq = 0; \
 			return ((p.port_input & p.tied_low) & ~p.direction_register) | (p.output_register & p.direction_register); \
 		} else { \
 			return p.direction_register; \
@@ -122,9 +120,9 @@ unsigned int mc6821_read(MC6821_PIA *pia, unsigned int addr) {
 		p.control_register = v & 0x3f; \
 		if (INTERRUPT_ENABLED(p)) { \
 			if (p.interrupt_received) \
-			if (p.irq_line) *(p.irq_line) |= (p.irq_or); \
+				p.irq = 1; \
 		} else { \
-			if (p.irq_line) *(p.irq_line) &= ~(p.irq_or); \
+			p.irq = 0; \
 		} \
 		if (p.control_postwrite) p.control_postwrite(); \
 	} while (0)

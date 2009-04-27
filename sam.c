@@ -230,6 +230,8 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 
 void sam_nvma_cycles(int cycles) {
 	current_cycle += cycles * sam_rom_cycles;
+	while (EVENT_PENDING(MACHINE_EVENT_LIST))
+		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 }
 
 void sam_vdg_fsync(void) {

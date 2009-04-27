@@ -27,7 +27,7 @@ enum {
 	PAGE0 = 0, PAGE2 = 1, PAGE3 = 2, ILLEGAL,
 	INHERENT, WORD_IMMEDIATE, IMMEDIATE, EXTENDED,
 	DIRECT, INDEXED, RELATIVE, LONG_RELATIVE,
-	STACKS, STACKU, REGISTER
+	STACKS, STACKU, REGISTER, IRQVECTOR
 };
 
 static struct {
@@ -882,7 +882,7 @@ struct {
 
 enum {
 	WANT_INSTRUCTION, WANT_BYTE, WANT_WORD1, WANT_WORD2,
-	WANT_PRINT
+	WANT_IRQVEC1, WANT_IRQVEC2, WANT_PRINT
 };
 
 static const char *tfr_regs[16] = {
@@ -891,11 +891,17 @@ static const char *tfr_regs[16] = {
 };
 static const char *indexed_regs[4] = { "X", "Y", "U", "S" };
 
+static const char *irq_names[8] = {
+	"[?]", "[SWI3]", "[SWI2]", "[FIRQ]",
+	"[IRQ]", "[SWI]", "[NMI]", "[RESET]"
+};
+
 static int state, page;
 static unsigned int instr_pc;
 #define BYTES_BUF_SIZE 5
 static int bytes_count;
 static unsigned int bytes_buf[BYTES_BUF_SIZE];
+static unsigned int irq_vector;
 
 static const char *mnemonic;
 static char operand_text[19];
@@ -956,6 +962,14 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 					state = WANT_WORD1;
 					break;
 			}
+			break;
+		case WANT_IRQVEC1:
+			mnemonic = irq_names[irq_vector];
+			ins_type = IRQVECTOR;
+			state = WANT_IRQVEC2;
+			break;
+		case WANT_IRQVEC2:
+			state = WANT_PRINT;
 			break;
 		case WANT_BYTE:
 			if (ins_type == INDEXED && indexed_mode == 0) {
@@ -1090,11 +1104,20 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 			snprintf(operand_text, sizeof(operand_text), "$%04x", pc);
 			break;
 
+		case IRQVECTOR:
+			break;
+
 		default:
 			break;
 	}
 	indexed_mode = 0;
 	byte_val = word_val = 0;
+}
+
+void m6809_trace_irq(unsigned int vector) {
+	m6809_trace_reset();
+	state = WANT_IRQVEC1;
+	irq_vector = (vector & 15) >> 1;
 }
 
 void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
