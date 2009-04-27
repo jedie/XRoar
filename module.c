@@ -71,6 +71,7 @@ static FileReqModule *default_filereq_module_list[] = {
 
 extern SoundModule sound_macosx_module;
 extern SoundModule sound_sun_module;
+extern SoundModule sound_alsa_module;
 extern SoundModule sound_sdl_module;
 extern SoundModule sound_oss_module;
 extern SoundModule sound_jack_module;
@@ -81,6 +82,9 @@ static SoundModule *default_sound_module_list[] = {
 #endif
 #ifdef HAVE_SUN_AUDIO
 	&sound_sun_module,
+#endif
+#ifdef HAVE_ALSA_AUDIO
+	&sound_alsa_module,
 #endif
 #ifdef HAVE_SDL
 	&sound_sdl_module,

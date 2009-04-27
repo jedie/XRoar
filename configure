@@ -22,6 +22,7 @@ _gtk2=auto
 _gtk1=auto
 _cli=yes
 _carbon=auto
+_alsa=auto
 _oss=auto
 _sun=auto
 _coreaudio=auto
@@ -71,6 +72,7 @@ Optional Features:
   --disable-gtk2        don't test for GTK+-2
   --disable-gtk1        don't test for GTK+-1
   --disable-carbon      don't test for Mac OS X Carbon
+  --disable-alsa        don't test for ALSA audio
   --disable-oss         don't test for OSS audio
   --disable-sun         don't test for Sun audio
   --disable-coreaudio   don't test for Mac OS X Core Audio
@@ -377,6 +379,7 @@ if test "$_gp32" = "yes"; then
 	_gtk1=no
 	_cli=no
 	_carbon=no
+	_alsa=no
 	_oss=no
 	_sun=no
 	_coreaudio=no
@@ -421,6 +424,7 @@ if test "$_nds" = "yes"; then
 	_gtk1=no
 	_cli=no
 	_carbon=no
+	_alsa=no
 	_oss=no
 	_sun=no
 	_coreaudio=no
@@ -670,6 +674,27 @@ if test "$_carbon" = "yes"; then
 	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -framework Carbon"
 else
 	_carbon_def="#undef HAVE_CARBON"
+fi
+
+########
+
+if test "$_alsa" = "auto"; then
+	echocheck ALSA
+	test -z "$alsa_ldflags" && alsa_ldflags="-lasound"
+	cat > $TMPC <<EOF
+#include <alsa/asoundlib.h>
+int main(int argc, char **argv) { snd_pcm_t *pcm_handle; snd_pcm_open(&pcm_handle, "default", SND_PCM_STREAM_PLAYBACK, 0); return 0; }
+EOF
+	_alsa=no
+	target_cc_check "" "$alsa_ldflags" && _alsa=yes
+	rm -f $TMPC
+	echo "$_alsa"
+fi
+if test "$_alsa" = "yes"; then
+	_alsa_def="#define HAVE_ALSA_AUDIO"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $alsa_ldflags"
+else
+	_alsa_def="#undef HAVE_ALSA_AUDIO"
 fi
 
 ########
@@ -936,6 +961,7 @@ CONFIG_GTK2 = $_gtk2
 CONFIG_GTK1 = $_gtk1
 CONFIG_CLI = $_cli
 CONFIG_CARBON = $_carbon
+CONFIG_ALSA = $_alsa
 CONFIG_OSS = $_oss
 CONFIG_SUN = $_sun
 CONFIG_COREAUDIO = $_coreaudio
@@ -983,6 +1009,9 @@ $_cli_def
 
 /* Mac OS X Carbon? */
 $_carbon_def
+
+/* ALSA audio? */
+$_alsa_def
 
 /* OSS audio? */
 $_oss_def

@@ -115,6 +115,12 @@ ifeq ($(CONFIG_CARBON),yes)
 	OBJS += $(OBJS_CARBON)
 endif
 
+OBJS_ALSA = sound_alsa.o
+ALL_OBJS += $(OBJS_ALSA)
+ifeq ($(CONFIG_ALSA),yes)
+	OBJS += $(OBJS_ALSA)
+endif
+
 OBJS_OSS = sound_oss.o
 ALL_OBJS += $(OBJS_OSS)
 ifeq ($(CONFIG_OSS),yes)
