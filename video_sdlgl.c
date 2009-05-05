@@ -108,11 +108,11 @@ static int init(int argc, char **argv) {
 	screen_height = video_info->current_h;
 	window_width = 640;
 	window_height = 480;
+	xoffset = yoffset = 0;
 
 	if (set_fullscreen(sdl_video_want_fullscreen))
 		return 1;
 
-	xoffset = yoffset = 0;
 	alloc_colours();
 #ifdef WINDOWS32
 	{
@@ -157,15 +157,6 @@ static int set_fullscreen(int fullscreen) {
 	if (want_width < 320) want_width = 320;
 	if (want_height < 240) want_height = 240;
 
-	if (((float)want_width/(float)want_height)>(4.0/3.0)) {
-		width = ((float)want_height/3.0)*4;
-		xoffset = (want_width - width) / 2;
-		yoffset = 0;
-	} else {
-		height = ((float)want_width/4.0)*3;
-		xoffset = 0;
-		yoffset = (want_height - height)/2;
-	}
 	screen = SDL_SetVideoMode(want_width, want_height, 0, SDL_OPENGL|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to initialise display\n");
@@ -176,6 +167,16 @@ static int set_fullscreen(int fullscreen) {
 	else
 		SDL_ShowCursor(SDL_ENABLE);
 	video_sdlgl_module.is_fullscreen = fullscreen;
+
+	if (((float)screen->w/(float)screen->h)>(4.0/3.0)) {
+		width = ((float)screen->h/3.0)*4;
+		xoffset = (screen->w - width) / 2;
+		yoffset = 0;
+	} else {
+		height = ((float)screen->w/4.0)*3;
+		xoffset = 0;
+		yoffset = (screen->h - height)/2;
+	}
 
 	/* Configure OpenGL */
 	glDisable(GL_BLEND);

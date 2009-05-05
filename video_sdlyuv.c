@@ -115,7 +115,6 @@ static int init(int argc, char **argv) {
 	if (overlay->hw_overlay != 1) {
 		LOG_WARN("Warning: SDL overlay is not hardware accelerated\n");
 	}
-	memcpy(&dstrect, &screen->clip_rect, sizeof(SDL_Rect));
 	alloc_colours();
 #ifdef WINDOWS32
 	{
@@ -158,17 +157,6 @@ static int set_fullscreen(int fullscreen) {
 	if (want_width < 320) want_width = 320;
 	if (want_height < 240) want_height = 240;
 
-	if (((float)want_width/(float)want_height)>(320.0/240.0)) {
-		dstrect.w = ((float)want_height/3.0)*4;
-		dstrect.h = want_height;
-		dstrect.x = (want_width - dstrect.w)/2;
-		dstrect.y = 0;
-	} else {
-		dstrect.w = want_width;
-		dstrect.h = ((float)want_width/4.0)*3;
-		dstrect.x = 0;
-		dstrect.y = (want_height - dstrect.h)/2;
-	}
 	screen = SDL_SetVideoMode(want_width, want_height, 0, SDL_HWSURFACE|SDL_ANYFORMAT|(fullscreen?SDL_FULLSCREEN:SDL_RESIZABLE));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
@@ -179,6 +167,19 @@ static int set_fullscreen(int fullscreen) {
 	else
 		SDL_ShowCursor(SDL_ENABLE);
 	video_sdlyuv_module.is_fullscreen = fullscreen;
+
+	memcpy(&dstrect, &screen->clip_rect, sizeof(SDL_Rect));
+	if (((float)screen->w/(float)screen->h)>(4.0/3.0)) {
+		dstrect.w = ((float)screen->h/3.0)*4;
+		dstrect.h = screen->h;
+		dstrect.x = (screen->w - dstrect.w)/2;
+		dstrect.y = 0;
+	} else {
+		dstrect.w = screen->w;
+		dstrect.h = ((float)screen->w/4.0)*3;
+		dstrect.x = 0;
+		dstrect.y = (screen->h - dstrect.h)/2;
+	}
 	return 0;
 }
 
