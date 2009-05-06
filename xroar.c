@@ -295,6 +295,7 @@ int xroar_init(int argc, char **argv) {
 	machine_init();
 	/* Reset everything */
 	machine_reset(RESET_HARD);
+	m6809_trace_reset();
 	if (load_file) {
 		int filetype = xroar_filetype_by_ext(load_file);
 		if (filetype == FILETYPE_SNA || filetype == FILETYPE_ROM) {
@@ -345,7 +346,6 @@ void xroar_mainloop(void) {
 
 #ifdef TRACE
 		/* Tracing: */
-		m6809_trace_reset();
 		m6809_read_cycle = trace_read_byte;
 		m6809_interrupt_hook = m6809_trace_irq;
 		m6809_instruction_posthook = trace_done_instruction;

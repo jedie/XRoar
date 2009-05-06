@@ -906,13 +906,18 @@ static unsigned int irq_vector;
 static const char *mnemonic;
 static char operand_text[19];
 
-void m6809_trace_reset(void) {
+static void reset_state(void) {
 	state = WANT_INSTRUCTION;
 	page = PAGE0;
 	bytes_count = 0;
 	mnemonic = "*";
 	operand_text[0] = '*';
 	operand_text[1] = '\0';
+}
+
+void m6809_trace_reset(void) {
+	reset_state();
+	m6809_trace_irq(0xfffe);
 }
 
 #define STACK_PRINT(r) do { \
@@ -1115,7 +1120,7 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 }
 
 void m6809_trace_irq(unsigned int vector) {
-	m6809_trace_reset();
+	reset_state();
 	state = WANT_IRQVEC1;
 	irq_vector = (vector & 15) >> 1;
 }
@@ -1137,5 +1142,5 @@ void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
 	LOG_DEBUG(0, "%04x| %-12s%-8s%-20s", instr_pc, bytes_string, mnemonic, operand_text);
 	LOG_DEBUG(0, "cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 
-	m6809_trace_reset();
+	reset_state();
 }
