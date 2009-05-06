@@ -1083,7 +1083,6 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 			if (indexed_flags & (INDEXED_WANT_WORD | INDEXED_WANT_BYTE)) {
 				if (indexed_flags & INDEXED_WANT_REG) {
 					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, reg, post);
-					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, reg, post);
 				} else {
 					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, post);
 				}
