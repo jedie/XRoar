@@ -204,13 +204,11 @@ static void update_sound(void) {
 
 static void pia0b_data_postwrite_coco64k(void) {
 	keyboard_column_update();
-	if (IS_COCO && machine_ram_size > 0x4000) {
-		/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
-		if (PIA0.b.port_output & 0x40)
-			PIA1.b.port_input |= (1<<2);
-		else
-			PIA1.b.port_input &= ~(1<<2);
-	}
+	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
+	if (PIA0.b.port_output & 0x40)
+		PIA1.b.port_input |= (1<<2);
+	else
+		PIA1.b.port_input &= ~(1<<2);
 }
 
 #ifdef HAVE_SNDFILE
