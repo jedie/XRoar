@@ -205,10 +205,8 @@ static void update_sound(void) {
 static void pia0b_data_postwrite_coco64k(void) {
 	keyboard_column_update();
 	if (IS_COCO && machine_ram_size > 0x4000) {
-		/* TODO: identify *which* of the top five bits of PIA0.b
-		 * is actually connected on a 64K CoCo (ROM setup isn't
-		 * specific).  Assume bit 7 for now. */
-		if (PIA0.b.port_output & 0x80)
+		/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
+		if (PIA0.b.port_output & 0x40)
 			PIA1.b.port_input |= (1<<2);
 		else
 			PIA1.b.port_input &= ~(1<<2);
@@ -381,8 +379,7 @@ void machine_reset(int hard) {
 		}
 		PIA0.b.data_postwrite = pia0b_data_postwrite;
 		if (IS_COCO && machine_ram_size > 0x4000) {
-			/* TODO: See pia0b_data_postwrite_coco64k() */
-			/* 64K CoCo connects PB? of PIA0 to PB2 of PIA1.
+			/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1.
 			 * Deal with this through a postwrite. */
 			PIA0.b.data_postwrite = pia0b_data_postwrite_coco64k;
 		}
