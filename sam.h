@@ -8,6 +8,7 @@
 
 #include "types.h"
 
+extern uint8_t *sam_mapped_rom;
 extern unsigned int sam_vdg_address;
 extern unsigned int sam_vdg_mod_clear;
 

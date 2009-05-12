@@ -226,6 +226,9 @@ static void pia1a_data_postwrite(void) {
 #define pia1a_control_postwrite tape_update_motor
 
 static void pia1b_data_postwrite(void) {
+	if (IS_DRAGON64) {
+		sam_mapped_rom = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
+	}
 	update_sound();
 	vdg_set_mode();
 }

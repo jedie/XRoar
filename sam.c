@@ -29,7 +29,7 @@
 #include "sam.h"
 #include "xroar.h"
 
-static uint8_t *selected_rom;
+uint8_t *sam_mapped_rom;
 static unsigned int map_type;
 static unsigned int ram_page_bit;
 
@@ -98,7 +98,7 @@ unsigned int sam_read_byte(unsigned int addr) {
 	}
 	if (addr < 0xc000) {
 		/* BASIC ROM access */
-		return selected_rom[addr & 0x3fff];
+		return sam_mapped_rom[addr & 0x3fff];
 	}
 	if (addr < 0xff00) {
 		/* Cartridge ROM access */
@@ -193,10 +193,6 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 	}
 	if (addr < 0xff40) {
 		mc6821_write(&PIA1, addr & 3, octet);
-		if ((addr & 3) == 2 && IS_DRAGON64 && !map_type) {
-			/* Update ROM select on Dragon 64 */
-			selected_rom = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
-		}
 		return;
 	}
 	if (addr < 0xff60) {
@@ -327,12 +323,6 @@ static void update_from_register(void) {
 			/* Disallow address-dependent MPU rate in map type 1 */
 			mpu_rate = 0;
 		}
-	} else {
-		/* Map type 0 */
-		if (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))
-			selected_rom = rom1;
-		else
-			selected_rom = rom0;
 	}
 
 #ifdef VARIABLE_MPU_RATE
