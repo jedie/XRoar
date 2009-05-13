@@ -366,6 +366,8 @@ void machine_reset(int hard) {
 		if (running_config.ram > 64) running_config.ram = 64;
 		machine_ram_size = running_config.ram * 1024;
 		initialise_ram();
+		/* This will be under PIA control on a Dragon 64 */
+		sam_mapped_rom = rom0;
 		/* Machine-specific PIA connections */
 		PIA1.b.tied_low |= (1<<2);
 		PIA1.b.port_input &= ~(1<<2);
