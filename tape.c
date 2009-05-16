@@ -70,7 +70,6 @@ static Cycle last_read_time;
 
 static int bit_in(void);
 static int byte_in(void);
-static void buffer_in(void);
 
 static void bit_out(int);
 static void byte_out(int);
@@ -196,7 +195,6 @@ int tape_autorun(const char *filename) {
 	 * file on tape */
 	state = 0;
 	type = 1;  /* default to data - no autorun (if trying to) */
-	//buffer_in();
 	while ((bytes_remaining > 0 || read_fd != -1) && state >= 0) {
 		uint8_t b = byte_in();
 		switch(state) {
@@ -219,9 +217,6 @@ int tape_autorun(const char *filename) {
 			default:
 				break;
 		}
-		//bytes_remaining--;
-		//if (bytes_remaining < 1)
-			//buffer_in();
 	}
 	tape_close_reading();
 	if (tape_open_reading(filename) == -1)
@@ -322,25 +317,9 @@ static int byte_in(void) {
 		fake_leader--;
 		return 0x55;
 	}
-	if (bytes_remaining == 0) {
-		buffer_in();
-		if (bytes_remaining <= 0) {
-			return -1;
-		}
-	}
-	bytes_remaining--;
-	return *(read_buf_ptr++);
-}
-
-static void buffer_in(void) {
-	read_buf_ptr = read_buf;
-	bytes_remaining = 0;
-	if (read_fd != -1) {
-		bytes_remaining = fs_read(read_fd, read_buf, sizeof(read_buf));
-		if (bytes_remaining < (int)sizeof(read_buf)) {
-			tape_close_reading();
-		}
-	}
+	if (read_fd == -1)
+		return -1;
+	return fs_read_uint8(read_fd);
 }
 
 static void waggle_bit(void) {
