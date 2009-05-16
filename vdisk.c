@@ -246,7 +246,7 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 		for (side = 0; side < num_sides; side++) {
 			for (sector = 0; sector < num_sectors; sector++) {
 				uint8_t attr;
-				if (sector_attr) fs_read_byte(fd, &attr);
+				if (sector_attr) attr = fs_read_uint8(fd);
 				fs_read(fd, buf, ssize);
 				vdisk_update_sector(disk, side, track, sector + first_sector, ssize, buf);
 			}
@@ -346,8 +346,7 @@ static int vdisk_save_dmk(struct vdisk *disk) {
 			int i;
 			if (buf == NULL) continue;
 			for (i = 0; i < 64; i++) {
-				fs_write_byte(fd, idams[i] & 0xff);
-				fs_write_byte(fd, (idams[i] >> 8) & 0xff);
+				fs_write_uint16_le(fd, idams[i]);
 				buf += 2;
 			}
 			fs_write(fd, buf, disk->track_length - 128);

@@ -24,11 +24,11 @@ ssize_t fs_size(const char *filename);
 char *fs_getcwd(char *buf, size_t size);
 
 ssize_t fs_load_file(char *filename, void *buf, size_t size);
-int fs_write_byte(int fd, uint8_t octet);
-int fs_write_word16(int fd, uint16_t word16);
-int fs_write_word32(int fd, uint32_t word32);
-int fs_read_byte(int fd, uint8_t *dest);
-int fs_read_word16(int fd, uint16_t *dest);
-int fs_read_word32(int fd, uint32_t *dest);
+int fs_write_uint8(int fd, int value);
+int fs_write_uint16(int fd, int value);
+int fs_write_uint16_le(int fd, int value);
+int fs_read_uint8(int fd);
+int fs_read_uint16(int fd);
+int fs_read_uint16_le(int fd);
 
 #endif  /* __FS_H__ */

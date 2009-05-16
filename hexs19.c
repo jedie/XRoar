@@ -24,8 +24,8 @@
 #include "machine.h"
 
 static uint8_t read_nibble(int fd) {
-	uint8_t in;
-	fs_read_byte(fd, &in);
+	int in;
+	in = fs_read_uint8(fd);
 	if (in >= '0' && in <= '9')
 		return (in-'0');
 	in |= 0x20;
@@ -43,26 +43,25 @@ static uint16_t read_word(int fd) {
 }
 
 static int skip_eol(int fd) {
-	int r;
-	uint8_t d;
+	int d;
 	do {
-		r = fs_read_byte(fd, &d);
-	} while (r > 0 && d != 10);
-	if (r > 0)
+		d = fs_read_uint8(fd);
+	} while (d >= 0 && d != 10);
+	if (d >= 0)
 		return 1;
 	return 0;
 }
 
 int intel_hex_read(const char *filename) {
 	int fd;
-	int i, length, addr, type, sum;
-	uint8_t data;
+	int data, length, addr, type, sum;
+	int i;
 	if (filename == NULL)
 		return -1;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
 	LOG_DEBUG(2, "Reading HEX file\n");
-	while (fs_read_byte(fd, &data) > 0) {
+	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data != ':') {
 			fs_close(fd);
 			return -1;
@@ -96,29 +95,23 @@ int intel_hex_read(const char *filename) {
 
 int coco_bin_read(const char *filename) {
 	int fd;
-	uint8_t tmp;
-	unsigned int length, load, exec;
-	int r;
+	int data, length, load, exec;
 	if (filename == NULL)
 		return -1;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
 	LOG_DEBUG(2, "Reading BIN file\n");
-	while (fs_read_byte(fd, &tmp) > 0) {
-		if (tmp == 0) {
-			fs_read_byte(fd, &tmp); length = (tmp << 8);
-			fs_read_byte(fd, &tmp); length |= tmp;
-			fs_read_byte(fd, &tmp); load = (tmp << 8);
-			fs_read_byte(fd, &tmp); load |= tmp;
+	while ((data = fs_read_uint8(fd)) >= 0) {
+		if (data == 0) {
+			length = fs_read_uint16_le(fd);
+			load = fs_read_uint16_le(fd);
 			LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
-			r = fs_read(fd, &ram0[load], length);
+			fs_read(fd, &ram0[load], length);
 			continue;
 		}
-		if (tmp == 0xff) {
-			fs_read_byte(fd, &tmp); /* skip 0 */
-			fs_read_byte(fd, &tmp); /* skip 0 */
-			fs_read_byte(fd, &tmp); exec = (tmp << 8);
-			fs_read_byte(fd, &tmp); exec |= tmp;
+		if (data == 0xff) {
+			(void)fs_read_uint16_le(fd);  /* skip 0 */
+			exec = fs_read_uint16_le(fd);
 			LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
 			m6809_jump(exec);
 			break;

@@ -121,46 +121,42 @@ ssize_t fs_load_file(char *filename, void *buf, size_t size) {
 	return count;
 }
 
-int fs_write_byte(int fd, uint8_t octet) {
-	return fs_write(fd, &octet, 1);
+int fs_write_uint8(int fd, int value) {
+	uint8_t out = value;
+	return fs_write(fd, &out, 1);
 }
 
-int fs_write_word16(int fd, uint16_t word16) {
-	if (fs_write_byte(fd, word16 >> 8) == -1)
-		return -1;
-	return fs_write_byte(fd, word16 & 0xff);
+int fs_write_uint16(int fd, int value) {
+	uint8_t out[2];
+	out[0] = value >> 8;
+	out[1] = value & 0xff;
+	return fs_write(fd, out, 2);
 }
 
-int fs_write_word32(int fd, uint32_t word32) {
-	if (fs_write_word16(fd, word32 >> 16) == -1)
-		return -1;
-	return fs_write_word16(fd, word32 & 0xffff);
+int fs_write_uint16_le(int fd, int value) {
+	uint8_t out[2];
+	out[0] = value & 0xff;
+	out[1] = value >> 8;
+	return fs_write(fd, out, 2);
 }
 
-int fs_read_byte(int fd, uint8_t *dest) {
-	return fs_read(fd, dest, 1);
+int fs_read_uint8(int fd) {
+	uint8_t in;
+	if (fs_read(fd, &in, 1) < 1)
+		return -1;
+	return in;
 }
 
-int fs_read_word16(int fd, uint16_t *dest) {
-	uint8_t octet;
-	int ret;
-	if (fs_read(fd, &octet, 1) == -1)
+int fs_read_uint16(int fd) {
+	uint8_t in[2];
+	if (fs_read(fd, in, 2) < 2)
 		return -1;
-	*dest = octet << 8;
-	if ((ret = fs_read(fd, &octet, 1)) == -1)
-		return -1;
-	*dest |= octet;
-	return ret;
+	return (in[0] << 8) | in[1];
 }
 
-int fs_read_word32(int fd, uint32_t *dest) {
-	uint16_t word16;
-	int ret;
-	if (fs_read_word16(fd, &word16) == -1)
+int fs_read_uint16_le(int fd) {
+	uint8_t in[2];
+	if (fs_read(fd, in, 2) < 2)
 		return -1;
-	*dest = word16 << 16;
-	if ((ret = fs_read_word16(fd, &word16)) == -1)
-		return -1;
-	*dest |= word16;
-	return ret;
+	return (in[1] << 8) | in[0];
 }
