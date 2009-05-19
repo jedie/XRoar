@@ -906,6 +906,8 @@ static unsigned int irq_vector;
 static const char *mnemonic;
 static char operand_text[19];
 
+static void trace_print_short(void);
+
 static void reset_state(void) {
 	state = WANT_INSTRUCTION;
 	page = PAGE0;
@@ -1109,6 +1111,7 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 			break;
 
 		case IRQVECTOR:
+			trace_print_short();
 			break;
 
 		default:
@@ -1122,6 +1125,23 @@ void m6809_trace_irq(unsigned int vector) {
 	reset_state();
 	state = WANT_IRQVEC1;
 	irq_vector = (vector & 15) >> 1;
+}
+
+static void trace_print_short(void) {
+	char bytes_string[(BYTES_BUF_SIZE*2)+1];
+	int i;
+
+	if (bytes_count == 0) return;
+	if (state != WANT_PRINT) return;
+
+	bytes_string[0] = '\0';
+	for (i = 0; i < bytes_count; i++) {
+		snprintf(bytes_string + i*2, 3, "%02x", bytes_buf[i]);
+	}
+
+	LOG_DEBUG(0, "%04x| %-12s%-8s%-20s\n", instr_pc, bytes_string, mnemonic, operand_text);
+
+	reset_state();
 }
 
 void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
