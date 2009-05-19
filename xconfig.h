@@ -6,8 +6,6 @@
 #ifndef __XCONFIG_H__
 #define __XCONFIG_H__
 
-#include "types.h"
-
 enum xconfig_result {
 	XCONFIG_OK = 0,
 	XCONFIG_BAD_OPTION,

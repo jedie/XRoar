@@ -543,6 +543,8 @@ FRAMES}.  For every frame drawn to screen this amount of frames are then
 skipped before the next one is drawn, reducing the amount of work needed.  The
 default is @option{-fskip 0}, meaning no frames are skipped.
 
+XRoar can be started full-screen by specifying @option{-fs}.
+
 @node Audio output
 @section Audio output
 

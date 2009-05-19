@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
 #include "xconfig.h"
 
 static struct xconfig_option *find_option(struct xconfig_option *options,
@@ -86,6 +85,7 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		int argc, char **argv, int *argn) {
 	struct xconfig_option *option;
 	int _argn;
+	char *optstr;
 	_argn = argn ? *argn : 1;
 
 	while (_argn < argc) {
@@ -96,7 +96,9 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 			_argn++;
 			break;
 		}
-		option = find_option(options, argv[_argn]+1);
+		optstr = argv[_argn]+1;
+		if (*optstr == '-') optstr++;
+		option = find_option(options, optstr);
 		if (option == NULL) {
 			if (argn) *argn = _argn;
 			return XCONFIG_BAD_OPTION;
