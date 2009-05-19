@@ -29,7 +29,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -70,9 +70,7 @@ static event_t *flush_event;
 
 static void callback(void *userdata, Uint8 *stream, int len);
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL audio driver\n");
 #ifdef WINDOWS32
 	//if (!getenv("SDL_AUDIODRIVER"))

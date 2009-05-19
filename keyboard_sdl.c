@@ -38,7 +38,7 @@
 #include "vdrive.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_sdl_module = {
@@ -85,16 +85,9 @@ static void map_keyboard(unsigned int *map) {
 	}
 }
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	int i;
-	keymap_option = NULL;
-	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-keymap")) {
-			i++;
-			if (i >= argc) break;
-			keymap_option = argv[i];
-		}
-	}
+	keymap_option = xroar_opt_keymap;
 	selected_keymap = NULL;
 	for (i = 0; mappings[i].name; i++) {
 		if (selected_keymap == NULL

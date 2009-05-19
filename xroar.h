@@ -23,8 +23,40 @@
 #define FILETYPE_SNA (8)
 #define FILETYPE_ROM (9)
 
+/**************************************************************************/
+/* Command line arguments */
+
+/* Emulator interface */
+#ifndef FAST_SOUND
+extern int xroar_fast_sound;
+#endif
+extern int xroar_fullscreen;
+extern int xroar_frameskip;
+extern char *xroar_opt_keymap;
+extern char *xroar_opt_joy_left;
+extern char *xroar_opt_joy_right;
+extern int xroar_trace_enabled;
+
+/* Emulated machine */
+extern char *xroar_opt_machine;
+extern char *xroar_opt_bas;
+extern char *xroar_opt_extbas;
+extern char *xroar_opt_altbas;
+extern int xroar_opt_nobas;
+extern int xroar_opt_noextbas;
+extern int xroar_opt_noaltbas;
+extern char *xroar_opt_dostype;
+extern char *xroar_opt_dos;
+extern int xroar_opt_nodos;
+extern int xroar_opt_pal;
+extern int xroar_opt_ntsc;
+extern int xroar_opt_ram;
+
+/**************************************************************************/
+/* Global flags */
+
 /* NTSC cross-colour can either be rendered as a simple four colour palette,
- *  * or with a 5-bit lookup table */
+ * or with a 5-bit lookup table */
 #ifdef FAST_VDG
 # define NUM_CROSS_COLOUR_RENDERERS (1)
 #else
@@ -33,13 +65,7 @@
 #define CROSS_COLOUR_SIMPLE (0)
 #define CROSS_COLOUR_5BIT   (1)
 extern int xroar_cross_colour_renderer;
-
-extern int xroar_frameskip;
 extern int xroar_noratelimit;
-extern int xroar_trace_enabled;
-#ifndef FAST_SOUND
-extern int xroar_fast_sound;
-#endif
 
 extern const char *xroar_rom_path;
 

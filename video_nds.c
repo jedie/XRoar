@@ -28,7 +28,7 @@
 #include "vdg.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
@@ -86,9 +86,7 @@ static void vblank_handle(void) {
 	render_screen();
 }
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	int i, j;
 	LOG_DEBUG(2,"Initialising NDS video driver\n");
 

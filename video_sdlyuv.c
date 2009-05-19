@@ -24,14 +24,13 @@
 #include "types.h"
 #include "logging.h"
 #include "module.h"
-#include "ui_sdl.h"
 #include "vdg_bitmaps.h"
 #include "xroar.h"
 #ifdef WINDOWS32
 #include "common_windows32.h"
 #endif
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
@@ -78,11 +77,9 @@ static Uint32 map_colour(int r, int g, int b) {
 
 #include "video_generic_ops.c"
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	const SDL_VideoInfo *video_info;
 
-	(void)argc;
-	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL-YUV video driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
@@ -105,7 +102,7 @@ static int init(int argc, char **argv) {
 	window_width = 640;
 	window_height = 480;
 
-	if (set_fullscreen(sdl_video_want_fullscreen))
+	if (set_fullscreen(xroar_fullscreen))
 		return 1;
 	overlay = SDL_CreateYUVOverlay(640, 240, SDL_YUY2_OVERLAY, screen);
 	if (overlay == NULL) {

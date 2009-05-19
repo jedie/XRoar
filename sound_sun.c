@@ -33,7 +33,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -63,13 +63,11 @@ static Sample *buffer;
 static Sample *wrptr;
 static Sample lastsample;
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	unsigned int rate = SAMPLE_RATE;
 	audio_info_t device_info;
 	const char *device = "/dev/audio";
 
-	(void)argc;
-	(void)argv;
 	LOG_DEBUG(2,"Initialising Sun audio driver\n");
 	channels = CHANNELS;
 	sound_fd = open(device, O_WRONLY);

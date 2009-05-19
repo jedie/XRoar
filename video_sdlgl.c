@@ -25,14 +25,13 @@
 #include "types.h"
 #include "logging.h"
 #include "module.h"
-#include "ui_sdl.h"
 #include "vdg_bitmaps.h"
 #include "xroar.h"
 #ifdef WINDOWS32
 #include "common_windows32.h"
 #endif
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
@@ -72,11 +71,9 @@ static GLint xoffset, yoffset;
 
 #include "video_generic_ops.c"
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	const SDL_VideoInfo *video_info;
 
-	(void)argc;
-	(void)argv;
 	LOG_DEBUG(2,"Initialising SDL OpenGL driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
@@ -110,7 +107,7 @@ static int init(int argc, char **argv) {
 	window_height = 480;
 	xoffset = yoffset = 0;
 
-	if (set_fullscreen(sdl_video_want_fullscreen))
+	if (set_fullscreen(xroar_fullscreen))
 		return 1;
 
 	alloc_colours();

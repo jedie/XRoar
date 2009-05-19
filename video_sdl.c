@@ -24,14 +24,13 @@
 #include "types.h"
 #include "logging.h"
 #include "module.h"
-#include "ui_sdl.h"
 #include "vdg_bitmaps.h"
 #include "xroar.h"
 #ifdef WINDOWS32
 #include "common_windows32.h"
 #endif
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static int set_fullscreen(int fullscreen);
 static void vsync(void);
@@ -63,9 +62,7 @@ static SDL_Surface *screen;
 
 #include "video_generic_ops.c"
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL video driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
@@ -81,7 +78,7 @@ static int init(int argc, char **argv) {
 		LOG_ERROR("Failed to initialiase SDL video driver: %s\n", SDL_GetError());
 		return 1;
 	}
-	if (set_fullscreen(sdl_video_want_fullscreen))
+	if (set_fullscreen(xroar_fullscreen))
 		return 1;
 	alloc_colours();
 #ifdef WINDOWS32

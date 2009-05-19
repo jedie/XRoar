@@ -24,7 +24,7 @@
 #include "logging.h"
 #include "module.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
@@ -35,9 +35,7 @@ FileReqModule filereq_carbon_module = {
 	load_filename, save_filename
 };
 
-static int init(int argc, char **argv){
-	(void)argc;
-	(void)argv;
+static int init(void){
 	LOG_DEBUG(2, "Carbon file requester selected.\n");
 	return 0;
 }

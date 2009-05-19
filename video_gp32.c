@@ -26,7 +26,7 @@
 #include "sam.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void vdg_vsync(void);
 static void vdg_set_mode(unsigned int mode);
@@ -63,9 +63,7 @@ static unsigned int text_mode;
 
 extern const uint8_t vdg_alpha_gp32[4][3][8192];
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	vdg_colour[0] = MAPCOLOUR(0x00, 0xff, 0x00);
 	vdg_colour[1] = MAPCOLOUR(0xff, 0xff, 0x00);
 	vdg_colour[2] = MAPCOLOUR(0x00, 0x00, 0xff);

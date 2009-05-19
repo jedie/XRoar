@@ -25,7 +25,7 @@
 #include "logging.h"
 #include "module.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 
 extern VideoModule video_sdlgl_module;
@@ -64,16 +64,7 @@ UIModule ui_sdl_module = {
 	NULL  /* use default joystick module list */
 };
 
-int sdl_video_want_fullscreen;
-
-static int init(int argc, char **argv) {
-	int i;
-	sdl_video_want_fullscreen = 0;
-	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-fs") == 0) {
-			sdl_video_want_fullscreen = 1;
-		}
-	}
+static int init(void) {
 	return 0;
 }
 

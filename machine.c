@@ -70,7 +70,6 @@ uint8_t rom1[0x4000];
 MC6821_PIA PIA0, PIA1;
 
 Cycle current_cycle;
-int noextbas;
 
 static const char *d32_extbas_roms[] = { "d32", "dragon32", "d32rom", "dragon", NULL };
 static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "dragrom", "dragon", NULL };
@@ -116,60 +115,53 @@ static int load_rom_from_list(const char *preferred, const char **list,
 
 /**************************************************************************/
 
-void machine_getargs(int argc, char **argv) {
-	int i;
+void machine_getargs(void) {
 	machine_clear_requested_config();
-	noextbas = 0;
 	requested_machine = ANY_AUTO;
-	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-machine") && i+1<argc) {
-			int j;
-			i++;
-			if (!strcmp(argv[i], "help")) {
-				for (j = 0; j < NUM_MACHINE_TYPES; j++) {
-					printf("\t%-10s%s\n", machine_options[j], machine_names[j]);
-				}
-				exit(0);
+	if (xroar_opt_machine) {
+		int i;
+		if (0 == strcmp(xroar_opt_machine, "help")) {
+			for (i = 0; i < NUM_MACHINE_TYPES; i++) {
+				printf("\t%-10s%s\n", machine_options[i], machine_names[i]);
 			}
-			for (j = 0; j < NUM_MACHINE_TYPES; j++) {
-				if (!strcmp(argv[i], machine_options[j])) {
-					requested_machine = j;
-				}
-			}
-		} else if (!strcmp(argv[i], "-bas") && i+1<argc) {
-			requested_config.bas_rom = argv[++i];
-		} else if (!strcmp(argv[i], "-extbas") && i+1<argc) {
-			requested_config.extbas_rom = argv[++i];
-		} else if (!strcmp(argv[i], "-altbas") && i+1<argc) {
-			requested_config.altbas_rom = argv[++i];
-		} else if (!strcmp(argv[i], "-noextbas")) {
-			noextbas = 1;
-		} else if (!strcmp(argv[i], "-dostype") && i+1<argc) {
-			int j;
-			i++;
-			if (!strcmp(argv[i], "help")) {
-				for (j = 0; j < NUM_DOS_TYPES; j++) {
-					printf("\t%-10s%s\n", dos_type_options[j], dos_type_names[j]);
-				}
-				exit(0);
-			}
-			for (j = 0; j < NUM_DOS_TYPES; j++) {
-				if (!strcmp(argv[i], dos_type_options[j])) {
-					requested_config.dos_type = j;
-				}
-			}
-		} else if (!strcmp(argv[i], "-dos") && i+1<argc) {
-			requested_config.dos_rom = argv[++i];
-		} else if (!strcmp(argv[i], "-nodos")) {
-			requested_config.dos_type = DOS_NONE;
-			requested_config.dos_rom = NULL;
-		} else if (!strcmp(argv[i], "-ram") && i+1<argc) {
-			requested_config.ram = strtol(argv[++i], NULL, 0);
-		} else if (!strcmp(argv[i], "-pal")) {
-			requested_config.tv_standard = TV_PAL;
-		} else if (!strcmp(argv[i], "-ntsc")) {
-			requested_config.tv_standard = TV_NTSC;
+			exit(0);
 		}
+		for (i = 0; i < NUM_MACHINE_TYPES; i++) {
+			if (!strcmp(xroar_opt_machine, machine_options[i])) {
+				requested_machine = i;
+			}
+		}
+	}
+	if (xroar_opt_dostype) {
+		int i;
+		if (0 == strcmp(xroar_opt_machine, "help")) {
+			for (i = 0; i < NUM_DOS_TYPES; i++) {
+				printf("\t%-10s%s\n", dos_type_options[i], dos_type_names[i]);
+			}
+			exit(0);
+		}
+		for (i = 0; i < NUM_DOS_TYPES; i++) {
+			if (!strcmp(xroar_opt_machine, dos_type_options[i])) {
+				requested_config.dos_type = i;
+			}
+		}
+	}
+	requested_config.bas_rom = xroar_opt_bas;
+	requested_config.extbas_rom = xroar_opt_extbas;
+	requested_config.altbas_rom = xroar_opt_altbas;
+	requested_config.dos_rom = xroar_opt_dos;
+	if (xroar_opt_nodos) {
+		requested_config.dos_type = DOS_NONE;
+		requested_config.dos_rom = NULL;
+	}
+	if (xroar_opt_ram > 0) {
+		requested_config.ram = xroar_opt_ram;
+	}
+	if (xroar_opt_pal) {
+		requested_config.tv_standard = TV_PAL;
+	}
+	if (xroar_opt_ntsc) {
+		requested_config.tv_standard = TV_NTSC;
 	}
 }
 
@@ -339,14 +331,22 @@ void machine_reset(int hard) {
 		memset(cart_data, 0x7e, sizeof(cart_data));
 		cart_data_writable = 0;
 		/* ... BASIC */
-		load_rom_from_list(running_config.bas_rom,
-				rom_list[running_config.romset].bas,
-				rom0 + 0x2000, sizeof(rom0) - 0x2000);
+		if (!xroar_opt_nobas) {
+			load_rom_from_list(running_config.bas_rom,
+					rom_list[running_config.romset].bas,
+					rom0 + 0x2000, sizeof(rom0) - 0x2000);
+		}
 		/* ... Extended BASIC */
-		if (!noextbas) {
+		if (!xroar_opt_noextbas) {
 			load_rom_from_list(running_config.extbas_rom,
 					rom_list[running_config.romset].extbas,
 					rom0, sizeof(rom0));
+		}
+		/* ... Alternate BASIC ROM */
+		if (!xroar_opt_noaltbas) {
+			load_rom_from_list(running_config.altbas_rom,
+					rom_list[running_config.romset].altbas,
+					rom1, sizeof(rom1));
 		}
 		/* ... DOS */
 		if (DOS_ENABLED) {
@@ -355,10 +355,6 @@ void machine_reset(int hard) {
 					cart_data, sizeof(cart_data));
 			cart_data_writable = 0;
 		}
-		/* ... Alternate BASIC ROM */
-		load_rom_from_list(running_config.altbas_rom,
-				rom_list[running_config.romset].altbas,
-				rom1, sizeof(rom1));
 		/* Configure keymap */
 		keyboard_set_keymap(running_config.keymap);
 		/* Configure RAM */

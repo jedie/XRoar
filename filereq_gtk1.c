@@ -28,7 +28,7 @@
 #include "fs.h"
 #include "module.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
@@ -41,9 +41,7 @@ FileReqModule filereq_gtk1_module = {
 
 static char *filename = NULL;
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	LOG_DEBUG(2, "GTK+-1 file requester selected.\n");
 	gtk_init(NULL, NULL);
 	return 0;

@@ -29,7 +29,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -63,9 +63,7 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		AudioBufferList *outOutputData,
 		const AudioTimeStamp *inOutputTime, void *defptr);
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	AudioStreamBasicDescription deviceFormat;
 	UInt32 buffer_bytes = FRAME_SIZE * sizeof(Sample);
 	UInt32 count;

@@ -28,7 +28,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 
 JoystickModule joystick_sdl_module = {
@@ -133,7 +133,7 @@ static void parse_joystick_def(char *def, int base) {
 	}
 }
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	int valid, i;
 
 	LOG_DEBUG(2,"Initialising SDL joystick driver\n");
@@ -162,14 +162,11 @@ static int init(int argc, char **argv) {
 		control_config[INPUT_JOY_RIGHT_FIRE].control_num = 1;
 	}
 
-	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-joy-right") && i+1<argc) {
-			i++;
-			parse_joystick_def(argv[i], 0);
-		} else if (!strcmp(argv[i], "-joy-left") && i+1<argc) {
-			i++;
-			parse_joystick_def(argv[i], 3);
-		}
+	if (xroar_opt_joy_right) {
+		parse_joystick_def(xroar_opt_joy_right, 0);
+	}
+	if (xroar_opt_joy_left) {
+		parse_joystick_def(xroar_opt_joy_left, 3);
 	}
 
 	valid = 0;

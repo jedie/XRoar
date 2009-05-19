@@ -29,7 +29,7 @@
 #include "module.h"
 #include "common_windows32.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown_module(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
@@ -42,9 +42,7 @@ FileReqModule filereq_windows32_module = {
 
 static char *filename = NULL;
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	LOG_DEBUG(2, "Windows32 file requester selected.\n");
 	return 0;
 }

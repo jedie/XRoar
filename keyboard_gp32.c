@@ -41,7 +41,7 @@
 
 void gp32_menu(void);
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_gp32_module = {
@@ -84,9 +84,7 @@ static void highlight_key(void);
 
 #define REPEAT_MASK (GPC_VK_UP | GPC_VK_DOWN | GPC_VK_LEFT | GPC_VK_RIGHT)
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	gpgfx_blit(64, 200, &kbd_bin[0]);
 	keyboard_mode = 0;
 	gpgfx_blit(8, 200, &cmode_bin[keyboard_mode]);

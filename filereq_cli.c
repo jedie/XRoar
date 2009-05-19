@@ -24,7 +24,7 @@
 #include "fs.h"
 #include "module.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static char *get_filename(const char **extensions);
 
@@ -36,9 +36,7 @@ FileReqModule filereq_cli_module = {
 
 static char fnbuf[256];
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	LOG_DEBUG(2, "Command-line file requester selected.\n");
 	return 0;
 }

@@ -32,7 +32,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -64,12 +64,10 @@ static int8_t *convbuf;
 static void flush_frame(void);
 static event_t *flush_event;
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	const char *device = "/dev/dsp";
 	int fragment_param, tmp;
 
-	(void)argc;
-	(void)argv;
 	LOG_DEBUG(2,"Initialising OSS audio driver\n");
 	sound_fd = open(device, O_WRONLY);
 	if (sound_fd == -1)

@@ -36,7 +36,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -57,9 +57,7 @@ static event_t *flush_event;
 static unsigned int current_time(void);
 static void sleep_ms(unsigned int ms);
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	LOG_DEBUG(2,"Initialising null audio driver\n");
 	last_pause_cycle = current_cycle;
 	last_pause_ms = current_time();

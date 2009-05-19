@@ -32,7 +32,7 @@
 #include "gp32/gpsound.h"
 #include "gp32/gp32.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -58,9 +58,7 @@ static Sample lastsample;
 static void flush_frame(void);
 static event_t *flush_event;
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	sample_rate = 22050;
 	gpsound_init(PCLK, &sample_rate);
 	sample_cycles = OSCILLATOR_RATE / sample_rate;

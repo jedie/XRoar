@@ -27,7 +27,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -53,9 +53,7 @@ static int writing_buf;
 static void flush_frame(void);
 static event_t *flush_event;
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	LOG_DEBUG(2,"Initialising NDS audio (ARM9 side)\n");
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;

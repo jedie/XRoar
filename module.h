@@ -9,7 +9,7 @@
 typedef struct {
 	const char *name; 
 	const char *description; 
-	int (*init)(int argc, char **argv); 
+	int (*init)(void); 
 	int initialised;
 	void (*shutdown)(void);
 } Module_Common;
@@ -83,9 +83,9 @@ extern JoystickModule *joystick_module;
 
 void module_print_list(Module **list);
 Module *module_select(Module **list, const char *name);
-Module *module_select_by_arg(Module **list, const char *arg, int argc, char **argv);
-Module *module_init(Module *module, int argc, char **argv);
-Module *module_init_from_list(Module **list, Module *module, int argc, char **argv);
+Module *module_select_by_arg(Module **list, const char *name);
+Module *module_init(Module *module);
+Module *module_init_from_list(Module **list, Module *module);
 void module_shutdown(Module *module);
 
 #endif  /* __MODULE_H__ */

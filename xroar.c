@@ -37,6 +37,7 @@
 #include "tape.h"
 #include "vdisk.h"
 #include "vdrive.h"
+#include "xconfig.h"
 #include "xroar.h"
 
 #ifdef TRACE
@@ -44,10 +45,100 @@
 #endif
 
 #ifdef FAST_VDG
-int xroar_cross_colour_renderer = CROSS_COLOUR_SIMPLE;
+# define DEFAULT_CCR CROSS_COLOUR_SIMPLE
 #else
-int xroar_cross_colour_renderer = CROSS_COLOUR_5BIT;
+# define DEFAULT_CCR CROSS_COLOUR_5BIT
 #endif
+
+/**************************************************************************/
+/* Command line arguments */
+
+/* Emulator interface */
+static const char *xroar_opt_ui = NULL;
+static const char *xroar_opt_filereq = NULL;
+static const char *xroar_opt_vo = NULL;
+static const char *xroar_opt_ao = NULL;
+#ifndef FAST_SOUND
+int xroar_fast_sound = 0;
+#endif
+int xroar_fullscreen = 0;
+static const char *xroar_opt_ccr = NULL;
+int xroar_frameskip = 0;
+char *xroar_opt_keymap = NULL;
+char *xroar_opt_joy_left = NULL;
+char *xroar_opt_joy_right = NULL;
+#ifdef TRACE
+int xroar_trace_enabled = 0;
+#else
+# define xroar_trace_enabled (0)
+#endif
+
+/* Emulated machine */
+char *xroar_opt_machine = NULL;
+char *xroar_opt_bas = NULL;
+char *xroar_opt_extbas = NULL;
+char *xroar_opt_altbas = NULL;
+int xroar_opt_nobas = 0;
+int xroar_opt_noextbas = 0;
+int xroar_opt_noaltbas = 0;
+char *xroar_opt_dostype = NULL;
+char *xroar_opt_dos = NULL;
+int xroar_opt_nodos = 0;
+int xroar_opt_pal = 0;
+int xroar_opt_ntsc = 0;
+int xroar_opt_ram = 0;
+
+/* Automatically load or run files */
+static const char *xroar_opt_load = NULL;
+static const char *xroar_opt_run = NULL;
+
+/* CLI information to hand off to config reader */
+struct xconfig_option xroar_options[] = {
+	/* Emulator interface */
+	{ XCONFIG_STRING,   "ui",           &xroar_opt_ui },
+	{ XCONFIG_STRING,   "filereq",      &xroar_opt_filereq },
+	{ XCONFIG_STRING,   "vo",           &xroar_opt_vo },
+	{ XCONFIG_STRING,   "ao",           &xroar_opt_ao },
+#ifndef FAST_SOUND
+	{ XCONFIG_BOOL,     "fast-sound",   &xroar_fast_sound },
+#endif
+	{ XCONFIG_BOOL,     "fs",           &xroar_fullscreen },
+	{ XCONFIG_STRING,   "ccr",          &xroar_opt_ccr },
+	{ XCONFIG_INT,      "fskip",        &xroar_frameskip },
+	{ XCONFIG_STRING,   "keymap",       &xroar_opt_keymap },
+	{ XCONFIG_STRING,   "joy-left",     &xroar_opt_joy_left },
+	{ XCONFIG_STRING,   "joy-right",    &xroar_opt_joy_right },
+#ifdef TRACE
+	{ XCONFIG_BOOL,     "trace",        &xroar_trace_enabled },
+#endif
+	/* Emulated machine */
+	{ XCONFIG_STRING,   "machine",      &xroar_opt_machine },
+	{ XCONFIG_STRING,   "bas",          &xroar_opt_bas },
+	{ XCONFIG_STRING,   "extbas",       &xroar_opt_extbas },
+	{ XCONFIG_STRING,   "altbas",       &xroar_opt_altbas },
+	{ XCONFIG_BOOL,     "nobas",        &xroar_opt_nobas },
+	{ XCONFIG_BOOL,     "noextbas",     &xroar_opt_noextbas },
+	{ XCONFIG_BOOL,     "noaltbas",     &xroar_opt_noaltbas },
+	{ XCONFIG_STRING,   "dostype",      &xroar_opt_dostype },
+	{ XCONFIG_STRING,   "dos",          &xroar_opt_dos },
+	{ XCONFIG_BOOL,     "nodos",        &xroar_opt_nodos },
+	{ XCONFIG_BOOL,     "pal",          &xroar_opt_pal },
+	{ XCONFIG_BOOL,     "ntsc",         &xroar_opt_ntsc },
+	{ XCONFIG_INT,      "ram",          &xroar_opt_ram },
+	/* Automatically load or run files */
+	{ XCONFIG_STRING,   "load",         &xroar_opt_load },
+	{ XCONFIG_STRING,   "cartna",       &xroar_opt_load },
+	{ XCONFIG_STRING,   "snap",         &xroar_opt_load },
+	{ XCONFIG_STRING,   "run",          &xroar_opt_run },
+	{ XCONFIG_STRING,   "cart",         &xroar_opt_run },
+	{ XCONFIG_END, NULL, NULL }
+};
+
+/**************************************************************************/
+/* Global flags */
+
+int xroar_cross_colour_renderer = DEFAULT_CCR;
+int xroar_noratelimit = 0; 
 
 static struct {
 	const char *option;
@@ -60,16 +151,7 @@ static struct {
 #endif
 };
 
-int xroar_frameskip = 0;
-int xroar_noratelimit = 0;
-#ifdef TRACE
-int xroar_trace_enabled = 0;
-#else
-# define xroar_trace_enabled (0)
-#endif
-#ifndef FAST_SOUND
-int xroar_fast_sound;
-#endif
+/**************************************************************************/
 
 const char *xroar_rom_path;
 
@@ -126,6 +208,7 @@ static void helptext(void) {
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
 #endif
+"  -fs                   start emulator full-screen if possible\n"
 "  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
 "  -fskip FRAMES         frameskip (default: 0)\n"
 "  -keymap CODE          host keyboard type (uk, us, fr, de)\n"
@@ -168,27 +251,45 @@ static void helptext(void) {
 #endif
 
 int xroar_init(int argc, char **argv) {
-	int i;
+	int argn = 1, ret;
 
 	xroar_rom_path = getenv("XROAR_ROM_PATH");
 	if (!xroar_rom_path)
 		xroar_rom_path = ROMPATH;
 
+	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
+	if (ret == XCONFIG_MISSING_ARG) {
+		fprintf(stderr, "%s: missing argument to `%s'\n", argv[0], argv[argn]);
+		exit(1);
+	} else if (ret == XCONFIG_BAD_OPTION) {
+		if (0 == strcmp(argv[argn], "-h")
+				|| 0 == strcmp(argv[argn], "--help")) {
+			helptext();
+			exit(0);
+		} else if (0 == strcmp(argv[argn], "--version")) {
+			versiontext();
+			exit(0);
+		} else {
+			fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], argv[argn]);
+			exit(1);
+		}
+	}
+
 	/* Select a UI module then, possibly using lists specified in that
 	 * module, select all other modules */
-	ui_module = (UIModule *)module_select_by_arg((Module **)ui_module_list, "-ui", argc, argv);
+	ui_module = (UIModule *)module_select_by_arg((Module **)ui_module_list, xroar_opt_ui);
 	/* Select file requester module */
 	if (ui_module->filereq_module_list != NULL)
 		filereq_module_list = ui_module->filereq_module_list;
-	filereq_module = (FileReqModule *)module_select_by_arg((Module **)filereq_module_list, "-filereq", argc, argv);
+	filereq_module = (FileReqModule *)module_select_by_arg((Module **)filereq_module_list, xroar_opt_filereq);
 	/* Select video module */
 	if (ui_module->video_module_list != NULL)
 		video_module_list = ui_module->video_module_list;
-	video_module = (VideoModule *)module_select_by_arg((Module **)video_module_list, "-vo", argc, argv);
+	video_module = (VideoModule *)module_select_by_arg((Module **)video_module_list, xroar_opt_vo);
 	/* Select sound module */
 	if (ui_module->sound_module_list != NULL)
 		sound_module_list = ui_module->sound_module_list;
-	sound_module = (SoundModule *)module_select_by_arg((Module **)sound_module_list, "-ao", argc, argv);
+	sound_module = (SoundModule *)module_select_by_arg((Module **)sound_module_list, xroar_opt_ao);
 	/* Select keyboard module */
 	if (ui_module->keyboard_module_list != NULL)
 		keyboard_module_list = ui_module->keyboard_module_list;
@@ -197,57 +298,34 @@ int xroar_init(int argc, char **argv) {
 	if (ui_module->joystick_module_list != NULL)
 		joystick_module_list = ui_module->joystick_module_list;
 	joystick_module = NULL;
-	/* Look for other relevant command-line options */
-	for (i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-fskip") && i+1<argc) {
-			xroar_frameskip = strtol(argv[++i], NULL, 0);
-			if (xroar_frameskip < 0)
-				xroar_frameskip = 0;
-		} else if (!strcmp(argv[i], "-ccr") && i+1<argc) {
-			int j;
-			i++;
-			if (!strcmp(argv[i], "help")) {
-				for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
-					printf("\t%-10s%s\n", cross_colour_options[j].option, cross_colour_options[j].description);
-				}
-				exit(0);
+
+	/* Check other command-line options */
+	if (xroar_frameskip < 0)
+		xroar_frameskip = 0;
+	if (xroar_opt_ccr) {
+		int i;
+		if (0 == strcmp(xroar_opt_ccr, "help")) {
+			for (i = 0; i < NUM_CROSS_COLOUR_RENDERERS; i++) {
+				printf("\t%-10s%s\n", cross_colour_options[i].option, cross_colour_options[i].description);
 			}
-			for (j = 0; j < NUM_CROSS_COLOUR_RENDERERS; j++) {
-				if (!strcmp(argv[i], cross_colour_options[j].option)) {
-					xroar_cross_colour_renderer = cross_colour_options[j].value;
-				}
-			}
-#ifndef FAST_SOUND
-		} else if (!strcmp(argv[i], "-fast-sound")) {
-			xroar_fast_sound = 1;
-#endif
-		} else if (!strcmp(argv[i], "-load")
-				|| !strcmp(argv[i], "-cartna")
-				|| !strcmp(argv[i], "-snap")) {
-			i++;
-			if (i >= argc) break;
-			load_file = argv[i];
-			autorun_loaded_file = 0;
-		} else if (!strcmp(argv[i], "-run")
-				|| !strcmp(argv[i], "-cart")) {
-			i++;
-			if (i >= argc) break;
-			load_file = argv[i];
-			autorun_loaded_file = 1;
-#ifdef TRACE
-		} else if (!strcmp(argv[i], "-trace")) {
-			xroar_trace_enabled = 1;
-#endif
-		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")
-				|| !strcmp(argv[i], "-help")) {
-			helptext();
-			exit(0);
-		} else if (!strcmp(argv[i], "--version")) {
-			versiontext();
 			exit(0);
 		}
+		for (i = 0; i < NUM_CROSS_COLOUR_RENDERERS; i++) {
+			if (!strcmp(xroar_opt_ccr, cross_colour_options[i].option)) {
+				xroar_cross_colour_renderer = cross_colour_options[i].value;
+			}
+		}
 	}
-	machine_getargs(argc, argv);
+	if (xroar_opt_load) {
+		load_file = xroar_opt_load;
+		autorun_loaded_file = 0;
+	}
+	if (xroar_opt_run) {
+		load_file = xroar_opt_run;
+		autorun_loaded_file = 1;
+	}
+
+	machine_getargs();
 
 	/* Disable DOS if a cassette or cartridge is being loaded */
 	if (load_file) {
@@ -266,26 +344,26 @@ int xroar_init(int argc, char **argv) {
 	/* Initialise everything */
 	current_cycle = 0;
 	/* ... modules */
-	module_init((Module *)ui_module, argc, argv);
-	filereq_module = (FileReqModule *)module_init_from_list((Module **)filereq_module_list, (Module *)filereq_module, argc, argv);
+	module_init((Module *)ui_module);
+	filereq_module = (FileReqModule *)module_init_from_list((Module **)filereq_module_list, (Module *)filereq_module);
 	if (filereq_module == NULL && filereq_module_list != NULL) {
 		LOG_WARN("No file requester module initialised.\n");
 	}
-	video_module = (VideoModule *)module_init_from_list((Module **)video_module_list, (Module *)video_module, argc, argv);
+	video_module = (VideoModule *)module_init_from_list((Module **)video_module_list, (Module *)video_module);
 	if (video_module == NULL && video_module_list != NULL) {
 		LOG_ERROR("No video module initialised.\n");
 		return 1;
 	}
-	sound_module = (SoundModule *)module_init_from_list((Module **)sound_module_list, (Module *)sound_module, argc, argv);
+	sound_module = (SoundModule *)module_init_from_list((Module **)sound_module_list, (Module *)sound_module);
 	if (sound_module == NULL && sound_module_list != NULL) {
 		LOG_ERROR("No sound module initialised.\n");
 		return 1;
 	}
-	keyboard_module = (KeyboardModule *)module_init_from_list((Module **)keyboard_module_list, (Module *)keyboard_module, argc, argv);
+	keyboard_module = (KeyboardModule *)module_init_from_list((Module **)keyboard_module_list, (Module *)keyboard_module);
 	if (keyboard_module == NULL && keyboard_module_list != NULL) {
 		LOG_WARN("No keyboard module initialised.\n");
 	}
-	joystick_module = (JoystickModule *)module_init_from_list((Module **)joystick_module_list, (Module *)joystick_module, argc, argv);
+	joystick_module = (JoystickModule *)module_init_from_list((Module **)joystick_module_list, (Module *)joystick_module);
 	if (joystick_module == NULL && joystick_module_list != NULL) {
 		LOG_WARN("No joystick module initialised.\n");
 	}

@@ -32,7 +32,7 @@
 #include "types.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -64,12 +64,10 @@ static pthread_mutex_t haltflag;
 
 static event_t *flush_event;
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	const char **ports;
 	int i;
 
-	(void)argc;
-	(void)argv;
 	LOG_DEBUG(2,"Initialising JACK audio driver\n");
 	if ((client = jack_client_new("XRoar")) == 0) {
 		LOG_ERROR("Initialisation failed: JACK server not running?\n");

@@ -47,7 +47,7 @@
 #include "nds/ndsui_scrollbar.h"
 #include "nds/ndsui_textbox.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 
 extern VideoModule video_nds_module;
@@ -85,10 +85,7 @@ static void file_requester_callback(void (*func)(char *));
 static void update_joystick_swap_state_text(void);
 static char *ic_construct_button_label(int i);
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
-
+static int init(void) {
 	powerSET(POWER_ALL_2D|POWER_SWAP_LCDS);
 	chdir("/dragon");
 

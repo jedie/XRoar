@@ -32,7 +32,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 static void update(int value);
 
@@ -62,14 +62,12 @@ static Sample lastsample;
 static void flush_frame(void);
 static event_t *flush_event;
 
-static int init(int argc, char **argv) {
+static int init(void) {
 	int err;
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_uframes_t buffer_size = FRAME_SIZE * FRAGMENTS;
 	snd_pcm_uframes_t period_size = FRAME_SIZE / 2;
 
-	(void)argc;
-	(void)argv;
 	LOG_DEBUG(2,"Initialising ALSA audio driver\n");
 
 	sample_rate = 44100;

@@ -146,39 +146,34 @@ Module *module_select(Module **list, const char *name) {
 	return NULL;
 }
 
-Module *module_select_by_arg(Module **list, const char *arg, int argc, char **argv) {
-	int i;
-	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], arg) == 0 && i+1<argc) {
-			i++;
-			if (strcmp(argv[i], "help") == 0) {
-				module_print_list(list);
-				exit(0);
-			}
-			return module_select(list, argv[i]);
-		}
+Module *module_select_by_arg(Module **list, const char *name) {
+	if (name == NULL)
+		return list[0];
+	if (0 == strcmp(name, "help")) {
+		module_print_list(list);
+		exit(0);
 	}
-	return list[0];
+	return module_select(list, name);
 }
 
-Module *module_init(Module *module, int argc, char **argv) {
-	if (module != NULL && module->common.init(argc, argv) == 0) {
+Module *module_init(Module *module) {
+	if (module != NULL && module->common.init() == 0) {
 		module->common.initialised = 1;
 		return module;
 	}
 	return NULL;
 }
 
-Module *module_init_from_list(Module **list, Module *module, int argc, char **argv) {
+Module *module_init_from_list(Module **list, Module *module) {
 	int i;
 	/* First attempt to initialise selected module (if given) */
-	if (module_init(module, argc, argv))
+	if (module_init(module))
 		return module;
 	if (list == NULL)
 		return NULL;
 	/* If that fails, try every *other* module in the list */
 	for (i = 0; list[i]; i++) {
-		if (list[i] != module && (module_init(list[i], argc, argv)))
+		if (list[i] != module && (module_init(list[i])))
 			return list[i];
 	}
 	return NULL;

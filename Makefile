@@ -68,7 +68,8 @@ xroar.arm7: LDFLAGS = $(NDS_ARM7_LDFLAGS)
 OBJS := cart.o crc16.o events.o hexs19.o input.o joystick.o keyboard.o \
 		m6809.o machine.o mc6821.o module.o path.o sam.o snapshot.o \
 		tape.o vdg.o vdg_bitmaps.o vdisk.o vdrive.o \
-		dragondos.o rsdos.o deltados.o wd279x.o xroar.o portalib.o
+		dragondos.o rsdos.o deltados.o wd279x.o xconfig.o xroar.o \
+		portalib.o
 
 ALL_OBJS := $(OBJS)
 

@@ -39,7 +39,7 @@
 #include "vdrive.h"
 #include "xroar.h"
 
-static int init(int argc, char **argv);
+static int init(void);
 static void shutdown(void);
 void gp32_menu(void);
 static char *get_filename(const char **extensions);
@@ -130,9 +130,7 @@ static Menu main_menu[] = {
 
 extern uint8_t vdg_alpha_gp32[4][3][8192];
 
-static int init(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
+static int init(void) {
 	gpgfx_init();
 	gpgfx_fillrect(0, 0, 320, 196, 0x00000000);
 	gpgfx_fillrect(0, 196, 320, 44, 0xffffff00);
