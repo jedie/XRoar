@@ -40,24 +40,28 @@ WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 
 ifeq ($(CONFIG_MINGW),yes)
 ROMPATH = \".\"
+CONFPATH = \".\"
 else
 ifeq ($(CONFIG_GP32),yes)
 ROMPATH = \"gp\\\\:/gpmm/dragon\"
+CONFPATH = \"gp\\\\:/gpmm/dragon\"
 else
 ifeq ($(CONFIG_NDS),yes)
 ROMPATH = \"/dragon/roms:/dragon:\"
+CONFPATH = \"/dragon:\"
 else
 ROMPATH = \":~/.xroar/roms:~/Library/XRoar/Roms:$(datadir)/xroar/roms\"
+CONFPATH = \":~/.xroar:~/Library/XRoar:$(datadir)/xroar\"
 endif
 endif
 endif
 
-CFLAGS += -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH)
+CFLAGS += -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 
 ############################################################################
 # Build rules for ARM7
 
-NDS_ARM7_CFLAGS = -O3 -pipe -mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM7 -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH)
+NDS_ARM7_CFLAGS = -O3 -pipe -mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM7 -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 NDS_ARM7_LDFLAGS = -specs=ds_arm7.specs -lnds7
 xroar.arm7: CFLAGS = $(NDS_ARM7_CFLAGS)
 xroar.arm7: LDFLAGS = $(NDS_ARM7_LDFLAGS)

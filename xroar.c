@@ -154,6 +154,7 @@ static struct {
 /**************************************************************************/
 
 const char *xroar_rom_path;
+const char *xroar_conf_path;
 
 event_t *xroar_ui_events = NULL;
 event_t *xroar_machine_events = NULL;
@@ -249,14 +250,28 @@ static void helptext(void) {
 #ifndef ROMPATH
 # define ROMPATH "."
 #endif
+#ifndef CONFPATH
+# define CONFPATH "."
+#endif
 
 int xroar_init(int argc, char **argv) {
 	int argn = 1, ret;
+	char *conffile;
 
 	xroar_rom_path = getenv("XROAR_ROM_PATH");
 	if (!xroar_rom_path)
 		xroar_rom_path = ROMPATH;
 
+	xroar_conf_path = getenv("XROAR_CONF_PATH");
+	if (!xroar_conf_path)
+		xroar_conf_path = CONFPATH;
+
+	/* If a configuration file is found, parse it */
+	conffile = find_in_path(xroar_conf_path, "xroar.conf");
+	if (conffile) {
+		xconfig_parse_file(xroar_options, conffile);
+	}
+	/* Parse command line options */
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
 	if (ret == XCONFIG_MISSING_ARG) {
 		fprintf(stderr, "%s: missing argument to `%s'\n", argv[0], argv[argn]);
