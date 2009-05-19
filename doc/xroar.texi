@@ -69,6 +69,7 @@ Save and load snapshots.
 * User interface::
 * Supported file types::
 * Firmware ROM image names::
+* Configuration file::
 * GP32 user interface::
 * Nintendo DS user interface::
 * Acknowledgements::
@@ -828,6 +829,21 @@ deltados
 disk10
 @tab Disk Extended Color BASIC 1.1 or 1.0.
 @end multitable
+
+@node Configuration file
+@chapter Configuration file
+
+All command-line options can also be used as directives in a
+configuration file called @file{xroar.conf}.  This file is searched
+for in a variety of locations, including the current working
+directory.  Directives are listed one per line without the leading
+dashes of the command line option.
+
+In a future release it should be possible to group machine or DOS
+configurations by some arbitrary name, allowing easy access to sets
+of configurations.  For now though, it is only really useful for
+specifying a default machine, video output module, joystick mapping,
+etc.
 
 @node GP32 user interface
 @chapter GP32 user interface
