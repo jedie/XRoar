@@ -694,17 +694,20 @@ fi
 if test "$_sun" = "auto"; then
 	echocheck Sun audio
 	cat > $TMPC <<EOF
+#include <stdlib.h>
 #include <sys/audioio.h>
 #include <sys/stropts.h>
-int main(int argc, char **argv) { audio_info_t d; int t = AUDIO_ENCODING_LINEAR; t = I_FLUSH; return 0; }
+#include <time.h>
+int main(int argc, char **argv) { audio_info_t d; int t = AUDIO_ENCODING_LINEAR; t = I_FLUSH; nanosleep(NULL,NULL); return 0; }
 EOF
 	_sun=no
-	target_cc_check "" "" && _sun=yes
+	target_cc_check "" "-lrt" && _sun=yes
 	rm -f $TMPC
 	echo "$_sun"
 fi
 if test "$_sun" = "yes"; then
 	_sun_def="#define HAVE_SUN_AUDIO"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -lrt"
 else
 	_sun_def="#undef HAVE_SUN_AUDIO"
 fi
