@@ -53,7 +53,8 @@ static char *get_filename(const char **extensions) {
 	if (video_module->set_fullscreen && was_fullscreen)
 		video_module->set_fullscreen(0);
 	printf("Filename? ");
-	fgets(fnbuf, sizeof(fnbuf), stdin);
+	if (!fgets(fnbuf, sizeof(fnbuf), stdin))
+		return NULL;
 	cr = strrchr(fnbuf, '\n');
 	if (cr)
 		*cr = 0;
