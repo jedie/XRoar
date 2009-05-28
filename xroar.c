@@ -293,6 +293,10 @@ int xroar_init(int argc, char **argv) {
 	/* Select a UI module then, possibly using lists specified in that
 	 * module, select all other modules */
 	ui_module = (UIModule *)module_select_by_arg((Module **)ui_module_list, xroar_opt_ui);
+	if (ui_module == NULL) {
+		fprintf(stderr, "%s: ui module `%s' not found\n", argv[0], xroar_opt_ui);
+		exit(1);
+	}
 	/* Select file requester module */
 	if (ui_module->filereq_module_list != NULL)
 		filereq_module_list = ui_module->filereq_module_list;
