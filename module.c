@@ -28,6 +28,7 @@
 extern UIModule ui_sdl_module;
 extern UIModule ui_gp32_module;
 extern UIModule ui_nds_module;
+extern UIModule ui_curses_module;
 static UIModule *default_ui_module_list[] = {
 #ifdef HAVE_SDL
 	&ui_sdl_module,
@@ -37,6 +38,9 @@ static UIModule *default_ui_module_list[] = {
 #endif
 #ifdef HAVE_NDS
 	&ui_nds_module,
+#endif
+#ifdef HAVE_CURSES
+	&ui_curses_module,
 #endif
 	NULL
 };

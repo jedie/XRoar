@@ -17,6 +17,7 @@ _sdl=auto
 _sdlgl=auto
 _build_sdl=auto
 _build_sdl_image=auto
+_curses=auto
 _gtk2=auto
 _gtk1=auto
 _cli=yes
@@ -68,6 +69,7 @@ System types:
 Optional Features:
   --disable-sdl         don't test for SDL
   --disable-sdlgl       don't test for SDL OpenGL support
+  --disable-curses      don't test for Curses
   --disable-gtk2        don't test for GTK+-2
   --disable-gtk1        don't test for GTK+-1
   --disable-carbon      don't test for Mac OS X Carbon
@@ -374,6 +376,7 @@ if test "$_gp32" = "yes"; then
 	_strsep=yes
 	_sdl=no
 	_sdlgl=no
+	_curses=no
 	_gtk2=no
 	_gtk1=no
 	_cli=no
@@ -419,6 +422,7 @@ if test "$_nds" = "yes"; then
 	_strsep=yes
 	_sdl=no
 	_sdlgl=no
+	_curses=no
 	_gtk2=no
 	_gtk1=no
 	_cli=no
@@ -568,6 +572,28 @@ if test "$_sdlgl" = "yes"; then
 	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $sdlgl_ldflags"
 else
 	_sdlgl_def="#undef HAVE_SDLGL"
+fi
+
+########
+
+if test "$_curses" = "yes" -o "$_curses" = "auto"; then
+	echocheck Curses
+	cat > $TMPC <<EOF
+#include <curses.h>
+int main(int argc, char **argv) { initscr(); endwin(); return 0; }
+EOF
+	_curses=no
+	curses_ldflags="-lcurses"
+	target_cc_check "" "$curses_ldflags" && _curses=yes
+	rm -f $TMPC
+	echo "$_curses"
+fi
+if test "$_curses" = "yes"; then
+	_curses_def="#define HAVE_CURSES"
+	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $curses_ldflags"
+	_have_video_driver=yes
+else
+	_curses_def="#undef HAVE_CURSES"
 fi
 
 ########
@@ -932,6 +958,7 @@ CONFIG_SDL = $_sdl
 CONFIG_SDLGL = $_sdlgl
 CONFIG_BUILD_SDL = $_build_sdl
 CONFIG_BUILD_SDL_IMAGE = $_build_sdl_image
+CONFIG_CURSES = $_curses
 CONFIG_GTK2 = $_gtk2
 CONFIG_GTK1 = $_gtk1
 CONFIG_CLI = $_cli
@@ -969,6 +996,9 @@ $_sdl_def
 
 /* SDL OpenGL support? */
 $_sdlgl_def
+
+/* Curses UI? */
+$_curses_def
 
 /* GTK+-2? */
 $_gtk2_def

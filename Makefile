@@ -96,6 +96,12 @@ ifeq ($(CONFIG_SDLGL),yes)
 video_sdlgl.o: vdg_bitmaps.h
 endif
 
+OBJS_CURSES = ui_curses.o video_curses.o keyboard_curses.o
+ALL_OBJS += $(OBJS_CURSES)
+ifeq ($(CONFIG_CURSES),yes)
+	OBJS += $(OBJS_CURSES)
+endif
+
 OBJS_GTK2 = filereq_gtk2.o
 ALL_OBJS += $(OBJS_GTK2)
 ifeq ($(CONFIG_GTK2),yes)
