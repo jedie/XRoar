@@ -48,6 +48,12 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 		case XCONFIG_STRING:
 			*(char **)option->dest = strdup(arg);
 			break;
+		case XCONFIG_CALL_0:
+			((void (*)(void))option->dest)();
+			break;
+		case XCONFIG_CALL_1:
+			((void (*)(const char *))option->dest)(arg);
+			break;
 		default:
 			break;
 	}
@@ -103,7 +109,8 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 			if (argn) *argn = _argn;
 			return XCONFIG_BAD_OPTION;
 		}
-		if (option->type == XCONFIG_BOOL) {
+		if (option->type == XCONFIG_BOOL
+				|| option->type == XCONFIG_CALL_0) {
 			set_option(option, NULL);
 			_argn++;
 			continue;

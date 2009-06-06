@@ -18,6 +18,8 @@ enum xconfig_option_type {
 	XCONFIG_INT,
 	XCONFIG_FLOAT,
 	XCONFIG_STRING,
+	XCONFIG_CALL_0,
+	XCONFIG_CALL_1,
 	XCONFIG_END
 };
 
