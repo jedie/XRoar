@@ -48,8 +48,7 @@ extern int xroar_opt_noaltbas;
 extern char *xroar_opt_dostype;
 extern char *xroar_opt_dos;
 extern int xroar_opt_nodos;
-extern int xroar_opt_pal;
-extern int xroar_opt_ntsc;
+extern int xroar_opt_tv;
 extern int xroar_opt_ram;
 
 /**************************************************************************/

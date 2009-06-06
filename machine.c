@@ -157,12 +157,7 @@ void machine_getargs(void) {
 	if (xroar_opt_ram > 0) {
 		requested_config.ram = xroar_opt_ram;
 	}
-	if (xroar_opt_pal) {
-		requested_config.tv_standard = TV_PAL;
-	}
-	if (xroar_opt_ntsc) {
-		requested_config.tv_standard = TV_NTSC;
-	}
+	requested_config.tv_standard = xroar_opt_tv;
 }
 
 static void update_sound(void) {

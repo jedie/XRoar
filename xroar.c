@@ -84,8 +84,9 @@ int xroar_opt_noaltbas = 0;
 char *xroar_opt_dostype = NULL;
 char *xroar_opt_dos = NULL;
 int xroar_opt_nodos = 0;
-int xroar_opt_pal = 0;
-int xroar_opt_ntsc = 0;
+int xroar_opt_tv = TV_PAL;
+static void set_pal(void);
+static void set_ntsc(void);
 int xroar_opt_ram = 0;
 
 /* Automatically load or run files */
@@ -122,8 +123,8 @@ struct xconfig_option xroar_options[] = {
 	{ XCONFIG_STRING,   "dostype",      &xroar_opt_dostype },
 	{ XCONFIG_STRING,   "dos",          &xroar_opt_dos },
 	{ XCONFIG_BOOL,     "nodos",        &xroar_opt_nodos },
-	{ XCONFIG_BOOL,     "pal",          &xroar_opt_pal },
-	{ XCONFIG_BOOL,     "ntsc",         &xroar_opt_ntsc },
+	{ XCONFIG_CALL_0,   "pal",          &set_pal },
+	{ XCONFIG_CALL_0,   "ntsc",         &set_ntsc },
 	{ XCONFIG_INT,      "ram",          &xroar_opt_ram },
 	/* Automatically load or run files */
 	{ XCONFIG_STRING,   "load",         &xroar_opt_load },
@@ -185,6 +186,16 @@ static struct {
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 static void trace_done_instruction(M6809State *state);
+
+/**************************************************************************/
+
+static void set_pal(void) {
+	xroar_opt_tv = TV_PAL;
+}
+
+static void set_ntsc(void) {
+	xroar_opt_tv = TV_NTSC;
+}
 
 static void versiontext(void) {
 	puts(
