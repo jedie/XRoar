@@ -349,9 +349,11 @@ int xroar_init(int argc, char **argv) {
 	if (xroar_opt_load) {
 		load_file = xroar_opt_load;
 		autorun_loaded_file = 0;
-	}
-	if (xroar_opt_run) {
+	} else if (xroar_opt_run) {
 		load_file = xroar_opt_run;
+		autorun_loaded_file = 1;
+	} else if (argn < argc) {
+		load_file = strdup(argv[argn]);
 		autorun_loaded_file = 1;
 	}
 
