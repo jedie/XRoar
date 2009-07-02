@@ -72,6 +72,7 @@ Save and load snapshots.
 * Configuration file::
 * GP32 user interface::
 * Nintendo DS user interface::
+* Curses user interface::
 * Acknowledgements::
 @end menu
 @end ifnottex
@@ -760,7 +761,9 @@ file extension.  You can also automatically attach (and optionally start) files
 from the command line by using the @option{-load FILE} or @option{-run FILE}
 options.  If you @option{-load} or @option{-run} a cassette image, XRoar will
 automatically disable any DOS cartridge emulation for you, as this can
-interfere with some cassette-based games.
+interfere with some cassette-based games.  In addition, the first non-option
+argument to XRoar is taken as a filename and treated as though it were the
+argument to the @option{-run} option.
 
 @node Firmware ROM image names
 @chapter Firmware ROM image names
@@ -886,6 +889,15 @@ command.  By default, the @kbd{D-pad} buttons are mapped to the right joystick,
 and @kbd{A} to the right firebutton.  @kbd{Y} swaps joysticks for convenience,
 and @kbd{Start} swaps the DS screens, allowing you to use the touch screen as
 an analogue joystick input.
+
+@node Curses user interface
+@chapter Curses user interface
+
+On compatible systems (probably only Unix-based), an experimental Curses user
+interface may be available, specified by starting with the @option{-ui curses}
+option.  This uses Unix terminal capabilities to render a text-only view of the
+video output.  Keyboard commands are broadly the same as those defined for the
+SDL user interface.
 
 @node Acknowledgements
 @chapter Acknowledgements
