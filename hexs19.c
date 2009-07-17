@@ -103,15 +103,15 @@ int coco_bin_read(const char *filename) {
 	LOG_DEBUG(2, "Reading BIN file\n");
 	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data == 0) {
-			length = fs_read_uint16_le(fd);
-			load = fs_read_uint16_le(fd);
+			length = fs_read_uint16(fd);
+			load = fs_read_uint16(fd);
 			LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
 			fs_read(fd, &ram0[load], length);
 			continue;
 		}
 		if (data == 0xff) {
-			(void)fs_read_uint16_le(fd);  /* skip 0 */
-			exec = fs_read_uint16_le(fd);
+			(void)fs_read_uint16(fd);  /* skip 0 */
+			exec = fs_read_uint16(fd);
 			LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
 			m6809_jump(exec);
 			break;
