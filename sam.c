@@ -33,7 +33,7 @@ uint8_t *sam_mapped_rom;
 static unsigned int map_type;
 static unsigned int ram_page_bit;
 
-unsigned int sam_register;
+static unsigned int sam_register;
 
 static unsigned int sam_vdg_base;
 static unsigned int sam_vdg_mode;
