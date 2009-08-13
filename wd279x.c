@@ -312,8 +312,9 @@ static void state_machine(void) {
 					RESET_DIRECTION;
 				}
 				if (is_step_cmd) {
-					if (command_register & 0x10)
+					if (command_register & 0x10) {
 						GOTO_STATE(type_1_state_2);
+					}
 					GOTO_STATE(type_1_state_3);
 				}
 				if ((command_register & 0xf0) == 0x00) {
