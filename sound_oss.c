@@ -113,7 +113,23 @@ static int init(void) {
 	tmp = fragment_param;
 	if (ioctl(sound_fd, SNDCTL_DSP_SETFRAGMENT, &fragment_param) == -1)
 		goto failed;
-	LOG_DEBUG(2, "\t%d channel%s, %dHz, %d bytes per sample\n", channels, channels > 1 ? "s" : "", sample_rate, bytes_per_sample);
+
+	/* TODO: Need to abstract this logging out */
+	LOG_DEBUG(2, "\t");
+	if (format & AFMT_U8) LOG_DEBUG(2, "8-bit unsigned, ");
+	else if (format & AFMT_S16_LE) LOG_DEBUG(2, "16-bit signed little-endian, ");
+	else if (format & AFMT_S16_BE) LOG_DEBUG(2, "16-bit signed big-endian, ");
+	else if (format & AFMT_S8) LOG_DEBUG(2, "8-bit signed, ");
+	else if (format & AFMT_U16_LE) LOG_DEBUG(2, "16-bit unsigned little-endian, ");
+	else if (format & AFMT_U16_BE) LOG_DEBUG(2, "16-bit unsigned big-endian, ");
+	else LOG_DEBUG(2, "Unknown format, ");
+	switch (channels) {
+		case 1: LOG_DEBUG(2, "mono, "); break;
+		case 2: LOG_DEBUG(2, "stereo, "); break;
+		default: LOG_DEBUG(2, "%d channel, ", channels); break;
+	}
+	LOG_DEBUG(2, "%dHz\n", sample_rate);
+
 	if (tmp != fragment_param)
 		LOG_WARN("Couldn't set desired buffer parameters: sync to audio might not be ideal\n");
 	buffer = malloc(FRAME_SIZE * sizeof(Sample));

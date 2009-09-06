@@ -67,6 +67,8 @@ static int init(void) {
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_uframes_t buffer_size = FRAME_SIZE * FRAGMENTS;
 	snd_pcm_uframes_t period_size = FRAME_SIZE / 2;
+	snd_pcm_format_t format = SND_PCM_FORMAT_U8;
+	unsigned int channels = 1;
 
 	LOG_DEBUG(2,"Initialising ALSA audio driver\n");
 
@@ -84,13 +86,13 @@ static int init(void) {
 	if ((err = snd_pcm_hw_params_set_access(pcm_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
 		goto failed;
 
-	if ((err = snd_pcm_hw_params_set_format(pcm_handle, hw_params, SND_PCM_FORMAT_U8)) < 0)
+	if ((err = snd_pcm_hw_params_set_format(pcm_handle, hw_params, format)) < 0)
 		goto failed;
 
 	if ((err = snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &sample_rate, 0)) < 0)
 		goto failed;
 
-	if ((err = snd_pcm_hw_params_set_channels(pcm_handle, hw_params, 1)) < 0)
+	if ((err = snd_pcm_hw_params_set_channels(pcm_handle, hw_params, channels)) < 0)
 		goto failed;
 
 	snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_size);
@@ -103,6 +105,24 @@ static int init(void) {
 
 	if ((err = snd_pcm_prepare(pcm_handle)) < 0)
 		goto failed;
+
+	/* TODO: Need to abstract this logging out */
+	LOG_DEBUG(2, "\t");
+	switch (format) {
+		case SND_PCM_FORMAT_S8: LOG_DEBUG(2, "8-bit signed, "); break;
+		case SND_PCM_FORMAT_U8: LOG_DEBUG(2, "8-bit unsigned, "); break;
+		case SND_PCM_FORMAT_S16_LE: LOG_DEBUG(2, "16-bit signed little-endian, "); break;
+		case SND_PCM_FORMAT_S16_BE: LOG_DEBUG(2, "16-bit signed big-endian, "); break;
+		case SND_PCM_FORMAT_U16_LE: LOG_DEBUG(2, "16-bit unsigned little-endian, "); break;
+		case SND_PCM_FORMAT_U16_BE: LOG_DEBUG(2, "16-bit unsigned big-endian, "); break;
+		default: LOG_DEBUG(2, "unknown, "); break;
+	}
+	switch (channels) {
+		case 1: LOG_DEBUG(2, "mono, "); break;
+		case 2: LOG_DEBUG(2, "stereo, "); break;
+		default: LOG_DEBUG(2, "%d channel, ", channels); break;
+	}
+	LOG_DEBUG(2, "%dHz\n", sample_rate);
 
 	buffer = malloc(FRAME_SIZE * sizeof(Sample));
 	flush_event = event_new();

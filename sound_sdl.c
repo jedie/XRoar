@@ -72,12 +72,6 @@ static void callback(void *userdata, Uint8 *stream, int len);
 
 static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL audio driver\n");
-#ifdef WINDOWS32
-	//if (!getenv("SDL_AUDIODRIVER"))
-		//putenv("SDL_AUDIODRIVER=windib");
-	//if (!getenv("SDL_MIXERDRIVER"))
-		//putenv("SDL_MIXERDRIVER=windib");
-#endif
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 			LOG_ERROR("Failed to initialiase SDL\n");
@@ -99,6 +93,25 @@ static int init(void) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		return 1;
 	}
+
+	/* TODO: Need to abstract this logging out */
+	LOG_DEBUG(2, "\t");
+	switch (audiospec.freq) {
+		case AUDIO_U8: LOG_DEBUG(2, "8-bit unsigned, "); break;
+		case AUDIO_S8: LOG_DEBUG(2, "8-bit signed, "); break;
+		case AUDIO_U16LSB: LOG_DEBUG(2, "16-bit unsigned little-endian, "); break;
+		case AUDIO_S16LSB: LOG_DEBUG(2, "16-bit signed little-endian, "); break;
+		case AUDIO_U16MSB: LOG_DEBUG(2, "16-bit unsigned big-endian, "); break;
+		case AUDIO_S16MSB: LOG_DEBUG(2, "16-bit signed big-endian, "); break;
+		default: LOG_DEBUG(2, "unknown, "); break;
+	}
+	switch (audiospec.channels) {
+		case 1: LOG_DEBUG(2, "mono, "); break;
+		case 2: LOG_DEBUG(2, "stereo, "); break;
+		default: LOG_DEBUG(2, "%d channel, ", audiospec.channels); break;
+	}
+	LOG_DEBUG(2, "%dHz\n", audiospec.freq);
+
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
