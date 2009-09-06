@@ -94,7 +94,7 @@ static const char *xroar_opt_load = NULL;
 static const char *xroar_opt_run = NULL;
 
 /* CLI information to hand off to config reader */
-struct xconfig_option xroar_options[] = {
+static struct xconfig_option xroar_options[] = {
 	/* Emulator interface */
 	{ XCONFIG_STRING,   "ui",           &xroar_opt_ui },
 	{ XCONFIG_STRING,   "filereq",      &xroar_opt_filereq },
