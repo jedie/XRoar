@@ -46,6 +46,13 @@ static struct joy {
 } joy[6];
 static int num_joys = 0;
 
+#define CONTROL_RIGHT_X    (0)
+#define CONTROL_RIGHT_Y    (1)
+#define CONTROL_LEFT_X     (2)
+#define CONTROL_LEFT_Y     (3)
+#define CONTROL_RIGHT_FIRE (4)
+#define CONTROL_LEFT_FIRE  (5)
+
 static int control_order[6] = {
 	INPUT_JOY_RIGHT_X, INPUT_JOY_RIGHT_Y, INPUT_JOY_RIGHT_FIRE,
 	INPUT_JOY_LEFT_X,  INPUT_JOY_LEFT_Y,  INPUT_JOY_LEFT_FIRE
@@ -224,12 +231,12 @@ static void do_poll(void) {
 		}
 	}
 	/* And buttons */
-	if (control[INPUT_JOY_RIGHT_FIRE ^ input_joysticks_swapped].joy && SDL_JoystickGetButton(control[INPUT_JOY_RIGHT_FIRE ^ input_joysticks_swapped].joy->device, control[INPUT_JOY_RIGHT_FIRE ^ input_joysticks_swapped].control_num)) {
+	if (control[CONTROL_RIGHT_FIRE ^ (input_joysticks_swapped >> 1)].joy && SDL_JoystickGetButton(control[CONTROL_RIGHT_FIRE ^ (input_joysticks_swapped >> 1)].joy->device, control[CONTROL_RIGHT_FIRE ^ (input_joysticks_swapped >> 1)].control_num)) {
 		PIA0.a.tied_low &= 0xfe;
 	} else {
 		PIA0.a.tied_low |= 0x01;
 	}
-	if (control[INPUT_JOY_LEFT_FIRE ^ input_joysticks_swapped].joy && SDL_JoystickGetButton(control[INPUT_JOY_LEFT_FIRE ^ input_joysticks_swapped].joy->device, control[INPUT_JOY_LEFT_FIRE ^ input_joysticks_swapped].control_num)) {
+	if (control[CONTROL_LEFT_FIRE ^ (input_joysticks_swapped >> 1)].joy && SDL_JoystickGetButton(control[CONTROL_LEFT_FIRE ^ (input_joysticks_swapped >> 1)].joy->device, control[CONTROL_LEFT_FIRE ^ (input_joysticks_swapped >> 1)].control_num)) {
 		PIA0.a.tied_low &= 0xfd;
 	} else {
 		PIA0.a.tied_low |= 0x02;
