@@ -195,10 +195,10 @@ static void emulator_command(SDLKey sym) {
 		if (shift) {
 			input_control_press(INPUT_SWAP_JOYSTICKS, 0);
 		} else {
-			if (emulate_joystick || input_joysticks_swapped)
+			if (emulate_joystick) {
 				input_control_press(INPUT_SWAP_JOYSTICKS, 0);
-			if (!input_joysticks_swapped)
-				emulate_joystick = !emulate_joystick;
+			}
+			emulate_joystick = (emulate_joystick + 1) % 3;
 		}
 		break;
 	case SDLK_k:
