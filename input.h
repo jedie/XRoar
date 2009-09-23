@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  See COPYING.GPL for redistribution conditions. */
 
@@ -22,8 +22,6 @@
 #define INPUT_UNICODE_KEY (9)
 /* Input config commands */
 #define INPUT_SWAP_JOYSTICKS (10)
-
-extern int input_joysticks_swapped;
 
 void input_control_press(int command, unsigned int arg);
 void input_control_release(int command, unsigned int arg);

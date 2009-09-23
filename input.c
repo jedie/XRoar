@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include "machine.h"
 #include "mc6821.h"
 
-int input_joysticks_swapped = 0;
+static int input_joysticks_swapped = 0;
 static int pia_firebutton_swap = 0;
 
 void input_control_press(int command, unsigned int arg) {

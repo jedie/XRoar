@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2008  Ciaran Anscomb
+ *  Copyright (C) 2003-2009  Ciaran Anscomb
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -227,19 +227,19 @@ static void do_poll(void) {
 	/* Scan axes */
 	for (i = 0; i < 4; i++) {
 		if (control[i].joy) {
-			joystick_axis[i ^ input_joysticks_swapped] = ((SDL_JoystickGetAxis(control[i].joy->device, control[i].control_num)+32768) >> 8) ^ control[i].invert;
+			input_control_press(i, ((SDL_JoystickGetAxis(control[i].joy->device, control[i].control_num)+32768) >> 8) ^ control[i].invert);
 		}
 	}
 	/* And buttons */
-	if (control[CONTROL_RIGHT_FIRE ^ (input_joysticks_swapped >> 1)].joy && SDL_JoystickGetButton(control[CONTROL_RIGHT_FIRE ^ (input_joysticks_swapped >> 1)].joy->device, control[CONTROL_RIGHT_FIRE ^ (input_joysticks_swapped >> 1)].control_num)) {
-		PIA0.a.tied_low &= 0xfe;
+	if (control[CONTROL_RIGHT_FIRE].joy && SDL_JoystickGetButton(control[CONTROL_RIGHT_FIRE].joy->device, control[CONTROL_RIGHT_FIRE].control_num)) {
+		input_control_press(INPUT_JOY_RIGHT_FIRE, 0);
 	} else {
-		PIA0.a.tied_low |= 0x01;
+		input_control_release(INPUT_JOY_RIGHT_FIRE, 0);
 	}
-	if (control[CONTROL_LEFT_FIRE ^ (input_joysticks_swapped >> 1)].joy && SDL_JoystickGetButton(control[CONTROL_LEFT_FIRE ^ (input_joysticks_swapped >> 1)].joy->device, control[CONTROL_LEFT_FIRE ^ (input_joysticks_swapped >> 1)].control_num)) {
-		PIA0.a.tied_low &= 0xfd;
+	if (control[CONTROL_LEFT_FIRE].joy && SDL_JoystickGetButton(control[CONTROL_LEFT_FIRE].joy->device, control[CONTROL_LEFT_FIRE].control_num)) {
+		input_control_press(INPUT_JOY_LEFT_FIRE, 0);
 	} else {
-		PIA0.a.tied_low |= 0x02;
+		input_control_release(INPUT_JOY_LEFT_FIRE, 0);
 	}
 	joystick_update();
 	poll_event->at_cycle += OSCILLATOR_RATE / 100;
