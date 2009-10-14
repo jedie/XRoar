@@ -134,14 +134,14 @@ void machine_getargs(void) {
 	}
 	if (xroar_opt_dostype) {
 		int i;
-		if (0 == strcmp(xroar_opt_machine, "help")) {
+		if (0 == strcmp(xroar_opt_dostype, "help")) {
 			for (i = 0; i < NUM_DOS_TYPES; i++) {
 				printf("\t%-10s%s\n", dos_type_options[i], dos_type_names[i]);
 			}
 			exit(0);
 		}
 		for (i = 0; i < NUM_DOS_TYPES; i++) {
-			if (!strcmp(xroar_opt_machine, dos_type_options[i])) {
+			if (!strcmp(xroar_opt_dostype, dos_type_options[i])) {
 				requested_config.dos_type = i;
 			}
 		}
@@ -345,10 +345,13 @@ void machine_reset(int hard) {
 		}
 		/* ... DOS */
 		if (DOS_ENABLED) {
+			LOG_DEBUG(2, "%s selected\n", dos_type_names[running_config.dos_type]);
 			load_rom_from_list(running_config.dos_rom,
 					dos_rom_list[running_config.dos_type - 1],
 					cart_data, sizeof(cart_data));
 			cart_data_writable = 0;
+		} else {
+			LOG_DEBUG(2, "No DOS selected\n");
 		}
 		/* Configure keymap */
 		keyboard_set_keymap(running_config.keymap);
