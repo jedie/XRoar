@@ -446,10 +446,39 @@ void xroar_shutdown(void) {
 	module_shutdown((Module *)ui_module);
 }
 
+static void tapehack_instruction_hook(M6809State *cpu_state) {
+	/* TAPEHACK: */
+	if (IS_COCO) {
+		if (cpu_state->reg_pc == 0xa719) {
+			tape_sync();
+		}
+		if (cpu_state->reg_pc == 0xa75c) {
+			tape_bit_out(cpu_state->reg_cc & 1);
+		}
+		if (cpu_state->reg_pc == 0xa77c) {
+			tape_desync(256);
+		}
+	} else {
+		if (cpu_state->reg_pc == 0xb94d) {
+			tape_sync();
+		}
+		if (cpu_state->reg_pc == 0xbdac) {
+			tape_bit_out(cpu_state->reg_cc & 1);
+		}
+		if (cpu_state->reg_pc == 0xbde7) {
+			tape_desync(256);
+		}
+		if (cpu_state->reg_pc == 0xb97e) {
+			tape_desync(2);
+		}
+	}
+}
+
 void xroar_mainloop(void) {
 	m6809_write_cycle = sam_store_byte;
 	m6809_nvma_cycles = sam_nvma_cycles;
 	m6809_sync = do_m6809_sync;
+	m6809_instruction_hook = tapehack_instruction_hook;
 
 	while (1) {
 
