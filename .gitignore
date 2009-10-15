@@ -1,0 +1,30 @@
+## ignore build files
+*.o
+xroar
+## common temporary files (really ought to be in peoples' ~/.gitignore)
+*~
+.*.swp
+.*.swo
+.DS_Store
+## debian rules often present, but separate
+debian/
+## generated files
+config.h
+config.log
+config.mak
+vdg_bitmaps.[ch]
+video_gp32.c
+gp32/cmode_bin.c
+gp32/copyright.c
+gp32/kbd_graphics.c
+gp32/vdg_bitmaps_gp32.c
+nds/kbd_graphics.c
+tools/font2c
+tools/prerender
+tools/img2c
+tools/img2c_nds
+## software images that might be left around
+*.cas
+*.vdk
+*.dsk
+*.rom
