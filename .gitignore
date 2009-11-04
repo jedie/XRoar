@@ -28,3 +28,9 @@ tools/img2c_nds
 *.vdk
 *.dsk
 *.rom
+## testing under wine
+stderr.txt
+stdout.txt
+## deps files
+.deps.mak
+.deps.mak.bak
