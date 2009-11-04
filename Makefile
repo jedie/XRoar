@@ -378,14 +378,8 @@ distclean: clean
 DISTNAME = xroar-$(VERSION)
 
 dist:
-	darcs dist --dist-name $(DISTNAME)
-	gzip -dc $(DISTNAME).tar.gz | tar xf -
-	chmod u+x $(DISTNAME)/configure
-	chmod -R g+rX,o+rX $(DISTNAME)
-	rm -f $(DISTNAME).tar.gz
-	tar cf - $(DISTNAME) | gzip -c > $(DISTNAME).tar.gz
-	rm -rf $(DISTNAME)
-	mv $(DISTNAME).tar.gz ..
+	git archive --format=tar --output=../$(DISTNAME).tar --prefix=$(DISTNAME)/ HEAD
+	gzip -f9 ../$(DISTNAME).tar
 
 dist-gp32: all doc/xroar.pdf
 	mkdir $(DISTNAME)-gp32
@@ -435,13 +429,12 @@ debuild: dist
 	-cd ..; rm -rf $(DISTNAME)/ $(DISTNAME).orig/
 	cd ..; mv $(DISTNAME).tar.gz xroar_$(VERSION).orig.tar.gz
 	cd ..; tar xfz xroar_$(VERSION).orig.tar.gz
-	cp -a debian ../$(DISTNAME)/
-	rm -rf ../$(DISTNAME)/debian/_darcs/
+	rsync -axH debian --exclude='debian/.git/' --exclude='debian/_darcs/' ../$(DISTNAME)/
 	cd ../$(DISTNAME); debuild
 
 .PHONY: depend
 depend:
 	@touch .deps.mak
-	makedepend -f .deps.mak -Y `darcs query manifest | sort | grep '\.c'` 2> /dev/null
+	makedepend -f .deps.mak -Y `git ls-files | sort | grep '\.c'` 2> /dev/null
 
 -include .deps.mak
