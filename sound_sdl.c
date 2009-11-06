@@ -96,7 +96,7 @@ static int init(void) {
 
 	/* TODO: Need to abstract this logging out */
 	LOG_DEBUG(2, "\t");
-	switch (audiospec.freq) {
+	switch (audiospec.format) {
 		case AUDIO_U8: LOG_DEBUG(2, "8-bit unsigned, "); break;
 		case AUDIO_S8: LOG_DEBUG(2, "8-bit signed, "); break;
 		case AUDIO_U16LSB: LOG_DEBUG(2, "16-bit unsigned little-endian, "); break;
