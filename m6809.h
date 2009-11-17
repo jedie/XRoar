@@ -12,12 +12,27 @@
 #define M6809_COMPAT_STATE_SYNC   (1)
 #define M6809_COMPAT_STATE_CWAI   (2)
 
+enum m6809_cpu_state {
+	m6809_flow_label_a      = M6809_COMPAT_STATE_NORMAL,
+	m6809_flow_sync         = M6809_COMPAT_STATE_SYNC,
+	m6809_flow_dispatch_irq = M6809_COMPAT_STATE_CWAI,
+	m6809_flow_label_b,
+	m6809_flow_reset,
+	m6809_flow_reset_check_halt,
+	m6809_flow_next_instruction,
+	m6809_flow_instruction_page_2,
+	m6809_flow_instruction_page_3,
+	m6809_flow_cwai_check_halt,
+	m6809_flow_sync_check_halt,
+	m6809_flow_done_instruction
+};
+
 typedef struct {
 	uint8_t reg_cc, reg_a, reg_b, reg_dp;
 	uint16_t reg_x, reg_y, reg_u, reg_s, reg_pc;
-	uint8_t halt, nmi, firq, irq;
-	uint8_t cpu_state;
-	uint8_t nmi_armed;
+	int halt, nmi, firq, irq;
+	int nmi_armed;
+	enum m6809_cpu_state cpu_state;
 } M6809State;
 
 extern unsigned int halt, nmi, firq, irq;

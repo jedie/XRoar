@@ -152,22 +152,7 @@
 #define ARM_NMI do { nmi_armed = 1; } while (0)
 #define DISARM_NMI do { nmi_armed = 0; } while (0)
 
-static enum {
-	flow_label_a      = M6809_COMPAT_STATE_NORMAL,
-	flow_sync         = M6809_COMPAT_STATE_SYNC,
-	flow_dispatch_irq = M6809_COMPAT_STATE_CWAI,
-	flow_label_b,
-	flow_reset,
-	flow_reset_check_halt,
-	flow_next_instruction,
-	flow_instruction_page_2,
-	flow_instruction_page_3,
-	flow_cwai_check_halt,
-	flow_sync_check_halt,
-	flow_done_instruction
-} cpu_state;
-
-/* MPU registers & internal state */
+/* MPU registers */
 static unsigned int reg_cc;
 static uint8_t reg_a;
 static uint8_t reg_b;
@@ -178,12 +163,16 @@ static uint16_t reg_u;
 static uint16_t reg_s;
 static uint16_t reg_pc;
 
-#define reg_d ((reg_a << 8) | reg_b)
-#define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
-
 /* MPU interrupt state variables */
 unsigned int halt, nmi, firq, irq;
 static int nmi_armed;
+
+/* MPU state.  Represents current position in the high-level flow chart
+   from the data sheet (figure 14). */
+static enum m6809_cpu_state cpu_state;
+
+#define reg_d ((reg_a << 8) | reg_b)
+#define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 #define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))
@@ -363,7 +352,7 @@ void m6809_init(void) {
 void m6809_reset(void) {
 	halt = nmi = firq = irq = 0;
 	DISARM_NMI;
-	cpu_state = flow_reset;
+	cpu_state = m6809_flow_reset;
 }
 
 /* Run CPU for a number of cycles.  More cycles may actually be run, as
@@ -377,108 +366,108 @@ void m6809_run(int cycles) {
 
 		switch (cpu_state) {
 
-		case flow_reset:
+		case m6809_flow_reset:
 			reg_dp = 0;
 			reg_cc |= (CC_F | CC_I);
 			nmi = 0;
 			DISARM_NMI;
-			cpu_state = flow_reset_check_halt;
+			cpu_state = m6809_flow_reset_check_halt;
 			/* fall through */
 			cycles--;
 
-		case flow_reset_check_halt:
+		case m6809_flow_reset_check_halt:
 			if (halt) {
 				TAKEN_CYCLES(1);
 				continue;
 			}
 			reg_pc = fetch_word(0xfffe);
 			TAKEN_CYCLES(1);
-			cpu_state = flow_label_a;
+			cpu_state = m6809_flow_label_a;
 			continue;
 
-		case flow_label_a:
+		case m6809_flow_label_a:
 			if (halt) {
 				TAKEN_CYCLES(1);
 				continue;
 			}
-			cpu_state = flow_label_b;
+			cpu_state = m6809_flow_label_b;
 			/* fall through */
 			cycles--;
 
-		case flow_label_b:
+		case m6809_flow_label_b:
 			if (nmi_armed && nmi) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
-				cpu_state = flow_dispatch_irq;
+				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			}
 			if (firq && !(reg_cc & CC_F)) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_FIRQ_REGISTERS();
-				cpu_state = flow_dispatch_irq;
+				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			}
 			if (irq && !(reg_cc & CC_I)) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
-				cpu_state = flow_dispatch_irq;
+				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			}
-			cpu_state = flow_next_instruction;
+			cpu_state = m6809_flow_next_instruction;
 			continue;
 
-		case flow_dispatch_irq:
+		case m6809_flow_dispatch_irq:
 			if (nmi_armed && nmi) {
 				nmi = 0;
 				reg_cc |= (CC_F | CC_I);
 				TAKE_INTERRUPT(nmi, CC_F|CC_I, 0xfffc);
-				cpu_state = flow_label_a;
+				cpu_state = m6809_flow_label_a;
 				continue;
 			}
 			if (firq && !(reg_cc & CC_F)) {
 				reg_cc |= (CC_F | CC_I);
 				TAKE_INTERRUPT(firq, CC_F|CC_I, 0xfff6);
-				cpu_state = flow_label_a;
+				cpu_state = m6809_flow_label_a;
 				continue;
 			}
 			if (irq && !(reg_cc & CC_I)) {
 				reg_cc |= CC_I;
 				TAKE_INTERRUPT(irq, CC_I, 0xfff8);
-				cpu_state = flow_label_a;
+				cpu_state = m6809_flow_label_a;
 				continue;
 			}
-			cpu_state = flow_cwai_check_halt;
+			cpu_state = m6809_flow_cwai_check_halt;
 			continue;
 
-		case flow_cwai_check_halt:
+		case m6809_flow_cwai_check_halt:
 			TAKEN_CYCLES(1);
 			if (halt) {
 				continue;
 			}
-			cpu_state = flow_dispatch_irq;
+			cpu_state = m6809_flow_dispatch_irq;
 			continue;
 
-		case flow_sync:
+		case m6809_flow_sync:
 			if (nmi || firq || irq) {
 				TAKEN_CYCLES(1);
-				cpu_state = flow_label_b;
+				cpu_state = m6809_flow_label_b;
 				continue;
 			}
-			cpu_state = flow_sync_check_halt;
+			cpu_state = m6809_flow_sync_check_halt;
 			continue;
 
-		case flow_sync_check_halt:
+		case m6809_flow_sync_check_halt:
 			TAKEN_CYCLES(1);
 			if (halt) {
 				continue;
 			}
-			cpu_state = flow_sync;
+			cpu_state = m6809_flow_sync;
 			continue;
 
-		case flow_next_instruction:
+		case m6809_flow_next_instruction:
 			{
 			unsigned int op;
 			/* Instruction fetch hook */
@@ -535,11 +524,11 @@ void m6809_run(int cycles) {
 			case 0x0F: OP_CLR(BYTE_DIRECT); break;
 			/* 0x10 Page 2 */
 			case 0x10:
-				   cpu_state = flow_instruction_page_2;
+				   cpu_state = m6809_flow_instruction_page_2;
 				   continue;
 			/* 0x11 Page 3 */
 			case 0x11:
-				   cpu_state = flow_instruction_page_3;
+				   cpu_state = m6809_flow_instruction_page_3;
 				   continue;
 			/* 0x12 NOP inherent */
 			case 0x12: peek_byte(reg_pc); break;
@@ -547,7 +536,7 @@ void m6809_run(int cycles) {
 			case 0x13:
 				peek_byte(reg_pc);
 				TAKEN_CYCLES(1);
-				cpu_state = flow_sync;
+				cpu_state = m6809_flow_sync;
 				continue;
 			/* 0x16 LBRA relative */
 			case 0x16: BRANCHL(1); break;
@@ -771,7 +760,7 @@ void m6809_run(int cycles) {
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
 				TAKEN_CYCLES(1);
-				cpu_state = flow_dispatch_irq;
+				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			} break;
 			/* 0x3D MUL inherent */
@@ -1162,11 +1151,11 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = flow_done_instruction;
+			cpu_state = m6809_flow_done_instruction;
 			continue;
 			}
 
-		case flow_instruction_page_2:
+		case m6809_flow_instruction_page_2:
 			{
 			unsigned int op;
 			BYTE_IMMEDIATE(0,op);
@@ -1174,7 +1163,7 @@ void m6809_run(int cycles) {
 			/* 0x10, 0x11 Page 2 */
 			case 0x10:
 			case 0x11:
-				cpu_state = flow_instruction_page_2;
+				cpu_state = m6809_flow_instruction_page_2;
 				continue;
 			/* 0x1021 LBRN relative */
 			case 0x21: BRANCHL(0); break;
@@ -1259,11 +1248,11 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = flow_done_instruction;
+			cpu_state = m6809_flow_done_instruction;
 			continue;
 			}
 
-		case flow_instruction_page_3:
+		case m6809_flow_instruction_page_3:
 			{
 			unsigned int op;
 			BYTE_IMMEDIATE(0,op);
@@ -1271,7 +1260,7 @@ void m6809_run(int cycles) {
 			/* 0x10, 0x11 Page 3 */
 			case 0x10:
 			case 0x11:
-				cpu_state = flow_instruction_page_3;
+				cpu_state = m6809_flow_instruction_page_3;
 				continue;
 			/* 0x113F SWI3 inherent */
 			case 0x3f:
@@ -1298,11 +1287,11 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = flow_done_instruction;
+			cpu_state = m6809_flow_done_instruction;
 			continue;
 			}
 
-		case flow_done_instruction:
+		case m6809_flow_done_instruction:
 			/* Instruction post-hook */
 			if (m6809_instruction_posthook) {
 				M6809State state;
@@ -1317,7 +1306,7 @@ void m6809_run(int cycles) {
 				state.reg_pc = reg_pc;
 				m6809_instruction_posthook(&state);
 			}
-			cpu_state = flow_label_a;
+			cpu_state = m6809_flow_label_a;
 			continue;
 
 		}
