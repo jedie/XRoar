@@ -56,7 +56,7 @@ endif
 endif
 endif
 
-CFLAGS += -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
+CFLAGS += -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -std=c99 -D_SVID_SOURCE=1 -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 
 ############################################################################
 # Build rules for ARM7
