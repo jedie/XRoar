@@ -39,7 +39,7 @@ SoundModule sound_sdl_module = {
 	update
 };
 
-typedef Sint8 Sample;  /* 8-bit mono (SDL type) */
+typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 
 #ifdef WINDOWS32
 # define SAMPLE_RATE 22050
@@ -83,7 +83,7 @@ static int init(void) {
 		return 1;
 	}
 	audiospec.freq = SAMPLE_RATE;
-	audiospec.format = AUDIO_S8;
+	audiospec.format = AUDIO_U8;
 	audiospec.samples = FRAME_SIZE;
 	audiospec.channels = 1;
 	audiospec.callback = callback;
@@ -118,13 +118,13 @@ static int init(void) {
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
+	memset(buffer, 0x80, FRAME_SIZE * sizeof(Sample));
 	SDL_PauseAudio(0);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0;
+	lastsample = 0x80;
 	return 0;
 }
 
@@ -148,7 +148,7 @@ static void update(int value) {
 	}
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	lastsample = value;
+	lastsample = value ^ 0x80;
 }
 
 static void flush_frame(void) {
