@@ -161,9 +161,11 @@ Module *module_select_by_arg(Module **list, const char *name) {
 }
 
 Module *module_init(Module *module) {
-	if (module != NULL && module->common.init() == 0) {
-		module->common.initialised = 1;
-		return module;
+	if (module) {
+		if (!module->common.init || module->common.init() == 0) {
+			module->common.initialised = 1;
+			return module;
+		}
 	}
 	return NULL;
 }
@@ -184,6 +186,6 @@ Module *module_init_from_list(Module **list, Module *module) {
 }
 
 void module_shutdown(Module *module) {
-	if (module && module->common.initialised)
+	if (module && module->common.shutdown && module->common.initialised)
 		module->common.shutdown();
 }
