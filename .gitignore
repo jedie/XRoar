@@ -28,6 +28,7 @@ tools/img2c_nds
 *.vdk
 *.dsk
 *.rom
+*.sna
 ## testing under wine
 stderr.txt
 stdout.txt
