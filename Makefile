@@ -145,8 +145,8 @@ include makefile_nds.mk
 ifeq ($(BUILD_STYLE),)
 
 ifeq ($(CONFIG_MINGW),yes)
-ROMPATH = \".\"
-CONFPATH = \".\"
+ROMPATH = \":~/Local\ Settings/Application\ Data/XRoar/roms:~/Application\ Data/XRoar/roms\"
+CONFPATH = \":~/Local\ Settings/Application\ Data/XRoar:~/Application\ Data/XRoar\"
 else
 ROMPATH = \":~/.xroar/roms:~/Library/XRoar/Roms:$(datadir)/xroar/roms\"
 CONFPATH = \":~/.xroar:~/Library/XRoar:$(datadir)/xroar\"

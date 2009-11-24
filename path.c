@@ -60,7 +60,11 @@ char *find_in_path(const char *path, const char *filename) {
 				}
 		return NULL;
 	}
+#ifdef WINDOWS32
+	home = getenv("USERPROFILE");
+#else
 	home = getenv("HOME");
+#endif
 	/* Buffer at most could hold <path> (or ".") + '/' + <filename> + NUL.
 	 * Two characters in <path> may be replaced with $HOME + '/'. */
 	buf_size = strlen(path) + strlen(filename) + 3;
