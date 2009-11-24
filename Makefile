@@ -4,240 +4,206 @@
 -include config.mak
 
 VERSION := 0.23
+DISTNAME = xroar-$(VERSION)
 
-.PHONY: all usage gp32 windows32
+.PHONY: all
+all: build-bin build-doc
 
-# TARGET is the output from gcc, not necessarily the final binary
-TARGET = xroar$(EXEEXT)
-
-all: build
-
-usage:
-	@echo
-	@echo "Usage: \"make system-type\", where system-type is one of:"
-	@echo
-	@echo " gp32 nds windows32"
-	@echo
-
-gp32:
-	./configure --target=arm-elf
-	$(MAKE) all
-
-windows32:
-	./configure --target=i586-mingw32
-	$(MAKE) all
-
-nds:
-	./configure --target=arm-nds-eabi
-	$(MAKE) all
-
-VPATH = $(SRCROOT)
+############################################################################
+# Base object files and settings required by all builds
 
 WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
 	-Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes \
 	-Wredundant-decls
 
-ifeq ($(CONFIG_MINGW),yes)
-ROMPATH = \".\"
-CONFPATH = \".\"
-else
-ifeq ($(CONFIG_GP32),yes)
-ROMPATH = \"gp\\\\:/gpmm/dragon\"
-CONFPATH = \"gp\\\\:/gpmm/dragon\"
-else
-ifeq ($(CONFIG_NDS),yes)
-ROMPATH = \"/dragon/roms:/dragon:\"
-CONFPATH = \"/dragon:\"
-else
-ROMPATH = \":~/.xroar/roms:~/Library/XRoar/Roms:$(datadir)/xroar/roms\"
-CONFPATH = \":~/.xroar:~/Library/XRoar:$(datadir)/xroar\"
-endif
-endif
-endif
+CONFIG_FILES = config.h config.mak
 
-CFLAGS += -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
+# Objects common to all builds:
+xroar_common_OBJS = crc16.o path.o portalib.o xconfig.o \
+	cart.o deltados.o dragondos.o events.o hexs19.o input.o joystick.o \
+	keyboard.o m6809.o machine.o mc6821.o module.o rsdos.o sam.o \
+	snapshot.o tape.o vdg.o vdisk.o vdrive.o wd279x.o xroar.o
+xroar_common_INT_OBJS = vdg_bitmaps.o
+CLEAN = $(xroar_common_OBJS) $(xroar_common_INT_OBJS)
+
+# Objects for all Unix-style builds (the default):
+xroar_unix_OBJS = fs_unix.o main_unix.o
+xroar_unix_INT_OBJS =
+CLEAN += $(xroar_unix_OBJS) $(xroar_unix_INT_OBJS)
 
 ############################################################################
-# Build rules for ARM7
+# Optional extras (most only apply to Unix-style build)
 
-NDS_ARM7_CFLAGS = -O3 -pipe -mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer -ffast-math -mthumb -mthumb-interwork -DARM7 -I$(CURDIR) -I$(SRCROOT) $(WARN) -g -DVERSION=\"$(VERSION)\" -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
-NDS_ARM7_LDFLAGS = -specs=ds_arm7.specs -lnds7
-xroar.arm7: CFLAGS = $(NDS_ARM7_CFLAGS)
-xroar.arm7: LDFLAGS = $(NDS_ARM7_LDFLAGS)
+xroar_opt_OBJS =
+xroar_opt_INT_OBJS =
 
-############################################################################
-# Base object files required by all builds
-
-OBJS := cart.o crc16.o events.o hexs19.o input.o joystick.o keyboard.o \
-		m6809.o machine.o mc6821.o module.o path.o sam.o snapshot.o \
-		tape.o vdg.o vdg_bitmaps.o vdisk.o vdrive.o \
-		dragondos.o rsdos.o deltados.o wd279x.o xconfig.o xroar.o \
-		portalib.o
-
-ALL_OBJS := $(OBJS)
-
-############################################################################
-# Optional extras
-
-OBJS_SDL = ui_sdl.o video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o \
+opt_sdl_OBJS = ui_sdl.o video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o \
 		joystick_sdl.o
-ALL_OBJS += $(OBJS_SDL)
+CLEAN += $(opt_sdl_OBJS)
 ifeq ($(CONFIG_SDL),yes)
-	OBJS += $(OBJS_SDL)
+	xroar_opt_OBJS += $(opt_sdl_OBJS)
 video_sdl.o: vdg_bitmaps.h
 video_sdlyuv.o: vdg_bitmaps.h
 endif
 
-OBJS_SDLGL = video_sdlgl.o
-ALL_OBJS += $(OBJS_SDLGL)
+opt_sdlgl_OBJS = video_sdlgl.o
+CLEAN += $(opt_sdlgl_OBJS)
 ifeq ($(CONFIG_SDLGL),yes)
-	OBJS += $(OBJS_SDLGL)
+	xroar_opt_OBJS += $(opt_sdlgl_OBJS)
 video_sdlgl.o: vdg_bitmaps.h
 endif
 
-OBJS_CURSES = ui_curses.o video_curses.o keyboard_curses.o
-ALL_OBJS += $(OBJS_CURSES)
+opt_curses_OBJS = ui_curses.o video_curses.o keyboard_curses.o
+CLEAN += $(opt_curses_OBJS)
 ifeq ($(CONFIG_CURSES),yes)
-	OBJS += $(OBJS_CURSES)
+	xroar_opt_OBJS += $(opt_curses_OBJS)
 endif
 
-OBJS_GTK2 = filereq_gtk2.o
-ALL_OBJS += $(OBJS_GTK2)
+opt_gtk2_OBJS = filereq_gtk2.o
+CLEAN += $(opt_gtk2_OBJS)
 ifeq ($(CONFIG_GTK2),yes)
-	OBJS += $(OBJS_GTK2)
+	xroar_opt_OBJS += $(opt_gtk2_OBJS)
 endif
 
-OBJS_GTK1 = filereq_gtk1.o
-ALL_OBJS += $(OBJS_GTK1)
+opt_gtk1_OBJS = filereq_gtk1.o
+CLEAN += $(opt_gtk1_OBJS)
 ifeq ($(CONFIG_GTK1),yes)
-	OBJS += $(OBJS_GTK1)
+	xroar_opt_OBJS += $(opt_gtk1_OBJS)
 endif
 
-OBJS_CLI = filereq_cli.o
-ALL_OBJS += $(OBJS_CLI)
+opt_cli_OBJS = filereq_cli.o
+CLEAN += $(opt_cli_OBJS)
 ifeq ($(CONFIG_CLI),yes)
-	OBJS += $(OBJS_CLI)
+	xroar_opt_OBJS += $(opt_cli_OBJS)
 endif
 
-OBJS_CARBON = filereq_carbon.o
-ALL_OBJS += $(OBJS_CARBON)
+opt_carbon_OBJS = filereq_carbon.o
+CLEAN += $(opt_carbon_OBJS)
 ifeq ($(CONFIG_CARBON),yes)
-	OBJS += $(OBJS_CARBON)
+	xroar_opt_OBJS += $(opt_carbon_OBJS)
 endif
 
-OBJS_ALSA = sound_alsa.o
-ALL_OBJS += $(OBJS_ALSA)
+opt_alsa_OBJS = sound_alsa.o
+CLEAN += $(opt_alsa_OBJS)
 ifeq ($(CONFIG_ALSA),yes)
-	OBJS += $(OBJS_ALSA)
+	xroar_opt_OBJS += $(opt_alsa_OBJS)
 endif
 
-OBJS_OSS = sound_oss.o
-ALL_OBJS += $(OBJS_OSS)
+opt_oss_OBJS = sound_oss.o
+CLEAN += $(opt_oss_OBJS)
 ifeq ($(CONFIG_OSS),yes)
-	OBJS += $(OBJS_OSS)
+	xroar_opt_OBJS += $(opt_oss_OBJS)
 endif
 
-OBJS_SUN = sound_sun.o
-ALL_OBJS += $(OBJS_SUN)
+opt_sunaudio_OBJS = sound_sun.o
+CLEAN += $(opt_sunaudio_OBJS)
 ifeq ($(CONFIG_SUN),yes)
-	OBJS += $(OBJS_SUN)
+	xroar_opt_OBJS += $(opt_sunaudio_OBJS)
 endif
 
-OBJS_COREAUDIO = sound_macosx.o
-ALL_OBJS += $(OBJS_COREAUDIO)
+opt_coreaudio_OBJS = sound_macosx.o
+CLEAN += $(opt_coreaudio_OBJS)
 ifeq ($(CONFIG_COREAUDIO),yes)
-	OBJS += $(OBJS_COREAUDIO)
+	xroar_opt_OBJS += $(opt_coreaudio_OBJS)
 endif
 
-OBJS_JACK = sound_jack.o
-ALL_OBJS += $(OBJS_JACK)
+opt_jack_OBJS = sound_jack.o
+CLEAN += $(opt_jack_OBJS)
 ifeq ($(CONFIG_JACK),yes)
-	OBJS += $(OBJS_JACK)
+	xroar_opt_OBJS += $(opt_jack_OBJS)
 endif
 
-OBJS_NULLAUDIO = sound_null.o
-ALL_OBJS += $(OBJS_NULLAUDIO)
+opt_nullaudio_OBJS = sound_null.o
+CLEAN += $(opt_nullaudio_OBJS)
 ifeq ($(CONFIG_NULLAUDIO),yes)
-	OBJS += $(OBJS_NULLAUDIO)
+	xroar_opt_OBJS += $(opt_nullaudio_OBJS)
 endif
 
-OBJS_WINDOWS32 = common_windows32.o filereq_windows32.o
-ALL_OBJS += $(OBJS_WINDOWS32)
+opt_mingw_OBJS = common_windows32.o filereq_windows32.o
+CLEAN += $(opt_mingw_OBJS)
 ifeq ($(CONFIG_MINGW),yes)
-	OBJS += $(OBJS_WINDOWS32)
+	xroar_opt_OBJS += $(opt_mingw_OBJS)
 endif
 
-OBJS_TRACE = m6809_trace.o
-ALL_OBJS += $(OBJS_TRACE)
+opt_trace_OBJS = m6809_trace.o
+CLEAN += $(opt_trace_OBJS)
 ifeq ($(CONFIG_TRACE),yes)
-	OBJS += $(OBJS_TRACE)
+	xroar_opt_OBJS += $(opt_trace_OBJS)
 endif
-
-OBJS_GP32 = fs_gp32.o main_gp32.o keyboard_gp32.o sound_gp32.o \
-		ui_gp32.o video_gp32.o gp32/gpstart.o gp32/udaiis.o \
-		gp32/gpgfx.o gp32/gpsound.o gp32/gpkeypad.o gp32/gpchatboard.o \
-		gp32/cmode_bin.o gp32/copyright.o gp32/kbd_graphics.o \
-		gp32/gplib.o gp32/vdg_bitmaps_gp32.o
-ALL_OBJS += $(OBJS_GP32)
-
-OBJS_NDS9 = fs_unix.o main_nds9.o ui_nds.o video_nds.o sound_nds.o \
-		nds/ndsgfx.o \
-		nds/ndsui.o nds/ndsui_button.o nds/ndsui_filelist.o \
-		nds/ndsui_keyboard.o nds/ndsui_scrollbar.o \
-		nds/ndsui_textbox.o \
-		nds/nds_font8x8.o nds/kbd_graphics.o
-OBJS_NDS7 = main_nds7.o
-ALL_OBJS += $(OBJS_NDS9) $(OBJS_NDS7)
-
-OBJS_UNIX = fs_unix.o main_unix.o
-ALL_OBJS += $(OBJS_UNIX)
-
-ifeq ($(CONFIG_GP32),yes)
-	OBJS += $(OBJS_GP32)
-else
-ifeq ($(CONFIG_NDS),yes)
-	#OBJS += $(OBJS_NDS)
-else
-	OBJS += $(OBJS_UNIX)
-endif
-endif
-
-############################################################################
-# Documentation
-
-ALL_DOCS = doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
 
 ############################################################################
 # Build rules
 
-$(OBJS): config.h config.mak
+# GP32 rules
+include makefile_gp32.mk
 
-$(TARGET): $(CRT0) $(OBJS)
-	$(CC) $(CFLAGS) $(CRT0) $(OBJS) -o $@ $(LDFLAGS)
+# Nintendo DS rules
+include makefile_nds.mk
 
-doc/xroar.info: doc/xroar.texi
+# Unix rules (default)
+ifeq ($(BUILD_STYLE),)
+
+ifeq ($(CONFIG_MINGW),yes)
+ROMPATH = \".\"
+CONFPATH = \".\"
+else
+ROMPATH = \":~/.xroar/roms:~/Library/XRoar/Roms:$(datadir)/xroar/roms\"
+CONFPATH = \":~/.xroar:~/Library/XRoar:$(datadir)/xroar\"
+endif
+
+xroar_unix_CFLAGS = $(CFLAGS)
+xroar_unix_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
+        -DVERSION=\"$(VERSION)\" \
+        -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
+xroar_unix_LDFLAGS = $(LDFLAGS)
+xroar_unix_LDLIBS = $(LDLIBS)
+
+xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
+	$(xroar_unix_OBJS) $(xroar_unix_INT_OBJS) \
+	$(xroar_opt_OBJS) $(xroar_opt_INT_OBJS)
+
+$(xroar_unix_ALL_OBJS): $(CONFIG_FILES)
+
+$(xroar_common_OBJS) $(xroar_unix_OBJS) $(xroar_opt_OBJS): %.o: $(SRCROOT)/%.c
+	$(CC) $(xroar_unix_CFLAGS) $(xroar_unix_CPPFLAGS) -c $<
+
+$(xroar_common_INT_OBJS) $(xroar_unix_INT_OBJS) $(xroar_opt_INT_OBJS): %.o: ./%.c
+	$(CC) $(xroar_unix_CFLAGS) $(xroar_unix_CPPFLAGS) -c $<
+
+xroar$(EXEEXT): $(xroar_unix_ALL_OBJS)
+	$(CC) -o $@ $(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS) $(xroar_unix_LDLIBS)
+
+.PHONY: build-bin
+build-bin: xroar$(EXEEXT)
+
+endif
+
+CLEAN += xroar xroar.exe
+
+############################################################################
+# Documentation build rules
+
+doc/xroar.info: $(SRCROOT)/doc/xroar.texi
 	$(MAKEINFO) -D "VERSION $(VERSION)" -o $@ $<
 
-doc/xroar.pdf: doc/xroar.texi
+doc/xroar.pdf: $(SRCROOT)/doc/xroar.texi
 	$(TEXI2PDF) -t "@set VERSION $(VERSION)" --build=clean -o $@ $<
 
-doc/xroar.html: doc/xroar.texi
+doc/xroar.html: $(SRCROOT)/doc/xroar.texi
 	$(MAKEINFO) --html --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
 
-doc/xroar.txt: doc/xroar.texi
+doc/xroar.txt: $(SRCROOT)/doc/xroar.texi
 	$(MAKEINFO) --plaintext --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
 
-# Make default target depend on appropriate final binary
-.PHONY: build
-ifeq ($(CONFIG_GP32),yes)
-build: xroar.fxe $(DOCS)
-else
-ifeq ($(CONFIG_NDS),yes)
-build: xroar.nds $(DOCS)
-else
-build: $(TARGET) $(DOCS)
-endif
+CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
+
+.PHONY: build-doc
+build-doc:
+	@
+
+ifneq ($(MAKEINFO),)
+build-doc: doc/xroar.info
 endif
 
 ############################################################################
@@ -259,18 +225,19 @@ INSTALL_SCRIPT  = cp
 INSTALL_DIR     = mkdir -p
 endif
 
-.PHONY: install install-bin install-doc
-install: install-bin install-doc
-
-install-bin: $(TARGET)
+.PHONY: install-bin
+install-bin: build-bin
 	$(INSTALL_DIR) $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(bindir)
-install: install-bin
 
-install-doc:
+.PHONY: install-doc
+install-doc: build-doc
 	@
 
-ifeq ($(CONFIG_MAKEINFO),yes)
+.PHONY: install
+install: install-bin install-doc
+
+ifneq ($(MAKEINFO),)
 install-doc: install-info
 endif
 
@@ -279,44 +246,16 @@ install-info: doc/xroar.info
 	$(INSTALL_DIR) $(DESTDIR)$(infodir)
 	$(INSTALL_FILE) doc/xroar.info $(DESTDIR)$(infodir)
 
-.PHONY: install-pdf
-install-pdf: doc/xroar.pdf
-	$(INSTALL_DIR) $(DESTDIR)$(infodir)
-	$(INSTALL_FILE) doc/xroar.pdf $(DESTDIR)$(pdfdir)
-
-############################################################################
-# Targets where output of gcc is not the end result
-
-ifeq ($(CONFIG_GP32),yes)
-xroar.fxe: xroar.elf
-	$(OBJCOPY) -O binary xroar.elf xroar.bin
-	b2fxec -t "XRoar $(VERSION)" -a "Ciaran Anscomb" -b $(SRCROOT)/gp32/icon.bmp -f xroar.bin $@
-endif
-
-ifeq ($(CONFIG_NDS),yes)
-xroar.arm7: $(OBJS_NDS7)
-	$(CC) $(CFLAGS) $(OBJS_NDS7) -o $@ $(LDFLAGS)
-
-xroar.arm7.bin: xroar.arm7
-	$(OBJCOPY) -O binary $< $@
-
-xroar.arm9: $(OBJS_NDS9) $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS_NDS9) $(OBJS) -o $@ $(LDFLAGS)
-
-xroar.arm9.bin: xroar.arm9
-	$(OBJCOPY) -O binary $< $@
-
-xroar.nds: xroar.arm7.bin xroar.arm9.bin
-	ndstool -c $@ -b $(SRCROOT)/nds/icon.bmp "XRoar $(VERSION)" -7 xroar.arm7.bin -9 xroar.arm9.bin
-	dsbuild $@
-endif
-
 ############################################################################
 # Generated dependencies and the tools that generate them
 
-tools/font2c: tools/font2c.c
+tools/font2c: $(SRCROOT)/tools/font2c.c
 	mkdir -p tools
 	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
+
+CLEAN += tools/font2c
+
+#
 
 vdg_bitmaps.h: tools/font2c $(SRCROOT)/vdgfont.png
 	tools/font2c --header --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
@@ -324,77 +263,17 @@ vdg_bitmaps.h: tools/font2c $(SRCROOT)/vdgfont.png
 vdg_bitmaps.c: tools/font2c $(SRCROOT)/vdgfont.png
 	tools/font2c --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
 
-$(SRCROOT)/video_gp32.c: gp32/vdg_bitmaps_gp32.c
-
-gp32/vdg_bitmaps_gp32.c: tools/prerender
-	tools/prerender > $@
-
-tools/prerender: tools/prerender.c $(SRCROOT)/vdg_bitmaps.c
-	mkdir -p tools
-	$(BUILD_CC) -o $@ $<
-
-gp32/copyright.c: tools/img2c gp32/copyright.png
-	tools/img2c copyright_bin $(SRCROOT)/gp32/copyright.png > $@
-
-gp32/cmode_bin.c: tools/img2c gp32/cmode_kbd.png gp32/cmode_cur.png gp32/cmode_joyr.png gp32/cmode_joyl.png
-	tools/img2c cmode_bin $(SRCROOT)/gp32/cmode_kbd.png $(SRCROOT)/gp32/cmode_cur.png $(SRCROOT)/gp32/cmode_joyr.png $(SRCROOT)/gp32/cmode_joyl.png > $@
-
-gp32/kbd_graphics.c: tools/img2c gp32/kbd.png gp32/kbd_shift.png
-	tools/img2c kbd_bin $(SRCROOT)/gp32/kbd.png $(SRCROOT)/gp32/kbd_shift.png > $@
-
-tools/img2c: tools/img2c.c
-	mkdir -p tools
-	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
-
-nds/kbd_graphics.c: tools/img2c_nds nds/kbd.png nds/kbd_shift.png
-	tools/img2c_nds kbd_bin $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png > $@
-
-nds/nds_font8x8.c: tools/font2c vdgfont.png
-	tools/font2c --array nds_font8x8 --type "unsigned char" $(SRCROOT)/vdgfont.png > $@
-
-tools/img2c_nds: tools/img2c_nds.c
-	mkdir -p tools
-	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
+CLEAN += vdg_bitmaps.h vdg_bitmaps.c
 
 ############################################################################
-# Distribution creation and cleanup
+# Distribution creation
 
-.PHONY: clean distclean dist dist-gp32 dist-nds dist-windows32 \
-	dist-macos dist-macosx
-
-CLEAN_FILES = $(CRT0) $(ALL_OBJS) $(ALL_DOCS) tools/img2c tools/img2c_nds \
-	tools/prerender tools/font2c vdg_bitmaps.h vdg_bitmaps.c \
-	gp32/copyright.c gp32/cmode_bin.c gp32/kbd_graphics.c \
-	gp32/vdg_bitmaps_gp32.c xroar.bin xroar.fxe xroar.elf \
-	nds/kbd_graphics.c nds/nds_font8x8.c xroar.nds xroar.ds.gba \
-	xroar.arm7 xroar.arm9 xroar.arm7.bin xroar.arm9.bin xroar xroar.exe
-
-clean:
-	rm -f $(CLEAN_FILES)
-
-distclean: clean
-	rm -f config.h config.mak config.log
-
-DISTNAME = xroar-$(VERSION)
-
+.PHONY: dist
 dist:
 	git archive --format=tar --output=../$(DISTNAME).tar --prefix=$(DISTNAME)/ HEAD
 	gzip -f9 ../$(DISTNAME).tar
 
-dist-gp32: all doc/xroar.pdf
-	mkdir $(DISTNAME)-gp32
-	cp COPYING.GPL ChangeLog README doc/xroar.pdf xroar.fxe $(DISTNAME)-gp32/
-	rm -f ../$(DISTNAME)-gp32.zip
-	zip -r ../$(DISTNAME)-gp32.zip $(DISTNAME)-gp32
-	rm -rf $(DISTNAME)-gp32/
-
-dist-nds: all doc/xroar.pdf
-	mkdir $(DISTNAME)-nds
-	cp COPYING.GPL ChangeLog README doc/xroar.pdf xroar.nds xroar.ds.gba $(DISTNAME)-nds/
-	rm -f ../$(DISTNAME)-nds.zip
-	zip -r ../$(DISTNAME)-nds.zip $(DISTNAME)-nds
-	rm -rf $(DISTNAME)-nds/
-
+.PHONY: dist-windows32
 dist-windows32: all doc/xroar.pdf
 	mkdir $(DISTNAME)-windows32
 	cp COPYING.GPL ChangeLog README doc/xroar.pdf xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
@@ -406,6 +285,7 @@ dist-windows32: all doc/xroar.pdf
 	zip -r ../$(DISTNAME)-windows32.zip $(DISTNAME)-windows32
 	rm -rf $(DISTNAME)-windows32/
 
+.PHONY: dist-macosx dist-macos
 dist-macosx dist-macos: all doc/xroar.pdf
 	mkdir XRoar-$(VERSION)
 	mkdir -p XRoar-$(VERSION)/XRoar.app/Contents/MacOS XRoar-$(VERSION)/XRoar.app/Contents/Frameworks XRoar-$(VERSION)/XRoar.app/Contents/Resources
@@ -425,12 +305,24 @@ dist-macosx dist-macos: all doc/xroar.pdf
 	hdiutil create -srcfolder XRoar-$(VERSION) -uid 99 -gid 99 ../XRoar-$(VERSION).dmg
 	rm -rf XRoar-$(VERSION)/
 
+.PHONY: debuild
 debuild: dist
 	-cd ..; rm -rf $(DISTNAME)/ $(DISTNAME).orig/
 	cd ..; mv $(DISTNAME).tar.gz xroar_$(VERSION).orig.tar.gz
 	cd ..; tar xfz xroar_$(VERSION).orig.tar.gz
 	rsync -axH debian --exclude='debian/.git/' --exclude='debian/_darcs/' ../$(DISTNAME)/
 	cd ../$(DISTNAME); debuild
+
+############################################################################
+# Clean-up, etc.
+
+.PHONY: clean
+clean:
+	rm -f $(CLEAN)
+
+.PHONY: distclean
+distclean: clean
+	rm -f config.h config.mak config.log
 
 .PHONY: depend
 depend:

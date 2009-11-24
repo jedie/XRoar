@@ -1,0 +1,118 @@
+# Makefile for Nintendo DS build of XRoar.
+# Included from main Makefile.
+
+############################################################################
+# Objects for Nintendo DS build:
+
+xroar_nds7_OBJS = main_nds7.o
+xroar_nds9_OBJS = fs_unix.o main_nds9.o sound_nds.o ui_nds.o video_nds.o nds/ndsgfx.o nds/ndsui.o nds/ndsui_button.o nds/ndsui_filelist.o  nds/ndsui_keyboard.o nds/ndsui_scrollbar.o nds/ndsui_textbox.o
+xroar_nds9_INT_OBJS = nds/kbd_graphics.o nds/nds_font8x8.o
+CLEAN += $(xroar_nds7_OBJS) $(xroar_nds9_OBJS) $(xroar_nds9_INT_OBJS)
+
+############################################################################
+# Nintendo DS specific build rules
+
+ifeq ($(BUILD_STYLE),nds)
+
+ROMPATH = \"/dragon/roms:/dragon:\"
+CONFPATH = \"/dragon:\"
+
+# ARM7 part:
+
+xroar_nds7_CFLAGS = $(CFLAGS) \
+	-mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer -ffast-math \
+	-mthumb -mthumb-interwork
+xroar_nds7_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
+	-DVERSION=\"$(VERSION)\" \
+	-DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH) \
+	-DARM7
+xroar_nds7_LDFLAGS = -specs=ds_arm7.specs
+xroar_nds7_LDLIBS = -lnds7
+
+xroar_nds7_ALL_OBJS = $(xroar_nds7_OBJS) $(xroar_nds7_INT_OBJS)
+
+$(xroar_nds7_ALL_OBJS): $(CONFIG_FILES)
+
+$(xroar_nds7_OBJS): %.o: $(SRCROOT)/%.c
+	$(CC) $(xroar_nds7_CFLAGS) $(xroar_nds7_CPPFLAGS) -c $<
+
+$(xroar_nds7_INT_OBJS): %.o: ./%.c
+	$(CC) $(xroar_nds7_CFLAGS) $(xroar_nds7_CPPFLAGS) -c $<
+
+xroar.arm7: $(xroar_nds7_ALL_OBJS)
+	$(CC) -o $@ $(xroar_nds7_ALL_OBJS) $(xroar_nds7_LDFLAGS) $(xroar_nds7_LDLIBS)
+
+xroar.arm7.bin: xroar.arm7
+	$(OBJCOPY) -O binary $< $@
+
+# ARM9 part:
+
+xroar_nds9_CFLAGS = $(CFLAGS) \
+	-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math \
+	-mthumb-interwork
+xroar_nds9_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
+	-DVERSION=\"$(VERSION)\" \
+	-DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH) \
+	-DARM9
+xroar_nds9_LDFLAGS = -specs=ds_arm9.specs
+xroar_nds9_LDLIBS = -lfat -lnds9
+
+xroar_nds9_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
+	$(xroar_nds9_OBJS) $(xroar_nds9_INT_OBJS)
+
+$(xroar_nds9_ALL_OBJS): $(CONFIG_FILES)
+
+$(xroar_common_OBJS) $(xroar_nds9_OBJS): %.o: $(SRCROOT)/%.c
+	$(CC) $(xroar_nds9_CFLAGS) $(xroar_nds9_CPPFLAGS) -c $<
+
+$(xroar_common_INT_OBJS) $(xroar_nds9_INT_OBJS): %.o: ./%.c
+	$(CC) $(xroar_nds9_CFLAGS) $(xroar_nds9_CPPFLAGS) -c $<
+
+xroar.arm9: $(xroar_nds9_ALL_OBJS)
+	$(CC) -o $@ $(xroar_nds9_ALL_OBJS) $(xroar_nds9_LDFLAGS) $(xroar_nds9_LDLIBS)
+
+xroar.arm9.bin: xroar.arm9
+	$(OBJCOPY) -O binary $< $@
+
+# Combined binary target:
+
+xroar.nds: xroar.arm7.bin xroar.arm9.bin
+	ndstool -c $@ -b $(SRCROOT)/nds/icon.bmp "XRoar $(VERSION)" -7 xroar.arm7.bin -9 xroar.arm9.bin
+	dsbuild $@
+
+.PHONY: build-bin
+build-bin: xroar.nds
+
+endif
+
+CLEAN += xroar.arm7 xroar.arm7.bin xroar.arm9 xroar.arm9.bin xroar.nds
+
+############################################################################
+# Generated dependencies and the tools that generate them
+
+tools/img2c_nds: $(SRCROOT)/tools/img2c_nds.c
+	mkdir -p tools
+	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
+
+CLEAN += tools/img2c_nds
+
+#
+
+nds/kbd_graphics.c: tools/img2c_nds $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png
+	tools/img2c_nds kbd_bin $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png > $@
+
+nds/nds_font8x8.c: tools/font2c $(SRCROOT)/vdgfont.png
+	tools/font2c --array nds_font8x8 --type "unsigned char" $(SRCROOT)/vdgfont.png > $@
+
+CLEAN += nds/kbd_graphics.c nds/nds_font8x8.c
+
+############################################################################
+# Distribution creation
+
+.PHONY: dist-nds
+dist-nds: build-bin doc/xroar.pdf
+	mkdir $(DISTNAME)-nds
+	cp COPYING.GPL ChangeLog README doc/xroar.pdf xroar.nds xroar.ds.gba $(DISTNAME)-nds/
+	rm -f ../$(DISTNAME)-nds.zip
+	zip -r ../$(DISTNAME)-nds.zip $(DISTNAME)-nds
+	rm -rf $(DISTNAME)-nds/
