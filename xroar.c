@@ -29,6 +29,7 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "m6809.h"
+#include "m6809_trace.h"
 #include "machine.h"
 #include "module.h"
 #include "path.h"
@@ -39,10 +40,6 @@
 #include "vdrive.h"
 #include "xconfig.h"
 #include "xroar.h"
-
-#ifdef TRACE
-# include "m6809_trace.h"
-#endif
 
 #ifdef FAST_VDG
 # define DEFAULT_CCR CROSS_COLOUR_SIMPLE
@@ -405,7 +402,6 @@ int xroar_init(int argc, char **argv) {
 	machine_init();
 	/* Reset everything */
 	machine_reset(RESET_HARD);
-	m6809_trace_reset();
 	if (load_file) {
 		int filetype = xroar_filetype_by_ext(load_file);
 		if (filetype == FILETYPE_SNA || filetype == FILETYPE_ROM) {

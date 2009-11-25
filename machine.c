@@ -32,6 +32,7 @@
 #include "keyboard.h"
 #include "logging.h"
 #include "m6809.h"
+#include "m6809_trace.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "module.h"
@@ -391,6 +392,7 @@ void machine_reset(int hard) {
 		deltados_reset();
 	sam_reset();
 	m6809_reset();
+	m6809_trace_reset();
 	vdg_reset();
 	tape_reset();
 	cart_reset();
