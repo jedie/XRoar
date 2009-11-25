@@ -512,7 +512,8 @@ int xroar_load_file(const char *filename, int autorun) {
 		case FILETYPE_SNA:
 			return read_snapshot(filename);
 		case FILETYPE_ROM:
-			return cart_insert(filename, autorun);
+			machine_insert_cart(cart_rom_new(filename, autorun));
+			return 0;
 		case FILETYPE_CAS:
 			if (autorun)
 				return tape_autorun(filename);

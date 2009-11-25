@@ -69,6 +69,7 @@ uint8_t ram0[0x10000];
 uint8_t rom0[0x4000];
 uint8_t rom1[0x4000];
 MC6821_PIA PIA0, PIA1;
+struct cart *machine_cart = NULL;
 
 Cycle current_cycle;
 
@@ -239,15 +240,11 @@ void machine_init(void) {
 		PIA1.b.control_postwrite = pia1b_control_postwrite;
 	}
 #endif
-	dragondos_init();
-	deltados_init();
-	rsdos_init();
 	wd279x_init();
 	vdrive_init();
 	m6809_init();
 	vdg_init();
 	tape_init();
-	cart_init();
 }
 
 void machine_shutdown(void) {
@@ -324,8 +321,6 @@ void machine_reset(int hard) {
 		/* Load appropriate ROMs */
 		memset(rom0, 0x7e, sizeof(rom0));
 		memset(rom1, 0x7e, sizeof(rom1));
-		memset(cart_data, 0x7e, sizeof(cart_data));
-		cart_data_writable = 0;
 		/* ... BASIC */
 		if (!xroar_opt_nobas) {
 			load_rom_from_list(running_config.bas_rom,
@@ -346,13 +341,20 @@ void machine_reset(int hard) {
 		}
 		/* ... DOS */
 		if (DOS_ENABLED) {
+			char *dos_rom = find_rom_in_list(running_config.dos_rom, dos_rom_list[running_config.dos_type - 1]);
 			LOG_DEBUG(2, "%s selected\n", dos_type_names[running_config.dos_type]);
-			load_rom_from_list(running_config.dos_rom,
-					dos_rom_list[running_config.dos_type - 1],
-					cart_data, sizeof(cart_data));
-			cart_data_writable = 0;
-		} else {
-			LOG_DEBUG(2, "No DOS selected\n");
+			machine_remove_cart();
+			switch (running_config.dos_type) {
+				case DOS_DRAGONDOS:
+					machine_insert_cart(dragondos_new(dos_rom));
+					break;
+				case DOS_RSDOS:
+					machine_insert_cart(rsdos_new(dos_rom));
+					break;
+				case DOS_DELTADOS:
+					machine_insert_cart(deltados_new(dos_rom));
+					break;
+			}
 		}
 		/* Configure keymap */
 		keyboard_set_keymap(running_config.keymap);
@@ -384,18 +386,14 @@ void machine_reset(int hard) {
 	}
 	mc6821_reset(&PIA0);
 	mc6821_reset(&PIA1);
-	if (IS_DRAGONDOS)
-		dragondos_reset();
-	if (IS_RSDOS)
-		rsdos_reset();
-	if (IS_DELTADOS)
-		deltados_reset();
+	if (machine_cart && machine_cart->reset) {
+		machine_cart->reset();
+	}
 	sam_reset();
 	m6809_reset();
 	m6809_trace_reset();
 	vdg_reset();
 	tape_reset();
-	cart_reset();
 }
 
 void machine_clear_requested_config(void) {
@@ -410,6 +408,18 @@ void machine_clear_requested_config(void) {
 	requested_config.extbas_rom = NULL;
 	requested_config.altbas_rom = NULL;
 	requested_config.dos_rom = NULL;
+}
+
+void machine_insert_cart(struct cart *cart) {
+	machine_remove_cart();
+	machine_cart = cart;
+}
+
+void machine_remove_cart(void) {
+	if (machine_cart && machine_cart->detach) {
+		machine_cart->detach();
+	}
+	machine_cart = NULL;
 }
 
 /* Intialise RAM contents */
@@ -472,15 +482,25 @@ static char *find_rom_in_list(const char *preferred, const char **list) {
 
 static int load_rom_from_list(const char *preferred, const char **list,
 		uint8_t *dest, size_t max_size) {
-	char *path, *dot;
-	int fd;
+	char *path;
+	int ret;
 
 	path = find_rom_in_list(preferred, list);
 	if (path == NULL)
 		return -1;
+	ret = machine_load_rom(path, dest, max_size);
+	free(path);
+	return ret;
+}
+
+int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
+	char *dot;
+	int fd;
+
+	if (path == NULL)
+		return -1;
 	dot = strrchr(path, '.');
 	if ((fd = fs_open(path, FS_READ)) == -1) {
-		free(path);
 		return -1;
 	}
 	if (dot && strcmp(dot, ".dgn") == 0) {
@@ -491,6 +511,5 @@ static int load_rom_from_list(const char *preferred, const char **list,
 	}
 	fs_read(fd, dest, max_size);
 	fs_close(fd);
-	free(path);
 	return 0;
 }

@@ -7,6 +7,7 @@
 #define __MACHINE_H__
 
 #include "types.h"
+#include "cart.h"
 #include "mc6821.h"
 
 /* Dragon 64s and later Dragon 32s used a 14.218MHz crystal
@@ -90,6 +91,7 @@ extern uint8_t ram0[0x10000];
 extern uint8_t rom0[0x4000];
 extern uint8_t rom1[0x4000];
 extern MC6821_PIA PIA0, PIA1;
+extern struct cart *machine_cart;
 
 extern Cycle current_cycle;
 extern int noextbas;
@@ -100,5 +102,9 @@ void machine_shutdown(void);
 void machine_reset(int hard);
 
 void machine_clear_requested_config(void);
+void machine_insert_cart(struct cart *cart);
+void machine_remove_cart(void);
+
+int machine_load_rom(const char *path, uint8_t *dest, size_t max_size);
 
 #endif  /* __MACHINE_H__ */

@@ -8,12 +8,25 @@
 
 #include "types.h"
 
-extern uint8_t cart_data[0x4000];
-extern int cart_data_writable;
+enum cart_type {
+	CART_ROM,
+	CART_RAM,
+	CART_DRAGONDOS,
+	CART_DELTADOS,
+	CART_RSDOS,
+};
 
-void cart_init(void);
-void cart_reset(void);
-int cart_insert(const char *filename, int autostart);
-void cart_remove(void);
+struct cart {
+	enum cart_type type;
+	uint8_t mem_data[0x4000];
+	int mem_writable;
+	int (*io_read)(int addr);
+	void (*io_write)(int addr, int value);
+	void (*reset)(void);
+	void (*detach)(void);
+};
+
+struct cart *cart_rom_new(const char *filename, int autorun);
+struct cart *cart_ram_new(void);
 
 #endif  /* __CART_H__ */

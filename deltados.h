@@ -6,10 +6,6 @@
 #ifndef __DELTADOS_H__
 #define __DELTADOS_H__
 
-void deltados_init(void);
-void deltados_reset(void);
-
-unsigned int deltados_read(unsigned int addr);
-void deltados_write(unsigned int addr, unsigned int val);
+struct cart *deltados_new(const char *filename);
 
 #endif  /* __DELTADOS_H__ */

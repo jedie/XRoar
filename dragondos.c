@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "cart.h"
 #include "dragondos.h"
 #include "events.h"
 #include "logging.h"
@@ -35,10 +36,11 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-#define QUEUE_NMI() do { \
-		nmi_event.at_cycle = current_cycle + 1; \
-		event_queue(&MACHINE_EVENT_LIST, &nmi_event); \
-	} while (0)
+static int io_read(int addr);
+static void io_write(int addr, int val);
+static void reset(void);
+static void detach(void);
+static struct cart cart;
 
 /* Handle signals from WD2797 */
 static void set_drq_handler(void);
@@ -49,28 +51,41 @@ static void reset_intrq_handler(void);
 /* NMIs queued to allow CPU to run next instruction */
 static event_t nmi_event;
 static void do_nmi(void);
+#define QUEUE_NMI() do { \
+		nmi_event.at_cycle = current_cycle + 1; \
+		event_queue(&MACHINE_EVENT_LIST, &nmi_event); \
+	} while (0)
 
 /* Latch that's part of the DragonDOS cart: */
-static unsigned int ic1_old;
-static unsigned int ic1_drive_select;
-static unsigned int ic1_motor_enable;
-static unsigned int ic1_precomp_enable;
-static unsigned int ic1_density;
-static unsigned int ic1_nmi_enable;
+static int ic1_old;
+static int ic1_drive_select;
+static int ic1_motor_enable;
+static int ic1_precomp_enable;
+static int ic1_density;
+static int ic1_nmi_enable;
 
-static void ff48_write(unsigned int octet);
+static void ff48_write(int octet);
 
-void dragondos_init(void) {
-	event_init(&nmi_event);
-	nmi_event.dispatch = do_nmi;
-}
-
-void dragondos_reset(void) {
+struct cart *dragondos_new(const char *filename) {
+	cart.type = CART_DRAGONDOS;
+	memset(cart.mem_data, 0x7e, sizeof(cart.mem_data));
+	machine_load_rom(filename, cart.mem_data, sizeof(cart.mem_data));
+	cart.mem_writable = 0;
+	cart.io_read = io_read;
+	cart.io_write = io_write;
+	cart.reset = reset;
+	cart.detach = detach;
 	wd279x_type = WD2797;
 	wd279x_set_drq_handler     = set_drq_handler;
 	wd279x_reset_drq_handler   = reset_drq_handler;
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
+	event_init(&nmi_event);
+	nmi_event.dispatch = do_nmi;
+	return &cart;
+}
+
+static void reset(void) {
 	wd279x_reset();
 	ic1_old = 0xff;
 	ic1_drive_select = 0xff;
@@ -81,7 +96,11 @@ void dragondos_reset(void) {
 	ff48_write(0);
 }
 
-unsigned int dragondos_read(unsigned int addr) {
+static void detach(void) {
+	event_dequeue(&nmi_event);
+}
+
+static int io_read(int addr) {
 	if ((addr & 15) == 0) return wd279x_status_read();
 	if ((addr & 15) == 1) return wd279x_track_register_read();
 	if ((addr & 15) == 2) return wd279x_sector_register_read();
@@ -89,7 +108,7 @@ unsigned int dragondos_read(unsigned int addr) {
 	return 0x7e;
 }
 
-void dragondos_write(unsigned int addr, unsigned int val) {
+static void io_write(int addr, int val) {
 	if ((addr & 15) == 0) wd279x_command_write(val);
 	if ((addr & 15) == 1) wd279x_track_register_write(val);
 	if ((addr & 15) == 2) wd279x_sector_register_write(val);
@@ -98,7 +117,7 @@ void dragondos_write(unsigned int addr, unsigned int val) {
 }
 
 /* DragonDOS cartridge circuitry */
-static void ff48_write(unsigned int octet) {
+static void ff48_write(int octet) {
 	if (octet != ic1_old) {
 		LOG_DEBUG(4, "DragonDOS: Write to FF48: ");
 		if ((octet ^ ic1_old) & 0x03) {

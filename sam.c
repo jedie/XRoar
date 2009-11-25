@@ -20,12 +20,9 @@
 
 #include "types.h"
 #include "cart.h"
-#include "deltados.h"
-#include "dragondos.h"
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "rsdos.h"
 #include "sam.h"
 #include "xroar.h"
 
@@ -102,7 +99,10 @@ unsigned int sam_read_byte(unsigned int addr) {
 	}
 	if (addr < 0xff00) {
 		/* Cartridge ROM access */
-		return cart_data[addr & 0x3fff];
+		if (machine_cart) {
+			return machine_cart->mem_data[addr & 0x3fff];
+		}
+		return 0x7e;
 	}
 	if (addr < 0xff20) {
 		/* PIA0 */
@@ -123,19 +123,8 @@ unsigned int sam_read_byte(unsigned int addr) {
 		return mc6821_read(&PIA1, addr & 3);
 	}
 	if (addr < 0xff60) {
-		if (!DOS_ENABLED)
-			return 0x7e;
-		if (IS_RSDOS) {
-			/* CoCo floppy disk controller */
-			return rsdos_read(addr);
-		}
-		if (IS_DRAGONDOS) {
-			/* Dragon floppy disk controller */
-			return dragondos_read(addr);
-		}
-		if (IS_DELTADOS) {
-			/* Delta floppy disk controller */
-			return deltados_read(addr);
+		if (machine_cart && machine_cart->io_read) {
+			return machine_cart->io_read(addr);
 		}
 		return 0x7e;
 	}
@@ -173,8 +162,9 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 	}
 	if (addr < 0xff00) {
 		/* Cartridge ROM access */
-		if (cart_data_writable)
-			cart_data[addr & 0x3fff] = octet;
+		if (machine_cart && machine_cart->mem_writable) {
+			machine_cart->mem_data[addr & 0x3fff] = octet;
+		}
 		return;
 	}
 	if (addr < 0xff20) {
@@ -196,19 +186,8 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 		return;
 	}
 	if (addr < 0xff60) {
-		if (!DOS_ENABLED)
-			return;
-		if (IS_RSDOS) {
-			/* CoCo floppy disk controller */
-			rsdos_write(addr, octet);
-		}
-		if (IS_DRAGONDOS) {
-			/* Dragon floppy disk controller */
-			dragondos_write(addr, octet);
-		}
-		if (IS_DELTADOS) {
-			/* Delta floppy disk controller */
-			deltados_write(addr, octet);
+		if (machine_cart && machine_cart->io_write) {
+			machine_cart->io_write(addr, octet);
 		}
 		return;
 	}

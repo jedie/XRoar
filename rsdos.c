@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "cart.h"
 #include "events.h"
 #include "logging.h"
 #include "m6809.h"
@@ -34,10 +35,11 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-#define QUEUE_NMI() do { \
-		nmi_event.at_cycle = current_cycle + 1; \
-		event_queue(&MACHINE_EVENT_LIST, &nmi_event); \
-	} while (0)
+static int io_read(int addr);
+static void io_write(int addr, int val);
+static void reset(void);
+static void detach(void);
+static struct cart cart;
 
 /* Handle signals from WD2793 */
 static void set_drq_handler(void);
@@ -48,28 +50,41 @@ static void reset_intrq_handler(void);
 /* NMIs queued to allow CPU to run next instruction */
 static event_t nmi_event;
 static void do_nmi(void);
+#define QUEUE_NMI() do { \
+		nmi_event.at_cycle = current_cycle + 1; \
+		event_queue(&MACHINE_EVENT_LIST, &nmi_event); \
+	} while (0)
 
 /* Latch that's part of the RSDOS cart: */
-static unsigned int ic1_old;
-static unsigned int ic1_drive_select;
-static unsigned int ic1_density;
+static int ic1_old;
+static int ic1_drive_select;
+static int ic1_density;
 static int drq_flag;
 static int intrq_flag;
-static unsigned int halt_enable;
+static int halt_enable;
 
-static void ff40_write(unsigned int octet);
+static void ff40_write(int octet);
 
-void rsdos_init(void) {
-	event_init(&nmi_event);
-	nmi_event.dispatch = do_nmi;
-}
-
-void rsdos_reset(void) {
-	wd279x_type = WD2793;
+struct cart *rsdos_new(const char *filename) {
+	cart.type = CART_RSDOS;
+	memset(cart.mem_data, 0x7e, sizeof(cart.mem_data));
+	machine_load_rom(filename, cart.mem_data, sizeof(cart.mem_data));
+	cart.mem_writable = 0;
+	cart.io_read = io_read;
+	cart.io_write = io_write;
+	cart.reset = reset;
+	cart.detach = detach; 
+	wd279x_type = WD2793; 
 	wd279x_set_drq_handler     = set_drq_handler;
 	wd279x_reset_drq_handler   = reset_drq_handler;
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
+	event_init(&nmi_event);
+	nmi_event.dispatch = do_nmi; 
+	return &cart;
+}
+
+static void reset(void) {
 	wd279x_reset();
 	ic1_old = 0xff;
 	ic1_drive_select = 0xff;
@@ -79,7 +94,11 @@ void rsdos_reset(void) {
 	ff40_write(0);
 }
 
-unsigned int rsdos_read(unsigned int addr) {
+static void detach(void) {
+	event_dequeue(&nmi_event);
+}
+
+static int io_read(int addr) {
 	if ((addr & 15) == 8) return wd279x_status_read();
 	if ((addr & 15) == 9) return wd279x_track_register_read();
 	if ((addr & 15) == 10) return wd279x_sector_register_read();
@@ -87,7 +106,7 @@ unsigned int rsdos_read(unsigned int addr) {
 	return 0x7e;
 }
 
-void rsdos_write(unsigned int addr, unsigned int val) {
+static void io_write(int addr, int val) {
 	if ((addr & 15) == 8) wd279x_command_write(val);
 	if ((addr & 15) == 9) wd279x_track_register_write(val);
 	if ((addr & 15) == 10) wd279x_sector_register_write(val);
@@ -96,8 +115,8 @@ void rsdos_write(unsigned int addr, unsigned int val) {
 }
 
 /* RSDOS cartridge circuitry */
-static void ff40_write(unsigned int octet) {
-	unsigned int new_drive_select = 0;
+static void ff40_write(int octet) {
+	int new_drive_select = 0;
 	octet ^= 0x20;
 	if (octet & 0x01) {
 		new_drive_select = 0;

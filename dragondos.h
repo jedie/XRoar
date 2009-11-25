@@ -6,10 +6,6 @@
 #ifndef __DRAGONDOS_H__
 #define __DRAGONDOS_H__
 
-void dragondos_init(void);
-void dragondos_reset(void);
-
-unsigned int dragondos_read(unsigned int addr);
-void dragondos_write(unsigned int addr, unsigned int val);
+struct cart *dragondos_new(const char *filename);
 
 #endif  /* __DRAGONDOS_H__ */

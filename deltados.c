@@ -27,29 +27,45 @@
 #include <string.h>
 
 #include "types.h"
+#include "cart.h"
 #include "deltados.h"
 #include "logging.h"
+#include "machine.h"
 #include "vdrive.h"
 #include "wd279x.h"
 #include "xroar.h"
 
+static int io_read(int addr);
+static void io_write(int addr, int val);
+static void reset(void);
+static struct cart cart;
+
 /* Latch that's part of the Delta cart: */
-static unsigned int ic1_old;
-static unsigned int ic1_drive_select;
-static unsigned int ic1_side_select;
-static unsigned int ic1_density;
+static int ic1_old;
+static int ic1_drive_select;
+static int ic1_side_select;
+static int ic1_density;
 
-static void ff44_write(unsigned int octet);
+static void ff44_write(int octet);
 
-void deltados_init(void) {
-}
-
-void deltados_reset(void) {
-	wd279x_type = WD2791;
+struct cart *deltados_new(const char *filename) {
+	cart.type = CART_DELTADOS;
+	memset(cart.mem_data, 0x7e, sizeof(cart.mem_data));
+	machine_load_rom(filename, cart.mem_data, sizeof(cart.mem_data));
+	cart.mem_writable = 0;
+	cart.io_read = io_read;
+	cart.io_write = io_write;
+	cart.reset = reset;
+	cart.detach = NULL; 
+	wd279x_type = WD2791; 
 	wd279x_set_drq_handler     = NULL;
 	wd279x_reset_drq_handler   = NULL;
 	wd279x_set_intrq_handler   = NULL;
 	wd279x_reset_intrq_handler = NULL;
+	return &cart;
+}
+
+static void reset(void) {
 	wd279x_reset();
 	ic1_old = 0xff;
 	ic1_drive_select = 0xff;
@@ -58,7 +74,7 @@ void deltados_reset(void) {
 	ff44_write(0);
 }
 
-unsigned int deltados_read(unsigned int addr) {
+static int io_read(int addr) {
 	if ((addr & 7) == 0) return wd279x_status_read();
 	if ((addr & 7) == 1) return wd279x_track_register_read();
 	if ((addr & 7) == 2) return wd279x_sector_register_read();
@@ -66,7 +82,7 @@ unsigned int deltados_read(unsigned int addr) {
 	return 0x7e;
 }
 
-void deltados_write(unsigned int addr, unsigned int val) {
+static void io_write(int addr, int val) {
 	if ((addr & 7) == 0) wd279x_command_write(val);
 	if ((addr & 7) == 1) wd279x_track_register_write(val);
 	if ((addr & 7) == 2) wd279x_sector_register_write(val);
@@ -75,7 +91,7 @@ void deltados_write(unsigned int addr, unsigned int val) {
 }
 
 /* Delta cartridge circuitry */
-static void ff44_write(unsigned int octet) {
+static void ff44_write(int octet) {
 	if (octet != ic1_old) {
 		LOG_DEBUG(4, "Delta: Write to FF44: ");
 		if ((octet ^ ic1_old) & 0x03) {
