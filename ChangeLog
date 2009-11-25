@@ -1,182 +1,217 @@
-Changed from v0.21 to v0.22
- * Feed audio output back to single bit sound input.
- * Update GP32 build to use EABI libs and devkitARM crt0.
- * Don't build DS stuff in thumb mode.
- * Initialise RAM to pattern.
- * Insert fake leader on tape change.
- * Fix OpenGL texture "fringing".
- * Sun audio fixes.
- * Honour user-specified RAM size again.
- * Fix WD2791/3 side compare plus other fixes to help CoCo NitrOS9.
- * Find a machine the user has ROMs for if they don't specify.
- * Add -load and -run options.
- * Add simple joystick swap with Control+Shift+J.
- * Disable fullscreen while showing a file requester.
- * Replace README with a manual.
- * Fake trailing leader byte for CAS files.
+Version 0.23, unreleased
 
-Changed from v0.20 to v0.21
- * Fix border colour in RG6, CSS=0.
- * Input abstraction layer.
- * NDS: Render video as 4 x 3 grid of 4-bit colour sprites.
- * NDS: Use NDS VCOUNT writability to lock display to 50Hz when appropriate.
- * NDS: Major UI improvements.
- * NDS: Sound support.
- * GP32: Fix chatboard support with new state-machine based scanner.
- * Trace mode fixes (SYNC, CWAI).
- * Support changing of SAM RAM configuration.
- * More accurate single-bit sound.
- * Variable MPU rate support configurable.
+  * Full CoCo RAM select emulation.
+  * Implemented SAM FAST mode.
+  * Fullscreen fixes.
+  * Better handling of -load and -run options.
+  * Include "dark orange" VDG text mode colour.
+  * Initial ALSA sound module (-ao alsa).
+  * Read a configuration file on startup.
+  * Sun audio fixes.
+  * Experimental curses user interface.
+  * Run first non-option argument.
+  * WD279x fix.
+  * Fixed segfault in SDL joystick code.
+  * Work around nasty hang bug in SDL's pulseaudio module.
+  * Add ROM search path to Windows build.
+  * Add -gl-filter option to select OpenGL texture filter.
+  * Support directly loading ASCII files (.bas, .asc) as gapped ASCII BASIC.
+  * Write-back support for VDK and JVC disk images.
+  * Request filename when creating a blank disk.
 
-Changed from v0.19 to v0.20
- * Don't show artifacted colours for CSS=0.
- * Better emulation of undocumented 6809 behaviour.
- * New joystick axis and button mapping options.
- * Add GTK+-2 file requester.
- * Mid-instruction peripheral state sync.
- * Restructure CPU core to more accurately reflect data sheet.
- * PIA code not so intimately tied to emulator code.
- * New 5-bit NTSC cross-colour renderer.
- * NTSC cross-colour phase saved with snapshots.
+Version 0.22, Tue Dec 23 2008
 
-Changed from v0.18 to v0.19
- * WD279x Read Address command implemented.
- * VDG fixes.
- * Delta bugs in initialisation and drive select fixed.
- * Better error reporting.
- * Better compatibility with old snapshots.
- * Performance improvements in OpenGL driver.
- * DMK virtual disk reading bugfix.
- * Virtual disk image file write support (DMK format only).
- * Write protect toggles in SDL user-interface.
- * Attached virtual disk filenames written to snapshots.
+  * Feed audio output back to single bit sound input.
+  * Update GP32 build to use EABI libs and devkitARM crt0.
+  * Don't build DS stuff in thumb mode.
+  * Initialise RAM to pattern.
+  * Insert fake leader on tape change.
+  * Fix OpenGL texture "fringing".
+  * Sun audio fixes.
+  * Honour user-specified RAM size again.
+  * Fix WD2791/3 side compare plus other fixes to help CoCo NitrOS9.
+  * Find a machine the user has ROMs for if they don't specify.
+  * Add -load and -run options.
+  * Add simple joystick swap with Control+Shift+J.
+  * Disable fullscreen while showing a file requester.
+  * Replace README with a manual.
+  * Fake trailing leader byte for CAS files.
 
-Changed from v0.17 to v0.18
- * New 'configure' script.
- * New 'null' sound driver replaces 'rtc'.
- * Initial support for Nintendo DS (NDS).
- * Slight speed hacks for GP32/NDS.
- * Correct amount of scanlines rendered.
- * Added --version option.
- * Fixed potential infinite loop in disk emulation.
- * Single-density disk support.
- * Ability to insert blank disks (Ctrl+Shift+[1-4]).
- * DMK virtual disk format support.
- * Premier Delta System DOS cartridge support.
- * Added -dostype option.
+Version 0.21, Thu Apr 24 2008
 
-Changed from v0.16 to v0.17
- * Map '~' to Shift+'@' in translation mode.
- * Hopefully fix windows32 build.
- * Tape loading bugs fixed.
- * Fix VDG accesses >32K.
- * More accurately emulate Dragon 32 behaviour in map type 1.
- * Added frameskip option (-fskip).
- * Added rate limiter inhibit by holding F12.
+  * Fix border colour in RG6, CSS=0.
+  * Input abstraction layer.
+  * NDS: Render video as 4 x 3 grid of 4-bit colour sprites.
+  * NDS: Use NDS VCOUNT writability to lock display to 50Hz when appropriate.
+  * NDS: Major UI improvements.
+  * NDS: Sound support.
+  * GP32: Fix chatboard support with new state-machine based scanner.
+  * Trace mode fixes (SYNC, CWAI).
+  * Support changing of SAM RAM configuration.
+  * More accurate single-bit sound.
+  * Variable MPU rate support configurable.
 
-Changed from v0.15 to v0.16
- * Added -ram option.
- * CRC16 fixes.
- * RSDOS fixes.
- * Video timing code updated.
- * Added -pal and -ntsc options.
- * Fixed 16-byte video modes.
- * Fixed keyboard translation for Windows.
- * Support an illegal indexed addressing mode accidentally used by the first
-   release of Glove.
- * Support using audio files for cassette input.
- * GP32 speed hacks (still not perfect).
+Version 0.20, Wed Feb 27 2008
 
-Changed from v0.14 to v0.15
- * All registers now local to 6809 core main loop.
- * New indexed addressing code should be faster.
- * Simplified module system.
- * New cartridge code.  Now usable on GP32.
- * Semigraphics mode 6 implemented.
- * Virtual cassette writing supported.
- * While reading virtual cassettes, fake leader bytes are inserted when
-   cassette motor is turned on.
- * Windows32 UI has separate save dialog.
- * Timing issue with short branches fixed.
- * WD2797 emulation now implements CRC16.
+  * Don't show artifacted colours for CSS=0.
+  * Better emulation of undocumented 6809 behaviour.
+  * New joystick axis and button mapping options.
+  * Add GTK+-2 file requester.
+  * Mid-instruction peripheral state sync.
+  * Restructure CPU core to more accurately reflect data sheet.
+  * PIA code not so intimately tied to emulator code.
+  * New 5-bit NTSC cross-colour renderer.
+  * NTSC cross-colour phase saved with snapshots.
 
-Changed from v0.13 to v0.14
- * Implemented PAL timing for Dragon 32, Dragon 64.
- * Added new machine, 'tano'.
- * Implemented sub-scanline rendering (not GP32).
- * Fixes to snapshot code.
- * Fullscreen toggle added.
- * AD CPU rate removed from GP32 build.
- * New -snap option.
- * Fix to Windows32 UI module (retains CWD).
- * 6809 core optimisations.
+Version 0.19, Tue Jun 26 2007
 
-Changed from v0.12 to v0.13
- * Fixed OpenGL resize problem.
- * Fixed OpenGL border alignment problem.
- * Trace mode now disassembles instructions.
- * Virtual floppy timings more accurate, 'formatting' supported.
- * JVC virtual disk format supported.
- * Preliminary CoCo disk support (some stuff works, NitrOS-9 doesn't).
- * 6809-PIA interrupt interaction more accurate (fixes some games).
- * Various command-line options added.
+  * WD279x Read Address command implemented.
+  * VDG fixes.
+  * Delta bugs in initialisation and drive select fixed.
+  * Better error reporting.
+  * Better compatibility with old snapshots.
+  * Performance improvements in OpenGL driver.
+  * DMK virtual disk reading bugfix.
+  * Virtual disk image file write support (DMK format only).
+  * Write protect toggles in SDL user interface.
+  * Attached virtual disk filenames written to snapshots.
 
-Changed from v0.11 to v0.12
- * New OpenGL video driver.  Allows architectures without Xv extension
-   but with fast 3D graphics card to do hardware scaling.
- * Disk writing (in memory only).
- * Address-dependent CPU rate implemented (GP32 clock rate upped to
-   80MHz to cope).
+Version 0.18, Fri Mar  9 2007
 
-Changes from v0.10 to v0.11
+  * New 'configure' script.
+  * New 'null' sound driver replaces 'rtc'.
+  * Initial support for Nintendo DS (NDS).
+  * Slight speed hacks for GP32/NDS.
+  * Correct amount of scanlines rendered.
+  * Added --version option.
+  * Fixed potential infinite loop in disk emulation.
+  * Single-density disk support.
+  * Ability to insert blank disks (Ctrl+Shift+[1-4]).
+  * DMK virtual disk format support.
+  * Premier Delta System DOS cartridge support.
+  * Added -dostype option.
 
- * Modularised almost everything.  Binary can contain multiple drivers
-   for video, sound and ui.  User can pick one on startup and, hopefully,
-   switch between them on the fly.
- * Added resizable SDL-YUV (Xv-accelerated where possible) video module.
- * Added JACK sound module.
- * Added NULL sound module (Linux-only: uses /dev/rtc to sync).
- * Eliminated busy-wait from SDL sound module.
- * Unified Unix and GP32 Makefiles.
- * Added ability to simulate NTSC video artifacts for hi-res graphics.
- * Sound fixes for unsigned audio interferes less with other audio.
- * GP32 chatboard support (thanks to Mirko's SDK).
- * Added 'translation' mode to SDL keyboard driver.
- * Added French & German keyboard mappings for 'raw' mode to SDL driver.
- * Ctrl+D (insert disk) replaced with Ctrl+[1-4] in SDL interface.
+Version 0.17, Tue Aug 15 2006
 
-Changes from v0.9 to v0.10
+  * Map '~' to Shift+'@' in translation mode.
+  * Hopefully fix windows32 build.
+  * Tape loading bugs fixed.
+  * Fix VDG accesses >32K.
+  * More accurately emulate Dragon 32 behaviour in map type 1.
+  * Added frameskip option (-fskip).
+  * Added rate limiter inhibit by holding F12.
 
- * Fixed Sun audio code broken by v0.9.
- * Fix SEX bug.  Pretty much everything runs correctly now (including
-   Racer Ball, Rommel 3D, Android Attack).
- * Stopped using GP32 SDK sound code, adapted some of Jouni 'Mr.Spiv'
-   Korhonen's code.
- * Refactored code to something a little more logical.
- * MacOS X 'Carbon' UI contributed by Stuart Teasdale.
- * Use C99 types instead of SDL ones except in SDL-based drivers.
- * Wrote faster GP32-specific VDG routines.
+Version 0.16, Tue Aug  8 2006
 
-Changes from v0.8 to v0.9
+  * Added -ram option.
+  * CRC16 fixes.
+  * RSDOS fixes.
+  * Video timing code updated.
+  * Added -pal and -ntsc options.
+  * Fixed 16-byte video modes.
+  * Fixed keyboard translation for Windows.
+  * Support an illegal indexed addressing mode accidentally used by the first
+    release of Glove.
+  * Support using audio files for cassette input.
+  * GP32 speed hacks (still not perfect).
 
- * More timing fixes.
- * Video rendering optimisations.
- * s/LICENCE/COPYING/
- * Basic GP32 menu system added.
- * Ability to switch between Dragon and CoCo ROMs and keymaps.
- * Can insert disks (but still only into drive 1).
+Version 0.15, Sun Jun 25 2006
 
-Changes from v0.7 to v0.8
+  * All registers now local to 6809 core main loop.
+  * New indexed addressing code should be faster.
+  * Simplified module system.
+  * New cartridge code.  Now usable on GP32.
+  * Semigraphics mode 6 implemented.
+  * Virtual cassette writing supported.
+  * While reading virtual cassettes, fake leader bytes are inserted when
+    cassette motor is turned on.
+  * Windows32 UI has separate save dialog.
+  * Timing issue with short branches fixed.
+  * WD2797 emulation now implements CRC16.
 
- * Added GTK interface option (default) to Unix build.
- * Timing fixes - most things play at a better speed now.
+Version 0.14, Sat Oct 22 2005
 
-Changes from v0.7-pre1 to v0.7
+  * Implemented PAL timing for Dragon 32, Dragon 64.
+  * Added new machine, 'tano'.
+  * Implemented sub-scanline rendering (not GP32).
+  * Fixes to snapshot code.
+  * Fullscreen toggle added.
+  * AD CPU rate removed from GP32 build.
+  * New -snap option.
+  * Fix to Windows32 UI module (retains CWD).
+  * 6809 core optimisations.
 
- * Added basic Unix joystick support (using SDL).
- * PIA0 addressing more specific (D64-style), OS-9 boots!
- * PIA implementation simplified.
- * Debug level configurable at build time (defaults to "not too much").
- * Keyboard handling changed; GP32 version will be easier to switch to
-   CoCo mode when the time comes.
+Version 0.13, Fri Aug 26 2005
 
+  * Fixed OpenGL resize problem.
+  * Fixed OpenGL border alignment problem.
+  * Trace mode now disassembles instructions.
+  * Virtual floppy timings more accurate, 'formatting' supported.
+  * JVC virtual disk format supported.
+  * Preliminary CoCo disk support (some stuff works, NitrOS-9 doesn't).
+  * 6809-PIA interrupt interaction more accurate (fixes some games).
+  * Various command-line options added.
+
+Version 0.12, Thu Jul 28 2005
+
+  * New OpenGL video driver.  Allows architectures without Xv extension
+    but with fast 3D graphics card to do hardware scaling.
+  * Disk writing (in memory only).
+  * Address-dependent CPU rate implemented (GP32 clock rate upped to
+    80MHz to cope).
+
+Version 0.11, Thu Jan 13 2005
+
+  * Modularised almost everything.  Binary can contain multiple drivers
+    for video, sound and ui.  User can pick one on startup and, hopefully,
+    switch between them on the fly.
+  * Added resizable SDL-YUV (Xv-accelerated where possible) video module.
+  * Added JACK sound module.
+  * Added NULL sound module (Linux-only: uses /dev/rtc to sync).
+  * Eliminated busy-wait from SDL sound module.
+  * Unified Unix and GP32 Makefiles.
+  * Added ability to simulate NTSC video artifacts for hi-res graphics.
+  * Sound fixes for unsigned audio interferes less with other audio.
+  * GP32 chatboard support (thanks to Mirko's SDK).
+  * Added 'translation' mode to SDL keyboard driver.
+  * Added French & German keyboard mappings for 'raw' mode to SDL driver.
+  * Ctrl+D (insert disk) replaced with Ctrl+[1-4] in SDL interface.
+
+Version 0.10, Sun Jun 27 2004
+
+  * Fixed Sun audio code broken by v0.9.
+  * Fix SEX bug.  Pretty much everything runs correctly now (including
+    Racer Ball, Rommel 3D, Android Attack).
+  * Stopped using GP32 SDK sound code, adapted some of Jouni 'Mr.Spiv'
+    Korhonen's code.
+  * Refactored code to something a little more logical.
+  * MacOS X 'Carbon' UI contributed by Stuart Teasdale.
+  * Use C99 types instead of SDL ones except in SDL-based drivers.
+  * Wrote faster GP32-specific VDG routines.
+
+Version 0.9, Sat May 15 2004
+
+  * More timing fixes.
+  * Video rendering optimisations.
+  * s/LICENCE/COPYING/
+  * Basic GP32 menu system added.
+  * Ability to switch between Dragon and CoCo ROMs and keymaps.
+  * Can insert disks (but still only into drive 1).
+
+Version 0.8, Mon May  3 2004
+
+  * Added GTK interface option (default) to Unix build.
+  * Timing fixes - most things play at a better speed now.
+
+Version 0.7, Wed Apr  7 2004
+
+  * Added basic Unix joystick support (using SDL).
+  * PIA0 addressing more specific (D64-style), OS-9 boots!
+  * PIA implementation simplified.
+  * Debug level configurable at build time (defaults to "not too much").
+  * Keyboard handling changed; GP32 version will be easier to switch to
+    CoCo mode when the time comes.
+
+Version 0.6, Thu Apr 17 2003
+
+  * Joystick support available in the GP32 version.
