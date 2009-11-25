@@ -400,15 +400,20 @@ int xroar_init(int argc, char **argv) {
 	keyboard_init();
 	joystick_init();
 	machine_init();
+
+	/* Load carts before initial reset */
+	if (load_file && load_file_type == FILETYPE_ROM) {
+		xroar_load_file(load_file, autorun_loaded_file);
+		load_file = NULL;
+	}
 	/* Reset everything */
 	machine_reset(RESET_HARD);
 	if (load_file) {
-		int filetype = xroar_filetype_by_ext(load_file);
-		if (filetype == FILETYPE_SNA || filetype == FILETYPE_ROM) {
-			/* Load snapshots and carts immediately */
+		if (load_file_type == FILETYPE_SNA) {
+			/* Load snapshots immediately */
 			xroar_load_file(load_file, autorun_loaded_file);
-		} else if (!autorun_loaded_file && filetype != FILETYPE_BIN
-				&& filetype != FILETYPE_HEX) {
+		} else if (!autorun_loaded_file && load_file_type != FILETYPE_BIN
+				&& load_file_type != FILETYPE_HEX) {
 			/* Everything else except CoCo binaries and hex
 			 * records can be attached now if not autorunning */
 			xroar_load_file(load_file, 0);
