@@ -177,9 +177,11 @@ XRoar should appear in the menu when you start up your GP32.
 First, unpack the downloaded ZIP file.  A subdirectory should be created
 containing the main binary, supporting DLL files and documentation.
 
-Copy your firmware ROM images into this directory: the Windows build of XRoar
-looks only in its current working directory for them.  See @ref{Firmware ROM
-image names} for filenames the emulator will search for.
+Firmware images can be copied to this directory, or in a directory called
+@file{@emph{USERPROFILE}/Application Data/XRoar/roms/}.  @emph{USERPROFILE} is
+usually something like @file{C:/Documents and Settings/@emph{username}} or
+@file{C:/Users/@emph{username}}.  See @ref{Firmware ROM image names} for
+filenames the emulator will search for.
 
 XRoar can be started by running @file{xroar.exe} either from a file browser or
 the command line.
@@ -838,17 +840,37 @@ disk10
 @node Configuration file
 @chapter Configuration file
 
-All command-line options can also be used as directives in a
-configuration file called @file{xroar.conf}.  This file is searched
-for in a variety of locations, including the current working
-directory.  Directives are listed one per line without the leading
-dashes of the command line option.
+All command-line options can also be used as directives in a configuration file
+called @file{xroar.conf}.  This file is searched for in a variety of locations:
+
+@multitable {Mac OS X.} {~/Local Settings/Application Data/XRoar/zzzzzzzzzz}
+@headitem System @tab Search order
+@item Unix@*
+Mac OS X
+@tab Current working directory@*
+@file{~/.xroar/}@*
+@file{~/Library/XRoar/}@*
+@file{@emph{PREFIX}/share/xroar/}
+@item Windows
+@tab Current working directory@*
+@file{~/Local Settings/Application Data/XRoar/}@*
+@file{~/Application Data/XRoar/}
+@end multitable
+
+@samp{~} indicates the user's home directory.  On Unix systems this is held in
+the @env{HOME} environment variable (often @file{/home/@emph{username}}), on
+Windows systems it is in the @env{USERPROFILE} environment variable (often
+@file{c:/Documents and Settings/@emph{username}} or
+@file{c:/Users/@emph{username}}).  @emph{PREFIX} is the installation prefix,
+usually @file{/usr/local}.
+
+Directives are listed one per line without the leading dashes of the command
+line option.
 
 In a future release it should be possible to group machine or DOS
-configurations by some arbitrary name, allowing easy access to sets
-of configurations.  For now though, it is only really useful for
-specifying a default machine, video output module, joystick mapping,
-etc.
+configurations by some arbitrary name, allowing easy access to sets of
+configurations.  For now though, it is only really useful for specifying a
+default machine, video output module, joystick mapping, etc.
 
 @node GP32 user interface
 @chapter GP32 user interface
