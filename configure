@@ -793,8 +793,10 @@ fi
 ########
 
 if test -z "$_makeinfo"; then
-	echocheck makeinfo
-	if ( $MAKEINFO --version ) > /dev/null 2>&1; then
+	echocheck "makeinfo >= 4.13"
+	makeinfo_version=`makeinfo --version | head -1 | sed 's/^.* \([1-9][0-9\.]*\)$/\1/;s/\.\([0-9][0-9]*\)/.0000\1/;s/\.[0-9]*\(.....\)$/\1/;' 2>/dev/null`
+	test -z "$makeinfo_version" && makeinfo_version=0
+	if test "$makeinfo_version" -ge "400013"; then
 		_makeinfo=yes
 	else
 		_makeinfo=no
