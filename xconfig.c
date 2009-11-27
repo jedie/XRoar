@@ -42,8 +42,8 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 		case XCONFIG_INT:
 			*(int *)option->dest = strtol(arg, NULL, 0);
 			break;
-		case XCONFIG_FLOAT:
-			*(float *)option->dest = strtof(arg, NULL);
+		case XCONFIG_DOUBLE:
+			*(double *)option->dest = strtod(arg, NULL);
 			break;
 		case XCONFIG_STRING:
 			*(char **)option->dest = strdup(arg);

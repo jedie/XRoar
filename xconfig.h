@@ -16,7 +16,7 @@ enum xconfig_result {
 enum xconfig_option_type {
 	XCONFIG_BOOL,
 	XCONFIG_INT,
-	XCONFIG_FLOAT,
+	XCONFIG_DOUBLE,
 	XCONFIG_STRING,
 	XCONFIG_CALL_0,
 	XCONFIG_CALL_1,
