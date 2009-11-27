@@ -41,95 +41,130 @@ xroar_opt_INT_OBJS =
 opt_sdl_OBJS = ui_sdl.o video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o \
 		joystick_sdl.o
 CLEAN += $(opt_sdl_OBJS)
-ifeq ($(CONFIG_SDL),yes)
+ifeq ($(opt_sdl),yes)
 	xroar_opt_OBJS += $(opt_sdl_OBJS)
+	xroar_opt_CFLAGS += $(opt_sdl_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_sdl_LDFLAGS)
 video_sdl.o: vdg_bitmaps.h
 video_sdlyuv.o: vdg_bitmaps.h
 endif
 
 opt_sdlgl_OBJS = video_sdlgl.o
 CLEAN += $(opt_sdlgl_OBJS)
-ifeq ($(CONFIG_SDLGL),yes)
+ifeq ($(opt_sdlgl),yes)
 	xroar_opt_OBJS += $(opt_sdlgl_OBJS)
+	xroar_opt_CFLAGS += $(opt_sdlgl_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_sdlgl_LDFLAGS)
 video_sdlgl.o: vdg_bitmaps.h
 endif
 
 opt_curses_OBJS = ui_curses.o video_curses.o keyboard_curses.o
 CLEAN += $(opt_curses_OBJS)
-ifeq ($(CONFIG_CURSES),yes)
+ifeq ($(opt_curses),yes)
 	xroar_opt_OBJS += $(opt_curses_OBJS)
+	xroar_opt_CFLAGS += $(opt_curses_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_curses_LDFLAGS)
 endif
 
 opt_gtk2_OBJS = filereq_gtk2.o
 CLEAN += $(opt_gtk2_OBJS)
-ifeq ($(CONFIG_GTK2),yes)
+ifeq ($(opt_gtk2),yes)
 	xroar_opt_OBJS += $(opt_gtk2_OBJS)
+	xroar_opt_CFLAGS += $(opt_gtk2_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_gtk2_LDFLAGS)
 endif
 
 opt_gtk1_OBJS = filereq_gtk1.o
 CLEAN += $(opt_gtk1_OBJS)
-ifeq ($(CONFIG_GTK1),yes)
+ifeq ($(opt_gtk1),yes)
 	xroar_opt_OBJS += $(opt_gtk1_OBJS)
+	xroar_opt_CFLAGS += $(opt_gtk1_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_gtk1_LDFLAGS)
 endif
 
 opt_cli_OBJS = filereq_cli.o
 CLEAN += $(opt_cli_OBJS)
-ifeq ($(CONFIG_CLI),yes)
+ifeq ($(opt_cli),yes)
 	xroar_opt_OBJS += $(opt_cli_OBJS)
+	xroar_opt_CFLAGS += $(opt_cli_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_cli_LDFLAGS)
 endif
 
 opt_carbon_OBJS = filereq_carbon.o
 CLEAN += $(opt_carbon_OBJS)
-ifeq ($(CONFIG_CARBON),yes)
+ifeq ($(opt_carbon),yes)
 	xroar_opt_OBJS += $(opt_carbon_OBJS)
+	xroar_opt_CFLAGS += $(opt_carbon_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_carbon_LDFLAGS)
 endif
 
 opt_alsa_OBJS = sound_alsa.o
 CLEAN += $(opt_alsa_OBJS)
-ifeq ($(CONFIG_ALSA),yes)
+ifeq ($(opt_alsa),yes)
 	xroar_opt_OBJS += $(opt_alsa_OBJS)
+	xroar_opt_CFLAGS += $(opt_alsa_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_alsa_LDFLAGS)
 endif
 
 opt_oss_OBJS = sound_oss.o
 CLEAN += $(opt_oss_OBJS)
-ifeq ($(CONFIG_OSS),yes)
+ifeq ($(opt_oss),yes)
 	xroar_opt_OBJS += $(opt_oss_OBJS)
+	xroar_opt_CFLAGS += $(opt_oss_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_oss_LDFLAGS)
 endif
 
 opt_sunaudio_OBJS = sound_sun.o
 CLEAN += $(opt_sunaudio_OBJS)
-ifeq ($(CONFIG_SUN),yes)
+ifeq ($(opt_sunaudio),yes)
 	xroar_opt_OBJS += $(opt_sunaudio_OBJS)
+	xroar_opt_CFLAGS += $(opt_sunaudio_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_sunaudio_LDFLAGS)
 endif
 
 opt_coreaudio_OBJS = sound_macosx.o
 CLEAN += $(opt_coreaudio_OBJS)
-ifeq ($(CONFIG_COREAUDIO),yes)
+ifeq ($(opt_coreaudio),yes)
 	xroar_opt_OBJS += $(opt_coreaudio_OBJS)
+	xroar_opt_CFLAGS += $(opt_coreaudio_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_coreaudio_LDFLAGS)
 endif
 
 opt_jack_OBJS = sound_jack.o
 CLEAN += $(opt_jack_OBJS)
-ifeq ($(CONFIG_JACK),yes)
+ifeq ($(opt_jack),yes)
 	xroar_opt_OBJS += $(opt_jack_OBJS)
+	xroar_opt_CFLAGS += $(opt_jack_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_jack_LDFLAGS)
+endif
+
+ifeq ($(opt_sndfile),yes)
+	xroar_opt_CFLAGS += $(opt_sndfile_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_sndfile_LDFLAGS)
 endif
 
 opt_nullaudio_OBJS = sound_null.o
 CLEAN += $(opt_nullaudio_OBJS)
-ifeq ($(CONFIG_NULLAUDIO),yes)
+ifeq ($(opt_nullaudio),yes)
 	xroar_opt_OBJS += $(opt_nullaudio_OBJS)
+	xroar_opt_CFLAGS += $(opt_nullaudio_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_nullaudio_LDFLAGS)
 endif
 
 opt_mingw_OBJS = common_windows32.o filereq_windows32.o
 CLEAN += $(opt_mingw_OBJS)
-ifeq ($(CONFIG_MINGW),yes)
+ifeq ($(opt_mingw),yes)
 	xroar_opt_OBJS += $(opt_mingw_OBJS)
+	xroar_opt_CFLAGS += $(opt_mingw_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_mingw_LDFLAGS)
 endif
 
 opt_trace_OBJS = m6809_trace.o
 CLEAN += $(opt_trace_OBJS)
-ifeq ($(CONFIG_TRACE),yes)
+ifeq ($(opt_trace),yes)
 	xroar_opt_OBJS += $(opt_trace_OBJS)
+	xroar_opt_CFLAGS += $(opt_trace_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_trace_LDFLAGS)
 endif
 
 ############################################################################
@@ -144,7 +179,7 @@ include makefile_nds.mk
 # Unix rules (default)
 ifeq ($(BUILD_STYLE),)
 
-ifeq ($(CONFIG_MINGW),yes)
+ifeq ($(opt_mingw),yes)
 ROMPATH = \":~/Local\ Settings/Application\ Data/XRoar/roms:~/Application\ Data/XRoar/roms\"
 CONFPATH = \":~/Local\ Settings/Application\ Data/XRoar:~/Application\ Data/XRoar\"
 else
@@ -152,12 +187,11 @@ ROMPATH = \":~/.xroar/roms:~/Library/XRoar/Roms:$(datadir)/xroar/roms\"
 CONFPATH = \":~/.xroar:~/Library/XRoar:$(datadir)/xroar\"
 endif
 
-xroar_unix_CFLAGS = $(CFLAGS)
-xroar_unix_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
+xroar_unix_CFLAGS = $(CFLAGS) $(CPPFLAGS) $(xroar_opt_CFLAGS) \
+	-I$(CURDIR) -I$(SRCROOT) $(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
-xroar_unix_LDFLAGS = $(LDFLAGS)
-xroar_unix_LDLIBS = $(LDLIBS)
+xroar_unix_LDFLAGS = $(LDFLAGS) $(LDLIBS) $(xroar_opt_LDFLAGS)
 
 xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 	$(xroar_unix_OBJS) $(xroar_unix_INT_OBJS) \
@@ -166,13 +200,13 @@ xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 $(xroar_unix_ALL_OBJS): $(CONFIG_FILES)
 
 $(xroar_common_OBJS) $(xroar_unix_OBJS) $(xroar_opt_OBJS): %.o: $(SRCROOT)/%.c
-	$(CC) $(xroar_unix_CFLAGS) $(xroar_unix_CPPFLAGS) -c $<
+	$(CC) $(xroar_unix_CFLAGS) -c $<
 
 $(xroar_common_INT_OBJS) $(xroar_unix_INT_OBJS) $(xroar_opt_INT_OBJS): %.o: ./%.c
-	$(CC) $(xroar_unix_CFLAGS) $(xroar_unix_CPPFLAGS) -c $<
+	$(CC) $(xroar_unix_CFLAGS) -c $<
 
 xroar$(EXEEXT): $(xroar_unix_ALL_OBJS)
-	$(CC) -o $@ $(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS) $(xroar_unix_LDLIBS)
+	$(CC) -o $@ $(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS)
 
 .PHONY: build-bin
 build-bin: xroar$(EXEEXT)
@@ -209,7 +243,7 @@ endif
 ############################################################################
 # Install rules
 
-ifeq ($(CONFIG_INSTALL),yes)
+ifneq ($(INSTALL),)
 INSTALL_FILE    = $(INSTALL) -m 0644
 ifeq (,$(filter nostrip,$(DEB_BUILD_OPTIONS)))
 INSTALL_PROGRAM = $(INSTALL) -m 0755 -s
@@ -251,7 +285,7 @@ install-info: doc/xroar.info
 
 tools/font2c: $(SRCROOT)/tools/font2c.c
 	mkdir -p tools
-	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
+	$(BUILD_CC) $(opt_build_sdl_CFLAGS) -o $@ $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS)
 
 CLEAN += tools/font2c
 

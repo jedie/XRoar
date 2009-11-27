@@ -11,22 +11,11 @@ unset EXEEXT
 unset target_pkg_config build_pkg_config
 unset target_sdl_config build_sdl_config
 unset target_gtk_config
+unset _makeinfo _texi2pdf _install
 unset _have_video_driver
 
-unset _strsep
-unset _sdl _sdlgl _build_sdl _build_sdl_image
-unset _curses _gtk2 _gtk1 _cli _carbon
-unset _alsa _oss _sun _coreaudio _jack _nullaudio
-unset _sndfile
-unset _mingw
-unset _gp32
-unset _nds
-unset _mpu_rate _trace _fast_vdg _fast_sound
-unset _makeinfo _texi2pdf _install
-
-_cli=yes
-_nullaudio=yes
-_trace=yes
+all_opt="strsep sdl sdlgl build_sdl build_sdl_image curses gtk2 gtk1 cli carbon alsa oss sunaudio coreaudio jack nullaudio sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
+unset $all_opt
 
 case `echo -n` in
 -n) _echo_n=""; _echo_c='\c'; ;;	# SysV echo
@@ -96,6 +85,7 @@ while test -n "$1"; do
 	case "$opt" in
 	--) shift; break; ;;
 	CFLAGS=*) TARGET_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	CPPFLAGS=*) TARGET_CPPFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	LDFLAGS=*) TARGET_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_CFLAGS=*) BUILD_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_LDFLAGS=*) BUILD_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -274,6 +264,7 @@ EOF
 	TARGET_CFLAGS="$__opt"
 fi
 
+test -z "$TARGET_CPPFLAGS" && TARGET_CPPFLAGS="$CPPFLAGS"
 test -z "$TARGET_LDFLAGS" && TARGET_LDFLAGS="$LDFLAGS"
 
 ########
@@ -351,11 +342,9 @@ EOF
 fi
 if test "$_gp32" = "yes"; then
 	BUILD_STYLE=gp32
-	EXEEXT=.elf
 	_gp32_def="#define HAVE_GP32"
 	_have_video_driver=yes
 	_fast_vdg=yes
-	_strsep=yes
 	_sdl=no
 	_sdlgl=no
 	_curses=no
@@ -365,7 +354,7 @@ if test "$_gp32" = "yes"; then
 	_carbon=no
 	_alsa=no
 	_oss=no
-	_sun=no
+	_sunaudio=no
 	_coreaudio=no
 	_jack=no
 	_nullaudio=no
@@ -395,11 +384,9 @@ EOF
 fi
 if test "$_nds" = "yes"; then
 	BUILD_STYLE=nds
-	EXEEXT=.tmp
 	_nds_def="#define HAVE_NDS"
 	_have_video_driver=yes
 	_fast_vdg=yes
-	_strsep=yes
 	_sdl=no
 	_sdlgl=no
 	_curses=no
@@ -409,7 +396,7 @@ if test "$_nds" = "yes"; then
 	_carbon=no
 	_alsa=no
 	_oss=no
-	_sun=no
+	_sunaudio=no
 	_coreaudio=no
 	_jack=no
 	_nullaudio=no
@@ -423,7 +410,7 @@ fi
 
 ########
 
-if test -z "$_strsep"; then
+if test "$_strsep" \!= "no"; then
 	echocheck "strsep()"
 	cat > $TMPC <<EOF
 #include <string.h>
@@ -479,8 +466,6 @@ EOF
 fi
 if test "$_sdl" = "yes"; then
 	_sdl_def="#define HAVE_SDL"
-	TARGET_CPPFLAGS="$TARGET_CPPFLAGS $sdl_cflags"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $sdl_ldflags"
 	_have_video_driver=yes
 else
 	_sdl_def="#undef HAVE_SDL"
@@ -549,7 +534,6 @@ EOF
 fi
 if test "$_sdlgl" = "yes"; then
 	_sdlgl_def="#define HAVE_SDLGL"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $sdlgl_ldflags"
 else
 	_sdlgl_def="#undef HAVE_SDLGL"
 fi
@@ -558,19 +542,18 @@ fi
 
 if test "$_curses" \!= "no"; then
 	echocheck Curses
+	curses_ldflags="-lcurses"
 	cat > $TMPC <<EOF
 #include <curses.h>
 int main(int argc, char **argv) { initscr(); endwin(); return 0; }
 EOF
 	_curses=no
-	curses_ldflags="-lcurses"
 	target_cc_check "" "$curses_ldflags" && _curses=yes
 	rm -f $TMPC
 	echo "$_curses"
 fi
 if test "$_curses" = "yes"; then
 	_curses_def="#define HAVE_CURSES"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $curses_ldflags"
 	_have_video_driver=yes
 else
 	_curses_def="#undef HAVE_CURSES"
@@ -593,8 +576,6 @@ EOF
 fi
 if test "$_gtk2" = "yes"; then
 	_gtk2_def="#define HAVE_GTK2"
-	TARGET_CPPFLAGS="$TARGET_CPPFLAGS $gtk2_cflags"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $gtk2_ldflags"
 	test -z "$_gtk1" && _gtk1=no
 else
 	_gtk2_def="#undef HAVE_GTK2"
@@ -629,35 +610,33 @@ EOF
 fi
 if test "$_gtk1" = "yes"; then
 	_gtk1_def="#define HAVE_GTK1"
-	TARGET_CPPFLAGS="$TARGET_CPPFLAGS $gtk1_cflags"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $gtk1_ldflags"
 else
 	_gtk1_def="#undef HAVE_GTK1"
 fi
 
 ########
 
-if test -z "$_carbon"; then
+if test "$_carbon" \!= "no"; then
 	echocheck Mac OS X Carbon
+	carbon_ldflags="-framework Carbon"
 	cat > $TMPC <<EOF
 #include <Carbon/Carbon.h>
 int main(int argc, char **argv) { NavDialogRef n; NavDialogRun(n); return 0; }
 EOF
 	_carbon=no
-	target_cc_check "" "-framework Carbon" && _carbon=yes
+	target_cc_check "" "$carbon_ldflags" && _carbon=yes
 	rm -f $TMPC
 	echo "$_carbon"
 fi
 if test "$_carbon" = "yes"; then
 	_carbon_def="#define HAVE_CARBON"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -framework Carbon"
 else
 	_carbon_def="#undef HAVE_CARBON"
 fi
 
 ########
 
-if test -z "$_alsa"; then
+if test "$_alsa" \!= "no"; then
 	echocheck ALSA
 	test -z "$alsa_ldflags" && alsa_ldflags="-lasound"
 	cat > $TMPC <<EOF
@@ -671,14 +650,13 @@ EOF
 fi
 if test "$_alsa" = "yes"; then
 	_alsa_def="#define HAVE_ALSA_AUDIO"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $alsa_ldflags"
 else
 	_alsa_def="#undef HAVE_ALSA_AUDIO"
 fi
 
 ########
 
-if test -z "$_oss"; then
+if test "$_oss" \!= "no"; then
 	echocheck OSS
 	cat > $TMPC <<EOF
 #include <sys/soundcard.h>
@@ -697,8 +675,9 @@ fi
 
 ########
 
-if test -z "$_sun"; then
+if test "$_sunaudio" \!= "no"; then
 	echocheck Sun audio
+	sunaudio_ldflags="-lrt"
 	cat > $TMPC <<EOF
 #include <stdlib.h>
 #include <sys/audioio.h>
@@ -706,34 +685,33 @@ if test -z "$_sun"; then
 #include <time.h>
 int main(int argc, char **argv) { audio_info_t d; int t = AUDIO_ENCODING_LINEAR; t = I_FLUSH; nanosleep(NULL,NULL); return 0; }
 EOF
-	_sun=no
-	target_cc_check "" "-lrt" && _sun=yes
+	_sunaudio=no
+	target_cc_check "" "$sunaudio_ldflags" && _sunaudio=yes
 	rm -f $TMPC
-	echo "$_sun"
+	echo "$_sunaudio"
 fi
-if test "$_sun" = "yes"; then
-	_sun_def="#define HAVE_SUN_AUDIO"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -lrt"
+if test "$_sunaudio" = "yes"; then
+	_sunaudio_def="#define HAVE_SUN_AUDIO"
 else
-	_sun_def="#undef HAVE_SUN_AUDIO"
+	_sunaudio_def="#undef HAVE_SUN_AUDIO"
 fi
 
 ########
 
-if test -z "$_coreaudio"; then
+if test "$_coreaudio" \!= "no"; then
 	echocheck Mac OS X Core Audio
+	coreaudio_ldflags="-framework CoreAudio"
 	cat > $TMPC <<EOF
 #include <CoreAudio/AudioHardware.h>
 int main(int argc, char **argv) { AudioDeviceID d; AudioDeviceSetProperty(d, NULL, 0, false, 0, 0, NULL); return 0; }
 EOF
 	_coreaudio=no
-	target_cc_check "" "-framework CoreAudio" && _coreaudio=yes
+	target_cc_check "" "$coreaudio_ldflags" && _coreaudio=yes
 	rm -f $TMPC
 	echo "$_coreaudio"
 fi
 if test "$_coreaudio" = "yes"; then
 	_coreaudio_def="#define HAVE_MACOSX_AUDIO"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -framework CoreAudio"
 else
 	_coreaudio_def="#undef HAVE_MACOSX_AUDIO"
 fi
@@ -755,14 +733,13 @@ EOF
 fi
 if test "$_jack" = "yes"; then
 	_jack_def="#define HAVE_JACK_AUDIO"
-	TARGET_CPPFLAGS="$TARGET_CPPFLAGS $jack_cflags"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $jack_ldflags"
 else
 	_jack_def="#undef HAVE_JACK_AUDIO"
 fi
 
 ########
 
+test -z "$_nullaudio" && _nullaudio=yes
 if test "$_nullaudio" = "yes"; then
 	_nullaudio_def="#define HAVE_NULL_AUDIO"
 else
@@ -771,7 +748,7 @@ fi
 
 ########
 
-if test -z "$_sndfile"; then
+if test "$_sndfile" \!= "no"; then
 	echocheck libsndfile
 	test -z "$sndfile_cflags" && sndfile_cflags=`$target_pkg_config --cflags sndfile 2> /dev/null`
 	test -z "$sndfile_ldflags" && sndfile_ldflags=`$target_pkg_config --libs sndfile 2> /dev/null`
@@ -786,29 +763,27 @@ EOF
 fi
 if test "$_sndfile" = "yes"; then
 	_sndfile_def="#define HAVE_SNDFILE"
-	TARGET_CPPFLAGS="$TARGET_CPPFLAGS $sndfile_cflags"
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS $sndfile_ldflags"
 else
 	_sndfile_def="#undef HAVE_SNDFILE"
 fi
 
 ########
 
-if test -z "$_mingw"; then
+if test "$_mingw" \!= "no"; then
 	echocheck MinGW
+	mingw_ldflags="-lmingw32 -mwindows"
 	cat > $TMPC <<EOF
 #include <windows.h>
 #include <commdlg.h>
 int main(int argc, char **argv) { OPENFILENAME o; o.Flags = OFN_PATHMUSTEXIST; GetSaveFileName(&o); return 0; }
 EOF
 	_mingw=no
-	target_cc_check "" "-lmingw32 -mwindows" && _mingw=yes
+	target_cc_check "" "$mingw_ldflags" && _mingw=yes
 	rm -f $TMPC
 	echo "$_mingw"
 fi
 if test "$_mingw" = "yes"; then
 	EXEEXT=.exe
-	_TARGET_LDFLAGS="$_TARGET_LDFLAGS -lmingw32 -mwindows"
 	_mingw_def="#define WINDOWS32"
 	_cli=no
 else
@@ -849,7 +824,8 @@ fi
 
 ########
 
-if test -z "$_cli"; then
+test -z "$_cli" && _cli=no
+if test "$_cli" = "yes"; then
 	_cli_def="#define HAVE_CLI"
 else
 	_cli_def="#undef HAVE_CLI"
@@ -866,6 +842,7 @@ fi
 
 ########
 
+test -z "$_trace" && _trace=yes
 if test "$_trace" = "yes"; then
 	echo "Trace mode enabled"
 	_trace_def="#define TRACE"
@@ -897,9 +874,9 @@ else
 fi
 
 ############################################################################
-# Write config.mak
+# Write config.mak and config.h
 
-echo "Creating config.mak"
+echo "Creating config.mak and config.h"
 cat > config.mak <<EOF
 prefix = $prefix
 exec_prefix = $exec_prefix
@@ -923,117 +900,34 @@ CC = $TARGET_CC
 OBJCOPY = $TARGET_OBJCOPY
 CFLAGS = $TARGET_CFLAGS
 CPPFLAGS = $TARGET_CPPFLAGS
-LDFLAGS = $TARGET_LDFLAGS$_TARGET_LDFLAGS
+LDFLAGS = $TARGET_LDFLAGS
 
 BUILD_CC = $BUILD_CC
 BUILD_CFLAGS = $BUILD_CFLAGS
-BUILD_SDL_CFLAGS = $build_sdl_cflags
-BUILD_SDL_LDFLAGS = $build_sdl_ldflags
-BUILD_SDL_IMAGE_LDFLAGS = $build_sdl_image_ldflags
 
 MAKEINFO = $MAKEINFO
 TEXI2PDF = $TEXI2PDF
 INSTALL = $INSTALL
 
-CONFIG_SDL = $_sdl
-CONFIG_SDLGL = $_sdlgl
-CONFIG_BUILD_SDL = $_build_sdl
-CONFIG_BUILD_SDL_IMAGE = $_build_sdl_image
-CONFIG_CURSES = $_curses
-CONFIG_GTK2 = $_gtk2
-CONFIG_GTK1 = $_gtk1
-CONFIG_CLI = $_cli
-CONFIG_CARBON = $_carbon
-CONFIG_ALSA = $_alsa
-CONFIG_OSS = $_oss
-CONFIG_SUN = $_sun
-CONFIG_COREAUDIO = $_coreaudio
-CONFIG_JACK = $_jack
-CONFIG_NULLAUDIO = $_nullaudio
-CONFIG_SNDFILE = $_sndfile
-CONFIG_GP32 = $_gp32
-CONFIG_NDS = $_nds
-CONFIG_MINGW = $_mingw
-CONFIG_TRACE = $_trace
-CONFIG_FAST_VDG = $_fast_vdg
-CONFIG_MAKEINFO = $_makeinfo
-CONFIG_TEXI2PDF = $_texi2pdf
-CONFIG_INSTALL = $_install
 EOF
 
-############################################################################
-# Write config.h
-
-echo "Creating config.h"
 cat > config.h <<EOF
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-/* Various libc features? */
-$_strsep_def
+EOF
 
-/* SDL? */
-$_sdl_def
+for opt in $all_opt; do
+	eval "isset=\"\$_$opt\""
+	if test "$isset" = "yes"; then
+		echo "opt_$opt = yes" >> config.mak
+		eval "test -n \"\$${opt}_cflags\" && echo \"opt_${opt}_CFLAGS = \$${opt}_cflags\"" >> config.mak
+		eval "test -n \"\$${opt}_ldflags\" && echo \"opt_${opt}_LDFLAGS = \$${opt}_ldflags\"" >> config.mak
+	fi
+	eval "test -n \"\$_${opt}_def\" && echo \"\$_${opt}_def\"" >> config.h
+done
 
-/* SDL OpenGL support? */
-$_sdlgl_def
-
-/* Curses UI? */
-$_curses_def
-
-/* GTK+-2? */
-$_gtk2_def
-
-/* GTK+-1? */
-$_gtk1_def
-
-/* CLI? */
-$_cli_def
-
-/* Mac OS X Carbon? */
-$_carbon_def
-
-/* ALSA audio? */
-$_alsa_def
-
-/* OSS audio? */
-$_oss_def
-
-/* Sun audio? */
-$_sun_def
-
-/* Mac OS X Core Audio? */
-$_coreaudio_def
-
-/* Jack audio? */
-$_jack_def
-
-/* Null audio? */
-$_nullaudio_def
-
-/* libsndfile? */
-$_sndfile_def
-
-/* GP32? */
-$_gp32_def
-
-/* NDS? */
-$_nds_def
-
-/* MinGW (Windows32)? */
-$_mingw_def
-
-/* MPU rate adjustable? */
-$_mpu_rate_def
-
-/* Build trace mode? */
-$_trace_def
-
-/* Fast VDG code? */
-$_fast_vdg_def
-
-/* Fast audio code? */
-$_fast_sound_def
+cat >> config.h <<EOF
 
 #endif  /* def __CONFIG_H__ */
 EOF
