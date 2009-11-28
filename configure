@@ -11,7 +11,6 @@ unset EXEEXT
 unset target_pkg_config build_pkg_config
 unset target_sdl_config build_sdl_config
 unset target_gtk_config
-unset _makeinfo _texi2pdf _install
 unset _have_video_driver
 
 all_opt="strsep sdl sdlgl build_sdl build_sdl_image curses gtk2 gtk1 cli carbon alsa oss sunaudio coreaudio jack nullaudio sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
@@ -177,10 +176,6 @@ if test -z "$TARGET_OBJCOPY"; then
 		TARGET_OBJCOPY="$BUILD_OBJCOPY"
 	fi
 fi
-
-test -z "$MAKEINFO" && MAKEINFO="makeinfo"
-test -z "$TEXI2PDF" && TEXI2PDF="texi2pdf"
-test -z "$INSTALL" && INSTALL="install"
 
 ########
 
@@ -793,37 +788,37 @@ fi
 
 ########
 
-if test -z "$_makeinfo"; then
-	echocheck "makeinfo >= 4.13"
-	makeinfo_version=`makeinfo --version | head -1 | sed 's/^.* \([1-9][0-9\.]*\)$/\1/;s/\.\([0-9][0-9]*\)/.0000\1/;s/\.[0-9]*\(.....\)$/\1/;' 2>/dev/null`
-	test -z "$makeinfo_version" && makeinfo_version=0
-	if test "$makeinfo_version" -ge "400013"; then
-		_makeinfo=yes
-	else
-		_makeinfo=no
-	fi
-	echo $_makeinfo
+echocheck "makeinfo >= 4.13"
+test -z "$MAKEINFO" && MAKEINFO="makeinfo"
+makeinfo_version=`$MAKEINFO --version 2>/dev/null | head -1 | sed 's/^.* \([1-9][0-9\.]*\)$/\1/;s/\.\([0-9][0-9]*\)/.0000\1/;s/\.[0-9]*\(.....\)$/\1/;'`
+test -z "$makeinfo_version" && makeinfo_version=0
+if test "$makeinfo_version" -ge "400013"; then
+	_makeinfo=yes
+else
+	unset MAKEINFO
+	_makeinfo=no
 fi
+echo $_makeinfo
 
-if test -z "$_texi2pdf"; then
-	echocheck texi2pdf
-	if ( $TEXI2PDF --version ) > /dev/null 2>&1; then
-		_texi2pdf=yes
-	else
-		_texi2pdf=no
-	fi
-	echo $_texi2pdf
+echocheck texi2pdf
+test -z "$TEXI2PDF" && TEXI2PDF="texi2pdf"
+if ( $TEXI2PDF --version ) > /dev/null 2>&1; then
+	_texi2pdf=yes
+else
+	unset TEXI2PDF
+	_texi2pdf=no
 fi
+echo $_texi2pdf
 
-if test -z "$_install"; then
-	echocheck install
-	if ( $INSTALL --version ) > /dev/null 2>&1; then
-		_install=yes
-	else
-		_install=no
-	fi
-	echo $_install
+echocheck install
+test -z "$INSTALL" && INSTALL="install"
+if ( $INSTALL --version ) > /dev/null 2>&1; then
+	_install=yes
+else
+	unset INSTALL
+	_install=no
 fi
+echo $_install
 
 ########
 
