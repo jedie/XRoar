@@ -50,6 +50,7 @@ static int_least32_t frame_size;
 static uint_least32_t frame_cycles;
 
 static Cycle frame_cycle_base;
+static int frame_cycle;
 static unsigned int writing_frame;
 static Sample **buffer;
 static Sample *wrptr;
@@ -75,6 +76,7 @@ static int init(void) {
 	wrptr = buffer[1];
 	writing_frame = 1;
 	frame_cycle_base = current_cycle;
+	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	lastsample = 0;
@@ -86,15 +88,14 @@ static void shutdown(void) {
 }
 
 static void update(int value) {
-	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample *fill_to;
+	int elapsed_cycles = current_cycle - frame_cycle_base;
 	if (elapsed_cycles >= frame_cycles) {
-		fill_to = buffer[writing_frame] + frame_size;
-	} else {
-		fill_to = buffer[writing_frame] + (elapsed_cycles/(Cycle)sample_cycles);
+		elapsed_cycles = frame_cycles;
 	}
-	while (wrptr < fill_to)
+	while (frame_cycle < elapsed_cycles) {
 		*(wrptr++) = lastsample;
+		frame_cycle += sample_cycles;
+	}
 	lastsample = (value << 8) | value;
 }
 
@@ -103,6 +104,7 @@ static void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;
+	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	writing_frame ^= 1;

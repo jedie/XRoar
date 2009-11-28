@@ -44,6 +44,7 @@ SoundModule sound_nds_module = {
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
 static Cycle frame_cycle_base;
+static int frame_cycle;
 static uint8_t buf[FRAME_SIZE * 2];
 static uint8_t *frame_base;
 static uint8_t *wrptr;
@@ -64,6 +65,7 @@ static int init(void) {
 	wrptr = buf;
 
 	frame_cycle_base = current_cycle;
+	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	lastsample = 0x80; //0;
@@ -85,15 +87,14 @@ static void shutdown(void) {
 }
 
 static void update(int value) {
-	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	uint8_t *fill_to;
+	int elapsed_cycles = current_cycle - frame_cycle_base;
 	if (elapsed_cycles >= FRAME_CYCLES) {
-		fill_to = frame_base + FRAME_SIZE;
-	} else {
-		fill_to = frame_base + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
+		elapsed_cycles = FRAME_CYCLES;
 	}
-	while (wrptr < fill_to)
+	while (frame_cycle < elapsed_cycles) {
 		*(wrptr++) = lastsample;
+		frame_cycle += SAMPLE_CYCLES;
+	}
 	lastsample = value ^ 0x80;
 }
 
@@ -103,6 +104,7 @@ static void flush_frame(void) {
 		*(wrptr++) = lastsample;
 	DC_FlushRange(frame_base, FRAME_SIZE);
 	frame_cycle_base += FRAME_CYCLES;
+	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	writing_buf ^= 1;

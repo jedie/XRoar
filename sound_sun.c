@@ -59,6 +59,7 @@ static unsigned int channels = CHANNELS;
 static uint_t samples_written;
 
 static Cycle frame_cycle_base;
+static int frame_cycle;
 static Sample *buffer;
 static Sample *wrptr;
 static Sample lastsample;
@@ -105,6 +106,7 @@ static int init(void) {
 	memset(buffer, 0x80, FRAME_SIZE);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
+	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	lastsample = 0x00;
@@ -123,15 +125,14 @@ static void shutdown(void) {
 }
 
 static void update(int value) {
-	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample *fill_to;
+	int elapsed_cycles = current_cycle - frame_cycle_base;
 	if (elapsed_cycles >= FRAME_CYCLES) {
-		fill_to = buffer + FRAME_SIZE;
-	} else {
-		fill_to = buffer + (elapsed_cycles/(Cycle)SAMPLE_CYCLES);
+		elapsed_cycles = FRAME_CYCLES;
 	}
-	while (wrptr < fill_to)
+	while (frame_cycle < elapsed_cycles) {
 		*(wrptr++) = lastsample;
+		frame_cycle += SAMPLE_CYCLES;
+	}
 	lastsample = value;
 }
 
@@ -142,6 +143,7 @@ static void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
+	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	wrptr = buffer;

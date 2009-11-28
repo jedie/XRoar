@@ -51,6 +51,7 @@ static jack_nframes_t sample_rate;
 static jack_nframes_t frame_size;
 static Cycle sample_cycles;
 static Cycle frame_cycles;
+static int frame_cycle;
 
 static jack_client_t *client;
 static int num_output_ports;  /* maximum of 2... */
@@ -101,6 +102,7 @@ static int init(void) {
 	sample_cycles = OSCILLATOR_RATE / sample_rate;
 	frame_size = jack_get_buffer_size(client);
 	frame_cycles = sample_cycles * frame_size;
+	frame_cycle = 0;
 	buffer = malloc(frame_size * sizeof(Sample));
 	pthread_mutex_init(&haltflag, NULL);
 	flush_event = event_new();
@@ -128,15 +130,14 @@ static void shutdown(void) {
 }
 
 static void update(int value) {
-	Cycle elapsed_cycles = current_cycle - frame_cycle_base;
-	Sample *fill_to;
+	int elapsed_cycles = current_cycle - frame_cycle_base;
 	if (elapsed_cycles >= frame_cycles) {
-		fill_to = buffer + frame_size;
-	} else {
-		fill_to = buffer + (elapsed_cycles/sample_cycles);
+		elapsed_cycles = frame_cycles;
 	}
-	while (wrptr < fill_to)
+	while (frame_cycle < elapsed_cycles) {
 		*(wrptr++) = lastsample;
+		frame_cycle += sample_cycles;
+	}
 	lastsample = (Sample)(value - 64) / 150.;
 }
 
@@ -145,6 +146,7 @@ static void flush_frame(void) {
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += frame_cycles;
+	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	wrptr = buffer;
