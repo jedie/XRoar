@@ -54,6 +54,7 @@
 static const char *xroar_opt_ui = NULL;
 static const char *xroar_opt_filereq = NULL;
 static const char *xroar_opt_vo = NULL;
+char *xroar_opt_gl_filter = NULL;
 static const char *xroar_opt_ao = NULL;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
@@ -96,6 +97,7 @@ static struct xconfig_option xroar_options[] = {
 	{ XCONFIG_STRING,   "ui",           &xroar_opt_ui },
 	{ XCONFIG_STRING,   "filereq",      &xroar_opt_filereq },
 	{ XCONFIG_STRING,   "vo",           &xroar_opt_vo },
+	{ XCONFIG_STRING,   "gl-filter",    &xroar_opt_gl_filter },
 	{ XCONFIG_STRING,   "ao",           &xroar_opt_ao },
 #ifndef FAST_SOUND
 	{ XCONFIG_BOOL,     "fast-sound",   &xroar_fast_sound },
@@ -213,6 +215,9 @@ static void helptext(void) {
 "\n Emulator interface:\n"
 "  -ui MODULE            user-interface module (-ui help for list)\n"
 "  -vo MODULE            video module (-vo help for list)\n"
+#ifdef HAVE_SDLGL
+"  -gl-filter FILTER     OpenGL texture filter (auto, linear, nearest)\n"
+#endif
 "  -ao MODULE            audio module (-ao help for list)\n"
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"

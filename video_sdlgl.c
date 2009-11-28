@@ -69,6 +69,12 @@ static unsigned int window_width, window_height;
 static GLuint texnum = 0;
 static GLint xoffset, yoffset;
 
+enum {
+	FILTER_AUTO,
+	FILTER_NEAREST,
+	FILTER_LINEAR,
+} filter;
+
 #include "video_generic_ops.c"
 
 static int init(void) {
@@ -89,6 +95,16 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL OpenGL driver: %s\n", SDL_GetError());
 		return 1;
 	}
+
+	filter = FILTER_AUTO;
+	if (xroar_opt_gl_filter) {
+		if (0 == strcmp(xroar_opt_gl_filter, "nearest")) {
+			filter = FILTER_NEAREST;
+		} else if (0 == strcmp(xroar_opt_gl_filter, "linear")) {
+			filter = FILTER_LINEAR;
+		}
+	}
+
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE,   5);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,  5);
@@ -142,7 +158,7 @@ static void resize(unsigned int w, unsigned int h) {
 
 static int set_fullscreen(int fullscreen) {
 	unsigned int want_width, want_height;
-	uint_least16_t width, height;
+	unsigned int width, height;
 
 	if (fullscreen) {
 		want_width = screen_width;
@@ -166,11 +182,13 @@ static int set_fullscreen(int fullscreen) {
 	video_sdlgl_module.is_fullscreen = fullscreen;
 
 	if (((float)screen->w/(float)screen->h)>(4.0/3.0)) {
-		width = ((float)screen->h/3.0)*4;
+		height = screen->h;
+		width = ((float)height/3.0)*4;
 		xoffset = (screen->w - width) / 2;
 		yoffset = 0;
 	} else {
-		height = ((float)screen->w/4.0)*3;
+		width = screen->w;
+		height = ((float)width/4.0)*3;
 		xoffset = 0;
 		yoffset = (screen->h - height)/2;
 	}
@@ -193,8 +211,13 @@ static int set_fullscreen(int fullscreen) {
 	glGenTextures(1, &texnum);
 	glBindTexture(GL_TEXTURE_2D, texnum);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 512, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	if (filter == FILTER_NEAREST || (filter == FILTER_AUTO && (width % 320) == 0 && (height % 240) == 0)) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	} else {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	}
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	/* There must be a better way of just clearing the texture? */

@@ -27,6 +27,7 @@
 /* Command line arguments */
 
 /* Emulator interface */
+extern char *xroar_opt_gl_filter;
 #ifndef FAST_SOUND
 extern int xroar_fast_sound;
 #endif
