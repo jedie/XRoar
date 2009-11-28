@@ -842,10 +842,10 @@ fi
 
 test -z "$_trace" && _trace=yes
 if test "$_trace" = "yes"; then
-	echo "Trace mode enabled"
+	echo "Trace mode included"
 	_trace_def="#define TRACE"
 else
-	echo "Trace mode disabled"
+	echo "Trace mode not included"
 	_trace_def="#undef TRACE"
 fi
 
@@ -856,7 +856,7 @@ if test "$_fast_vdg" = "yes"; then
 	echo "Fast video enabled"
 	_fast_vdg_def="#define FAST_VDG"
 else
-	echo "Fast video disabled"
+	echo "Accurate video enabled"
 	_fast_vdg_def="#undef FAST_VDG"
 fi
 
@@ -867,7 +867,7 @@ if test "$_fast_sound" = "yes"; then
 	echo "Fast audio enabled"
 	_fast_sound_def="#define FAST_SOUND"
 else
-	echo "Fast audio disabled"
+	echo "Accurate audio enabled"
 	_fast_sound_def="#undef FAST_SOUND"
 fi
 
