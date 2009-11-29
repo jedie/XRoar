@@ -539,6 +539,13 @@ YUV overlay accelerated video output.
 Basic unaccelerated unscalable video output.
 @end table
 
+When using OpenGL output, the @option{-gl-filter} option selects a filtering
+method when scaling the image.  @option{-gl-filter linear} averages nearby
+pixels (blur), @option{-gl-filter nearest} selects nearest neighbour pixels
+(hard edges) and @option{-gl-filter auto} (the default) selects nearest when
+the image size is an exact integer multiple of the base size, otherise selects
+linear.
+
 OpenGL output might not be available if you built from source without the
 appropriate support.  Use @option{-vo help} for a list of available modules.
 
@@ -681,6 +688,8 @@ Faster but less accurate sound.  @xref{Audio hardware}.
 Specify user interface module (@option{-ui help} for a list)
 @item -vo MODULE
 Specify video module (@option{-vo help} for a list)
+@item -gl-filter FILTER
+Select OpenGL texture filter (auto, linear, nearest)
 @item -ao MODULE
 Specify audio module (@option{-ao help} for a list)
 @item -fskip FRAMES
