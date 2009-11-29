@@ -42,11 +42,17 @@ static event_t waggle_event;
 
 /* For reading */
 static int input_type;
+static int is_ascii;
 static int fake_leader;
-static int bytes_remaining = 0;
+static int block_bytes = 0;
 static int bits_remaining = 0;
-static uint8_t read_buf[512];
-static uint8_t *read_buf_ptr;
+static int current_byte;
+static enum {
+       FIRST_BLOCK,
+       DATA_BLOCK,
+       LAST_BLOCK,
+} current_block = FIRST_BLOCK;
+static uint8_t block[261];
 /* WAV input support */
 #ifdef HAVE_SNDFILE
 static SNDFILE *wav_read_file;
@@ -70,6 +76,7 @@ static Cycle last_read_time;
 
 static int bit_in(void);
 static int byte_in(void);
+static int block_in(void);
 
 static void bit_out(int);
 static void byte_out(int);
@@ -85,8 +92,7 @@ void tape_init(void) {
 	wav_read_file = NULL;
 #endif
 	read_fd = write_fd = -1;
-	read_buf_ptr = read_buf;
-	bits_remaining = bytes_remaining = 0;
+	bits_remaining = block_bytes = 0;
 	fake_leader = 0;
 	event_init(&waggle_event);
 	waggle_event.dispatch = waggle_bit;
@@ -110,20 +116,22 @@ int tape_open_reading(const char *filename) {
 #endif
 	tape_close_reading();
 	input_type = xroar_filetype_by_ext(filename);
+	is_ascii = (input_type == FILETYPE_ASC);
 	switch (input_type) {
 	case FILETYPE_CAS:
+	case FILETYPE_ASC:
 		if ((read_fd = fs_open(filename, FS_READ)) == -1) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
-		bits_remaining = bytes_remaining = 0;
+		bits_remaining = block_bytes = 0;
 		/* If motor is on, enable the bit waggler */
 		if (motor) {
 			fake_leader = 64;
 			waggle_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 		}
-		LOG_DEBUG(2,"Attached virtual cassette %s\n", filename);
+		LOG_DEBUG(2,"Attached virtual cassette%s %s\n", is_ascii ? " (ASCII)" : "", filename);
 		break;
 #ifdef HAVE_SNDFILE
 	default:
@@ -195,7 +203,12 @@ int tape_autorun(const char *filename) {
 	 * file on tape */
 	state = 0;
 	type = 1;  /* default to data - no autorun (if trying to) */
-	while ((bytes_remaining > 0 || read_fd != -1) && state >= 0) {
+	/* ASCII files are always BASIC */
+	if (is_ascii) {
+		type = 0;    /* BASIC */
+		state = -1;  /* skip state machine */
+	}
+	while ((block_bytes > 0 || read_fd != -1) && state >= 0) {
 		uint8_t b = byte_in();
 		switch(state) {
 			case 0:
@@ -241,7 +254,8 @@ void tape_update_motor(void) {
 		if (motor) {
 			switch (input_type) {
 			case FILETYPE_CAS:
-				if (bytes_remaining > 0 || read_fd != -1) {
+			case FILETYPE_ASC:
+				if (block_bytes > 0 || read_fd != -1) {
 					/* If motor turned on and tape file
 					 * attached, enable the tape input bit
 					 * waggler */
@@ -288,7 +302,7 @@ void tape_update_output(void) {
 #ifdef HAVE_SNDFILE
 void tape_update_input(void) {
 	short sample;
-	if (!motor || input_type == FILETYPE_CAS)
+	if (!motor || input_type == FILETYPE_CAS || input_type == FILETYPE_ASC)
 		return;
 	sample = wav_sample_in();
 	if (sample >= 0)
@@ -319,7 +333,73 @@ static int byte_in(void) {
 	}
 	if (read_fd == -1)
 		return -1;
-	return fs_read_uint8(read_fd);
+	if (current_byte >= block_bytes) {
+		if (block_in() == -1)
+			return -1;
+		current_byte = 0;
+	}
+	return block[current_byte++];
+}
+
+static int block_in(void) {
+	/* Normal binary mode: just read a block of data */
+	if (!is_ascii) {
+		block_bytes = fs_read(read_fd, block, sizeof(block));
+		if (block_bytes < 0)
+			return -1;
+		return 0;
+	}
+	/* ASCII mode: construct a cassette block */
+	block[0] = 0x55;
+	block[1] = 0x3c;
+	int bsize = 0;
+	switch (current_block) {
+	case FIRST_BLOCK:
+		/* Header block */
+		block[2] = 0x00;
+		memcpy(&block[4], "BASIC   \000\377\377\000\000\000\000", 15);
+		bsize = 15;
+		current_block = DATA_BLOCK;
+		break;
+	case DATA_BLOCK:
+		/* ASCII data block - read up to 255 bytes */
+		block[2] = 0x01;
+		bsize = fs_read(read_fd, &block[4], 255);
+		if (bsize <= 0) {
+			/* EOF block */
+			block[2] = 0xff;
+			bsize = 0;
+			current_block = LAST_BLOCK;
+		}
+		break;
+	case LAST_BLOCK:
+		return -1;
+	}
+	/* Do line-ending conversion and calculate checksum */
+	int sum = block[2], src = 0, dest = 0, cr = 0;
+	for ( ; src < bsize; src++) {
+		uint8_t sbyte = block[4+src];
+		if (sbyte == 0x0d || sbyte == 0x0a) {
+			if (!cr) {
+				block[4+dest] = 0x0d;
+				sum += 0x0d;
+				dest++;
+				cr = 1;
+			}
+		} else {
+			block[4+dest] = sbyte;
+			sum += sbyte;
+			dest++;
+			cr = 0;
+		}
+	}
+	bsize = dest;
+	block[3] = bsize;
+	sum += bsize;
+	block[bsize+4] = sum & 0xff;
+	block[bsize+5] = 0x55;
+	block_bytes = bsize+5;
+	return 0;
 }
 
 static void waggle_bit(void) {

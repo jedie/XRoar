@@ -22,6 +22,7 @@
 #define FILETYPE_WAV (7)
 #define FILETYPE_SNA (8)
 #define FILETYPE_ROM (9)
+#define FILETYPE_ASC (10)
 
 /**************************************************************************/
 /* Command line arguments */

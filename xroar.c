@@ -179,6 +179,8 @@ static struct {
 	{ "WAV", FILETYPE_WAV },
 	{ "SN",  FILETYPE_SNA },
 	{ "ROM", FILETYPE_ROM },
+	{ "BAS", FILETYPE_ASC },
+	{ "ASC", FILETYPE_ASC },
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
@@ -366,6 +368,7 @@ int xroar_init(int argc, char **argv) {
 		load_file_type = xroar_filetype_by_ext(load_file);
 		switch (load_file_type) {
 			case FILETYPE_CAS:
+			case FILETYPE_ASC:
 			case FILETYPE_WAV:
 			case FILETYPE_ROM:
 				requested_config.dos_type = DOS_NONE;
@@ -520,6 +523,7 @@ int xroar_load_file(const char *filename, int autorun) {
 			machine_insert_cart(cart_rom_new(filename, autorun));
 			return 0;
 		case FILETYPE_CAS:
+		case FILETYPE_ASC:
 			if (autorun)
 				return tape_autorun(filename);
 			else
