@@ -355,6 +355,10 @@ void machine_reset(int hard) {
 					machine_insert_cart(deltados_new(dos_rom));
 					break;
 			}
+		} else if (machine_cart) {
+			if (machine_cart->type != CART_ROM && machine_cart->type != CART_RAM) {
+				machine_remove_cart();
+			}
 		}
 		/* Configure keymap */
 		keyboard_set_keymap(running_config.keymap);
