@@ -545,8 +545,10 @@ int vdisk_fetch_sector(struct vdisk *disk, int side, int track,
 				&& data[offset + 3] == sector)
 			break;
 	}
-	if (i >= 64)
+	if (i >= 64) {
+		memset(buf, 0, sector_length);
 		return -1;
+	}
 	ssize = 128 << data[offset + 4];
 	if (ssize > sector_length)
 		ssize = sector_length;

@@ -70,6 +70,11 @@ static const char *keymap_option;
 static unsigned int *selected_keymap;
 static int translated_keymap;
 
+static const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
+static const char *tape_exts[] = { "CAS", NULL };
+static const char *snap_exts[] = { "SNA", NULL };
+static const char *cart_exts[] = { "ROM", NULL };
+
 static void map_keyboard(unsigned int *map) {
 	int i;
 	for (i = 0; i < 256; i++)
@@ -117,23 +122,31 @@ static void emulator_command(SDLKey sym) {
 	switch (sym) {
 	case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 		if (shift) {
-			struct vdisk *new_disk;
 			int drive = sym - SDLK_1;
-			LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);
+			char *filename = filereq_module->save_filename(disk_exts);
+			if (filename == NULL)
+				break;
+			int filetype = xroar_filetype_by_ext(filename);
 			vdrive_eject_disk(drive);
-			new_disk = vdisk_blank_disk(2, 42, VDISK_LENGTH_5_25);
-			if (new_disk == NULL) break;
-			if (new_disk->filename == NULL) {
-				new_disk->filetype = FILETYPE_DMK;
-				new_disk->filename = malloc(13);
-				if (new_disk->filename != NULL) {
-					snprintf(new_disk->filename, 13, "newdisk%d.dmk", drive);
-				}
-				new_disk->file_write_protect = VDISK_WRITE_ENABLE;
+			/* Default to 40T 1H.  XXX: need interface to select */
+			struct vdisk *new_disk = vdisk_blank_disk(1, 40, VDISK_LENGTH_5_25);
+			if (new_disk == NULL)
+				break;
+			LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);
+			switch (filetype) {
+				case FILETYPE_VDK:
+				case FILETYPE_JVC:
+				case FILETYPE_DMK:
+					break;
+				default:
+					filetype = FILETYPE_DMK;
+					break;
 			}
+			new_disk->filetype = filetype;
+			new_disk->filename = strdup(filename);
+			new_disk->file_write_protect = VDISK_WRITE_ENABLE;
 			vdrive_insert_disk(drive, new_disk);
 		} else {
-			const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 			char *filename = filereq_module->load_filename(disk_exts);
 			if (filename) {
 				vdrive_eject_disk(sym - SDLK_1);
@@ -186,7 +199,6 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_i:
 		{
-		const char *cart_exts[] = { "ROM", NULL };
 		char *filename = filereq_module->load_filename(cart_exts);
 		xroar_load_file(filename, !shift);
 		}
@@ -223,7 +235,6 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_s:
 		{
-		const char *snap_exts[] = { "SNA", NULL };
 		char *filename = filereq_module->save_filename(snap_exts);
 		if (filename)
 			write_snapshot(filename);
@@ -231,7 +242,6 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_w:
 		{
-		const char *tape_exts[] = { "CAS", NULL };
 		char *filename = filereq_module->save_filename(tape_exts);
 		if (filename) {
 			tape_open_writing(filename);
