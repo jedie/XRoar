@@ -35,6 +35,7 @@
 static struct vdisk *vdisk_load_vdk(const char *filename);
 static struct vdisk *vdisk_load_jvc(const char *filename);
 static struct vdisk *vdisk_load_dmk(const char *filename);
+static int vdisk_save_jvc(struct vdisk *disk);
 static int vdisk_save_dmk(struct vdisk *disk);
 
 static struct {
@@ -43,7 +44,7 @@ static struct {
 	int (*save_func)(struct vdisk *);
 } dispatch[] = {
 	{ FILETYPE_VDK, vdisk_load_vdk, NULL },
-	{ FILETYPE_JVC, vdisk_load_jvc, NULL },
+	{ FILETYPE_JVC, vdisk_load_jvc, vdisk_save_jvc },
 	{ FILETYPE_DMK, vdisk_load_dmk, vdisk_save_dmk },
 	{ -1, NULL, NULL }
 };
@@ -256,6 +257,33 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 	return disk;
 }
 
+static int vdisk_save_jvc(struct vdisk *disk) {
+	unsigned int track, sector, side;
+	uint8_t buf[1024];
+	int fd;
+	if (disk == NULL)
+		return -1;
+	fd = fs_open(disk->filename, FS_WRITE);
+	if (fd < 0)
+		return -1;
+	LOG_DEBUG(2,"Writing JVC virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
+	/* XXX: assume 18 tracks per sector */
+	fs_write_uint8(fd, 18);
+	fs_write_uint8(fd, disk->num_sides);
+	fs_write_uint8(fd, 1);  /* size code = 1 (XXX: assume 256 bytes) */
+	fs_write_uint8(fd, 1);  /* first sector = 1 */
+	for (track = 0; track < disk->num_tracks; track++) {
+		for (side = 0; side < disk->num_sides; side++) {
+			for (sector = 0; sector < 18; sector++) {
+				vdisk_fetch_sector(disk, side, track, sector + 1, 256, buf);
+				fs_write(fd, buf, 256);
+			}
+		}
+	}
+	fs_close(fd);
+	return 0;
+}
+
 /* XRoar extension to DMK: byte 11 of header contains actual virtual
  * disk write protect status, as value in header[0] is interpreted as the
  * write protect status of the file. */
@@ -463,5 +491,43 @@ int vdisk_update_sector(struct vdisk *disk, int side, int track,
 		WRITE_BYTE_CRC(0x00);
 	WRITE_CRC();
 	WRITE_BYTE(0xfe);
+	return 0;
+}
+
+#define READ_BYTE() data[offset++]
+
+int vdisk_fetch_sector(struct vdisk *disk, int side, int track,
+		int sector, int sector_length, uint8_t *buf) {
+	uint8_t *data;
+	uint16_t *idams;
+	unsigned int offset;
+	int ssize, i, d;
+	if (disk == NULL) return -1;
+	idams = vdisk_track_base(disk, side, track);
+	if (idams == NULL) return -1;
+	data = (uint8_t *)idams;
+	for (i = 0; i < 64; i++) {
+		offset = idams[i] & 0x3fff;
+		if (data[offset + 1] == track && data[offset + 2] == side
+				&& data[offset + 3] == sector)
+			break;
+	}
+	if (i >= 64)
+		return -1;
+	ssize = 128 << data[offset + 4];
+	if (ssize > sector_length)
+		ssize = sector_length;
+	offset += 7;
+	/* XXX: CRC ignored for now */
+	for (i = 0; i < 43; i++) {
+		d = READ_BYTE();
+		if (d == 0xfb)
+			break;
+	}
+	if (i >= 43)
+		return -1;
+	for (i = 0; i < ssize; i++) {
+		buf[i] = READ_BYTE();
+	}
 	return 0;
 }

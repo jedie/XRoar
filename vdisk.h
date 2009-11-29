@@ -40,5 +40,8 @@ int vdisk_format_disk(struct vdisk *disk, int density,
 		int num_sectors, int first_sector, int ssize_code);
 int vdisk_update_sector(struct vdisk *disk, int side, int track,
 		int sector, int sector_length, uint8_t *buf);
+int vdisk_fetch_sector(struct vdisk *disk, int side, int track,
+		int sector, int sector_length, uint8_t *buf);
+
 
 #endif  /* __VDISK_H__ */
