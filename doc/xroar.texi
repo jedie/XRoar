@@ -494,9 +494,8 @@ enabled, image files will not be updated until the disk in a virtual drive is
 changed, or you quit the emulator.
 
 You can create a new blank disk in a virtual drive by pressing
-@kbd{Control+Shift+[1-4]}.  When blank disks are created, the default filename
-is @file{newdisk@emph{n}.dmk}, where @emph{n} is the drive number it is created
-in.
+@kbd{Control+Shift+[1-4]}.  You will be a prompted for a filename, and the
+extension determines which type of file will be written.
 
 @node Cartridges
 @section Cartridge ROM images
