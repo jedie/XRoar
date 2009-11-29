@@ -482,8 +482,7 @@ to take effect.
 Three virtual disk formats are supported (see @ref{Supported file types}).  Of
 these, DMK retains the most information about the actual layout of the floppy
 disk, and is the only one that XRoar will recognise as containing
-single-density data (as used by the Delta system).  It is also the only format
-for which write-back is supported (actually updating the image file).
+single-density data (as used by the Delta system).
 
 When you attach a disk, it is read into memory, and subsequent disk operations
 are performed on this in-memory copy.  Write protect defaults to off (so write
