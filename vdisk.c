@@ -35,6 +35,7 @@
 static struct vdisk *vdisk_load_vdk(const char *filename);
 static struct vdisk *vdisk_load_jvc(const char *filename);
 static struct vdisk *vdisk_load_dmk(const char *filename);
+static int vdisk_save_vdk(struct vdisk *disk);
 static int vdisk_save_jvc(struct vdisk *disk);
 static int vdisk_save_dmk(struct vdisk *disk);
 
@@ -43,7 +44,7 @@ static struct {
 	struct vdisk *(*load_func)(const char *);
 	int (*save_func)(struct vdisk *);
 } dispatch[] = {
-	{ FILETYPE_VDK, vdisk_load_vdk, NULL },
+	{ FILETYPE_VDK, vdisk_load_vdk, vdisk_save_vdk },
 	{ FILETYPE_JVC, vdisk_load_jvc, vdisk_save_jvc },
 	{ FILETYPE_DMK, vdisk_load_dmk, vdisk_save_dmk },
 	{ -1, NULL, NULL }
@@ -191,6 +192,38 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	}
 	fs_close(fd);
 	return disk;
+}
+
+/* XXX: there's probably more to this format, this is what I've
+   inferred so far. */
+static int vdisk_save_vdk(struct vdisk *disk) {
+	unsigned int track, sector, side;
+	uint8_t buf[1024];
+	int fd;
+	if (disk == NULL)
+		return -1;
+	fd = fs_open(disk->filename, FS_WRITE);
+	if (fd < 0)
+		return -1;
+	LOG_DEBUG(2,"Writing VDK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
+	memset(buf, 0, 12);
+	buf[0] = 'd';
+	buf[1] = 'k';
+	buf[2] = 12;
+	buf[3] = 0;
+	buf[8] = disk->num_tracks;
+	buf[9] = disk->num_sides;
+	fs_write(fd, buf, 12);
+	for (track = 0; track < disk->num_tracks; track++) {
+		for (side = 0; side < disk->num_sides; side++) {
+			for (sector = 0; sector < 18; sector++) {
+				vdisk_fetch_sector(disk, side, track, sector + 1, 256, buf);
+				fs_write(fd, buf, 256);
+			}
+		}
+	}
+	fs_close(fd);
+	return 0;
 }
 
 static struct vdisk *vdisk_load_jvc(const char *filename) {
