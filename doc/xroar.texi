@@ -54,10 +54,7 @@ Reads and writes virtual cassettes (@file{.cas} files).
 @item
 Reads audio files as cassette input.
 @item
-Reads and writes DMK format virtual floppy diskettes.
-@item
-Reads (and supports in-memory writing of) JVC and VDK format virtual
-floppy diskettes.
+Reads and writes VDK, JVC and DMK format virtual floppy diskettes.
 @item
 Save and load snapshots.
 @end itemize
