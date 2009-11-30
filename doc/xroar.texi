@@ -322,10 +322,8 @@ optional.
 
 The Dragon is a UK machine, and as such generates a 50Hz PAL output.  The video
 chip targets 60Hz NTSC displays, so extra work is required to pad this out to a
-50Hz signal.  On the Dragon 64 this is done by stopping the video chip at two
-points each field and generating extra scanlines.  The Dragon 32 seems to take
-a different approach, but I've seen no schematics for the Dragon 32 mainboard,
-so XRoar emulates it in the same way.
+50Hz signal.  This is done by stopping the video chip at two points each field
+and generating extra scanlines.
 
 However a US version, the Tano Dragon, exists for use with 60Hz NTSC
 televisions and US CoCo machines all use NTSC.  When you select which machine
