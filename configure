@@ -2,6 +2,8 @@
 
 # This is not a GNU Autoconf configure script.  It is manually maintained.
 
+command_line="$*"
+
 SRCROOT=`dirname $0`
 
 test -z "$prefix" && prefix=/usr/local
@@ -74,6 +76,8 @@ EOF
 
 exec 3>config.log
 config_log=3
+
+echo "# $command_line" >&$config_log
 
 TMPC=conftemp.c
 TMPO=conftemp.o
