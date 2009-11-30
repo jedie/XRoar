@@ -1,4 +1,4 @@
-Version 0.23, unreleased
+Version 0.23, Mon Nov 30 2009
 
   * Full CoCo RAM select emulation.
   * Implemented SAM FAST mode.
