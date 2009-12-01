@@ -937,6 +937,8 @@ EOF
 if test \! -f Makefile; then
 	echo "Symlinking Makefile"
 	ln -s "$SRCROOT"/Makefile Makefile
+	ln -s "$SRCROOT"/makefile_gp32.mk makefile_gp32.mk
+	ln -s "$SRCROOT"/makefile_nds.mk makefile_nds.mk
 fi
 
 exec 3<&-
