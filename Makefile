@@ -219,15 +219,19 @@ CLEAN += xroar xroar.exe
 # Documentation build rules
 
 doc/xroar.info: $(SRCROOT)/doc/xroar.texi
+	mkdir -p doc
 	$(MAKEINFO) -D "VERSION $(VERSION)" -o $@ $<
 
 doc/xroar.pdf: $(SRCROOT)/doc/xroar.texi
+	mkdir -p doc
 	$(TEXI2PDF) -t "@set VERSION $(VERSION)" --build=clean -o $@ $<
 
 doc/xroar.html: $(SRCROOT)/doc/xroar.texi
+	mkdir -p doc
 	$(MAKEINFO) --html --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
 
 doc/xroar.txt: $(SRCROOT)/doc/xroar.texi
+	mkdir -p doc
 	$(MAKEINFO) --plaintext --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
 
 CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
