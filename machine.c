@@ -417,6 +417,23 @@ void machine_clear_requested_config(void) {
 void machine_insert_cart(struct cart *cart) {
 	machine_remove_cart();
 	machine_cart = cart;
+	if (cart) {
+		switch (cart->type) {
+			case CART_DRAGONDOS:
+				requested_config.dos_type = DOS_DRAGONDOS;
+				break;
+			case CART_DELTADOS:
+				requested_config.dos_type = DOS_DELTADOS;
+				break;
+			case CART_RSDOS:
+				requested_config.dos_type = DOS_RSDOS;
+				break;
+			default:
+				requested_config.dos_type = DOS_NONE;
+				break;
+		}
+		running_config.dos_type = requested_config.dos_type;
+	}
 }
 
 void machine_remove_cart(void) {

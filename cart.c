@@ -29,7 +29,7 @@
 static void detach(void);
 static struct cart cart;
 
-static event_t firq_event;
+static event_t *firq_event;
 static void do_firq(void);
 
 struct cart *cart_rom_new(const char *filename, int autorun) {
@@ -42,9 +42,10 @@ struct cart *cart_rom_new(const char *filename, int autorun) {
 	cart.reset = NULL;
 	cart.detach = detach;
 	if (autorun) {
-		firq_event.dispatch = do_firq;
-		firq_event.at_cycle = current_cycle + (OSCILLATOR_RATE/10);
-		event_queue(&MACHINE_EVENT_LIST, &firq_event);
+		firq_event = event_new();
+		firq_event->dispatch = do_firq;
+		firq_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
+		event_queue(&MACHINE_EVENT_LIST, firq_event);
 	}
 	return &cart;
 }
@@ -61,11 +62,14 @@ struct cart *cart_ram_new(void) {
 }
 
 static void detach(void) {
-	event_dequeue(&firq_event);
+	if (firq_event) {
+		event_free(firq_event);
+		firq_event = NULL;
+	}
 }
 
 static void do_firq(void) {
 	PIA_SET_Cx1(PIA1.b);
-	firq_event.at_cycle = current_cycle + (OSCILLATOR_RATE/10);
-	event_queue(&MACHINE_EVENT_LIST, &firq_event);
+	firq_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
+	event_queue(&MACHINE_EVENT_LIST, firq_event);
 }
