@@ -87,14 +87,14 @@ static SoundModule *default_sound_module_list[] = {
 #ifdef HAVE_SUN_AUDIO
 	&sound_sun_module,
 #endif
-#ifdef HAVE_ALSA_AUDIO
-	&sound_alsa_module,
+#ifdef HAVE_OSS_AUDIO
+	&sound_oss_module,
 #endif
 #ifdef HAVE_SDL
 	&sound_sdl_module,
 #endif
-#ifdef HAVE_OSS_AUDIO
-	&sound_oss_module,
+#ifdef HAVE_ALSA_AUDIO
+	&sound_alsa_module,
 #endif
 #ifdef HAVE_JACK_AUDIO
 	&sound_jack_module,
