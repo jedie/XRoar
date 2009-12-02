@@ -266,7 +266,7 @@ endif
 .PHONY: install-bin
 install-bin: build-bin
 	$(INSTALL_DIR) $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) xroar$(EXEEXT) $(DESTDIR)$(bindir)
 
 .PHONY: install-doc
 install-doc: build-doc
