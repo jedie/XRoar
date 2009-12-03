@@ -80,7 +80,6 @@ static int init(void) {
 	}
 	if (set_fullscreen(xroar_fullscreen))
 		return 1;
-	alloc_colours();
 #ifdef WINDOWS32
 	{
 		SDL_version sdlver;
@@ -103,11 +102,13 @@ static void shutdown(void) {
 }
 
 static int set_fullscreen(int fullscreen) {
-	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE|(fullscreen?SDL_FULLSCREEN:0));
+	screen = SDL_SetVideoMode(320, 240, 8, SDL_HWSURFACE|(fullscreen?SDL_FULLSCREEN:0));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
 		return 1;
 	}
+	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
+	alloc_colours();
 	if (fullscreen)
 		SDL_ShowCursor(SDL_DISABLE);
 	else

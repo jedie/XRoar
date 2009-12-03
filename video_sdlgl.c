@@ -175,6 +175,8 @@ static int set_fullscreen(int fullscreen) {
 		LOG_ERROR("Failed to initialise display\n");
 		return 1;
 	}
+	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
+	alloc_colours();
 	if (fullscreen)
 		SDL_ShowCursor(SDL_DISABLE);
 	else
