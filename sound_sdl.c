@@ -16,11 +16,17 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <SDL.h>
 #include <SDL_thread.h>
+
+#ifdef WINDOWS32
+#include <windows.h>
+#endif
 
 #include "types.h"
 #include "events.h"
@@ -30,29 +36,19 @@
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
+static void _shutdown(void);
 static void update(int value);
 
 SoundModule sound_sdl_module = {
 	{ "sdl", "SDL ring-buffer audio",
-	  init, 0, shutdown },
+	  init, 0, _shutdown },
 	update
 };
 
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 
-#ifdef WINDOWS32
-# define SAMPLE_RATE 22050
-#else
-# define SAMPLE_RATE 44100
-#endif
-/* The lower the FRAME_SIZE, the better.  Windows32 seems to have problems
- * with very small frame sizes though. */
-#ifdef WINDOWS32
-# define FRAME_SIZE 1024
-#else
-# define FRAME_SIZE 512
-#endif
+#define SAMPLE_RATE 44100
+#define FRAME_SIZE 512
 #define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
@@ -62,8 +58,12 @@ static int frame_cycle;
 static Sample *buffer;
 static Sample *wrptr;
 static Sample lastsample;
-static SDL_mutex *halt_mutex;
-static SDL_cond *halt_cv;
+#ifndef WINDOWS32
+ static SDL_mutex *halt_mutex;
+ static SDL_cond *halt_cv;
+#else
+ HANDLE hEvent;
+#endif
 static int haltflag;
 
 static void flush_frame(void);
@@ -114,8 +114,12 @@ static int init(void) {
 	LOG_DEBUG(2, "%dHz\n", audiospec.freq);
 
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
+#ifndef WINDOWS32
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
+#else
+	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+#endif
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 
@@ -130,11 +134,13 @@ static int init(void) {
 	return 0;
 }
 
-static void shutdown(void) {
+static void _shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL audio driver\n");
 	event_free(flush_event);
+#ifndef WINDOWS32
 	SDL_DestroyCond(halt_cv);
 	SDL_DestroyMutex(halt_mutex);
+#endif
 	SDL_CloseAudio();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	free(buffer);
@@ -162,11 +168,16 @@ static void flush_frame(void) {
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	wrptr = buffer;
 	if (!xroar_noratelimit) {
+#ifndef WINDOWS32
 		SDL_LockMutex(halt_mutex);
 		haltflag = 1;
 		while (haltflag)
 			SDL_CondWait(halt_cv, halt_mutex);
 		SDL_UnlockMutex(halt_mutex);
+#else
+		haltflag = 1;
+		WaitForSingleObject(hEvent, INFINITE);
+#endif
 	}
 }
 
@@ -174,10 +185,15 @@ static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
 	if (len == FRAME_SIZE) {
 		memcpy(stream, buffer, len);
-		memset(buffer, 0, len);
+		memset(buffer, buffer[len-1], len);
 	}
+#ifndef WINDOWS32
 	SDL_LockMutex(halt_mutex);
 	haltflag = 0;
 	SDL_CondSignal(halt_cv);
 	SDL_UnlockMutex(halt_mutex);
+#else
+	haltflag = 0;
+	SetEvent(hEvent);
+#endif
 }
