@@ -201,8 +201,13 @@ static void flush_frame(void) {
 static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
 	if (len == frame_size) {
-		memcpy(stream, buffer, len * sizeof(Sample));
-//		memset(buffer, buffer[len-1], len * sizeof(Sample));
+		if (haltflag == 1) {
+			/* Data is ready */
+			memcpy(stream, buffer, len * sizeof(Sample));
+		} else {
+			/* Not ready - provide a "padding" frame */
+			memset(buffer, buffer[len-1], len * sizeof(Sample));
+		}
 	}
 #ifndef WINDOWS32
 	SDL_LockMutex(halt_mutex);
