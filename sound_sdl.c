@@ -47,10 +47,13 @@ SoundModule sound_sdl_module = {
 
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 
-#define SAMPLE_RATE 44100
-#define FRAME_SIZE 512
-#define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
-#define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
+#define REQUEST_SAMPLE_RATE 44100
+#define REQUEST_FRAME_SIZE 512
+
+static int sample_cycles;
+static int frame_size;
+static int frame_cycles;
+static uint8_t sample_eor;
 
 static SDL_AudioSpec audiospec;
 static Cycle frame_cycle_base;
@@ -72,6 +75,7 @@ static event_t *flush_event;
 static void callback(void *userdata, Uint8 *stream, int len);
 
 static int init(void) {
+	static SDL_AudioSpec desired;
 	LOG_DEBUG(2,"Initialising SDL audio driver\n");
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
@@ -83,22 +87,23 @@ static int init(void) {
 		LOG_ERROR("Failed to initialiase SDL audio driver\n");
 		return 1;
 	}
-	audiospec.freq = SAMPLE_RATE;
-	audiospec.format = AUDIO_U8;
-	audiospec.samples = FRAME_SIZE;
-	audiospec.channels = 1;
-	audiospec.callback = callback;
-	audiospec.userdata = NULL;
-	if (SDL_OpenAudio(&audiospec, NULL) < 0) {
+	desired.freq = REQUEST_SAMPLE_RATE;
+	desired.format = AUDIO_U8;
+	desired.samples = REQUEST_FRAME_SIZE;
+	desired.channels = 1;
+	desired.callback = callback;
+	desired.userdata = NULL;
+	if (SDL_OpenAudio(&desired, &audiospec) < 0) {
 		LOG_ERROR("Couldn't open audio: %s\n", SDL_GetError());
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		return 1;
 	}
 
+	sample_eor = 0;
 	/* TODO: Need to abstract this logging out */
 	LOG_DEBUG(2, "\t");
 	switch (audiospec.format) {
-		case AUDIO_U8: LOG_DEBUG(2, "8-bit unsigned, "); break;
+		case AUDIO_U8: LOG_DEBUG(2, "8-bit unsigned, "); sample_eor = 0x80; break;
 		case AUDIO_S8: LOG_DEBUG(2, "8-bit signed, "); break;
 		case AUDIO_U16LSB: LOG_DEBUG(2, "16-bit unsigned little-endian, "); break;
 		case AUDIO_S16LSB: LOG_DEBUG(2, "16-bit signed little-endian, "); break;
@@ -113,7 +118,19 @@ static int init(void) {
 	}
 	LOG_DEBUG(2, "%dHz\n", audiospec.freq);
 
-	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
+	if ((audiospec.format != AUDIO_U8 && audiospec.format != AUDIO_S8)
+	    || (audiospec.channels != 1)) {
+		LOG_ERROR("Obtained unsupported audio format.\n");
+		SDL_CloseAudio();
+		SDL_QuitSubSystem(SDL_INIT_AUDIO);
+		return 1;
+	}
+
+	sample_cycles = OSCILLATOR_RATE / audiospec.freq;
+	frame_size = audiospec.samples;
+	frame_cycles = sample_cycles * frame_size;
+
+	buffer = (Sample *)malloc(frame_size * sizeof(Sample));
 #ifndef WINDOWS32
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
@@ -123,14 +140,14 @@ static int init(void) {
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 
-	memset(buffer, 0x80, FRAME_SIZE * sizeof(Sample));
+	memset(buffer, sample_eor, frame_size * sizeof(Sample));
 	SDL_PauseAudio(0);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0x80;
+	lastsample = sample_eor;
 	return 0;
 }
 
@@ -148,23 +165,23 @@ static void _shutdown(void) {
 
 static void update(int value) {
 	int elapsed_cycles = current_cycle - frame_cycle_base;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		elapsed_cycles = FRAME_CYCLES;
+	if (elapsed_cycles >= frame_cycles) {
+		elapsed_cycles = frame_cycles;
 	}
 	while (frame_cycle < elapsed_cycles) {
 		*(wrptr++) = lastsample;
-		frame_cycle += SAMPLE_CYCLES;
+		frame_cycle += sample_cycles;
 	}
-	lastsample = value ^ 0x80;
+	lastsample = value ^ sample_eor;
 }
 
 static void flush_frame(void) {
-	Sample *fill_to = buffer + FRAME_SIZE;
+	Sample *fill_to = buffer + frame_size;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	frame_cycle_base += FRAME_CYCLES;
+	frame_cycle_base += frame_cycles;
 	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	wrptr = buffer;
 	if (!xroar_noratelimit) {
@@ -183,9 +200,9 @@ static void flush_frame(void) {
 
 static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
-	if (len == FRAME_SIZE) {
-		memcpy(stream, buffer, len);
-		memset(buffer, buffer[len-1], len);
+	if (len == frame_size) {
+		memcpy(stream, buffer, len * sizeof(Sample));
+//		memset(buffer, buffer[len-1], len * sizeof(Sample));
 	}
 #ifndef WINDOWS32
 	SDL_LockMutex(halt_mutex);
