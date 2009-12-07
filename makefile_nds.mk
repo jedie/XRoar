@@ -34,10 +34,10 @@ xroar_nds7_ALL_OBJS = $(xroar_nds7_OBJS) $(xroar_nds7_INT_OBJS)
 $(xroar_nds7_ALL_OBJS): $(CONFIG_FILES)
 
 $(xroar_nds7_OBJS): %.o: $(SRCROOT)/%.c
-	$(CC) $(xroar_nds7_CFLAGS) $(xroar_nds7_CPPFLAGS) -c $<
+	$(CC) -o $@ $(xroar_nds7_CFLAGS) $(xroar_nds7_CPPFLAGS) -c $<
 
 $(xroar_nds7_INT_OBJS): %.o: ./%.c
-	$(CC) $(xroar_nds7_CFLAGS) $(xroar_nds7_CPPFLAGS) -c $<
+	$(CC) -o $@ $(xroar_nds7_CFLAGS) $(xroar_nds7_CPPFLAGS) -c $<
 
 xroar.arm7: $(xroar_nds7_ALL_OBJS)
 	$(CC) -o $@ $(xroar_nds7_ALL_OBJS) $(xroar_nds7_LDFLAGS) $(xroar_nds7_LDLIBS)
@@ -63,10 +63,10 @@ xroar_nds9_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 $(xroar_nds9_ALL_OBJS): $(CONFIG_FILES)
 
 $(xroar_common_OBJS) $(xroar_nds9_OBJS): %.o: $(SRCROOT)/%.c
-	$(CC) $(xroar_nds9_CFLAGS) $(xroar_nds9_CPPFLAGS) -c $<
+	$(CC) -o $@ $(xroar_nds9_CFLAGS) $(xroar_nds9_CPPFLAGS) -c $<
 
 $(xroar_common_INT_OBJS) $(xroar_nds9_INT_OBJS): %.o: ./%.c
-	$(CC) $(xroar_nds9_CFLAGS) $(xroar_nds9_CPPFLAGS) -c $<
+	$(CC) -o $@ $(xroar_nds9_CFLAGS) $(xroar_nds9_CPPFLAGS) -c $<
 
 xroar.arm9: $(xroar_nds9_ALL_OBJS)
 	$(CC) -o $@ $(xroar_nds9_ALL_OBJS) $(xroar_nds9_LDFLAGS) $(xroar_nds9_LDLIBS)

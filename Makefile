@@ -200,10 +200,10 @@ xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 $(xroar_unix_ALL_OBJS): $(CONFIG_FILES)
 
 $(xroar_common_OBJS) $(xroar_unix_OBJS) $(xroar_opt_OBJS): %.o: $(SRCROOT)/%.c
-	$(CC) $(xroar_unix_CFLAGS) -c $<
+	$(CC) -o $@ $(xroar_unix_CFLAGS) -c $<
 
 $(xroar_common_INT_OBJS) $(xroar_unix_INT_OBJS) $(xroar_opt_INT_OBJS): %.o: ./%.c
-	$(CC) $(xroar_unix_CFLAGS) -c $<
+	$(CC) -o $@ $(xroar_unix_CFLAGS) -c $<
 
 xroar$(EXEEXT): $(xroar_unix_ALL_OBJS)
 	$(CC) -o $@ $(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS)

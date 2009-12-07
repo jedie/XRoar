@@ -34,10 +34,10 @@ xroar_gp32_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 $(xroar_gp32_ALL_OBJS): $(CONFIG_FILES)
 
 $(xroar_common_OBJS) $(xroar_gp32_OBJS): %.o: $(SRCROOT)/%.c
-	$(CC) $(xroar_gp32_CFLAGS) $(xroar_gp32_CPPFLAGS) -c $<
+	$(CC) -o $@ $(xroar_gp32_CFLAGS) $(xroar_gp32_CPPFLAGS) -c $<
 
 $(xroar_common_INT_OBJS) $(xroar_gp32_INT_OBJS): %.o: ./%.c
-	$(CC) $(xroar_gp32_CFLAGS) $(xroar_gp32_CPPFLAGS) -c $<
+	$(CC) -o $@ $(xroar_gp32_CFLAGS) $(xroar_gp32_CPPFLAGS) -c $<
 
 xroar.elf: $(xroar_gp32_ALL_OBJS)
 	$(CC) -o $@ $(xroar_gp32_ALL_OBJS) $(xroar_gp32_LDFLAGS) $(xroar_gp32_LDLIBS)
