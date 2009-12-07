@@ -7,9 +7,9 @@
 #define __MODULE_H__
 
 typedef struct {
-	const char *name; 
-	const char *description; 
-	int (*init)(void); 
+	const char *name;
+	const char *description;
+	int (*init)(void);
 	int initialised;
 	void (*shutdown)(void);
 } Module_Common;

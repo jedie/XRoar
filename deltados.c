@@ -56,8 +56,8 @@ struct cart *deltados_new(const char *filename) {
 	cart.io_read = io_read;
 	cart.io_write = io_write;
 	cart.reset = reset;
-	cart.detach = NULL; 
-	wd279x_type = WD2791; 
+	cart.detach = NULL;
+	wd279x_type = WD2791;
 	wd279x_set_drq_handler     = NULL;
 	wd279x_reset_drq_handler   = NULL;
 	wd279x_set_intrq_handler   = NULL;

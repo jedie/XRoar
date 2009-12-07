@@ -31,29 +31,29 @@
 #define CC_Z 0x04
 #define CC_V 0x02
 #define CC_C 0x01
-#define N_EOR_V	((reg_cc & CC_N)^((reg_cc & CC_V)<<2))
+#define N_EOR_V ((reg_cc & CC_N)^((reg_cc & CC_V)<<2))
 
-#define CLR_HNZVC	do { reg_cc &= ~(CC_H|CC_N|CC_Z|CC_V|CC_C); } while (0)
-#define CLR_NZV		do { reg_cc &= ~(CC_N|CC_Z|CC_V); } while (0)
-#define CLR_NZVC	do { reg_cc &= ~(CC_N|CC_Z|CC_V|CC_C); } while (0)
-#define CLR_Z		do { reg_cc &= ~(CC_Z); } while (0)
-#define CLR_NZC		do { reg_cc &= ~(CC_N|CC_Z|CC_C); } while (0)
-#define CLR_NVC		do { reg_cc &= ~(CC_N|CC_V|CC_C); } while (0)
-#define CLR_ZC		do { reg_cc &= ~(CC_Z|CC_C); } while (0)
+#define CLR_HNZVC       do { reg_cc &= ~(CC_H|CC_N|CC_Z|CC_V|CC_C); } while (0)
+#define CLR_NZV         do { reg_cc &= ~(CC_N|CC_Z|CC_V); } while (0)
+#define CLR_NZVC        do { reg_cc &= ~(CC_N|CC_Z|CC_V|CC_C); } while (0)
+#define CLR_Z           do { reg_cc &= ~(CC_Z); } while (0)
+#define CLR_NZC         do { reg_cc &= ~(CC_N|CC_Z|CC_C); } while (0)
+#define CLR_NVC         do { reg_cc &= ~(CC_N|CC_V|CC_C); } while (0)
+#define CLR_ZC          do { reg_cc &= ~(CC_Z|CC_C); } while (0)
 
-#define SET_Z(a)	do { if (!(a)) reg_cc |= CC_Z; } while (0)
-#define SET_N8(a)	do { reg_cc |= (a&0x80)>>4; } while (0)
-#define SET_N16(a)	do { reg_cc |= (a&0x8000)>>12; } while (0)
-#define SET_H(a,b,r)	do { reg_cc |= ((a^b^r)&0x10)<<1; } while (0)
-#define SET_C8(a)	do { reg_cc |= (a&0x100)>>8; } while (0)
-#define SET_C16(a)	do { reg_cc |= (a&0x10000)>>16; } while (0)
-#define SET_V8(a,b,r)	do { reg_cc |= ((a^b^r^(r>>1))&0x80)>>6; } while (0)
+#define SET_Z(a)        do { if (!(a)) reg_cc |= CC_Z; } while (0)
+#define SET_N8(a)       do { reg_cc |= (a&0x80)>>4; } while (0)
+#define SET_N16(a)      do { reg_cc |= (a&0x8000)>>12; } while (0)
+#define SET_H(a,b,r)    do { reg_cc |= ((a^b^r)&0x10)<<1; } while (0)
+#define SET_C8(a)       do { reg_cc |= (a&0x100)>>8; } while (0)
+#define SET_C16(a)      do { reg_cc |= (a&0x10000)>>16; } while (0)
+#define SET_V8(a,b,r)   do { reg_cc |= ((a^b^r^(r>>1))&0x80)>>6; } while (0)
 #define SET_V16(a,b,r)  do { reg_cc |= ((a^b^r^(r>>1))&0x8000)>>14; } while (0)
-#define SET_NZ8(a)		do { SET_N8(a); SET_Z(a&0xff); } while (0)
-#define SET_NZ16(a)		do { SET_N16(a);SET_Z(a&0xffff); } while (0)
-#define SET_NZC8(a)		do { SET_N8(a); SET_Z(a&0xff);SET_C8(a); } while (0)
-#define SET_NZVC8(a,b,r)	do { SET_N8(r); SET_Z(r&0xff);SET_V8(a,b,r);SET_C8(r); } while (0)
-#define SET_NZVC16(a,b,r)	do { SET_N16(r);SET_Z(r&0xffff);SET_V16(a,b,r);SET_C16(r); } while (0)
+#define SET_NZ8(a)              do { SET_N8(a); SET_Z(a&0xff); } while (0)
+#define SET_NZ16(a)             do { SET_N16(a);SET_Z(a&0xffff); } while (0)
+#define SET_NZC8(a)             do { SET_N8(a); SET_Z(a&0xff);SET_C8(a); } while (0)
+#define SET_NZVC8(a,b,r)        do { SET_N8(r); SET_Z(r&0xff);SET_V8(a,b,r);SET_C8(r); } while (0)
+#define SET_NZVC16(a,b,r)       do { SET_N16(r);SET_Z(r&0xffff);SET_V16(a,b,r);SET_C16(r); } while (0)
 
 #define SET_NZ_D() do { SET_N8(reg_a); if (!reg_a && !reg_b) reg_cc |= CC_Z; } while (0)
 
@@ -64,29 +64,29 @@
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) do { (void)m6809_read_cycle(a); } while (0)
 
-#define EA_DIRECT(a)	do { a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
-#define EA_EXTENDED(a)	do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; TAKEN_CYCLES(1); } while (0)
+#define EA_DIRECT(a)    do { a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
+#define EA_EXTENDED(a)  do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; TAKEN_CYCLES(1); } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
  * macros.  */
-#define BYTE_IMMEDIATE(a,v)	{ (void)a; v = fetch_byte(reg_pc); reg_pc++; }
-#define BYTE_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a); }
-#define BYTE_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a); }
-#define BYTE_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a); }
-#define WORD_IMMEDIATE(a,v)	{ (void)a; v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; }
-#define WORD_DIRECT(a,v)	{ EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
-#define WORD_INDEXED(a,v)	{ EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
-#define WORD_EXTENDED(a,v)	{ EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
+#define BYTE_IMMEDIATE(a,v)     { (void)a; v = fetch_byte(reg_pc); reg_pc++; }
+#define BYTE_DIRECT(a,v)        { EA_DIRECT(a); v = fetch_byte(a); }
+#define BYTE_INDEXED(a,v)       { EA_INDEXED(a); v = fetch_byte(a); }
+#define BYTE_EXTENDED(a,v)      { EA_EXTENDED(a); v = fetch_byte(a); }
+#define WORD_IMMEDIATE(a,v)     { (void)a; v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; }
+#define WORD_DIRECT(a,v)        { EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
+#define WORD_INDEXED(a,v)       { EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
+#define WORD_EXTENDED(a,v)      { EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
 
-#define SHORT_RELATIVE(r)	{ BYTE_IMMEDIATE(0,r); r = sex(r); }
-#define LONG_RELATIVE(r)	WORD_IMMEDIATE(0,r)
+#define SHORT_RELATIVE(r)       { BYTE_IMMEDIATE(0,r); r = sex(r); }
+#define LONG_RELATIVE(r)        WORD_IMMEDIATE(0,r)
 
 #define TAKEN_CYCLES(c) do { m6809_nvma_cycles(c); } while (0)
 
-#define PUSHWORD(s,r)	{ s -= 2; store_byte(s+1, r); store_byte(s, r >> 8); }
-#define PUSHBYTE(s,r)	{ s--; store_byte(s, r); }
-#define PULLBYTE(s,r)	{ r = fetch_byte(s); s++; }
-#define PULLWORD(s,r)	{ r = fetch_byte(s) << 8; r |= fetch_byte(s+1); s += 2; }
+#define PUSHWORD(s,r)   { s -= 2; store_byte(s+1, r); store_byte(s, r >> 8); }
+#define PUSHBYTE(s,r)   { s--; store_byte(s, r); }
+#define PULLBYTE(s,r)   { r = fetch_byte(s); s++; }
+#define PULLWORD(s,r)   { r = fetch_byte(s) << 8; r |= fetch_byte(s+1); s += 2; }
 
 #define PUSHR(s,a) { \
 		unsigned int postbyte; \
@@ -168,7 +168,7 @@ unsigned int halt, nmi, firq, irq;
 static int nmi_armed;
 
 /* MPU state.  Represents current position in the high-level flow chart
-   from the data sheet (figure 14). */
+ * from the data sheet (figure 14). */
 static enum m6809_cpu_state cpu_state;
 
 #define reg_d ((reg_a << 8) | reg_b)
@@ -653,7 +653,7 @@ void m6809_run(int cycles) {
 					case 0x2: reg_y = tmp1; break;
 					case 0x3: reg_u = tmp1; break;
 					case 0x4: reg_s = tmp1; break;
-					case 0x5: reg_pc = tmp1; break; 
+					case 0x5: reg_pc = tmp1; break;
 					case 0x8: reg_a = tmp1; break;
 					case 0x9: reg_b = tmp1; break;
 					case 0xa: reg_cc = tmp1 & 0xff; break;

@@ -112,7 +112,7 @@ static void do_hs_fall(void) {
 			video_module->render_border();
 		} else if (scanline < VDG_ACTIVE_AREA_END) {
 			render_scanline();
-			sam_vdg_hsync(); 
+			sam_vdg_hsync();
 			video_module->hsync();
 		} else if (scanline < (VDG_BOTTOM_BORDER_END - 2)) {
 			video_module->render_border();

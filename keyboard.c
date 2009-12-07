@@ -193,7 +193,7 @@ void keyboard_unicode_press(unsigned int unicode) {
 }
 
 void keyboard_unicode_release(unsigned int unicode) {
-	if (unicode == '\\') { 
+	if (unicode == '\\') {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
 		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))) {

@@ -77,10 +77,10 @@ static int init(void) {
 
 	if ((err = snd_pcm_open(&pcm_handle, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0)
 		goto failed;
- 
+
 	if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0)
 		goto failed;
-		 
+
 	if ((err = snd_pcm_hw_params_any(pcm_handle, hw_params)) < 0)
 		goto failed;
 

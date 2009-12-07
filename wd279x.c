@@ -283,7 +283,7 @@ void wd279x_command_write(unsigned int cmd) {
 
 /* One big state machine.  This is called from an event dispatch and from the
  * write command function. */
- 
+
 static void state_machine(void) {
 	uint8_t *idam;
 	unsigned int data;

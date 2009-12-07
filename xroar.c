@@ -138,7 +138,7 @@ static struct xconfig_option xroar_options[] = {
 /* Global flags */
 
 int xroar_cross_colour_renderer = DEFAULT_CCR;
-int xroar_noratelimit = 0; 
+int xroar_noratelimit = 0;
 
 static struct {
 	const char *option;

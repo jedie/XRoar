@@ -58,8 +58,8 @@ typedef uint16_t Pixel;
 #define NEXTLINE 0
 #define VIDEO_TOPLEFT VIDEO_SCREENBASE
 #define VIDEO_VIEWPORT_YOFFSET (0)
-#define LOCK_SURFACE 
-#define UNLOCK_SURFACE 
+#define LOCK_SURFACE
+#define UNLOCK_SURFACE
 #define VIDEO_MODULE_NAME video_sdlgl_module
 
 static SDL_Surface *screen;

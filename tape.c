@@ -477,7 +477,7 @@ static short wav_sample_in(void) {
 		wav_read_ptr++;
 		if (wav_samples_remaining == 0) {
 			wav_buffer_in();
-			if (wav_samples_remaining <= 0) 
+			if (wav_samples_remaining <= 0)
 				return 0;
 		}
 		wav_last_sample_cycle += SAMPLE_CYCLES;

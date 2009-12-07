@@ -92,7 +92,7 @@ char *find_in_path(const char *path, const char *filename) {
 			strcat(buf, "/");
 		strcat(buf, filename);
 		/* Return this one if file is valid */
-		if (stat(buf, &statbuf) == 0) 
+		if (stat(buf, &statbuf) == 0)
 			if (statbuf.st_mode & S_IFREG)
 				if (access(buf, R_OK) == 0) {
 					return buf;

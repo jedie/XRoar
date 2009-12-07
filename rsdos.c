@@ -73,14 +73,14 @@ struct cart *rsdos_new(const char *filename) {
 	cart.io_read = io_read;
 	cart.io_write = io_write;
 	cart.reset = reset;
-	cart.detach = detach; 
-	wd279x_type = WD2793; 
+	cart.detach = detach;
+	wd279x_type = WD2793;
 	wd279x_set_drq_handler     = set_drq_handler;
 	wd279x_reset_drq_handler   = reset_drq_handler;
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
 	event_init(&nmi_event);
-	nmi_event.dispatch = do_nmi; 
+	nmi_event.dispatch = do_nmi;
 	return &cart;
 }
 
