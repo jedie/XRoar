@@ -23,6 +23,10 @@ tools/font2c
 tools/prerender
 tools/img2c
 tools/img2c_nds
+doc/xroar.info
+doc/xroar.pdf
+doc/xroar.html
+doc/xroar.txt
 ## software images that might be left around
 *.cas
 *.vdk
