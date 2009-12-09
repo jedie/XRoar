@@ -38,7 +38,7 @@ CLEAN += $(xroar_unix_OBJS) $(xroar_unix_INT_OBJS)
 xroar_opt_OBJS =
 xroar_opt_INT_OBJS =
 
-opt_sdl_OBJS = ui_sdl.o video_sdl.o video_sdlyuv.o sound_sdl.o keyboard_sdl.o \
+opt_sdl_OBJS = ui_sdl.o video_sdl.o video_sdlyuv.o ao_sdl.o keyboard_sdl.o \
 		joystick_sdl.o
 CLEAN += $(opt_sdl_OBJS)
 ifeq ($(opt_sdl),yes)
@@ -98,7 +98,7 @@ ifeq ($(opt_carbon),yes)
 	xroar_opt_LDFLAGS += $(opt_carbon_LDFLAGS)
 endif
 
-opt_alsa_OBJS = sound_alsa.o
+opt_alsa_OBJS = ao_alsa.o
 CLEAN += $(opt_alsa_OBJS)
 ifeq ($(opt_alsa),yes)
 	xroar_opt_OBJS += $(opt_alsa_OBJS)
@@ -106,7 +106,7 @@ ifeq ($(opt_alsa),yes)
 	xroar_opt_LDFLAGS += $(opt_alsa_LDFLAGS)
 endif
 
-opt_oss_OBJS = sound_oss.o
+opt_oss_OBJS = ao_oss.o
 CLEAN += $(opt_oss_OBJS)
 ifeq ($(opt_oss),yes)
 	xroar_opt_OBJS += $(opt_oss_OBJS)
@@ -114,7 +114,7 @@ ifeq ($(opt_oss),yes)
 	xroar_opt_LDFLAGS += $(opt_oss_LDFLAGS)
 endif
 
-opt_sunaudio_OBJS = sound_sun.o
+opt_sunaudio_OBJS = ao_sun.o
 CLEAN += $(opt_sunaudio_OBJS)
 ifeq ($(opt_sunaudio),yes)
 	xroar_opt_OBJS += $(opt_sunaudio_OBJS)
@@ -122,7 +122,7 @@ ifeq ($(opt_sunaudio),yes)
 	xroar_opt_LDFLAGS += $(opt_sunaudio_LDFLAGS)
 endif
 
-opt_coreaudio_OBJS = sound_macosx.o
+opt_coreaudio_OBJS = ao_macosx.o
 CLEAN += $(opt_coreaudio_OBJS)
 ifeq ($(opt_coreaudio),yes)
 	xroar_opt_OBJS += $(opt_coreaudio_OBJS)
@@ -130,7 +130,7 @@ ifeq ($(opt_coreaudio),yes)
 	xroar_opt_LDFLAGS += $(opt_coreaudio_LDFLAGS)
 endif
 
-opt_jack_OBJS = sound_jack.o
+opt_jack_OBJS = ao_jack.o
 CLEAN += $(opt_jack_OBJS)
 ifeq ($(opt_jack),yes)
 	xroar_opt_OBJS += $(opt_jack_OBJS)
@@ -143,7 +143,7 @@ ifeq ($(opt_sndfile),yes)
 	xroar_opt_LDFLAGS += $(opt_sndfile_LDFLAGS)
 endif
 
-opt_nullaudio_OBJS = sound_null.o
+opt_nullaudio_OBJS = ao_null.o
 CLEAN += $(opt_nullaudio_OBJS)
 ifeq ($(opt_nullaudio),yes)
 	xroar_opt_OBJS += $(opt_nullaudio_OBJS)

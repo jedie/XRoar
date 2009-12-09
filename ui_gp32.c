@@ -32,7 +32,7 @@
 #include "machine.h"
 #include "module.h"
 #include "snapshot.h"
-#include "sound_gp32.h"
+#include "ao_gp32.h"
 #include "tape.h"
 #include "vdg.h"
 #include "vdisk.h"
