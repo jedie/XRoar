@@ -60,7 +60,7 @@ typedef Uint8 Pixel;
 
 static SDL_Surface *screen;
 
-#include "video_generic_ops.c"
+#include "vo_generic_ops.c"
 
 static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL video driver\n");

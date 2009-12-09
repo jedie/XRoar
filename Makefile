@@ -38,27 +38,27 @@ CLEAN += $(xroar_unix_OBJS) $(xroar_unix_INT_OBJS)
 xroar_opt_OBJS =
 xroar_opt_INT_OBJS =
 
-opt_sdl_OBJS = ui_sdl.o video_sdl.o video_sdlyuv.o ao_sdl.o keyboard_sdl.o \
+opt_sdl_OBJS = ui_sdl.o vo_sdl.o vo_sdlyuv.o ao_sdl.o keyboard_sdl.o \
 		joystick_sdl.o
 CLEAN += $(opt_sdl_OBJS)
 ifeq ($(opt_sdl),yes)
 	xroar_opt_OBJS += $(opt_sdl_OBJS)
 	xroar_opt_CFLAGS += $(opt_sdl_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_sdl_LDFLAGS)
-video_sdl.o: vdg_bitmaps.h
-video_sdlyuv.o: vdg_bitmaps.h
+vo_sdl.o: vdg_bitmaps.h
+vo_sdlyuv.o: vdg_bitmaps.h
 endif
 
-opt_sdlgl_OBJS = video_sdlgl.o
+opt_sdlgl_OBJS = vo_sdlgl.o
 CLEAN += $(opt_sdlgl_OBJS)
 ifeq ($(opt_sdlgl),yes)
 	xroar_opt_OBJS += $(opt_sdlgl_OBJS)
 	xroar_opt_CFLAGS += $(opt_sdlgl_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_sdlgl_LDFLAGS)
-video_sdlgl.o: vdg_bitmaps.h
+vo_sdlgl.o: vdg_bitmaps.h
 endif
 
-opt_curses_OBJS = ui_curses.o video_curses.o keyboard_curses.o
+opt_curses_OBJS = ui_curses.o vo_curses.o keyboard_curses.o
 CLEAN += $(opt_curses_OBJS)
 ifeq ($(opt_curses),yes)
 	xroar_opt_OBJS += $(opt_curses_OBJS)

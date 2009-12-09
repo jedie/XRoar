@@ -75,7 +75,7 @@ static Uint32 map_colour(int r, int g, int b) {
 	return colour;
 }
 
-#include "video_generic_ops.c"
+#include "vo_generic_ops.c"
 
 static int init(void) {
 	const SDL_VideoInfo *video_info;
