@@ -57,12 +57,11 @@ static gboolean cancel(GtkWidget *w) {
 }
 
 static void file_selected(GtkWidget *w, GtkFileSelection *fs) {
-	char *fn = gtk_file_selection_get_filename(GTK_FILE_SELECTION(w));
+	const char *fn = gtk_file_selection_get_filename(GTK_FILE_SELECTION(w));
 	(void)fs;  /* unused */
 	if (filename)
 		free(filename);
-	filename = (char *)malloc(strlen(fn)+1);
-	strcpy(filename, fn);
+	filename = strdup(fn);
 	gtk_widget_destroy(w);
 }
 

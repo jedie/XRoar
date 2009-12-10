@@ -78,8 +78,7 @@ static char *load_filename(const char **extensions) {
 		free(filename);
 	filename = NULL;
 	if (GetOpenFileName(&ofn)==TRUE) {
-		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
-		strcpy(filename, ofn.lpstrFile);
+		filename = strdup(ofn.lpstrFile);
 	}
 	if (video_module->set_fullscreen && was_fullscreen)
 		video_module->set_fullscreen(1);
@@ -114,8 +113,7 @@ static char *save_filename(const char **extensions) {
 		free(filename);
 	filename = NULL;
 	if (GetSaveFileName(&ofn)==TRUE) {
-		filename = (char *)malloc(strlen(ofn.lpstrFile)+1);
-		strcpy(filename, ofn.lpstrFile);
+		filename = strdup(ofn.lpstrFile);
 	}
 	if (video_module->set_fullscreen && was_fullscreen)
 		video_module->set_fullscreen(1);
