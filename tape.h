@@ -23,7 +23,7 @@ void tape_update_motor(void);
 void tape_update_output(void);
 void tape_update_input(void);
 
-/* TAPEHACK: */
+/* Tapehack specific stuff: */
 void tape_sync(void);
 void tape_desync(int leader);
 void tape_bit_out(int value);

@@ -65,6 +65,7 @@ int xroar_frameskip = 0;
 char *xroar_opt_keymap = NULL;
 char *xroar_opt_joy_left = NULL;
 char *xroar_opt_joy_right = NULL;
+int xroar_tapehack = 0;
 #ifdef TRACE
 int xroar_trace_enabled = 0;
 #else
@@ -108,6 +109,7 @@ static struct xconfig_option xroar_options[] = {
 	{ XCONFIG_STRING,   "keymap",       &xroar_opt_keymap },
 	{ XCONFIG_STRING,   "joy-left",     &xroar_opt_joy_left },
 	{ XCONFIG_STRING,   "joy-right",    &xroar_opt_joy_right },
+	{ XCONFIG_BOOL,     "tapehack",     &xroar_tapehack },
 #ifdef TRACE
 	{ XCONFIG_BOOL,     "trace",        &xroar_trace_enabled },
 #endif
@@ -230,6 +232,7 @@ static void helptext(void) {
 "  -keymap CODE          host keyboard type (uk, us, fr, de)\n"
 "  -joy-left JOYSPEC     map left joystick\n"
 "  -joy-right JOYSPEC    map right joystick\n"
+"  -tapehack             enable tape hacking mode\n"
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
@@ -447,7 +450,6 @@ void xroar_shutdown(void) {
 }
 
 static void tapehack_instruction_hook(M6809State *cpu_state) {
-	/* TAPEHACK: */
 	if (IS_COCO) {
 		if (cpu_state->reg_pc == 0xa719) {
 			tape_sync();
@@ -478,7 +480,9 @@ void xroar_mainloop(void) {
 	m6809_write_cycle = sam_store_byte;
 	m6809_nvma_cycles = sam_nvma_cycles;
 	m6809_sync = do_m6809_sync;
-	m6809_instruction_hook = tapehack_instruction_hook;
+	if (xroar_tapehack) {
+		m6809_instruction_hook = tapehack_instruction_hook;
+	}
 
 	while (1) {
 

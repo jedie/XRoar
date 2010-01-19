@@ -186,9 +186,10 @@ int tape_open_writing(const char *filename) {
 void tape_close_writing(void) {
 	while (have_bits)
 		bit_out(0);
-	/* TAPEHACK: */
-	byte_out(0x55);
-	byte_out(0x55);
+	if (xroar_tapehack) {
+		byte_out(0x55);
+		byte_out(0x55);
+	}
 	if (have_bytes)
 		buffer_out();
 	if (write_fd != -1)
@@ -278,8 +279,9 @@ void tape_update_motor(void) {
 			}
 		} else {
 			event_dequeue(&waggle_event);
-			/* TAPEHACK: */
-			tape_desync(256);
+			if (xroar_tapehack) {
+				tape_desync(256);
+			}
 		}
 	}
 }
@@ -498,7 +500,8 @@ static short wav_sample_in(void) {
 }
 #endif
 
-/* TAPEHACK: */
+/* Tapehack-specific stuff: */
+
 static int leader_count = 256;
 
 void tape_sync(void) {

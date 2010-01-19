@@ -37,6 +37,7 @@ extern int xroar_frameskip;
 extern char *xroar_opt_keymap;
 extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
+extern int xroar_tapehack;
 extern int xroar_trace_enabled;
 
 /* Emulated machine */
