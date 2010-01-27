@@ -42,12 +42,7 @@ SoundModule sound_alsa_module = {
 	update
 };
 
-typedef int8_t Sample;  /* 8-bit mono */
-
-#define FRAGMENTS 2
-#define FRAME_SIZE 512
-#define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / sample_rate))
-#define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
+typedef uint8_t Sample;  /* 8-bit mono */
 
 static unsigned int sample_rate;
 unsigned int bytes_per_sample;
@@ -63,11 +58,13 @@ static Sample lastsample;
 static void flush_frame(void);
 static event_t *flush_event;
 
+static int sample_cycles;
+static snd_pcm_uframes_t frame_size;
+static int frame_cycles;
+
 static int init(void) {
 	int err;
 	snd_pcm_hw_params_t *hw_params;
-	snd_pcm_uframes_t buffer_size = FRAME_SIZE * FRAGMENTS;
-	snd_pcm_uframes_t period_size = FRAME_SIZE / 2;
 	snd_pcm_format_t format = SND_PCM_FORMAT_U8;
 	unsigned int channels = 1;
 
@@ -96,8 +93,9 @@ static int init(void) {
 	if ((err = snd_pcm_hw_params_set_channels(pcm_handle, hw_params, channels)) < 0)
 		goto failed;
 
+	snd_pcm_hw_params_get_period_size(hw_params, &frame_size, NULL);
+	snd_pcm_uframes_t buffer_size = frame_size * 2;
 	snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_size);
-	snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params, &period_size, NULL);
 
 	if ((err = snd_pcm_hw_params(pcm_handle, hw_params)) < 0)
 		goto failed;
@@ -125,18 +123,21 @@ static int init(void) {
 	}
 	LOG_DEBUG(2, "%dHz\n", sample_rate);
 
-	buffer = malloc(FRAME_SIZE * sizeof(Sample));
+	sample_cycles = OSCILLATOR_RATE / sample_rate;
+	frame_cycles = sample_cycles * frame_size;
+
+	buffer = malloc(frame_size * sizeof(Sample));
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
+	memset(buffer, 0x80, frame_size * sizeof(Sample));
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0;
-	snd_pcm_writei(pcm_handle, buffer, FRAME_SIZE);
+	lastsample = 0x80;
+	//snd_pcm_writei(pcm_handle, buffer, frame_size);
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialiase ALSA audio driver\n");
@@ -152,30 +153,30 @@ static void shutdown(void) {
 
 static void update(int value) {
 	int elapsed_cycles = current_cycle - frame_cycle_base;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		elapsed_cycles = FRAME_CYCLES;
+	if (elapsed_cycles >= frame_cycles) {
+		elapsed_cycles = frame_cycles;
 	}
 	while (frame_cycle < elapsed_cycles) {
 		*(wrptr++) = lastsample;
-		frame_cycle += SAMPLE_CYCLES;
+		frame_cycle += sample_cycles;
 	}
-	lastsample = value;
+	lastsample = value ^ 0x80;
 }
 
 static void flush_frame(void) {
 	int err;
-	Sample *fill_to = buffer + FRAME_SIZE;
+	Sample *fill_to = buffer + frame_size;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
-	frame_cycle_base += FRAME_CYCLES;
+	frame_cycle_base += frame_cycles;
 	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
+	flush_event->at_cycle = frame_cycle_base + frame_cycles;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	wrptr = buffer;
 	if (xroar_noratelimit)
 		return;
-	if ((err = snd_pcm_writei(pcm_handle, buffer, FRAME_SIZE)) < 0) {
+	if ((err = snd_pcm_writei(pcm_handle, buffer, frame_size)) < 0) {
 		snd_pcm_prepare(pcm_handle);
-		snd_pcm_writei(pcm_handle, buffer, FRAME_SIZE);
+		snd_pcm_writei(pcm_handle, buffer, frame_size);
 	}
 }
