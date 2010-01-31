@@ -73,9 +73,9 @@ struct cart *machine_cart = NULL;
 
 Cycle current_cycle;
 
-static const char *d32_extbas_roms[] = { "d32", "dragon32", "d32rom", "dragon", NULL };
-static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "dragrom", "dragon", NULL };
-static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", NULL };
+static const char *d32_extbas_roms[] = { "d32", "dragon32", "d32rom", "Dragon Data Ltd - Dragon 32 - IC17", "dragon", NULL };
+static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "Dragon Data Ltd - Dragon 64 - IC17", "dragrom", "dragon", NULL };
+static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", "Dragon Data Ltd - Dragon 64 - IC18", NULL };
 static const char *coco_bas_roms[] = { "bas13", "bas12", "bas11", "bas10", NULL };
 static const char *coco_extbas_roms[] = { "extbas11", "extbas10", NULL };
 static const char *dragondos_roms[] = { "dplus49b", "dplus48", "sdose6", "sdose5", "sdose4", "ddos40", "ddos15", "ddos10", NULL };
@@ -463,25 +463,25 @@ static void initialise_ram(void) {
  * the supplied list.  It searches for each rom name as-is, and with ".rom" or
  * ".dgn" extensions added.  */
 
+static const char *rom_extensions[] = {
+	"", ".rom", ".ROM", ".dgn", ".DGN", NULL
+};
+
 /* Find a ROM within rom path. */
 static char *find_rom(const char *romname) {
 	char *filename;
 	char *path = NULL;
+	int i;
 
 	if (romname == NULL)
 		return NULL;
 
 	filename = malloc(strlen(romname) + 5);
-	strcpy(filename, romname);
-	path = find_in_path(xroar_rom_path, filename);
-	if (path == NULL) {
-		strcat(filename, ".rom");
-		path = find_in_path(xroar_rom_path, filename);
-	}
-	if (path == NULL) {
+	for (i = 0; rom_extensions[i]; i++) {
 		strcpy(filename, romname);
-		strcat(filename, ".dgn");
+		strcat(filename, rom_extensions[i]);
 		path = find_in_path(xroar_rom_path, filename);
+		if (path) break;
 	}
 	free(filename);
 	return path;
