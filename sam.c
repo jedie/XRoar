@@ -43,6 +43,7 @@ static unsigned int sam_vdg_ycount;
 #ifdef VARIABLE_MPU_RATE
 static unsigned int sam_ram_cycles;
 static unsigned int sam_rom_cycles;
+static int was_slow = 0;
 #else
 # define sam_ram_cycles CPU_SLOW_DIVISOR
 # define sam_rom_cycles CPU_SLOW_DIVISOR
@@ -70,6 +71,24 @@ static unsigned int ram_ras1;
 
 static void update_from_register(void);
 
+static inline void slow_cycle(int n) {
+	current_cycle += n * sam_ram_cycles;
+#ifdef VARIABLE_MPU_RATE
+	was_slow = 1;
+#endif
+}
+
+static inline void fast_cycle(int n) {
+#ifdef VARIABLE_MPU_RATE
+	if (was_slow) {
+		current_cycle += n * sam_ram_cycles;
+		current_cycle += (n-1) * sam_rom_cycles;
+		was_slow = 0;
+	} else
+#endif
+	current_cycle += n * sam_rom_cycles;
+}
+
 void sam_init(void) {
 }
 
@@ -80,10 +99,11 @@ void sam_reset(void) {
 
 unsigned int sam_read_byte(unsigned int addr) {
 	addr &= 0xffff;
-	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20))
-		current_cycle += sam_ram_cycles;
-	else
-		current_cycle += sam_rom_cycles;
+	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20)) {
+		slow_cycle(1);
+	} else {
+		fast_cycle(1);
+	}
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
@@ -135,10 +155,11 @@ unsigned int sam_read_byte(unsigned int addr) {
 
 void sam_store_byte(unsigned int addr, unsigned int octet) {
 	addr &= 0xffff;
-	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20))
-		current_cycle += sam_ram_cycles;
-	else
-		current_cycle += sam_rom_cycles;
+	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20)) {
+		slow_cycle(1);
+	} else {
+		fast_cycle(1);
+	}
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
@@ -204,7 +225,7 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 }
 
 void sam_nvma_cycles(int cycles) {
-	current_cycle += cycles * sam_rom_cycles;
+	fast_cycle(cycles);
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 }
