@@ -236,6 +236,11 @@ void sam_vdg_fsync(void) {
 	sam_vdg_ycount = 0;
 }
 
+/* This routine copies bytes for the VDG.  Why so complex?  This implements the
+ * divide-by-X and divide-by-Y parts of the SAM video address counter.  VDG
+ * code will not only call this for video data, but at the end of each scanline
+ * (with dest == NULL) to indicate the extra clocks a real VDG emits. */
+
 void sam_vdg_bytes(int nbytes, uint8_t *dest) {
 	unsigned int b15_5, b4, b3_0;
 	b15_5 = sam_vdg_address & ~0x1f;
