@@ -395,7 +395,9 @@ void machine_reset(int hard) {
 	}
 	sam_reset();
 	m6809_reset();
+#ifdef TRACE
 	m6809_trace_reset();
+#endif
 	vdg_reset();
 	tape_reset();
 }
