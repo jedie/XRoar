@@ -16,12 +16,11 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "types.h"
-#include "logging.h"
-
 #include <stdlib.h>
 
+#include "types.h"
 #include "events.h"
+#include "logging.h"
 
 event_t *event_new(void) {
 	event_t *new = malloc(sizeof(event_t));
