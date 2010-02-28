@@ -2,6 +2,7 @@
 #include <nds.h>
 
 #include "types.h"
+#include "nds/ndsipc.h"
 
 /* ndslib headers calculate sample rate incorrectly (at least according
  * to gbatek, so 32768Hz here actually ends up being 32728Hz */
@@ -24,8 +25,8 @@ static void vblank_handler(void) {
 	but = REG_KEYXY;
 
 	if (!( (but ^ lastbut) & (1 << 6))) {
-		tempPos = touchReadXY();
-		if (tempPos.x == 0 || tempPos.y == 0) {
+		touchReadXY(&tempPos);
+		if (tempPos.rawx == 0 || tempPos.rawy == 0) {
 			but |= (1 << 6);
 			lastbut = but;
 		} else {
@@ -66,9 +67,9 @@ int main(int argc, char **argv) {
 	rtcReset();
 
 	/* enable sound */
-	powerON(POWER_SOUND);
-	SOUND_CR = SOUND_ENABLE | SOUND_VOL(0x7f);
-	SOUND_BIAS = 0x200;
+	powerOn(POWER_SOUND);
+	REG_SOUNDCNT = SOUND_ENABLE | SOUND_VOL(0x7f);
+	REG_SOUNDBIAS = 0x200;
 
 	/* Stop power LED from blinking (DS-X sets this up) */
 	writePowerManagement(0, readPowerManagement(0) & 0xcf);

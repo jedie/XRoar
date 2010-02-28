@@ -5,7 +5,7 @@
 # Objects for Nintendo DS build:
 
 xroar_nds7_OBJS = main_nds7.o
-xroar_nds9_OBJS = fs_unix.o main_nds9.o sound_nds.o ui_nds.o video_nds.o nds/ndsgfx.o nds/ndsui.o nds/ndsui_button.o nds/ndsui_filelist.o  nds/ndsui_keyboard.o nds/ndsui_scrollbar.o nds/ndsui_textbox.o
+xroar_nds9_OBJS = fs_unix.o main_nds9.o ao_nds.o ui_nds.o vo_nds.o nds/ndsgfx.o nds/ndsui.o nds/ndsui_button.o nds/ndsui_filelist.o  nds/ndsui_keyboard.o nds/ndsui_scrollbar.o nds/ndsui_textbox.o
 xroar_nds9_INT_OBJS = nds/kbd_graphics.o nds/nds_font8x8.o
 CLEAN += $(xroar_nds7_OBJS) $(xroar_nds9_OBJS) $(xroar_nds9_INT_OBJS)
 

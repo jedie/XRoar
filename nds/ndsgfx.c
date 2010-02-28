@@ -11,13 +11,13 @@ static unsigned int fg_colour, bg_colour;
 int ndsgfx_init(void) {
 	videoSetModeSub(MODE_5_2D | DISPLAY_BG2_ACTIVE);
 	vramSetBankC(VRAM_C_SUB_BG);
-	SUB_BG2_CR = BG_BMP16_256x256;
-	SUB_BG2_XDX = 1 << 8;
-	SUB_BG2_XDY = 0;
-	SUB_BG2_YDX = 0;
-	SUB_BG2_YDY = 1 << 8;
-	SUB_BG2_CX = 0;
-	SUB_BG2_CY = 0;
+	REG_BG2CNT_SUB = BG_BMP16_256x256;
+	REG_BG2PA_SUB = 1 << 8;
+	REG_BG2PB_SUB = 0;
+	REG_BG2PC_SUB = 0;
+	REG_BG2PD_SUB = 1 << 8;
+	REG_BG2X_SUB = 0;
+	REG_BG2Y_SUB = 0;
 	nds_set_text_colour(NDS_WHITE, NDS_BLACK);
 	return 0;
 }

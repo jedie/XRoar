@@ -40,6 +40,7 @@
 #include "vdrive.h"
 #include "xroar.h"
 #include "nds/ndsgfx.h"
+#include "nds/ndsipc.h"
 #include "nds/ndsui.h"
 #include "nds/ndsui_button.h"
 #include "nds/ndsui_filelist.h"
@@ -72,6 +73,8 @@ UIModule ui_nds_module = {
 	NULL  /* use default joystick module list */
 };
 
+static int input_joysticks_swapped = 0;
+
 static event_t poll_pen_event;
 static void do_poll_pen(void);
 
@@ -86,7 +89,7 @@ static void update_joystick_swap_state_text(void);
 static char *ic_construct_button_label(int i);
 
 static int init(void) {
-	powerSET(POWER_ALL_2D|POWER_SWAP_LCDS);
+	powerOn(POWER_ALL_2D|POWER_SWAP_LCDS);
 	chdir("/dragon");
 
 	ndsgfx_init();
@@ -139,6 +142,7 @@ static void ui_input_control_press(int command, int arg) {
 			break;
 		case INPUT_SWAP_JOYSTICKS:
 			input_control_press(command, arg);
+			input_joysticks_swapped = !input_joysticks_swapped;
 			update_joystick_swap_state_text();
 			break;
 		default:
@@ -322,6 +326,7 @@ static void update_joystick_swap_state_text(void) {
 static void mi_joystick_swap_state_release(int id) {
 	(void)id;
 	input_control_press(INPUT_SWAP_JOYSTICKS, 0);
+	input_joysticks_swapped = !input_joysticks_swapped;
 	update_joystick_swap_state_text();
 }
 

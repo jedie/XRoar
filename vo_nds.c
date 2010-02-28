@@ -41,7 +41,7 @@ VideoModule video_nds_module = {
 	  init, 0, shutdown },
 	NULL, NULL, 0,
 	vsync, set_mode,
-	NULL, NULL
+	NULL, NULL, NULL
 };
 
 /* This is now implemented a set of 12 64x64 sprites pulling tiles
@@ -97,16 +97,16 @@ static int init(void) {
 	/* Create 12 sprites to cover screen */
 	for (j = 0; j < 3; j++) {
 		for (i = 0; i < 4; i++) {
-			oam->spriteBuffer[j*4+i].attribute[0] = OBJ_Y(j*64) | ATTR0_SQUARE;
-			oam->spriteBuffer[j*4+i].attribute[1] = OBJ_X(i*64) | ATTR1_SIZE_64;
-			oam->spriteBuffer[j*4+i].attribute[2] = j*256+i*8;
+			oam->oamBuffer[j*4+i].attribute[0] = OBJ_Y(j*64) | ATTR0_SQUARE;
+			oam->oamBuffer[j*4+i].attribute[1] = OBJ_X(i*64) | ATTR1_SIZE_64;
+			oam->oamBuffer[j*4+i].attribute[2] = j*256+i*8;
 		}
 	}
 	/* Disable remaining sprites */
 	for (i = 12; i < SPRITE_COUNT; i++) {
-		oam->spriteBuffer[i].attribute[0] = ATTR0_DISABLED;
-		oam->spriteBuffer[i].attribute[1] = 0;
-		oam->spriteBuffer[i].attribute[2] = 0;
+		oam->oamBuffer[i].attribute[0] = ATTR0_DISABLED;
+		oam->oamBuffer[i].attribute[1] = 0;
+		oam->oamBuffer[i].attribute[2] = 0;
 	}
 
 	alloc_colours();
@@ -184,22 +184,19 @@ static void alloc_colours(void) {
  * so this is good for semigraphics 6 too. */
 static void render_sg4(void) {
 	uint32_t *pixel = SPRITE_VRAM_BASE;
-	uint8_t *vram;
-	int t, line, i, j;
+	uint8_t vram[42];
+	int t, line, i;
 	int subline = 0;
 	unsigned int octet;
 	for (t = 0; t < 24; t++) {
 		for (line = 0; line < 8; line++) {
-			for (i = 2; i; i--) {
-				vram = sam_vdg_bytes(16);
-				for (j = 16; j; j--) {
-					octet = *(vram++);
-					*(pixel) = vdg_alpha_nds[text_mode][subline][octet];
-					pixel += 8;
-				}
+			sam_vdg_bytes(42, vram);
+			for (i = 0; i < 32; i++) {
+				octet = vram[i];
+				*(pixel) = vdg_alpha_nds[text_mode][subline][octet];
+				pixel += 8;
 			}
 			pixel -= 255;
-			(void)sam_vdg_bytes(10);
 			sam_vdg_hsync();
 			subline++;
 			if (subline >= 12)
@@ -212,21 +209,20 @@ static void render_sg4(void) {
 /* Render a 16-byte graphics line (CG1, RG1, RG2, & RG3) */
 static void render_cg1(void) {
 	uint32_t *pixel = SPRITE_VRAM_BASE;
-	uint8_t *vram;
+	uint8_t vram[22];
 	int t, line, i;
 	unsigned int octet;
 	for (t = 0; t < 24; t++) {
 		for (line = 0; line < 8; line++) {
-			vram = sam_vdg_bytes(16);
-			for (i = 16; i; i--) {
-				octet = *(vram++);
+			sam_vdg_bytes(22, vram);
+			for (i = 0; i < 16; i++) {
+				octet = vram[i];
 				*(pixel) = cg_colours[octet >> 4];
 				pixel += 8;
 				*(pixel) = cg_colours[octet & 15];
 				pixel += 8;
 			}
 			pixel -= 255;
-			(void)sam_vdg_bytes(6);
 			sam_vdg_hsync();
 		}
 		pixel += 248;
@@ -236,21 +232,18 @@ static void render_cg1(void) {
 /* Render a 32-byte graphics line (CG2, CG3, CG6 & RG6) */
 static void render_cg2(void) {
 	uint32_t *pixel = SPRITE_VRAM_BASE;
-	uint8_t *vram;
-	int t, line, i, j;
+	uint8_t vram[42];
+	int t, line, i;
 	unsigned int octet;
 	for (t = 0; t < 24; t++) {
 		for (line = 0; line < 8; line++) {
-			for (i = 2; i; i--) {
-				vram = sam_vdg_bytes(16);
-				for (j = 16; j; j--) {
-					octet = *(vram++);
-					*(pixel) = cg_colours[octet];
-					pixel += 8;
-				}
+			sam_vdg_bytes(42, vram);
+			for (i = 0; i < 32; i++) {
+				octet = vram[i];
+				*(pixel) = cg_colours[octet];
+				pixel += 8;
 			}
 			pixel -= 255;
-			(void)sam_vdg_bytes(10);
 			sam_vdg_hsync();
 		}
 		pixel += 248;
