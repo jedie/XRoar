@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __KEYBOARD_H__
-#define __KEYBOARD_H__
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
 
 #include "types.h"
 
@@ -55,4 +55,4 @@ void keyboard_queue(unsigned int c);
 void keyboard_unicode_press(unsigned int unicode);
 void keyboard_unicode_release(unsigned int unicode);
 
-#endif  /* __KEYBOARD_H__ */
+#endif  /* KEYBOARD_H */
