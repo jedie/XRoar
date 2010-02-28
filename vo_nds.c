@@ -81,9 +81,19 @@ static void prerender_bitmaps(void);
 #define D_GREEN  (12)
 #define D_ORANGE (13)
 
-static void vblank_handle(void) {
-	sam_vdg_fsync();
-	render_screen();
+/* vdg.c will set nds_update_screen = 1 at end of active area.  Until then,
+ * when VCOUNT is triggered, keep setting it back a couple of lines.  This
+ * should keep actual screen update in sync with emulated update. */
+
+extern int nds_update_screen;
+static void vcount_handle(void) {
+	if (!nds_update_screen) {
+		REG_VCOUNT = 202;
+	} else {
+		nds_update_screen = 0;
+		sam_vdg_fsync();
+		render_screen();
+	}
 }
 
 static int init(void) {
@@ -113,8 +123,9 @@ static int init(void) {
 	prerender_bitmaps();
 	set_mode(0);
 
-	/* Set up VBLANK handler */
-	irqSet(IRQ_VBLANK, vblank_handle);
+	/* Set up VCOUNT handler */
+	SetYtrigger(204);
+	irqSet(IRQ_VCOUNT, vcount_handle);
 	return 0;
 }
 

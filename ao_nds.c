@@ -45,7 +45,7 @@ SoundModule sound_nds_module = {
 
 static Cycle frame_cycle_base;
 static int frame_cycle;
-static uint8_t buf[FRAME_SIZE * 2];
+static uint8_t buf[FRAME_SIZE * 2] __attribute__ ((aligned (32)));
 static uint8_t *frame_base;
 static uint8_t *wrptr;
 static unsigned int lastsample;

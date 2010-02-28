@@ -58,14 +58,7 @@ static void do_fs_rise(void);
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
 #ifdef HAVE_NDS
-#include <nds.h>
-static void vcount_handle(void) {
-	if (scanline < 168 || scanline > 230) {
-		REG_VCOUNT = 202;
-	} else if (scanline < 178) {
-		REG_VCOUNT = 210;
-	}
-}
+int nds_update_screen = 0;
 #endif
 
 void vdg_init(void) {
@@ -77,10 +70,6 @@ void vdg_init(void) {
 	fs_fall_event.dispatch = do_fs_fall;
 	event_init(&fs_rise_event);
 	fs_rise_event.dispatch = do_fs_rise;
-#ifdef HAVE_NDS
-	SetYtrigger(211);
-	irqSet(IRQ_VCOUNT, vcount_handle);
-#endif
 }
 
 void vdg_reset(void) {
@@ -155,6 +144,9 @@ static void do_hs_fall(void) {
 #endif
 	/* FS falling edge at end of this scanline */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END - 1)) {
+#ifdef HAVE_NDS
+		nds_update_screen = 1;
+#endif
 		fs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION;
 		event_queue(&MACHINE_EVENT_LIST, &fs_fall_event);
 	}
@@ -196,6 +188,8 @@ static void do_fs_rise(void) {
 /* Two versions of render_scanline(): first accounts for mid-scanline mode
  * changes and only fetches as many bytes from the SAM as required, second
  * does a whole scanline at a time. */
+
+#ifndef HAVE_NDS
 
 #ifndef FAST_VDG
 
@@ -247,6 +241,8 @@ static void render_scanline(void) {
 }
 
 #endif  /* ndef FAST_VDG */
+
+#endif  /* ndef HAVE_NDS */
 
 void vdg_set_mode(void) {
 	int mode;
