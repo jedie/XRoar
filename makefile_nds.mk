@@ -90,7 +90,7 @@ CLEAN += xroar.arm7 xroar.arm7.bin xroar.arm9 xroar.arm9.bin xroar.nds
 
 tools/img2c_nds: $(SRCROOT)/tools/img2c_nds.c
 	mkdir -p tools
-	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
+	$(BUILD_CC) $(opt_build_sdl_CFLAGS) -o $@ $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS)
 
 CLEAN += tools/img2c_nds
 
