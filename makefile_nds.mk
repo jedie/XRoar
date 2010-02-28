@@ -26,8 +26,7 @@ xroar_nds7_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
 	-DVERSION=\"$(VERSION)\" \
 	-DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH) \
 	-DARM7
-xroar_nds7_LDFLAGS = -specs=ds_arm7.specs
-xroar_nds7_LDLIBS = -lnds7
+xroar_nds7_LDFLAGS = $(LDFLAGS) -specs=ds_arm7.specs -lnds7
 
 xroar_nds7_ALL_OBJS = $(xroar_nds7_OBJS) $(xroar_nds7_INT_OBJS)
 
@@ -40,7 +39,7 @@ $(xroar_nds7_INT_OBJS): %.o: ./%.c
 	$(CC) -o $@ $(xroar_nds7_CFLAGS) $(xroar_nds7_CPPFLAGS) -c $<
 
 xroar.arm7: $(xroar_nds7_ALL_OBJS)
-	$(CC) -o $@ $(xroar_nds7_ALL_OBJS) $(xroar_nds7_LDFLAGS) $(xroar_nds7_LDLIBS)
+	$(CC) -o $@ $(xroar_nds7_ALL_OBJS) $(xroar_nds7_LDFLAGS)
 
 xroar.arm7.bin: xroar.arm7
 	$(OBJCOPY) -O binary $< $@
@@ -54,8 +53,7 @@ xroar_nds9_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
 	-DVERSION=\"$(VERSION)\" \
 	-DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH) \
 	-DARM9
-xroar_nds9_LDFLAGS = -specs=ds_arm9.specs
-xroar_nds9_LDLIBS = -lfat -lnds9
+xroar_nds9_LDFLAGS = $(LDFLAGS) -specs=ds_arm9.specs -lfat -lnds9
 
 xroar_nds9_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 	$(xroar_nds9_OBJS) $(xroar_nds9_INT_OBJS)
@@ -69,7 +67,7 @@ $(xroar_common_INT_OBJS) $(xroar_nds9_INT_OBJS): %.o: ./%.c
 	$(CC) -o $@ $(xroar_nds9_CFLAGS) $(xroar_nds9_CPPFLAGS) -c $<
 
 xroar.arm9: $(xroar_nds9_ALL_OBJS)
-	$(CC) -o $@ $(xroar_nds9_ALL_OBJS) $(xroar_nds9_LDFLAGS) $(xroar_nds9_LDLIBS)
+	$(CC) -o $@ $(xroar_nds9_ALL_OBJS) $(xroar_nds9_LDFLAGS)
 
 xroar.arm9.bin: xroar.arm9
 	$(OBJCOPY) -O binary $< $@

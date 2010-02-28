@@ -25,8 +25,8 @@ xroar_gp32_CFLAGS = $(CFLAGS) \
 xroar_gp32_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
 	-DVERSION=\"$(VERSION)\" \
 	-DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
-xroar_gp32_LDFLAGS = -specs=gp32_gpsdk.specs
-xroar_gp32_LDLIBS = -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic
+xroar_gp32_LDFLAGS = $(LDFLAGS) -specs=gp32_gpsdk.specs \
+	-lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic
 
 xroar_gp32_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 	$(xroar_gp32_OBJS) $(xroar_gp32_INT_OBJS)
@@ -40,7 +40,7 @@ $(xroar_common_INT_OBJS) $(xroar_gp32_INT_OBJS): %.o: ./%.c
 	$(CC) -o $@ $(xroar_gp32_CFLAGS) $(xroar_gp32_CPPFLAGS) -c $<
 
 xroar.elf: $(xroar_gp32_ALL_OBJS)
-	$(CC) -o $@ $(xroar_gp32_ALL_OBJS) $(xroar_gp32_LDFLAGS) $(xroar_gp32_LDLIBS)
+	$(CC) -o $@ $(xroar_gp32_ALL_OBJS) $(xroar_gp32_LDFLAGS)
 
 xroar.fxe: xroar.elf
 	$(OBJCOPY) -O binary xroar.elf xroar.bin
