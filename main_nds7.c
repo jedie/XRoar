@@ -1,3 +1,13 @@
+/* XRoar - a Dragon/Tandy Coco emulator */
+
+/* This file contains the ARM7 portion of the Nintendo DS executable.  Some of
+ * it is cribbed from devkitPro's default ARM7 code, but the audio bits are
+ * custom to XRoar. */
+
+/* Audio works by running a timer at the same speed as the audio and toggling a
+ * flag in REG_IPC_SYNC to indicate to the ARM9 code which part of the buffer
+ * is currently playing. */
+
 #include <string.h>
 #include <nds.h>
 
@@ -9,7 +19,6 @@
 #define SAMPLE_RATE 32768
 #define FRAME_SIZE 256
 
-static touchPosition tempPos;
 static int playing_buf = 0;
 static int lidcount = 0;
 
@@ -20,23 +29,19 @@ static void timer3_handler(void);
 
 static void vblank_handler(void) {
 	static int lastbut = -1;
-	//uint16_t but, x=0, y=0, xpx=0, ypx=0, z1=0, z2=0;
 	uint16_t but, xpx=0, ypx=0;
 
 	but = REG_KEYXY;
 
 	if (!( (but ^ lastbut) & (1 << 6))) {
+		touchPosition tempPos;
 		touchReadXY(&tempPos);
 		if (tempPos.rawx == 0 || tempPos.rawy == 0) {
 			but |= (1 << 6);
 			lastbut = but;
 		} else {
-			//x   = tempPos.x;
-			//y   = tempPos.y;
 			xpx = tempPos.px;
 			ypx = tempPos.py;
-			//z1  = tempPos.z1;
-			//z2  = tempPos.z2;
 		}
 	} else {
 		lastbut = but;
@@ -49,12 +54,8 @@ static void vblank_handler(void) {
 		lidcount = 0;
 	}
 
-	//IPC->touchX   = x;
-	//IPC->touchY   = y;
 	IPC->touchXpx = xpx;
 	IPC->touchYpx = ypx;
-	//IPC->touchZ1  = z1;
-	//IPC->touchZ2  = z2;
 	IPC->buttons  = but;
 }
 
