@@ -21,7 +21,7 @@
 This manual is for XRoar (version @value{VERSION}), a Dragon and
 Tandy Colour Computer emulator.
 
-Copyright @copyright{} 2009
+Copyright @copyright{} 2010
 Ciaran Anscomb.
 @end copying
 
