@@ -614,7 +614,6 @@ static struct ndsui_component *fr_filename_text = NULL;
 static struct ndsui_component *fr_keyboard = NULL;
 static struct ndsui_component *fr_ok_button = NULL;
 static struct ndsui_component *fr_cancel_button = NULL;
-static char *fr_filename = NULL;
 static int fr_shift_state = 0;
 static void (*fr_ok_callback)(char *);
 
@@ -669,13 +668,9 @@ static void show_file_requester(const char **extensions) {
 	}
 	ndsui_add_component(fr_cancel_button);
 
-	if (fr_filename != NULL) {
-		free(fr_filename);
-		fr_filename = NULL;
-	}
-
 	ndsui_show_all_components();
 	ndsui_filelist_open(fr_filelist, ".", extensions);
+	ndsui_filelist_search_string(fr_filelist, ndsui_textbox_get_text(fr_filename_text));
 }
 
 static void file_requester_callback(void (*func)(char *)) {
@@ -691,12 +686,6 @@ static void fr_visible_callback(int visible) {
 }
 
 static void fr_file_select_callback(const char *filename) {
-	if (fr_filename) {
-		free(fr_filename);
-		fr_filename = NULL;
-	}
-	if (filename)
-		fr_filename = strdup(filename);
 	ndsui_textbox_set_text(fr_filename_text, filename);
 }
 
@@ -713,11 +702,7 @@ static void fr_key_press(int sym) {
 		}
 	}
 	ndsui_textbox_type_char(fr_filename_text, sym);
-	if (fr_filename) {
-		free(fr_filename);
-	}
-	fr_filename = ndsui_textbox_get_text(fr_filename_text);
-	ndsui_filelist_search_string(fr_filelist, fr_filename);
+	ndsui_filelist_search_string(fr_filelist, ndsui_textbox_get_text(fr_filename_text));
 }
 
 static void fr_shift_update(int state) {
@@ -729,7 +714,7 @@ static void fr_ok_release(int id) {
 	ndsui_filelist_close(fr_filelist);
 	show_main_input_screen();
 	if (fr_ok_callback != NULL)
-		fr_ok_callback(fr_filename);
+		fr_ok_callback(ndsui_textbox_get_text(fr_filename_text));
 }
 
 static void fr_cancel_release(int id) {

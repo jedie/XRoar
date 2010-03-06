@@ -149,6 +149,7 @@ void ndsui_filelist_set_offset(struct ndsui_component *self, int offset) {
 	struct file_list_data *data;
 	if (self == NULL || self->data == NULL) return;
 	data = self->data;
+	if (offset < 0) offset = 0;
 	data->offset = offset;
 	if (self->visible) show(self);
 }
@@ -182,7 +183,8 @@ void ndsui_filelist_search_string(struct ndsui_component *self, char *str) {
 	len = strlen(str);
 	for (j = 0; j < data->num_files; j++) {
 		if (strncasecmp(data->files[j].filename, str, len) == 0) {
-			ndsui_filelist_set_offset(self, j);
+			data->selected_file = j;
+			ndsui_filelist_set_offset(self, j - data->h / 2);
 			return;
 		}
 	}

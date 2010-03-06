@@ -89,7 +89,7 @@ char *ndsui_textbox_get_text(struct ndsui_component *self) {
 	struct textbox_data *data;
 	if (self == NULL) return NULL;
 	data = self->data;
-	return strdup(data->text);
+	return data->text;
 }
 
 void ndsui_textbox_type_char(struct ndsui_component *self, int c) {
