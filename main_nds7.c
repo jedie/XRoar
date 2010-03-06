@@ -11,6 +11,7 @@
 
 static touchPosition tempPos;
 static int playing_buf = 0;
+static int lidcount = 0;
 
 static void vblank_handler(void);
 static void timer3_handler(void);
@@ -40,6 +41,12 @@ static void vblank_handler(void) {
 	} else {
 		lastbut = but;
 		but |= (1 <<6);
+	}
+
+	if (but & (1 << 7)) {
+		lidcount++;
+	} else {
+		lidcount = 0;
 	}
 
 	//IPC->touchX   = x;
@@ -107,5 +114,27 @@ int main(int argc, char **argv) {
 	/* Try to keep the ARM7 mostly idle */
 	while (1) {
 		swiIntrWait(1, IRQ_VBLANK | IRQ_TIMER3);
+
+		/* Sleep if lid has been closed for long enough */
+		/* Basically nicked from libnds */
+		if (lidcount >= 20) {
+			/* Preserve old state: */
+			int ie_save = REG_IE;
+			int power = readPowerManagement(PM_CONTROL_REG);
+			/* Sound down, LED flashing: */
+			swiChangeSoundBias(0,0x400);
+			writePowerManagement(PM_CONTROL_REG, PM_LED_CONTROL(1));
+			/* Wait for lid up IRQ: */
+			REG_IE = IRQ_LID;
+			swiSleep();
+			swiDelay(838000);
+			/* Restore old state: */
+			REG_IE = ie_save;
+			writePowerManagement(PM_CONTROL_REG, power);
+			/* Sound back up: */
+			swiChangeSoundBias(1,0x400);
+			lidcount = 0;
+		}
+
 	}
 }
