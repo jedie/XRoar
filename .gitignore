@@ -1,6 +1,13 @@
 ## ignore build files
 *.o
 xroar
+xroar.exe
+xroar.arm7
+xroar.arm7.bin
+xroar.arm9
+xroar.arm9.bin
+xroar.ds.gba
+xroar.nds
 ## common temporary files (really ought to be in peoples' ~/.gitignore)
 *~
 .*.swp
