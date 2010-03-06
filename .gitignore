@@ -26,6 +26,7 @@ gp32/copyright.c
 gp32/kbd_graphics.c
 gp32/vdg_bitmaps_gp32.c
 nds/kbd_graphics.c
+nds/nds_font8x8.c
 tools/font2c
 tools/prerender
 tools/img2c
