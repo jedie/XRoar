@@ -83,7 +83,8 @@ build-bin: xroar.nds
 
 endif
 
-CLEAN += xroar.arm7 xroar.arm7.bin xroar.arm9 xroar.arm9.bin xroar.nds
+CLEAN += xroar.arm7 xroar.arm7.bin xroar.arm9 xroar.arm9.bin \
+	xroar.nds xroar.ds.gba
 
 ############################################################################
 # Generated dependencies and the tools that generate them
