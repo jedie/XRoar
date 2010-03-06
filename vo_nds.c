@@ -85,13 +85,14 @@ static void prerender_bitmaps(void);
  * when VCOUNT is triggered, keep setting it back a couple of lines.  This
  * should keep actual screen update in sync with emulated update. */
 
+extern uint8_t scanline_data[6154];
+
 extern int nds_update_screen;
 static void vcount_handle(void) {
 	if (!nds_update_screen) {
 		REG_VCOUNT = 202;
 	} else {
 		nds_update_screen = 0;
-		sam_vdg_fsync();
 		render_screen();
 	}
 }
@@ -195,20 +196,18 @@ static void alloc_colours(void) {
  * so this is good for semigraphics 6 too. */
 static void render_sg4(void) {
 	uint32_t *pixel = SPRITE_VRAM_BASE;
-	uint8_t vram[42];
+	uint8_t *vram = scanline_data;
 	int t, line, i;
 	int subline = 0;
 	unsigned int octet;
 	for (t = 0; t < 24; t++) {
 		for (line = 0; line < 8; line++) {
-			sam_vdg_bytes(42, vram);
 			for (i = 0; i < 32; i++) {
-				octet = vram[i];
+				octet = *(vram++);
 				*(pixel) = vdg_alpha_nds[text_mode][subline][octet];
 				pixel += 8;
 			}
 			pixel -= 255;
-			sam_vdg_hsync();
 			subline++;
 			if (subline >= 12)
 				subline = 0;
@@ -220,21 +219,19 @@ static void render_sg4(void) {
 /* Render a 16-byte graphics line (CG1, RG1, RG2, & RG3) */
 static void render_cg1(void) {
 	uint32_t *pixel = SPRITE_VRAM_BASE;
-	uint8_t vram[22];
+	uint8_t *vram = scanline_data;
 	int t, line, i;
 	unsigned int octet;
 	for (t = 0; t < 24; t++) {
 		for (line = 0; line < 8; line++) {
-			sam_vdg_bytes(22, vram);
 			for (i = 0; i < 16; i++) {
-				octet = vram[i];
+				octet = *(vram++);
 				*(pixel) = cg_colours[octet >> 4];
 				pixel += 8;
 				*(pixel) = cg_colours[octet & 15];
 				pixel += 8;
 			}
 			pixel -= 255;
-			sam_vdg_hsync();
 		}
 		pixel += 248;
 	}
@@ -243,19 +240,17 @@ static void render_cg1(void) {
 /* Render a 32-byte graphics line (CG2, CG3, CG6 & RG6) */
 static void render_cg2(void) {
 	uint32_t *pixel = SPRITE_VRAM_BASE;
-	uint8_t vram[42];
+	uint8_t *vram = scanline_data;
 	int t, line, i;
 	unsigned int octet;
 	for (t = 0; t < 24; t++) {
 		for (line = 0; line < 8; line++) {
-			sam_vdg_bytes(42, vram);
 			for (i = 0; i < 32; i++) {
-				octet = vram[i];
+				octet = *(vram++);
 				*(pixel) = cg_colours[octet];
 				pixel += 8;
 			}
 			pixel -= 255;
-			sam_vdg_hsync();
 		}
 		pixel += 248;
 	}

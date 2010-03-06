@@ -45,6 +45,11 @@ static int inhibit_mode_change;
 # define beam_to (320)
 #endif
 
+#ifdef HAVE_NDS
+uint8_t scanline_data[6154];
+static uint8_t *scanline_data_ptr;
+#endif
+
 static int scanline;
 static int frame;
 
@@ -84,6 +89,9 @@ void vdg_reset(void) {
 #ifndef FAST_VDG
 	inhibit_mode_change = 0;
 #endif
+#ifdef HAVE_NDS
+	scanline_data_ptr = scanline_data;
+#endif
 }
 
 static void do_hs_fall(void) {
@@ -95,6 +103,12 @@ static void do_hs_fall(void) {
 			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)
 			) {
 		video_module->render_scanline();
+	}
+#elif defined (HAVE_NDS)
+	if (scanline >= VDG_ACTIVE_AREA_START
+			&& scanline < VDG_ACTIVE_AREA_END) {
+		render_scanline();
+		sam_vdg_hsync();
 	}
 #elif !defined(HAVE_NDS)  /* NDS video module does its own thing */
 	/* Normal code */
@@ -125,16 +139,18 @@ static void do_hs_fall(void) {
 #endif
 	hs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION;
 	/* Frame sync */
-#ifndef HAVE_NDS
 	if (scanline == SCANLINE(VDG_VBLANK_START)) {
 		sam_vdg_fsync();
+#ifndef HAVE_NDS
 		frame--;
 		if (frame < 0)
 			frame = xroar_frameskip;
 		if (frame == 0)
 			video_module->vdg_vsync();
-	}
+#else
+		scanline_data_ptr = scanline_data;
 #endif
+	}
 #ifndef FAST_VDG
 	/* Enable mode changes at beginning of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_START)) {
@@ -241,6 +257,18 @@ static void render_scanline(void) {
 }
 
 #endif  /* ndef FAST_VDG */
+
+#else  /* HAVE_NDS */
+
+static void render_scanline(void) {
+	if (!is_32byte) {
+		sam_vdg_bytes(22, scanline_data_ptr);
+		scanline_data_ptr += 16;
+	} else {
+		sam_vdg_bytes(42, scanline_data_ptr);
+		scanline_data_ptr += 32;
+	}
+}
 
 #endif  /* ndef HAVE_NDS */
 
