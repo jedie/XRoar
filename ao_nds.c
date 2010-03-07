@@ -75,10 +75,13 @@ static int init(void) {
 	REG_IPC_SYNC = (14 << 8);
 	while ((REG_IPC_SYNC & 15) != 14);
 	REG_IPC_FIFO_TX = (uint32_t)buf;
-	REG_IPC_SYNC = (0 << 8);
+	REG_IPC_SYNC = (1 << 14) | (0 << 8);  /* IRQ on sync */
+	irqEnable(IRQ_IPC_SYNC);
 	
 	/* now wait for ARM7 to be playing frame 1 */
-	while ((REG_IPC_SYNC & 15) != 1);
+	while ((REG_IPC_SYNC & 1) != 1) {
+		swiIntrWait(1, IRQ_IPC_SYNC);
+	}
 	return 0;
 }
 
@@ -111,5 +114,7 @@ static void flush_frame(void) {
 	frame_base = buf + (writing_buf * FRAME_SIZE);
 	wrptr = frame_base;
 	/* wait here */
-	while ((REG_IPC_SYNC & 1) == writing_buf);
+	if ((REG_IPC_SYNC & 1) == writing_buf) {
+		swiIntrWait(1, IRQ_IPC_SYNC);
+	}
 }

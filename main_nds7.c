@@ -61,7 +61,7 @@ static void vblank_handler(void) {
 
 static void timer3_handler(void) {
 	playing_buf ^= 1;
-	REG_IPC_SYNC = (playing_buf << 8);
+	REG_IPC_SYNC = (1 << 13) | (playing_buf << 8);  /* send IRQ */
 }
 
 /**************************************************************************/
