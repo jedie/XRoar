@@ -8,9 +8,9 @@
 
 #if defined(HAVE_GP32) || defined(HAVE_NDS)
 
-#define LOG_DEBUG(...)
-#define LOG_WARN(...)
-#define LOG_ERROR(...)
+#define LOG_DEBUG(...) do {} while (0)
+#define LOG_WARN(...) do {} while (0)
+#define LOG_ERROR(...) do {} while (0)
 
 #else
 
