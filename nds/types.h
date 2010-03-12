@@ -11,5 +11,6 @@
 #define sprintf siprintf
 #define snprintf sniprintf
 #define getenv(e) (NULL)
+#define strerror(e) ("")
 
 #endif  /* __NDS_TYPES_H__ */
