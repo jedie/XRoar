@@ -292,7 +292,7 @@ int xroar_init(int argc, char **argv) {
 	/* Parse command line options */
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
 	if (ret == XCONFIG_MISSING_ARG) {
-		fprintf(stderr, "%s: missing argument to `%s'\n", argv[0], argv[argn]);
+		LOG_DEBUG(0, "%s: missing argument to `%s'\n", argv[0], argv[argn]);
 		exit(1);
 	} else if (ret == XCONFIG_BAD_OPTION) {
 		if (0 == strcmp(argv[argn], "-h")
@@ -303,7 +303,7 @@ int xroar_init(int argc, char **argv) {
 			versiontext();
 			exit(0);
 		} else {
-			fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], argv[argn]);
+			LOG_DEBUG(0, "%s: unrecognised option `%s'\n", argv[0], argv[argn]);
 			exit(1);
 		}
 	}
@@ -312,7 +312,7 @@ int xroar_init(int argc, char **argv) {
 	 * module, select all other modules */
 	ui_module = (UIModule *)module_select_by_arg((Module **)ui_module_list, xroar_opt_ui);
 	if (ui_module == NULL) {
-		fprintf(stderr, "%s: ui module `%s' not found\n", argv[0], xroar_opt_ui);
+		LOG_DEBUG(0, "%s: ui module `%s' not found\n", argv[0], xroar_opt_ui);
 		exit(1);
 	}
 	/* Select file requester module */
