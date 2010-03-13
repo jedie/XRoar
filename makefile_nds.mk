@@ -100,8 +100,8 @@ CLEAN += tools/img2c_nds
 nds/kbd_graphics.c: tools/img2c_nds $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png
 	tools/img2c_nds kbd_bin $(SRCROOT)/nds/kbd.png $(SRCROOT)/nds/kbd_shift.png > $@
 
-nds/nds_font8x8.c: tools/font2c $(SRCROOT)/vdgfont.png
-	tools/font2c --array nds_font8x8 --type "unsigned char" $(SRCROOT)/vdgfont.png > $@
+nds/nds_font8x8.c: tools/font2c $(SRCROOT)/nds/nds_font8x8.png
+	tools/font2c --array nds_font8x8 --type "unsigned char" $(SRCROOT)/nds/nds_font8x8.png > $@
 
 CLEAN += nds/kbd_graphics.c nds/nds_font8x8.c
 
