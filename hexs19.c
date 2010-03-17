@@ -23,6 +23,9 @@
 #include "hexs19.h"
 #include "machine.h"
 
+static int dragon_bin_load(int fd, int autorun);
+static int coco_bin_load(int fd, int autorun);
+
 static uint8_t read_nibble(int fd) {
 	int in;
 	in = fs_read_uint8(fd);
@@ -93,14 +96,51 @@ int intel_hex_read(const char *filename) {
 	return 0;
 }
 
-int coco_bin_read(const char *filename) {
-	int fd;
-	int data, length, load, exec;
+int bin_load(const char *filename, int autorun) {
+	int fd, type;
 	if (filename == NULL)
 		return -1;
 	if ((fd = fs_open(filename, FS_READ)) == -1)
 		return -1;
-	LOG_DEBUG(2, "Reading BIN file\n");
+	type = fs_read_uint8(fd);
+	switch (type) {
+	case 0x55:
+		return dragon_bin_load(fd, autorun);
+	case 0x00:
+		return coco_bin_load(fd, autorun);
+	default:
+		break;
+	}
+	LOG_DEBUG(3, "Unknown binary file type.\n");
+	fs_close(fd);
+	return -1;
+}
+
+static int dragon_bin_load(int fd, int autorun) {
+	int filetype, length, load, exec;
+	LOG_DEBUG(2, "Reading Dragon BIN file\n");
+	filetype = fs_read_uint8(fd);
+	load = fs_read_uint16(fd);
+	length = fs_read_uint16(fd);
+	exec = fs_read_uint16(fd);
+	(void)fs_read_uint8(fd);
+	LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
+	fs_read(fd, &ram0[load], length);
+	if (autorun) {
+		LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
+		m6809_jump(exec);
+	} else {
+		ram0[0x9d] = exec >> 8;
+		ram0[0x9e] = exec & 0xff;
+	}
+	fs_close(fd);
+	return 0;
+}
+
+static int coco_bin_load(int fd, int autorun) {
+	int data, length, load, exec;
+	LOG_DEBUG(2, "Reading CoCo BIN file\n");
+	fs_lseek(fd, 0, FS_SEEK_SET);
 	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data == 0) {
 			length = fs_read_uint16(fd);
@@ -112,8 +152,13 @@ int coco_bin_read(const char *filename) {
 		if (data == 0xff) {
 			(void)fs_read_uint16(fd);  /* skip 0 */
 			exec = fs_read_uint16(fd);
-			LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
-			m6809_jump(exec);
+			if (autorun) {
+				LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
+				m6809_jump(exec);
+			} else {
+				ram0[0x9d] = exec >> 8;
+				ram0[0x9e] = exec & 0xff;
+			}
 			break;
 		}
 	}

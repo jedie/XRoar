@@ -547,7 +547,7 @@ int xroar_load_file(const char *filename, int autorun) {
 			}
 			return 1;
 		case FILETYPE_BIN:
-			return coco_bin_read(filename);
+			return bin_load(filename, autorun);
 		case FILETYPE_HEX:
 			return intel_hex_read(filename);
 		case FILETYPE_SNA:
