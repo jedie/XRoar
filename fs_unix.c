@@ -35,6 +35,8 @@
 # define RDFLAGS (O_RDONLY)
 #endif
 
+static const int whence_values[3] = { SEEK_SET, SEEK_CUR, SEEK_END };
+
 static const char *fs_error = "";
 
 int fs_chdir(const char *path) {
@@ -92,6 +94,15 @@ ssize_t fs_write(int fd, const void *buffer, size_t size) {
 		count += r;
 	} while (r && size > 0);
 	return count;
+}
+
+off_t fs_lseek(int fd, off_t offset, int whence) {
+	int real_whence;
+	if (whence < 0 || whence > 2) {
+		return -1;
+	}
+	real_whence = whence_values[whence];
+	return lseek(fd, offset, real_whence);
 }
 
 void fs_close(int fd) {
