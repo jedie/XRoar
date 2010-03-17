@@ -733,7 +733,7 @@ header information.  @xref{Disks}.
 @tab Another disk image file format.  @xref{Disks}.
 @tab Read-only
 @item .bin
-@tab CoCo binary file. XRoar can load these directly into memory and run them.
+@tab Binary file (DragonDOS or CoCo). XRoar can load these directly into memory and optionally autorun them.
 @tab Read-only
 @item .sna
 @tab XRoar snapshot. Contains a complete dump of RAM from a running
