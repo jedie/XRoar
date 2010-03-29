@@ -16,6 +16,17 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/* References:
+ *     MC6809E data sheet,
+ *         Motorola
+ *     MC6809 Cycle-By-Cycle Performance,
+ *         http://koti.mbnet.fi/~atjs/mc6809/Information/6809cyc.txt
+ *     Dragon Update, Illegal Op-codes,
+ *         Feb 1994 Ciaran Anscomb
+ *     Motorola 6809 and Hitachi 6309 Programmers Reference,
+ *         2009 Darren Atkinson
+ */
+
 #include <stdlib.h>
 
 #include "types.h"
@@ -118,8 +129,7 @@
 		peek_byte(s); \
 	}
 
-#define PUSH_IRQ_REGISTERS() do { \
-		reg_cc |= CC_E; \
+#define PUSH_IRQ_REGISTERS_NO_E() do { \
 		TAKEN_CYCLES(1); \
 		PUSHWORD(reg_s, reg_pc); \
 		PUSHWORD(reg_s, reg_u); \
@@ -131,6 +141,10 @@
 		PUSHBYTE(reg_s, reg_cc); \
 	} while (0)
 
+#define PUSH_IRQ_REGISTERS() do { \
+		reg_cc |= CC_E; \
+		PUSH_IRQ_REGISTERS_NO_E(); \
+	} while (0)
 
 #define PUSH_FIRQ_REGISTERS() do { \
 		reg_cc &= ~CC_E; \
@@ -281,6 +295,8 @@ void (*m6809_interrupt_hook)(unsigned int vector);
 #define OP_CMP16(r,fw) { unsigned int a, d, tmp; fw(a,d); tmp = r - d; CLR_NZVC; SET_NZVC16(r, d, tmp); TAKEN_CYCLES(1); }
 #define OP_LD16(r,fw) { unsigned int a; fw(a,r); CLR_NZV; SET_NZ16(r); }
 #define OP_ST16(r,ea) { unsigned int a; ea(a); store_byte(a, r >> 8); store_byte(a+1, r); CLR_NZV; SET_NZ16(r); }
+/* Illegal instruction, only part-working: */
+#define OP_ST16_IMM(r) { (void)fetch_byte(reg_pc); reg_pc++; store_byte(reg_pc, r); reg_pc++; CLR_NZV; reg_cc |= CC_N; }
 #define OP_JSR(ea) { unsigned int a; ea(a); peek_byte(a); PUSHWORD(reg_s, reg_pc); reg_pc = a; }
 
 #define OP_SUB(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r - d; CLR_NZVC; SET_NZVC8(r, d, tmp); r = tmp; }
@@ -289,6 +305,7 @@ void (*m6809_interrupt_hook)(unsigned int vector);
 #define OP_AND(r,fb) { unsigned int a, d; fb(a,d); r &= d; CLR_NZV; SET_NZ8(r); }
 #define OP_BIT(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r & d; CLR_NZV; SET_NZ8(tmp); }
 #define OP_LD(r,fb) { unsigned int a; fb(a,r); CLR_NZV; SET_NZ8(r); }
+#define OP_DISCARD(fb) { unsigned int a, tmp; fb(a,tmp); CLR_NZV; reg_cc |= CC_N; }
 #define OP_ST(r,fb) { unsigned int a; fb(a); store_byte(a, r); CLR_NZV; SET_NZ8(r); }
 #define OP_EOR(r,fb) { unsigned int a, d; fb(a,d); r ^= d; CLR_NZV; SET_NZ8(r); }
 #define OP_ADC(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r + d + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, d, tmp); SET_H(r, d, tmp); r = tmp; }
@@ -489,8 +506,9 @@ void m6809_run(int cycles) {
 			switch (op) {
 			/* 0x00 NEG direct */
 			case 0x00:
-			case 0x01: OP_NEG(BYTE_DIRECT); break;
-			/* 0x01 NEGCOM direct (illegal) */
+			case 0x01: /* (illegal) */
+				OP_NEG(BYTE_DIRECT); break;
+			/* 0x02 NEG/COM direct (illegal) */
 			case 0x02:
 				   if (reg_cc & CC_C) {
 					   OP_COM(BYTE_DIRECT);
@@ -502,7 +520,8 @@ void m6809_run(int cycles) {
 			case 0x03: OP_COM(BYTE_DIRECT); break;
 			/* 0x04 LSR direct */
 			case 0x04:
-			case 0x05: OP_LSR(BYTE_DIRECT); break;
+			case 0x05: /* (illegal) */
+				OP_LSR(BYTE_DIRECT); break;
 			/* 0x06 ROR direct */
 			case 0x06: OP_ROR(BYTE_DIRECT); break;
 			/* 0x07 ASR direct */
@@ -513,7 +532,8 @@ void m6809_run(int cycles) {
 			case 0x09: OP_ROL(BYTE_DIRECT); break;
 			/* 0x0A DEC direct */
 			case 0x0A:
-			case 0x0B: OP_DEC(BYTE_DIRECT); break;
+			case 0x0B: /* (illegal) */
+				OP_DEC(BYTE_DIRECT); break;
 			/* 0x0C INC direct */
 			case 0x0C: OP_INC(BYTE_DIRECT); break;
 			/* 0x0D TST direct */
@@ -538,6 +558,11 @@ void m6809_run(int cycles) {
 				TAKEN_CYCLES(1);
 				cpu_state = m6809_flow_sync;
 				continue;
+			/* 0x14, 0x15 HCF? (illegal) */
+			case 0x14:
+			case 0x15:
+				cpu_state = m6809_flow_hcf;
+				continue;
 			/* 0x16 LBRA relative */
 			case 0x16: BRANCHL(1); break;
 			/* 0x17 LBSR relative */
@@ -551,6 +576,12 @@ void m6809_run(int cycles) {
 				PUSHWORD(reg_s, reg_pc);
 				reg_pc = new_pc;
 			} break;
+			/* 0x18 Shift CC with mask inherent (illegal) */
+			case 0x18:
+				reg_cc = (reg_cc << 1) & (CC_H | CC_Z);
+				TAKEN_CYCLES(1);
+				peek_byte(reg_pc);
+				break;
 			/* 0x19 DAA inherent */
 			case 0x19: {
 				unsigned int tmp = 0;
@@ -570,6 +601,8 @@ void m6809_run(int cycles) {
 				reg_cc |= data;
 				peek_byte(reg_pc);
 			} break;
+			/* 0x1B NOP inherent (illegal) */
+			case 0x1b: peek_byte(reg_pc); break;
 			/* 0x1C ANDCC immediate */
 			case 0x1c: {
 				unsigned int data;
@@ -722,6 +755,16 @@ void m6809_run(int cycles) {
 			case 0x36: PUSHR(reg_u, reg_s); break;
 			/* 0x37 PULU immediate */
 			case 0x37: PULLR(reg_u, reg_s); break;
+			/* 0x38 ANDCC immediate (illegal) */
+			case 0x38: {
+				unsigned int data;
+				BYTE_IMMEDIATE(0,data);
+				reg_cc &= data;
+				/* Differs from legal 0x1c version by
+				 * taking one more cycle: */
+				TAKEN_CYCLES(1);
+				peek_byte(reg_pc);
+			} break;
 			/* 0x39 RTS inherent */
 			case 0x39:
 				peek_byte(reg_pc);
@@ -774,10 +817,11 @@ void m6809_run(int cycles) {
 				peek_byte(reg_pc);
 				TAKEN_CYCLES(9);
 			} break;
-			/* 0x3E RESET (undocumented) */
+			/* 0x3e RESET (illegal) */
 			case 0x3e:
-				m6809_reset();
-				TAKEN_CYCLES(1);
+				peek_byte(reg_pc);
+				PUSH_IRQ_REGISTERS_NO_E();
+				TAKE_INTERRUPT(swi, CC_F|CC_I, 0xfffe);
 				break;
 			/* 0x3F SWI inherent */
 			case 0x3f:
@@ -788,12 +832,20 @@ void m6809_run(int cycles) {
 			/* 0x40 NEGA inherent */
 			case 0x40:
 			case 0x41: OP_NEGR(reg_a); break;
-			/* 0x43 COMA inherent */
+			/* 0x42 NEG/COM inherent (illegal) */
 			case 0x42:
+				   if (reg_cc & CC_C) {
+					   OP_COMR(reg_a);
+				   } else {
+					   OP_NEGR(reg_a);
+				   }
+				   break;
+			/* 0x43 COMA inherent */
 			case 0x43: OP_COMR(reg_a); break;
 			/* 0x44 LSRA inherent */
 			case 0x44:
-			case 0x45: OP_LSRR(reg_a); break;
+			case 0x45: /* (illegal) */
+				OP_LSRR(reg_a); break;
 			/* 0x46 RORA inherent */
 			case 0x46: OP_RORR(reg_a); break;
 			/* 0x47 ASRA inherent */
@@ -804,22 +856,33 @@ void m6809_run(int cycles) {
 			case 0x49: OP_ROLR(reg_a); break;
 			/* 0x4A DECA inherent */
 			case 0x4a:
-			case 0x4b: OP_DECR(reg_a); break;
+			case 0x4b: /* (illegal) */
+				OP_DECR(reg_a); break;
 			/* 0x4C INCA inherent */
 			case 0x4c: OP_INCR(reg_a); break;
 			/* 0x4D TSTA inherent */
 			case 0x4d: OP_TSTR(reg_a); break;
 			/* 0x4F CLRA inherent */
-			case 0x4f: OP_CLRR(reg_a); break;
+			case 0x4e: /* (illegal) */
+			case 0x4f:
+				OP_CLRR(reg_a); break;
 			/* 0x50 NEGB inherent */
 			case 0x50:
 			case 0x51: OP_NEGR(reg_b); break;
-			/* 0x53 COMB inherent */
+			/* 0x52 NEG/COM inherent (illegal) */
 			case 0x52:
+				   if (reg_cc & CC_C) {
+					   OP_COMR(reg_b);
+				   } else {
+					   OP_NEGR(reg_b);
+				   }
+				   break;
+			/* 0x53 COMB inherent */
 			case 0x53: OP_COMR(reg_b); break;
 			/* 0x54 LSRB inherent */
 			case 0x54:
-			case 0x55: OP_LSRR(reg_b); break;
+			case 0x55: /* (illegal) */
+				OP_LSRR(reg_b); break;
 			/* 0x56 RORB inherent */
 			case 0x56: OP_RORR(reg_b); break;
 			/* 0x57 ASRB inherent */
@@ -830,23 +893,33 @@ void m6809_run(int cycles) {
 			case 0x59: OP_ROLR(reg_b); break;
 			/* 0x5A DECB inherent */
 			case 0x5a:
-			case 0x5b: OP_DECR(reg_b); break;
+			case 0x5b: /* (illegal) */
+				OP_DECR(reg_b); break;
 			/* 0x5C INCB inherent */
 			case 0x5c: OP_INCR(reg_b); break;
 			/* 0x5D TSTB inherent */
 			case 0x5d: OP_TSTR(reg_b); break;
 			/* 0x5F CLRB inherent */
-			case 0x5e:
-			case 0x5f: OP_CLRR(reg_b); break;
+			case 0x5e: /* (illegal) */
+			case 0x5f:
+				OP_CLRR(reg_b); break;
 			/* 0x60 NEG indexed */
 			case 0x60:
 			case 0x61: OP_NEG(BYTE_INDEXED); break;
-			/* 0x63 COM indexed */
+			/* 0x62 NEG/COM indexed (illegal) */
 			case 0x62:
+				   if (reg_cc & CC_C) {
+					   OP_COM(BYTE_INDEXED);
+				   } else {
+					   OP_NEG(BYTE_INDEXED);
+				   }
+				   break;
+			/* 0x63 COM indexed */
 			case 0x63: OP_COM(BYTE_INDEXED); break;
 			/* 0x64 LSR indexed */
 			case 0x64:
-			case 0x65: OP_LSR(BYTE_INDEXED); break;
+			case 0x65: /* (illegal) */
+				OP_LSR(BYTE_INDEXED); break;
 			/* 0x66 ROR indexed */
 			case 0x66: OP_ROR(BYTE_INDEXED); break;
 			/* 0x67 ASR indexed */
@@ -857,7 +930,8 @@ void m6809_run(int cycles) {
 			case 0x69: OP_ROL(BYTE_INDEXED); break;
 			/* 0x6A DEC indexed */
 			case 0x6a:
-			case 0x6b: OP_DEC(BYTE_INDEXED); break;
+			case 0x6b: /* (illegal) */
+				OP_DEC(BYTE_INDEXED); break;
 			/* 0x6C INC indexed */
 			case 0x6c: OP_INC(BYTE_INDEXED); break;
 			/* 0x6D TST indexed */
@@ -869,12 +943,20 @@ void m6809_run(int cycles) {
 			/* 0x70 NEG extended */
 			case 0x70:
 			case 0x71: OP_NEG(BYTE_EXTENDED); break;
-			/* 0x73 COM extended */
+			/* 0x72 NEG/COM indexed (illegal) */
 			case 0x72:
+				   if (reg_cc & CC_C) {
+					   OP_COM(BYTE_EXTENDED);
+				   } else {
+					   OP_NEG(BYTE_EXTENDED);
+				   }
+				   break;
+			/* 0x73 COM extended */
 			case 0x73: OP_COM(BYTE_EXTENDED); break;
 			/* 0x74 LSR extended */
 			case 0x74:
-			case 0x75: OP_LSR(BYTE_EXTENDED); break;
+			case 0x75: /* (illegal) */
+				OP_LSR(BYTE_EXTENDED); break;
 			/* 0x76 ROR extended */
 			case 0x76: OP_ROR(BYTE_EXTENDED); break;
 			/* 0x77 ASR extended */
@@ -884,8 +966,9 @@ void m6809_run(int cycles) {
 			/* 0x79 ROL extended */
 			case 0x79: OP_ROL(BYTE_EXTENDED); break;
 			/* 0x7A DEC extended */
-			case 0x7a:
-			case 0x7b: OP_DEC(BYTE_EXTENDED); break;
+			case 0x7a: /* (illegal) */
+			case 0x7b:
+				OP_DEC(BYTE_EXTENDED); break;
 			/* 0x7C INC extended */
 			case 0x7c: OP_INC(BYTE_EXTENDED); break;
 			/* 0x7D TST extended */
@@ -908,6 +991,8 @@ void m6809_run(int cycles) {
 			case 0x85: OP_BIT(reg_a, BYTE_IMMEDIATE); break;
 			/* 0x86 LDA immediate */
 			case 0x86: OP_LD(reg_a, BYTE_IMMEDIATE); break;
+			/* 0x87 Discard immediate (illegal) */
+			case 0x87: OP_DISCARD(BYTE_IMMEDIATE); break;
 			/* 0x88 EORA immediate */
 			case 0x88: OP_EOR(reg_a, BYTE_IMMEDIATE); break;
 			/* 0x89 ADCA immediate */
@@ -930,6 +1015,8 @@ void m6809_run(int cycles) {
 			} break;
 			/* 0x8E LDX immediate */
 			case 0x8e: OP_LD16(reg_x, WORD_IMMEDIATE); break;
+			/* 0x8f STX immediate (illegal) */
+			case 0x8f: OP_ST16_IMM(reg_x); break;
 			/* 0x90 SUBA direct */
 			case 0x90: OP_SUB(reg_a, BYTE_DIRECT); break;
 			/* 0x91 CMPA direct */
@@ -1040,6 +1127,8 @@ void m6809_run(int cycles) {
 			case 0xc5: OP_BIT(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xC6 LDB immediate */
 			case 0xc6: OP_LD(reg_b, BYTE_IMMEDIATE); break;
+			/* 0xc7 Discard immediate (illegal) */
+			case 0xc7: OP_DISCARD(BYTE_IMMEDIATE); break;
 			/* 0xC8 EORB immediate */
 			case 0xc8: OP_EOR(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xC9 ADCB immediate */
@@ -1050,8 +1139,14 @@ void m6809_run(int cycles) {
 			case 0xcb: OP_ADD(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xCC LDD immediate */
 			case 0xcc: OP_LDD_IMM(); break;
+			/* 0xcd HCF? (illegal) */
+			case 0xcd:
+				cpu_state = m6809_flow_hcf;
+				continue;
 			/* 0xCE LDU immediate */
 			case 0xce: OP_LD16(reg_u, WORD_IMMEDIATE); break;
+			/* 0xcf STU immediate (illegal) */
+			case 0xcf: OP_ST16_IMM(reg_u); break;
 			/* 0xD0 SUBB direct */
 			case 0xd0: OP_SUB(reg_b, BYTE_DIRECT); break;
 			/* 0xD1 CMPB direct */
@@ -1165,6 +1260,8 @@ void m6809_run(int cycles) {
 			case 0x11:
 				cpu_state = m6809_flow_instruction_page_2;
 				continue;
+			/* 0x1020 LBRA relative (illegal) */
+			case 0x20: BRANCHL(1); break;
 			/* 0x1021 LBRN relative */
 			case 0x21: BRANCHL(0); break;
 			/* 0x1022 LBHI relative */
@@ -1307,6 +1404,11 @@ void m6809_run(int cycles) {
 				m6809_instruction_posthook(&state);
 			}
 			cpu_state = m6809_flow_label_a;
+			continue;
+
+		/* Certain illegal instructions cause the CPU to lock up: */
+		case m6809_flow_hcf:
+			TAKEN_CYCLES(1);
 			continue;
 
 		}

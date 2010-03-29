@@ -24,7 +24,8 @@ enum m6809_cpu_state {
 	m6809_flow_instruction_page_3,
 	m6809_flow_cwai_check_halt,
 	m6809_flow_sync_check_halt,
-	m6809_flow_done_instruction
+	m6809_flow_done_instruction,
+	m6809_flow_hcf
 };
 
 typedef struct {
