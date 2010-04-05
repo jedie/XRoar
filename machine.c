@@ -78,8 +78,17 @@ static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "Dragon Data Ltd - 
 static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", "Dragon Data Ltd - Dragon 64 - IC18", NULL };
 static const char *coco_bas_roms[] = { "bas13", "bas12", "bas11", "bas10", NULL };
 static const char *coco_extbas_roms[] = { "extbas11", "extbas10", NULL };
-static const char *dragondos_roms[] = { "dplus49b", "dplus48", "sdose6", "sdose5", "sdose4", "ddos40", "ddos15", "ddos10", NULL };
-static const char *deltados_roms[] = { "delta", "deltados", NULL };
+static const char *dragondos_roms[] = {
+	"dplus49b", "dplus48", "DOSPLUS",
+	"sdose6", "PNP - SuperDOS E6", "sdose5", "sdose4",
+	"ddos40", "ddos15", "ddos10",
+	"cdos20", "CDOS20",
+	NULL
+};
+static const char *deltados_roms[] = {
+	"delta", "deltados", "Premier Micros - DeltaDOS",
+	NULL
+};
 static const char *rsdos_roms[] = { "disk11", "disk10", NULL };
 
 static struct {
