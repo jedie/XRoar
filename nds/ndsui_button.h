@@ -1,5 +1,5 @@
-#ifndef __NDSUI_BUTTON_H__
-#define __NDSUI_BUTTON_H__
+#ifndef XROAR_NDS_NDSUI_BUTTON_H_
+#define XROAR_NDS_NDSUI_BUTTON_H_
 
 #include "nds/ndsui.h"
 
@@ -10,4 +10,4 @@ void ndsui_button_release_callback(struct ndsui_component *self, void (*func)(in
 void ndsui_button_set_label(struct ndsui_component *self, const char *label);
 void ndsui_button_set_state(struct ndsui_component *self, int pressed);
 
-#endif  /* __NDSUI_BUTTON_H__ */
+#endif  /* XROAR_NDS_NDSUI_BUTTON_H_ */

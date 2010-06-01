@@ -3,9 +3,9 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __SOUND_GP32_H__
-#define __SOUND_GP32_H__
+#ifndef XROAR_AO_GP32_H_
+#define XROAR_AO_GP32_H_
 
 void sound_silence(void);
 
-#endif  /* __SOUND_GP32_H__ */
+#endif  /* XROAR_AO_GP32_H_ */

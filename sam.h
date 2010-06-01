@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __SAM_H__
-#define __SAM_H__
+#ifndef XROAR_SAM_H_
+#define XROAR_SAM_H_
 
 #include "types.h"
 
@@ -26,4 +26,4 @@ void sam_vdg_bytes(int nbytes, uint8_t *dest);
 void sam_set_register(unsigned int value);
 unsigned int sam_get_register(void);
 
-#endif  /* __SAM_H__ */
+#endif  /* XROAR_SAM_H_ */

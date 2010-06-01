@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef XROAR_TYPES_H_
+#define XROAR_TYPES_H_
 
 #include "config.h"
 #include "portalib.h"
@@ -24,4 +24,4 @@
 typedef int32_t Cycle;
 #endif
 
-#endif  /* __TYPES_H__ */
+#endif  /* XROAR_TYPES_H_ */

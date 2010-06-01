@@ -15,8 +15,8 @@
  * }    
  * */   
 
-#ifndef __GPSOUND_H__
-#define __GPSOUND_H__
+#ifndef XROAR_GP32_GPSOUND_H_
+#define XROAR_GP32_GPSOUND_H_
 
 #include "../types.h"
 
@@ -27,4 +27,4 @@ uint16_t **gpsound_buffers(int size);
 void gpsound_start(void);
 void gpsound_stop(void);
 
-#endif  /* __GPSOUND_H__ */
+#endif  /* XROAR_GP32_GPSOUND_H_ */

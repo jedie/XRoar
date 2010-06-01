@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __VDG_H__
-#define __VDG_H__
+#ifndef XROAR_VDG_H_
+#define XROAR_VDG_H_
 
 #include "types.h"
 
@@ -44,4 +44,4 @@ void vdg_init(void);
 void vdg_reset(void);
 void vdg_set_mode(void);
 
-#endif  /* __VDG_H__ */
+#endif  /* XROAR_VDG_H_ */

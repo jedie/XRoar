@@ -1,5 +1,5 @@
-#ifndef __NDSGFX_H__
-#define __NDSGFX_H__
+#ifndef XROAR_NDS_NDSGFX_H_
+#define XROAR_NDS_NDSGFX_H_
 
 #include <nds.h>
 
@@ -29,4 +29,4 @@ void nds_set_text_colour(unsigned int fg, unsigned int bg);
 void nds_put_char(int x, int y, int c);
 void nds_print_string(int x, int y, const char *str);
 
-#endif  /* __NDSGFX_H__ */
+#endif  /* XROAR_NDS_NDSGFX_H_ */

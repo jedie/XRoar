@@ -1,5 +1,5 @@
-#ifndef __GPGFX_H__
-#define __GPGFX_H__
+#ifndef XROAR_GP32_GPGFX_H_
+#define XROAR_GP32_GPGFX_H_
 
 #include <gpgraphic.h>
 
@@ -22,4 +22,4 @@ void gpgfx_blit(uint_least16_t x, uint_least16_t y, Sprite *src);
 void gpgfx_backup(void);
 void gpgfx_restore(void);
 
-#endif  /* __GPGFX_H__ */
+#endif  /* XROAR_GP32_GPGFX_H_ */

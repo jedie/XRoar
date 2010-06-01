@@ -3,8 +3,8 @@
  *
  *  See COPYING for redistribution conditions. */
 
-#ifndef __NDS_TYPES_H__
-#define __NDS_TYPES_H__
+#ifndef XROAR_NDS_TYPES_H_
+#define XROAR_NDS_TYPES_H_
 
 #define puts(...)
 #define printf(...)
@@ -13,4 +13,4 @@
 #define getenv(e) (NULL)
 #define strerror(e) ("")
 
-#endif  /* __NDS_TYPES_H__ */
+#endif  /* XROAR_NDS_TYPES_H_ */

@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef KEYBOARD_H
-#define KEYBOARD_H
+#ifndef XROAR_KEYBOARD_H_
+#define XROAR_KEYBOARD_H_
 
 #include "types.h"
 
@@ -55,4 +55,4 @@ void keyboard_queue(unsigned int c);
 void keyboard_unicode_press(unsigned int unicode);
 void keyboard_unicode_release(unsigned int unicode);
 
-#endif  /* KEYBOARD_H */
+#endif  /* XROAR_KEYBOARD_H_ */

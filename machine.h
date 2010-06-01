@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __MACHINE_H__
-#define __MACHINE_H__
+#ifndef XROAR_MACHINE_H_
+#define XROAR_MACHINE_H_
 
 #include "types.h"
 #include "cart.h"
@@ -107,4 +107,4 @@ void machine_remove_cart(void);
 
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size);
 
-#endif  /* __MACHINE_H__ */
+#endif  /* XROAR_MACHINE_H_ */

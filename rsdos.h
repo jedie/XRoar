@@ -3,9 +3,9 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __RSDOS_H__
-#define __RSDOS_H__
+#ifndef XROAR_RSDOS_H_
+#define XROAR_RSDOS_H_
 
 struct cart *rsdos_new(const char *filename);
 
-#endif  /* __RSDOS_H__ */
+#endif  /* XROAR_RSDOS_H_ */

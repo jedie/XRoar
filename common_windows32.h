@@ -3,11 +3,11 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __COMMON_WINDOWS32_H__
-#define __COMMON_WINDOWS32_H__
+#ifndef XROAR_COMMON_WINDOWS32_H_
+#define XROAR_COMMON_WINDOWS32_H_
 
 #include <windows.h>
 
 extern HWND windows32_main_hwnd;
 
-#endif  /* __COMMON_WINDOWS32_H__ */
+#endif  /* XROAR_COMMON_WINDOWS32_H_ */

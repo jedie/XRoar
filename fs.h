@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __FS_H__
-#define __FS_H__
+#ifndef XROAR_FS_H_
+#define XROAR_FS_H_
 
 #include "types.h"
 
@@ -36,4 +36,4 @@ int fs_read_uint8(int fd);
 int fs_read_uint16(int fd);
 int fs_read_uint16_le(int fd);
 
-#endif  /* __FS_H__ */
+#endif  /* XROAR_FS_H_ */

@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __XCONFIG_H__
-#define __XCONFIG_H__
+#ifndef XROAR_XCONFIG_H_
+#define XROAR_XCONFIG_H_
 
 enum xconfig_result {
 	XCONFIG_OK = 0,
@@ -35,4 +35,4 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		int argc, char **argv, int *argn);
 
-#endif  /* __XCONFIG_H__ */
+#endif  /* XROAR_XCONFIG_H_ */

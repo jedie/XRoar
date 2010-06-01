@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __TAPE_H__
-#define __TAPE_H__
+#ifndef XROAR_TAPE_H_
+#define XROAR_TAPE_H_
 
 #include "types.h"
 
@@ -28,4 +28,4 @@ void tape_sync(void);
 void tape_desync(int leader);
 void tape_bit_out(int value);
 
-#endif  /* __TAPE_H__ */
+#endif  /* XROAR_TAPE_H_ */

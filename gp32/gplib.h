@@ -1,8 +1,8 @@
-#ifndef __GPLIB_H__
-#define __GPLIB_H__
+#ifndef XROAR_GP32_GPLIB_H_
+#define XROAR_GP32_GPLIB_H_
 
 #include "../types.h"
 
 char *gm_strdup(const char *s1);
 
-#endif  /* __GPLIB_H__ */
+#endif  /* XROAR_GP32_GPLIB_H_ */

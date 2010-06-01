@@ -1,5 +1,5 @@
-#ifndef NDSIPC_H
-#define NDSIPC_H
+#ifndef XROAR_NDS_NDSIPC_H_
+#define XROAR_NDS_NDSIPC_H_
 
 #include <nds.h>
 
@@ -12,4 +12,4 @@ struct ndsipc {
 
 #define IPC ((struct ndsipc volatile *)(0x027ff000))
 
-#endif  /* NDSIPC_H */
+#endif  /* XROAR_NDS_NDSIPC_H_ */

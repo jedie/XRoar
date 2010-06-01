@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __JOYSTICK_H__
-#define __JOYSTICK_H__
+#ifndef XROAR_JOYSTICK_H_
+#define XROAR_JOYSTICK_H_
 
 extern int joystick_axis[4];
 
@@ -12,4 +12,4 @@ void joystick_init(void);
 void joystick_shutdown(void);
 void joystick_update(void);
 
-#endif  /* __JOYSTICK_H__ */
+#endif  /* XROAR_JOYSTICK_H_ */

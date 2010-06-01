@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __PATH_H__
-#define __PATH_H__
+#ifndef XROAR_PATH_H_
+#define XROAR_PATH_H_
 
 /* Try to find regular file within one of the directories supplied.  Returns
  * allocated memory containing full path to file if found, NULL otherwise.
@@ -13,4 +13,4 @@
 
 char *find_in_path(const char *path, const char *filename);
 
-#endif  /* __PATH_H__ */
+#endif  /* XROAR_PATH_H_ */

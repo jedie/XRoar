@@ -1,7 +1,7 @@
 /* Set up IIS and UDA1330A (audio chip) */
 
-#ifndef __UDAIIS_H__
-#define __UDAIIS_H__
+#ifndef XROAR_GP32_UDAIIS_H_
+#define XROAR_GP32_UDAIIS_H_
 
 #include "../types.h"
 
@@ -17,4 +17,4 @@ void uda_volume(unsigned int volume);	/* 0-63, 0 being lowest volume */
 void uda_mute(int mute);	/* 1 mutes, 0 unmutes */
 void uda_deemph(int deemph);	/* pass UDA_NODE or UDA_DE_?? */
 
-#endif  /* __UDAIIS_H__ */
+#endif  /* XROAR_GP32_UDAIIS_H_ */

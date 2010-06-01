@@ -3,9 +3,9 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __DELTADOS_H__
-#define __DELTADOS_H__
+#ifndef XROAR_DELTADOS_H_
+#define XROAR_DELTADOS_H_
 
 struct cart *deltados_new(const char *filename);
 
-#endif  /* __DELTADOS_H__ */
+#endif  /* XROAR_DELTADOS_H_ */

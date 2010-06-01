@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __EVENT_H__
-#define __EVENT_H__
+#ifndef XROAR_EVENT_H_
+#define XROAR_EVENT_H_
 
 typedef struct event_t event_t;
 struct event_t {
@@ -32,4 +32,4 @@ void event_free(event_t *event);
 void event_queue(event_t **list, event_t *event);
 void event_dequeue(event_t *event);
 
-#endif  /* __EVENT_H__ */
+#endif  /* XROAR_EVENT_H_ */

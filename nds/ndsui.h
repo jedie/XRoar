@@ -1,5 +1,5 @@
-#ifndef __NDS_UI_H__
-#define __NDS_UI_H__
+#ifndef XROAR_NDS_NDSUI_H_
+#define XROAR_NDS_NDSUI_H_
 
 struct ndsui_component {
 	unsigned int id;  /* incrementing - not used internally */
@@ -31,4 +31,4 @@ void ndsui_draw_component(struct ndsui_component *c);
 void ndsui_undraw_component(struct ndsui_component *c);
 void ndsui_resize_component(struct ndsui_component *c, int w, int h);
 
-#endif  /* __NDS_UI_H__ */
+#endif  /* XROAR_NDS_NDSUI_H_ */

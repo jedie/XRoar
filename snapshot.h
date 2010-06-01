@@ -3,10 +3,10 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __SNAPSHOT_H__
-#define __SNAPSHOT_H__
+#ifndef XROAR_SNAPSHOT_H_
+#define XROAR_SNAPSHOT_H_
 
 int write_snapshot(const char *filename);
 int read_snapshot(const char *filename);
 
-#endif  /* __SNAPSHOT_H__ */
+#endif  /* XROAR_SNAPSHOT_H_ */

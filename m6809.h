@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __M6809_H__
-#define __M6809_H__
+#ifndef XROAR_M6809_H_
+#define XROAR_M6809_H_
 
 #include "types.h"
 
@@ -68,4 +68,4 @@ extern void (*m6809_instruction_posthook)(M6809State *state);
 /* Called just before an interrupt vector is read */
 extern void (*m6809_interrupt_hook)(unsigned int vector);
 
-#endif  /* __M6809_H__ */
+#endif  /* XROAR_M6809_H_ */

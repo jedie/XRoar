@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __XROAR_H__
-#define __XROAR_H__
+#ifndef XROAR_XROAR_H_
+#define XROAR_XROAR_H_
 
 #include "types.h"
 #include "events.h"
@@ -83,4 +83,4 @@ void xroar_mainloop(void);
 int xroar_filetype_by_ext(const char *filename);
 int xroar_load_file(const char *filename, int autorun);
 
-#endif  /* __XROAR_H__ */
+#endif  /* XROAR_XROAR_H_ */

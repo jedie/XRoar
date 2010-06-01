@@ -6,8 +6,8 @@
 /* An abstraction layer allowing buttons or keys to be easily mapped to certain
  * emulator actions. */
 
-#ifndef __INPUT_H__
-#define __INPUT_H__
+#ifndef XROAR_INPUT_H_
+#define XROAR_INPUT_H_
 
 /* Set axis commands */
 #define INPUT_JOY_RIGHT_X (0)
@@ -26,4 +26,4 @@
 void input_control_press(int command, unsigned int arg);
 void input_control_release(int command, unsigned int arg);
 
-#endif  /* __INPUT_H__ */
+#endif  /* XROAR_INPUT_H_ */

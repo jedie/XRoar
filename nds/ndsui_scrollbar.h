@@ -1,5 +1,5 @@
-#ifndef __NDSUI_SCROLLBAR_H__
-#define __NDSUI_SCROLLBAR_H__
+#ifndef XROAR_NDS_NDSUI_SCROLLBAR_H_
+#define XROAR_NDS_NDSUI_SCROLLBAR_H_
 
 #include "nds/ndsui.h"
 
@@ -10,4 +10,4 @@ void ndsui_scrollbar_set_offset(struct ndsui_component *self, int offset);
 
 void ndsui_scrollbar_offset_callback(struct ndsui_component *self, void (*func)(int offset));
 
-#endif  /* __NDSUI_SCROLLBAR_H__ */
+#endif  /* XROAR_NDS_NDSUI_SCROLLBAR_H_ */

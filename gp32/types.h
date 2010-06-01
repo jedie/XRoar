@@ -3,8 +3,8 @@
  *
  *  See COPYING for redistribution conditions. */
 
-#ifndef __GP32_TYPES_H__
-#define __GP32_TYPES_H__
+#ifndef XROAR_GP32_TYPES_H_
+#define XROAR_GP32_TYPES_H_
 
 #include <gpstdlib.h>
 #include <gpstdio.h>
@@ -91,4 +91,4 @@ void swi_mmu_change(void *mempos_start, void *mempos_end, int mode);
 #define MMU_WT (0xffa)          /* Cached write-through mode */
 #define MMU_WB (0xffe)          /* Cached write-back mode */
 
-#endif  /* __GP32_TYPES_H__ */
+#endif  /* XROAR_GP32_TYPES_H_ */

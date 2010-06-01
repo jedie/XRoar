@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __CART_H__
-#define __CART_H__
+#ifndef XROAR_CART_H_
+#define XROAR_CART_H_
 
 #include "types.h"
 
@@ -29,4 +29,4 @@ struct cart {
 struct cart *cart_rom_new(const char *filename, int autorun);
 struct cart *cart_ram_new(void);
 
-#endif  /* __CART_H__ */
+#endif  /* XROAR_CART_H_ */

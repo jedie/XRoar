@@ -3,9 +3,9 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __DRAGONDOS_H__
-#define __DRAGONDOS_H__
+#ifndef XROAR_DRAGONDOS_H_
+#define XROAR_DRAGONDOS_H_
 
 struct cart *dragondos_new(const char *filename);
 
-#endif  /* __DRAGONDOS_H__ */
+#endif  /* XROAR_DRAGONDOS_H_ */

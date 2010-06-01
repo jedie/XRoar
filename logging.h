@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __LOGGING_H__
-#define __LOGGING_H__
+#ifndef XROAR_LOGGING_H_
+#define XROAR_LOGGING_H_
 
 #if defined(HAVE_GP32) || defined(HAVE_NDS)
 
@@ -28,4 +28,4 @@
 
 #endif
 
-#endif  /* __LOGGING_H__ */
+#endif  /* XROAR_LOGGING_H_ */

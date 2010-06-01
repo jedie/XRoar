@@ -1,5 +1,5 @@
-#ifndef __NDSUI_FILELIST_H__
-#define __NDSUI_FILELIST_H__
+#ifndef XROAR_NDS_NDSUI_FILELIST_H_
+#define XROAR_NDS_NDSUI_FILELIST_H_
 
 #include <sys/dir.h>
 #include "nds/ndsui.h"
@@ -22,4 +22,4 @@ void ndsui_filelist_visible_callback(struct ndsui_component *self, void (*func)(
 void ndsui_filelist_file_select_callback(struct ndsui_component *self, void (*func)(const char *));
 void ndsui_filelist_search_string(struct ndsui_component *self, char *str);
 
-#endif  /* __NDSUI_FILELIST_H__ */
+#endif  /* XROAR_NDS_NDSUI_FILELIST_H_ */

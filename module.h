@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __MODULE_H__
-#define __MODULE_H__
+#ifndef XROAR_MODULE_H_
+#define XROAR_MODULE_H_
 
 typedef struct {
 	const char *name;
@@ -88,4 +88,4 @@ Module *module_init(Module *module);
 Module *module_init_from_list(Module **list, Module *module);
 void module_shutdown(Module *module);
 
-#endif  /* __MODULE_H__ */
+#endif  /* XROAR_MODULE_H_ */

@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __WD279X_H__
-#define __WD279X_H__
+#ifndef XROAR_WD279X_H_
+#define XROAR_WD279X_H_
 
 #include "types.h"
 
@@ -30,4 +30,4 @@ unsigned int wd279x_track_register_read(void);
 unsigned int wd279x_sector_register_read(void);
 unsigned int wd279x_data_register_read(void);
 
-#endif  /* __WD279X_H__ */
+#endif  /* XROAR_WD279X_H_ */

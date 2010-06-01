@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __VDISK_H__
-#define __VDISK_H__
+#ifndef XROAR_VDISK_H_
+#define XROAR_VDISK_H_
 
 #define VDISK_LENGTH_5_25 (0x1900)
 #define VDISK_LENGTH_8    (0x2940)
@@ -44,4 +44,4 @@ int vdisk_fetch_sector(struct vdisk *disk, int side, int track,
 		int sector, int sector_length, uint8_t *buf);
 
 
-#endif  /* __VDISK_H__ */
+#endif  /* XROAR_VDISK_H_ */

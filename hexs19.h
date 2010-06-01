@@ -3,10 +3,10 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __HEXS19_H__
-#define __HEXS19_H__
+#ifndef XROAR_HEXS19_H_
+#define XROAR_HEXS19_H_
 
 int intel_hex_read(const char *filename);
 int bin_load(const char *filename, int autorun);
 
-#endif  /* __HEXS19_H__ */
+#endif  /* XROAR_HEXS19_H_ */

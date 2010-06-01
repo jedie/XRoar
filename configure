@@ -914,8 +914,8 @@ INSTALL = $INSTALL
 EOF
 
 cat > config.h <<EOF
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef XROAR_CONFIG_H_
+#define XROAR_CONFIG_H_
 
 EOF
 
@@ -931,7 +931,7 @@ done
 
 cat >> config.h <<EOF
 
-#endif  /* def __CONFIG_H__ */
+#endif  /* def XROAR_CONFIG_H_ */
 EOF
 
 if test \! -f Makefile; then

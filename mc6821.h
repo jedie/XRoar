@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __MC6821_H__
-#define __MC6821_H__
+#ifndef XROAR_MC6821_H_
+#define XROAR_MC6821_H_
 
 /* 
  * Two "sides" per PIA (A & B), each basically the same except side A
@@ -73,4 +73,4 @@ void mc6821_update_state(MC6821_PIA *pia);
 unsigned int mc6821_read(MC6821_PIA *pia, unsigned int addr);
 void mc6821_write(MC6821_PIA *pia, unsigned int addr, unsigned int val);
 
-#endif  /* __MC6821_H__ */
+#endif  /* XROAR_MC6821_H_ */

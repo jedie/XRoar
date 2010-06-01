@@ -14,6 +14,11 @@
 
 // later...  volatile int gpchatboard_present;
 
+#ifndef XROAR_GP32_GPCHATBOARD_H_
+#define XROAR_GP32_GPCHATBOARD_H_
+
 int gpchatboard_init(void);
 void gpchatboard_shutdown(void);
 unsigned int gpchatboard_scan(void);
+
+#endif  /* XROAR_GP32_GPCHATBOARD_H_ */

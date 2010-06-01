@@ -5,8 +5,8 @@
 
 /* Implements virtual disk in a drive */
 
-#ifndef __VDRIVE_H__
-#define __VDRIVE_H__
+#ifndef XROAR_VDRIVE_H_
+#define XROAR_VDRIVE_H_
 
 #include "types.h"
 #include "vdisk.h"
@@ -55,4 +55,4 @@ unsigned int vdrive_time_to_next_byte(void);
 unsigned int vdrive_time_to_next_idam(void);
 uint8_t *vdrive_next_idam(void);
 
-#endif  /* __VDRIVE_H__ */
+#endif  /* XROAR_VDRIVE_H_ */

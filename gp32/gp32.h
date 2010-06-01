@@ -1,5 +1,5 @@
-#ifndef GP32_H
-#define GP32_H
+#ifndef XROAR_GP32_GP32_H_
+#define XROAR_GP32_GP32_H_
 
 #ifndef NULL
 #define NULL 0
@@ -426,4 +426,4 @@ typedef signed long     s32;
 #define GP24MBEXTENDEDRAM 0x0C800000  // 0x0C800000 to 0x0DFFFFFF if you have a 32MB ram update
 */
 
-#endif
+#endif  /* XROAR_GP32_GP32_H_ */

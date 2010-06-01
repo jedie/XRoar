@@ -3,8 +3,8 @@
  *
  *  See COPYING.GPL for redistribution conditions. */
 
-#ifndef __CRC16_H__
-#define __CRC16_H__
+#ifndef XROAR_CRC16_H_
+#define XROAR_CRC16_H_
 
 #include "types.h"
 
@@ -15,4 +15,4 @@ uint16_t crc16_value(void);
 void crc16_byte(uint8_t value);
 void crc16_block(uint8_t *block, int length);
 
-#endif  /* __CRC16_H__ */
+#endif  /* XROAR_CRC16_H_ */
