@@ -1,3 +1,17 @@
+Version 0.24, unreleased
+
+  * Improved ALSA sound module.
+  * SDL video module fixes.
+  * Use target-specific threading code in SDL audio on Windows.
+  * Special "-tapehack" mode to rewrite tidied CAS files.
+  * Search worldofdragon.org ROM filenames.
+  * More accurate slow-to-fast SAM transitions.
+  * NDS: bring up to date with new libnds.
+  * NDS: faster video, audio fixes, better file requester.
+  * NDS: sleep while lid is closed.
+  * Support direct loading of DragonDOS binaries.
+  * Implement remaining known illegal instructions.
+
 Version 0.23, Mon Nov 30 2009
 
   * Full CoCo RAM select emulation.
