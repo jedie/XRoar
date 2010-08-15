@@ -79,12 +79,12 @@ static int init(void) {
 	LOG_DEBUG(2,"Initialising SDL audio driver\n");
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
-			LOG_ERROR("Failed to initialiase SDL\n");
+			LOG_ERROR("Failed to initialise SDL\n");
 			return 1;
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-		LOG_ERROR("Failed to initialiase SDL audio driver\n");
+		LOG_ERROR("Failed to initialise SDL audio driver\n");
 		return 1;
 	}
 	desired.freq = REQUEST_SAMPLE_RATE;

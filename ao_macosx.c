@@ -110,7 +110,7 @@ static int init(void) {
 	lastsample = 0;
 	return 0;
 failed:
-	LOG_ERROR("Failed to initialiase Mac OS X CoreAudio driver\n");
+	LOG_ERROR("Failed to initialise Mac OS X CoreAudio driver\n");
 	return 1;
 }
 

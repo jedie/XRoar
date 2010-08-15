@@ -140,7 +140,7 @@ static int init(void) {
 	//snd_pcm_writei(pcm_handle, buffer, frame_size);
 	return 0;
 failed:
-	LOG_ERROR("Failed to initialiase ALSA audio driver\n");
+	LOG_ERROR("Failed to initialise ALSA audio driver\n");
 	return 1;
 }
 

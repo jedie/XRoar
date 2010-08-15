@@ -148,7 +148,7 @@ static int init(void) {
 	lastsample = 0;
 	return 0;
 failed:
-	LOG_ERROR("Failed to initialiase OSS audio driver\n");
+	LOG_ERROR("Failed to initialise OSS audio driver\n");
 	return 1;
 }
 
