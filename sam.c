@@ -228,7 +228,7 @@ void sam_store_byte(unsigned int addr, unsigned int octet) {
 }
 
 void sam_nvma_cycles(int cycles) {
-	fast_cycle(cycles);
+	slow_cycle(cycles);
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 }
