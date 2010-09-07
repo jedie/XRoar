@@ -69,7 +69,7 @@ static unsigned int window_width, window_height;
 static GLuint texnum = 0;
 static GLint xoffset, yoffset;
 
-enum {
+static enum {
 	FILTER_AUTO,
 	FILTER_NEAREST,
 	FILTER_LINEAR,
