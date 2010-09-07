@@ -560,6 +560,7 @@ fi
 if test "$_curses" = "yes"; then
 	_curses_def="#define HAVE_CURSES"
 	_have_video_driver=yes
+	test -z "$_cli" && _cli=yes
 else
 	_curses_def="#undef HAVE_CURSES"
 fi
