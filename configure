@@ -87,6 +87,11 @@ while test -n "$1"; do
 	opt="$1"
 	case "$opt" in
 	--) shift; break; ;;
+	macosx)
+		TARGET_CC="gcc-4.0 -arch ppc -arch i386 -g"
+		CFLAGS="-mmacosx-version-min=10.4 -DMAC_OS_X_VERSION_MIN_REQUIRED=1040"
+		LDFLAGS="-Wl,-headerpad_max_install_names -Wl,-syslibroot,/Developer/SDKs/MacOSX10.4u.sdk"
+		;;
 	CC=*) TARGET_CC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	CFLAGS=*) TARGET_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	CPPFLAGS=*) TARGET_CPPFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
