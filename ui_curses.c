@@ -41,13 +41,10 @@ static KeyboardModule *curses_keyboard_module_list[] = {
 };
 
 UIModule ui_curses_module = {
-	{ "curses", "Curses user-interface",
-	  init, 0, shutdown },
-	NULL,  /* use default filereq module list */
-	curses_video_module_list,
-	NULL,  /* use default sound module list */
-	curses_keyboard_module_list,
-	NULL  /* use default joystick module list */
+	.common = { .name = "curses", .description = "Curses user-interface",
+	            .init = init, .shutdown = shutdown },
+	.video_module_list = curses_video_module_list,
+	.keyboard_module_list = curses_keyboard_module_list,
 };
 
 static int init(void) {

@@ -477,11 +477,20 @@ static void tapehack_instruction_hook(M6809State *cpu_state) {
 }
 
 void xroar_mainloop(void) {
+	m6809_read_cycle = sam_read_byte;
 	m6809_write_cycle = sam_store_byte;
 	m6809_nvma_cycles = sam_nvma_cycles;
 	m6809_sync = do_m6809_sync;
+	m6809_interrupt_hook = NULL;
+	m6809_instruction_posthook = NULL;
 	if (xroar_tapehack) {
 		m6809_instruction_hook = tapehack_instruction_hook;
+	}
+
+	/* If UI module has its own idea of a main loop, delegate to that */
+	if (ui_module->run) {
+		ui_module->run();
+		return;
 	}
 
 	while (1) {

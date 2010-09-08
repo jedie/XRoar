@@ -55,13 +55,10 @@ static KeyboardModule *sdl_keyboard_module_list[] = {
  * outside of the usual SDL UI */
 
 UIModule ui_sdl_module = {
-	{ "sdl", "SDL user-interface",
-	  init, 0, shutdown },
-	NULL,  /* use default filereq module list */
-	sdl_video_module_list,
-	NULL,  /* use default sound module list */
-	sdl_keyboard_module_list,
-	NULL  /* use default joystick module list */
+	.common = { .name = "sdl", .description = "SDL user-interface",
+	            .init = init, .shutdown = shutdown },
+	.video_module_list = sdl_video_module_list,
+	.keyboard_module_list = sdl_keyboard_module_list,
 };
 
 static int init(void) {

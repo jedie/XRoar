@@ -56,6 +56,7 @@ typedef struct {
 	SoundModule **sound_module_list;
 	KeyboardModule **keyboard_module_list;
 	JoystickModule **joystick_module_list;
+	void (*run)(void);
 } UIModule;
 
 typedef union {
