@@ -18,6 +18,9 @@
 #define CPU_SLOW_DIVISOR 16
 #define CPU_FAST_DIVISOR 8
 
+#define RESET_SOFT 0
+#define RESET_HARD 1
+
 #define IS_DRAGON64 (running_config.architecture == ARCH_DRAGON64)
 #define IS_DRAGON32 (running_config.architecture == ARCH_DRAGON32)
 #define IS_DRAGON (!IS_COCO)

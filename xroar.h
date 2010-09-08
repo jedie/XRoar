@@ -9,9 +9,6 @@
 #include "types.h"
 #include "events.h"
 
-#define RESET_SOFT 0
-#define RESET_HARD 1
-
 #define FILETYPE_UNKNOWN (0)
 #define FILETYPE_VDK (1)
 #define FILETYPE_JVC (2)
