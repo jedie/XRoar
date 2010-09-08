@@ -66,9 +66,7 @@ static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointe
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
 	(void)user_data;
-	machine_clear_requested_config();
-	requested_machine = val;
-	machine_reset(RESET_HARD);
+	xroar_set_machine(val);
 }
 
 static void set_dos(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
