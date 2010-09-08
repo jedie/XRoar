@@ -1,3 +1,10 @@
+Version 0.25, unreleased
+
+  * New GTK+2 user-interface.
+  * New GtkGLExt video module.
+  * TODO: flesh out ui_gtk2.
+  * TODO: document new GTK stuff.
+
 Version 0.24, Wed Sep  8 2010
 
   * Improved ALSA sound module.
