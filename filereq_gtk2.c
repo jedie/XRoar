@@ -39,11 +39,14 @@ FileReqModule filereq_gtk2_module = {
 	load_filename, save_filename
 };
 
+extern GtkWidget *gtk2_top_window;
 static char *filename = NULL;
 
 static int init(void) {
-	LOG_DEBUG(2, "GTK+-2 file requester selected.\n");
-	gtk_init(NULL, NULL);
+	if (gtk2_top_window == NULL) {
+		LOG_DEBUG(2, "GTK+-2 file requester selected.\n");
+		gtk_init(NULL, NULL);
+	}
 	return 0;
 }
 

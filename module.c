@@ -25,11 +25,17 @@
 
 /**** Default user interface module list ****/
 
+extern UIModule ui_gtk2_module;
 extern UIModule ui_sdl_module;
 extern UIModule ui_gp32_module;
 extern UIModule ui_nds_module;
 extern UIModule ui_curses_module;
 static UIModule *default_ui_module_list[] = {
+#ifdef HAVE_GTK2
+#ifdef HAVE_GTKGL
+	&ui_gtk2_module,
+#endif
+#endif
 #ifdef HAVE_SDL
 	&ui_sdl_module,
 #endif

@@ -38,6 +38,24 @@ CLEAN += $(xroar_unix_OBJS) $(xroar_unix_INT_OBJS)
 xroar_opt_OBJS =
 xroar_opt_INT_OBJS =
 
+opt_gtk2_OBJS = ui_gtk2.o filereq_gtk2.o keyboard_gtk2.o
+CLEAN += $(opt_gtk2_OBJS)
+ifeq ($(opt_gtk2),yes)
+	xroar_opt_OBJS += $(opt_gtk2_OBJS)
+	xroar_opt_CFLAGS += $(opt_gtk2_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_gtk2_LDFLAGS)
+keyboard_gtk2.o: keyboard_gtk2_mappings.c
+endif
+
+opt_gtkgl_OBJS = vo_gtkgl.o
+CLEAN += $(opt_gtkgl_OBJS)
+ifeq ($(opt_gtkgl),yes)
+	xroar_opt_OBJS += $(opt_gtkgl_OBJS)
+	xroar_opt_CFLAGS += $(opt_gtkgl_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_gtkgl_LDFLAGS)
+vo_gtkgl.o: vdg_bitmaps.h
+endif
+
 opt_sdl_OBJS = ui_sdl.o vo_sdl.o vo_sdlyuv.o ao_sdl.o keyboard_sdl.o \
 		joystick_sdl.o
 CLEAN += $(opt_sdl_OBJS)
@@ -64,14 +82,6 @@ ifeq ($(opt_curses),yes)
 	xroar_opt_OBJS += $(opt_curses_OBJS)
 	xroar_opt_CFLAGS += $(opt_curses_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_curses_LDFLAGS)
-endif
-
-opt_gtk2_OBJS = filereq_gtk2.o
-CLEAN += $(opt_gtk2_OBJS)
-ifeq ($(opt_gtk2),yes)
-	xroar_opt_OBJS += $(opt_gtk2_OBJS)
-	xroar_opt_CFLAGS += $(opt_gtk2_CFLAGS)
-	xroar_opt_LDFLAGS += $(opt_gtk2_LDFLAGS)
 endif
 
 opt_gtk1_OBJS = filereq_gtk1.o
