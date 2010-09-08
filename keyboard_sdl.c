@@ -42,8 +42,8 @@ static int init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_sdl_module = {
-	{ "sdl", "SDL keyboard driver",
-	  init, 0, shutdown }
+	.common = { .name = "sdl", .description = "SDL keyboard driver",
+	            .init = init, .shutdown = shutdown }
 };
 
 static event_t *poll_event;
@@ -117,85 +117,36 @@ static void emulator_command(SDLKey sym) {
 	switch (sym) {
 	case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 		if (shift) {
-			int drive = sym - SDLK_1;
-			char *filename = filereq_module->save_filename(xroar_disk_exts);
-			if (filename == NULL)
-				break;
-			int filetype = xroar_filetype_by_ext(filename);
-			vdrive_eject_disk(drive);
-			/* Default to 40T 1H.  XXX: need interface to select */
-			struct vdisk *new_disk = vdisk_blank_disk(1, 40, VDISK_LENGTH_5_25);
-			if (new_disk == NULL)
-				break;
-			LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);
-			switch (filetype) {
-				case FILETYPE_VDK:
-				case FILETYPE_JVC:
-				case FILETYPE_DMK:
-					break;
-				default:
-					filetype = FILETYPE_DMK;
-					break;
-			}
-			new_disk->filetype = filetype;
-			new_disk->filename = strdup(filename);
-			new_disk->file_write_protect = VDISK_WRITE_ENABLE;
-			vdrive_insert_disk(drive, new_disk);
+			xroar_new_disk(sym - SDLK_1);
 		} else {
-			char *filename = filereq_module->load_filename(xroar_disk_exts);
-			if (filename) {
-				vdrive_eject_disk(sym - SDLK_1);
-				vdrive_insert_disk(sym - SDLK_1, vdisk_load(filename));
-			}
+			xroar_insert_disk(sym - SDLK_1);
 		}
 		break;
 	case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8:
 		if (shift) {
-			int drive = sym - SDLK_5;
-			struct vdisk *disk = vdrive_disk_in_drive(drive);
-			if (disk != NULL) {
-				if (disk->file_write_protect == VDISK_WRITE_ENABLE) {
-					disk->file_write_protect = VDISK_WRITE_PROTECT;
-					LOG_DEBUG(2, "File for disk in drive %d write protected.\n", drive);
-				} else {
-					disk->file_write_protect = VDISK_WRITE_ENABLE;
-					LOG_DEBUG(2, "File for disk in drive %d write enabled.\n", drive);
-				}
-			}
+			xroar_toggle_write_back(sym - SDLK_5);
 		} else {
-			int drive = sym - SDLK_5;
-			struct vdisk *disk = vdrive_disk_in_drive(drive);
-			if (disk != NULL) {
-				if (disk->write_protect == VDISK_WRITE_ENABLE) {
-					disk->write_protect = VDISK_WRITE_PROTECT;
-					LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
-				} else {
-					disk->write_protect = VDISK_WRITE_ENABLE;
-					LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
-				}
-			}
+			xroar_toggle_write_protect(sym - SDLK_5);
 		}
 		break;
 	case SDLK_a:
-		running_config.cross_colour_phase++;
-		if (running_config.cross_colour_phase > 2)
-			running_config.cross_colour_phase = 0;
-		vdg_set_mode();
+		xroar_cycle_cross_colour();
 		break;
 	case SDLK_c:
-		exit(0);
+	case SDLK_q:
+		xroar_quit();
 		break;
 	case SDLK_e:
-		requested_config.dos_type = DOS_ENABLED ? DOS_NONE : ANY_AUTO;
+		xroar_dos_enable(XROAR_TOGGLE);
 		break;
 	case SDLK_f:
-		if (video_module->set_fullscreen)
-			video_module->set_fullscreen(!video_module->is_fullscreen);
+		xroar_fullscreen(XROAR_TOGGLE);
 		break;
 	case SDLK_i:
-		{
-		char *filename = filereq_module->load_filename(xroar_cart_exts);
-		xroar_load_file_by_type(filename, !shift);
+		if (shift) {
+			xroar_load_file(xroar_cart_exts);
+		} else {
+			xroar_run_file(xroar_cart_exts);
 		}
 		break;
 	case SDLK_j:
@@ -209,43 +160,33 @@ static void emulator_command(SDLKey sym) {
 		}
 		break;
 	case SDLK_k:
-		keyboard_set_keymap(running_config.keymap + 1);
+		xroar_cycle_keymap();
 		break;
 	case SDLK_b:
 	case SDLK_h:
 	case SDLK_t:
 	case SDLK_l:
-		{
-		char *filename = filereq_module->load_filename(NULL);
-		xroar_load_file_by_type(filename, shift);
+		if (shift) {
+			xroar_run_file(NULL);
+		} else {
+			xroar_load_file(NULL);
 		}
 		break;
 	case SDLK_m:
-		machine_clear_requested_config();
-		requested_machine = running_machine + 1;
-		machine_reset(RESET_HARD);
+		xroar_set_machine(XROAR_CYCLE);
 		break;
 	case SDLK_r:
 		machine_reset(shift ? RESET_HARD : RESET_SOFT);
 		break;
 	case SDLK_s:
-		{
-		char *filename = filereq_module->save_filename(xroar_snap_exts);
-		if (filename)
-			write_snapshot(filename);
-		}
+		xroar_save_snapshot();
 		break;
 	case SDLK_w:
-		{
-		char *filename = filereq_module->save_filename(xroar_tape_exts);
-		if (filename) {
-			tape_open_writing(filename);
-		}
+		xroar_write_tape();
 		break;
-		}
 #ifdef TRACE
 	case SDLK_v:
-		xroar_trace_enabled = !xroar_trace_enabled;
+		xroar_set_trace(XROAR_TOGGLE);
 		break;
 #endif
 	case SDLK_z: // running out of letters...
