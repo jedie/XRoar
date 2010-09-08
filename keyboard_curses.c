@@ -72,40 +72,28 @@ static void do_poll(void) {
 		//mvaddstr(0,34, keyval);
 		switch (key) {
 			case 3:   /* Ctrl+C */
-				exit(0);
+				xroar_quit();
+				break;
 			case 5:   /* Ctrl+E */
-				requested_config.dos_type = DOS_ENABLED ? DOS_NONE : ANY_AUTO;
+				xroar_dos_enable(XROAR_TOGGLE);
 				break;
 			case 11:  /* Ctrl+K */
-				keyboard_set_keymap(running_config.keymap + 1);
+				xroar_cycle_keymap();
 				break;
 			case 12:  /* Ctrl+L */
 			case 2:   /* Ctrl+B */
 			case 20:  /* Ctrl+T */
-				{
-				char *filename = filereq_module->load_filename(NULL);
-				xroar_load_file_by_type(filename, 0);
-				}
+				xroar_run_file(NULL);
 				break;
 			case 18:  /* Ctrl+R */
 				machine_reset(RESET_SOFT);
 				break;
 			case 19:  /* Ctrl+S */
-				{
-				char *filename = filereq_module->save_filename(xroar_snap_exts);
-				if (filename) {
-					write_snapshot(filename);
-				}
+				xroar_save_snapshot();
 				break;
-				}
 			case 23:  /* Ctrl+W */
-				{
-				char *filename = filereq_module->save_filename(xroar_tape_exts);
-				if (filename) {
-					tape_open_writing(filename);
-				}
+				xroar_write_tape();
 				break;
-				}
 			case 26:  /* Ctrl+Z */
 				endwin();
 				kill(getpid(), SIGSTOP);
