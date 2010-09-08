@@ -22,18 +22,19 @@ typedef struct {
 
 typedef struct {
 	Module_Common common;
+	void (*reset)(void);
+	void (*vsync)(void);
+	void (*hsync)(void);
+	void (*set_mode)(unsigned int mode);
+	void (*render_border)(void);
 	void (*resize)(unsigned int w, unsigned int h);
 	int (*set_fullscreen)(int fullscreen);
 	int is_fullscreen;
-	void (*vdg_vsync)(void);
-	void (*vdg_set_mode)(unsigned int mode);
-	void (*render_border)(void);
 #ifndef FAST_VDG
 	void (*render_scanline)(uint8_t *vram_ptr, int beam_to);
 #else
 	void (*render_scanline)(uint8_t *vram_ptr);
 #endif
-	void (*hsync)(void);
 } VideoModule;
 
 typedef struct {

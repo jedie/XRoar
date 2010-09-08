@@ -32,21 +32,23 @@
 
 static int init(void);
 static void shutdown(void);
-static void resize(unsigned int w, unsigned int h);
-static int set_fullscreen(int fullscreen);
+static void reset(void);
 static void vsync(void);
+static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
-static void alloc_colours(void);
-static void hsync(void);
+static void resize(unsigned int w, unsigned int h);
+static int set_fullscreen(int fullscreen);
 
 VideoModule video_sdlyuv_module = {
-	{ "sdlyuv", "SDL YUV overlay, hopefully uses Xv acceleration",
-	  init, 0, shutdown },
-	resize, set_fullscreen, 0,
-	vsync, set_mode,
-	render_border, NULL, hsync
+	.common = { .name = "sdlyuv", .description = "SDL YUV overlay",
+	            .init = init, .shutdown = shutdown },
+	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
+	.render_border = render_border,
+	.resize = resize, .set_fullscreen = set_fullscreen
 };
+
+static void alloc_colours(void);
 
 typedef Uint32 Pixel;
 #define MAPCOLOUR(r,g,b) map_colour((r), (g), (b))
@@ -123,6 +125,7 @@ static int init(void) {
 		windows32_main_hwnd = sdlinfo.window;
 	}
 #endif
+	reset();
 	set_mode(0);
 	return 0;
 }
@@ -180,9 +183,13 @@ static int set_fullscreen(int fullscreen) {
 	return 0;
 }
 
-static void vsync(void) {
-	SDL_DisplayYUVOverlay(overlay, &dstrect);
+static void reset(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	subline = 0;
 	beam_pos = 0;
+}
+
+static void vsync(void) {
+	SDL_DisplayYUVOverlay(overlay, &dstrect);
+	reset();
 }

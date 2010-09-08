@@ -32,19 +32,19 @@
 
 static int init(void);
 static void shutdown(void);
-static int set_fullscreen(int fullscreen);
+static void reset(void);
 static void vsync(void);
+static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
+static int set_fullscreen(int fullscreen);
 static void alloc_colours(void);
-static void hsync(void);
 
 VideoModule video_sdl_module = {
-	{ "sdl", "Standard SDL surface",
-	  init, 0, shutdown },
-	NULL, set_fullscreen, 0,
-	vsync, set_mode,
-	render_border, NULL, hsync
+	.common = { .name = "sdl", .description = "Standard SDL surface",
+	            .init = init, .shutdown = shutdown },
+	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
+	.render_border = render_border, .set_fullscreen = set_fullscreen,
 };
 
 typedef Uint8 Pixel;
@@ -90,6 +90,7 @@ static int init(void) {
 		windows32_main_hwnd = sdlinfo.window;
 	}
 #endif
+	reset();
 	set_mode(0);
 	return 0;
 }
@@ -117,9 +118,12 @@ static int set_fullscreen(int fullscreen) {
 	return 0;
 }
 
-static void vsync(void) {
-	SDL_UpdateRect(screen, 0, 0, 320, 240);
+static void reset(void) {
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	subline = 0;
 	beam_pos = 0;
+}
+static void vsync(void) {
+	SDL_UpdateRect(screen, 0, 0, 320, 240);
+	reset();
 }

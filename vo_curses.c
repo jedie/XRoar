@@ -28,10 +28,11 @@
 
 static int init(void);
 static void shutdown(void);
+static void reset(void);
 static void vsync(void);
+static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
-static void hsync(void);
 
 static int old_mode;
 static int old_screen[16][32];
@@ -40,11 +41,10 @@ static int subline;
 static int colourbase;
 
 VideoModule video_curses_module = {
-	{ "curses", "Curses video",
-	  init, 0, shutdown },
-	NULL, NULL, 0,
-	vsync, set_mode,
-	render_border, NULL, hsync
+	.common = { .name = "curses", .description = "Curses video",
+	            .init = init, .shutdown = shutdown },
+	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
+	.render_border = render_border
 };
 
 static int init(void) {
@@ -93,11 +93,15 @@ static void render_sg4(RENDER_ARGS);
 static void render_cg2(RENDER_ARGS);
 static void render_nop(RENDER_ARGS);
 
-static void vsync(void) {
+static void reset(void) {
 	textline = 0;
 	subline = 0;
+}
+
+static void vsync(void) {
 	move(15,32);
 	refresh();
+	reset();
 }
 
 static void set_mode(unsigned int mode) {

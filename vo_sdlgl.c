@@ -33,21 +33,23 @@
 
 static int init(void);
 static void shutdown(void);
-static void resize(unsigned int w, unsigned int h);
-static int set_fullscreen(int fullscreen);
+static void reset(void);
 static void vsync(void);
+static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
-static void alloc_colours(void);
-static void hsync(void);
+static void resize(unsigned int w, unsigned int h);
+static int set_fullscreen(int fullscreen);
 
 VideoModule video_sdlgl_module = {
-	{ "sdlgl", "SDL OpenGL",
-	  init, 0, shutdown },
-	resize, set_fullscreen, 0,
-	vsync, set_mode,
-	render_border, NULL, hsync
+	.common = { .name = "sdlgl", .description = "SDL OpenGL",
+	            .init = init, .shutdown = shutdown },
+	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
+	.render_border = render_border,
+	.resize = resize, .set_fullscreen = set_fullscreen
 };
+
+static void alloc_colours(void);
 
 typedef uint16_t Pixel;
 #define MAP_565(r,g,b) ( (((r) & 0xf8) << 8) | (((g) & 0xfc) << 3) | (((b) & 0xf8) >> 3) )
@@ -137,6 +139,7 @@ static int init(void) {
 		windows32_main_hwnd = sdlinfo.window;
 	}
 #endif
+	reset();
 	set_mode(0);
 	return 0;
 }
@@ -230,6 +233,12 @@ static int set_fullscreen(int fullscreen) {
 	return 0;
 }
 
+static void reset(void) {
+	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
+	subline = 0;
+	beam_pos = 0;
+}
+
 static void vsync(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -249,7 +258,5 @@ static void vsync(void) {
 	glVertex3i(screen->w - xoffset, yoffset, 0);
 	glEnd();
 	SDL_GL_SwapBuffers();
-	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
-	subline = 0;
-	beam_pos = 0;
+	reset();
 }

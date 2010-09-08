@@ -78,7 +78,7 @@ void vdg_init(void) {
 }
 
 void vdg_reset(void) {
-	video_module->vdg_vsync();
+	if (video_module->reset) video_module->reset();
 	scanline = 0;
 	scanline_start = current_cycle;
 	hs_fall_event.at_cycle = current_cycle + VDG_LINE_DURATION;
@@ -146,7 +146,7 @@ static void do_hs_fall(void) {
 		if (frame < 0)
 			frame = xroar_frameskip;
 		if (frame == 0)
-			video_module->vdg_vsync();
+			video_module->vsync();
 #else
 		scanline_data_ptr = scanline_data;
 #endif
@@ -296,5 +296,5 @@ void vdg_set_mode(void) {
 			break;
 	}
 	/* Update video module */
-	video_module->vdg_set_mode(mode);
+	video_module->set_mode(mode);
 }
