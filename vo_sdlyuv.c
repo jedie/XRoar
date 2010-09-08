@@ -104,7 +104,7 @@ static int init(void) {
 	window_width = 640;
 	window_height = 480;
 
-	if (set_fullscreen(xroar_fullscreen))
+	if (set_fullscreen(xroar_opt_fullscreen))
 		return 1;
 	overlay = SDL_CreateYUVOverlay(640, 240, SDL_YUY2_OVERLAY, screen);
 	if (overlay == NULL) {

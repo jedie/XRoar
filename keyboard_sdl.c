@@ -70,11 +70,6 @@ static const char *keymap_option;
 static unsigned int *selected_keymap;
 static int translated_keymap;
 
-static const char *disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
-static const char *tape_exts[] = { "CAS", NULL };
-static const char *snap_exts[] = { "SNA", NULL };
-static const char *cart_exts[] = { "ROM", NULL };
-
 static void map_keyboard(unsigned int *map) {
 	int i;
 	for (i = 0; i < 256; i++)
@@ -123,7 +118,7 @@ static void emulator_command(SDLKey sym) {
 	case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
 		if (shift) {
 			int drive = sym - SDLK_1;
-			char *filename = filereq_module->save_filename(disk_exts);
+			char *filename = filereq_module->save_filename(xroar_disk_exts);
 			if (filename == NULL)
 				break;
 			int filetype = xroar_filetype_by_ext(filename);
@@ -147,7 +142,7 @@ static void emulator_command(SDLKey sym) {
 			new_disk->file_write_protect = VDISK_WRITE_ENABLE;
 			vdrive_insert_disk(drive, new_disk);
 		} else {
-			char *filename = filereq_module->load_filename(disk_exts);
+			char *filename = filereq_module->load_filename(xroar_disk_exts);
 			if (filename) {
 				vdrive_eject_disk(sym - SDLK_1);
 				vdrive_insert_disk(sym - SDLK_1, vdisk_load(filename));
@@ -199,8 +194,8 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_i:
 		{
-		char *filename = filereq_module->load_filename(cart_exts);
-		xroar_load_file(filename, !shift);
+		char *filename = filereq_module->load_filename(xroar_cart_exts);
+		xroar_load_file_by_type(filename, !shift);
 		}
 		break;
 	case SDLK_j:
@@ -222,7 +217,7 @@ static void emulator_command(SDLKey sym) {
 	case SDLK_l:
 		{
 		char *filename = filereq_module->load_filename(NULL);
-		xroar_load_file(filename, shift);
+		xroar_load_file_by_type(filename, shift);
 		}
 		break;
 	case SDLK_m:
@@ -235,14 +230,14 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_s:
 		{
-		char *filename = filereq_module->save_filename(snap_exts);
+		char *filename = filereq_module->save_filename(xroar_snap_exts);
 		if (filename)
 			write_snapshot(filename);
 		}
 		break;
 	case SDLK_w:
 		{
-		char *filename = filereq_module->save_filename(tape_exts);
+		char *filename = filereq_module->save_filename(xroar_tape_exts);
 		if (filename) {
 			tape_open_writing(filename);
 		}

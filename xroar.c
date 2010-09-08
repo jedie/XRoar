@@ -36,6 +36,7 @@
 #include "sam.h"
 #include "snapshot.h"
 #include "tape.h"
+#include "vdg.h"
 #include "vdisk.h"
 #include "vdrive.h"
 #include "xconfig.h"
@@ -59,7 +60,7 @@ static const char *xroar_opt_ao = NULL;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
 #endif
-int xroar_fullscreen = 0;
+int xroar_opt_fullscreen = 0;
 static const char *xroar_opt_ccr = NULL;
 int xroar_frameskip = 0;
 char *xroar_opt_keymap = NULL;
@@ -103,7 +104,7 @@ static struct xconfig_option xroar_options[] = {
 #ifndef FAST_SOUND
 	{ XCONFIG_BOOL,     "fast-sound",   &xroar_fast_sound },
 #endif
-	{ XCONFIG_BOOL,     "fs",           &xroar_fullscreen },
+	{ XCONFIG_BOOL,     "fs",           &xroar_opt_fullscreen },
 	{ XCONFIG_STRING,   "ccr",          &xroar_opt_ccr },
 	{ XCONFIG_INT,      "fskip",        &xroar_frameskip },
 	{ XCONFIG_STRING,   "keymap",       &xroar_opt_keymap },
@@ -166,6 +167,11 @@ static void do_load_file(void);
 static const char *load_file = NULL;
 static int load_file_type = FILETYPE_UNKNOWN;
 static int autorun_loaded_file = 0;
+
+const char *xroar_disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
+const char *xroar_tape_exts[] = { "CAS", NULL };
+const char *xroar_snap_exts[] = { "SNA", NULL };
+const char *xroar_cart_exts[] = { "ROM", NULL };
 
 static struct {
 	const char *ext;
@@ -414,7 +420,7 @@ int xroar_init(int argc, char **argv) {
 
 	/* Load carts before initial reset */
 	if (load_file && load_file_type == FILETYPE_ROM) {
-		xroar_load_file(load_file, autorun_loaded_file);
+		xroar_load_file_by_type(load_file, autorun_loaded_file);
 		load_file = NULL;
 	}
 	/* Reset everything */
@@ -422,12 +428,12 @@ int xroar_init(int argc, char **argv) {
 	if (load_file) {
 		if (load_file_type == FILETYPE_SNA) {
 			/* Load snapshots immediately */
-			xroar_load_file(load_file, autorun_loaded_file);
+			xroar_load_file_by_type(load_file, autorun_loaded_file);
 		} else if (!autorun_loaded_file && load_file_type != FILETYPE_BIN
 				&& load_file_type != FILETYPE_HEX) {
 			/* Everything else except CoCo binaries and hex
 			 * records can be attached now if not autorunning */
-			xroar_load_file(load_file, 0);
+			xroar_load_file_by_type(load_file, 0);
 		} else {
 			/* For everything else, defer loading the file */
 			event_init(&load_file_event);
@@ -534,7 +540,7 @@ int xroar_filetype_by_ext(const char *filename) {
 	return FILETYPE_UNKNOWN;
 }
 
-int xroar_load_file(const char *filename, int autorun) {
+int xroar_load_file_by_type(const char *filename, int autorun) {
 	int filetype;
 	if (filename == NULL)
 		return 1;
@@ -577,7 +583,7 @@ int xroar_load_file(const char *filename, int autorun) {
 }
 
 static void do_load_file(void) {
-	xroar_load_file(load_file, autorun_loaded_file);
+	xroar_load_file_by_type(load_file, autorun_loaded_file);
 }
 
 static void do_m6809_sync(void) {

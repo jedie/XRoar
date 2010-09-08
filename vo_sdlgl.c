@@ -125,7 +125,7 @@ static int init(void) {
 	window_height = 480;
 	xoffset = yoffset = 0;
 
-	if (set_fullscreen(xroar_fullscreen))
+	if (set_fullscreen(xroar_opt_fullscreen))
 		return 1;
 
 	alloc_colours();

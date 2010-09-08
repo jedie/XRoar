@@ -84,7 +84,7 @@ static void do_poll(void) {
 			case 20:  /* Ctrl+T */
 				{
 				char *filename = filereq_module->load_filename(NULL);
-				xroar_load_file(filename, 0);
+				xroar_load_file_by_type(filename, 0);
 				}
 				break;
 			case 18:  /* Ctrl+R */
@@ -92,8 +92,7 @@ static void do_poll(void) {
 				break;
 			case 19:  /* Ctrl+S */
 				{
-				const char *snap_exts[] = { "SNA", NULL };
-				char *filename = filereq_module->save_filename(snap_exts);
+				char *filename = filereq_module->save_filename(xroar_snap_exts);
 				if (filename) {
 					write_snapshot(filename);
 				}
@@ -101,8 +100,7 @@ static void do_poll(void) {
 				}
 			case 23:  /* Ctrl+W */
 				{
-				const char *tape_exts[] = { "CAS", NULL };
-				char *filename = filereq_module->save_filename(tape_exts);
+				char *filename = filereq_module->save_filename(xroar_tape_exts);
 				if (filename) {
 					tape_open_writing(filename);
 				}

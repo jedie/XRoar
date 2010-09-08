@@ -21,6 +21,11 @@
 #define FILETYPE_ROM (9)
 #define FILETYPE_ASC (10)
 
+extern const char *xroar_disk_exts[];
+extern const char *xroar_tape_exts[];
+extern const char *xroar_snap_exts[];
+extern const char *xroar_cart_exts[];
+
 /**************************************************************************/
 /* Command line arguments */
 
@@ -29,7 +34,7 @@ extern char *xroar_opt_gl_filter;
 #ifndef FAST_SOUND
 extern int xroar_fast_sound;
 #endif
-extern int xroar_fullscreen;
+extern int xroar_opt_fullscreen;
 extern int xroar_frameskip;
 extern char *xroar_opt_keymap;
 extern char *xroar_opt_joy_left;
@@ -73,11 +78,13 @@ extern const char *xroar_rom_path;
 extern event_t *xroar_ui_events;
 extern event_t *xroar_machine_events;
 
+/**************************************************************************/
+
 void xroar_getargs(int argc, char **argv);
 int xroar_init(int argc, char **argv);
 void xroar_shutdown(void);
 void xroar_mainloop(void);
 int xroar_filetype_by_ext(const char *filename);
-int xroar_load_file(const char *filename, int autorun);
+int xroar_load_file_by_type(const char *filename, int autorun);
 
 #endif  /* XROAR_XROAR_H_ */

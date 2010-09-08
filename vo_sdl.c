@@ -78,7 +78,7 @@ static int init(void) {
 		LOG_ERROR("Failed to initialise SDL video driver: %s\n", SDL_GetError());
 		return 1;
 	}
-	if (set_fullscreen(xroar_fullscreen))
+	if (set_fullscreen(xroar_opt_fullscreen))
 		return 1;
 #ifdef WINDOWS32
 	{
