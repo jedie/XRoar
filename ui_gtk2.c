@@ -223,6 +223,6 @@ static int run_cpu(void *data) {
 
 static void run(void) {
 	gtk_widget_show_all(gtk2_top_window);
-	gtk_idle_add(run_cpu, NULL);
+	g_idle_add(run_cpu, NULL);
 	gtk_main();
 }
