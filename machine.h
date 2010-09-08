@@ -79,7 +79,9 @@ typedef struct {
 } MachineConfig;
 
 extern const char *machine_names[NUM_MACHINE_TYPES];
+extern const char *machine_options[NUM_MACHINE_TYPES];
 extern const char *dos_type_names[NUM_DOS_TYPES];
+extern const char *dos_type_options[NUM_DOS_TYPES];
 extern MachineConfig machine_defaults[NUM_MACHINE_TYPES];
 extern int requested_machine;
 extern int running_machine;

@@ -109,11 +109,11 @@ const char *dos_type_names[NUM_DOS_TYPES] = {
 	"No DOS cartridge", "DragonDOS", "RS-DOS", "Delta System"
 };
 
-static const char *machine_options[NUM_MACHINE_TYPES] = {
+const char *machine_options[NUM_MACHINE_TYPES] = {
 	"dragon32", "dragon64", "tano", "coco", "cocous"
 };
 
-static const char *dos_type_options[NUM_DOS_TYPES] = {
+const char *dos_type_options[NUM_DOS_TYPES] = {
 	"none", "dragondos", "rsdos", "delta"
 };
 
