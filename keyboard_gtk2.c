@@ -29,10 +29,6 @@
 #include "keyboard.h"
 #include "machine.h"
 #include "module.h"
-#include "tape.h"
-#include "vdg.h"
-#include "vdisk.h"
-#include "vdrive.h"
 #include "xroar.h"
 
 static int init(void);
