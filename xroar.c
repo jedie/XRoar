@@ -493,6 +493,8 @@ void xroar_mainloop(void) {
 		m6809_instruction_hook = tapehack_instruction_hook;
 	}
 
+	xroar_set_trace(xroar_trace_enabled);
+
 	/* If UI module has its own idea of a main loop, delegate to that */
 	if (ui_module->run) {
 		ui_module->run();
@@ -607,3 +609,198 @@ static void trace_done_instruction(M6809State *state) {
 			state->reg_u, state->reg_s);
 }
 #endif
+
+/* Helper functions */
+
+void xroar_set_trace(int mode) {
+	int set_to;
+	switch (mode) {
+		case XROAR_OFF: default:
+			set_to = 0;
+			break;
+		case XROAR_ON:
+			set_to = 1;
+			break;
+		case XROAR_TOGGLE: case XROAR_CYCLE:
+			set_to = !xroar_trace_enabled;
+			break;
+	}
+	xroar_trace_enabled = set_to;
+	if (xroar_trace_enabled) {
+		m6809_read_cycle = trace_read_byte;
+		m6809_interrupt_hook = m6809_trace_irq;
+		m6809_instruction_posthook = trace_done_instruction;
+	} else {
+		m6809_read_cycle = sam_read_byte;
+		m6809_interrupt_hook = NULL;
+		m6809_instruction_posthook = NULL;
+	}
+}
+
+void xroar_new_disk(int drive) {
+	char *filename = filereq_module->save_filename(xroar_disk_exts);
+
+	if (filename == NULL)
+		return;
+	int filetype = xroar_filetype_by_ext(filename);
+	vdrive_eject_disk(drive);
+	/* Default to 40T 1H.  XXX: need interface to select */
+	struct vdisk *new_disk = vdisk_blank_disk(1, 40, VDISK_LENGTH_5_25);
+	if (new_disk == NULL)
+		return;
+	LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);
+	switch (filetype) {
+		case FILETYPE_VDK:
+		case FILETYPE_JVC:
+		case FILETYPE_DMK:
+			break;
+		default:
+			filetype = FILETYPE_DMK;
+			break;
+	}
+	new_disk->filetype = filetype;
+	new_disk->filename = strdup(filename);
+	new_disk->file_write_protect = VDISK_WRITE_ENABLE;
+	vdrive_insert_disk(drive, new_disk);
+}
+
+void xroar_insert_disk(int drive) {
+	char *filename = filereq_module->load_filename(xroar_disk_exts);
+	if (filename) {
+		vdrive_eject_disk(drive);
+		vdrive_insert_disk(drive, vdisk_load(filename));
+	}
+}
+
+void xroar_toggle_write_back(int drive) {
+	struct vdisk *disk = vdrive_disk_in_drive(drive);
+	if (disk != NULL) {
+		if (disk->file_write_protect == VDISK_WRITE_ENABLE) {
+			disk->file_write_protect = VDISK_WRITE_PROTECT;
+			LOG_DEBUG(2, "Write back disallowed for disk in drive %d.\n", drive);
+		} else {
+			disk->file_write_protect = VDISK_WRITE_ENABLE;
+			LOG_DEBUG(2, "Write back allowed for disk in drive %d.\n", drive);
+		}
+	}
+}
+
+void xroar_toggle_write_protect(int drive) {
+	struct vdisk *disk = vdrive_disk_in_drive(drive);
+	if (disk != NULL) {
+		if (disk->write_protect == VDISK_WRITE_ENABLE) {
+			disk->write_protect = VDISK_WRITE_PROTECT;
+			LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
+		} else {
+			disk->write_protect = VDISK_WRITE_ENABLE;
+			LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
+		}
+	}
+}
+
+void xroar_cycle_cross_colour(void) {
+	running_config.cross_colour_phase++;
+	if (running_config.cross_colour_phase > 2)
+		running_config.cross_colour_phase = 0;
+	vdg_set_mode();
+}
+
+void xroar_quit(void) {
+	exit(0);
+}
+
+void xroar_dos_enable(int action) {
+	switch (action) {
+		case XROAR_OFF:
+			requested_config.dos_type = DOS_NONE;
+			break;
+		case XROAR_ON:
+			requested_config.dos_type = ANY_AUTO;
+			break;
+		case XROAR_TOGGLE:
+		default:
+			if (requested_config.dos_type != DOS_NONE) {
+				requested_config.dos_type = DOS_NONE;
+			} else {
+				requested_config.dos_type = ANY_AUTO;
+			}
+			break;
+	}
+}
+
+void xroar_fullscreen(int action) {
+	int set_to;
+	switch (action) {
+		case XROAR_OFF:
+			set_to = 0;
+			break;
+		case XROAR_ON:
+			set_to = 1;
+			break;
+		case XROAR_TOGGLE:
+		default:
+			set_to = !video_module->is_fullscreen;
+			break;
+	}
+	video_module->set_fullscreen(set_to);
+}
+
+void xroar_load_file(const char **exts) {
+	char *filename = filereq_module->load_filename(exts);
+	if (filename) {
+		xroar_load_file_by_type(filename, 0);
+	}
+}
+
+void xroar_run_file(const char **exts) {
+	char *filename = filereq_module->load_filename(exts);
+	if (filename) {
+		xroar_load_file_by_type(filename, 1);
+	}
+}
+
+void xroar_cycle_keymap(void) {
+	keyboard_set_keymap((running_config.keymap + 1) % NUM_KEYMAPS);
+}
+
+void xroar_set_machine(int machine_type) {
+	int new = running_machine;
+	switch (machine_type) {
+		case XROAR_TOGGLE:
+			return;
+		case XROAR_CYCLE:
+			new = (new + 1) % NUM_MACHINE_TYPES;
+			break;
+		default:
+			new = machine_type;
+			break;
+	}
+	if (new < 0 || new >= NUM_MACHINE_TYPES || new == running_machine) {
+		return;
+	}
+	machine_clear_requested_config();
+	requested_machine = new;
+	machine_reset(RESET_HARD);
+}
+
+void xroar_save_snapshot(void) {
+	char *filename = filereq_module->save_filename(xroar_snap_exts);
+	if (filename) {
+		write_snapshot(filename);
+	}
+}
+
+void xroar_write_tape(void) {
+	char *filename = filereq_module->save_filename(xroar_tape_exts);
+	if (filename) {
+		tape_open_writing(filename);
+	}
+}
+
+void xroar_soft_reset(void) {
+	machine_reset(RESET_SOFT);
+}
+
+void xroar_hard_reset(void) {
+	machine_reset(RESET_HARD);
+}
