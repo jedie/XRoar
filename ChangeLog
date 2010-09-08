@@ -1,4 +1,4 @@
-Version 0.24, unreleased
+Version 0.24, Wed Sep  8 2010
 
   * Improved ALSA sound module.
   * SDL video module fixes.
