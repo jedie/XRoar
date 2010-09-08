@@ -111,7 +111,7 @@ int bin_load(const char *filename, int autorun) {
 	default:
 		break;
 	}
-	LOG_DEBUG(3, "Unknown binary file type.\n");
+	LOG_DEBUG(2, "Unknown binary file type.\n");
 	fs_close(fd);
 	return -1;
 }

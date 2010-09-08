@@ -19,7 +19,7 @@
 /* 0 - Silent, 1 - Title, 2 - Info, 3 - Details, 4 - Verbose, 5 - Silly */
 /* Normally 3 */
 #ifndef DEBUG_LEVEL
-# define DEBUG_LEVEL 3
+# define DEBUG_LEVEL 2
 #endif
 
 #define LOG_DEBUG(l,...) do { if (DEBUG_LEVEL >= l) { fprintf(stderr, __VA_ARGS__); } } while (0)

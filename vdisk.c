@@ -112,7 +112,7 @@ int vdisk_save(struct vdisk *disk, int force) {
 	int i;
 	if (disk == NULL) return 1;
 	if (!force && disk->file_write_protect != VDISK_WRITE_ENABLE) {
-		LOG_DEBUG(3, "Not saving disk file: file is write protected.\n");
+		LOG_DEBUG(2, "Not saving disk file: file is write protected.\n");
 		return 0;
 	}
 	if (disk->filename == NULL) {
