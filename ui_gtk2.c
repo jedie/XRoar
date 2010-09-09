@@ -206,6 +206,7 @@ static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
 static GtkToggleActionEntry ui_toggles[] = {
 	{ .name = "FullScreenAction", .label = "_Full Screen",
+	  .stock_id = GTK_STOCK_FULLSCREEN,
 	  .accelerator = "F11", .callback = G_CALLBACK(set_fullscreen) },
 	{ .name = "TranslateKeyboardAction", .label = "_Keyboard Translation",
 	  .accelerator = "<control>Z",
