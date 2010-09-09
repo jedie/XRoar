@@ -60,7 +60,6 @@ static GtkWidget *vbox;
 static GtkUIManager *menu_manager;
 GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
-GtkRadioAction *gtk2_radio_dos;
 
 static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
@@ -155,7 +154,8 @@ static void machine_changed_cb(int machine_type) {
 }
 
 static void dos_changed_cb(int dos_type) {
-	gtk_radio_action_set_current_value(gtk2_radio_dos, dos_type);
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/DOSMenu/dragondos");
+	gtk_radio_action_set_current_value(radio, dos_type);
 }
 
 static void fullscreen_changed_cb(int fullscreen) {
@@ -213,9 +213,6 @@ static int init(void) {
 		g_message("building menus failed: %s", error->message);
 		g_error_free(error);
 	}
-
-	/* Extract various actions */
-	gtk2_radio_dos = (GtkRadioAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/DOSMenu/dragondos");
 
 	/* Extract menubar widget and add to vbox */
 	gtk2_menubar = gtk_ui_manager_get_widget(menu_manager, "/MainMenu");
