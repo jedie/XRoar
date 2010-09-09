@@ -126,6 +126,8 @@ static int load_rom_from_list(const char *preferred, const char **list,
 
 /**************************************************************************/
 
+static void find_working_machine(void);
+
 void machine_getargs(void) {
 	machine_clear_requested_config();
 	requested_machine = ANY_AUTO;
@@ -153,7 +155,8 @@ void machine_getargs(void) {
 		}
 		for (i = 0; i < NUM_DOS_TYPES; i++) {
 			if (!strcmp(xroar_opt_dostype, dos_type_options[i])) {
-				requested_config.dos_type = i;
+				//requested_config.dos_type = i;
+				xroar_set_dos(i);
 			}
 		}
 	}
@@ -162,13 +165,20 @@ void machine_getargs(void) {
 	requested_config.altbas_rom = xroar_opt_altbas;
 	requested_config.dos_rom = xroar_opt_dos;
 	if (xroar_opt_nodos) {
-		requested_config.dos_type = DOS_NONE;
+		xroar_set_dos(DOS_NONE);
+		//requested_config.dos_type = DOS_NONE;
 		requested_config.dos_rom = NULL;
 	}
 	if (xroar_opt_ram > 0) {
 		requested_config.ram = xroar_opt_ram;
 	}
 	requested_config.tv_standard = xroar_opt_tv;
+
+	if (requested_machine == ANY_AUTO)
+		find_working_machine();
+	if (xroar_machine_changed_cb) {
+		xroar_machine_changed_cb(requested_machine);
+	}
 }
 
 static void update_sound(void) {
@@ -306,8 +316,6 @@ static void find_working_dos_type(void) {
 void machine_reset(int hard) {
 	if (hard) {
 		MachineConfig *defaults;
-		if (requested_machine == ANY_AUTO)
-			find_working_machine();
 		running_machine = requested_machine % NUM_MACHINE_TYPES;
 		LOG_DEBUG(2, "%s selected\n", machine_names[running_machine]);
 		defaults = &machine_defaults[running_machine];
@@ -418,11 +426,11 @@ void machine_clear_requested_config(void) {
 	requested_config.tv_standard = ANY_AUTO;
 	requested_config.cross_colour_phase = ANY_AUTO;
 	requested_config.ram = ANY_AUTO;
-	requested_config.dos_type = ANY_AUTO;
 	requested_config.bas_rom = NULL;
 	requested_config.extbas_rom = NULL;
 	requested_config.altbas_rom = NULL;
 	requested_config.dos_rom = NULL;
+	xroar_set_dos(ANY_AUTO);
 }
 
 void machine_insert_cart(struct cart *cart) {
@@ -431,19 +439,18 @@ void machine_insert_cart(struct cart *cart) {
 	if (cart) {
 		switch (cart->type) {
 			case CART_DRAGONDOS:
-				requested_config.dos_type = DOS_DRAGONDOS;
+				running_config.dos_type = DOS_DRAGONDOS;
 				break;
 			case CART_DELTADOS:
-				requested_config.dos_type = DOS_DELTADOS;
+				running_config.dos_type = DOS_DELTADOS;
 				break;
 			case CART_RSDOS:
-				requested_config.dos_type = DOS_RSDOS;
+				running_config.dos_type = DOS_RSDOS;
 				break;
 			default:
-				requested_config.dos_type = DOS_NONE;
+				running_config.dos_type = DOS_NONE;
 				break;
 		}
-		running_config.dos_type = requested_config.dos_type;
 	}
 }
 

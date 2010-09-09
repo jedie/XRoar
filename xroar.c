@@ -192,6 +192,8 @@ static struct {
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
+void (*xroar_machine_changed_cb)(int machine_type) = NULL;
+void (*xroar_dos_changed_cb)(int dos_type) = NULL;
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 static void trace_done_instruction(M6809State *state);
@@ -709,25 +711,6 @@ void xroar_quit(void) {
 	exit(0);
 }
 
-void xroar_dos_enable(int action) {
-	switch (action) {
-		case XROAR_OFF:
-			requested_config.dos_type = DOS_NONE;
-			break;
-		case XROAR_ON:
-			requested_config.dos_type = ANY_AUTO;
-			break;
-		case XROAR_TOGGLE:
-		default:
-			if (requested_config.dos_type != DOS_NONE) {
-				requested_config.dos_type = DOS_NONE;
-			} else {
-				requested_config.dos_type = ANY_AUTO;
-			}
-			break;
-	}
-}
-
 void xroar_fullscreen(int action) {
 	int set_to;
 	switch (action) {
@@ -764,10 +747,13 @@ void xroar_cycle_keymap(void) {
 }
 
 void xroar_set_machine(int machine_type) {
-	int new = running_machine;
+	static int lock = 0;
+	if (lock) return;
+	lock = 1;
+	int new = requested_machine;
 	switch (machine_type) {
 		case XROAR_TOGGLE:
-			return;
+			break;
 		case XROAR_CYCLE:
 			new = (new + 1) % NUM_MACHINE_TYPES;
 			break;
@@ -775,12 +761,40 @@ void xroar_set_machine(int machine_type) {
 			new = machine_type;
 			break;
 	}
-	if (new < 0 || new >= NUM_MACHINE_TYPES || new == running_machine) {
-		return;
+	if (new >= 0 && new < NUM_MACHINE_TYPES) {
+		machine_clear_requested_config();
+		requested_machine = new;
+		machine_reset(RESET_HARD);
+		if (xroar_machine_changed_cb) {
+			xroar_machine_changed_cb(new);
+		}
 	}
-	machine_clear_requested_config();
-	requested_machine = new;
-	machine_reset(RESET_HARD);
+	lock = 0;
+}
+
+void xroar_set_dos(int dos_type) {
+	static int lock = 0;
+	if (lock) return;
+	lock = 1;
+	int new = requested_config.dos_type;
+	switch (dos_type) {
+		case XROAR_TOGGLE:
+			new = (new != DOS_NONE) ? DOS_NONE : ANY_AUTO;
+			break;
+		case XROAR_CYCLE:
+			new = (new + 1) % NUM_DOS_TYPES;
+			break;
+		default:
+			new = dos_type;
+			break;
+	}
+	if (new == ANY_AUTO || (new >= 0 && new < NUM_DOS_TYPES)) {
+		requested_config.dos_type = new;
+		if (xroar_dos_changed_cb) {
+			xroar_dos_changed_cb(new);
+		}
+	}
+	lock = 0;
 }
 
 void xroar_save_snapshot(void) {

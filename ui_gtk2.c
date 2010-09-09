@@ -62,20 +62,6 @@ GtkWidget *gtk2_drawing_area;
 GtkRadioAction *gtk2_radio_machine;
 GtkRadioAction *gtk2_radio_dos;
 
-static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
-	gint val = gtk_radio_action_get_current_value(current);
-	(void)action;
-	(void)user_data;
-	xroar_set_machine(val);
-}
-
-static void set_dos(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
-	gint val = gtk_radio_action_get_current_value(current);
-	(void)action;
-	(void)user_data;
-	requested_config.dos_type = val;
-}
-
 static const gchar *ui =
 	"<ui>"
 	  "<menubar name='MainMenu'>"
@@ -133,6 +119,28 @@ static GtkActionEntry ui_entries[] = {
 };
 
 static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
+
+static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	xroar_set_machine(val);
+}
+
+static void set_dos(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	xroar_set_dos(val);
+}
+
+static void machine_changed_cb(int machine_type) {
+	gtk_radio_action_set_current_value(gtk2_radio_machine, machine_type);
+}
+
+static void dos_changed_cb(int dos_type) {
+	gtk_radio_action_set_current_value(gtk2_radio_dos, dos_type);
+}
 
 static int init(void) {
 
@@ -204,6 +212,9 @@ static int init(void) {
 	gtk_widget_show(gtk2_drawing_area);
 
 	/* Now up to video module to do something with this drawing_area */
+
+	xroar_machine_changed_cb = machine_changed_cb;
+	xroar_dos_changed_cb = dos_changed_cb;
 
 	return 0;
 }

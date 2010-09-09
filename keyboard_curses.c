@@ -67,7 +67,7 @@ static void do_poll(void) {
 				xroar_quit();
 				break;
 			case 5:   /* Ctrl+E */
-				xroar_dos_enable(XROAR_TOGGLE);
+				xroar_set_dos(XROAR_TOGGLE);
 				break;
 			case 11:  /* Ctrl+K */
 				xroar_cycle_keymap();

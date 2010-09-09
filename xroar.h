@@ -16,8 +16,9 @@
 #define XROAR_SET    (1)
 #define XROAR_FALSE  (0)
 #define XROAR_TRUE   (1)
-#define XROAR_TOGGLE (-1)
-#define XROAR_CYCLE  (-2)
+#define XROAR_AUTO   (-1)
+#define XROAR_TOGGLE (-2)
+#define XROAR_CYCLE  (-3)
 
 #define FILETYPE_UNKNOWN (0)
 #define FILETYPE_VDK (1)
@@ -35,6 +36,9 @@ extern const char *xroar_disk_exts[];
 extern const char *xroar_tape_exts[];
 extern const char *xroar_snap_exts[];
 extern const char *xroar_cart_exts[];
+
+extern void (*xroar_machine_changed_cb)(int machine_type);
+extern void (*xroar_dos_changed_cb)(int dos_type);
 
 /**************************************************************************/
 /* Command line arguments */
@@ -105,12 +109,12 @@ void xroar_toggle_write_back(int drive);
 void xroar_toggle_write_protect(int drive);
 void xroar_cycle_cross_colour(void);
 void xroar_quit(void);
-void xroar_dos_enable(int action);
 void xroar_fullscreen(int action);
 void xroar_load_file(const char **exts);
 void xroar_run_file(const char **exts);
 void xroar_cycle_keymap(void);
 void xroar_set_machine(int machine);
+void xroar_set_dos(int dos_type);
 void xroar_save_snapshot(void);
 void xroar_write_tape(void);
 void xroar_hard_reset(void);
