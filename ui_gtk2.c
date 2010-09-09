@@ -96,6 +96,39 @@ static void toggle_keyboard_translation(GtkToggleAction *current, gpointer user_
 	gtk2_translated_keymap = val;
 }
 
+static void close_about(GtkDialog *dialog, gint response_id, gpointer data) {
+	(void)response_id;
+	(void)data;
+	gtk_widget_hide(GTK_WIDGET(dialog));
+	gtk_widget_destroy(GTK_WIDGET(dialog));
+}
+
+static void about(GtkMenuItem *item, gpointer data) {
+	(void)item;
+	(void)data;
+	GtkAboutDialog *dialog = (GtkAboutDialog *)gtk_about_dialog_new();
+	gtk_about_dialog_set_version(dialog, VERSION);
+	gtk_about_dialog_set_copyright(dialog, "Copyright © 2003–2010 Ciaran Anscomb <xroar@6809.org.uk>");
+	gtk_about_dialog_set_license(dialog,
+"This program is free software; you can redistribute it and/or modify\n"
+"it under the terms of the GNU General Public License as published by\n"
+"the Free Software Foundation; either version 2 of the License, or\n"
+"(at your option) any later version.\n"
+"\n"
+"This program is distributed in the hope that it will be useful,\n"
+"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+"GNU General Public License for more details.\n"
+"\n"
+"You should have received a copy of the GNU General Public License\n"
+"along with this program; if not, write to the Free Software\n"
+"Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA"
+	);
+	gtk_about_dialog_set_website(dialog, "http://www.6809.org.uk/dragon/xroar.shtml");
+	g_signal_connect(dialog, "response", G_CALLBACK(close_about), NULL);
+	gtk_widget_show(GTK_WIDGET(dialog));
+}
+
 static const gchar *ui =
 	"<ui>"
 	  "<menubar name='MainMenu'>"
@@ -131,6 +164,9 @@ static const gchar *ui =
 	      "<separator/>"
 	      "<menuitem name='TranslateKeyboard' action='TranslateKeyboardAction'/>"
 	    "</menu>"
+	    "<menu name='HelpMenu' action='HelpMenuAction'>"
+	      "<menuitem name='About' action='AboutAction'/>"
+	    "</menu>"
 	  "</menubar>"
 	"</ui>";
 
@@ -161,6 +197,10 @@ static GtkActionEntry ui_entries[] = {
 	  .callback = G_CALLBACK(xroar_hard_reset) },
 	{ .name = "DOSMenuAction", .label = "_DOS" },
 	{ .name = "KeyboardMenuAction", .label = "_Keyboard" },
+	{ .name = "HelpMenuAction", .label = "_Help" },
+	{ .name = "AboutAction", .stock_id = GTK_STOCK_ABOUT,
+	  .label = "_About",
+	  .callback = G_CALLBACK(about) },
 };
 static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
