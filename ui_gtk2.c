@@ -24,6 +24,7 @@
 #include "types.h"
 #include "logging.h"
 #include "events.h"
+#include "keyboard.h"
 #include "m6809.h"
 #include "machine.h"
 #include "module.h"
@@ -57,9 +58,10 @@ UIModule ui_gtk2_module = {
 
 GtkWidget *gtk2_top_window = NULL;
 static GtkWidget *vbox;
-static GtkUIManager *menu_manager;
+GtkUIManager *gtk2_menu_manager;
 GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
+extern gboolean gtk2_translated_keymap;
 
 static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
@@ -79,6 +81,19 @@ static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
 	gboolean val = gtk_toggle_action_get_active(current);
 	(void)user_data;
 	xroar_fullscreen(val);
+}
+
+static void set_keymap(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	xroar_set_keymap(val);
+}
+
+static void toggle_keyboard_translation(GtkToggleAction *current, gpointer user_data) {
+	gboolean val = gtk_toggle_action_get_active(current);
+	(void)user_data;
+	gtk2_translated_keymap = val;
 }
 
 static const gchar *ui =
@@ -110,6 +125,12 @@ static const gchar *ui =
 	      "<menuitem action='rsdos'/>"
 	      "<menuitem action='delta'/>"
 	    "</menu>"
+	    "<menu name='KeyboardMenu' action='KeyboardMenuAction'>"
+	      "<menuitem action='keymap_dragon'/>"
+	      "<menuitem action='keymap_coco'/>"
+	      "<separator/>"
+	      "<menuitem name='TranslateKeyboard' action='TranslateKeyboardAction'/>"
+	    "</menu>"
 	  "</menubar>"
 	"</ui>";
 
@@ -139,28 +160,42 @@ static GtkActionEntry ui_entries[] = {
 	  .tooltip = "Hard Reset",
 	  .callback = G_CALLBACK(xroar_hard_reset) },
 	{ .name = "DOSMenuAction", .label = "_DOS" },
+	{ .name = "KeyboardMenuAction", .label = "_Keyboard" },
 };
 static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
 static GtkToggleActionEntry ui_toggles[] = {
 	{ .name = "FullScreenAction", .label = "_Full Screen",
 	  .accelerator = "F11", .callback = G_CALLBACK(set_fullscreen) },
+	{ .name = "TranslateKeyboardAction", .label = "_Keyboard Translation",
+	  .accelerator = "<control>Z",
+	  .callback = G_CALLBACK(toggle_keyboard_translation) },
 };
 static guint ui_n_toggles = G_N_ELEMENTS(ui_toggles);
 
+static GtkRadioActionEntry keymap_radio_entries[] = {
+	{ .name = "keymap_dragon", .label = "Dragon Layout", .value = KEYMAP_DRAGON },
+	{ .name = "keymap_coco", .label = "CoCo Layout", .value = KEYMAP_COCO },
+};
+
 static void machine_changed_cb(int machine_type) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/MachineMenu/dragon32");
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/dragon32");
 	gtk_radio_action_set_current_value(radio, machine_type);
 }
 
 static void dos_changed_cb(int dos_type) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/DOSMenu/dragondos");
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/DOSMenu/dragondos");
 	gtk_radio_action_set_current_value(radio, dos_type);
 }
 
 static void fullscreen_changed_cb(int fullscreen) {
-	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/ViewMenu/FullScreen");
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/FullScreen");
 	gtk_toggle_action_set_active(toggle, fullscreen);
+}
+
+static void keymap_changed_cb(int keymap) {
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/keymap_dragon");
+	gtk_radio_action_set_current_value(radio, keymap);
 }
 
 static int init(void) {
@@ -180,7 +215,7 @@ static int init(void) {
 	/* Set up action group and parse menu XML */
 	GtkActionGroup *action_group = gtk_action_group_new("Actions");
 	gtk_action_group_set_translation_domain(action_group, "atd");
-	menu_manager = gtk_ui_manager_new();
+	gtk2_menu_manager = gtk_ui_manager_new();
 	gtk_action_group_add_actions(action_group, ui_entries, ui_n_entries, NULL);
 	gtk_action_group_add_toggle_actions(action_group, ui_toggles, ui_n_toggles, NULL);
 
@@ -206,18 +241,20 @@ static int init(void) {
 	}
 	gtk_action_group_add_radio_actions(action_group, dos_radio_entries, NUM_DOS_TYPES+1, -1, (GCallback)set_dos, NULL);
 
-	gtk_ui_manager_insert_action_group(menu_manager, action_group, 0);
+	gtk_action_group_add_radio_actions(action_group, keymap_radio_entries, 2, 0, (GCallback)set_keymap, NULL);
+
+	gtk_ui_manager_insert_action_group(gtk2_menu_manager, action_group, 0);
 	GError *error = NULL;
-	gtk_ui_manager_add_ui_from_string(menu_manager, ui, -1, &error);
+	gtk_ui_manager_add_ui_from_string(gtk2_menu_manager, ui, -1, &error);
 	if (error) {
 		g_message("building menus failed: %s", error->message);
 		g_error_free(error);
 	}
 
 	/* Extract menubar widget and add to vbox */
-	gtk2_menubar = gtk_ui_manager_get_widget(menu_manager, "/MainMenu");
+	gtk2_menubar = gtk_ui_manager_get_widget(gtk2_menu_manager, "/MainMenu");
 	gtk_box_pack_start(GTK_BOX(vbox), gtk2_menubar, FALSE, FALSE, 0);
-	gtk_window_add_accel_group(GTK_WINDOW(gtk2_top_window), gtk_ui_manager_get_accel_group(menu_manager));
+	gtk_window_add_accel_group(GTK_WINDOW(gtk2_top_window), gtk_ui_manager_get_accel_group(gtk2_menu_manager));
 
 	/* Create drawing_area widget, add to vbox */
 	gtk2_drawing_area = gtk_drawing_area_new();
@@ -235,6 +272,7 @@ static int init(void) {
 	xroar_machine_changed_cb = machine_changed_cb;
 	xroar_dos_changed_cb = dos_changed_cb;
 	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
+	xroar_keymap_changed_cb = keymap_changed_cb;
 
 	return 0;
 }

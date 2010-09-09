@@ -40,6 +40,7 @@ KeyboardModule keyboard_gtk2_module = {
 };
 
 extern GtkWidget *gtk2_top_window;
+extern GtkUIManager *gtk2_menu_manager;
 static gboolean keypress(GtkWidget *, GdkEventKey *, gpointer);
 static gboolean keyrelease(GtkWidget *, GdkEventKey *, gpointer);
 
@@ -62,7 +63,12 @@ static guint keycode_to_keyval[MAX_KEYCODE];
 /* For translated mode: unicode value last generated for each keycode: */
 static guint32 last_unicode[MAX_KEYCODE];
 
-static int translated_keymap;
+gboolean gtk2_translated_keymap;
+
+static void set_translated_keymap(gboolean state) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
+	gtk_toggle_action_set_active(toggle, state);
+}
 
 static void map_keyboard(unsigned int *map) {
 	int i;
@@ -124,7 +130,7 @@ static int init(void) {
 		}
 	}
 	map_keyboard(selected_keymap);
-	translated_keymap = 0;
+	set_translated_keymap(0);
 	/* Connect GTK key press/release signals to handlers */
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key_press_event", G_CALLBACK(keypress), NULL);
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key_release_event", G_CALLBACK(keyrelease), NULL);
@@ -170,7 +176,7 @@ static void emulator_command(guint keyval) {
 		}
 		break;
 	case GDK_k:
-		xroar_cycle_keymap();
+		xroar_set_keymap(XROAR_CYCLE);
 		break;
 	case GDK_m:
 		xroar_set_machine(XROAR_CYCLE);
@@ -186,9 +192,6 @@ static void emulator_command(guint keyval) {
 		xroar_set_trace(XROAR_TOGGLE);  /* toggle */
 		break;
 #endif
-	case GDK_z: // running out of letters...
-		translated_keymap = !translated_keymap;
-		break;
 	default:
 		break;
 	}
@@ -232,7 +235,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (keyval == GDK_Left) { KEYBOARD_PRESS(8); return TRUE; }
 	if (keyval == GDK_Right) { KEYBOARD_PRESS(9); return TRUE; }
 	if (keyval == GDK_Home) { KEYBOARD_PRESS(12); return TRUE; }
-	if (translated_keymap) {
+	if (gtk2_translated_keymap) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
 		unicode = gdk_keyval_to_unicode(event->keyval);
@@ -279,7 +282,7 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	if (keyval == GDK_Left) { KEYBOARD_RELEASE(8); return TRUE; }
 	if (keyval == GDK_Right) { KEYBOARD_RELEASE(9); return TRUE; }
 	if (keyval == GDK_Home) { KEYBOARD_RELEASE(12); return TRUE; }
-	if (translated_keymap) {
+	if (gtk2_translated_keymap) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
 		unicode = last_unicode[keycode];

@@ -195,6 +195,7 @@ static struct {
 void (*xroar_machine_changed_cb)(int machine_type) = NULL;
 void (*xroar_dos_changed_cb)(int dos_type) = NULL;
 void (*xroar_fullscreen_changed_cb)(int fullscreen) = NULL;
+void (*xroar_keymap_changed_cb)(int keymap) = NULL;
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 static void trace_done_instruction(M6809State *state);
@@ -750,8 +751,26 @@ void xroar_run_file(const char **exts) {
 	}
 }
 
-void xroar_cycle_keymap(void) {
-	keyboard_set_keymap((running_config.keymap + 1) % NUM_KEYMAPS);
+void xroar_set_keymap(int keymap) {
+	static int lock = 0;
+	if (lock) return;
+	lock = 1;
+	int new;
+	switch (keymap) {
+		case XROAR_CYCLE:
+			new = (running_config.keymap + 1) % NUM_KEYMAPS;
+			break;
+		default:
+			new = keymap;
+			break;
+	}
+	if (new >= 0 && new < NUM_KEYMAPS) {
+		keyboard_set_keymap(new);
+		if (xroar_keymap_changed_cb) {
+			xroar_keymap_changed_cb(new);
+		}
+	}
+	lock = 0;
 }
 
 void xroar_set_machine(int machine_type) {

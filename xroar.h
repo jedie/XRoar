@@ -40,6 +40,7 @@ extern const char *xroar_cart_exts[];
 extern void (*xroar_machine_changed_cb)(int machine_type);
 extern void (*xroar_dos_changed_cb)(int dos_type);
 extern void (*xroar_fullscreen_changed_cb)(int fullscreen);
+extern void (*xroar_keymap_changed_cb)(int keymap);
 
 /**************************************************************************/
 /* Command line arguments */
@@ -113,7 +114,7 @@ void xroar_quit(void);
 void xroar_fullscreen(int action);
 void xroar_load_file(const char **exts);
 void xroar_run_file(const char **exts);
-void xroar_cycle_keymap(void);
+void xroar_set_keymap(int keymap);
 void xroar_set_machine(int machine);
 void xroar_set_dos(int dos_type);
 void xroar_save_snapshot(void);

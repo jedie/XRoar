@@ -152,7 +152,7 @@ static void emulator_command(SDLKey sym) {
 		}
 		break;
 	case SDLK_k:
-		xroar_cycle_keymap();
+		xroar_set_keymap(XROAR_CYCLE);
 		break;
 	case SDLK_b:
 	case SDLK_h:
