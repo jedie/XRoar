@@ -40,7 +40,6 @@ KeyboardModule keyboard_gtk2_module = {
 };
 
 extern GtkWidget *gtk2_top_window;
-extern GtkRadioAction *gtk2_radio_machine;
 static gboolean keypress(GtkWidget *, GdkEventKey *, gpointer);
 static gboolean keyrelease(GtkWidget *, GdkEventKey *, gpointer);
 
@@ -174,7 +173,7 @@ static void emulator_command(guint keyval) {
 		xroar_cycle_keymap();
 		break;
 	case GDK_m:
-		gtk_radio_action_set_current_value(gtk2_radio_machine, (running_machine + 1) % NUM_MACHINE_TYPES);
+		xroar_set_machine(XROAR_CYCLE);
 		break;
 	case GDK_s:
 		xroar_save_snapshot();

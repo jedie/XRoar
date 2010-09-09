@@ -60,7 +60,6 @@ static GtkWidget *vbox;
 static GtkUIManager *menu_manager;
 GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
-GtkRadioAction *gtk2_radio_machine;
 GtkRadioAction *gtk2_radio_dos;
 
 static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
@@ -151,7 +150,8 @@ static GtkToggleActionEntry ui_toggles[] = {
 static guint ui_n_toggles = G_N_ELEMENTS(ui_toggles);
 
 static void machine_changed_cb(int machine_type) {
-	gtk_radio_action_set_current_value(gtk2_radio_machine, machine_type);
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/MachineMenu/dragon32");
+	gtk_radio_action_set_current_value(radio, machine_type);
 }
 
 static void dos_changed_cb(int dos_type) {
@@ -215,7 +215,6 @@ static int init(void) {
 	}
 
 	/* Extract various actions */
-	gtk2_radio_machine = (GtkRadioAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/MachineMenu/dragon32");
 	gtk2_radio_dos = (GtkRadioAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/DOSMenu/dragondos");
 
 	/* Extract menubar widget and add to vbox */
