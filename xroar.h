@@ -39,6 +39,7 @@ extern const char *xroar_cart_exts[];
 
 extern void (*xroar_machine_changed_cb)(int machine_type);
 extern void (*xroar_dos_changed_cb)(int dos_type);
+extern void (*xroar_fullscreen_changed_cb)(int fullscreen);
 
 /**************************************************************************/
 /* Command line arguments */

@@ -202,10 +202,6 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (gtk_window_activate_key(GTK_WINDOW(gtk2_top_window), event) == TRUE) {
 		return TRUE;
 	}
-	if (event->keyval == GDK_F11) {
-		xroar_fullscreen(XROAR_TOGGLE);
-		return TRUE;
-	}
 	if (event->hardware_keycode >= MAX_KEYCODE) {
 		return TRUE;
 	}

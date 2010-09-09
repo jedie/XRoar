@@ -57,10 +57,31 @@ UIModule ui_gtk2_module = {
 
 GtkWidget *gtk2_top_window = NULL;
 static GtkWidget *vbox;
+static GtkUIManager *menu_manager;
 GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
 GtkRadioAction *gtk2_radio_machine;
 GtkRadioAction *gtk2_radio_dos;
+
+static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	xroar_set_machine(val);
+}
+
+static void set_dos(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	xroar_set_dos(val);
+}
+
+static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
+	gboolean val = gtk_toggle_action_get_active(current);
+	(void)user_data;
+	xroar_fullscreen(val);
+}
 
 static const gchar *ui =
 	"<ui>"
@@ -70,6 +91,9 @@ static const gchar *ui =
 	      "<menuitem name='Load' action='LoadAction'/>"
 	      "<separator/>"
 	      "<menuitem name='Quit' action='QuitAction'/>"
+	    "</menu>"
+	    "<menu name='ViewMenu' action='ViewMenuAction'>"
+	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
 	    "</menu>"
 	    "<menu name='MachineMenu' action='MachineMenuAction'>"
 	      "<menuitem action='dragon32'/>"
@@ -105,6 +129,7 @@ static GtkActionEntry ui_entries[] = {
 	   .accelerator = "<control>Q",
 	  .tooltip = "Quit",
 	  .callback = G_CALLBACK(xroar_quit) },
+	{ .name = "ViewMenuAction", .label = "_View" },
 	{ .name = "MachineMenuAction", .label = "_Machine" },
 	{ .name = "SoftResetAction", .label = "_Soft Reset",
 	  .accelerator = "<control>R",
@@ -117,22 +142,13 @@ static GtkActionEntry ui_entries[] = {
 	  .callback = G_CALLBACK(xroar_hard_reset) },
 	{ .name = "DOSMenuAction", .label = "_DOS" },
 };
-
 static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
-static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
-	gint val = gtk_radio_action_get_current_value(current);
-	(void)action;
-	(void)user_data;
-	xroar_set_machine(val);
-}
-
-static void set_dos(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
-	gint val = gtk_radio_action_get_current_value(current);
-	(void)action;
-	(void)user_data;
-	xroar_set_dos(val);
-}
+static GtkToggleActionEntry ui_toggles[] = {
+	{ .name = "FullScreenAction", .label = "_Full Screen",
+	  .accelerator = "F11", .callback = G_CALLBACK(set_fullscreen) },
+};
+static guint ui_n_toggles = G_N_ELEMENTS(ui_toggles);
 
 static void machine_changed_cb(int machine_type) {
 	gtk_radio_action_set_current_value(gtk2_radio_machine, machine_type);
@@ -140,6 +156,11 @@ static void machine_changed_cb(int machine_type) {
 
 static void dos_changed_cb(int dos_type) {
 	gtk_radio_action_set_current_value(gtk2_radio_dos, dos_type);
+}
+
+static void fullscreen_changed_cb(int fullscreen) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(menu_manager, "/MainMenu/ViewMenu/FullScreen");
+	gtk_toggle_action_set_active(toggle, fullscreen);
 }
 
 static int init(void) {
@@ -159,8 +180,10 @@ static int init(void) {
 	/* Set up action group and parse menu XML */
 	GtkActionGroup *action_group = gtk_action_group_new("Actions");
 	gtk_action_group_set_translation_domain(action_group, "atd");
-	GtkUIManager *menu_manager = gtk_ui_manager_new();
+	menu_manager = gtk_ui_manager_new();
 	gtk_action_group_add_actions(action_group, ui_entries, ui_n_entries, NULL);
+	gtk_action_group_add_toggle_actions(action_group, ui_toggles, ui_n_toggles, NULL);
+
 	int i;
 	GtkRadioActionEntry machine_radio_entries[NUM_MACHINE_TYPES];
 	memset(machine_radio_entries, 0, sizeof(machine_radio_entries));
@@ -215,6 +238,7 @@ static int init(void) {
 
 	xroar_machine_changed_cb = machine_changed_cb;
 	xroar_dos_changed_cb = dos_changed_cb;
+	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
 
 	return 0;
 }

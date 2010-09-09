@@ -194,6 +194,7 @@ static struct {
 
 void (*xroar_machine_changed_cb)(int machine_type) = NULL;
 void (*xroar_dos_changed_cb)(int dos_type) = NULL;
+void (*xroar_fullscreen_changed_cb)(int fullscreen) = NULL;
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 static void trace_done_instruction(M6809State *state);
@@ -712,6 +713,9 @@ void xroar_quit(void) {
 }
 
 void xroar_fullscreen(int action) {
+	static int lock = 0;
+	if (lock) return;
+	lock = 1;
 	int set_to;
 	switch (action) {
 		case XROAR_OFF:
@@ -726,6 +730,10 @@ void xroar_fullscreen(int action) {
 			break;
 	}
 	video_module->set_fullscreen(set_to);
+	if (xroar_fullscreen_changed_cb) {
+		xroar_fullscreen_changed_cb(set_to);
+	}
+	lock = 0;
 }
 
 void xroar_load_file(const char **exts) {
