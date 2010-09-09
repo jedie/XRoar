@@ -204,6 +204,8 @@ static int init(void) {
 
 	gtk_init(NULL, NULL);
 
+	g_set_application_name("XRoar");
+
 	/* Create top level window */
 	gtk2_top_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	g_signal_connect_swapped(gtk2_top_window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
