@@ -79,6 +79,7 @@ static void map_keyboard(unsigned int *map) {
 		if (gdk_keymap_get_entries_for_keycode(NULL, i, NULL, &keyvals, &n_entries) == TRUE) {
 			if (n_entries > 0) {
 				guint keyval = keyvals[0];
+				/* Hack for certain GDK keyvals */
 				if (keyval >= 0xff00 && keyval < 0xff20) {
 					keycode_to_keyval[i] = keyval & 0xff;
 					continue;
@@ -235,7 +236,12 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (gtk2_translated_keymap) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
-		unicode = gdk_keyval_to_unicode(event->keyval);
+		if (event->keyval >= 0xff00 && event->keyval < 0xff20) {
+			/* Hack for certain GDK keyvals */
+			unicode = event->keyval & 0xff;
+		} else {
+			unicode = gdk_keyval_to_unicode(event->keyval);
+		}
 		/* Map shift + backspace/delete to ^U */
 		if (shift && (unicode == 8 || unicode == 127)) {
 			unicode = 0x15;
