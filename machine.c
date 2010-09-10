@@ -325,8 +325,11 @@ void machine_reset(int hard) {
 			running_config.architecture = defaults->architecture % NUM_ARCHITECTURES;
 		if (running_config.romset == ANY_AUTO)
 			running_config.romset = defaults->romset % NUM_ROMSETS;
-		if (running_config.keymap == ANY_AUTO)
-			running_config.keymap = defaults->keymap % NUM_KEYMAPS;
+		if (requested_config.keymap == ANY_AUTO) {
+			xroar_set_keymap(defaults->keymap);
+		} else {
+			xroar_set_keymap(requested_config.keymap);
+		}
 		if (running_config.tv_standard == ANY_AUTO)
 			running_config.tv_standard = defaults->tv_standard % NUM_TV_STANDARDS;
 		if (running_config.cross_colour_phase == ANY_AUTO)
@@ -377,8 +380,6 @@ void machine_reset(int hard) {
 				machine_remove_cart();
 			}
 		}
-		/* Configure keymap */
-		keyboard_set_keymap(running_config.keymap);
 		/* Configure RAM */
 		if (running_config.ram < 4) running_config.ram = 4;
 		if (running_config.ram > 64) running_config.ram = 64;

@@ -222,7 +222,7 @@ int read_snapshot(const char *filename) {
 				if (size < 1) break;
 				tmp = fs_read_uint8(fd);
 				requested_config.keymap = tmp;
-				keyboard_set_keymap(tmp);
+				xroar_set_keymap(tmp);
 				size--;
 				break;
 			case ID_REGISTER_DUMP:
