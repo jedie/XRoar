@@ -181,9 +181,6 @@ static void emulator_command(guint keyval) {
 	case GDK_m:
 		xroar_set_machine(XROAR_CYCLE);
 		break;
-	case GDK_s:
-		xroar_save_snapshot();
-		break;
 	case GDK_w:
 		xroar_write_tape();
 		break;

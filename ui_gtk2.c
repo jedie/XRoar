@@ -63,6 +63,14 @@ GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
 extern gboolean gtk2_translated_keymap;
 
+static int run_cpu(void *data);
+
+static void save_snapshot(void) {
+	g_idle_remove_by_data(run_cpu);
+	xroar_save_snapshot();
+	g_idle_add(run_cpu, run_cpu);
+}
+
 static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
@@ -136,6 +144,8 @@ static const gchar *ui =
 	      "<menuitem name='Run' action='RunAction'/>"
 	      "<menuitem name='Load' action='LoadAction'/>"
 	      "<separator/>"
+	      "<menuitem name='SaveSnapshot' action='SaveSnapshotAction'/>"
+	      "<separator/>"
 	      "<menuitem name='Quit' action='QuitAction'/>"
 	    "</menu>"
 	    "<menu name='ViewMenu' action='ViewMenuAction'>"
@@ -180,6 +190,9 @@ static GtkActionEntry ui_entries[] = {
 	   .accelerator = "<control>L",
 	  .tooltip = "Load a file",
 	  .callback = G_CALLBACK(xroar_load_file) },
+	{ .name = "SaveSnapshotAction", .stock_id = GTK_STOCK_SAVE_AS, .label = "_Save Snapshot",
+	  .accelerator = "<control>S",
+	  .callback = G_CALLBACK(save_snapshot) },
 	{ .name = "QuitAction", .stock_id = GTK_STOCK_QUIT, .label = "_Quit",
 	   .accelerator = "<control>Q",
 	  .tooltip = "Quit",
@@ -333,6 +346,6 @@ static int run_cpu(void *data) {
 
 static void run(void) {
 	gtk_widget_show_all(gtk2_top_window);
-	g_idle_add(run_cpu, NULL);
+	g_idle_add(run_cpu, run_cpu);
 	gtk_main();
 }
