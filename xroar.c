@@ -84,7 +84,7 @@ int xroar_opt_noaltbas = 0;
 char *xroar_opt_dostype = NULL;
 char *xroar_opt_dos = NULL;
 int xroar_opt_nodos = 0;
-int xroar_opt_tv = TV_PAL;
+int xroar_opt_tv = ANY_AUTO;
 static void set_pal(void);
 static void set_ntsc(void);
 int xroar_opt_ram = 0;

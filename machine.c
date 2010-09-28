@@ -172,7 +172,9 @@ void machine_getargs(void) {
 	if (xroar_opt_ram > 0) {
 		requested_config.ram = xroar_opt_ram;
 	}
-	requested_config.tv_standard = xroar_opt_tv;
+	if (xroar_opt_tv != ANY_AUTO) {
+		requested_config.tv_standard = xroar_opt_tv;
+	}
 
 	if (requested_machine == ANY_AUTO)
 		find_working_machine();
