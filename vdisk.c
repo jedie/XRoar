@@ -166,8 +166,12 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	header_size = (buf[2] | (buf[3]<<8)) - 12;
 	num_tracks = buf[8];
 	num_sides = buf[9];
-	if (header_size > 0)
+	if (header_size != (buf[11] >> 3)) {
+		LOG_WARN("Possibly corrupt VDK file: mismatched header size and name length\n");
+	}
+	if (header_size > 0) {
 		fs_read(fd, buf, header_size);
+	}
 	ssize = 128 << ssize_code;
 	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
 	if (disk == NULL) {
