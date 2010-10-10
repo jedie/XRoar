@@ -216,7 +216,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
 		shift = 1;
 		KEYBOARD_PRESS(0);
-		return TRUE;
+		goto press_update;
 	}
 	if (keyval == GDK_Control_L || keyval == GDK_Control_R) { control = 1; return TRUE; }
 	if (keyval == GDK_F12 && !xroar_noratelimit) {
@@ -228,11 +228,11 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		emulator_command(keyval);
 		return TRUE;
 	}
-	if (keyval == GDK_Up) { KEYBOARD_PRESS(94); return TRUE; }
-	if (keyval == GDK_Down) { KEYBOARD_PRESS(10); return TRUE; }
-	if (keyval == GDK_Left) { KEYBOARD_PRESS(8); return TRUE; }
-	if (keyval == GDK_Right) { KEYBOARD_PRESS(9); return TRUE; }
-	if (keyval == GDK_Home) { KEYBOARD_PRESS(12); return TRUE; }
+	if (keyval == GDK_Up) { KEYBOARD_PRESS(94); goto press_update; }
+	if (keyval == GDK_Down) { KEYBOARD_PRESS(10); goto press_update; }
+	if (keyval == GDK_Left) { KEYBOARD_PRESS(8); goto press_update; }
+	if (keyval == GDK_Right) { KEYBOARD_PRESS(9); goto press_update; }
+	if (keyval == GDK_Home) { KEYBOARD_PRESS(12); goto press_update; }
 	if (gtk2_translated_keymap) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
@@ -248,11 +248,14 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		}
 		last_unicode[keycode] = unicode;
 		keyboard_unicode_press(unicode);
-		return TRUE;
+		goto press_update;
 	}
 	if (keyval < 128) {
 		KEYBOARD_PRESS(keyval);
 	}
+press_update:
+	keyboard_column_update();
+	keyboard_row_update();
 	return TRUE;
 }
 
@@ -273,18 +276,18 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
 		shift = 0;
 		KEYBOARD_RELEASE(0);
-		return TRUE;
+		goto release_update;
 	}
 	if (keyval == GDK_Control_L || keyval == GDK_Control_R) { control = 0; return TRUE; }
 	if (keyval == GDK_F12) {
 		xroar_noratelimit = 0;
 		xroar_frameskip = old_frameskip;
 	}
-	if (keyval == GDK_Up) { KEYBOARD_RELEASE(94); return TRUE; }
-	if (keyval == GDK_Down) { KEYBOARD_RELEASE(10); return TRUE; }
-	if (keyval == GDK_Left) { KEYBOARD_RELEASE(8); return TRUE; }
-	if (keyval == GDK_Right) { KEYBOARD_RELEASE(9); return TRUE; }
-	if (keyval == GDK_Home) { KEYBOARD_RELEASE(12); return TRUE; }
+	if (keyval == GDK_Up) { KEYBOARD_RELEASE(94); goto release_update; }
+	if (keyval == GDK_Down) { KEYBOARD_RELEASE(10); goto release_update; }
+	if (keyval == GDK_Left) { KEYBOARD_RELEASE(8); goto release_update; }
+	if (keyval == GDK_Right) { KEYBOARD_RELEASE(9); goto release_update; }
+	if (keyval == GDK_Home) { KEYBOARD_RELEASE(12); goto release_update; }
 	if (gtk2_translated_keymap) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
@@ -297,10 +300,13 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		/* Might have unpressed shift prematurely */
 		if (shift)
 			KEYBOARD_PRESS(0);
-		return TRUE;
+		goto release_update;
 	}
 	if (keyval < 128) {
 		KEYBOARD_RELEASE(keyval);
 	}
+release_update:
+	keyboard_column_update();
+	keyboard_row_update();
 	return TRUE;
 }
