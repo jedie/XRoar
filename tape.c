@@ -157,6 +157,10 @@ int tape_open_reading(const char *filename) {
 		wav_read_buf = malloc(SF_BUF_LENGTH * sizeof(short) * wav_channels);
 		wav_samples_remaining = 0;
 		LOG_DEBUG(2,"Attached audio file %s\n\t%dHz, %d channel%s\n", filename, wav_sample_rate, wav_channels, (wav_channels==1)?"":"s");
+		/* Bit of a hack this, but after this point nothing cares
+		 * about the number of channels, so adjust sample rate to
+		 * compensate. */
+		wav_sample_rate *= wav_channels;
 		break;
 #endif
 	}
