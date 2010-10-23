@@ -84,6 +84,7 @@ extern SoundModule sound_sun_module;
 extern SoundModule sound_alsa_module;
 extern SoundModule sound_sdl_module;
 extern SoundModule sound_oss_module;
+extern SoundModule sound_pulse_module;
 extern SoundModule sound_jack_module;
 extern SoundModule sound_null_module;
 static SoundModule *default_sound_module_list[] = {
@@ -95,6 +96,9 @@ static SoundModule *default_sound_module_list[] = {
 #endif
 #ifdef HAVE_OSS_AUDIO
 	&sound_oss_module,
+#endif
+#ifdef HAVE_PULSE_AUDIO
+	&sound_pulse_module,
 #endif
 #ifdef HAVE_SDL
 	&sound_sdl_module,

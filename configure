@@ -15,7 +15,7 @@ unset target_sdl_config build_sdl_config
 unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli carbon alsa oss sunaudio coreaudio jack nullaudio sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
+all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli carbon alsa oss pulse sunaudio coreaudio jack nullaudio sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
 unset $all_opt
 
 case `echo -n` in
@@ -52,6 +52,7 @@ Optional Features:
   --disable-carbon      don't test for Mac OS X Carbon
   --disable-alsa        don't test for ALSA audio
   --disable-oss         don't test for OSS audio
+  --disable-pulse       don't test for PulseAudio
   --disable-sun         don't test for Sun audio
   --disable-coreaudio   don't test for Mac OS X Core Audio
   --disable-jack        don't test for JACK audio
@@ -361,6 +362,7 @@ if test "$_gp32" = "yes"; then
 	_carbon=no
 	_alsa=no
 	_oss=no
+	_pulse=no
 	_sunaudio=no
 	_coreaudio=no
 	_jack=no
@@ -404,6 +406,7 @@ if test "$_nds" = "yes"; then
 	_carbon=no
 	_alsa=no
 	_oss=no
+	_pulse=no
 	_sunaudio=no
 	_coreaudio=no
 	_jack=no
@@ -702,6 +705,27 @@ if test "$_oss" = "yes"; then
 	_oss_def="#define HAVE_OSS_AUDIO"
 else
 	_oss_def="#undef HAVE_OSS_AUDIO"
+fi
+
+########
+
+if test "$_pulse" \!= "no"; then
+	echocheck PulseAudio
+	test -z "$pulse_cflags" && pulse_cflags=`$target_pkg_config --cflags libpulse-simple 2> /dev/null`
+	test -z "$pulse_ldflags" && pulse_ldflags=`$target_pkg_config --libs libpulse-simple 2> /dev/null`
+	cat > $TMPC <<EOF
+#include <pulse/simple.h>
+int main(int argc, char **argv) { pa_simple *p = pa_simple_new(0,0,0,0,0,0,0,0,0); return 0; }
+EOF
+	_pulse=no
+	target_cc_check "$pulse_cflags" "$pulse_ldflags" && _pulse=yes
+	rm -f $TMPC
+	echo "$_pulse"
+fi
+if test "$_pulse" = "yes"; then
+	_pulse_def="#define HAVE_PULSE_AUDIO"
+else
+	_pulse_def="#undef HAVE_PULSE_AUDIO"
 fi
 
 ########

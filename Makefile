@@ -124,6 +124,14 @@ ifeq ($(opt_oss),yes)
 	xroar_opt_LDFLAGS += $(opt_oss_LDFLAGS)
 endif
 
+opt_pulse_OBJS = ao_pulse.o
+CLEAN += $(opt_pulse_OBJS)
+ifeq ($(opt_pulse),yes)
+	xroar_opt_OBJS += $(opt_pulse_OBJS)
+	xroar_opt_CFLAGS += $(opt_pulse_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_pulse_LDFLAGS)
+endif
+
 opt_sunaudio_OBJS = ao_sun.o
 CLEAN += $(opt_sunaudio_OBJS)
 ifeq ($(opt_sunaudio),yes)
