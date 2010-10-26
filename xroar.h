@@ -47,6 +47,7 @@ extern void (*xroar_keymap_changed_cb)(int keymap);
 
 /* Emulator interface */
 extern char *xroar_opt_gl_filter;
+extern int xroar_opt_volume;
 #ifndef FAST_SOUND
 extern int xroar_fast_sound;
 #endif

@@ -203,7 +203,7 @@ static void update_sound(void) {
 	else
 		PIA1.b.port_input &= 0xfd;
 #endif
-	sound_module->update(value);
+	sound_module->update((value * xroar_opt_volume) >> 8);
 }
 
 #define pia0a_data_postwrite keyboard_row_update

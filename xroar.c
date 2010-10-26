@@ -57,6 +57,7 @@ static const char *xroar_opt_filereq = NULL;
 static const char *xroar_opt_vo = NULL;
 char *xroar_opt_gl_filter = NULL;
 static const char *xroar_opt_ao = NULL;
+int xroar_opt_volume = 100;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
 #endif
@@ -101,6 +102,7 @@ static struct xconfig_option xroar_options[] = {
 	{ XCONFIG_STRING,   "vo",           &xroar_opt_vo },
 	{ XCONFIG_STRING,   "gl-filter",    &xroar_opt_gl_filter },
 	{ XCONFIG_STRING,   "ao",           &xroar_opt_ao },
+	{ XCONFIG_INT,      "volume",       &xroar_opt_volume },
 #ifndef FAST_SOUND
 	{ XCONFIG_BOOL,     "fast-sound",   &xroar_fast_sound },
 #endif
@@ -233,6 +235,7 @@ static void helptext(void) {
 "  -gl-filter FILTER     OpenGL texture filter (auto, linear, nearest)\n"
 #endif
 "  -ao MODULE            audio module (-ao help for list)\n"
+"  -volume VOLUME        audio volume (0 - 100)\n"
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
 #endif
@@ -373,6 +376,13 @@ int xroar_init(int argc, char **argv) {
 		load_file = strdup(argv[argn]);
 		autorun_loaded_file = 1;
 	}
+	if (xroar_opt_volume < 0) {
+		xroar_opt_volume = 0;
+	}
+	if (xroar_opt_volume > 100) {
+		xroar_opt_volume = 100;
+	}
+	xroar_opt_volume = (256 * xroar_opt_volume) / 100;
 
 	machine_getargs();
 
