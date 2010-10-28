@@ -54,11 +54,8 @@ static int scanline;
 static int frame;
 
 static event_t hs_fall_event, hs_rise_event;
-static event_t fs_fall_event, fs_rise_event;
 static void do_hs_fall(void);
 static void do_hs_rise(void);
-static void do_fs_fall(void);
-static void do_fs_rise(void);
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
@@ -71,10 +68,6 @@ void vdg_init(void) {
 	hs_fall_event.dispatch = do_hs_fall;
 	event_init(&hs_rise_event);
 	hs_rise_event.dispatch = do_hs_rise;
-	event_init(&fs_fall_event);
-	fs_fall_event.dispatch = do_fs_fall;
-	event_init(&fs_rise_event);
-	fs_rise_event.dispatch = do_fs_rise;
 }
 
 void vdg_reset(void) {
@@ -105,12 +98,13 @@ static void do_hs_fall(void) {
 		video_module->render_scanline();
 	}
 #elif defined (HAVE_NDS)
+	/* NDS video module does its own thing */
 	if (scanline >= VDG_ACTIVE_AREA_START
 			&& scanline < VDG_ACTIVE_AREA_END) {
 		render_scanline();
 		sam_vdg_hsync();
 	}
-#elif !defined(HAVE_NDS)  /* NDS video module does its own thing */
+#else
 	/* Normal code */
 	if (frame == 0 && scanline >= (VDG_TOP_BORDER_START + 1)) {
 		if (scanline < VDG_ACTIVE_AREA_START) {
@@ -124,20 +118,49 @@ static void do_hs_fall(void) {
 		}
 	}
 #endif
-	/* Next scanline */
-	scanline = (scanline + 1) % VDG_FRAME_DURATION;
-	scanline_start = hs_fall_event.at_cycle;
-	SET_BEAM_POS(0);
+
+	/* HS falling edge */
 	PIA_RESET_Cx1(PIA0.a);
-#ifdef FAST_VDG
+
+	scanline_start = hs_fall_event.at_cycle;
+	/* Next HS rise and fall */
+	hs_rise_event.at_cycle = scanline_start + VDG_HS_RISING_EDGE;
+	hs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION;
+
+	/* Two delays of 25 scanlines each occur 24 lines after FS falling edge
+	 * and at FS rising edge in PAL systems */
+	if (IS_PAL) {
+		if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 24)
+		    || scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
+			hs_rise_event.at_cycle += 25 * VDG_PAL_PADDING_LINE;
+			hs_fall_event.at_cycle += 25 * VDG_PAL_PADDING_LINE;
+		}
+	}
+
+#ifndef FAST_VDG
+	event_queue(&MACHINE_EVENT_LIST, &hs_rise_event);
+#else
 	/* Faster, less accurate timing for GP32/NDS */
 	PIA_SET_Cx1(PIA0.a);
-#else
-	/* Everything else schedule HS rise for later */
-	hs_rise_event.at_cycle = scanline_start + VDG_HS_RISING_EDGE;
-	event_queue(&MACHINE_EVENT_LIST, &hs_rise_event);
 #endif
-	hs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION;
+	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
+
+	/* Next scanline */
+	scanline = (scanline + 1) % VDG_FRAME_DURATION;
+	SET_BEAM_POS(0);
+
+	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END)) {
+		/* FS falling edge */
+		PIA_RESET_Cx1(PIA0.b);
+#ifdef HAVE_NDS
+		nds_update_screen = 1;
+#endif
+	}
+	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
+		/* FS rising edge */
+		PIA_SET_Cx1(PIA0.b);
+	}
+
 	/* Frame sync */
 	if (scanline == SCANLINE(VDG_VBLANK_START)) {
 		sam_vdg_fsync();
@@ -151,54 +174,24 @@ static void do_hs_fall(void) {
 		scanline_data_ptr = scanline_data;
 #endif
 	}
+
 #ifndef FAST_VDG
 	/* Enable mode changes at beginning of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_START)) {
 		inhibit_mode_change = 0;
 		vdg_set_mode();
 	}
-#endif
-	/* FS falling edge at end of this scanline */
-	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END - 1)) {
-#ifdef HAVE_NDS
-		nds_update_screen = 1;
-#endif
-		fs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION;
-		event_queue(&MACHINE_EVENT_LIST, &fs_fall_event);
-	}
-#ifndef FAST_VDG
 	/* Disable mode changes after end of active area */
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END)) {
 		inhibit_mode_change = 1;
 	}
 #endif
-	/* PAL delay 24 lines after FS falling edge */
-	if (IS_PAL && (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 23))) {
-		hs_fall_event.at_cycle += 25 * VDG_PAL_PADDING_LINE;
-	}
-	/* FS rising edge at end of this scanline */
-	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 31)) {
-		/* Fig. 8, VDG data sheet: tWFS = 32 * (227.5 * 1/f) */
-		fs_rise_event.at_cycle = scanline_start + VDG_LINE_DURATION;
-		event_queue(&MACHINE_EVENT_LIST, &fs_rise_event);
-		/* PAL delay after FS rising edge */
-		if (IS_PAL) {
-			hs_fall_event.at_cycle += 25 * VDG_PAL_PADDING_LINE;
-		}
-	}
-	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
+
 }
 
 static void do_hs_rise(void) {
+	/* HS rising edge */
 	PIA_SET_Cx1(PIA0.a);
-}
-
-static void do_fs_fall(void) {
-	PIA_RESET_Cx1(PIA0.b);
-}
-
-static void do_fs_rise(void) {
-	PIA_SET_Cx1(PIA0.b);
 }
 
 /* Two versions of render_scanline(): first accounts for mid-scanline mode
