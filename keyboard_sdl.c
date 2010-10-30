@@ -60,7 +60,6 @@ static unsigned int unicode_last_keysym[SDLK_LAST];
 
 static const char *keymap_option;
 static unsigned int *selected_keymap;
-static int translated_keymap;
 
 static void map_keyboard(unsigned int *map) {
 	int i;
@@ -92,8 +91,7 @@ static int init(void) {
 		}
 	}
 	map_keyboard(selected_keymap);
-	translated_keymap = 0;
-	SDL_EnableUNICODE(translated_keymap);
+	SDL_EnableUNICODE(xroar_kbd_translate);
 	poll_event = event_new();
 	poll_event->dispatch = do_poll;
 	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
@@ -182,10 +180,9 @@ static void emulator_command(SDLKey sym) {
 		break;
 #endif
 	case SDLK_z: // running out of letters...
-		translated_keymap = !translated_keymap;
-		/* UNICODE translation only used in
-		 * translation mode */
-		SDL_EnableUNICODE(translated_keymap);
+		xroar_set_kbd_translate(XROAR_TOGGLE);
+		/* UNICODE translation only used in translation mode */
+		SDL_EnableUNICODE(xroar_kbd_translate);
 		break;
 	default:
 		break;
@@ -222,7 +219,7 @@ static void keypress(SDL_keysym *keysym) {
 	if (sym == SDLK_LEFT) { KEYBOARD_PRESS(8); return; }
 	if (sym == SDLK_RIGHT) { KEYBOARD_PRESS(9); return; }
 	if (sym == SDLK_HOME) { KEYBOARD_PRESS(12); return; }
-	if (translated_keymap) {
+	if (xroar_kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)
 			return;
@@ -268,7 +265,7 @@ static void keyrelease(SDL_keysym *keysym) {
 	if (sym == SDLK_LEFT) { KEYBOARD_RELEASE(8); return; }
 	if (sym == SDLK_RIGHT) { KEYBOARD_RELEASE(9); return; }
 	if (sym == SDLK_HOME) { KEYBOARD_RELEASE(12); return; }
-	if (translated_keymap) {
+	if (xroar_kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)
 			return;

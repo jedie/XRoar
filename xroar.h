@@ -41,6 +41,7 @@ extern void (*xroar_machine_changed_cb)(int machine_type);
 extern void (*xroar_dos_changed_cb)(int dos_type);
 extern void (*xroar_fullscreen_changed_cb)(int fullscreen);
 extern void (*xroar_keymap_changed_cb)(int keymap);
+extern void (*xroar_kbd_translate_changed_cb)(int kbd_translate);
 
 /**************************************************************************/
 /* Command line arguments */
@@ -54,6 +55,7 @@ extern int xroar_fast_sound;
 extern int xroar_opt_fullscreen;
 extern int xroar_frameskip;
 extern char *xroar_opt_keymap;
+extern int xroar_kbd_translate;
 extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
 extern int xroar_tapehack;
@@ -116,6 +118,7 @@ void xroar_fullscreen(int action);
 void xroar_load_file(const char **exts);
 void xroar_run_file(const char **exts);
 void xroar_set_keymap(int keymap);
+void xroar_set_kbd_translate(int kbd_translate);
 void xroar_set_machine(int machine);
 void xroar_set_dos(int dos_type);
 void xroar_save_snapshot(void);

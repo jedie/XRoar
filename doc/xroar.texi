@@ -380,7 +380,8 @@ is a country code: "uk" (British), "us" (American), "fr" (French AZERTY) or
 
 XRoar can also be put into "translated" keyboard mode, where characters typed
 on a PC keyboard are translated into the equivalent keystrokes on the Dragon.
-Press @kbd{Control+Z} to toggle this mode.
+Run with the @option{-kbd-translate} option to start with this enabled.  Press
+@kbd{Control+Z} to toggle this mode.
 
 The keyboards of the Dragon and Tandy CoCo are connected in the same way, but
 the matrix is layed out slightly differently.  When you select a machine (see
@@ -701,6 +702,8 @@ Display help text and exit
 Output version information and exit
 @item -keymap CODE
 Select host keyboard type by country code (uk, us, fr, de).  @xref{Keyboard}.
+@item -kbd-translate
+Enable keyboard translation mode.  @xref{Keyboard}.
 @item -joy-left [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB
 @itemx -joy-right [XJ,][-]XA:[YJ,][-]YA:[FJ,]FB
 Map a joystick.  @emph{J} = joystick number, @emph{A} = axis number,

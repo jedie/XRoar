@@ -63,8 +63,6 @@ static guint keycode_to_keyval[MAX_KEYCODE];
 /* For translated mode: unicode value last generated for each keycode: */
 static guint32 last_unicode[MAX_KEYCODE];
 
-gboolean gtk2_translated_keymap;
-
 static void set_translated_keymap(gboolean state) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
 	gtk_toggle_action_set_active(toggle, state);
@@ -233,7 +231,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (keyval == GDK_Left) { KEYBOARD_PRESS(8); goto press_update; }
 	if (keyval == GDK_Right) { KEYBOARD_PRESS(9); goto press_update; }
 	if (keyval == GDK_Home) { KEYBOARD_PRESS(12); goto press_update; }
-	if (gtk2_translated_keymap) {
+	if (xroar_kbd_translate) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
 		if (event->keyval >= 0xff00 && event->keyval < 0xff20) {
@@ -288,7 +286,7 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	if (keyval == GDK_Left) { KEYBOARD_RELEASE(8); goto release_update; }
 	if (keyval == GDK_Right) { KEYBOARD_RELEASE(9); goto release_update; }
 	if (keyval == GDK_Home) { KEYBOARD_RELEASE(12); goto release_update; }
-	if (gtk2_translated_keymap) {
+	if (xroar_kbd_translate) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
 		unicode = last_unicode[keycode];

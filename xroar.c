@@ -65,6 +65,7 @@ int xroar_opt_fullscreen = 0;
 static const char *xroar_opt_ccr = NULL;
 int xroar_frameskip = 0;
 char *xroar_opt_keymap = NULL;
+int xroar_kbd_translate = 0;
 char *xroar_opt_joy_left = NULL;
 char *xroar_opt_joy_right = NULL;
 int xroar_tapehack = 0;
@@ -110,6 +111,7 @@ static struct xconfig_option xroar_options[] = {
 	{ XCONFIG_STRING,   "ccr",          &xroar_opt_ccr },
 	{ XCONFIG_INT,      "fskip",        &xroar_frameskip },
 	{ XCONFIG_STRING,   "keymap",       &xroar_opt_keymap },
+	{ XCONFIG_BOOL,     "kbd-translate", &xroar_kbd_translate },
 	{ XCONFIG_STRING,   "joy-left",     &xroar_opt_joy_left },
 	{ XCONFIG_STRING,   "joy-right",    &xroar_opt_joy_right },
 	{ XCONFIG_BOOL,     "tapehack",     &xroar_tapehack },
@@ -198,6 +200,7 @@ void (*xroar_machine_changed_cb)(int machine_type) = NULL;
 void (*xroar_dos_changed_cb)(int dos_type) = NULL;
 void (*xroar_fullscreen_changed_cb)(int fullscreen) = NULL;
 void (*xroar_keymap_changed_cb)(int keymap) = NULL;
+void (*xroar_kbd_translate_changed_cb)(int kbd_translate) = NULL;
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 static void trace_done_instruction(M6809State *state);
@@ -243,6 +246,7 @@ static void helptext(void) {
 "  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
 "  -fskip FRAMES         frameskip (default: 0)\n"
 "  -keymap CODE          host keyboard type (uk, us, fr, de)\n"
+"  -kbd-translate        enable keyboard translation\n"
 "  -joy-left JOYSPEC     map left joystick\n"
 "  -joy-right JOYSPEC    map right joystick\n"
 "  -tapehack             enable tape hacking mode\n"
@@ -431,6 +435,9 @@ int xroar_init(int argc, char **argv) {
 	keyboard_init();
 	joystick_init();
 	machine_init();
+
+	/* Notify UI of starting options: */
+	xroar_set_kbd_translate(xroar_kbd_translate);
 
 	/* Load carts before initial reset */
 	if (load_file && load_file_type == FILETYPE_ROM) {
@@ -779,6 +786,24 @@ void xroar_set_keymap(int keymap) {
 		if (xroar_keymap_changed_cb) {
 			xroar_keymap_changed_cb(new);
 		}
+	}
+	lock = 0;
+}
+
+void xroar_set_kbd_translate(int kbd_translate) {
+	static int lock = 0;
+	if (lock) return;
+	lock = 1;
+	switch (kbd_translate) {
+		case XROAR_TOGGLE: case XROAR_CYCLE:
+			xroar_kbd_translate = !xroar_kbd_translate;
+			break;
+		default:
+			xroar_kbd_translate = kbd_translate;
+			break;
+	}
+	if (xroar_kbd_translate_changed_cb) {
+		xroar_kbd_translate_changed_cb(xroar_kbd_translate);
 	}
 	lock = 0;
 }

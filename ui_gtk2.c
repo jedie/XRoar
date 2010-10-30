@@ -61,7 +61,6 @@ static GtkWidget *vbox;
 GtkUIManager *gtk2_menu_manager;
 GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
-extern gboolean gtk2_translated_keymap;
 
 static int run_cpu(void *data);
 
@@ -101,7 +100,7 @@ static void set_keymap(GtkRadioAction *action, GtkRadioAction *current, gpointer
 static void toggle_keyboard_translation(GtkToggleAction *current, gpointer user_data) {
 	gboolean val = gtk_toggle_action_get_active(current);
 	(void)user_data;
-	gtk2_translated_keymap = val;
+	xroar_set_kbd_translate(val);
 }
 
 static void close_about(GtkDialog *dialog, gint response_id, gpointer data) {
@@ -252,6 +251,11 @@ static void keymap_changed_cb(int keymap) {
 	gtk_radio_action_set_current_value(radio, keymap);
 }
 
+static void kbd_translate_changed_cb(int kbd_translate) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
+	gtk_toggle_action_set_active(toggle, kbd_translate);
+}
+
 static int init(void) {
 
 	LOG_DEBUG(2, "Initialising GTK+2 UI\n");
@@ -329,6 +333,7 @@ static int init(void) {
 	xroar_dos_changed_cb = dos_changed_cb;
 	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
 	xroar_keymap_changed_cb = keymap_changed_cb;
+	xroar_kbd_translate_changed_cb = kbd_translate_changed_cb;
 
 	return 0;
 }
