@@ -44,7 +44,7 @@ ifeq ($(opt_gtk2),yes)
 	xroar_opt_OBJS += $(opt_gtk2_OBJS)
 	xroar_opt_CFLAGS += $(opt_gtk2_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_gtk2_LDFLAGS)
-keyboard_gtk2.o: keyboard_gtk2_mappings.c
+keyboard_gtk2.o: $(SRCROOT)/keyboard_gtk2_mappings.c
 endif
 
 opt_gtkgl_OBJS = vo_gtkgl.o
@@ -65,6 +65,7 @@ ifeq ($(opt_sdl),yes)
 	xroar_opt_LDFLAGS += $(opt_sdl_LDFLAGS)
 vo_sdl.o: vdg_bitmaps.h
 vo_sdlyuv.o: vdg_bitmaps.h
+keyboard_sdl.o: $(SRCROOT)/keyboard_sdl_mappings.c
 endif
 
 opt_sdlgl_OBJS = vo_sdlgl.o
@@ -236,20 +237,19 @@ CLEAN += xroar xroar.exe
 ############################################################################
 # Documentation build rules
 
-doc/xroar.info: $(SRCROOT)/doc/xroar.texi
+doc:
 	mkdir -p doc
+
+doc/xroar.info: $(SRCROOT)/doc/xroar.texi | doc
 	$(MAKEINFO) -D "VERSION $(VERSION)" -o $@ $<
 
-doc/xroar.pdf: $(SRCROOT)/doc/xroar.texi
-	mkdir -p doc
+doc/xroar.pdf: $(SRCROOT)/doc/xroar.texi | doc
 	$(TEXI2PDF) -t "@set VERSION $(VERSION)" --build=clean -o $@ $<
 
-doc/xroar.html: $(SRCROOT)/doc/xroar.texi
-	mkdir -p doc
+doc/xroar.html: $(SRCROOT)/doc/xroar.texi | doc
 	$(MAKEINFO) --html --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
 
-doc/xroar.txt: $(SRCROOT)/doc/xroar.texi
-	mkdir -p doc
+doc/xroar.txt: $(SRCROOT)/doc/xroar.texi | doc
 	$(MAKEINFO) --plaintext --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
 
 CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
@@ -305,8 +305,10 @@ install-info: doc/xroar.info
 ############################################################################
 # Generated dependencies and the tools that generate them
 
-tools/font2c: $(SRCROOT)/tools/font2c.c
+tools:
 	mkdir -p tools
+
+tools/font2c: $(SRCROOT)/tools/font2c.c | tools
 	$(BUILD_CC) $(opt_build_sdl_CFLAGS) -o $@ $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS)
 
 CLEAN += tools/font2c
