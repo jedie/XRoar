@@ -308,6 +308,7 @@ install-info: doc/xroar.info
 tools:
 	mkdir -p tools
 
+.SECONDARY: tools/font2c
 tools/font2c: $(SRCROOT)/tools/font2c.c | tools
 	$(BUILD_CC) $(opt_build_sdl_CFLAGS) -o $@ $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS)
 
@@ -315,13 +316,11 @@ CLEAN += tools/font2c
 
 #
 
-vdg_bitmaps.h: tools/font2c $(SRCROOT)/vdgfont.png
+vdg_bitmaps.h: tools/font2c | $(SRCROOT)/vdgfont.png
 	tools/font2c --header --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
 
-vdg_bitmaps.c: tools/font2c $(SRCROOT)/vdgfont.png
+vdg_bitmaps.c: tools/font2c | $(SRCROOT)/vdgfont.png
 	tools/font2c --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
-
-CLEAN += vdg_bitmaps.h vdg_bitmaps.c
 
 ############################################################################
 # Distribution creation

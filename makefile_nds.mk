@@ -89,6 +89,7 @@ CLEAN += xroar.arm7 xroar.arm7.bin xroar.arm9 xroar.arm9.bin \
 ############################################################################
 # Generated dependencies and the tools that generate them
 
+.SECONDARY: tools/img2c_nds
 tools/img2c_nds: $(SRCROOT)/tools/img2c_nds.c | tools
 	$(BUILD_CC) $(opt_build_sdl_CFLAGS) -o $@ $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS)
 

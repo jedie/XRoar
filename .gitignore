@@ -19,7 +19,6 @@ debian/
 config.h
 config.log
 config.mak
-vdg_bitmaps.[ch]
 video_gp32.c
 gp32/cmode_bin.c
 gp32/copyright.c

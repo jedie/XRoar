@@ -56,9 +56,11 @@ CLEAN += xroar.elf xroar.fxe
 ############################################################################
 # Generated dependencies and the tools that generate them
 
+.SECONDARY: tools/prerender
 tools/prerender: $(SRCROOT)/tools/prerender.c $(SRCROOT)/vdg_bitmaps.c | tools
 	$(BUILD_CC) -o $@ $<
 
+.SECONDARY: tools/img2c
 tools/img2c: $(SRCROOT)/tools/img2c.c | tools
 	$(BUILD_CC) $(BUILD_SDL_CFLAGS) -o $@ $< $(BUILD_SDL_LDFLAGS) $(BUILD_SDL_IMAGE_LDFLAGS)
 
