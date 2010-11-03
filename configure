@@ -15,7 +15,7 @@ unset target_sdl_config build_sdl_config
 unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli carbon alsa oss pulse sunaudio coreaudio jack nullaudio sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
+all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli carbon alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
 unset $all_opt
 
 case `echo -n` in
@@ -799,6 +799,26 @@ if test "$_nullaudio" = "yes"; then
 	_nullaudio_def="#define HAVE_NULL_AUDIO"
 else
 	_nullaudio_def="#undef HAVE_NULL_AUDIO"
+fi
+
+########
+
+if test "$_linux_joystick" \!= "no"; then
+	echocheck Linux joysticks
+	cat > $TMPC <<EOF
+#include <sys/ioctl.h>
+#include <linux/joystick.h>
+int main(int argc, char **argv) { ioctl(0, JSIOCGAXES, 0); return 0; }
+EOF
+	_linux_joystick=no
+	target_cc_check "" "" && _linux_joystick=yes
+	rm -f $TMPC
+	echo "$_linux_joystick"
+fi
+if test "$_linux_joystick" = "yes"; then
+	_linux_joystick_def="#define HAVE_LINUX_JOYSTICK"
+else
+	_linux_joystick_def="#undef HAVE_LINUX_JOYSTICK"
 fi
 
 ########

@@ -117,8 +117,12 @@ static SoundModule *default_sound_module_list[] = {
 
 /**** Default joystick module list ****/
 
+extern JoystickModule joystick_linux_module;
 extern JoystickModule joystick_sdl_module;
 static JoystickModule *default_joystick_module_list[] = {
+#ifdef HAVE_LINUX_JOYSTICK
+	&joystick_linux_module,
+#endif
 #ifdef HAVE_SDL
 	&joystick_sdl_module,
 #endif

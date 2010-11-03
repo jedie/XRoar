@@ -170,6 +170,14 @@ ifeq ($(opt_nullaudio),yes)
 	xroar_opt_LDFLAGS += $(opt_nullaudio_LDFLAGS)
 endif
 
+opt_linux_joystick_OBJS = joystick_linux.o
+CLEAN += $(opt_linux_joystick_OBJS)
+ifeq ($(opt_linux_joystick),yes)
+	xroar_opt_OBJS += $(opt_linux_joystick_OBJS)
+	xroar_opt_CFLAGS += $(opt_linux_joystick_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_linux_joystick_LDFLAGS)
+endif
+
 opt_mingw_OBJS = common_windows32.o filereq_windows32.o
 CLEAN += $(opt_mingw_OBJS)
 ifeq ($(opt_mingw),yes)
