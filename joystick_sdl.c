@@ -90,10 +90,10 @@ static struct joy *find_joy(int joy_num) {
 			return &joy[i];
 	}
 	i = num_joys;
-	num_joys++;
 	j = joy[i].device = SDL_JoystickOpen(joy_num);
 	if (j == NULL)
 		return NULL;
+	num_joys++;
 	joy[i].joy_num = joy_num;
 	joy[i].num_axes = SDL_JoystickNumAxes(j);
 	joy[i].num_buttons = SDL_JoystickNumButtons(j);
