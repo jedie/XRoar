@@ -21,12 +21,12 @@
 #include <signal.h>
 
 #include "config.h"
-#if (0)
+#if defined(HAVE_SDL)
+#include <SDL.h>
+#else
 #include <errno.h>
 #include <time.h>
 #include <sys/time.h>
-#elif defined(HAVE_SDL)
-#include <SDL.h>
 #endif
 
 #include "types.h"
@@ -77,19 +77,19 @@ static void update(int value) {
 }
 
 static unsigned int current_time(void) {
-#if (0)
+#if defined(HAVE_SDL)
+	return SDL_GetTicks();
+#else
 	struct timeval tp;
 	gettimeofday(&tp, NULL);
 	return (tp.tv_sec % 1000) * 1000 + (tp.tv_usec / 1000);
-#elif defined(HAVE_SDL)
-	return SDL_GetTicks();
-#else
-	return 0;
 #endif
 }
 
 static void sleep_ms(unsigned int ms) {
-#if (0)
+#if defined(HAVE_SDL)
+	SDL_Delay(ms);
+#else
 	struct timespec elapsed, tv;
 	elapsed.tv_sec = (ms) / 1000;
 	elapsed.tv_nsec = ((ms) % 1000) * 1000000;
@@ -98,10 +98,6 @@ static void sleep_ms(unsigned int ms) {
 		tv.tv_sec = elapsed.tv_sec;
 		tv.tv_nsec = elapsed.tv_nsec;
 	} while (nanosleep(&tv, &elapsed) && errno == EINTR);
-#elif defined(HAVE_SDL)
-	SDL_Delay(ms);
-#else
-	(void)ms;
 #endif
 }
 
