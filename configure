@@ -18,6 +18,8 @@ unset _have_video_driver
 all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli carbon alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
 unset $all_opt
 
+_curses=no
+
 case `echo -n` in
 -n) _echo_n=""; _echo_c='\c'; ;;	# SysV echo
 *) _echo_n="-n"; _echo_c=""; ;;		# BSD echo
@@ -47,7 +49,7 @@ Optional Features:
   --disable-gtkgl       don't test for GtkGLExt
   --disable-sdl         don't test for SDL
   --disable-sdlgl       don't test for SDL OpenGL support
-  --disable-curses      don't test for Curses
+  --enable-curses       build Curses user-interface
   --disable-gtk1        don't test for GTK+-1
   --disable-carbon      don't test for Mac OS X Carbon
   --disable-alsa        don't test for ALSA audio
