@@ -205,6 +205,10 @@ static void keypress(SDL_keysym *keysym) {
 		return;
 	}
 	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 1; return; }
+	if (sym == SDLK_F11) {
+		xroar_fullscreen(XROAR_TOGGLE);
+		return;
+	}
 	if (sym == SDLK_F12) {
 		xroar_noratelimit = 1;
 		old_frameskip = xroar_frameskip;
