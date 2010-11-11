@@ -526,6 +526,7 @@ if test "$_sdl" = "yes"; then
 	_have_video_driver=yes
 else
 	_sdl_def="#undef HAVE_SDL"
+	_sdlgl=no
 fi
 
 if test "$_build_sdl" \!= "no"; then
