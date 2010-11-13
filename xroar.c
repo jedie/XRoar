@@ -304,12 +304,20 @@ int xroar_init(int argc, char **argv) {
 	/* If a configuration file is found, parse it */
 	conffile = find_in_path(xroar_conf_path, "xroar.conf");
 	if (conffile) {
-		xconfig_parse_file(xroar_options, conffile);
+		ret = xconfig_parse_file(xroar_options, conffile);
+		if (ret == XCONFIG_MISSING_ARG) {
+			LOG_DEBUG(0, "%s:%d: missing argument to `%s'\n", conffile, xconfig_line_number, xconfig_option);
+			exit(1);
+		}
+		if (ret == XCONFIG_BAD_OPTION) {
+			LOG_DEBUG(0, "%s:%d: unrecognised option `%s'\n", conffile, xconfig_line_number, xconfig_option);
+			exit(1);
+		}
 	}
 	/* Parse command line options */
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
 	if (ret == XCONFIG_MISSING_ARG) {
-		LOG_DEBUG(0, "%s: missing argument to `%s'\n", argv[0], argv[argn]);
+		LOG_DEBUG(0, "%s: missing argument to `%s'\n", argv[0], xconfig_option);
 		exit(1);
 	} else if (ret == XCONFIG_BAD_OPTION) {
 		if (0 == strcmp(argv[argn], "-h")
@@ -320,7 +328,7 @@ int xroar_init(int argc, char **argv) {
 			versiontext();
 			exit(0);
 		} else {
-			LOG_DEBUG(0, "%s: unrecognised option `%s'\n", argv[0], argv[argn]);
+			LOG_DEBUG(0, "%s: unrecognised option `%s'\n", argv[0], xconfig_option);
 			exit(1);
 		}
 	}

@@ -29,6 +29,10 @@ struct xconfig_option {
 	void *dest;
 };
 
+/* For error reporting: */
+extern char *xconfig_option;
+extern int xconfig_line_number;
+
 enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		const char *filename);
 

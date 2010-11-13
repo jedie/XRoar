@@ -23,6 +23,12 @@
 
 #include "xconfig.h"
 
+/* For error reporting: */
+char *xconfig_option;
+int xconfig_line_number;
+
+static char buf[256];
+
 static struct xconfig_option *find_option(struct xconfig_option *options,
 		const char *opt) {
 	int i;
@@ -63,24 +69,34 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		const char *filename) {
 	struct xconfig_option *option;
-	char buf[256];
-	char *line, *opt, *arg;
+	char *line, *arg;
 	FILE *cfg;
 	cfg = fopen(filename, "r");
 	if (cfg == NULL) return XCONFIG_FILE_ERROR;
+	xconfig_line_number = 0;
 	while ((line = fgets(buf, sizeof(buf), cfg))) {
+		xconfig_line_number++;
 		while (isspace(*line))
 			line++;
 		if (*line == 0 || *line == '#')
 			continue;
-		opt = strtok(line, "\t\n\v\f\r =");
-		if (opt == NULL) continue;
+		xconfig_option = strtok(line, "\t\n\v\f\r =");
+		if (xconfig_option == NULL) continue;
 		arg = strtok(NULL, "\t\n\v\f\r =");
-		while (*opt == '-') opt++;
-		option = find_option(options, opt);
+		while (*xconfig_option == '-') xconfig_option++;
+		option = find_option(options, xconfig_option);
 		if (option == NULL) {
 			fclose(cfg);
 			return XCONFIG_BAD_OPTION;
+		}
+		if (option->type == XCONFIG_BOOL
+		    || option->type == XCONFIG_CALL_0) {
+			set_option(option, NULL);
+			continue;
+		}
+		if (arg == NULL) {
+			fclose(cfg);
+			return XCONFIG_MISSING_ARG;
 		}
 		set_option(option, arg);
 	}
@@ -92,7 +108,6 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		int argc, char **argv, int *argn) {
 	struct xconfig_option *option;
 	int _argn;
-	char *optstr;
 	_argn = argn ? *argn : 1;
 
 	while (_argn < argc) {
@@ -103,9 +118,9 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 			_argn++;
 			break;
 		}
-		optstr = argv[_argn]+1;
-		if (*optstr == '-') optstr++;
-		option = find_option(options, optstr);
+		xconfig_option = argv[_argn]+1;
+		if (*xconfig_option == '-') xconfig_option++;
+		option = find_option(options, xconfig_option);
 		if (option == NULL) {
 			if (argn) *argn = _argn;
 			return XCONFIG_BAD_OPTION;
