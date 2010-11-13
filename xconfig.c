@@ -76,6 +76,7 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		opt = strtok(line, "\t\n\v\f\r =");
 		if (opt == NULL) continue;
 		arg = strtok(NULL, "\t\n\v\f\r =");
+		while (*opt == '-') opt++;
 		option = find_option(options, opt);
 		if (option == NULL) {
 			fclose(cfg);
