@@ -209,9 +209,16 @@ ifeq ($(BUILD_STYLE),)
 ifeq ($(opt_mingw),yes)
 ROMPATH = \":~/Local\ Settings/Application\ Data/XRoar/roms:~/Application\ Data/XRoar/roms\"
 CONFPATH = \":~/Local\ Settings/Application\ Data/XRoar:~/Application\ Data/XRoar\"
-else
-ROMPATH = \":~/.xroar/roms:~/Library/XRoar/Roms:$(datadir)/xroar/roms\"
-CONFPATH = \":~/.xroar:~/Library/XRoar:$(datadir)/xroar\"
+endif
+
+ifeq ($(opt_coreaudio),yes)
+ROMPATH = \"~/Library/XRoar/Roms:~/.xroar/roms:$(datadir)/xroar/roms:\"
+CONFPATH = \"~/Library/XRoar:~/.xroar:$(sysconfdir):$(datadir)/xroar\"
+endif
+
+ifndef $(ROMPATH)
+ROMPATH = \"~/.xroar/roms:$(datadir)/xroar/roms:\"
+CONFPATH = \"~/.xroar:$(sysconfdir):$(datadir)/xroar\"
 endif
 
 xroar_unix_CFLAGS = $(CFLAGS) $(CPPFLAGS) $(xroar_opt_CFLAGS) \
