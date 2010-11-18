@@ -52,7 +52,7 @@ char *find_in_path(const char *path, const char *filename) {
 	if (filename == NULL)
 		return NULL;
 	/* If no path or filename contains a directory, just test file */
-	if (path == NULL || strchr(filename, '/')) {
+	if (path == NULL || *path == 0 || strchr(filename, '/')) {
 		if (stat(filename, &statbuf) == 0)
 			if (statbuf.st_mode & S_IFREG)
 				if (access(filename, R_OK) == 0) {
@@ -74,7 +74,7 @@ char *find_in_path(const char *path, const char *filename) {
 	buf = malloc(buf_size);
 	if (buf == NULL)
 		return NULL;
-	while (*path) {
+	for (;;) {
 		*buf = 0;
 		/* Prefix $HOME if path elem starts "~/" */
 		if (home && *path == '~' && *(path+1) == '/') {
@@ -103,8 +103,9 @@ char *find_in_path(const char *path, const char *filename) {
 				path++;  /* skip escaped char */
 			path++;
 		}
-		if (*path == ':')
-			path++;
+		if (*path != ':')
+			break;
+		path++;
 	}
 	free(buf);
 	return NULL;
