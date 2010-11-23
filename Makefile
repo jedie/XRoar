@@ -216,7 +216,7 @@ ROMPATH = \"~/Library/XRoar/Roms:~/.xroar/roms:$(datadir)/xroar/roms:\"
 CONFPATH = \"~/Library/XRoar:~/.xroar:$(sysconfdir):$(datadir)/xroar\"
 endif
 
-ifndef $(ROMPATH)
+ifndef ROMPATH
 ROMPATH = \"~/.xroar/roms:$(datadir)/xroar/roms:\"
 CONFPATH = \"~/.xroar:$(sysconfdir):$(datadir)/xroar\"
 endif
