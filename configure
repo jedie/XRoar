@@ -563,13 +563,6 @@ fi
 
 ########
 
-if test "$_build_sdl" = "no" -o "$_build_sdl_image" = "no"; then
-	echo "Both SDL and SDL_image are needed by the build process!"
-	exit 1
-fi
-
-########
-
 if test "$_sdlgl" \!= "no"; then
 	echocheck SDL OpenGL support
 	cat > $TMPC <<EOF
