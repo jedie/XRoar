@@ -6,8 +6,6 @@
 #ifndef XROAR_TAPE_H_
 #define XROAR_TAPE_H_
 
-#include "types.h"
-
 void tape_init(void);
 void tape_reset(void);
 void tape_shutdown(void);
