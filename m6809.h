@@ -36,14 +36,21 @@ typedef struct {
 	enum m6809_cpu_state cpu_state;
 } M6809State;
 
-extern unsigned int halt, nmi, firq, irq;
-
 void m6809_init(void);
 void m6809_reset(void);
 void m6809_run(int cycles);
 void m6809_get_state(M6809State *state);
 void m6809_set_state(M6809State *state);
 void m6809_jump(unsigned int pc);
+
+void m6809_halt_set(void);
+void m6809_halt_clear(void);
+void m6809_nmi_set(void);
+void m6809_nmi_clear(void);
+void m6809_firq_set(void);
+void m6809_firq_clear(void);
+void m6809_irq_set(void);
+void m6809_irq_clear(void);
 
 /*** Private ***/
 

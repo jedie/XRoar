@@ -620,8 +620,16 @@ static void do_load_file(void) {
 static void do_m6809_sync(void) {
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
-	irq  = PIA0.a.irq | PIA0.b.irq;
-	firq = PIA1.a.irq | PIA1.b.irq;
+	if (PIA0.a.irq | PIA0.b.irq) {
+		m6809_irq_set();
+	} else {
+		m6809_irq_clear();
+	}
+	if (PIA1.a.irq | PIA1.b.irq) {
+		m6809_firq_set();
+	} else {
+		m6809_firq_clear();
+	}
 }
 
 #ifdef TRACE

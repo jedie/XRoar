@@ -27,7 +27,6 @@
 #include "types.h"
 #include "cart.h"
 #include "dragondos.h"
-#include "events.h"
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
@@ -47,14 +46,6 @@ static void set_drq_handler(void);
 static void reset_drq_handler(void);
 static void set_intrq_handler(void);
 static void reset_intrq_handler(void);
-
-/* NMIs queued to allow CPU to run next instruction */
-static event_t nmi_event;
-static void do_nmi(void);
-#define QUEUE_NMI() do { \
-		nmi_event.at_cycle = current_cycle + 1; \
-		event_queue(&MACHINE_EVENT_LIST, &nmi_event); \
-	} while (0)
 
 /* Latch that's part of the DragonDOS cart: */
 static int ic1_old;
@@ -80,8 +71,6 @@ struct cart *dragondos_new(const char *filename) {
 	wd279x_reset_drq_handler   = reset_drq_handler;
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
-	event_init(&nmi_event);
-	nmi_event.dispatch = do_nmi;
 	return &cart;
 }
 
@@ -97,7 +86,6 @@ static void reset(void) {
 }
 
 static void detach(void) {
-	event_dequeue(&nmi_event);
 }
 
 static int io_read(int addr) {
@@ -156,15 +144,11 @@ static void reset_drq_handler(void) {
 }
 
 static void set_intrq_handler(void) {
-	QUEUE_NMI();
+	if (ic1_nmi_enable) {
+		m6809_nmi_set();
+	}
 }
 
 static void reset_intrq_handler(void) {
-	nmi = 0;
-}
-
-static void do_nmi(void) {
-	if (ic1_nmi_enable) {
-		nmi = 1;
-	}
+	m6809_nmi_clear();
 }

@@ -26,7 +26,6 @@
 
 #include "types.h"
 #include "cart.h"
-#include "events.h"
 #include "logging.h"
 #include "m6809.h"
 #include "machine.h"
@@ -46,14 +45,6 @@ static void set_drq_handler(void);
 static void reset_drq_handler(void);
 static void set_intrq_handler(void);
 static void reset_intrq_handler(void);
-
-/* NMIs queued to allow CPU to run next instruction */
-static event_t nmi_event;
-static void do_nmi(void);
-#define QUEUE_NMI() do { \
-		nmi_event.at_cycle = current_cycle + 1; \
-		event_queue(&MACHINE_EVENT_LIST, &nmi_event); \
-	} while (0)
 
 /* Latch that's part of the RSDOS cart: */
 static int ic1_old;
@@ -79,8 +70,6 @@ struct cart *rsdos_new(const char *filename) {
 	wd279x_reset_drq_handler   = reset_drq_handler;
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
-	event_init(&nmi_event);
-	nmi_event.dispatch = do_nmi;
 	return &cart;
 }
 
@@ -95,7 +84,6 @@ static void reset(void) {
 }
 
 static void detach(void) {
-	event_dequeue(&nmi_event);
 }
 
 static int io_read(int addr) {
@@ -154,42 +142,39 @@ static void ff40_write(int octet) {
 	ic1_density = octet & 0x20;
 	wd279x_set_density(ic1_density);
 	if (ic1_density && intrq_flag) {
-		nmi = 1;
+		m6809_nmi_set();
 	}
 	halt_enable = octet & 0x80;
 	if (intrq_flag) halt_enable = 0;
 	if (halt_enable && !drq_flag) {
-		halt = 1;
+		m6809_halt_set();
 	} else {
-		halt = 0;
+		m6809_halt_clear();
 	}
 }
 
 static void set_drq_handler(void) {
 	drq_flag = 1;
-	halt = 0;
+	m6809_halt_clear();
 }
 
 static void reset_drq_handler(void) {
 	drq_flag = 0;
 	if (halt_enable) {
-		halt = 1;
+		m6809_halt_set();
 	}
 }
 
 static void set_intrq_handler(void) {
 	intrq_flag = 1;
-	halt_enable = halt = 0;
-	QUEUE_NMI();
+	halt_enable = 0;
+	m6809_halt_clear();
+	if (!ic1_density && intrq_flag) {
+		m6809_nmi_set();
+	}
 }
 
 static void reset_intrq_handler(void) {
 	intrq_flag = 0;
-	nmi = 0;
-}
-
-static void do_nmi(void) {
-	if (!ic1_density && intrq_flag) {
-		nmi = 1;
-	}
+	m6809_nmi_clear();
 }

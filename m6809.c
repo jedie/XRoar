@@ -69,9 +69,9 @@
 #define SET_NZ_D() do { SET_N8(reg_a); if (!reg_a && !reg_b) reg_cc |= CC_Z; } while (0)
 
 /* CPU fetch/store goes via SAM */
-#define fetch_byte(a) (m6809_read_cycle(a))
+#define fetch_byte(a) (cycle++, m6809_read_cycle(a))
 #define fetch_word(a) (fetch_byte(a) << 8 | fetch_byte((a)+1))
-#define store_byte(a,v) do { m6809_write_cycle(a,v); } while (0)
+#define store_byte(a,v) do { m6809_write_cycle(a,v); cycle++; } while (0)
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) do { (void)m6809_read_cycle(a); } while (0)
 
@@ -92,7 +92,7 @@
 #define SHORT_RELATIVE(r)       { BYTE_IMMEDIATE(0,r); r = sex(r); }
 #define LONG_RELATIVE(r)        WORD_IMMEDIATE(0,r)
 
-#define TAKEN_CYCLES(c) do { m6809_nvma_cycles(c); } while (0)
+#define TAKEN_CYCLES(c) do { m6809_nvma_cycles(c); cycle += c; } while (0)
 
 #define PUSHWORD(s,r)   { s -= 2; store_byte(s+1, r); store_byte(s, r >> 8); }
 #define PUSHBYTE(s,r)   { s--; store_byte(s, r); }
@@ -178,8 +178,10 @@ static uint16_t reg_s;
 static uint16_t reg_pc;
 
 /* MPU interrupt state variables */
-unsigned int halt, nmi, firq, irq;
+static unsigned int halt, nmi, firq, irq;
+static unsigned int halt_cycle, nmi_cycle, firq_cycle, irq_cycle;
 static int nmi_armed;
+static unsigned int cycle;
 
 /* MPU state.  Represents current position in the high-level flow chart
  * from the data sheet (figure 14). */
@@ -364,6 +366,8 @@ void m6809_init(void) {
 	reg_cc = reg_a = reg_b = reg_dp = 0;
 	reg_x = reg_y = reg_u = reg_s = 0;
 	reg_pc = 0;
+	cycle = 0;
+	halt_cycle = nmi_cycle = firq_cycle = irq_cycle = 0;
 }
 
 void m6809_reset(void) {
@@ -377,7 +381,9 @@ void m6809_reset(void) {
 
 void m6809_run(int cycles) {
 
-	for (; cycles > 0; cycles--) {
+	unsigned int start_cycle = cycle;
+
+	while ((int)(cycle - start_cycle) < cycles) {
 
 		m6809_sync();
 
@@ -390,7 +396,6 @@ void m6809_run(int cycles) {
 			DISARM_NMI;
 			cpu_state = m6809_flow_reset_check_halt;
 			/* fall through */
-			cycles--;
 
 		case m6809_flow_reset_check_halt:
 			if (halt) {
@@ -409,24 +414,23 @@ void m6809_run(int cycles) {
 			}
 			cpu_state = m6809_flow_label_b;
 			/* fall through */
-			cycles--;
 
 		case m6809_flow_label_b:
-			if (nmi_armed && nmi) {
+			if (nmi_armed && nmi  && (int)(cycle - nmi_cycle) > 0) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
 				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			}
-			if (firq && !(reg_cc & CC_F)) {
+			if (firq && !(reg_cc & CC_F) && (int)(cycle - firq_cycle) > 0) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_FIRQ_REGISTERS();
 				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			}
-			if (irq && !(reg_cc & CC_I)) {
+			if (irq && !(reg_cc & CC_I) && (int)(cycle - irq_cycle) > 0) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
@@ -1454,4 +1458,48 @@ void m6809_set_state(M6809State *state) {
 
 void m6809_jump(unsigned int pc) {
 	reg_pc = pc;
+}
+
+void m6809_halt_set(void) {
+	if (!halt) {
+		halt_cycle = cycle + 1;
+	}
+	halt = 1;
+}
+
+void m6809_halt_clear(void) {
+	halt = 0;
+}
+
+void m6809_nmi_set(void) {
+	if (!nmi) {
+		nmi_cycle = cycle + 1;
+	}
+	nmi = 1;
+}
+
+void m6809_nmi_clear(void) {
+	nmi = 0;
+}
+
+void m6809_firq_set(void) {
+	if (!firq) {
+		firq_cycle = cycle + 1;
+	}
+	firq = 1;
+}
+
+void m6809_firq_clear(void) {
+	firq = 0;
+}
+
+void m6809_irq_set(void) {
+	if (!irq) {
+		irq_cycle = cycle + 1;
+	}
+	irq = 1;
+}
+
+void m6809_irq_clear(void) {
+	irq = 0;
 }
