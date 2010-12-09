@@ -51,7 +51,6 @@ struct keymap {
 
 #include "keyboard_gtk2_mappings.c"
 
-static unsigned int control = 0, shift = 0;
 static unsigned int emulate_joystick = 0;
 static int old_frameskip = 0;
 
@@ -139,7 +138,7 @@ static int init(void) {
 static void shutdown(void) {
 }
 
-static void emulator_command(guint keyval) {
+static void emulator_command(guint keyval, int shift) {
 	switch (keyval) {
 	case GDK_1: case GDK_2: case GDK_3: case GDK_4:
 		if (shift) {
@@ -195,6 +194,7 @@ static void emulator_command(guint keyval) {
 }
 
 static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+	int control, shift;
 	(void)widget;
 	(void)user_data;
 	if (gtk_window_activate_key(GTK_WINDOW(gtk2_top_window), event) == TRUE) {
@@ -204,6 +204,8 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		return TRUE;
 	}
 	guint keyval = keycode_to_keyval[event->hardware_keycode];
+	control = event->state & GDK_CONTROL_MASK;
+	shift = event->state & GDK_SHIFT_MASK;
 	if (emulate_joystick) {
 		if (keyval == GDK_Up) { input_control_press(INPUT_JOY_RIGHT_Y, 0); return TRUE; }
 		if (keyval == GDK_Down) { input_control_press(INPUT_JOY_RIGHT_Y, 255); return TRUE; }
@@ -212,18 +214,16 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		if (keyval == GDK_Alt_L) { input_control_press(INPUT_JOY_RIGHT_FIRE, 0); return TRUE; }
 	}
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
-		shift = 1;
 		KEYBOARD_PRESS(0);
 		goto press_update;
 	}
-	if (keyval == GDK_Control_L || keyval == GDK_Control_R) { control = 1; return TRUE; }
 	if (keyval == GDK_F12 && !xroar_noratelimit) {
 		xroar_noratelimit = 1;
 		old_frameskip = xroar_frameskip;
 		xroar_frameskip = 10;
 	}
 	if (control) {
-		emulator_command(keyval);
+		emulator_command(keyval, shift);
 		return TRUE;
 	}
 	if (keyval == GDK_Up) { KEYBOARD_PRESS(94); goto press_update; }
@@ -258,12 +258,14 @@ press_update:
 }
 
 static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+	int shift;
 	(void)widget;
 	(void)user_data;
 	if (event->hardware_keycode >= MAX_KEYCODE) {
 		return TRUE;
 	}
 	guint keyval = keycode_to_keyval[event->hardware_keycode];
+	shift = event->state & GDK_SHIFT_MASK;
 	if (emulate_joystick) {
 		if (keyval == GDK_Up) { input_control_release(INPUT_JOY_RIGHT_Y, 0); return TRUE; }
 		if (keyval == GDK_Down) { input_control_release(INPUT_JOY_RIGHT_Y, 255); return TRUE; }
@@ -272,11 +274,9 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		if (keyval == GDK_Alt_L) { input_control_release(INPUT_JOY_RIGHT_FIRE, 0); return TRUE; }
 	}
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
-		shift = 0;
 		KEYBOARD_RELEASE(0);
 		goto release_update;
 	}
-	if (keyval == GDK_Control_L || keyval == GDK_Control_R) { control = 0; return TRUE; }
 	if (keyval == GDK_F12) {
 		xroar_noratelimit = 0;
 		xroar_frameskip = old_frameskip;
