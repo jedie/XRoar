@@ -101,6 +101,7 @@ void sam_reset(void) {
 }
 
 unsigned int sam_read_byte(unsigned int addr) {
+	static unsigned int last_read = 0;
 	addr &= 0xffff;
 	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20)) {
 		slow_cycle(1);
@@ -113,26 +114,26 @@ unsigned int sam_read_byte(unsigned int addr) {
 		/* RAM access */
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
 		if (addr < machine_ram_size)
-			return ram0[ram_addr];
-		return 0x7e;
+			return last_read = ram0[ram_addr];
+		return last_read;
 	}
 	if (addr < 0xc000) {
 		/* BASIC ROM access */
-		return sam_mapped_rom[addr & 0x3fff];
+		return last_read = sam_mapped_rom[addr & 0x3fff];
 	}
 	if (addr < 0xff00) {
 		/* Cartridge ROM access */
 		if (machine_cart) {
-			return machine_cart->mem_data[addr & 0x3fff];
+			return last_read = machine_cart->mem_data[addr & 0x3fff];
 		}
-		return 0x7e;
+		return last_read;
 	}
 	if (addr < 0xff20) {
 		/* PIA0 */
 		if (IS_COCO) {
-			return mc6821_read(&PIA0, addr & 3);
+			return last_read = mc6821_read(&PIA0, addr & 3);
 		} else {
-			if ((addr & 4) == 0) return mc6821_read(&PIA0, addr & 3);
+			if ((addr & 4) == 0) return last_read = mc6821_read(&PIA0, addr & 3);
 			/* Not yet implemented:
 			if ((addr & 7) == 4) return serial_stuff;
 			if ((addr & 7) == 5) return serial_stuff;
@@ -140,20 +141,20 @@ unsigned int sam_read_byte(unsigned int addr) {
 			if ((addr & 7) == 7) return serial_stuff;
 			*/
 		}
-		return 0x7e;
+		return last_read;
 	}
 	if (addr < 0xff40) {
-		return mc6821_read(&PIA1, addr & 3);
+		return last_read = mc6821_read(&PIA1, addr & 3);
 	}
 	if (addr < 0xff60) {
 		if (machine_cart && machine_cart->io_read) {
-			return machine_cart->io_read(addr);
+			return last_read = machine_cart->io_read(addr);
 		}
-		return 0x7e;
+		return last_read;
 	}
 	if (addr < 0xffe0)
-		return 0x7f;
-	return rom0[addr-0xc000];
+		return last_read;
+	return last_read = rom0[addr-0xc000];
 }
 
 void sam_store_byte(unsigned int addr, unsigned int octet) {
