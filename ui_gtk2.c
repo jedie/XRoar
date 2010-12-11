@@ -62,6 +62,12 @@ GtkUIManager *gtk2_menu_manager;
 GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
 
+/* for hiding cursor: */
+static int cursor_hidden = 0;
+static GdkCursor *old_cursor, *blank_cursor;
+static gboolean hide_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data);
+static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data);
+
 static int run_cpu(void *data);
 
 static void save_snapshot(void) {
@@ -335,6 +341,12 @@ static int init(void) {
 	xroar_keymap_changed_cb = keymap_changed_cb;
 	xroar_kbd_translate_changed_cb = kbd_translate_changed_cb;
 
+	/* Cursor hiding */
+	blank_cursor = gdk_cursor_new(GDK_BLANK_CURSOR);
+	gtk_widget_add_events(gtk2_drawing_area, GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK);
+	g_signal_connect(G_OBJECT(gtk2_top_window), "key-press-event", G_CALLBACK(hide_cursor), NULL);
+	g_signal_connect(G_OBJECT(gtk2_drawing_area), "motion-notify-event", G_CALLBACK(show_cursor), NULL);
+
 	return 0;
 }
 
@@ -353,4 +365,29 @@ static void run(void) {
 	gtk_widget_show_all(gtk2_top_window);
 	g_idle_add(run_cpu, run_cpu);
 	gtk_main();
+}
+
+static gboolean hide_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data) {
+	(void)widget;
+	(void)event;
+	(void)data;
+	if (cursor_hidden)
+		return FALSE;
+	GdkWindow *window = gtk_widget_get_window(gtk2_drawing_area);
+	old_cursor = gdk_window_get_cursor(window);
+	gdk_window_set_cursor(window, blank_cursor);
+	cursor_hidden = 1;
+	return FALSE;
+}
+
+static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data) {
+	(void)widget;
+	(void)event;
+	(void)data;
+	if (!cursor_hidden)
+		return FALSE;
+	GdkWindow *window = gtk_widget_get_window(gtk2_drawing_area);
+	gdk_window_set_cursor(window, old_cursor);
+	cursor_hidden = 0;
+	return FALSE;
 }
