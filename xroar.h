@@ -48,6 +48,7 @@ extern void (*xroar_kbd_translate_changed_cb)(int kbd_translate);
 
 /* Emulator interface */
 extern char *xroar_opt_gl_filter;
+extern int xroar_opt_ao_rate;
 extern int xroar_opt_volume;
 #ifndef FAST_SOUND
 extern int xroar_fast_sound;

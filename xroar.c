@@ -57,6 +57,7 @@ static const char *xroar_opt_filereq = NULL;
 static const char *xroar_opt_vo = NULL;
 char *xroar_opt_gl_filter = NULL;
 static const char *xroar_opt_ao = NULL;
+int xroar_opt_ao_rate = 0;
 int xroar_opt_volume = 100;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
@@ -103,6 +104,7 @@ static struct xconfig_option xroar_options[] = {
 	{ XCONFIG_STRING,   "vo",           &xroar_opt_vo },
 	{ XCONFIG_STRING,   "gl-filter",    &xroar_opt_gl_filter },
 	{ XCONFIG_STRING,   "ao",           &xroar_opt_ao },
+	{ XCONFIG_INT,      "ao-rate",      &xroar_opt_ao_rate },
 	{ XCONFIG_INT,      "volume",       &xroar_opt_volume },
 #ifndef FAST_SOUND
 	{ XCONFIG_BOOL,     "fast-sound",   &xroar_fast_sound },
@@ -238,6 +240,8 @@ static void helptext(void) {
 "  -gl-filter FILTER     OpenGL texture filter (auto, linear, nearest)\n"
 #endif
 "  -ao MODULE            audio module (-ao help for list)\n"
+"  -ao-rate HZ           set audio sample rate (if allowed by module)\n"
+"  -ao-buffer MS         desired audio latency in ms (if allowed by module)\n"
 "  -volume VOLUME        audio volume (0 - 100)\n"
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
