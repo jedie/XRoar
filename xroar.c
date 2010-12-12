@@ -241,7 +241,6 @@ static void helptext(void) {
 #endif
 "  -ao MODULE            audio module (-ao help for list)\n"
 "  -ao-rate HZ           set audio sample rate (if allowed by module)\n"
-"  -ao-buffer MS         desired audio latency in ms (if allowed by module)\n"
 "  -volume VOLUME        audio volume (0 - 100)\n"
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
