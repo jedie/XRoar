@@ -47,7 +47,6 @@ SoundModule sound_sdl_module = {
 
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 
-#define REQUEST_SAMPLE_RATE 44100
 #define REQUEST_FRAME_SIZE 512
 
 static int sample_cycles;
@@ -87,7 +86,7 @@ static int init(void) {
 		LOG_ERROR("Failed to initialise SDL audio driver\n");
 		return 1;
 	}
-	desired.freq = REQUEST_SAMPLE_RATE;
+	desired.freq = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	desired.format = AUDIO_U8;
 	desired.samples = REQUEST_FRAME_SIZE;
 	desired.channels = 1;

@@ -70,7 +70,7 @@ static int init(void) {
 
 	LOG_DEBUG(2,"Initialising ALSA audio driver\n");
 
-	sample_rate = 44100;
+	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 
 	if ((err = snd_pcm_open(&pcm_handle, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0)
 		goto failed;

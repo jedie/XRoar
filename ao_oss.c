@@ -98,9 +98,8 @@ static int init(void) {
 	if (ioctl(sound_fd, SNDCTL_DSP_STEREO, &channels) == -1)
 		goto failed;
 	channels++;
-	/* Attempt to set sample_rate to 44.1kHz, but live with whatever
-	 * we get */
-	sample_rate = 44100;
+	/* Attempt to set sample_rate, but live with whatever we get */
+	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	if (ioctl(sound_fd, SNDCTL_DSP_SPEED, &sample_rate) == -1)
 		goto failed;
 	/* Set number of fragments low */

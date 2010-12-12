@@ -62,7 +62,6 @@ static event_t *flush_event;
 static int init(void) {
 	pa_sample_spec ss = {
 		.format = PA_SAMPLE_U8,
-		.rate = 44100,
 		.channels = 1
 	};
 	pa_buffer_attr ba = {
@@ -75,7 +74,7 @@ static int init(void) {
 
 	LOG_DEBUG(2,"Initialising PulseAudio driver\n");
 
-	sample_rate = 44100;
+	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	ss.rate = sample_rate;
 	pa = pa_simple_new(NULL, "XRoar", PA_STREAM_PLAYBACK, NULL, "playback",
 	                   &ss, NULL, &ba, &error);

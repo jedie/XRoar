@@ -48,12 +48,12 @@ SoundModule sound_sun_module = {
 
 typedef uint8_t Sample;  /* 8-bit mono */
 
-#define SAMPLE_RATE 22050
 #define CHANNELS 1
 #define FRAME_SIZE 512
-#define SAMPLE_CYCLES (OSCILLATOR_RATE / SAMPLE_RATE)
-#define FRAME_CYCLES ((OSCILLATOR_RATE / SAMPLE_RATE) * FRAME_SIZE)
+#define SAMPLE_CYCLES (OSCILLATOR_RATE / sample_rate)
+#define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
+static unsigned int sample_rate;
 static int sound_fd;
 static unsigned int channels = CHANNELS;
 static uint_t samples_written;
@@ -65,7 +65,6 @@ static Sample *wrptr;
 static Sample lastsample;
 
 static int init(void) {
-	unsigned int rate = SAMPLE_RATE;
 	audio_info_t device_info;
 	const char *device = "/dev/audio";
 
@@ -76,8 +75,9 @@ static int init(void) {
 		LOG_ERROR("Couldn't open audio device %s: %s!\n", device, strerror(errno));
 		return 1;
 	}
+	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	AUDIO_INITINFO(&device_info);
-	device_info.play.sample_rate = SAMPLE_RATE;
+	device_info.play.sample_rate = sample_rate;
 	device_info.play.channels = CHANNELS;
 	device_info.play.precision = 8;
 	device_info.play.encoding = AUDIO_ENCODING_LINEAR;
@@ -94,11 +94,11 @@ static int init(void) {
 		LOG_ERROR("Couldn't set desired audio format.\n");
 		return 1;
 	}
-	if (device_info.play.sample_rate != rate) {
-		LOG_ERROR("Couldn't set desired (%dHz) audio rate.  Got %dHz.\n", rate, device_info.play.sample_rate);
+	if (device_info.play.sample_rate != sample_rate) {
+		LOG_ERROR("Couldn't set desired (%dHz) audio rate.  Got %dHz.\n", sample_rate, device_info.play.sample_rate);
 		return 1;
 	}
-	LOG_DEBUG(2, "Set up audio device at %dHz, %d channels.\n", rate, channels);
+	LOG_DEBUG(2, "Set up audio device at %dHz, %d channels.\n", sample_rate, channels);
 	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
@@ -155,7 +155,7 @@ static void flush_frame(void) {
 	}
 	samples_left = samples_written - device_info.play.samples;
 	if (samples_left > FRAME_SIZE) {
-		int sleep_ms = ((samples_left - FRAME_SIZE) * 1000)/SAMPLE_RATE;
+		int sleep_ms = ((samples_left - FRAME_SIZE) * 1000)/sample_rate;
 		struct timespec elapsed, tv;
 		int errcode;
 		sleep_ms -= 10;
