@@ -566,6 +566,9 @@ Use of a specific module can be forced using @option{-ao MODULE}.  Use
 @option{-ao null} to disable audio, or @option{-ao help} for a list of
 available modules.
 
+For most audio modules, the @option{-ao-rate HZ} option can be used to specify
+a sample rate in Hz.  The default will usually be 44100.
+
 @node Keyboard commands
 @section Keyboard commands
 
@@ -692,6 +695,8 @@ Specify video module (@option{-vo help} for a list)
 Select OpenGL texture filter (auto, linear, nearest)
 @item -ao MODULE
 Specify audio module (@option{-ao help} for a list)
+@item -ao-rate HZ
+Set audio sample rate (if allowed by module)
 @item -volume VOLUME
 Specify audio volume (0 - 100)
 @item -fskip FRAMES
