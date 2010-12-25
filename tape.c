@@ -96,6 +96,7 @@ void tape_init(void) {
 #endif
 	read_fd = write_fd = -1;
 	bits_remaining = block_bytes = 0;
+	current_byte = 0;
 	fake_leader = 0;
 	event_init(&waggle_event);
 	waggle_event.dispatch = waggle_bit;
@@ -128,6 +129,8 @@ int tape_open_reading(const char *filename) {
 			return -1;
 		}
 		bits_remaining = block_bytes = 0;
+		current_byte = 0;
+		current_block = FIRST_BLOCK;
 		/* If motor is on, enable the bit waggler */
 		if (motor) {
 			fake_leader = 64;
