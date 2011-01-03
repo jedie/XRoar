@@ -196,8 +196,12 @@ void machine_update_sound(void) {
 				/* DAC output */
 				value = (PIA1.a.port_output & 0xfc) >> 1;
 				break;
+			case 1:
+				/* Tape input */
+				value = tape_audio;
+				break;
 			default:
-				/* Tape input, CART input or disabled */
+				/* CART input or disabled */
 				value = 0;
 				break;
 		}

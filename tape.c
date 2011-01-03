@@ -34,6 +34,8 @@
 #include "tape.h"
 #include "xroar.h"
 
+int tape_audio;
+
 static int read_fd, write_fd;
 static unsigned int motor;
 
@@ -91,6 +93,7 @@ static short wav_sample_in(void);
 #endif
 
 void tape_init(void) {
+	tape_audio = 0;
 #ifdef HAVE_SNDFILE
 	wav_read_file = NULL;
 #endif
@@ -426,6 +429,7 @@ static void waggle_bit(void) {
 		default:
 		case 0:
 			PIA1.a.port_input |= 0x01;
+			tape_audio = 0;
 			waggle_state = 1;
 			if (!motor || (cur_bit = bit_in()) == -1) {
 				event_dequeue(&waggle_event);
@@ -434,9 +438,11 @@ static void waggle_bit(void) {
 			break;
 		case 1:
 			PIA1.a.port_input &= 0xfe;
+			tape_audio = 0x0f;
 			waggle_state = 0;
 			break;
 	}
+	machine_update_sound();
 	/* Single cycles of 1200 baud for 0s, and 2400 baud for 1s */
 	if (cur_bit == 0)
 		waggle_event.at_cycle += (OSCILLATOR_RATE / 2400);

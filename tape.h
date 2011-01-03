@@ -6,6 +6,8 @@
 #ifndef XROAR_TAPE_H_
 #define XROAR_TAPE_H_
 
+extern int tape_audio;
+
 void tape_init(void);
 void tape_reset(void);
 void tape_shutdown(void);
