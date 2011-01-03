@@ -183,18 +183,23 @@ void machine_getargs(void) {
 	}
 }
 
-static void update_sound(void) {
+void machine_update_sound(void) {
 	int value;
 	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
 		value = (PIA1.b.port_output & 0x02) ? 0x3f : 0;
 	} else {
-		if (PIA0.b.control_register & 0x08) {
-			/* Sound disabled */
-			value = 0;
-		} else {
-			/* DAC output */
-			value = (PIA1.a.port_output & 0xfc) >> 1;
+		int source = ((PIA0.b.control_register & 0x08) >> 2)
+		             | ((PIA0.a.control_register & 0x08) >> 3);
+		switch (source) {
+			case 0:
+				/* DAC output */
+				value = (PIA1.a.port_output & 0xfc) >> 1;
+				break;
+			default:
+				/* Tape input, CART input or disabled */
+				value = 0;
+				break;
 		}
 	}
 #ifndef FAST_SOUND
@@ -207,10 +212,10 @@ static void update_sound(void) {
 }
 
 #define pia0a_data_postwrite keyboard_row_update
-#define pia0a_control_postwrite update_sound
+#define pia0a_control_postwrite machine_update_sound
 
 #define pia0b_data_postwrite keyboard_column_update
-#define pia0b_control_postwrite update_sound
+#define pia0b_control_postwrite machine_update_sound
 
 static void pia0b_data_postwrite_coco64k(void) {
 	keyboard_column_update();
@@ -228,7 +233,7 @@ static void pia0b_data_postwrite_coco64k(void) {
 #endif
 
 static void pia1a_data_postwrite(void) {
-	update_sound();
+	machine_update_sound();
 	joystick_update();
 	tape_update_output();
 }
@@ -239,10 +244,10 @@ static void pia1b_data_postwrite(void) {
 	if (IS_DRAGON64) {
 		sam_mapped_rom = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
 	}
-	update_sound();
+	machine_update_sound();
 	vdg_set_mode();
 }
-#define pia1b_control_postwrite update_sound
+#define pia1b_control_postwrite machine_update_sound
 
 void machine_init(void) {
 	sam_init();

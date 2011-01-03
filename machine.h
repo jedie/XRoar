@@ -106,6 +106,8 @@ void machine_init(void);
 void machine_shutdown(void);
 void machine_reset(int hard);
 
+void machine_update_sound(void);
+
 void machine_clear_requested_config(void);
 void machine_insert_cart(struct cart *cart);
 void machine_remove_cart(void);
