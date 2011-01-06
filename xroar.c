@@ -51,6 +51,22 @@
 /**************************************************************************/
 /* Command line arguments */
 
+/* Emulated machine */
+char *xroar_opt_machine = NULL;
+char *xroar_opt_bas = NULL;
+char *xroar_opt_extbas = NULL;
+char *xroar_opt_altbas = NULL;
+int xroar_opt_nobas = 0;
+int xroar_opt_noextbas = 0;
+int xroar_opt_noaltbas = 0;
+char *xroar_opt_dostype = NULL;
+char *xroar_opt_dos = NULL;
+int xroar_opt_nodos = 0;
+int xroar_opt_tv = ANY_AUTO;
+static void set_pal(void);
+static void set_ntsc(void);
+int xroar_opt_ram = 0;
+
 /* Emulator interface */
 static const char *xroar_opt_ui = NULL;
 static const char *xroar_opt_filereq = NULL;
@@ -76,28 +92,32 @@ int xroar_trace_enabled = 0;
 # define xroar_trace_enabled (0)
 #endif
 
-/* Emulated machine */
-char *xroar_opt_machine = NULL;
-char *xroar_opt_bas = NULL;
-char *xroar_opt_extbas = NULL;
-char *xroar_opt_altbas = NULL;
-int xroar_opt_nobas = 0;
-int xroar_opt_noextbas = 0;
-int xroar_opt_noaltbas = 0;
-char *xroar_opt_dostype = NULL;
-char *xroar_opt_dos = NULL;
-int xroar_opt_nodos = 0;
-int xroar_opt_tv = ANY_AUTO;
-static void set_pal(void);
-static void set_ntsc(void);
-int xroar_opt_ram = 0;
-
 /* Automatically load or run files */
 static const char *xroar_opt_load = NULL;
 static const char *xroar_opt_run = NULL;
 
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
+	/* Emulated machine */
+	{ XCONFIG_STRING,   "machine",      &xroar_opt_machine },
+	{ XCONFIG_STRING,   "bas",          &xroar_opt_bas },
+	{ XCONFIG_STRING,   "extbas",       &xroar_opt_extbas },
+	{ XCONFIG_STRING,   "altbas",       &xroar_opt_altbas },
+	{ XCONFIG_BOOL,     "nobas",        &xroar_opt_nobas },
+	{ XCONFIG_BOOL,     "noextbas",     &xroar_opt_noextbas },
+	{ XCONFIG_BOOL,     "noaltbas",     &xroar_opt_noaltbas },
+	{ XCONFIG_STRING,   "dostype",      &xroar_opt_dostype },
+	{ XCONFIG_STRING,   "dos",          &xroar_opt_dos },
+	{ XCONFIG_BOOL,     "nodos",        &xroar_opt_nodos },
+	{ XCONFIG_CALL_0,   "pal",          &set_pal },
+	{ XCONFIG_CALL_0,   "ntsc",         &set_ntsc },
+	{ XCONFIG_INT,      "ram",          &xroar_opt_ram },
+	/* Automatically load or run files */
+	{ XCONFIG_STRING,   "load",         &xroar_opt_load },
+	{ XCONFIG_STRING,   "cartna",       &xroar_opt_load },
+	{ XCONFIG_STRING,   "snap",         &xroar_opt_load },
+	{ XCONFIG_STRING,   "run",          &xroar_opt_run },
+	{ XCONFIG_STRING,   "cart",         &xroar_opt_run },
 	/* Emulator interface */
 	{ XCONFIG_STRING,   "ui",           &xroar_opt_ui },
 	{ XCONFIG_STRING,   "filereq",      &xroar_opt_filereq },
@@ -120,26 +140,6 @@ static struct xconfig_option xroar_options[] = {
 #ifdef TRACE
 	{ XCONFIG_BOOL,     "trace",        &xroar_trace_enabled },
 #endif
-	/* Emulated machine */
-	{ XCONFIG_STRING,   "machine",      &xroar_opt_machine },
-	{ XCONFIG_STRING,   "bas",          &xroar_opt_bas },
-	{ XCONFIG_STRING,   "extbas",       &xroar_opt_extbas },
-	{ XCONFIG_STRING,   "altbas",       &xroar_opt_altbas },
-	{ XCONFIG_BOOL,     "nobas",        &xroar_opt_nobas },
-	{ XCONFIG_BOOL,     "noextbas",     &xroar_opt_noextbas },
-	{ XCONFIG_BOOL,     "noaltbas",     &xroar_opt_noaltbas },
-	{ XCONFIG_STRING,   "dostype",      &xroar_opt_dostype },
-	{ XCONFIG_STRING,   "dos",          &xroar_opt_dos },
-	{ XCONFIG_BOOL,     "nodos",        &xroar_opt_nodos },
-	{ XCONFIG_CALL_0,   "pal",          &set_pal },
-	{ XCONFIG_CALL_0,   "ntsc",         &set_ntsc },
-	{ XCONFIG_INT,      "ram",          &xroar_opt_ram },
-	/* Automatically load or run files */
-	{ XCONFIG_STRING,   "load",         &xroar_opt_load },
-	{ XCONFIG_STRING,   "cartna",       &xroar_opt_load },
-	{ XCONFIG_STRING,   "snap",         &xroar_opt_load },
-	{ XCONFIG_STRING,   "run",          &xroar_opt_run },
-	{ XCONFIG_STRING,   "cart",         &xroar_opt_run },
 	{ XCONFIG_END, NULL, NULL }
 };
 
@@ -233,6 +233,23 @@ static void helptext(void) {
 "XRoar is a Dragon emulator.  Due to hardware similarities, XRoar also\n"
 "emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
 
+"\n Emulated machine:\n"
+"  -machine MACHINE      emulated machine (-machine help for list)\n"
+"  -bas FILENAME         BASIC ROM to use (CoCo only)\n"
+"  -extbas FILENAME      Extended BASIC ROM to use\n"
+"  -altbas FILENAME      alternate BASIC ROM (Dragon 64)\n"
+"  -noextbas             disable Extended BASIC\n"
+"  -dostype DOS          type of DOS cartridge (-dostype help for list)\n"
+"  -dos FILENAME         DOS ROM (or CoCo Disk BASIC)\n"
+"  -nodos                disable DOS (ROM and hardware emulation)\n"
+"  -pal                  emulate PAL (50Hz) video\n"
+"  -ntsc                 emulate NTSC (60Hz) video\n"
+"  -ram KBYTES           specify amount of RAM in K\n"
+
+"\n Automatically load or run files:\n"
+"  -load FILENAME        load or attach FILENAME\n"
+"  -run FILENAME         load or attach FILENAME and attempt autorun\n"
+
 "\n Emulator interface:\n"
 "  -ui MODULE            user-interface module (-ui help for list)\n"
 "  -vo MODULE            video module (-vo help for list)\n"
@@ -256,23 +273,6 @@ static void helptext(void) {
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
-
-"\n Emulated machine:\n"
-"  -machine MACHINE      emulated machine (-machine help for list)\n"
-"  -bas FILENAME         BASIC ROM to use (CoCo only)\n"
-"  -extbas FILENAME      Extended BASIC ROM to use\n"
-"  -altbas FILENAME      alternate BASIC ROM (Dragon 64)\n"
-"  -noextbas             disable Extended BASIC\n"
-"  -dostype DOS          type of DOS cartridge (-dostype help for list)\n"
-"  -dos FILENAME         DOS ROM (or CoCo Disk BASIC)\n"
-"  -nodos                disable DOS (ROM and hardware emulation)\n"
-"  -pal                  emulate PAL (50Hz) video\n"
-"  -ntsc                 emulate NTSC (60Hz) video\n"
-"  -ram KBYTES           specify amount of RAM in K\n"
-
-"\n Automatically load or run files:\n"
-"  -load FILENAME        load or attach FILENAME\n"
-"  -run FILENAME         load or attach FILENAME and attempt autorun\n"
 
 "\n Other options:\n"
 "  -h, --help            display this help and exit\n"

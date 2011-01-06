@@ -657,7 +657,12 @@ run with @option{-trace}.  Toggle trace mode on or off with @kbd{Control+V}.
 
 Many emulator functions can be changed using keyboard shortcuts (see
 @ref{Keyboard commands}), but some behaviour can also be changed from the
-command line.  Here's a summary of supported command-line options:
+command line.
+
+If you run the Windows pre-built binary, you might find that emulator output
+gets written to a file called @file{stderr.txt} instead of to the console.
+
+@subsection Emulated machine options
 
 @table @option
 @item -machine MACHINE
@@ -687,6 +692,20 @@ Specify cross-colour renderer (@option{-ccr help} for list).
 Specify amount of RAM in kilobytes
 @item -fast-sound
 Faster but less accurate sound.  @xref{Audio hardware}.
+@end table
+
+@subsection Options to load or run files
+
+@table @option
+@item -load FILENAME
+Load or attach @file{FILENAME}.  @xref{Supported file types}.
+@item -run FILE
+Load or attach @file{FILENAME} and attempt autorun.
+@end table
+
+@subsection Emulator interface options
+
+@table @option
 @item -ui MODULE
 Specify user interface module (@option{-ui help} for a list)
 @item -vo MODULE
@@ -701,14 +720,6 @@ Set audio sample rate (if allowed by module)
 Specify audio volume (0 - 100)
 @item -fskip FRAMES
 Specify frameskip (default: 0).  @xref{Video output}.
-@item -load FILENAME
-Load or attach @file{FILENAME}.  @xref{Supported file types}.
-@item -run FILE
-Load or attach @file{FILENAME} and attempt autorun.
-@item -h, --help
-Display help text and exit
-@item --version
-Output version information and exit
 @item -keymap CODE
 Select host keyboard type by country code (uk, us, fr, de).  @xref{Keyboard}.
 @item -kbd-translate
@@ -722,8 +733,14 @@ Map a joystick.  @emph{J} = joystick number, @emph{A} = axis number,
 Start with trace mode on.  @xref{Trace mode}.
 @end table
 
-If you run the Windows pre-built binary, you might find that emulator output
-gets written to a file called @file{stderr.txt} instead of to the console.
+@subsection Other options
+
+@table @option
+@item -h, --help
+Display help text and exit
+@item --version
+Output version information and exit
+@end table
 
 @node Supported file types
 @chapter Supported file types

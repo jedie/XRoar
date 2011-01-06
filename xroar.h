@@ -46,6 +46,20 @@ extern void (*xroar_kbd_translate_changed_cb)(int kbd_translate);
 /**************************************************************************/
 /* Command line arguments */
 
+/* Emulated machine */
+extern char *xroar_opt_machine;
+extern char *xroar_opt_bas;
+extern char *xroar_opt_extbas;
+extern char *xroar_opt_altbas;
+extern int xroar_opt_nobas;
+extern int xroar_opt_noextbas;
+extern int xroar_opt_noaltbas;
+extern char *xroar_opt_dostype;
+extern char *xroar_opt_dos;
+extern int xroar_opt_nodos;
+extern int xroar_opt_tv;
+extern int xroar_opt_ram;
+
 /* Emulator interface */
 extern char *xroar_opt_gl_filter;
 extern int xroar_opt_ao_rate;
@@ -61,20 +75,6 @@ extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
 extern int xroar_tapehack;
 extern int xroar_trace_enabled;
-
-/* Emulated machine */
-extern char *xroar_opt_machine;
-extern char *xroar_opt_bas;
-extern char *xroar_opt_extbas;
-extern char *xroar_opt_altbas;
-extern int xroar_opt_nobas;
-extern int xroar_opt_noextbas;
-extern int xroar_opt_noaltbas;
-extern char *xroar_opt_dostype;
-extern char *xroar_opt_dos;
-extern int xroar_opt_nodos;
-extern int xroar_opt_tv;
-extern int xroar_opt_ram;
 
 /**************************************************************************/
 /* Global flags */
