@@ -47,7 +47,11 @@ SoundModule sound_sdl_module = {
 
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 
+#ifdef WINDOWS32
+#define REQUEST_FRAME_SIZE 1024
+#else
 #define REQUEST_FRAME_SIZE 512
+#endif
 
 static int sample_cycles;
 static int frame_size;
