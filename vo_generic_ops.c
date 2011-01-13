@@ -195,7 +195,7 @@ static void set_mode(unsigned int mode) {
 				fg_colour = vdg_colour[(mode & 0x08) >> 1];
 				border_colour = fg_colour;
 			}
-			bg_colour = black;
+			bg_colour = (mode & 0x08) ? black : darkgreen;
 			break;
 	}
 }
