@@ -197,24 +197,21 @@ to build:
 
 @itemize @bullet
 @item
-@strong{SDL}, Simple Directmedia Layer, is used for video and
-audio output on most supported platforms, and is required to build for all of
-them.  It can be obtained from the
+@strong{GTK+}, the GIMP tookit, is used to provide a file requester on Linux
+and Unix builds.  It is available from the @myuref{http://www.gtk.org/, GTK+
+home page}.
+@item
+@strong{GtkGLExt}, an OpenGL extension to GTK+.  This is optional, but if
+present, a full GTK+ interface can be presented.  Under Linux, this obviates
+the need for SDL entirely.
+@item
+@strong{SDL}, Simple Directmedia Layer, is used for video and audio output on
+most supported platforms.  It can be obtained from the
 @myuref{http://www.libsdl.org/, SDL home page}.
 @item
-@strong{SDL_image} is an add-on to SDL that provides the ability
-to manipulate various graphics formats.  It's used in the build process to
-generate font data from a supplied image file.  It can be downloaded from the
-@myuref{http://www.libsdl.org/projects/SDL_image/, SDL_image project page}.
-@item
-@strong{libsndfile} is optional but recommended.  It allows XRoar
-to use audio files (such as WAVs) as a source for cassette input.  It
-is available on the
+@strong{libsndfile} is optional but recommended.  It allows XRoar to use audio
+files (such as WAVs) as a source for cassette input.  It is available on the
 @myuref{http://www.mega-nerd.com/libsndfile/, libsndfile home page}.
-@item
-@strong{GTK+}, the GIMP tookit, is used to provide a file
-requester on Linux and Unix builds.  It is available from the
-@myuref{http://www.gtk.org/, GTK+ home page}.
 @end itemize
 
 If you use a modern Linux or Unix distribution, it's likely that most of these

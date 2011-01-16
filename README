@@ -51,10 +51,10 @@ Getting started
 
 To start, you will need to acquire (and maybe build) the software and
 install it.  Pre-built binary packages are available from the XRoar
-home page (http://www.6809.org.uk/dragon/xroar.shtml) .  If one is not
+home page (http://www.6809.org.uk/dragon/xroar.shtml).  If one is not
 available for your architecture, you will have to build from source.
 XRoar should build and run on any POSIX-like system for which SDL
-(http://www.libsdl.org/)  is available.
+(http://www.libsdl.org/) is available.
 
 
 Installation
@@ -67,25 +67,22 @@ If there is no binary package for your system, you will have to build
 from source.  Before doing so, you should ensure you have the
 dependencies required to build:
 
-   * *SDL*, Simple Directmedia Layer, is used for video and audio
-     output on most supported platforms, and is required to build for
-     all of them.  It can be obtained from the SDL home page
-     (http://www.libsdl.org/) .
+   * *GTK+*, the GIMP tookit, is used to provide a file requester on
+     Linux and Unix builds.  It is available from the GTK+ home page
+     (http://www.gtk.org/).
 
-   * *SDL_image* is an add-on to SDL that provides the ability to
-     manipulate various graphics formats.  It's used in the build
-     process to generate font data from a supplied image file.  It can
-     be downloaded from the SDL_image project page
-     (http://www.libsdl.org/projects/SDL_image/) .
+   * *GtkGLExt*, an OpenGL extension to GTK+.  This is optional, but if
+     present, a full GTK+ interface can be presented.  Under Linux,
+     this obviates the need for SDL entirely.
+
+   * *SDL*, Simple Directmedia Layer, is used for video and audio
+     output on most supported platforms.  It can be obtained from the
+     SDL home page (http://www.libsdl.org/).
 
    * *libsndfile* is optional but recommended.  It allows XRoar to use
      audio files (such as WAVs) as a source for cassette input.  It is
      available on the libsndfile home page
-     (http://www.mega-nerd.com/libsndfile/) .
-
-   * *GTK+*, the GIMP tookit, is used to provide a file requester on
-     Linux and Unix builds.  It is available from the GTK+ home page
-     (http://www.gtk.org/) .
+     (http://www.mega-nerd.com/libsndfile/).
 
    If you use a modern Linux or Unix distribution, it's likely that
 most of these packages will be installed by default, or easily
