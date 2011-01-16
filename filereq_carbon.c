@@ -1,5 +1,5 @@
 /*  XRoar - a Dragon/Tandy Coco emulator
- *  Copyright (C) 2003-2010  Ciaran Anscomb
+ *  Copyright (C) 2003-2011  Ciaran Anscomb
  *  This file Copyright (C) 2004 Stuart Teasdale
  *
  *  This program is free software; you can redistribute it and/or modify
