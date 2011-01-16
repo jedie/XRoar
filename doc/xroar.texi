@@ -203,7 +203,9 @@ home page}.
 @item
 @strong{GtkGLExt}, an OpenGL extension to GTK+.  This is optional, but if
 present, a full GTK+ interface can be presented.  Under Linux, this obviates
-the need for SDL entirely.
+the need for SDL entirely.  It is available from the
+@myuref{http://projects.gnome.org/gtkglext/, GTK+ OpenGL Extension project
+page}.
 @item
 @strong{SDL}, Simple Directmedia Layer, is used for video and audio output on
 most supported platforms.  It can be obtained from the
