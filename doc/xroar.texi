@@ -15,9 +15,9 @@
 @c %**end of header
 
 @macro myuref {link, text}
-@uref{\link\, \text\}
+@uref{\link\, \text\}@c
 @iftex
-@footnote{\link\}
+@footnote{\link\}@c
 @end iftex
 @end macro
 
