@@ -422,6 +422,10 @@ get this old behaviour, use the command line options @option{-joy-left 0,3:2:0
 @node Cassettes
 @section Cassette images
 
+@menu
+* ``Tapehack'' mode: Tapehack.
+@end menu
+
 XRoar supports three types of cassette image: @file{.cas} files, audio files
 such as @file{.wav} and ASCII text files containing BASIC programs (@file{.bas}
 or @file{.asc}).  @file{.cas} files contain a binary representation of what
@@ -443,6 +447,14 @@ any existing files with this command.
 The currently open tape files used for reading and writing are distinct.  There
 is currently no good user interface for tape control, so if you want to rewind
 a tape, reattach it.
+
+@node Tapehack
+@subsection ``Tapehack'' mode
+
+When started with the @option{-tapehack} option, XRoar enters a special mode
+that is useful for creating @file{.cas} files from sampled audio cassettes.  It
+intercepts cassette reading ROM routines, and rewrites any date read to the
+tape file selected for writing.
 
 @node Disks
 @section Floppy disk images
@@ -728,6 +740,8 @@ Enable keyboard translation mode.  @xref{Keyboard}.
 Map a joystick.  @emph{J} = joystick number, @emph{A} = axis number,
 @emph{B} = button number a @emph{-} before axis signifies inverted axis.
 @xref{Joysticks}.
+@item -tapehack
+Enable tape hacking mode.  @xref{Tapehack}.
 @item -trace
 Start with trace mode on.  @xref{Trace mode}.
 @end table
