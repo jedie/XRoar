@@ -154,7 +154,7 @@ unsigned int sam_read_byte(unsigned int addr) {
 	}
 	if (addr < 0xffe0)
 		return last_read;
-	return last_read = rom0[addr-0xc000];
+	return last_read = sam_mapped_rom[addr-0xc000];
 }
 
 void sam_store_byte(unsigned int addr, unsigned int octet) {
