@@ -157,21 +157,11 @@ static const gchar *ui =
 	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
 	    "</menu>"
 	    "<menu name='MachineMenu' action='MachineMenuAction'>"
-	      "<menuitem action='dragon32'/>"
-	      "<menuitem action='dragon64'/>"
-	      "<menuitem action='coco'/>"
-	      "<menuitem action='cocous'/>"
-	      "<menuitem action='tano'/>"
 	      "<separator/>"
 	      "<menuitem name='SoftReset' action='SoftResetAction'/>"
 	      "<menuitem name='HardReset' action='HardResetAction'/>"
 	    "</menu>"
 	    "<menu name='DOSMenu' action='DOSMenuAction'>"
-	      "<menuitem action='none'/>"
-	      "<menuitem action='auto'/>"
-	      "<menuitem action='dragondos'/>"
-	      "<menuitem action='rsdos'/>"
-	      "<menuitem action='delta'/>"
 	    "</menu>"
 	    "<menu name='KeyboardMenu' action='KeyboardMenuAction'>"
 	      "<menuitem action='keymap_dragon'/>"
@@ -278,44 +268,56 @@ static int init(void) {
 	vbox = gtk_vbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(gtk2_top_window), vbox);
 
-	/* Set up action group and parse menu XML */
-	GtkActionGroup *action_group = gtk_action_group_new("Actions");
-	gtk_action_group_set_translation_domain(action_group, "atd");
+	/* Create a UI from XML */
 	gtk2_menu_manager = gtk_ui_manager_new();
-	gtk_action_group_add_actions(action_group, ui_entries, ui_n_entries, NULL);
-	gtk_action_group_add_toggle_actions(action_group, ui_toggles, ui_n_toggles, NULL);
 
-	int i;
-	GtkRadioActionEntry machine_radio_entries[NUM_MACHINE_TYPES];
-	memset(machine_radio_entries, 0, sizeof(machine_radio_entries));
-	for (i = 0; i < NUM_MACHINE_TYPES; i++) {
-		machine_radio_entries[i].name = machine_options[i];
-		machine_radio_entries[i].label = machine_names[i];
-		machine_radio_entries[i].value = i;
-	}
-	gtk_action_group_add_radio_actions(action_group, machine_radio_entries, NUM_MACHINE_TYPES, requested_machine, (GCallback)set_machine, NULL);
-
-	GtkRadioActionEntry dos_radio_entries[NUM_DOS_TYPES+1];
-	memset(dos_radio_entries, 0, sizeof(dos_radio_entries));
-	dos_radio_entries[0].name = "auto";
-	dos_radio_entries[0].label = "Automatic";
-	dos_radio_entries[0].value = ANY_AUTO;
-	for (i = 0; i < NUM_DOS_TYPES; i++) {
-		dos_radio_entries[i+1].name = dos_type_options[i];
-		dos_radio_entries[i+1].label = dos_type_names[i];
-		dos_radio_entries[i+1].value = i;
-	}
-	gtk_action_group_add_radio_actions(action_group, dos_radio_entries, NUM_DOS_TYPES+1, -1, (GCallback)set_dos, NULL);
-
-	gtk_action_group_add_radio_actions(action_group, keymap_radio_entries, 2, 0, (GCallback)set_keymap, NULL);
-
-	gtk_ui_manager_insert_action_group(gtk2_menu_manager, action_group, 0);
 	GError *error = NULL;
 	gtk_ui_manager_add_ui_from_string(gtk2_menu_manager, ui, -1, &error);
 	if (error) {
 		g_message("building menus failed: %s", error->message);
 		g_error_free(error);
 	}
+
+	/* Set up main action group */
+	GtkActionGroup *action_group = gtk_action_group_new("Actions");
+	gtk_action_group_add_actions(action_group, ui_entries, ui_n_entries, NULL);
+	gtk_action_group_add_toggle_actions(action_group, ui_toggles, ui_n_toggles, NULL);
+	gtk_action_group_add_radio_actions(action_group, keymap_radio_entries, 2, 0, (GCallback)set_keymap, NULL);
+
+	/* Menu merge points */
+	guint merge_machines = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
+	guint merge_dos_types = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
+
+	/* Add machines to menu */
+	int i;
+	GtkRadioActionEntry machine_radio_entries[NUM_MACHINE_TYPES];
+	memset(machine_radio_entries, 0, sizeof(machine_radio_entries));
+	/* add these to the ui in reverse order, as each will be inserted
+	   before the previous */
+	for (i = NUM_MACHINE_TYPES-1; i >= 0; i--) {
+		machine_radio_entries[i].name = machine_options[i];
+		machine_radio_entries[i].label = machine_names[i];
+		machine_radio_entries[i].value = i;
+		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/MachineMenu", machine_radio_entries[i].name, machine_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+	}
+	gtk_action_group_add_radio_actions(action_group, machine_radio_entries, NUM_MACHINE_TYPES, requested_machine, (GCallback)set_machine, NULL);
+
+	/* Add DOS types to menu */
+	GtkRadioActionEntry dos_radio_entries[NUM_DOS_TYPES+1];
+	memset(dos_radio_entries, 0, sizeof(dos_radio_entries));
+	dos_radio_entries[0].name = "auto";
+	dos_radio_entries[0].label = "Automatic";
+	dos_radio_entries[0].value = ANY_AUTO;
+	gtk_ui_manager_add_ui(gtk2_menu_manager, merge_dos_types, "/MainMenu/DOSMenu", dos_radio_entries[0].name, dos_radio_entries[0].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+	for (i = 0; i < NUM_DOS_TYPES; i++) {
+		dos_radio_entries[i+1].name = dos_type_options[i];
+		dos_radio_entries[i+1].label = dos_type_names[i];
+		dos_radio_entries[i+1].value = i;
+		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_dos_types, "/MainMenu/DOSMenu", dos_radio_entries[i+1].name, dos_radio_entries[i+1].name, GTK_UI_MANAGER_MENUITEM, FALSE);
+	}
+	gtk_action_group_add_radio_actions(action_group, dos_radio_entries, NUM_DOS_TYPES+1, -1, (GCallback)set_dos, NULL);
+
+	gtk_ui_manager_insert_action_group(gtk2_menu_manager, action_group, 0);
 
 	/* Extract menubar widget and add to vbox */
 	gtk2_menubar = gtk_ui_manager_get_widget(gtk2_menu_manager, "/MainMenu");
