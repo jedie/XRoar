@@ -208,10 +208,10 @@ void (*m6809_interrupt_hook)(unsigned int vector);
 #define EA_ROFF5P(b,r,o) case ((b)+(o)): ea = (r) + (o); peek_byte(reg_pc); TAKEN_CYCLES(1)
 #define EA_ROFF5N(b,r,o) case ((b)+32+(o)): ea = (r) + (o); peek_byte(reg_pc); TAKEN_CYCLES(1)
 #define EA_ROFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + (r); TAKEN_CYCLES(1)
-#define EA_ROFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += (r); peek_byte(reg_pc); TAKEN_CYCLES(2)
+#define EA_ROFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += (r); TAKEN_CYCLES(3)
 #define EA_ROFFA(b,r) case (b): ea = (r) + sex(reg_a); peek_byte(reg_pc); TAKEN_CYCLES(1)
 #define EA_ROFFB(b,r) case (b): ea = (r) + sex(reg_b); peek_byte(reg_pc); TAKEN_CYCLES(1)
-#define EA_ROFFD(b,r) case (b): ea = (r) + reg_d; peek_byte(reg_pc); peek_byte(reg_pc+1); peek_byte(reg_pc+2); TAKEN_CYCLES(2)
+#define EA_ROFFD(b,r) case (b): ea = (r) + reg_d; peek_byte(reg_pc); peek_byte(reg_pc+1); TAKEN_CYCLES(3)
 #define EA_RI1(b,r) case (b): ea = (r); r += 1; peek_byte(reg_pc); TAKEN_CYCLES(2)
 #define EA_RI2(b,r) case (b): ea = (r); r += 2; peek_byte(reg_pc); TAKEN_CYCLES(3)
 #define EA_RD1(b,r) case (b): r -= 1; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(2)
@@ -219,9 +219,9 @@ void (*m6809_interrupt_hook)(unsigned int vector);
 #define EA_PCOFFFF(b,r) case (b): ea = reg_pc | 0xff
 #define EA_PCOFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + reg_pc; TAKEN_CYCLES(1)
 #define EA_PCOFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += reg_pc; peek_byte(reg_pc); TAKEN_CYCLES(3)
-/* Illegal instruction, but seems to work on a real 6809: */
-#define EA_EXT(b,r) case (b): WORD_IMMEDIATE(0,ea); peek_byte(reg_pc); break
-#define EA_EXTIND(b,r) case (b): WORD_IMMEDIATE(0,ea); peek_byte(reg_pc); ea = fetch_byte(ea) << 8 | fetch_byte(ea+1); TAKEN_CYCLES(1); break
+/* Without indirection this is an illegal instruction, but it seems to work
+ * on a real 6809: */
+#define EA_EXT(b,r) case (b): WORD_IMMEDIATE(0,ea); TAKEN_CYCLES(1)
 
 #define EA_ROFF5(b,r) \
 	case (b)+0: case (b)+1: case (b)+2: case (b)+3: case (b)+4: \
@@ -349,7 +349,7 @@ static unsigned int ea_indexed(void) {
 		EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
 		EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
 		EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
-		EA_ALLR(EA_EXT,     0x8f); EA_ALLRI(EA_EXTIND,  0x9f);
+		EA_ALLR(EA_EXT,     0x8f); EA_ALLRI(EA_EXT,     0x9f);
 		default: ea = 0; break;
 	}
 	return ea;
@@ -762,10 +762,10 @@ void m6809_run(int cycles) {
 				unsigned int data;
 				BYTE_IMMEDIATE(0,data);
 				reg_cc &= data;
+				peek_byte(reg_pc);
 				/* Differs from legal 0x1c version by
 				 * taking one more cycle: */
 				TAKEN_CYCLES(1);
-				peek_byte(reg_pc);
 			} break;
 			/* 0x39 RTS inherent */
 			case 0x39:
@@ -795,7 +795,7 @@ void m6809_run(int cycles) {
 					PULLWORD(reg_s, reg_pc);
 				}
 				ARM_NMI;
-				TAKEN_CYCLES(1);
+				peek_byte(reg_s);
 				break;
 			/* 0x3C CWAI immediate */
 			case 0x3c: {
