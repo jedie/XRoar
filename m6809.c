@@ -574,9 +574,7 @@ void m6809_run(int cycles) {
 				unsigned int new_pc;
 				LONG_RELATIVE(new_pc);
 				new_pc = reg_pc + new_pc;
-				TAKEN_CYCLES(1);
-				peek_byte(new_pc);
-				TAKEN_CYCLES(1);
+				TAKEN_CYCLES(4);
 				PUSHWORD(reg_s, reg_pc);
 				reg_pc = new_pc;
 			} break;
@@ -805,6 +803,7 @@ void m6809_run(int cycles) {
 				BYTE_IMMEDIATE(0,data);
 				reg_cc &= data;
 				peek_byte(reg_pc);
+				TAKEN_CYCLES(1);
 				PUSH_IRQ_REGISTERS();
 				TAKEN_CYCLES(1);
 				cpu_state = m6809_flow_dispatch_irq;
@@ -1012,8 +1011,7 @@ void m6809_run(int cycles) {
 				unsigned int new_pc;
 				SHORT_RELATIVE(new_pc);
 				new_pc = reg_pc + new_pc;
-				peek_byte(new_pc);
-				TAKEN_CYCLES(1);
+				TAKEN_CYCLES(3);
 				PUSHWORD(reg_s, reg_pc);
 				reg_pc = new_pc;
 			} break;
