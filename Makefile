@@ -1,8 +1,11 @@
 # Makefile for XRoar.
 # Needs you to run './configure' first.  './configure --help' for help.
 
+# Run with "VERBOSE=1" for normal output.
+
 -include config.mak
 
+#VERBOSE = 1
 VERSION := 0.25
 DISTNAME = xroar-$(VERSION)
 
@@ -12,10 +15,27 @@ all: build-bin build-doc
 ############################################################################
 # Base object files and settings required by all builds
 
+ifeq ($(VERBOSE),)
+
+WARN = -Wall -W
+
+do_cc = @echo CC $(1); $(CC) -o $(1) $(2)
+do_build_cc = @echo BUILD_CC $(1); $(BUILD_CC) -o $(1) $(2)
+do_makeinfo = @echo MAKEINFO $(1); $(MAKEINFO) -o $(1) $(2)
+do_texi2pdf = @echo TEXI2PDF $(1); $(TEXI2PDF) -o $(1) $(2)
+
+else
+
 WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wcast-qual -Wshadow -Waggregate-return -Wnested-externs -Winline \
-	-Wwrite-strings -Wundef -Wsign-compare -Wmissing-prototypes \
-	-Wredundant-decls
+	-Wwrite-strings -Wundef -Wmissing-prototypes -Wredundant-decls
+
+do_cc = $(CC) -o $(1) $(2)
+do_build_cc = $(BUILD_CC) -o $(1) $(2)
+do_makeinfo = $(MAKEINFO) -o $(1) $(2)
+do_texi2pdf = $(TEXI2PDF) -o $(1) $(2)
+
+endif
 
 CONFIG_FILES = config.h config.mak
 
@@ -234,13 +254,13 @@ xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 $(xroar_unix_ALL_OBJS): $(CONFIG_FILES)
 
 $(xroar_common_OBJS) $(xroar_unix_OBJS) $(xroar_opt_OBJS): %.o: $(SRCROOT)/%.c
-	$(CC) -o $@ $(xroar_unix_CFLAGS) -c $<
+	$(call do_cc,$@,$(xroar_unix_CFLAGS) -c $<)
 
 $(xroar_common_INT_OBJS) $(xroar_unix_INT_OBJS) $(xroar_opt_INT_OBJS): %.o: ./%.c
-	$(CC) -o $@ $(xroar_unix_CFLAGS) -c $<
+	$(call do_cc,$@,$(xroar_unix_CFLAGS) -c $<)
 
 xroar$(EXEEXT): $(xroar_unix_ALL_OBJS)
-	$(CC) -o $@ $(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS)
+	$(call do_cc,$@,$(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS))
 
 .PHONY: build-bin
 build-bin: xroar$(EXEEXT)
@@ -256,16 +276,16 @@ doc:
 	mkdir -p doc
 
 doc/xroar.info: $(SRCROOT)/doc/xroar.texi | doc
-	$(MAKEINFO) -D "VERSION $(VERSION)" -o $@ $<
+	$(call do_makeinfo,$@,-D "VERSION $(VERSION)" $<)
 
 doc/xroar.pdf: $(SRCROOT)/doc/xroar.texi | doc
-	$(TEXI2PDF) -t "@set VERSION $(VERSION)" --build=clean -o $@ $<
+	$(call do_texi2pdf,$@,-q -t "@set VERSION $(VERSION)" --build=clean $<)
 
 doc/xroar.html: $(SRCROOT)/doc/xroar.texi | doc
-	$(MAKEINFO) --html --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
+	$(call do_makeinfo,$@,--html --no-headers --no-split -D "VERSION $(VERSION)" $<)
 
 doc/xroar.txt: $(SRCROOT)/doc/xroar.texi | doc
-	$(MAKEINFO) --plaintext --no-headers --no-split -D "VERSION $(VERSION)" -o $@ $<
+	$(call do_makeinfo,$@,--plaintext --no-headers --no-split -D "VERSION $(VERSION)" $<)
 
 CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
 
@@ -325,7 +345,7 @@ tools:
 
 .SECONDARY: tools/font2c
 tools/font2c: $(SRCROOT)/tools/font2c.c | tools
-	$(BUILD_CC) $(opt_build_sdl_CFLAGS) -o $@ $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS)
+	$(call do_build_cc,$@,$(opt_build_sdl_CFLAGS) $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS))
 
 CLEAN += tools/font2c
 
