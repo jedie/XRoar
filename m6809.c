@@ -472,20 +472,23 @@ void m6809_run(int cycles) {
 			continue;
 
 		case m6809_flow_sync:
-			if (nmi || firq || irq) {
-				TAKEN_CYCLES(1);
+			if ((nmi  && (int)(cycle - nmi_cycle) > 0) ||
+			    (firq && (int)(cycle - firq_cycle) > 0) ||
+			    (irq  && (int)(cycle - irq_cycle) > 0)) {
+				TAKEN_CYCLES(2);
 				cpu_state = m6809_flow_label_b;
 				continue;
 			}
-			cpu_state = m6809_flow_sync_check_halt;
+			TAKEN_CYCLES(1);
+			if (halt)
+				cpu_state = m6809_flow_sync_check_halt;
 			continue;
 
 		case m6809_flow_sync_check_halt:
 			TAKEN_CYCLES(1);
-			if (halt) {
-				continue;
+			if (!halt) {
+				cpu_state = m6809_flow_sync;
 			}
-			cpu_state = m6809_flow_sync;
 			continue;
 
 		case m6809_flow_next_instruction:
@@ -559,7 +562,6 @@ void m6809_run(int cycles) {
 			/* 0x13 SYNC inherent */
 			case 0x13:
 				peek_byte(reg_pc);
-				TAKEN_CYCLES(1);
 				cpu_state = m6809_flow_sync;
 				continue;
 			/* 0x14, 0x15 HCF? (illegal) */
