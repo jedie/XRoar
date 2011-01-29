@@ -30,7 +30,7 @@
 #include "xroar.h"
 
 /* Offset to account for unseen portion of left border */
-#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 32)
+#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 76)
 
 static Cycle scanline_start;
 static int is_32byte;
