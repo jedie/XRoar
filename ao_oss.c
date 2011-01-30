@@ -194,7 +194,8 @@ static void flush_frame(void) {
 			for (j = 0; j < channels; j++)
 				*(dest++) = tmp;
 		}
-		write(sound_fd, convbuf, FRAME_SIZE * channels);
+		int r = write(sound_fd, convbuf, FRAME_SIZE * channels);
+		(void)r;
 		return;
 	}
 	if (format == AFMT_S16_NE) {
@@ -206,7 +207,8 @@ static void flush_frame(void) {
 			for (j = 0; j < channels; j++)
 				*(dest++) = tmp;
 		}
-		write(sound_fd, convbuf, FRAME_SIZE * channels * 2);
+		int r = write(sound_fd, convbuf, FRAME_SIZE * channels * 2);
+		(void)r;
 		return;
 	}
 }
