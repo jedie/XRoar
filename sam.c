@@ -43,7 +43,6 @@ static unsigned int sam_vdg_ycount;
 #ifdef VARIABLE_MPU_RATE
 static unsigned int sam_ram_cycles;
 static unsigned int sam_rom_cycles;
-static int was_slow = 0;
 #else
 # define sam_ram_cycles CPU_SLOW_DIVISOR
 # define sam_rom_cycles CPU_SLOW_DIVISOR
