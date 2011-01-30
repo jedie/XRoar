@@ -299,7 +299,7 @@ void (*m6809_interrupt_hook)(unsigned int vector);
 #define OP_ST16(r,ea) { unsigned int a; ea(a); store_byte(a, r >> 8); store_byte(a+1, r); CLR_NZV; SET_NZ16(r); }
 /* Illegal instruction, only part-working: */
 #define OP_ST16_IMM(r) { (void)fetch_byte(reg_pc); reg_pc++; store_byte(reg_pc, r); reg_pc++; CLR_NZV; reg_cc |= CC_N; }
-#define OP_JSR(ea) { unsigned int a; ea(a); peek_byte(a); PUSHWORD(reg_s, reg_pc); reg_pc = a; }
+#define OP_JSR(ea) { unsigned int a; ea(a); peek_byte(a); TAKEN_CYCLES(1); PUSHWORD(reg_s, reg_pc); reg_pc = a; }
 
 #define OP_SUB(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r - d; CLR_NZVC; SET_NZVC8(r, d, tmp); r = tmp; }
 #define OP_CMP(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r - d; CLR_NZVC; SET_NZVC8(r, d, tmp); }
