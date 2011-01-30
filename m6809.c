@@ -563,12 +563,12 @@ void m6809_run(int cycles) {
 			case 0x13:
 				peek_byte(reg_pc);
 				cpu_state = m6809_flow_sync;
-				continue;
+				goto done_instruction;
 			/* 0x14, 0x15 HCF? (illegal) */
 			case 0x14:
 			case 0x15:
 				cpu_state = m6809_flow_hcf;
-				continue;
+				goto done_instruction;
 			/* 0x16 LBRA relative */
 			case 0x16: BRANCHL(1); break;
 			/* 0x17 LBSR relative */
@@ -809,7 +809,7 @@ void m6809_run(int cycles) {
 				PUSH_IRQ_REGISTERS();
 				TAKEN_CYCLES(1);
 				cpu_state = m6809_flow_dispatch_irq;
-				continue;
+				goto done_instruction;
 			} break;
 			/* 0x3D MUL inherent */
 			case 0x3d: {
@@ -1146,7 +1146,7 @@ void m6809_run(int cycles) {
 			/* 0xcd HCF? (illegal) */
 			case 0xcd:
 				cpu_state = m6809_flow_hcf;
-				continue;
+				goto done_instruction;
 			/* 0xCE LDU immediate */
 			case 0xce: OP_LD16(reg_u, WORD_IMMEDIATE); break;
 			/* 0xcf STU immediate (illegal) */
@@ -1250,8 +1250,8 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = m6809_flow_done_instruction;
-			continue;
+			cpu_state = m6809_flow_label_a;
+			goto done_instruction;
 			}
 
 		case m6809_flow_instruction_page_2:
@@ -1349,8 +1349,8 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = m6809_flow_done_instruction;
-			continue;
+			cpu_state = m6809_flow_label_a;
+			goto done_instruction;
 			}
 
 		case m6809_flow_instruction_page_3:
@@ -1388,11 +1388,16 @@ void m6809_run(int cycles) {
 			/* Illegal instruction */
 			default: TAKEN_CYCLES(1); break;
 			}
-			cpu_state = m6809_flow_done_instruction;
-			continue;
+			cpu_state = m6809_flow_label_a;
+			goto done_instruction;
 			}
 
-		case m6809_flow_done_instruction:
+		/* Certain illegal instructions cause the CPU to lock up: */
+		case m6809_flow_hcf:
+			TAKEN_CYCLES(1);
+			continue;
+
+done_instruction:
 			/* Instruction post-hook */
 			if (m6809_instruction_posthook) {
 				M6809State state;
@@ -1407,12 +1412,6 @@ void m6809_run(int cycles) {
 				state.reg_pc = reg_pc;
 				m6809_instruction_posthook(&state);
 			}
-			cpu_state = m6809_flow_label_a;
-			continue;
-
-		/* Certain illegal instructions cause the CPU to lock up: */
-		case m6809_flow_hcf:
-			TAKEN_CYCLES(1);
 			continue;
 
 		}
