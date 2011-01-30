@@ -73,20 +73,11 @@ static void update_from_register(void);
 
 static inline void slow_cycle(int n) {
 	current_cycle += n * sam_ram_cycles;
-#ifdef VARIABLE_MPU_RATE
-	was_slow = 1;
-#endif
 }
 
 #ifdef VARIABLE_MPU_RATE
 static inline void fast_cycle(int n) {
-	if (was_slow) {
-		current_cycle += n * sam_ram_cycles;
-		current_cycle += (n-1) * sam_rom_cycles;
-		was_slow = 0;
-	} else {
-		current_cycle += n * sam_rom_cycles;
-	}
+	current_cycle += n * sam_rom_cycles;
 }
 #else
 # define fast_cycle(n) slow_cycle(n)
