@@ -316,6 +316,7 @@ int xroar_init(int argc, char **argv) {
 			LOG_DEBUG(0, "%s:%d: unrecognised option `%s'\n", conffile, xconfig_line_number, xconfig_option);
 			exit(1);
 		}
+		free(conffile);
 	}
 	/* Parse command line options */
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);

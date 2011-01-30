@@ -386,6 +386,8 @@ void machine_reset(int hard) {
 					machine_insert_cart(deltados_new(dos_rom));
 					break;
 			}
+			if (dos_rom)
+				free(dos_rom);
 		} else if (machine_cart) {
 			if (machine_cart->type != CART_ROM && machine_cart->type != CART_RAM) {
 				machine_remove_cart();
