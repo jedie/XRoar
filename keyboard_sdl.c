@@ -28,6 +28,7 @@
 #include "keyboard.h"
 #include "machine.h"
 #include "module.h"
+#include "printer.h"
 #include "xroar.h"
 
 static int init(void);
@@ -164,6 +165,10 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_m:
 		xroar_set_machine(XROAR_CYCLE);
+		break;
+	case SDLK_p:
+		if (shift)
+			printer_flush();
 		break;
 	case SDLK_r:
 		machine_reset(shift ? RESET_HARD : RESET_SOFT);

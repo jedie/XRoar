@@ -33,6 +33,7 @@
 #include "machine.h"
 #include "module.h"
 #include "path.h"
+#include "printer.h"
 #include "sam.h"
 #include "snapshot.h"
 #include "tape.h"
@@ -92,9 +93,11 @@ int xroar_trace_enabled = 0;
 # define xroar_trace_enabled (0)
 #endif
 
-/* Automatically load or run files */
+/* Attach files */
 static const char *xroar_opt_load = NULL;
 static const char *xroar_opt_run = NULL;
+static const char *xroar_opt_lp_file = NULL;
+static const char *xroar_opt_lp_pipe = NULL;
 
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
@@ -112,12 +115,14 @@ static struct xconfig_option xroar_options[] = {
 	{ XCONFIG_CALL_0,   "pal",          &set_pal },
 	{ XCONFIG_CALL_0,   "ntsc",         &set_ntsc },
 	{ XCONFIG_INT,      "ram",          &xroar_opt_ram },
-	/* Automatically load or run files */
+	/* Attach files */
 	{ XCONFIG_STRING,   "load",         &xroar_opt_load },
 	{ XCONFIG_STRING,   "cartna",       &xroar_opt_load },
 	{ XCONFIG_STRING,   "snap",         &xroar_opt_load },
 	{ XCONFIG_STRING,   "run",          &xroar_opt_run },
 	{ XCONFIG_STRING,   "cart",         &xroar_opt_run },
+	{ XCONFIG_STRING,   "lp-file",      &xroar_opt_lp_file },
+	{ XCONFIG_STRING,   "lp-pipe",      &xroar_opt_lp_pipe },
 	/* Emulator interface */
 	{ XCONFIG_STRING,   "ui",           &xroar_opt_ui },
 	{ XCONFIG_STRING,   "filereq",      &xroar_opt_filereq },
@@ -246,9 +251,11 @@ static void helptext(void) {
 "  -ntsc                 emulate NTSC (60Hz) video\n"
 "  -ram KBYTES           specify amount of RAM in K\n"
 
-"\n Automatically load or run files:\n"
+"\n Attach files:\n"
 "  -load FILENAME        load or attach FILENAME\n"
 "  -run FILENAME         load or attach FILENAME and attempt autorun\n"
+"  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
+"  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
 
 "\n Emulator interface:\n"
 "  -ui MODULE            user-interface module (-ui help for list)\n"
@@ -447,6 +454,7 @@ int xroar_init(int argc, char **argv) {
 	keyboard_init();
 	joystick_init();
 	machine_init();
+	printer_init();
 
 	/* Notify UI of starting options: */
 	xroar_set_kbd_translate(xroar_kbd_translate);
@@ -458,6 +466,7 @@ int xroar_init(int argc, char **argv) {
 	}
 	/* Reset everything */
 	machine_reset(RESET_HARD);
+	printer_reset();
 	if (load_file) {
 		if (load_file_type == FILETYPE_SNA) {
 			/* Load snapshots immediately */
@@ -474,6 +483,11 @@ int xroar_init(int argc, char **argv) {
 			load_file_event.at_cycle = current_cycle + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 		}
+	}
+	if (xroar_opt_lp_file) {
+		printer_open_file(xroar_opt_lp_file);
+	} else if (xroar_opt_lp_pipe) {
+		printer_open_pipe(xroar_opt_lp_pipe);
 	}
 	return 0;
 }

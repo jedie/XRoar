@@ -37,6 +37,7 @@
 #include "mc6821.h"
 #include "module.h"
 #include "path.h"
+#include "printer.h"
 #include "rsdos.h"
 #include "sam.h"
 #include "tape.h"
@@ -240,6 +241,8 @@ static void pia1a_data_postwrite(void) {
 	machine_update_sound();
 	joystick_update();
 	tape_update_output();
+	if (IS_DRAGON)
+		printer_strobe();
 }
 
 #define pia1a_control_postwrite tape_update_motor

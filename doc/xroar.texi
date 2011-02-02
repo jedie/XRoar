@@ -529,6 +529,7 @@ if this doesn't work straight away).
 @menu
 * Video output::
 * Audio output::
+* Printing::
 * Keyboard commands::
 * Snapshots::
 * Trace mode::
@@ -580,6 +581,21 @@ available modules.
 For most audio modules, the @option{-ao-rate HZ} option can be used to specify
 a sample rate in Hz.  The default will usually be 44100.
 
+@node Printing
+@section Printing
+
+XRoar supports redirecting Dragon printer output to a file or pipe with the
+@option{-lp-file} or @option{-lp-pipe} option.  Printed data will be sent to
+the appropriate stream.  Pressing @kbd{Control+Shift+P} will flush the current
+stream by closing it (so if the stream is a pipe, the filter will complete).
+The stream will be re-opened when any new data is sent.
+
+The pipe feature allows you to use useful print filters such as
+@command{enscript}, e.g., @option{-lp-pipe "enscript -B -N r -d
+@emph{printer-name}"}.  This will send a job to your printer, using carriage
+returns as line feeds (the Dragon default), each time you press
+@kbd{Control+Shift+P} (or exit the emulator).
+
 @node Keyboard commands
 @section Keyboard commands
 
@@ -620,6 +636,8 @@ Load a file (see below).
 Load a file and attempt to autorun it where appropriate.
 @item Control+M
 Cycle through emulated machine types (resets machine).  @xref{Emulated machines}.
+@item Control+Shift+P
+Flush printer output.  @xref{Printing}.
 @item Control+R
 Soft reset emulated machine.
 @item Control+Shift+R
@@ -705,13 +723,17 @@ Specify amount of RAM in kilobytes
 Faster but less accurate sound.  @xref{Audio hardware}.
 @end table
 
-@subsection Options to load or run files
+@subsection Options to attach files
 
 @table @option
 @item -load FILENAME
 Load or attach @file{FILENAME}.  @xref{Supported file types}.
-@item -run FILE
+@item -run FILENAME
 Load or attach @file{FILENAME} and attempt autorun.
+@item -lp-file FILENAME
+Append Dragon printer output to FILENAME.
+@item -lp-pipe COMMAND
+Pipe Dragon printer output to COMMAND.
 @end table
 
 @subsection Emulator interface options

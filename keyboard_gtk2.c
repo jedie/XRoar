@@ -29,6 +29,7 @@
 #include "keyboard.h"
 #include "machine.h"
 #include "module.h"
+#include "printer.h"
 #include "xroar.h"
 
 static int init(void);
@@ -178,6 +179,10 @@ static void emulator_command(guint keyval, int shift) {
 		break;
 	case GDK_m:
 		xroar_set_machine(XROAR_CYCLE);
+		break;
+	case GDK_p:
+		if (shift)
+			printer_flush();
 		break;
 	case GDK_w:
 		xroar_write_tape();
