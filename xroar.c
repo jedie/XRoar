@@ -203,10 +203,7 @@ static struct {
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
-void (*xroar_machine_changed_cb)(int machine_type) = NULL;
-void (*xroar_dos_changed_cb)(int dos_type) = NULL;
 void (*xroar_fullscreen_changed_cb)(int fullscreen) = NULL;
-void (*xroar_keymap_changed_cb)(int keymap) = NULL;
 void (*xroar_kbd_translate_changed_cb)(int kbd_translate) = NULL;
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
@@ -817,8 +814,8 @@ void xroar_set_keymap(int keymap) {
 	}
 	if (new >= 0 && new < NUM_KEYMAPS) {
 		keyboard_set_keymap(new);
-		if (xroar_keymap_changed_cb) {
-			xroar_keymap_changed_cb(new);
+		if (ui_module->keymap_changed_cb) {
+			ui_module->keymap_changed_cb(new);
 		}
 	}
 	lock = 0;
@@ -861,8 +858,8 @@ void xroar_set_machine(int machine_type) {
 		machine_clear_requested_config();
 		requested_machine = new;
 		machine_reset(RESET_HARD);
-		if (xroar_machine_changed_cb) {
-			xroar_machine_changed_cb(new);
+		if (ui_module->machine_changed_cb) {
+			ui_module->machine_changed_cb(new);
 		}
 	}
 	lock = 0;
@@ -886,8 +883,8 @@ void xroar_set_dos(int dos_type) {
 	}
 	if (new == ANY_AUTO || (new >= 0 && new < NUM_DOS_TYPES)) {
 		requested_config.dos_type = new;
-		if (xroar_dos_changed_cb) {
-			xroar_dos_changed_cb(new);
+		if (ui_module->dos_changed_cb) {
+			ui_module->dos_changed_cb(new);
 		}
 	}
 	lock = 0;

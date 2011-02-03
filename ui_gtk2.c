@@ -48,12 +48,20 @@ static KeyboardModule *gtk2_keyboard_module_list[] = {
 	NULL
 };
 
+/* Module callbacks */
+static void machine_changed_cb(int machine_type);
+static void dos_changed_cb(int dos_type);
+static void keymap_changed_cb(int keymap);
+
 UIModule ui_gtk2_module = {
 	.common = { .name = "gtk2", .description = "GTK+-2 user-interface",
 	            .init = init, .shutdown = shutdown },
 	.run = &run,
 	.video_module_list = gtk2_video_module_list,
 	.keyboard_module_list = gtk2_keyboard_module_list,
+	.machine_changed_cb = machine_changed_cb,
+	.dos_changed_cb = dos_changed_cb,
+	.keymap_changed_cb = keymap_changed_cb,
 };
 
 GtkWidget *gtk2_top_window = NULL;
@@ -67,6 +75,10 @@ static int cursor_hidden = 0;
 static GdkCursor *old_cursor, *blank_cursor;
 static gboolean hide_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data);
 static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data);
+
+/* UI-specific callbacks */
+static void fullscreen_changed_cb(int fullscreen);
+static void kbd_translate_changed_cb(int kbd_translate);
 
 static int run_cpu(void *data);
 
@@ -227,31 +239,6 @@ static GtkRadioActionEntry keymap_radio_entries[] = {
 	{ .name = "keymap_coco", .label = "CoCo Layout", .value = KEYMAP_COCO },
 };
 
-static void machine_changed_cb(int machine_type) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/dragon32");
-	gtk_radio_action_set_current_value(radio, machine_type);
-}
-
-static void dos_changed_cb(int dos_type) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/DOSMenu/dragondos");
-	gtk_radio_action_set_current_value(radio, dos_type);
-}
-
-static void fullscreen_changed_cb(int fullscreen) {
-	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/FullScreen");
-	gtk_toggle_action_set_active(toggle, fullscreen);
-}
-
-static void keymap_changed_cb(int keymap) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/keymap_dragon");
-	gtk_radio_action_set_current_value(radio, keymap);
-}
-
-static void kbd_translate_changed_cb(int kbd_translate) {
-	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
-	gtk_toggle_action_set_active(toggle, kbd_translate);
-}
-
 static int init(void) {
 
 	LOG_DEBUG(2, "Initialising GTK+2 UI\n");
@@ -337,10 +324,7 @@ static int init(void) {
 
 	/* Now up to video module to do something with this drawing_area */
 
-	xroar_machine_changed_cb = machine_changed_cb;
-	xroar_dos_changed_cb = dos_changed_cb;
 	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
-	xroar_keymap_changed_cb = keymap_changed_cb;
 	xroar_kbd_translate_changed_cb = kbd_translate_changed_cb;
 
 	/* Cursor hiding */
@@ -369,6 +353,8 @@ static void run(void) {
 	gtk_main();
 }
 
+/* Cursor hiding */
+
 static gboolean hide_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data) {
 	(void)widget;
 	(void)event;
@@ -392,4 +378,33 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 	gdk_window_set_cursor(window, old_cursor);
 	cursor_hidden = 0;
 	return FALSE;
+}
+
+/* Module callbacks */
+
+static void machine_changed_cb(int machine_type) {
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/dragon32");
+	gtk_radio_action_set_current_value(radio, machine_type);
+}
+
+static void dos_changed_cb(int dos_type) {
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/DOSMenu/dragondos");
+	gtk_radio_action_set_current_value(radio, dos_type);
+}
+
+static void keymap_changed_cb(int keymap) {
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/keymap_dragon");
+	gtk_radio_action_set_current_value(radio, keymap);
+}
+
+/* UI-specific callbacks */
+
+static void fullscreen_changed_cb(int fullscreen) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/FullScreen");
+	gtk_toggle_action_set_active(toggle, fullscreen);
+}
+
+static void kbd_translate_changed_cb(int kbd_translate) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
+	gtk_toggle_action_set_active(toggle, kbd_translate);
 }

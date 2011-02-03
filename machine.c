@@ -156,8 +156,7 @@ void machine_getargs(void) {
 		}
 		for (i = 0; i < NUM_DOS_TYPES; i++) {
 			if (!strcmp(xroar_opt_dostype, dos_type_options[i])) {
-				//requested_config.dos_type = i;
-				xroar_set_dos(i);
+				requested_config.dos_type = i;
 			}
 		}
 	}
@@ -166,8 +165,7 @@ void machine_getargs(void) {
 	requested_config.altbas_rom = xroar_opt_altbas;
 	requested_config.dos_rom = xroar_opt_dos;
 	if (xroar_opt_nodos) {
-		xroar_set_dos(DOS_NONE);
-		//requested_config.dos_type = DOS_NONE;
+		requested_config.dos_type = DOS_NONE;
 		requested_config.dos_rom = NULL;
 	}
 	if (xroar_opt_ram > 0) {
@@ -179,9 +177,6 @@ void machine_getargs(void) {
 
 	if (requested_machine == ANY_AUTO)
 		find_working_machine();
-	if (xroar_machine_changed_cb) {
-		xroar_machine_changed_cb(requested_machine);
-	}
 }
 
 void machine_update_sound(void) {
@@ -443,11 +438,11 @@ void machine_clear_requested_config(void) {
 	requested_config.tv_standard = ANY_AUTO;
 	requested_config.cross_colour_phase = ANY_AUTO;
 	requested_config.ram = ANY_AUTO;
+	requested_config.dos_type = ANY_AUTO;
 	requested_config.bas_rom = NULL;
 	requested_config.extbas_rom = NULL;
 	requested_config.altbas_rom = NULL;
 	requested_config.dos_rom = NULL;
-	xroar_set_dos(ANY_AUTO);
 }
 
 void machine_insert_cart(struct cart *cart) {

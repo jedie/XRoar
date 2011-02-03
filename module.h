@@ -58,6 +58,9 @@ typedef struct {
 	KeyboardModule **keyboard_module_list;
 	JoystickModule **joystick_module_list;
 	void (*run)(void);
+	void (*machine_changed_cb)(int machine_type);
+	void (*dos_changed_cb)(int dos_type);
+	void (*keymap_changed_cb)(int keymap);
 } UIModule;
 
 typedef union {
