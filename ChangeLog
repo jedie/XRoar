@@ -10,6 +10,9 @@ Version 0.25, unreleased
   * CPU emulation accuracy improved [from doc by Darren Atkinson]
   * Tape audio feedback while loading CAS files (AUDIO ON).
   * Tape reattach bug fixed.
+  * Fixed some CPU timings.
+  * Dragon 64 IRQ vector fix.
+  * Added ability to print to file or pipe.
   * TODO: flesh out ui_gtk2.
   * TODO: document new GTK stuff.
   * TODO: more consistent tape audio feedback
