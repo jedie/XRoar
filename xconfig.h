@@ -6,6 +6,14 @@
 #ifndef XROAR_XCONFIG_H_
 #define XROAR_XCONFIG_H_
 
+#define XC_OPT_BOOL(o,d) { .type = XCONFIG_BOOL, .name = (o), .dest = (d) }
+#define XC_OPT_INT(o,d) { .type = XCONFIG_INT, .name = (o), .dest = (d) }
+#define XC_OPT_DOUBLE(o,d) { .type = XCONFIG_DOUBLE, .name = (o), .dest = (d) }
+#define XC_OPT_STRING(o,d) { .type = XCONFIG_STRING, .name = (o), .dest = (d) }
+#define XC_OPT_CALL_0(o,d) { .type = XCONFIG_CALL_0, .name = (o), .dest = (d) }
+#define XC_OPT_CALL_1(o,d) { .type = XCONFIG_CALL_1, .name = (o), .dest = (d) }
+#define XC_OPT_END() { .type = XCONFIG_END }
+
 enum xconfig_result {
 	XCONFIG_OK = 0,
 	XCONFIG_BAD_OPTION,
