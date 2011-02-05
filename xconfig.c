@@ -40,6 +40,16 @@ static struct xconfig_option *find_option(struct xconfig_option *options,
 	return NULL;
 }
 
+static int lookup_enum(const char *name, struct xconfig_enum *list) {
+	int i;
+	for (i = 0; list[i].name; i++) {
+		if (0 == strcmp(name, list[i].name)) {
+			return list[i].value;
+		}
+	}
+	return -2;
+}
+
 static void set_option(struct xconfig_option *option, const char *arg) {
 	switch (option->type) {
 		case XCONFIG_BOOL:
@@ -59,6 +69,9 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 			break;
 		case XCONFIG_CALL_1:
 			((void (*)(const char *))option->dest)(arg);
+			break;
+		case XCONFIG_ENUM:
+			*(int *)option->dest = lookup_enum(arg, (struct xconfig_enum *)option->ref);
 			break;
 		default:
 			break;

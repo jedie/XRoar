@@ -12,7 +12,10 @@
 #define XC_OPT_STRING(o,d) { .type = XCONFIG_STRING, .name = (o), .dest = (d) }
 #define XC_OPT_CALL_0(o,d) { .type = XCONFIG_CALL_0, .name = (o), .dest = (d) }
 #define XC_OPT_CALL_1(o,d) { .type = XCONFIG_CALL_1, .name = (o), .dest = (d) }
+#define XC_OPT_ENUM(o,d,e) { .type = XCONFIG_ENUM, .name = (o), .dest = (d), .ref = (e) }
 #define XC_OPT_END() { .type = XCONFIG_END }
+
+#define XC_ENUM_END() { .name = NULL }
 
 enum xconfig_result {
 	XCONFIG_OK = 0,
@@ -28,6 +31,7 @@ enum xconfig_option_type {
 	XCONFIG_STRING,
 	XCONFIG_CALL_0,
 	XCONFIG_CALL_1,
+	XCONFIG_ENUM,
 	XCONFIG_END
 };
 
@@ -35,6 +39,13 @@ struct xconfig_option {
 	enum xconfig_option_type type;
 	const char *name;
 	void *dest;
+	void *ref;
+};
+
+struct xconfig_enum {
+	int value;
+	const char *name;
+	const char *description;
 };
 
 /* For error reporting: */
