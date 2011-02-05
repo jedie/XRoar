@@ -82,12 +82,20 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 			continue;
 		xconfig_option = strtok(line, "\t\n\v\f\r =");
 		if (xconfig_option == NULL) continue;
-		arg = strtok(NULL, "\t\n\v\f\r =");
 		while (*xconfig_option == '-') xconfig_option++;
 		option = find_option(options, xconfig_option);
 		if (option == NULL) {
 			fclose(cfg);
 			return XCONFIG_BAD_OPTION;
+		}
+		if (option->type == XCONFIG_STRING) {
+			/* preserve spaces */
+			arg = strtok(NULL, "\n\v\f\r");
+			while (isspace(*arg) || *arg == '=') {
+				arg++;
+			}
+		} else {
+			arg = strtok(NULL, "\t\n\v\f\r =");
 		}
 		if (option->type == XCONFIG_BOOL
 		    || option->type == XCONFIG_CALL_0) {
