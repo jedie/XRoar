@@ -81,6 +81,7 @@ static int have_sync = 0;
 
 static int bit_in(void);
 static int byte_in(void);
+static int byte_in_serial(void);
 static int block_in(void);
 
 static void bit_out(int);
@@ -225,23 +226,37 @@ int tape_autorun(const char *filename) {
 		type = 0;    /* BASIC */
 		state = -1;  /* skip state machine */
 	}
+	int byte = 0, bit;
 	while ((block_bytes > 0 || read_fd != -1) && state >= 0) {
-		uint8_t b = byte_in();
 		switch(state) {
 			case 0:
-				if (b != 0x55) state = -1;
-				if (b == 0x3c) state = 1;
+				/* Read bits until we see sync byte */
+				bit = bit_in();
+				if (bit == -1) {
+					state = -1;
+				} else {
+					byte = (byte >> 1) | (bit ? 0x80 : 0);
+					if (byte == 0x3c) state = 1;
+				}
 				break;
 			case 1:
+				/* Next byte should be filename block */
+				byte = byte_in_serial();
 				state = 2;
 				count = 10;
-				if (b != 0x00) state = -1;
+				if (byte != 0x00) state = -1;
 				break;
 			case 2:
-				count--;
-				if (count == 0) {
+				/* 10 bytes later should see file type */
+				byte = byte_in_serial();
+				if (byte < 0) {
 					state = -1;
-					type = b;
+				} else {
+					count--;
+					if (count == 0) {
+						state = -1;
+						type = byte;
+					}
 				}
 				break;
 			default:
@@ -359,6 +374,17 @@ static int byte_in(void) {
 		current_byte = 0;
 	}
 	return block[current_byte++];
+}
+
+/* Read in a byte with 8 calls to bit_in() - used by autorun */
+static int byte_in_serial(void) {
+	int byte = 0, i;
+	for (i = 8; i; i--) {
+		int bit = bit_in();
+		if (bit < 0) return -1;
+		byte = (byte >> 1) | (bit ? 0x80 : 0);
+	}
+	return byte;
 }
 
 static int block_in(void) {
