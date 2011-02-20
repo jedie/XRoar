@@ -18,6 +18,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <string.h>
 #ifdef HAVE_SNDFILE
 #include <stdlib.h>
@@ -79,7 +80,8 @@ static Cycle last_read_time;
 /* TAPEHACK: */
 static int have_sync = 0;
 
-static int bit_in(void);
+static int (*bit_in)(void);
+static int bit_in_cas(void);
 static int byte_in(void);
 static int byte_in_serial(void);
 static int block_in(void);
@@ -89,6 +91,7 @@ static void byte_out(int);
 static void buffer_out(void);
 
 #ifdef HAVE_SNDFILE
+static int bit_in_sndfile(void);
 static void wav_buffer_in(void);
 static short wav_sample_in(void);
 #endif
@@ -128,6 +131,7 @@ int tape_open_reading(const char *filename) {
 	switch (input_type) {
 	case FILETYPE_CAS:
 	case FILETYPE_ASC:
+		bit_in = bit_in_cas;
 		if ((read_fd = fs_open(filename, FS_READ)) == -1) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
@@ -143,12 +147,13 @@ int tape_open_reading(const char *filename) {
 		}
 		LOG_DEBUG(2,"Attached virtual cassette%s %s\n", is_ascii ? " (ASCII)" : "", filename);
 		break;
-#ifdef HAVE_SNDFILE
 	default:
+#ifdef HAVE_SNDFILE
+		bit_in = bit_in_sndfile;
 		info.format = 0;
 		wav_read_file = sf_open(filename, SFM_READ, &info);
 		if (wav_read_file == NULL) {
-			LOG_WARN("Failed to open '%s'\n", filename);
+			LOG_WARN("Failed to open '%s': %s\n", filename, sf_strerror(NULL));
 			return -1;
 		}
 		wav_channels = info.channels;
@@ -169,6 +174,9 @@ int tape_open_reading(const char *filename) {
 		 * compensate. */
 		wav_sample_rate *= wav_channels;
 		break;
+#else
+		LOG_WARN("Failed to open '%s'\n", filename);
+		return -1;
 #endif
 	}
 	return 0;
@@ -184,6 +192,7 @@ void tape_close_reading(void) {
 	}
 #endif
 	read_fd = -1;
+	bit_in = NULL;
 }
 
 int tape_open_writing(const char *filename) {
@@ -217,6 +226,7 @@ int tape_autorun(const char *filename) {
 		return -1;
 	if (tape_open_reading(filename) == -1)
 		return -1;
+	assert(bit_in != NULL);
 	/* Little state machine to try and determine type of first
 	 * file on tape */
 	state = 0;
@@ -227,7 +237,7 @@ int tape_autorun(const char *filename) {
 		state = -1;  /* skip state machine */
 	}
 	int byte = 0, bit;
-	while ((block_bytes > 0 || read_fd != -1) && state >= 0) {
+	while (state >= 0) {
 		switch(state) {
 			case 0:
 				/* Read bits until we see sync byte */
@@ -347,7 +357,7 @@ void tape_update_input(void) {
 }
 #endif
 
-static int bit_in(void) {
+static int bit_in_cas(void) {
 	static int cur_byte;
 	int ret;
 	if (bits_remaining == 0) {
@@ -379,6 +389,7 @@ static int byte_in(void) {
 /* Read in a byte with 8 calls to bit_in() - used by autorun */
 static int byte_in_serial(void) {
 	int byte = 0, i;
+	assert(bit_in != NULL);
 	for (i = 8; i; i--) {
 		int bit = bit_in();
 		if (bit < 0) return -1;
@@ -451,6 +462,7 @@ static int block_in(void) {
 static void waggle_bit(void) {
 	static int cur_bit = 0;
 	static int waggle_state = 0;
+	assert(bit_in != NULL);
 	switch (waggle_state) {
 		default:
 		case 0:
@@ -507,6 +519,35 @@ static void buffer_out(void) {
 }
 
 #ifdef HAVE_SNDFILE
+static int bit_in_sndfile(void) {
+	static int sign = 0;
+	short sample;
+	if (!wav_read_file) return -1;
+	int pulse_count = 0;
+	int cycle_width = 1;
+	if (sign == 0) {
+		if (sf_read_short(wav_read_file, &sample, 1) < 1)
+			return -1;
+		sign = (sample >= 0) ? 1 : -1;
+	}
+	do {
+		int nsign;
+		if (sf_read_short(wav_read_file, &sample, 1) < 1)
+			return -1;
+		nsign = (sample >= 0) ? 1 : -1;
+		cycle_width++;
+		if (nsign != sign) {
+			pulse_count++;
+			sign = nsign;
+		}
+	} while (pulse_count < 2);
+	if (cycle_width <= 1) return 1;
+	/* If cycle frequency > 1800Hz, return a 1 bit, else 0 */
+	if ((wav_sample_rate / (cycle_width - 1)) > 1800)
+		return 1;
+	return 0;
+}
+
 static void wav_buffer_in(void) {
 	wav_read_ptr = wav_read_buf;
 	wav_samples_remaining = 0;

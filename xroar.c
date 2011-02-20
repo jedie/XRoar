@@ -618,12 +618,11 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 			return 0;
 		case FILETYPE_CAS:
 		case FILETYPE_ASC:
-			if (autorun)
-				return tape_autorun(filename);
-			else
-				return tape_open_reading(filename);
 		case FILETYPE_WAV:
 		default:
+			if (autorun) {
+				return tape_autorun(filename);
+			}
 			return tape_open_reading(filename);
 	}
 }
