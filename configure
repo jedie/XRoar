@@ -305,7 +305,7 @@ EOF
 target_cc_check_compile "-pipe" "" && _c_pipe=yes
 echo "$_c_pipe"
 if test "$_c_pipe" = "yes"; then
-	TARGET_CFLAGS="$TARGET_CFLAGS -pipe"
+	TARGET_CC="$TARGET_CC -pipe"
 fi
 rm -f $TMPC
 
