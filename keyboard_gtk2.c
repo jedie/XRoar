@@ -218,8 +218,12 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		if (keyval == GDK_Right) { input_control_press(INPUT_JOY_RIGHT_X, 255); return FALSE; }
 		if (keyval == GDK_Alt_L) { input_control_press(INPUT_JOY_RIGHT_FIRE, 0); return FALSE; }
 	}
-	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
+	if (shift) {
 		KEYBOARD_PRESS(0);
+	} else {
+		KEYBOARD_RELEASE(0);
+	}
+	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
 		goto press_update;
 	}
 	if (keyval == GDK_F12 && !xroar_noratelimit) {
@@ -278,8 +282,12 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		if (keyval == GDK_Right) { input_control_release(INPUT_JOY_RIGHT_X, 255); return FALSE; }
 		if (keyval == GDK_Alt_L) { input_control_release(INPUT_JOY_RIGHT_FIRE, 0); return FALSE; }
 	}
-	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
+	if (shift) {
+		KEYBOARD_PRESS(0);
+	} else {
 		KEYBOARD_RELEASE(0);
+	}
+	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
 		goto release_update;
 	}
 	if (keyval == GDK_F12) {
