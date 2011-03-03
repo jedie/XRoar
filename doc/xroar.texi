@@ -272,14 +272,15 @@ applied to the unpacked source tree with the @command{patch} command.
 * Keyboard::
 * Joysticks::
 * Cassette images: Cassettes.
+* Cartridges::
 * Floppy disk images: Disks.
-* Cartridge ROM images: Cartridges.
 @end menu
 
 @node Emulated machines
 @section Emulated machines
 
-XRoar will emulate the following machines:
+XRoar has built-in definitions for the following machines, selectable with the
+@option{-machine NAME} option:
 
 @table @option
 @item dragon32
@@ -294,28 +295,55 @@ Tandy Colour Computer (PAL).
 Tandy Color Computer (NTSC).
 @end table
 
-XRoar will try and find a good default machine to emulate based on which ROM
-images you have installed (see @ref{Firmware ROM image names}), but you can
-change it by using the @option{-machine MACHINE} command line argument.
-Alternatively, once started, pressing @kbd{Control+M} cycles through all the
-supported machine types.
+If no machine is specified on the command line, XRoar will try and find a good
+default machine to emulate based on which ROM images you have installed (see
+@ref{Firmware ROM image names}).  Alternatively, once started, pressing
+@kbd{Control+M} cycles through all the supported machine types.
 
-Command-line options can be used to specify alternate ROM image files to load:
+Additionally extra machines can be configured, or existing ones reconfigured,
+with the following options:
 
 @table @option
+@item -machine NAME
+Select existing or configure new cartridge (@option{-cart help} for list).
+@item -machine-desc TEXT
+Machine description (showed in @option{-machine help}).
+@item -machine-arch ARCH
+Machine architecture.  One of ``dragon64'', ``dragon32'' or ``coco''.
 @item -bas FILENAME
-Specify BASIC ROM to use (CoCo only).
+Specify BASIC ROM to use (usually CoCo only).
 @item -extbas FILENAME
 Specify Extended BASIC ROM to use.
 @item -altbas FILENAME
 Specify alternate BASIC ROM (Dragon 64).
+@item -nobas
+Disable BASIC.
 @item -noextbas
 Disable Extended BASIC.
+@item -noaltbas
+Disable alternate BASIC (Dragon 64).
+@item -tv-type TYPE
+Set TV type (``pal'' or ``ntsc'').  @xref{Video hardware}.
+@item -ram SIZE
+Specify amount of RAM in kilobytes
 @end table
 
 Dragon machines all contain a complete version of Extended BASIC; CoCos are
 able to run with a much reduced Color BASIC, with Extended BASIC being
 optional.
+
+Defining extra machines is most usefully done in the configuration file.
+For example:
+
+@example
+machine pippin
+machine-desc Dragon Pippin (prototype)
+machine-arch dragon32
+ram 16
+@end example
+
+This will define a machine named "pippin" that is basically a Dragon 32
+with only 16K or RAM.
 
 @node Video hardware
 @section Video hardware
@@ -456,39 +484,75 @@ that is useful for creating @file{.cas} files from sampled audio cassettes.  It
 intercepts cassette reading ROM routines, and rewrites any date read to the
 tape file selected for writing.
 
-@node Disks
-@section Floppy disk images
+@node Cartridges
+@section Cartridges
 
-XRoar supports virtual disks by emulating three different types of disk
-controller cartridge (the default depending on which machine is selected):
+XRoar has built-in definitions for three types of cartridge, selectable with
+the @option{-cart NAME} option:
 
 @table @option
 @item dragondos
-DragonDOS, official DOS cartridge from Dragon Data Ltd.
+DragonDOS, official disk controller cartridge from Dragon Data Ltd.
 @item delta
-Delta System, Premier Microsystems' DOS for the Dragon.
+Delta System, Premier Microsystems' disk controller cartridge for the Dragon.
 @item rsdos
-RSDOS, Tandy's DOS cartridge for use with the CoCo.
+RSDOS, Tandy's disk controller cartridge for use with the CoCo.
 @end table
 
-If you want to use the virtual disk support, you will also need a DOS firmware
-ROM.  See @ref{Firmware ROM image names} for a list of compatible ROM images
-per-controller.
-
-To override the defaults, use the following command-line options:
+Additionally extra cartridges can be configured, or existing ones reconfigured,
+with the following options:
 
 @table @option
-@item -dostype DOS
-Type of DOS cartridge (@option{-dostype help} for a list).
-@item -dos FILENAME
-Specify DOS ROM (or CoCo Disk BASIC).
-@item -nodos
-Disable DOS (ROM and hardware emulation).
+@item -cart NAME
+Select existing or configure new cartridge (@option{-cart help} for list).  If
+NAME is not an existing cartridge and looks like a loadable ROM image filename
+(@file{.rom} or @file{.dgn} filename extension), a ROM cart is defined for that
+filename.
+@item -cart-desc TEXT
+Cartridge description (showed in @option{-cart help}).
+@item -cart-type TYPE
+Cartridge type.  A type of ``rom'' will define a ROM cartridge (e.g., for a
+game).  The type can also be one of ``dragondos'', ``delta'' or ``rsdos'',
+which will define a cartridge with a base type according to the list above.
+@item -cart-rom FILENAME
+ROM image to load ($C000-).
+@item -cart-rom2 FILENAME
+Second ROM image to load ($E000-).
 @end table
 
-Within the emulator, DOS can be enabled or disabled by pressing
-@kbd{Control+E}.  Follow this with a hard reset (@kbd{Control+Shift+R}) for it
-to take effect.
+If no ROM is configured for a cartridge, there is a built-in list to search for
+each of the disk controller types.  A ROM image will be required if you want to
+use virtual disks.
+
+Defining extra cartridges is most usefully done in the configuration file,
+for example:
+
+@example
+cart sdose6
+cart-desc SuperDOS E6
+cart-type dragondos
+cart-rom sdose6
+cart-rom2 dosdream
+@end example
+
+This will define a cartridge called ``sdose6'' that is basically a DragonDOS
+cartridge with its ROM replaced with @file{sdose6}, and an additional ROM
+called @file{dosdream}.
+
+XRoar will automatically attempt to find a disk controller cartridge relevant
+to the current machine unless the @option{-nodos} option is specified.
+
+Loading a ROM image file with @kbd{Control+L} or @kbd{Control+Shift_L} will
+attach a ROM cartridge.
+
+Within the emulator, cartridges can be enabled or disabled by pressing
+@kbd{Control+E}.  You will almost certainly want to follow this with a hard
+reset (@kbd{Control+Shift+R}).
+
+@node Disks
+@section Floppy disk images
+
+If a disk controller cartridge is selected, XRoar supports virtual disks.
 
 Three virtual disk formats are supported (see @ref{Supported file types}).  Of
 these, DMK retains the most information about the actual layout of the floppy
@@ -498,29 +562,15 @@ single-density data (as used by the Delta system).
 When you attach a disk, it is read into memory, and subsequent disk operations
 are performed on this in-memory copy.  Write protect defaults to off (so write
 operations on the copy will work), but write back also defaults to off, so
-updates will not be written to disk.  To toggle write protect, press
-@kbd{Control+[5-8]}, where the number to press is the drive number plus 4.  To
-toggle write back, press @kbd{Control+Shift+[5-8]}.  Even with write back
-enabled, image files will not be updated until the disk in a virtual drive is
-changed, or you quit the emulator.
+updates will not be written to the disk image file.  To toggle write protect,
+press @kbd{Control+[5-8]}, where the number to press is the drive number plus
+4.  To toggle write back, press @kbd{Control+Shift+[5-8]}.  Even with write
+back enabled, image files will not be updated until the disk in a virtual drive
+is changed, or you quit the emulator.
 
 You can create a new blank disk in a virtual drive by pressing
 @kbd{Control+Shift+[1-4]}.  You will be a prompted for a filename, and the
 extension determines which type of file will be written.
-
-@node Cartridges
-@section Cartridge ROM images
-
-Some Dragon games are distributed as ROMs on a cartridge ("program pak", in
-CoCo terminology).  These are generally mapped to a specific area in the
-machine's address space, and trigger an interrupt causing them to be
-auto-started when the machine is powered on.  XRoar can load dumps of these
-cartridges, and will simulate the auto-start interrupt if requested.
-
-Press @kbd{Control+L} to insert a cartridge (files should have the extension
-@file{.rom}).  If you press @kbd{Control+Shift+L} instead, the cartridge will be
-automatically started (you might need to reset the machine with @kbd{Control+R}
-if this doesn't work straight away).
 
 
 @node User interface
@@ -621,9 +671,9 @@ Toggle DOS emulation on/off - reset to take effect.  @xref{Disks}.
 @item Control+F
 Toggle full screen mode.
 @item Control+I
-Insert a cartridge.  @xref{Cartridges}.
+Insert a ROM cartridge.  @xref{Cartridges}.
 @item Control+Shift+I
-Insert a cartridge, no autorun.  @xref{Cartridges}.
+Insert a ROM cartridge, no autorun.  @xref{Cartridges}.
 @item Control+J
 Cycle through joystick emulation modes (None, Left, Right).  @xref{Joysticks}.
 @item Control+Shift+J
@@ -693,9 +743,11 @@ gets written to a file called @file{stderr.txt} instead of to the console.
 
 @subsection Emulated machine options
 
+See @ref{Emulated machines} for more information.
+
 @table @option
-@item -machine MACHINE
-Emulated machine (@option{-machine help} for a list).  @xref{Emulated machines}.
+@item -machine NAME
+Select/configure machine (@option{-machine help} for a list).
 @item -bas FILENAME
 Specify BASIC ROM to use (CoCo only)
 @item -extbas FILENAME
@@ -704,23 +756,32 @@ Specify Extended BASIC ROM to use
 Specify alternate BASIC ROM (Dragon 64)
 @item -noextbas
 Disable Extended BASIC
-@item -dostype DOS
-Type of DOS cartridge (@option{-dostype help} for a list).  @xref{Disks}.
-@item -dos FILENAME
-Specify DOS ROM (or CoCo Disk BASIC)
 @item -nodos
 Disable DOS (ROM and hardware emulation)
-@item -pal
-Emulate PAL (50Hz) video.  @xref{Video hardware}.
-@item -ntsc
-Emulate NTSC (60Hz) video.  @xref{Video hardware}.
-@item -ccr RENDERER
-Specify cross-colour renderer (@option{-ccr help} for list).
-@xref{Video hardware}.
+@item -tv-type TYPE
+Set TV type (``pal'' or ``ntsc'').  @xref{Video hardware}.
 @item -ram SIZE
 Specify amount of RAM in kilobytes
-@item -fast-sound
-Faster but less accurate sound.  @xref{Audio hardware}.
+@end table
+
+@subsection Emulated cartridge options
+
+See @ref{Cartridges} for more information.
+
+@table @option
+@item -cart NAME
+Select/configure cartridge (-cart help for list).  @xref{Cartridges}.
+@item -cart-desc TEXT
+Set cartridge description.
+@item -cart-type TYPE
+Set cartridge type (-cart-type help for list).
+Cartridge type.  A type of ``rom'' will define a ROM cartridge (e.g., for a
+game).  The type can also be one of ``dragondos'', ``delta'' or ``rsdos'',
+which will define a cartridge with a base type according to the list above.
+@item -cart-rom FILENAME
+The ROM image specified will be mapped to $C000-.
+@item -cart-rom2 FILENAME
+The ROM image specified will be mapped to $E000-.
 @end table
 
 @subsection Options to attach files
@@ -751,6 +812,13 @@ Specify audio module (@option{-ao help} for a list)
 Set audio sample rate (if allowed by module)
 @item -volume VOLUME
 Specify audio volume (0 - 100)
+@item -fast-sound
+Faster but less accurate sound.  @xref{Audio hardware}.
+@item -fs
+Start emulator full-screen if possible.
+@item -ccr RENDERER
+Specify cross-colour renderer (@option{-ccr help} for list).
+@xref{Video hardware}.
 @item -fskip FRAMES
 Specify frameskip (default: 0).  @xref{Video output}.
 @item -keymap CODE
@@ -821,9 +889,9 @@ unknown extension is passed to libsndfile to see if it recognises it as
 an audio file.  @xref{Cassettes}.
 @tab Read-only
 @item .rom
-@tab This represents two things: when starting, XRoar looks for them
-firmware ROM images with this extension. When subsequently told to load
-one, however, they are assumed to be dumps of cartridge ROMs.
+@tab This represents two things: when starting, XRoar looks for firmware ROM
+images with this extension. When subsequently told to load one, however, they
+are assumed to be dumps of cartridge ROMs.
 @xref{Cartridges}.
 @tab Read-only
 @end multitable
