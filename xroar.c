@@ -16,6 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -237,6 +238,14 @@ static const char *load_file = NULL;
 static int load_file_type = FILETYPE_UNKNOWN;
 static int autorun_loaded_file = 0;
 
+struct cart_status {
+	struct cart_config *config;
+	int enabled;
+};
+/* track cart_status for each machine */
+static struct cart_status *cart_status_list = NULL;
+static int cart_status_count = 0;
+
 const char *xroar_disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 const char *xroar_tape_exts[] = { "CAS", NULL };
 const char *xroar_snap_exts[] = { "SNA", NULL };
@@ -263,6 +272,8 @@ static struct {
 
 void (*xroar_fullscreen_changed_cb)(int fullscreen) = NULL;
 void (*xroar_kbd_translate_changed_cb)(int kbd_translate) = NULL;
+static void alloc_cart_status(void);
+static struct cart_config *get_machine_cart(void);
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 static void trace_done_instruction(M6809State *state);
@@ -554,11 +565,6 @@ int xroar_init(int argc, char **argv) {
 		xroar_machine_config = machine_config_first_working();
 	}
 
-	/* Determine initial cart configuration */
-	if (!opt_nodos && !xroar_cart_config) {
-		xroar_cart_config = cart_find_working_dos(xroar_machine_config);
-	}
-
 	/* Override DOS cart if autoloading a cassette, or replace with ROM
 	 * cart if appropriate. */
 	if (load_file) {
@@ -579,6 +585,12 @@ int xroar_init(int argc, char **argv) {
 				break;
 		}
 	}
+
+	/* Record initial cart configuration */
+	alloc_cart_status();
+	cart_status_list[xroar_machine_config->index].config = xroar_cart_config;
+	/* Re-read cart config - will find a DOS if appropriate */
+	xroar_cart_config = get_machine_cart();
 
 	/* Initialise everything */
 	current_cycle = 0;
@@ -654,6 +666,41 @@ void xroar_shutdown(void) {
 	module_shutdown((Module *)video_module);
 	module_shutdown((Module *)filereq_module);
 	module_shutdown((Module *)ui_module);
+}
+
+static void alloc_cart_status(void) {
+	int count = xroar_machine_config->index;
+	if (count >= cart_status_count) {
+		struct cart_status *new_list = realloc(cart_status_list, (count + 1) * sizeof(struct cart_status));
+		int i;
+		if (!new_list) {
+			return;
+		}
+		/* clear new entries */
+		cart_status_list = new_list;
+		for (i = cart_status_count; i <= count; i++) {
+			cart_status_list[i].config = NULL;
+			cart_status_list[i].enabled = !opt_nodos;
+		}
+		cart_status_count = count + 1;
+	}
+}
+
+static struct cart_config *get_machine_cart(void) {
+	int mindex;
+	assert(xroar_machine_config != NULL);
+	mindex = xroar_machine_config->index;
+	alloc_cart_status();
+	if (!cart_status_list) {
+		return NULL;
+	}
+	if (!cart_status_list[mindex].enabled) {
+		return NULL;
+	}
+	if (!cart_status_list[mindex].config) {
+		cart_status_list[mindex].config = cart_find_working_dos(xroar_machine_config);
+	}
+	return cart_status_list[mindex].config;
 }
 
 static void tapehack_instruction_hook(M6809State *cpu_state) {
@@ -770,13 +817,17 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 			return intel_hex_read(filename);
 		case FILETYPE_SNA:
 			return read_snapshot(filename);
-		case FILETYPE_ROM:
+		case FILETYPE_ROM: {
+			struct cart_config *cc;
 			machine_remove_cart();
-			xroar_cart_config = cart_config_by_name(filename);
-			xroar_cart_config->autorun = autorun;
-			machine_insert_cart(xroar_cart_config);
-			if (autorun) {
-				machine_reset(RESET_HARD);
+			cc = cart_config_by_name(filename);
+			if (cc) {
+				cc->autorun = autorun;
+				xroar_set_cart(cc->index);
+				if (autorun) {
+					machine_reset(RESET_HARD);
+				}
+			}
 			}
 			return 0;
 		case FILETYPE_CAS:
@@ -1018,8 +1069,15 @@ void xroar_set_machine(int machine_type) {
 			break;
 	}
 	if (new >= 0 && new < num_machine_types) {
+		struct cart_config *cc;
+		int cart_index = -1;
 		xroar_machine_config = machine_config_index(new);
 		machine_configure(xroar_machine_config);
+		cc = get_machine_cart();
+		if (cc) {
+			cart_index = cc->index;
+		}
+		xroar_set_cart(cart_index);
 		machine_reset(RESET_HARD);
 		if (ui_module->machine_changed_cb) {
 			ui_module->machine_changed_cb(new);
@@ -1033,34 +1091,32 @@ void xroar_set_cart(int cart_index) {
 	if (lock) return;
 	lock = 1;
 	int old = -1;
+	int mindex;
 	int count = cart_config_count();
 
+	assert(xroar_machine_config != NULL);
+	mindex = xroar_machine_config->index;
+	assert(cart_status_list != NULL);
+	assert(mindex < cart_status_count);
+
 	if (xroar_cart_config) old = xroar_cart_config->index;
-	machine_remove_cart();
-	xroar_cart_config = NULL;
 
 	switch (cart_index) {
 		case XROAR_TOGGLE:
-			if (old < 0) {
-				switch (xroar_machine_config->architecture) {
-				default:
-				case ARCH_DRAGON64: case ARCH_DRAGON32:
-					xroar_cart_config = cart_config_by_name("dragondos");
-					break;
-				case ARCH_COCO:
-					xroar_cart_config = cart_config_by_name("rsdos");
-					break;
-				}
-			}
+			cart_status_list[mindex].enabled = !cart_status_list[mindex].enabled;
 			break;
 		case XROAR_CYCLE:
-			xroar_cart_config = cart_config_index((cart_index + 1) % count);
+			cart_status_list[mindex].config = cart_config_index((old + 1) % count);
+			break;
+		case -1:
+			cart_status_list[mindex].enabled = 0;
 			break;
 		default:
-			xroar_cart_config = cart_config_index(cart_index);
+			cart_status_list[mindex].config = cart_config_index(cart_index);
 			break;
 	}
 
+	xroar_cart_config = get_machine_cart();
 	machine_insert_cart(xroar_cart_config);
 	if (ui_module->cart_changed_cb) {
 		if (xroar_cart_config) {
