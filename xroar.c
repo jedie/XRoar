@@ -74,6 +74,12 @@ static char *opt_cart_rom2 = NULL;
 static int opt_cart_autorun = ANY_AUTO;
 static int opt_nodos = 0;
 
+/* Attach files */
+static const char *xroar_opt_load = NULL;
+static const char *xroar_opt_run = NULL;
+static const char *xroar_opt_lp_file = NULL;
+static const char *xroar_opt_lp_pipe = NULL;
+
 /* Emulator interface */
 static const char *xroar_opt_ui = NULL;
 static const char *xroar_opt_filereq = NULL;
@@ -99,11 +105,9 @@ int xroar_trace_enabled = 0;
 # define xroar_trace_enabled (0)
 #endif
 
-/* Attach files */
-static const char *xroar_opt_load = NULL;
-static const char *xroar_opt_run = NULL;
-static const char *xroar_opt_lp_file = NULL;
-static const char *xroar_opt_lp_pipe = NULL;
+/* Help text */
+static void helptext(void);
+static void versiontext(void);
 
 static struct xconfig_enum cart_type_list[] = {
 	{ .value = CART_ROM, .name = "rom", .description = "ROM cartridge" },
@@ -147,6 +151,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "cart",    &xroar_opt_run ),
 	XC_OPT_STRING( "lp-file", &xroar_opt_lp_file ),
 	XC_OPT_STRING( "lp-pipe", &xroar_opt_lp_pipe ),
+
 	/* Emulator interface */
 	XC_OPT_STRING( "ui",            &xroar_opt_ui ),
 	XC_OPT_STRING( "filereq",       &xroar_opt_filereq ),
@@ -169,6 +174,10 @@ static struct xconfig_option xroar_options[] = {
 #ifdef TRACE
 	XC_OPT_BOOL  ( "trace",         &xroar_trace_enabled ),
 #endif
+
+	XC_OPT_CALL_0( "help",    &helptext),
+	XC_OPT_CALL_0( "h",       &helptext),
+	XC_OPT_CALL_0( "version", &versiontext),
 	XC_OPT_END()
 };
 
@@ -297,6 +306,7 @@ static void versiontext(void) {
 "the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
 "There is NO WARRANTY, to the extent permitted by law."
 	    );
+	exit(0);
 }
 
 static void helptext(void) {
@@ -363,6 +373,7 @@ static void helptext(void) {
 "mapping two axes and a button to the X, Y and firebutton on the emulated\n"
 "joystick respectively."
 	);
+	exit(0);
 }
 
 #ifndef ROMPATH
@@ -387,15 +398,8 @@ int xroar_init(int argc, char **argv) {
 	/* If a configuration file is found, parse it */
 	conffile = find_in_path(xroar_conf_path, "xroar.conf");
 	if (conffile) {
-		ret = xconfig_parse_file(xroar_options, conffile);
-		if (ret == XCONFIG_MISSING_ARG) {
-			LOG_DEBUG(0, "%s:%d: missing argument to `%s'\n", conffile, xconfig_line_number, xconfig_option);
-			exit(1);
-		}
-		if (ret == XCONFIG_BAD_OPTION) {
-			LOG_DEBUG(0, "%s:%d: unrecognised option `%s'\n", conffile, xconfig_line_number, xconfig_option);
-			exit(1);
-		}
+		/* ignore bad lines in config file */
+		(void)xconfig_parse_file(xroar_options, conffile);
 		free(conffile);
 	}
 	/* Finish any cart config in config file */
@@ -405,21 +409,8 @@ int xroar_init(int argc, char **argv) {
 
 	/* Parse command line options */
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
-	if (ret == XCONFIG_MISSING_ARG) {
-		LOG_DEBUG(0, "%s: missing argument to `%s'\n", argv[0], xconfig_option);
+	if (ret != XCONFIG_OK) {
 		exit(1);
-	} else if (ret == XCONFIG_BAD_OPTION) {
-		if (0 == strcmp(argv[argn], "-h")
-				|| 0 == strcmp(argv[argn], "--help")) {
-			helptext();
-			exit(0);
-		} else if (0 == strcmp(argv[argn], "--version")) {
-			versiontext();
-			exit(0);
-		} else {
-			LOG_DEBUG(0, "%s: unrecognised option `%s'\n", argv[0], xconfig_option);
-			exit(1);
-		}
 	}
 	/* Finish any cart config on command line */
 	set_cart(NULL);

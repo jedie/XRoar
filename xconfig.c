@@ -21,13 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "logging.h"
 #include "xconfig.h"
-
-/* For error reporting: */
-char *xconfig_option;
-int xconfig_line_number;
-
-static char buf[256];
 
 static struct xconfig_option *find_option(struct xconfig_option *options,
 		const char *opt) {
@@ -82,30 +77,37 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		const char *filename) {
 	struct xconfig_option *option;
-	char *line, *arg;
+	char *line, *opt, *arg;
 	FILE *cfg;
+	int line_number;
+	char buf[256];
+	int ret = XCONFIG_OK;
+
 	cfg = fopen(filename, "r");
 	if (cfg == NULL) return XCONFIG_FILE_ERROR;
-	xconfig_line_number = 0;
+	line_number = 0;
 	while ((line = fgets(buf, sizeof(buf), cfg))) {
-		xconfig_line_number++;
+		line_number++;
 		while (isspace(*line))
 			line++;
 		if (*line == 0 || *line == '#')
 			continue;
-		xconfig_option = strtok(line, "\t\n\v\f\r =");
-		if (xconfig_option == NULL) continue;
-		while (*xconfig_option == '-') xconfig_option++;
-		option = find_option(options, xconfig_option);
+		opt = strtok(line, "\t\n\v\f\r =");
+		if (opt == NULL) continue;
+		while (*opt == '-') opt++;
+		option = find_option(options, opt);
 		if (option == NULL) {
-			fclose(cfg);
-			return XCONFIG_BAD_OPTION;
+			ret = XCONFIG_BAD_OPTION;
+			LOG_ERROR("Unrecognised option `%s'\n", opt);
+			continue;
 		}
 		if (option->type == XCONFIG_STRING) {
 			/* preserve spaces */
 			arg = strtok(NULL, "\n\v\f\r");
-			while (isspace(*arg) || *arg == '=') {
-				arg++;
+			if (arg) {
+				while (isspace(*arg) || *arg == '=') {
+					arg++;
+				}
 			}
 		} else {
 			arg = strtok(NULL, "\t\n\v\f\r =");
@@ -116,21 +118,23 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 			continue;
 		}
 		if (arg == NULL) {
-			fclose(cfg);
-			return XCONFIG_MISSING_ARG;
+			ret = XCONFIG_MISSING_ARG;
+			LOG_ERROR("Missing argument to `%s'\n", opt);
+			continue;
 		}
 		set_option(option, arg);
 	}
 	fclose(cfg);
-	return XCONFIG_OK;
+	return ret;
 }
 
 enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		int argc, char **argv, int *argn) {
 	struct xconfig_option *option;
 	int _argn;
-	_argn = argn ? *argn : 1;
+	char *opt;
 
+	_argn = argn ? *argn : 1;
 	while (_argn < argc) {
 		if (argv[_argn][0] != '-') {
 			break;
@@ -139,11 +143,12 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 			_argn++;
 			break;
 		}
-		xconfig_option = argv[_argn]+1;
-		if (*xconfig_option == '-') xconfig_option++;
-		option = find_option(options, xconfig_option);
+		opt = argv[_argn]+1;
+		if (*opt == '-') opt++;
+		option = find_option(options, opt);
 		if (option == NULL) {
 			if (argn) *argn = _argn;
+			LOG_ERROR("Unrecognised option `%s'\n", opt);
 			return XCONFIG_BAD_OPTION;
 		}
 		if (option->type == XCONFIG_BOOL
@@ -154,6 +159,7 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		}
 		if ((_argn + 1) >= argc) {
 			if (argn) *argn = _argn;
+			LOG_ERROR("Missing argument to `%s'\n", opt);
 			return XCONFIG_MISSING_ARG;
 		}
 		set_option(option, argv[_argn+1]);
