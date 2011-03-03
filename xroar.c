@@ -94,7 +94,7 @@ int xroar_opt_volume = 100;
 int xroar_fast_sound = 0;
 #endif
 int xroar_opt_fullscreen = 0;
-static const char *opt_ccr = NULL;
+int xroar_opt_ccr = DEFAULT_CCR;
 int xroar_frameskip = 0;
 char *xroar_opt_keymap = NULL;
 int xroar_kbd_translate = 0;
@@ -129,6 +129,14 @@ static struct xconfig_enum cart_type_list[] = {
 	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
 	{ .value = CART_DELTADOS, .name = "delta", .description = "Delta System" },
 	{ .value = CART_RSDOS, .name = "rsdos", .description = "RS-DOS" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum ccr_list[] = {
+	{ .value = CROSS_COLOUR_SIMPLE, .name = "simple", .description = "four colour palette" },
+#ifndef FAST_VDG
+	{ .value = CROSS_COLOUR_5BIT, .name = "5bit", .description = "5-bit lookup table" },
+#endif
 	XC_ENUM_END()
 };
 
@@ -183,7 +191,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_BOOL  ( "fast-sound",    &xroar_fast_sound ),
 #endif
 	XC_OPT_BOOL  ( "fs",            &xroar_opt_fullscreen ),
-	XC_OPT_STRING( "ccr",           &opt_ccr ),
+	XC_OPT_ENUM  ( "ccr",           &xroar_opt_ccr, ccr_list ),
 	XC_OPT_INT   ( "fskip",         &xroar_frameskip ),
 	XC_OPT_STRING( "keymap",        &xroar_opt_keymap ),
 	XC_OPT_BOOL  ( "kbd-translate", &xroar_kbd_translate ),
@@ -203,19 +211,7 @@ static struct xconfig_option xroar_options[] = {
 /**************************************************************************/
 /* Global flags */
 
-int xroar_cross_colour_renderer = DEFAULT_CCR;
 int xroar_noratelimit = 0;
-
-static struct {
-	const char *option;
-	const char *description;
-	int value;
-} cross_colour_options[NUM_CROSS_COLOUR_RENDERERS] = {
-	{ "simple", "four colour palette", CROSS_COLOUR_SIMPLE },
-#ifndef FAST_VDG
-	{ "5bit",   "5-bit lookup table",  CROSS_COLOUR_5BIT   },
-#endif
-};
 
 struct machine_config *xroar_machine_config;
 struct cart_config *xroar_cart_config;
@@ -289,13 +285,6 @@ static void set_machine(char *name) {
 	}
 
 	if (xroar_machine_config) {
-		if (opt_machine_arch == -2) {
-			int i;
-			for (i = 0; arch_list[i].name; i++) {
-				printf("\t%-10s %s\n", arch_list[i].name, arch_list[i].description);
-			}
-			exit(0);
-		}
 		if (opt_machine_arch != ANY_AUTO) {
 			xroar_machine_config->architecture = opt_machine_arch;
 			opt_machine_arch = ANY_AUTO;
@@ -535,20 +524,6 @@ int xroar_init(int argc, char **argv) {
 	/* Check other command-line options */
 	if (xroar_frameskip < 0)
 		xroar_frameskip = 0;
-	if (opt_ccr) {
-		int i;
-		if (0 == strcmp(opt_ccr, "help")) {
-			for (i = 0; i < NUM_CROSS_COLOUR_RENDERERS; i++) {
-				printf("\t%-10s%s\n", cross_colour_options[i].option, cross_colour_options[i].description);
-			}
-			exit(0);
-		}
-		for (i = 0; i < NUM_CROSS_COLOUR_RENDERERS; i++) {
-			if (!strcmp(opt_ccr, cross_colour_options[i].option)) {
-				xroar_cross_colour_renderer = cross_colour_options[i].value;
-			}
-		}
-	}
 	if (opt_load) {
 		load_file = opt_load;
 		autorun_loaded_file = 0;

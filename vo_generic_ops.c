@@ -24,7 +24,7 @@ static void render_cg2(RENDER_ARGS);
 static void render_rg6(RENDER_ARGS);
 #ifndef FAST_VDG
 static void render_rg6a(RENDER_ARGS);
-# define RENDER_CROSS_COLOUR ((xroar_cross_colour_renderer == CROSS_COLOUR_5BIT) ? render_rg6a : render_cg2)
+# define RENDER_CROSS_COLOUR ((xroar_opt_ccr == CROSS_COLOUR_5BIT) ? render_rg6a : render_cg2)
 #else
 # define RENDER_CROSS_COLOUR (render_cg2)
 #endif
