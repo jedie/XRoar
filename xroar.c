@@ -53,17 +53,19 @@
 /* Command line arguments */
 
 /* Emulated machine */
-char *xroar_opt_machine = NULL;
-char *xroar_opt_bas = NULL;
-char *xroar_opt_extbas = NULL;
-char *xroar_opt_altbas = NULL;
-int xroar_opt_nobas = 0;
-int xroar_opt_noextbas = 0;
-int xroar_opt_noaltbas = 0;
-int xroar_opt_tv = ANY_AUTO;
+static void set_machine(char *name);
+static char *opt_machine_desc = NULL;
+static int opt_machine_arch = ANY_AUTO;
+static char *opt_bas = NULL;
+static char *opt_extbas = NULL;
+static char *opt_altbas = NULL;
+static int opt_nobas = 0;
+static int opt_noextbas = 0;
+static int opt_noaltbas = 0;
+static int opt_tv = ANY_AUTO;
 static void set_pal(void);
 static void set_ntsc(void);
-int xroar_opt_ram = 0;
+static int opt_ram = 0;
 
 /* Emulated cartridge */
 static void set_cart(char *name);
@@ -109,6 +111,19 @@ int xroar_trace_enabled = 0;
 static void helptext(void);
 static void versiontext(void);
 
+static struct xconfig_enum arch_list[] = {
+	{ .value = ARCH_DRAGON64, .name = "dragon64", .description = "Dragon 64" },
+	{ .value = ARCH_DRAGON32, .name = "dragon32", .description = "Dragon 32" },
+	{ .value = ARCH_COCO, .name = "coco", .description = "Tandy CoCo" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum tv_type_list[] = {
+	{ .value = TV_PAL,  .name = "pal",  .description = "PAL (50Hz)" },
+	{ .value = TV_NTSC, .name = "ntsc", .description = "NTSC (60Hz)" },
+	XC_ENUM_END()
+};
+
 static struct xconfig_enum cart_type_list[] = {
 	{ .value = CART_ROM, .name = "rom", .description = "ROM cartridge" },
 	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
@@ -120,16 +135,20 @@ static struct xconfig_enum cart_type_list[] = {
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
 	/* Emulated machine */
-	XC_OPT_STRING( "machine",  &xroar_opt_machine ),
-	XC_OPT_STRING( "bas",      &xroar_opt_bas ),
-	XC_OPT_STRING( "extbas",   &xroar_opt_extbas ),
-	XC_OPT_STRING( "altbas",   &xroar_opt_altbas ),
-	XC_OPT_BOOL  ( "nobas",    &xroar_opt_nobas ),
-	XC_OPT_BOOL  ( "noextbas", &xroar_opt_noextbas ),
-	XC_OPT_BOOL  ( "noaltbas", &xroar_opt_noaltbas ),
+	XC_OPT_CALL_1( "machine",  &set_machine ),
+	XC_OPT_STRING( "machine-desc", &opt_machine_desc ),
+	XC_OPT_ENUM  ( "machine-arch", &opt_machine_arch, arch_list ),
+	XC_OPT_STRING( "bas",      &opt_bas ),
+	XC_OPT_STRING( "extbas",   &opt_extbas ),
+	XC_OPT_STRING( "altbas",   &opt_altbas ),
+	XC_OPT_BOOL  ( "nobas",    &opt_nobas ),
+	XC_OPT_BOOL  ( "noextbas", &opt_noextbas ),
+	XC_OPT_BOOL  ( "noaltbas", &opt_noaltbas ),
+	XC_OPT_ENUM  ( "tv-type",  &opt_tv, tv_type_list ),
+	XC_OPT_INT   ( "ram",      &opt_ram ),
+	/* Backwards-compatibility options: */
 	XC_OPT_CALL_0( "pal",      &set_pal ),
 	XC_OPT_CALL_0( "ntsc",     &set_ntsc ),
-	XC_OPT_INT   ( "ram",      &xroar_opt_ram ),
 
 	/* Emulated cartridge */
 	XC_OPT_CALL_1( "cart",         &set_cart ),
@@ -198,6 +217,7 @@ static struct {
 #endif
 };
 
+struct machine_config *xroar_machine_config;
 struct cart_config *xroar_cart_config;
 
 /**************************************************************************/
@@ -247,11 +267,76 @@ static void trace_done_instruction(M6809State *state);
 /**************************************************************************/
 
 static void set_pal(void) {
-	xroar_opt_tv = TV_PAL;
+	opt_tv = TV_PAL;
 }
 
 static void set_ntsc(void) {
-	xroar_opt_tv = TV_NTSC;
+	opt_tv = TV_NTSC;
+}
+
+/* Called when a "-machine" option is encountered.  If an existing machine
+ * config was in progress, copies any machine-related options into it and
+ * clears those options.  Starts a new config. */
+static void set_machine(char *name) {
+	if (name && 0 == strcmp(name, "help")) {
+		int count = machine_config_count();
+		int i;
+		for (i = 0; i < count; i++) {
+			struct machine_config *mc = machine_config_index(i);
+			printf("\t%-10s %s\n", mc->name, mc->description);
+		}
+		exit(0);
+	}
+
+	if (xroar_machine_config) {
+		if (opt_machine_arch == -2) {
+			int i;
+			for (i = 0; arch_list[i].name; i++) {
+				printf("\t%-10s %s\n", arch_list[i].name, arch_list[i].description);
+			}
+			exit(0);
+		}
+		if (opt_machine_arch != ANY_AUTO) {
+			xroar_machine_config->architecture = opt_machine_arch;
+			opt_machine_arch = ANY_AUTO;
+		}
+		if (opt_machine_desc) {
+			xroar_machine_config->description = opt_machine_desc;
+			opt_machine_desc = NULL;
+		}
+		if (opt_tv != ANY_AUTO) {
+			xroar_machine_config->tv_standard = opt_tv;
+			opt_tv = ANY_AUTO;
+		}
+		if (opt_ram > 0) {
+			xroar_machine_config->ram = opt_ram;
+			opt_ram = 0;
+		}
+		xroar_machine_config->nobas = opt_nobas;
+		xroar_machine_config->noextbas = opt_noextbas;
+		xroar_machine_config->noaltbas = opt_noaltbas;
+		opt_nobas = opt_noextbas = opt_noaltbas = 0;
+		if (opt_bas) {
+			xroar_machine_config->bas_rom = opt_bas;
+			opt_bas = NULL;
+		}
+		if (opt_extbas) {
+			xroar_machine_config->extbas_rom = opt_extbas;
+			opt_extbas = NULL;
+		}
+		if (opt_altbas) {
+			xroar_machine_config->altbas_rom = opt_altbas;
+			opt_altbas = NULL;
+		}
+		machine_config_complete(xroar_machine_config);
+	}
+	if (name) {
+		xroar_machine_config = machine_config_by_name(name);
+		if (!xroar_machine_config) {
+			xroar_machine_config = machine_config_new();
+			xroar_machine_config->name = strdup(name);
+		}
+	}
 }
 
 /* Called when a "-cart" option is encountered.  If an existing cart config was
@@ -316,13 +401,14 @@ static void helptext(void) {
 "emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
 
 "\n Emulated machine:\n"
-"  -machine MACHINE      emulated machine (-machine help for list)\n"
+"  -machine NAME         select/configure machine (-machine help for list)\n"
+"  -machine-desc TEXT    machine description\n"
+"  -machine-arch ARCH    machine architecture (dragon64, dragon32 or coco)\n"
 "  -bas FILENAME         BASIC ROM to use (CoCo only)\n"
 "  -extbas FILENAME      Extended BASIC ROM to use\n"
 "  -altbas FILENAME      alternate BASIC ROM (Dragon 64)\n"
 "  -noextbas             disable Extended BASIC\n"
-"  -pal                  emulate PAL (50Hz) video\n"
-"  -ntsc                 emulate NTSC (60Hz) video\n"
+"  -tv-type TYPE         set TV type (pal or ntsc)\n"
 "  -ram KBYTES           specify amount of RAM in K\n"
 
 "\n Emulated cartridge:\n"
@@ -402,9 +488,11 @@ int xroar_init(int argc, char **argv) {
 		(void)xconfig_parse_file(xroar_options, conffile);
 		free(conffile);
 	}
-	/* Finish any cart config in config file */
+	/* Finish any machine or cart config in config file */
+	set_machine(NULL);
 	set_cart(NULL);
-	/* Don't auto-select last cart in config file */
+	/* Don't auto-select last machine or cart in config file */
+	xroar_machine_config = NULL;
 	xroar_cart_config = NULL;
 
 	/* Parse command line options */
@@ -412,7 +500,8 @@ int xroar_init(int argc, char **argv) {
 	if (ret != XCONFIG_OK) {
 		exit(1);
 	}
-	/* Finish any cart config on command line */
+	/* Finish any machine or cart config on command line */
+	set_machine(NULL);
 	set_cart(NULL);
 
 	/* Select a UI module then, possibly using lists specified in that
@@ -478,11 +567,14 @@ int xroar_init(int argc, char **argv) {
 	}
 	xroar_opt_volume = (256 * xroar_opt_volume) / 100;
 
-	machine_getargs();
+	/* Determine initial machine configuration */
+	if (!xroar_machine_config) {
+		xroar_machine_config = machine_config_first_working();
+	}
 
 	/* Determine initial cart configuration */
 	if (!opt_nodos && !xroar_cart_config) {
-		xroar_cart_config = cart_find_working_dos(requested_machine);
+		xroar_cart_config = cart_find_working_dos(xroar_machine_config);
 	}
 
 	/* Override DOS cart if autoloading a cassette, or replace with ROM
@@ -541,7 +633,8 @@ int xroar_init(int argc, char **argv) {
 	/* Notify UI of starting options: */
 	xroar_set_kbd_translate(xroar_kbd_translate);
 
-	/* Load carts before initial reset */
+	/* Configure machine */
+	machine_configure(xroar_machine_config);
 	machine_insert_cart(xroar_cart_config);
 	/* Reset everything */
 	machine_reset(RESET_HARD);
@@ -930,20 +1023,21 @@ void xroar_set_machine(int machine_type) {
 	static int lock = 0;
 	if (lock) return;
 	lock = 1;
-	int new = requested_machine;
+	int new = xroar_machine_config->index;
+	int num_machine_types = machine_config_count();
 	switch (machine_type) {
 		case XROAR_TOGGLE:
 			break;
 		case XROAR_CYCLE:
-			new = (new + 1) % NUM_MACHINE_TYPES;
+			new = (new + 1) % num_machine_types;
 			break;
 		default:
 			new = machine_type;
 			break;
 	}
-	if (new >= 0 && new < NUM_MACHINE_TYPES) {
-		machine_clear_requested_config();
-		requested_machine = new;
+	if (new >= 0 && new < num_machine_types) {
+		xroar_machine_config = machine_config_index(new);
+		machine_configure(xroar_machine_config);
 		machine_reset(RESET_HARD);
 		if (ui_module->machine_changed_cb) {
 			ui_module->machine_changed_cb(new);
@@ -966,7 +1060,7 @@ void xroar_set_cart(int cart_index) {
 	switch (cart_index) {
 		case XROAR_TOGGLE:
 			if (old < 0) {
-				switch (requested_config.architecture) {
+				switch (xroar_machine_config->architecture) {
 				default:
 				case ARCH_DRAGON64: case ARCH_DRAGON32:
 					xroar_cart_config = cart_config_by_name("dragondos");

@@ -69,7 +69,7 @@ int write_snapshot(const char *filename) {
 	fs_write_uint16(fd, SNAPSHOT_VERSION_MINOR);
 	/* Machine running config */
 	fs_write_uint8(fd, ID_MACHINECONFIG); fs_write_uint16(fd, 8);
-	fs_write_uint8(fd, running_machine);
+	fs_write_uint8(fd, xroar_machine_config->index);
 	fs_write_uint8(fd, running_config.architecture);
 	fs_write_uint8(fd, running_config.romset);
 	fs_write_uint8(fd, running_config.keymap);
@@ -200,10 +200,8 @@ int read_snapshot(const char *filename) {
 		}
 	}
 	/* Default to Dragon 64 for old snapshots */
-	requested_machine = MACHINE_DRAGON64;
-	machine_clear_requested_config();
-	/* Need reset in case old snapshot doesn't trigger one */
-	machine_reset(RESET_HARD);
+	xroar_machine_config = machine_config_by_arch(ARCH_DRAGON64);
+	machine_configure(xroar_machine_config);
 	/* If old snapshot, buffer contains register dump */
 	if (buffer[0] != 'X') {
 		old_set_registers(buffer + 3);
@@ -217,15 +215,14 @@ int read_snapshot(const char *filename) {
 				if (size < 1) break;
 				tmp = fs_read_uint8(fd);
 				tmp %= 4;
-				requested_machine = old_arch_mapping[tmp];
-				machine_reset(RESET_HARD);
+				xroar_machine_config->architecture = old_arch_mapping[tmp];
+				machine_configure(xroar_machine_config);
 				size--;
 				break;
 			case ID_KEYBOARD_MAP:
 				/* Deprecated: Keyboard map */
 				if (size < 1) break;
 				tmp = fs_read_uint8(fd);
-				requested_config.keymap = tmp;
 				xroar_set_keymap(tmp);
 				size--;
 				break;
@@ -282,20 +279,20 @@ int read_snapshot(const char *filename) {
 			case ID_MACHINECONFIG:
 				/* Machine running config */
 				if (size < 7) break;
-				requested_machine = fs_read_uint8(fd);
-				requested_config.architecture = fs_read_uint8(fd);
-				requested_config.romset = fs_read_uint8(fd);
-				requested_config.keymap = fs_read_uint8(fd);
-				requested_config.tv_standard = fs_read_uint8(fd);
-				requested_config.ram = fs_read_uint8(fd);
+				(void)fs_read_uint8(fd);  /* requested_machine */
+				xroar_machine_config->architecture = fs_read_uint8(fd);
+				(void)fs_read_uint8(fd);  /* romset */
+				xroar_machine_config->keymap = fs_read_uint8(fd);  /* keymap */
+				xroar_machine_config->tv_standard = fs_read_uint8(fd);
+				xroar_machine_config->ram = fs_read_uint8(fd);
 				tmp = fs_read_uint8(fd);  /* dos_type */
 				xroar_set_dos(tmp);
 				size -= 7;
 				if (size > 0) {
-					requested_config.cross_colour_phase = fs_read_uint8(fd);
+					running_config.cross_colour_phase = fs_read_uint8(fd);
 					size--;
 				}
-				machine_reset(RESET_HARD);
+				machine_configure(xroar_machine_config);
 				break;
 			case ID_PIA_REGISTERS:
 				/* PIA0.a */

@@ -204,17 +204,17 @@ struct cart_config *cart_config_by_name(const char *name) {
 	return NULL;
 }
 
-struct cart_config *cart_find_working_dos(int machine_arch) {
+struct cart_config *cart_find_working_dos(struct machine_config *mc) {
 	char *tmp = NULL;
 	struct cart_config *cc = NULL;
-	if (machine_arch == ANY_AUTO || machine_arch != ARCH_COCO) {
-		if ((tmp = machine_find_rom_in_list(NULL, dragondos_roms))) {
+	if (!mc || mc->architecture != ARCH_COCO) {
+		if ((tmp = machine_find_rom_in_list(dragondos_roms))) {
 			cc = cart_config_by_name("dragondos");
-		} else if ((tmp = machine_find_rom_in_list(NULL, deltados_roms))) {
+		} else if ((tmp = machine_find_rom_in_list(deltados_roms))) {
 			cc = cart_config_by_name("delta");
 		}
 	} else {
-		if ((tmp = machine_find_rom_in_list(NULL, rsdos_roms))) {
+		if ((tmp = machine_find_rom_in_list(rsdos_roms))) {
 			cc = cart_config_by_name("rsdos");
 		}
 	}
@@ -245,7 +245,7 @@ void cart_config_complete(struct cart_config *cc) {
 		}
 	}
 	if (!cc->rom) {
-		cc->rom = machine_find_rom_in_list(NULL, rom_list[cc->type]);
+		cc->rom = machine_find_rom_in_list(rom_list[cc->type]);
 	}
 }
 

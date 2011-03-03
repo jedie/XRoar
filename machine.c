@@ -16,6 +16,9 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,23 +46,6 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-const char *machine_names[NUM_MACHINE_TYPES] = {
-	"Dragon 32", "Dragon 64", "Tano Dragon (NTSC)", "Tandy CoCo (PAL)", "Tandy CoCo (NTSC)"
-};
-
-MachineConfig machine_defaults[NUM_MACHINE_TYPES] = {
-	{ ARCH_DRAGON32, ROMSET_DRAGON32, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  32, NULL, NULL, NULL },
-	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  64, NULL, NULL, NULL },
-	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_NTSC, CROSS_COLOUR_KBRW, 64, NULL, NULL, NULL },
-	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_PAL,  CROSS_COLOUR_OFF,  64, NULL, NULL, NULL },
-	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_NTSC, CROSS_COLOUR_KBRW, 64, NULL, NULL, NULL }
-};
-
-int requested_machine;
-MachineConfig requested_config = {
-	ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, NULL, NULL, NULL
-};
-int running_machine;
 MachineConfig running_config;
 
 unsigned int machine_ram_size = 0x10000;  /* RAM in bytes, up to 64K */
@@ -88,49 +74,226 @@ static struct {
 	{ coco_bas_roms, coco_extbas_roms, NULL }
 };
 
-const char *machine_options[NUM_MACHINE_TYPES] = {
-	"dragon32", "dragon64", "tano", "coco", "cocous"
+struct machine_config_template {
+	const char *name;
+	const char *description;
+	int architecture;
+	int tv_standard;
+	int ram;
 };
+
+static struct machine_config_template config_templates[] = {
+	{ "dragon32", "Dragon 32", ARCH_DRAGON32, TV_PAL, 32, },
+	{ "dragon64", "Dragon 64", ARCH_DRAGON64, TV_PAL, 64, },
+	{ "tano", "Tano Dragon (NTSC)", ARCH_DRAGON64, TV_NTSC, 64, },
+	{ "coco", "Tandy CoCo (PAL)", ARCH_COCO, TV_PAL, 64, },
+	{ "cocous", "Tandy CoCo (NTSC)", ARCH_COCO, TV_NTSC, 64, },
+};
+#define NUM_CONFIG_TEMPLATES (int)(sizeof(config_templates)/sizeof(struct machine_config_template))
+
+static struct machine_config **configs = NULL;
+static int num_configs = NUM_CONFIG_TEMPLATES;
 
 static void initialise_ram(void);
 
-static int load_rom_from_list(const char *preferred, const char **list,
-		uint8_t *dest, size_t max_size);
-
 /**************************************************************************/
 
-static void find_working_machine(void);
-
-void machine_getargs(void) {
-	machine_clear_requested_config();
-	requested_machine = ANY_AUTO;
-	if (xroar_opt_machine) {
-		int i;
-		if (0 == strcmp(xroar_opt_machine, "help")) {
-			for (i = 0; i < NUM_MACHINE_TYPES; i++) {
-				printf("\t%-10s%s\n", machine_options[i], machine_names[i]);
-			}
-			exit(0);
-		}
-		for (i = 0; i < NUM_MACHINE_TYPES; i++) {
-			if (!strcmp(xroar_opt_machine, machine_options[i])) {
-				requested_machine = i;
-			}
-		}
-	}
-	requested_config.bas_rom = xroar_opt_bas;
-	requested_config.extbas_rom = xroar_opt_extbas;
-	requested_config.altbas_rom = xroar_opt_altbas;
-	if (xroar_opt_ram > 0) {
-		requested_config.ram = xroar_opt_ram;
-	}
-	if (xroar_opt_tv != ANY_AUTO) {
-		requested_config.tv_standard = xroar_opt_tv;
-	}
-
-	if (requested_machine == ANY_AUTO)
-		find_working_machine();
+/* Create config array */
+static int alloc_config_array(int size) {
+	struct machine_config **new_list;
+	int clear_from = num_configs;
+	if (!configs) clear_from = 0;
+	new_list = realloc(configs, size * sizeof(struct machine_config *));
+	if (!new_list)
+		return -1;
+	configs = new_list;
+	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct machine_config *));
+	return 0;
 }
+
+/* Populate config from template */
+static int populate_config_index(int i) {
+	__label__ failed;
+	assert(configs != NULL);
+	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
+	if (configs[i])
+		return 0;
+	configs[i] = malloc(sizeof(struct machine_config));
+	if (!configs[i])
+		return -1;
+	memset(configs[i], 0, sizeof(struct machine_config));
+	configs[i]->name = strdup(config_templates[i].name);
+	if (!configs[i]->name) goto failed;
+	configs[i]->description = strdup(config_templates[i].description);
+	if (!configs[i]->description) goto failed;
+	configs[i]->architecture = config_templates[i].architecture;
+	configs[i]->tv_standard = config_templates[i].tv_standard;
+	configs[i]->ram = config_templates[i].ram;
+	configs[i]->index = i;
+	return 0;
+	/* clean up on error */
+failed:
+	if (configs[i]->name) free(configs[i]->name);
+	free(configs[i]);
+	configs[i] = NULL;
+	return -1;
+}
+
+struct machine_config *machine_config_new(void) {
+	struct machine_config *new;
+	if (alloc_config_array(num_configs+1) != 0)
+		return NULL;
+	new = malloc(sizeof(struct machine_config));
+	if (!new) return NULL;
+	memset(new, 0, sizeof(struct machine_config));
+	new->index = num_configs;
+	new->architecture = ANY_AUTO;
+	new->keymap = ANY_AUTO;
+	new->tv_standard = ANY_AUTO;
+	new->ram = ANY_AUTO;
+	configs[num_configs++] = new;
+	return new;
+}
+
+int machine_config_count(void) {
+	return num_configs;
+}
+
+struct machine_config *machine_config_index(int i) {
+	if (i < 0 || i >= num_configs) {
+		return NULL;
+	}
+	if (!configs) {
+		if (alloc_config_array(num_configs) != 0)
+			return NULL;
+	}
+	if (i < NUM_CONFIG_TEMPLATES && !configs[i]) {
+		if (populate_config_index(i) != 0)
+			return NULL;
+	}
+	return configs[i];
+}
+
+struct machine_config *machine_config_by_name(const char *name) {
+	int count, i;
+	if (!name) return NULL;
+	count = machine_config_count();
+	for (i = 0; i < count; i++) {
+		struct machine_config *mc = machine_config_index(i);
+		if (0 == strcmp(mc->name, name)) {
+			return mc;
+		}
+	}
+	return NULL;
+}
+
+struct machine_config *machine_config_by_arch(int arch) {
+	int count, i;
+	count = machine_config_count();
+	for (i = 0; i < count; i++) {
+		struct machine_config *mc = machine_config_index(i);
+		if (mc->architecture == arch) {
+			return mc;
+		}
+	}
+	return NULL;
+}
+
+static int find_working_arch(void) {
+	int arch;
+	char *tmp = NULL;
+	if ((tmp = machine_find_rom_in_list(d64_extbas_roms))) {
+		arch = ARCH_DRAGON64;
+	} else if ((tmp = machine_find_rom_in_list(d32_extbas_roms))) {
+		arch = ARCH_DRAGON32;
+	} else if ((tmp = machine_find_rom_in_list(coco_bas_roms))) {
+		arch = ARCH_COCO;
+	} else {
+		/* Fall back to this, which won't start up properly */
+		arch = ARCH_DRAGON64;
+	}
+	if (tmp)
+		free(tmp);
+	return arch;
+}
+
+struct machine_config *machine_config_first_working(void) {
+	return machine_config_by_arch(find_working_arch());
+}
+
+void machine_config_complete(struct machine_config *mc) {
+	if (!mc->description) {
+		mc->description = strdup(mc->name);
+	}
+	if (mc->tv_standard == ANY_AUTO)
+		mc->tv_standard = TV_PAL;
+	/* Find actual path to any specified ROMs */
+	if (mc->bas_rom) {
+		char *tmp = machine_find_rom(mc->bas_rom);
+		free(mc->bas_rom);
+		mc->bas_rom = tmp;
+	}
+	if (mc->extbas_rom) {
+		char *tmp = machine_find_rom(mc->extbas_rom);
+		free(mc->extbas_rom);
+		mc->extbas_rom = tmp;
+	}
+	if (mc->altbas_rom) {
+		char *tmp = machine_find_rom(mc->altbas_rom);
+		free(mc->altbas_rom);
+		mc->altbas_rom = tmp;
+	}
+
+	/* Various heuristics to find a working architecture */
+	if (mc->architecture == ANY_AUTO) {
+		/* TODO: checksum ROMs to help determine arch */
+		if (mc->bas_rom) {
+			mc->architecture = ARCH_COCO;
+		} else if (mc->altbas_rom) {
+			mc->architecture = ARCH_DRAGON64;
+		} else if (mc->extbas_rom) {
+			if (fs_size(mc->extbas_rom) > 0x2000) {
+				mc->architecture = ARCH_DRAGON64;
+			} else {
+				mc->architecture = ARCH_COCO;
+			}
+		} else {
+			mc->architecture = find_working_arch();
+		}
+	}
+	if (mc->ram < 4 || mc->ram > 64) {
+		switch (mc->architecture) {
+			case ARCH_DRAGON32:
+				mc->ram = 32;
+				break;
+			default:
+				mc->ram = 64;
+				break;
+		}
+	}
+	if (mc->keymap == ANY_AUTO) {
+		switch (mc->architecture) {
+		case ARCH_DRAGON64: case ARCH_DRAGON32: default:
+			mc->keymap = KEYMAP_DRAGON;
+			break;
+		case ARCH_COCO:
+			mc->keymap = KEYMAP_COCO;
+			break;
+		}
+	}
+	/* Now find which ROMs we're actually going to use */
+	if (!mc->nobas && !mc->bas_rom) {
+		mc->bas_rom = machine_find_rom_in_list(rom_list[mc->architecture].bas);
+	}
+	if (!mc->noextbas && !mc->extbas_rom) {
+		mc->extbas_rom = machine_find_rom_in_list(rom_list[mc->architecture].extbas);
+	}
+	if (!mc->noaltbas && !mc->altbas_rom) {
+		mc->altbas_rom = machine_find_rom_in_list(rom_list[mc->architecture].altbas);
+	}
+}
+
+/* ---------------------------------------------------------------------- */
 
 void machine_update_sound(void) {
 	int value;
@@ -233,99 +396,66 @@ void machine_shutdown(void) {
 	vdrive_shutdown();
 }
 
-/* If user didn't specify a machine, find the first one that has the bare
- * minimum of ROMs to get going */
-static void find_working_machine(void) {
-	char *tmp = NULL;
-	if ((tmp = machine_find_rom_in_list(requested_config.extbas_rom, d64_extbas_roms))) {
-		if (requested_config.tv_standard == TV_NTSC)
-			requested_machine = MACHINE_TANO;
-		else
-			requested_machine = MACHINE_DRAGON64;
-	} else if ((tmp = machine_find_rom_in_list(NULL, d32_extbas_roms))) {
-		requested_machine = MACHINE_DRAGON32;
-	} else if ((tmp = machine_find_rom_in_list(requested_config.bas_rom, coco_bas_roms))) {
-		if (requested_config.tv_standard == TV_NTSC)
-			requested_machine = MACHINE_COCOUS;
-		else
-			requested_machine = MACHINE_COCO;
-	} else {
-		/* Fall back to this, which won't start up properly */
-		requested_machine = MACHINE_DRAGON64;
+void machine_configure(struct machine_config *mc) {
+	if (!mc) return;
+	machine_config_complete(mc);
+	if (mc->description) {
+		LOG_DEBUG(2, "Machine: %s\n", mc->description);
 	}
-	if (tmp)
-		free(tmp);
+	/* */
+	running_config.architecture = mc->architecture;
+	running_config.tv_standard = mc->tv_standard;
+	running_config.ram = mc->ram;
+	xroar_set_keymap(mc->keymap);
+	switch (mc->tv_standard) {
+	case TV_PAL: default:
+		running_config.cross_colour_phase = CROSS_COLOUR_OFF;
+		break;
+	case TV_NTSC:
+		running_config.cross_colour_phase = CROSS_COLOUR_KBRW;
+		break;
+	}
+	/* Load appropriate ROMs */
+	memset(rom0, 0, sizeof(rom0));
+	memset(rom1, 0, sizeof(rom1));
+	/* ... BASIC */
+	if (!mc->nobas && mc->bas_rom) {
+		machine_load_rom(mc->bas_rom, rom0 + 0x2000, sizeof(rom0) - 0x2000);
+	}
+	/* ... Extended BASIC */
+	if (!mc->noextbas && mc->extbas_rom) {
+		machine_load_rom(mc->extbas_rom, rom0, sizeof(rom0));
+	}
+	/* ... Alternate BASIC ROM */
+	if (!mc->noaltbas && mc->altbas_rom) {
+		machine_load_rom(mc->altbas_rom, rom1, sizeof(rom1));
+	}
+	machine_ram_size = mc->ram * 1024;
+	/* This will be under PIA control on a Dragon 64 */
+	sam_mapped_rom = rom0;
+	/* Machine-specific PIA connections */
+	PIA1.b.tied_low |= (1<<2);
+	PIA1.b.port_input &= ~(1<<2);
+	if (IS_DRAGON64) {
+		PIA1.b.port_input |= (1<<2);
+	} else if (IS_COCO && machine_ram_size <= 0x1000) {
+		/* 4K CoCo ties PB2 of PIA1 low */
+		PIA1.b.tied_low &= ~(1<<2);
+	} else if (IS_COCO && machine_ram_size <= 0x4000) {
+		/* 16K CoCo pulls PB2 of PIA1 high */
+		PIA1.b.port_input |= (1<<2);
+	}
+	PIA0.b.data_postwrite = pia0b_data_postwrite;
+	if (IS_COCO && machine_ram_size > 0x4000) {
+		/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1.
+		 * Deal with this through a postwrite. */
+		PIA0.b.data_postwrite = pia0b_data_postwrite_coco64k;
+	}
 }
 
 void machine_reset(int hard) {
 	if (hard) {
-		MachineConfig *defaults;
-		running_machine = requested_machine % NUM_MACHINE_TYPES;
-		LOG_DEBUG(2, "%s selected\n", machine_names[running_machine]);
-		defaults = &machine_defaults[running_machine];
-		/* Update running config */
-		memcpy(&running_config, &requested_config, sizeof(MachineConfig));
-		if (running_config.architecture == ANY_AUTO)
-			running_config.architecture = defaults->architecture % NUM_ARCHITECTURES;
-		if (running_config.romset == ANY_AUTO)
-			running_config.romset = defaults->romset % NUM_ROMSETS;
-		if (requested_config.keymap == ANY_AUTO) {
-			xroar_set_keymap(defaults->keymap);
-		} else {
-			xroar_set_keymap(requested_config.keymap);
-		}
-		if (running_config.tv_standard == ANY_AUTO)
-			running_config.tv_standard = defaults->tv_standard % NUM_TV_STANDARDS;
-		if (running_config.cross_colour_phase == ANY_AUTO)
-			running_config.cross_colour_phase = defaults->cross_colour_phase % NUM_CROSS_COLOUR_PHASES;
-		if (running_config.ram == ANY_AUTO)
-			running_config.ram = defaults->ram;
-		/* Load appropriate ROMs */
-		memset(rom0, 0x7e, sizeof(rom0));
-		memset(rom1, 0x7e, sizeof(rom1));
-		/* ... BASIC */
-		if (!xroar_opt_nobas) {
-			load_rom_from_list(running_config.bas_rom,
-					rom_list[running_config.romset].bas,
-					rom0 + 0x2000, sizeof(rom0) - 0x2000);
-		}
-		/* ... Extended BASIC */
-		if (!xroar_opt_noextbas) {
-			load_rom_from_list(running_config.extbas_rom,
-					rom_list[running_config.romset].extbas,
-					rom0, sizeof(rom0));
-		}
-		/* ... Alternate BASIC ROM */
-		if (!xroar_opt_noaltbas) {
-			load_rom_from_list(running_config.altbas_rom,
-					rom_list[running_config.romset].altbas,
-					rom1, sizeof(rom1));
-		}
-		/* Configure RAM */
-		if (running_config.ram < 4) running_config.ram = 4;
-		if (running_config.ram > 64) running_config.ram = 64;
-		machine_ram_size = running_config.ram * 1024;
 		initialise_ram();
-		/* This will be under PIA control on a Dragon 64 */
-		sam_mapped_rom = rom0;
-		/* Machine-specific PIA connections */
-		PIA1.b.tied_low |= (1<<2);
-		PIA1.b.port_input &= ~(1<<2);
-		if (IS_DRAGON64) {
-			PIA1.b.port_input |= (1<<2);
-		} else if (IS_COCO && machine_ram_size <= 0x1000) {
-			/* 4K CoCo ties PB2 of PIA1 low */
-			PIA1.b.tied_low &= ~(1<<2);
-		} else if (IS_COCO && machine_ram_size <= 0x4000) {
-			/* 16K CoCo pulls PB2 of PIA1 high */
-			PIA1.b.port_input |= (1<<2);
-		}
-		PIA0.b.data_postwrite = pia0b_data_postwrite;
-		if (IS_COCO && machine_ram_size > 0x4000) {
-			/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1.
-			 * Deal with this through a postwrite. */
-			PIA0.b.data_postwrite = pia0b_data_postwrite_coco64k;
-		}
 	}
 	mc6821_reset(&PIA0);
 	mc6821_reset(&PIA1);
@@ -339,18 +469,6 @@ void machine_reset(int hard) {
 #endif
 	vdg_reset();
 	tape_reset();
-}
-
-void machine_clear_requested_config(void) {
-	requested_config.architecture = ANY_AUTO;
-	requested_config.romset = ANY_AUTO;
-	requested_config.keymap = ANY_AUTO;
-	requested_config.tv_standard = ANY_AUTO;
-	requested_config.cross_colour_phase = ANY_AUTO;
-	requested_config.ram = ANY_AUTO;
-	requested_config.bas_rom = NULL;
-	requested_config.extbas_rom = NULL;
-	requested_config.altbas_rom = NULL;
 }
 
 void machine_insert_cart(struct cart_config *cc) {
@@ -387,10 +505,6 @@ static void initialise_ram(void) {
 
 /**************************************************************************/
 
-/* load_rom_from_list searches a path to find the preferred ROM, or one from
- * the supplied list.  It searches for each rom name as-is, and with ".rom" or
- * ".dgn" extensions added.  */
-
 static const char *rom_extensions[] = {
 	"", ".rom", ".ROM", ".dgn", ".DGN", NULL
 };
@@ -415,11 +529,9 @@ char *machine_find_rom(const char *romname) {
 	return path;
 }
 
-char *machine_find_rom_in_list(const char *preferred, const char **list) {
+char *machine_find_rom_in_list(const char **list) {
 	char *path;
 	int i;
-	if (preferred && (path = machine_find_rom(preferred)))
-		return path;
 	if (list == NULL)
 		return NULL;
 	for (i = 0; list[i]; i++) {
@@ -427,19 +539,6 @@ char *machine_find_rom_in_list(const char *preferred, const char **list) {
 			return path;
 	}
 	return NULL;
-}
-
-static int load_rom_from_list(const char *preferred, const char **list,
-		uint8_t *dest, size_t max_size) {
-	char *path;
-	int ret;
-
-	path = machine_find_rom_in_list(preferred, list);
-	if (path == NULL)
-		return -1;
-	ret = machine_load_rom(path, dest, max_size);
-	free(path);
-	return ret;
 }
 
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
@@ -453,11 +552,11 @@ int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	if ((fd = fs_open(path, FS_READ)) == -1) {
 		return -1;
 	}
-	if (dot && strcmp(dot, ".dgn") == 0) {
-		LOG_DEBUG(3, "Loading DGN: %s\n", path);
+	if (dot && strcasecmp(dot, ".dgn") == 0) {
+		LOG_DEBUG(2, "Loading DGN: %s\n", path);
 		fs_read(fd, dest, 16);
 	} else {
-		LOG_DEBUG(3, "Loading ROM: %s\n", path);
+		LOG_DEBUG(2, "Loading ROM: %s\n", path);
 	}
 	size = fs_read(fd, dest, max_size);
 	fs_close(fd);

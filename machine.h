@@ -53,12 +53,6 @@ struct cart;
 #define DOS_RSDOS     (2)
 #define DOS_DELTADOS  (3)
 
-#define NUM_MACHINE_TYPES (5)
-#define NUM_ARCHITECTURES (3)
-#define NUM_ROMSETS       (3)
-#define NUM_TV_STANDARDS  (2)
-#define NUM_DOS_TYPES     (4)
-
 /* NTSC cross-colour can either be switched off, or sychronised to one
  * of two phases (a real CoCo does not emit a colour burst in high resolution
  * mode, so NTSC televisions sync to one at random on machine reset) */
@@ -67,6 +61,22 @@ struct cart;
 #define CROSS_COLOUR_KBRW (1)
 #define CROSS_COLOUR_KRBW (2)
 
+struct machine_config {
+	char *name;
+	char *description;
+	int index;
+	int architecture;
+	int keymap;
+	int tv_standard;
+	int ram;
+	int nobas;
+	int noextbas;
+	int noaltbas;
+	char *bas_rom;
+	char *extbas_rom;
+	char *altbas_rom;
+};
+
 typedef struct {
 	int architecture;
 	int romset;
@@ -74,17 +84,8 @@ typedef struct {
 	int tv_standard;
 	int cross_colour_phase;
 	int ram;
-	const char *bas_rom;
-	const char *extbas_rom;
-	const char *altbas_rom;
 } MachineConfig;
 
-extern const char *machine_names[NUM_MACHINE_TYPES];
-extern const char *machine_options[NUM_MACHINE_TYPES];
-extern MachineConfig machine_defaults[NUM_MACHINE_TYPES];
-extern int requested_machine;
-extern int running_machine;
-extern MachineConfig requested_config;
 extern MachineConfig running_config;
 
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
@@ -95,21 +96,31 @@ extern MC6821_PIA PIA0, PIA1;
 extern struct cart *machine_cart;
 
 extern Cycle current_cycle;
-extern int noextbas;
 
-void machine_getargs(void);
+/* Add a new machine config: */
+struct machine_config *machine_config_new(void);
+/* For finding known configs: */
+int machine_config_count(void);
+struct machine_config *machine_config_index(int i);
+struct machine_config *machine_config_by_name(const char *name);
+struct machine_config *machine_config_by_arch(int arch);
+/* Find a working machine by searching available ROMs: */
+struct machine_config *machine_config_first_working(void);
+/* Complete a config replacing ANY_AUTO entries: */
+void machine_config_complete(struct machine_config *mc);
+
 void machine_init(void);
 void machine_shutdown(void);
+void machine_configure(struct machine_config *mc);  /* apply config */
 void machine_reset(int hard);
 
 void machine_update_sound(void);
 
-void machine_clear_requested_config(void);
 void machine_insert_cart(struct cart_config *cc);
 void machine_remove_cart(void);
 
 char *machine_find_rom(const char *romname);
-char *machine_find_rom_in_list(const char *preferred, const char **list);
+char *machine_find_rom_in_list(const char **list);
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size);
 
 #endif  /* XROAR_MACHINE_H_ */

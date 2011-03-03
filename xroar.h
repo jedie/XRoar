@@ -9,6 +9,7 @@
 #include "types.h"
 #include "events.h"
 
+struct machine_config;
 struct cart_config;
 
 /* Convenient values for arguments to helper functions */
@@ -44,17 +45,6 @@ extern void (*xroar_kbd_translate_changed_cb)(int kbd_translate);
 
 /**************************************************************************/
 /* Command line arguments */
-
-/* Emulated machine */
-extern char *xroar_opt_machine;
-extern char *xroar_opt_bas;
-extern char *xroar_opt_extbas;
-extern char *xroar_opt_altbas;
-extern int xroar_opt_nobas;
-extern int xroar_opt_noextbas;
-extern int xroar_opt_noaltbas;
-extern int xroar_opt_tv;
-extern int xroar_opt_ram;
 
 /* Emulator interface */
 extern char *xroar_opt_gl_filter;
@@ -94,6 +84,7 @@ extern const char *xroar_rom_path;
 extern event_t *xroar_ui_events;
 extern event_t *xroar_machine_events;
 
+extern struct machine_config *xroar_machine_config;
 extern struct cart_config *xroar_cart_config;
 
 /**************************************************************************/

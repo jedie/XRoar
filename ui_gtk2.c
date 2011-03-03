@@ -280,18 +280,28 @@ static int init(void) {
 	guint merge_carts = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
 
 	/* Add machines to menu */
-	int i;
-	GtkRadioActionEntry machine_radio_entries[NUM_MACHINE_TYPES];
-	memset(machine_radio_entries, 0, sizeof(machine_radio_entries));
-	/* add these to the ui in reverse order, as each will be inserted
-	   before the previous */
-	for (i = NUM_MACHINE_TYPES-1; i >= 0; i--) {
-		machine_radio_entries[i].name = machine_options[i];
-		machine_radio_entries[i].label = machine_names[i];
-		machine_radio_entries[i].value = i;
-		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/MachineMenu", machine_radio_entries[i].name, machine_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+	{
+		int num_machines = machine_config_count();
+		int i;
+		int selected = -1;
+		if (xroar_machine_config) selected = xroar_machine_config->index;
+		GtkRadioActionEntry *machine_radio_entries = malloc(num_machines * sizeof(GtkRadioActionEntry));
+		memset(machine_radio_entries, 0, num_machines * sizeof(GtkRadioActionEntry));
+		/* add these to the ui in reverse order, as each will be
+		 * inserted before the previous */
+		for (i = num_machines-1; i >= 0; i--) {
+			struct machine_config *mc = machine_config_index(i);
+			machine_radio_entries[i].name = mc->name;
+			machine_radio_entries[i].label = escape_underscores(mc->description);
+			machine_radio_entries[i].value = i;
+			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/MachineMenu", machine_radio_entries[i].name, machine_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+		}
+		gtk_action_group_add_radio_actions(action_group, machine_radio_entries, num_machines, selected, (GCallback)set_machine, NULL);
+		for (i = 0; i < num_machines; i++) {
+			free((char *)machine_radio_entries[i].label);
+		}
+		free(machine_radio_entries);
 	}
-	gtk_action_group_add_radio_actions(action_group, machine_radio_entries, NUM_MACHINE_TYPES, requested_machine, (GCallback)set_machine, NULL);
 
 	/* Add cartridges to menu */
 	{
@@ -302,7 +312,7 @@ static int init(void) {
 		GtkRadioActionEntry *cart_radio_entries = malloc((num_carts+1) * sizeof(GtkRadioActionEntry));
 		memset(cart_radio_entries, 0, (num_carts+1) * sizeof(GtkRadioActionEntry));
 		/* add these to the ui in reverse order, as each will be
-		 * inserted before the previous */
+		   inserted before the previous */
 		for (i = num_carts-1; i >= 0; i--) {
 			struct cart_config *mc = cart_config_index(i);
 			cart_radio_entries[i].name = mc->name;
