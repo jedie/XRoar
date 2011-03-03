@@ -19,6 +19,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
