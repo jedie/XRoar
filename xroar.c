@@ -77,24 +77,24 @@ static int opt_cart_autorun = ANY_AUTO;
 static int opt_nodos = 0;
 
 /* Attach files */
-static const char *xroar_opt_load = NULL;
-static const char *xroar_opt_run = NULL;
-static const char *xroar_opt_lp_file = NULL;
-static const char *xroar_opt_lp_pipe = NULL;
+static const char *opt_load = NULL;
+static const char *opt_run = NULL;
+static const char *opt_lp_file = NULL;
+static const char *opt_lp_pipe = NULL;
 
 /* Emulator interface */
-static const char *xroar_opt_ui = NULL;
-static const char *xroar_opt_filereq = NULL;
-static const char *xroar_opt_vo = NULL;
+static const char *opt_ui = NULL;
+static const char *opt_filereq = NULL;
+static const char *opt_vo = NULL;
 char *xroar_opt_gl_filter = NULL;
-static const char *xroar_opt_ao = NULL;
+static const char *opt_ao = NULL;
 int xroar_opt_ao_rate = 0;
 int xroar_opt_volume = 100;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
 #endif
 int xroar_opt_fullscreen = 0;
-static const char *xroar_opt_ccr = NULL;
+static const char *opt_ccr = NULL;
 int xroar_frameskip = 0;
 char *xroar_opt_keymap = NULL;
 int xroar_kbd_translate = 0;
@@ -163,27 +163,27 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "dos",          &opt_cart_rom ),
 
 	/* Attach files */
-	XC_OPT_STRING( "load",    &xroar_opt_load ),
-	XC_OPT_STRING( "cartna",  &xroar_opt_load ),
-	XC_OPT_STRING( "snap",    &xroar_opt_load ),
-	XC_OPT_STRING( "run",     &xroar_opt_run ),
-	XC_OPT_STRING( "cart",    &xroar_opt_run ),
-	XC_OPT_STRING( "lp-file", &xroar_opt_lp_file ),
-	XC_OPT_STRING( "lp-pipe", &xroar_opt_lp_pipe ),
+	XC_OPT_STRING( "load",    &opt_load ),
+	XC_OPT_STRING( "cartna",  &opt_load ),
+	XC_OPT_STRING( "snap",    &opt_load ),
+	XC_OPT_STRING( "run",     &opt_run ),
+	XC_OPT_STRING( "cart",    &opt_run ),
+	XC_OPT_STRING( "lp-file", &opt_lp_file ),
+	XC_OPT_STRING( "lp-pipe", &opt_lp_pipe ),
 
 	/* Emulator interface */
-	XC_OPT_STRING( "ui",            &xroar_opt_ui ),
-	XC_OPT_STRING( "filereq",       &xroar_opt_filereq ),
-	XC_OPT_STRING( "vo",            &xroar_opt_vo ),
+	XC_OPT_STRING( "ui",            &opt_ui ),
+	XC_OPT_STRING( "filereq",       &opt_filereq ),
+	XC_OPT_STRING( "vo",            &opt_vo ),
 	XC_OPT_STRING( "gl-filter",     &xroar_opt_gl_filter ),
-	XC_OPT_STRING( "ao",            &xroar_opt_ao ),
+	XC_OPT_STRING( "ao",            &opt_ao ),
 	XC_OPT_INT   ( "ao-rate",       &xroar_opt_ao_rate ),
 	XC_OPT_INT   ( "volume",        &xroar_opt_volume ),
 #ifndef FAST_SOUND
 	XC_OPT_BOOL  ( "fast-sound",    &xroar_fast_sound ),
 #endif
 	XC_OPT_BOOL  ( "fs",            &xroar_opt_fullscreen ),
-	XC_OPT_STRING( "ccr",           &xroar_opt_ccr ),
+	XC_OPT_STRING( "ccr",           &opt_ccr ),
 	XC_OPT_INT   ( "fskip",         &xroar_frameskip ),
 	XC_OPT_STRING( "keymap",        &xroar_opt_keymap ),
 	XC_OPT_BOOL  ( "kbd-translate", &xroar_kbd_translate ),
@@ -506,23 +506,23 @@ int xroar_init(int argc, char **argv) {
 
 	/* Select a UI module then, possibly using lists specified in that
 	 * module, select all other modules */
-	ui_module = (UIModule *)module_select_by_arg((Module **)ui_module_list, xroar_opt_ui);
+	ui_module = (UIModule *)module_select_by_arg((Module **)ui_module_list, opt_ui);
 	if (ui_module == NULL) {
-		LOG_DEBUG(0, "%s: ui module `%s' not found\n", argv[0], xroar_opt_ui);
+		LOG_DEBUG(0, "%s: ui module `%s' not found\n", argv[0], opt_ui);
 		exit(1);
 	}
 	/* Select file requester module */
 	if (ui_module->filereq_module_list != NULL)
 		filereq_module_list = ui_module->filereq_module_list;
-	filereq_module = (FileReqModule *)module_select_by_arg((Module **)filereq_module_list, xroar_opt_filereq);
+	filereq_module = (FileReqModule *)module_select_by_arg((Module **)filereq_module_list, opt_filereq);
 	/* Select video module */
 	if (ui_module->video_module_list != NULL)
 		video_module_list = ui_module->video_module_list;
-	video_module = (VideoModule *)module_select_by_arg((Module **)video_module_list, xroar_opt_vo);
+	video_module = (VideoModule *)module_select_by_arg((Module **)video_module_list, opt_vo);
 	/* Select sound module */
 	if (ui_module->sound_module_list != NULL)
 		sound_module_list = ui_module->sound_module_list;
-	sound_module = (SoundModule *)module_select_by_arg((Module **)sound_module_list, xroar_opt_ao);
+	sound_module = (SoundModule *)module_select_by_arg((Module **)sound_module_list, opt_ao);
 	/* Select keyboard module */
 	if (ui_module->keyboard_module_list != NULL)
 		keyboard_module_list = ui_module->keyboard_module_list;
@@ -535,25 +535,25 @@ int xroar_init(int argc, char **argv) {
 	/* Check other command-line options */
 	if (xroar_frameskip < 0)
 		xroar_frameskip = 0;
-	if (xroar_opt_ccr) {
+	if (opt_ccr) {
 		int i;
-		if (0 == strcmp(xroar_opt_ccr, "help")) {
+		if (0 == strcmp(opt_ccr, "help")) {
 			for (i = 0; i < NUM_CROSS_COLOUR_RENDERERS; i++) {
 				printf("\t%-10s%s\n", cross_colour_options[i].option, cross_colour_options[i].description);
 			}
 			exit(0);
 		}
 		for (i = 0; i < NUM_CROSS_COLOUR_RENDERERS; i++) {
-			if (!strcmp(xroar_opt_ccr, cross_colour_options[i].option)) {
+			if (!strcmp(opt_ccr, cross_colour_options[i].option)) {
 				xroar_cross_colour_renderer = cross_colour_options[i].value;
 			}
 		}
 	}
-	if (xroar_opt_load) {
-		load_file = xroar_opt_load;
+	if (opt_load) {
+		load_file = opt_load;
 		autorun_loaded_file = 0;
-	} else if (xroar_opt_run) {
-		load_file = xroar_opt_run;
+	} else if (opt_run) {
+		load_file = opt_run;
 		autorun_loaded_file = 1;
 	} else if (argn < argc) {
 		load_file = strdup(argv[argn]);
@@ -656,10 +656,10 @@ int xroar_init(int argc, char **argv) {
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 		}
 	}
-	if (xroar_opt_lp_file) {
-		printer_open_file(xroar_opt_lp_file);
-	} else if (xroar_opt_lp_pipe) {
-		printer_open_pipe(xroar_opt_lp_pipe);
+	if (opt_lp_file) {
+		printer_open_file(opt_lp_file);
+	} else if (opt_lp_pipe) {
+		printer_open_pipe(opt_lp_pipe);
 	}
 	return 0;
 }
