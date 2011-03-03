@@ -86,7 +86,7 @@ static const char *opt_lp_pipe = NULL;
 static const char *opt_ui = NULL;
 static const char *opt_filereq = NULL;
 static const char *opt_vo = NULL;
-char *xroar_opt_gl_filter = NULL;
+int xroar_opt_gl_filter = ANY_AUTO;
 static const char *opt_ao = NULL;
 int xroar_opt_ao_rate = 0;
 int xroar_opt_volume = 100;
@@ -129,6 +129,13 @@ static struct xconfig_enum cart_type_list[] = {
 	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
 	{ .value = CART_DELTADOS, .name = "delta", .description = "Delta System" },
 	{ .value = CART_RSDOS, .name = "rsdos", .description = "RS-DOS" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum gl_filter_list[] = {
+	{ .value = ANY_AUTO, .name = "auto", .description = "Automatic" },
+	{ .value = XROAR_GL_FILTER_NEAREST, .name = "nearest", .description = "Nearest-neighbour filtering" },
+	{ .value = XROAR_GL_FILTER_LINEAR, .name = "linear", .description = "Linear filter" },
 	XC_ENUM_END()
 };
 
@@ -183,7 +190,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "ui",            &opt_ui ),
 	XC_OPT_STRING( "filereq",       &opt_filereq ),
 	XC_OPT_STRING( "vo",            &opt_vo ),
-	XC_OPT_STRING( "gl-filter",     &xroar_opt_gl_filter ),
+	XC_OPT_ENUM  ( "gl-filter",     &xroar_opt_gl_filter, gl_filter_list ),
 	XC_OPT_STRING( "ao",            &opt_ao ),
 	XC_OPT_INT   ( "ao-rate",       &xroar_opt_ao_rate ),
 	XC_OPT_INT   ( "volume",        &xroar_opt_volume ),
@@ -419,7 +426,7 @@ static void helptext(void) {
 "  -ui MODULE            user-interface module (-ui help for list)\n"
 "  -vo MODULE            video module (-vo help for list)\n"
 #ifdef HAVE_SDLGL
-"  -gl-filter FILTER     OpenGL texture filter (auto, linear, nearest)\n"
+"  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
 #endif
 "  -ao MODULE            audio module (-ao help for list)\n"
 "  -ao-rate HZ           set audio sample rate (if allowed by module)\n"

@@ -46,8 +46,11 @@ extern void (*xroar_kbd_translate_changed_cb)(int kbd_translate);
 /**************************************************************************/
 /* Command line arguments */
 
+#define XROAR_GL_FILTER_NEAREST (0)
+#define XROAR_GL_FILTER_LINEAR  (1)
+
 /* Emulator interface */
-extern char *xroar_opt_gl_filter;
+extern int xroar_opt_gl_filter;
 extern int xroar_opt_ao_rate;
 extern int xroar_opt_volume;
 #ifndef FAST_SOUND

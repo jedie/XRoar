@@ -91,13 +91,16 @@ static int init(void) {
 		return 1;
 	}
 
-	filter = FILTER_AUTO;
-	if (xroar_opt_gl_filter) {
-		if (0 == strcmp(xroar_opt_gl_filter, "nearest")) {
-			filter = FILTER_NEAREST;
-		} else if (0 == strcmp(xroar_opt_gl_filter, "linear")) {
-			filter = FILTER_LINEAR;
-		}
+	switch (xroar_opt_gl_filter) {
+	case XROAR_GL_FILTER_NEAREST:
+		filter = FILTER_NEAREST;
+		break;
+	case XROAR_GL_FILTER_LINEAR:
+		filter = FILTER_LINEAR;
+		break;
+	default:
+		filter = FILTER_AUTO;
+		break;
 	}
 
 	screen_tex = malloc(320 * 240 * sizeof(Pixel));
