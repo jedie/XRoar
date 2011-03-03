@@ -112,6 +112,7 @@ static int init(void) {
 	xoffset = yoffset = 0;
 
 	/* Configure drawing_area widget */
+	gtk_widget_set_size_request(gtk2_drawing_area, 640, 480);
 	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(GDK_GL_MODE_RGB | GDK_GL_MODE_DOUBLE);
 	if (!glconfig) {
 		LOG_ERROR("Failed to create OpenGL config\n");
@@ -124,7 +125,11 @@ static int init(void) {
 
 	g_signal_connect(gtk2_drawing_area, "configure-event", G_CALLBACK(configure), NULL);
 
-	set_fullscreen(xroar_opt_fullscreen);
+	/* Show top window first so that drawing area is realised to the
+	 * right size even if we then fullscreen.  */
+	gtk_widget_show(gtk2_top_window);
+	/* Use helper so UI is updated. */
+	xroar_fullscreen(xroar_opt_fullscreen);
 
 	alloc_colours();
 	reset();

@@ -341,7 +341,6 @@ static int init(void) {
 
 	/* Create drawing_area widget, add to vbox */
 	gtk2_drawing_area = gtk_drawing_area_new();
-	gtk_widget_set_size_request(gtk2_drawing_area, 640, 480);
 	GdkGeometry hints = {
 		.min_width = 320, .min_height = 240,
 		.base_width = 0, .base_height = 0,
@@ -361,6 +360,10 @@ static int init(void) {
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key-press-event", G_CALLBACK(hide_cursor), NULL);
 	g_signal_connect(G_OBJECT(gtk2_drawing_area), "motion-notify-event", G_CALLBACK(show_cursor), NULL);
 
+	/* Show everything created underneath gtk2_top_window.  Video module
+	 * init() is responsible for showing gtk2_top_window.  */
+	gtk_widget_show_all(vbox);
+
 	return 0;
 }
 
@@ -376,7 +379,6 @@ static int run_cpu(void *data) {
 }
 
 static void run(void) {
-	gtk_widget_show_all(gtk2_top_window);
 	g_idle_add(run_cpu, run_cpu);
 	gtk_main();
 }
