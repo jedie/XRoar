@@ -149,7 +149,7 @@ void module_print_list(Module **list) {
 		return;
 	}
 	for (i = 0; list[i]; i++) {
-		printf("\t%-10s%s\n", list[i]->common.name, list[i]->common.description);
+		printf("\t%-10s %s\n", list[i]->common.name, list[i]->common.description);
 	}
 }
 

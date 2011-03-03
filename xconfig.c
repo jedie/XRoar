@@ -42,13 +42,23 @@ static int lookup_enum(const char *name, struct xconfig_enum *list) {
 			return list[i].value;
 		}
 	}
-	return -2;
+	/* Only check this afterwards, as "help" could be a valid name */
+	if (0 == strcmp(name, "help")) {
+		for (i = 0; list[i].name; i++) {
+			printf("\t%-10s %s\n", list[i].name, list[i].description);
+		}
+		exit(0);
+	}
+	return -1;
 }
 
 static void set_option(struct xconfig_option *option, const char *arg) {
 	switch (option->type) {
 		case XCONFIG_BOOL:
 			*(int *)option->dest = 1;
+			break;
+		case XCONFIG_BOOL0:
+			*(int *)option->dest = 0;
 			break;
 		case XCONFIG_INT:
 			*(int *)option->dest = strtol(arg, NULL, 0);
@@ -58,6 +68,12 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 			break;
 		case XCONFIG_STRING:
 			*(char **)option->dest = strdup(arg);
+			break;
+		case XCONFIG_STRING0:
+			if (*(char **)option->dest) {
+				free(*(char **)option->dest);
+				*(char **)option->dest = NULL;
+			}
 			break;
 		case XCONFIG_CALL_0:
 			((void (*)(void))option->dest)();
@@ -71,6 +87,27 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 		default:
 			break;
 	}
+}
+
+/* returns 0 if it's a value option to unset */
+static int unset_option(struct xconfig_option *option) {
+	switch (option->type) {
+	case XCONFIG_BOOL:
+		*(int *)option->dest = 0;
+		return 0;
+	case XCONFIG_BOOL0:
+		*(int *)option->dest = 1;
+		return 0;
+	case XCONFIG_STRING:
+		if (*(char **)option->dest) {
+			free(*(char **)option->dest);
+			*(char **)option->dest = NULL;
+		}
+		return 0;
+	default:
+		break;
+	}
+	return -1;
 }
 
 /* Simple parser: one directive per line, "option argument" */
@@ -97,6 +134,12 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		while (*opt == '-') opt++;
 		option = find_option(options, opt);
 		if (option == NULL) {
+			if (0 == strncmp(opt, "no-", 3)) {
+				option = find_option(options, opt + 3);
+				if (option && unset_option(option) == 0) {
+					continue;
+				}
+			}
 			ret = XCONFIG_BAD_OPTION;
 			LOG_ERROR("Unrecognised option `%s'\n", opt);
 			continue;
@@ -112,8 +155,9 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		} else {
 			arg = strtok(NULL, "\t\n\v\f\r =");
 		}
-		if (option->type == XCONFIG_BOOL
-		    || option->type == XCONFIG_CALL_0) {
+		if (option->type == XCONFIG_BOOL ||
+		    option->type == XCONFIG_BOOL0 ||
+		    option->type == XCONFIG_CALL_0) {
 			set_option(option, NULL);
 			continue;
 		}
@@ -147,12 +191,20 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		if (*opt == '-') opt++;
 		option = find_option(options, opt);
 		if (option == NULL) {
+			if (0 == strncmp(opt, "no-", 3)) {
+				option = find_option(options, opt + 3);
+				if (option && unset_option(option) == 0) {
+					_argn++;
+					continue;
+				}
+			}
 			if (argn) *argn = _argn;
 			LOG_ERROR("Unrecognised option `%s'\n", opt);
 			return XCONFIG_BAD_OPTION;
 		}
-		if (option->type == XCONFIG_BOOL
-				|| option->type == XCONFIG_CALL_0) {
+		if (option->type == XCONFIG_BOOL ||
+		    option->type == XCONFIG_BOOL0 ||
+		    option->type == XCONFIG_CALL_0) {
 			set_option(option, NULL);
 			_argn++;
 			continue;
