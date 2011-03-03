@@ -23,6 +23,7 @@
 
 #include "types.h"
 #include "logging.h"
+#include "cart.h"
 #include "events.h"
 #include "keyboard.h"
 #include "m6809.h"
@@ -50,7 +51,7 @@ static KeyboardModule *gtk2_keyboard_module_list[] = {
 
 /* Module callbacks */
 static void machine_changed_cb(int machine_type);
-static void dos_changed_cb(int dos_type);
+static void cart_changed_cb(int cart_index);
 static void keymap_changed_cb(int keymap);
 
 UIModule ui_gtk2_module = {
@@ -60,7 +61,7 @@ UIModule ui_gtk2_module = {
 	.video_module_list = gtk2_video_module_list,
 	.keyboard_module_list = gtk2_keyboard_module_list,
 	.machine_changed_cb = machine_changed_cb,
-	.dos_changed_cb = dos_changed_cb,
+	.cart_changed_cb = cart_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
 };
 
@@ -82,6 +83,9 @@ static void kbd_translate_changed_cb(int kbd_translate);
 
 static int run_cpu(void *data);
 
+/* Helpers */
+static char *escape_underscores(const char *str);
+
 static void save_snapshot(void) {
 	g_idle_remove_by_data(run_cpu);
 	xroar_save_snapshot();
@@ -95,11 +99,11 @@ static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointe
 	xroar_set_machine(val);
 }
 
-static void set_dos(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+static void set_cart(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
 	(void)user_data;
-	xroar_set_dos(val);
+	xroar_set_cart(val);
 }
 
 static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
@@ -173,7 +177,7 @@ static const gchar *ui =
 	      "<menuitem name='SoftReset' action='SoftResetAction'/>"
 	      "<menuitem name='HardReset' action='HardResetAction'/>"
 	    "</menu>"
-	    "<menu name='DOSMenu' action='DOSMenuAction'>"
+	    "<menu name='CartridgeMenu' action='CartridgeMenuAction'>"
 	    "</menu>"
 	    "<menu name='KeyboardMenu' action='KeyboardMenuAction'>"
 	      "<menuitem action='keymap_dragon'/>"
@@ -215,7 +219,7 @@ static GtkActionEntry ui_entries[] = {
 	  .accelerator = "<shift><control>R",
 	  .tooltip = "Hard Reset",
 	  .callback = G_CALLBACK(xroar_hard_reset) },
-	{ .name = "DOSMenuAction", .label = "_DOS" },
+	{ .name = "CartridgeMenuAction", .label = "_Cartridge" },
 	{ .name = "KeyboardMenuAction", .label = "_Keyboard" },
 	{ .name = "HelpMenuAction", .label = "_Help" },
 	{ .name = "AboutAction", .stock_id = GTK_STOCK_ABOUT,
@@ -273,7 +277,7 @@ static int init(void) {
 
 	/* Menu merge points */
 	guint merge_machines = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
-	guint merge_dos_types = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
+	guint merge_carts = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
 
 	/* Add machines to menu */
 	int i;
@@ -289,20 +293,34 @@ static int init(void) {
 	}
 	gtk_action_group_add_radio_actions(action_group, machine_radio_entries, NUM_MACHINE_TYPES, requested_machine, (GCallback)set_machine, NULL);
 
-	/* Add DOS types to menu */
-	GtkRadioActionEntry dos_radio_entries[NUM_DOS_TYPES+1];
-	memset(dos_radio_entries, 0, sizeof(dos_radio_entries));
-	dos_radio_entries[0].name = "auto";
-	dos_radio_entries[0].label = "Automatic";
-	dos_radio_entries[0].value = ANY_AUTO;
-	gtk_ui_manager_add_ui(gtk2_menu_manager, merge_dos_types, "/MainMenu/DOSMenu", dos_radio_entries[0].name, dos_radio_entries[0].name, GTK_UI_MANAGER_MENUITEM, TRUE);
-	for (i = 0; i < NUM_DOS_TYPES; i++) {
-		dos_radio_entries[i+1].name = dos_type_options[i];
-		dos_radio_entries[i+1].label = dos_type_names[i];
-		dos_radio_entries[i+1].value = i;
-		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_dos_types, "/MainMenu/DOSMenu", dos_radio_entries[i+1].name, dos_radio_entries[i+1].name, GTK_UI_MANAGER_MENUITEM, FALSE);
+	/* Add cartridges to menu */
+	{
+		int num_carts = cart_config_count();
+		int i;
+		int selected = 0;
+		if (xroar_cart_config) selected = xroar_cart_config->index;
+		GtkRadioActionEntry *cart_radio_entries = malloc((num_carts+1) * sizeof(GtkRadioActionEntry));
+		memset(cart_radio_entries, 0, (num_carts+1) * sizeof(GtkRadioActionEntry));
+		/* add these to the ui in reverse order, as each will be
+		 * inserted before the previous */
+		for (i = num_carts-1; i >= 0; i--) {
+			struct cart_config *mc = cart_config_index(i);
+			cart_radio_entries[i].name = mc->name;
+			cart_radio_entries[i].label = escape_underscores(mc->description);
+			cart_radio_entries[i].value = i;
+			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", cart_radio_entries[i].name, cart_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+		}
+		cart_radio_entries[num_carts].name = "none";
+		cart_radio_entries[num_carts].label = "None";
+		cart_radio_entries[num_carts].value = -1;
+		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", cart_radio_entries[num_carts].name, cart_radio_entries[num_carts].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+		gtk_action_group_add_radio_actions(action_group, cart_radio_entries, num_carts+1, selected, (GCallback)set_cart, NULL);
+		/* don't need to free last label */
+		for (i = 0; i < num_carts; i++) {
+			free((char *)cart_radio_entries[i].label);
+		}
+		free(cart_radio_entries);
 	}
-	gtk_action_group_add_radio_actions(action_group, dos_radio_entries, NUM_DOS_TYPES+1, -1, (GCallback)set_dos, NULL);
 
 	gtk_ui_manager_insert_action_group(gtk2_menu_manager, action_group, 0);
 
@@ -387,9 +405,9 @@ static void machine_changed_cb(int machine_type) {
 	gtk_radio_action_set_current_value(radio, machine_type);
 }
 
-static void dos_changed_cb(int dos_type) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/DOSMenu/dragondos");
-	gtk_radio_action_set_current_value(radio, dos_type);
+static void cart_changed_cb(int cart_index) {
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/CartridgeMenu/dragondos");
+	gtk_radio_action_set_current_value(radio, cart_index);
 }
 
 static void keymap_changed_cb(int keymap) {
@@ -407,4 +425,25 @@ static void fullscreen_changed_cb(int fullscreen) {
 static void kbd_translate_changed_cb(int kbd_translate) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
 	gtk_toggle_action_set_active(toggle, kbd_translate);
+}
+
+static char *escape_underscores(const char *str) {
+	if (!str) return NULL;
+	int len = strlen(str);
+	const char *in;
+	char *out;
+	for (in = str; *in; in++) {
+		if (*in == '_')
+			len++;
+	}
+	char *ret_str = malloc(len + 1);
+	if (!ret_str) return NULL;
+	for (in = str, out = ret_str; *in; in++) {
+		*(out++) = *in;
+		if (*in == '_') {
+			*(out++) = '_';
+		}
+	}
+	*out = 0;
+	return ret_str;
 }

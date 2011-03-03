@@ -7,8 +7,10 @@
 #define XROAR_MACHINE_H_
 
 #include "types.h"
-#include "cart.h"
 #include "mc6821.h"
+
+struct cart_config;
+struct cart;
 
 /* Dragon 64s and later Dragon 32s used a 14.218MHz crystal
  * (ref: "Dragon 64 differences", Graham E. Kinns and then a motherboard) */
@@ -29,11 +31,6 @@
 #define IS_PAL (running_config.tv_standard == TV_PAL)
 #define IS_NTSC (running_config.tv_standard == TV_NTSC)
 
-#define DOS_ENABLED (running_config.dos_type != DOS_NONE)
-#define IS_DRAGONDOS (running_config.dos_type == DOS_DRAGONDOS)
-#define IS_RSDOS (running_config.dos_type == DOS_RSDOS)
-#define IS_DELTADOS (running_config.dos_type == DOS_DELTADOS)
-
 #define ANY_AUTO (-1)
 #define MACHINE_DRAGON32 (0)
 #define MACHINE_DRAGON64 (1)
@@ -48,6 +45,9 @@
 #define ROMSET_COCO     (2)
 #define TV_PAL  (0)
 #define TV_NTSC (1)
+
+/* These are now purely for backwards-compatibility with old snapshots.
+ * Cartridge types are more now more generic: see cart.h.  */
 #define DOS_NONE      (0)
 #define DOS_DRAGONDOS (1)
 #define DOS_RSDOS     (2)
@@ -74,17 +74,13 @@ typedef struct {
 	int tv_standard;
 	int cross_colour_phase;
 	int ram;
-	int dos_type;
 	const char *bas_rom;
 	const char *extbas_rom;
 	const char *altbas_rom;
-	const char *dos_rom;
 } MachineConfig;
 
 extern const char *machine_names[NUM_MACHINE_TYPES];
 extern const char *machine_options[NUM_MACHINE_TYPES];
-extern const char *dos_type_names[NUM_DOS_TYPES];
-extern const char *dos_type_options[NUM_DOS_TYPES];
 extern MachineConfig machine_defaults[NUM_MACHINE_TYPES];
 extern int requested_machine;
 extern int running_machine;
@@ -109,9 +105,11 @@ void machine_reset(int hard);
 void machine_update_sound(void);
 
 void machine_clear_requested_config(void);
-void machine_insert_cart(struct cart *cart);
+void machine_insert_cart(struct cart_config *cc);
 void machine_remove_cart(void);
 
+char *machine_find_rom(const char *romname);
+char *machine_find_rom_in_list(const char *preferred, const char **list);
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size);
 
 #endif  /* XROAR_MACHINE_H_ */

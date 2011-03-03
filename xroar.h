@@ -9,6 +9,8 @@
 #include "types.h"
 #include "events.h"
 
+struct cart_config;
+
 /* Convenient values for arguments to helper functions */
 #define XROAR_OFF    (0)
 #define XROAR_ON     (1)
@@ -51,9 +53,6 @@ extern char *xroar_opt_altbas;
 extern int xroar_opt_nobas;
 extern int xroar_opt_noextbas;
 extern int xroar_opt_noaltbas;
-extern char *xroar_opt_dostype;
-extern char *xroar_opt_dos;
-extern int xroar_opt_nodos;
 extern int xroar_opt_tv;
 extern int xroar_opt_ram;
 
@@ -95,6 +94,8 @@ extern const char *xroar_rom_path;
 extern event_t *xroar_ui_events;
 extern event_t *xroar_machine_events;
 
+extern struct cart_config *xroar_cart_config;
+
 /**************************************************************************/
 
 void xroar_getargs(int argc, char **argv);
@@ -118,7 +119,8 @@ void xroar_run_file(const char **exts);
 void xroar_set_keymap(int keymap);
 void xroar_set_kbd_translate(int kbd_translate);
 void xroar_set_machine(int machine);
-void xroar_set_dos(int dos_type);
+void xroar_set_cart(int cart_index);
+void xroar_set_dos(int dos_type);  /* for old snapshots only */
 void xroar_save_snapshot(void);
 void xroar_write_tape(void);
 void xroar_hard_reset(void);

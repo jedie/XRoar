@@ -128,7 +128,7 @@ static void emulator_command(SDLKey sym) {
 		xroar_quit();
 		break;
 	case SDLK_e:
-		xroar_set_dos(XROAR_TOGGLE);
+		xroar_set_cart(XROAR_TOGGLE);
 		break;
 	case SDLK_f:
 		xroar_fullscreen(XROAR_TOGGLE);

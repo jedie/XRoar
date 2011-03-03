@@ -38,7 +38,6 @@ static int io_read(int addr);
 static void io_write(int addr, int val);
 static void reset(void);
 static void detach(void);
-static struct cart cart;
 
 /* Handle signals from WD2793 */
 static void set_drq_handler(void);
@@ -56,21 +55,17 @@ static int halt_enable;
 
 static void ff40_write(int octet);
 
-struct cart *rsdos_new(const char *filename) {
-	cart.type = CART_RSDOS;
-	memset(cart.mem_data, 0x7e, sizeof(cart.mem_data));
-	machine_load_rom(filename, cart.mem_data, sizeof(cart.mem_data));
-	cart.mem_writable = 0;
-	cart.io_read = io_read;
-	cart.io_write = io_write;
-	cart.reset = reset;
-	cart.detach = detach;
+void rsdos_configure(struct cart *c, struct cart_config *cc) {
+	(void)cc;
+	c->io_read = io_read;
+	c->io_write = io_write;
+	c->reset = reset;
+	c->detach = detach;
 	wd279x_type = WD2793;
 	wd279x_set_drq_handler     = set_drq_handler;
 	wd279x_reset_drq_handler   = reset_drq_handler;
 	wd279x_set_intrq_handler   = set_intrq_handler;
 	wd279x_reset_intrq_handler = reset_intrq_handler;
-	return &cart;
 }
 
 static void reset(void) {

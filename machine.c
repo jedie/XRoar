@@ -25,8 +25,6 @@
 
 #include "types.h"
 #include "cart.h"
-#include "deltados.h"
-#include "dragondos.h"
 #include "fs.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -38,7 +36,6 @@
 #include "module.h"
 #include "path.h"
 #include "printer.h"
-#include "rsdos.h"
 #include "sam.h"
 #include "tape.h"
 #include "vdg.h"
@@ -51,16 +48,16 @@ const char *machine_names[NUM_MACHINE_TYPES] = {
 };
 
 MachineConfig machine_defaults[NUM_MACHINE_TYPES] = {
-	{ ARCH_DRAGON32, ROMSET_DRAGON32, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  32, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
-	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
-	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_NTSC, CROSS_COLOUR_KBRW, 64, DOS_DRAGONDOS, NULL, NULL, NULL, NULL },
-	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_PAL,  CROSS_COLOUR_OFF,  64, DOS_RSDOS,     NULL, NULL, NULL, NULL },
-	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_NTSC, CROSS_COLOUR_KBRW, 64, DOS_RSDOS,     NULL, NULL, NULL, NULL }
+	{ ARCH_DRAGON32, ROMSET_DRAGON32, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  32, NULL, NULL, NULL },
+	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_PAL,  CROSS_COLOUR_OFF,  64, NULL, NULL, NULL },
+	{ ARCH_DRAGON64, ROMSET_DRAGON64, KEYMAP_DRAGON, TV_NTSC, CROSS_COLOUR_KBRW, 64, NULL, NULL, NULL },
+	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_PAL,  CROSS_COLOUR_OFF,  64, NULL, NULL, NULL },
+	{ ARCH_COCO,     ROMSET_COCO,     KEYMAP_COCO,   TV_NTSC, CROSS_COLOUR_KBRW, 64, NULL, NULL, NULL }
 };
 
 int requested_machine;
 MachineConfig requested_config = {
-	ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, NULL, NULL, NULL, NULL
+	ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, ANY_AUTO, NULL, NULL, NULL
 };
 int running_machine;
 MachineConfig running_config;
@@ -71,6 +68,7 @@ uint8_t rom0[0x4000];
 uint8_t rom1[0x4000];
 MC6821_PIA PIA0, PIA1;
 struct cart *machine_cart = NULL;
+static struct cart running_cart;
 
 Cycle current_cycle;
 
@@ -79,18 +77,6 @@ static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "Dragon Data Ltd - 
 static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", "Dragon Data Ltd - Dragon 64 - IC18", NULL };
 static const char *coco_bas_roms[] = { "bas13", "bas12", "bas11", "bas10", NULL };
 static const char *coco_extbas_roms[] = { "extbas11", "extbas10", NULL };
-static const char *dragondos_roms[] = {
-	"dplus49b", "dplus48", "DOSPLUS",
-	"sdose6", "PNP - SuperDOS E6", "sdose5", "sdose4",
-	"ddos40", "ddos15", "ddos10",
-	"cdos20", "CDOS20",
-	NULL
-};
-static const char *deltados_roms[] = {
-	"delta", "deltados", "Premier Micros - DeltaDOS",
-	NULL
-};
-static const char *rsdos_roms[] = { "disk11", "disk10", NULL };
 
 static struct {
 	const char **bas;
@@ -102,26 +88,12 @@ static struct {
 	{ coco_bas_roms, coco_extbas_roms, NULL }
 };
 
-static const char **dos_rom_list[] = {
-	dragondos_roms, rsdos_roms, deltados_roms
-};
-
-const char *dos_type_names[NUM_DOS_TYPES] = {
-	"No DOS cartridge", "DragonDOS", "RS-DOS", "Delta System"
-};
-
 const char *machine_options[NUM_MACHINE_TYPES] = {
 	"dragon32", "dragon64", "tano", "coco", "cocous"
 };
 
-const char *dos_type_options[NUM_DOS_TYPES] = {
-	"none", "dragondos", "rsdos", "delta"
-};
-
 static void initialise_ram(void);
 
-static char *find_rom(const char *romname);
-static char *find_rom_in_list(const char *preferred, const char **list);
 static int load_rom_from_list(const char *preferred, const char **list,
 		uint8_t *dest, size_t max_size);
 
@@ -146,28 +118,9 @@ void machine_getargs(void) {
 			}
 		}
 	}
-	if (xroar_opt_dostype) {
-		int i;
-		if (0 == strcmp(xroar_opt_dostype, "help")) {
-			for (i = 0; i < NUM_DOS_TYPES; i++) {
-				printf("\t%-10s%s\n", dos_type_options[i], dos_type_names[i]);
-			}
-			exit(0);
-		}
-		for (i = 0; i < NUM_DOS_TYPES; i++) {
-			if (!strcmp(xroar_opt_dostype, dos_type_options[i])) {
-				requested_config.dos_type = i;
-			}
-		}
-	}
 	requested_config.bas_rom = xroar_opt_bas;
 	requested_config.extbas_rom = xroar_opt_extbas;
 	requested_config.altbas_rom = xroar_opt_altbas;
-	requested_config.dos_rom = xroar_opt_dos;
-	if (xroar_opt_nodos) {
-		requested_config.dos_type = DOS_NONE;
-		requested_config.dos_rom = NULL;
-	}
 	if (xroar_opt_ram > 0) {
 		requested_config.ram = xroar_opt_ram;
 	}
@@ -284,14 +237,14 @@ void machine_shutdown(void) {
  * minimum of ROMs to get going */
 static void find_working_machine(void) {
 	char *tmp = NULL;
-	if ((tmp = find_rom_in_list(requested_config.extbas_rom, d64_extbas_roms))) {
+	if ((tmp = machine_find_rom_in_list(requested_config.extbas_rom, d64_extbas_roms))) {
 		if (requested_config.tv_standard == TV_NTSC)
 			requested_machine = MACHINE_TANO;
 		else
 			requested_machine = MACHINE_DRAGON64;
-	} else if ((tmp = find_rom_in_list(NULL, d32_extbas_roms))) {
+	} else if ((tmp = machine_find_rom_in_list(NULL, d32_extbas_roms))) {
 		requested_machine = MACHINE_DRAGON32;
-	} else if ((tmp = find_rom_in_list(requested_config.bas_rom, coco_bas_roms))) {
+	} else if ((tmp = machine_find_rom_in_list(requested_config.bas_rom, coco_bas_roms))) {
 		if (requested_config.tv_standard == TV_NTSC)
 			requested_machine = MACHINE_COCOUS;
 		else
@@ -299,24 +252,6 @@ static void find_working_machine(void) {
 	} else {
 		/* Fall back to this, which won't start up properly */
 		requested_machine = MACHINE_DRAGON64;
-	}
-	if (tmp)
-		free(tmp);
-}
-
-static void find_working_dos_type(void) {
-	char *tmp = NULL;
-	running_config.dos_type = DOS_NONE;  /* default to none */
-	if (IS_DRAGON) {
-		if ((tmp = find_rom_in_list(requested_config.dos_rom, dragondos_roms))) {
-			running_config.dos_type = DOS_DRAGONDOS;
-		} else if ((tmp = find_rom_in_list(NULL, deltados_roms))) {
-			running_config.dos_type = DOS_DELTADOS;
-		}
-	} else {
-		if ((tmp = find_rom_in_list(requested_config.dos_rom, rsdos_roms))) {
-			running_config.dos_type = DOS_RSDOS;
-		}
 	}
 	if (tmp)
 		free(tmp);
@@ -345,8 +280,6 @@ void machine_reset(int hard) {
 			running_config.cross_colour_phase = defaults->cross_colour_phase % NUM_CROSS_COLOUR_PHASES;
 		if (running_config.ram == ANY_AUTO)
 			running_config.ram = defaults->ram;
-		if (running_config.dos_type == ANY_AUTO)
-			find_working_dos_type();
 		/* Load appropriate ROMs */
 		memset(rom0, 0x7e, sizeof(rom0));
 		memset(rom1, 0x7e, sizeof(rom1));
@@ -367,29 +300,6 @@ void machine_reset(int hard) {
 			load_rom_from_list(running_config.altbas_rom,
 					rom_list[running_config.romset].altbas,
 					rom1, sizeof(rom1));
-		}
-		/* ... DOS */
-		if (DOS_ENABLED) {
-			char *dos_rom = find_rom_in_list(running_config.dos_rom, dos_rom_list[running_config.dos_type - 1]);
-			LOG_DEBUG(2, "%s selected\n", dos_type_names[running_config.dos_type]);
-			machine_remove_cart();
-			switch (running_config.dos_type) {
-				case DOS_DRAGONDOS:
-					machine_insert_cart(dragondos_new(dos_rom));
-					break;
-				case DOS_RSDOS:
-					machine_insert_cart(rsdos_new(dos_rom));
-					break;
-				case DOS_DELTADOS:
-					machine_insert_cart(deltados_new(dos_rom));
-					break;
-			}
-			if (dos_rom)
-				free(dos_rom);
-		} else if (machine_cart) {
-			if (machine_cart->type != CART_ROM && machine_cart->type != CART_RAM) {
-				machine_remove_cart();
-			}
 		}
 		/* Configure RAM */
 		if (running_config.ram < 4) running_config.ram = 4;
@@ -438,30 +348,18 @@ void machine_clear_requested_config(void) {
 	requested_config.tv_standard = ANY_AUTO;
 	requested_config.cross_colour_phase = ANY_AUTO;
 	requested_config.ram = ANY_AUTO;
-	requested_config.dos_type = ANY_AUTO;
 	requested_config.bas_rom = NULL;
 	requested_config.extbas_rom = NULL;
 	requested_config.altbas_rom = NULL;
-	requested_config.dos_rom = NULL;
 }
 
-void machine_insert_cart(struct cart *cart) {
+void machine_insert_cart(struct cart_config *cc) {
 	machine_remove_cart();
-	machine_cart = cart;
-	if (cart) {
-		switch (cart->type) {
-			case CART_DRAGONDOS:
-				running_config.dos_type = DOS_DRAGONDOS;
-				break;
-			case CART_DELTADOS:
-				running_config.dos_type = DOS_DELTADOS;
-				break;
-			case CART_RSDOS:
-				running_config.dos_type = DOS_RSDOS;
-				break;
-			default:
-				running_config.dos_type = DOS_NONE;
-				break;
+	if (cc) {
+		cart_configure(&running_cart, cc);
+		machine_cart = &running_cart;
+		if (machine_cart->attach) {
+			machine_cart->attach();
 		}
 	}
 }
@@ -498,7 +396,7 @@ static const char *rom_extensions[] = {
 };
 
 /* Find a ROM within rom path. */
-static char *find_rom(const char *romname) {
+char *machine_find_rom(const char *romname) {
 	char *filename;
 	char *path = NULL;
 	int i;
@@ -517,15 +415,15 @@ static char *find_rom(const char *romname) {
 	return path;
 }
 
-static char *find_rom_in_list(const char *preferred, const char **list) {
+char *machine_find_rom_in_list(const char *preferred, const char **list) {
 	char *path;
 	int i;
-	if (preferred && (path = find_rom(preferred)))
+	if (preferred && (path = machine_find_rom(preferred)))
 		return path;
 	if (list == NULL)
 		return NULL;
 	for (i = 0; list[i]; i++) {
-		if ((path = find_rom(list[i])))
+		if ((path = machine_find_rom(list[i])))
 			return path;
 	}
 	return NULL;
@@ -536,7 +434,7 @@ static int load_rom_from_list(const char *preferred, const char **list,
 	char *path;
 	int ret;
 
-	path = find_rom_in_list(preferred, list);
+	path = machine_find_rom_in_list(preferred, list);
 	if (path == NULL)
 		return -1;
 	ret = machine_load_rom(path, dest, max_size);
@@ -547,6 +445,7 @@ static int load_rom_from_list(const char *preferred, const char **list,
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	char *dot;
 	int fd;
+	int size;
 
 	if (path == NULL)
 		return -1;
@@ -560,7 +459,7 @@ int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	} else {
 		LOG_DEBUG(3, "Loading ROM: %s\n", path);
 	}
-	fs_read(fd, dest, max_size);
+	size = fs_read(fd, dest, max_size);
 	fs_close(fd);
-	return 0;
+	return size;
 }

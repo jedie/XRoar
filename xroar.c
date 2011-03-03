@@ -60,13 +60,19 @@ char *xroar_opt_altbas = NULL;
 int xroar_opt_nobas = 0;
 int xroar_opt_noextbas = 0;
 int xroar_opt_noaltbas = 0;
-char *xroar_opt_dostype = NULL;
-char *xroar_opt_dos = NULL;
-int xroar_opt_nodos = 0;
 int xroar_opt_tv = ANY_AUTO;
 static void set_pal(void);
 static void set_ntsc(void);
 int xroar_opt_ram = 0;
+
+/* Emulated cartridge */
+static void set_cart(char *name);
+static char *opt_cart_desc = NULL;
+static int opt_cart_type = ANY_AUTO;
+static char *opt_cart_rom = NULL;
+static char *opt_cart_rom2 = NULL;
+static int opt_cart_autorun = ANY_AUTO;
+static int opt_nodos = 0;
 
 /* Emulator interface */
 static const char *xroar_opt_ui = NULL;
@@ -99,6 +105,14 @@ static const char *xroar_opt_run = NULL;
 static const char *xroar_opt_lp_file = NULL;
 static const char *xroar_opt_lp_pipe = NULL;
 
+static struct xconfig_enum cart_type_list[] = {
+	{ .value = CART_ROM, .name = "rom", .description = "ROM cartridge" },
+	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
+	{ .value = CART_DELTADOS, .name = "delta", .description = "Delta System" },
+	{ .value = CART_RSDOS, .name = "rsdos", .description = "RS-DOS" },
+	XC_ENUM_END()
+};
+
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
 	/* Emulated machine */
@@ -109,12 +123,22 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_BOOL  ( "nobas",    &xroar_opt_nobas ),
 	XC_OPT_BOOL  ( "noextbas", &xroar_opt_noextbas ),
 	XC_OPT_BOOL  ( "noaltbas", &xroar_opt_noaltbas ),
-	XC_OPT_STRING( "dostype",  &xroar_opt_dostype ),
-	XC_OPT_STRING( "dos",      &xroar_opt_dos ),
-	XC_OPT_BOOL  ( "nodos",    &xroar_opt_nodos ),
 	XC_OPT_CALL_0( "pal",      &set_pal ),
 	XC_OPT_CALL_0( "ntsc",     &set_ntsc ),
 	XC_OPT_INT   ( "ram",      &xroar_opt_ram ),
+
+	/* Emulated cartridge */
+	XC_OPT_CALL_1( "cart",         &set_cart ),
+	XC_OPT_STRING( "cart-desc",    &opt_cart_desc ),
+	XC_OPT_ENUM  ( "cart-type",    &opt_cart_type, cart_type_list ),
+	XC_OPT_STRING( "cart-rom",     &opt_cart_rom ),
+	XC_OPT_STRING( "cart-rom2",    &opt_cart_rom2 ),
+	XC_OPT_BOOL  ( "cart-autorun", &opt_cart_autorun ),
+	XC_OPT_BOOL  ( "nodos",        &opt_nodos ),
+	/* Backwards-compatibility options: */
+	XC_OPT_ENUM  ( "dostype",      &opt_cart_type, cart_type_list ),
+	XC_OPT_STRING( "dos",          &opt_cart_rom ),
+
 	/* Attach files */
 	XC_OPT_STRING( "load",    &xroar_opt_load ),
 	XC_OPT_STRING( "cartna",  &xroar_opt_load ),
@@ -164,6 +188,8 @@ static struct {
 	{ "5bit",   "5-bit lookup table",  CROSS_COLOUR_5BIT   },
 #endif
 };
+
+struct cart_config *xroar_cart_config;
 
 /**************************************************************************/
 
@@ -219,6 +245,50 @@ static void set_ntsc(void) {
 	xroar_opt_tv = TV_NTSC;
 }
 
+/* Called when a "-cart" option is encountered.  If an existing cart config was
+* in progress, copies any cart-related options into it and clears those
+* options.  Starts a new config.  */
+static void set_cart(char *name) {
+	if (name && 0 == strcmp(name, "help")) {
+		int count = cart_config_count();
+		int i;
+		for (i = 0; i < count; i++) {
+			struct cart_config *cc = cart_config_index(i);
+			printf("\t%-10s %s\n", cc->name, cc->description);
+		}
+		exit(0);
+	}
+	if (xroar_cart_config) {
+		if (opt_cart_desc) {
+			xroar_cart_config->description = opt_cart_desc;
+			opt_cart_desc = NULL;
+		}
+		if (opt_cart_type != ANY_AUTO) {
+			xroar_cart_config->type = opt_cart_type;
+			opt_cart_type = ANY_AUTO;
+		}
+		if (opt_cart_rom) {
+			xroar_cart_config->rom = opt_cart_rom;
+			opt_cart_rom = NULL;
+		}
+		if (opt_cart_rom2) {
+			xroar_cart_config->rom2 = opt_cart_rom2;
+			opt_cart_rom2 = NULL;
+		}
+		if (opt_cart_autorun != ANY_AUTO) {
+			xroar_cart_config->autorun = opt_cart_autorun;
+			opt_cart_autorun = ANY_AUTO;
+		}
+	}
+	if (name) {
+		xroar_cart_config = cart_config_by_name(name);
+		if (!xroar_cart_config) {
+			xroar_cart_config = cart_config_new();
+			xroar_cart_config->name = strdup(name);
+		}
+	}
+}
+
 static void versiontext(void) {
 	puts(
 "XRoar " VERSION "\n"
@@ -241,12 +311,18 @@ static void helptext(void) {
 "  -extbas FILENAME      Extended BASIC ROM to use\n"
 "  -altbas FILENAME      alternate BASIC ROM (Dragon 64)\n"
 "  -noextbas             disable Extended BASIC\n"
-"  -dostype DOS          type of DOS cartridge (-dostype help for list)\n"
-"  -dos FILENAME         DOS ROM (or CoCo Disk BASIC)\n"
-"  -nodos                disable DOS (ROM and hardware emulation)\n"
 "  -pal                  emulate PAL (50Hz) video\n"
 "  -ntsc                 emulate NTSC (60Hz) video\n"
 "  -ram KBYTES           specify amount of RAM in K\n"
+
+"\n Emulated cartridge:\n"
+"  -cart NAME            select/configure cartridge (-cart help for list)\n"
+"  -cart-desc TEXT       set cartridge description\n"
+"  -cart-type TYPE       set cartridge type (rom, dragondos, delta or rsdos)\n"
+"  -cart-rom FILENAME    ROM image to load ($C000-)\n"
+"  -cart-rom2 FILENAME   second ROM image to load ($E000-)\n"
+"  -cart-autorun         autorun cartridge\n"
+"  -nodos                don't automatically pick a DOS cartridge\n"
 
 "\n Attach files:\n"
 "  -load FILENAME        load or attach FILENAME\n"
@@ -322,6 +398,11 @@ int xroar_init(int argc, char **argv) {
 		}
 		free(conffile);
 	}
+	/* Finish any cart config in config file */
+	set_cart(NULL);
+	/* Don't auto-select last cart in config file */
+	xroar_cart_config = NULL;
+
 	/* Parse command line options */
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
 	if (ret == XCONFIG_MISSING_ARG) {
@@ -340,6 +421,8 @@ int xroar_init(int argc, char **argv) {
 			exit(1);
 		}
 	}
+	/* Finish any cart config on command line */
+	set_cart(NULL);
 
 	/* Select a UI module then, possibly using lists specified in that
 	 * module, select all other modules */
@@ -406,15 +489,26 @@ int xroar_init(int argc, char **argv) {
 
 	machine_getargs();
 
-	/* Disable DOS if a cassette or cartridge is being loaded */
+	/* Determine initial cart configuration */
+	if (!opt_nodos && !xroar_cart_config) {
+		xroar_cart_config = cart_find_working_dos(requested_machine);
+	}
+
+	/* Override DOS cart if autoloading a cassette, or replace with ROM
+	 * cart if appropriate. */
 	if (load_file) {
 		load_file_type = xroar_filetype_by_ext(load_file);
 		switch (load_file_type) {
 			case FILETYPE_CAS:
 			case FILETYPE_ASC:
 			case FILETYPE_WAV:
+				xroar_cart_config = NULL;
+				break;
 			case FILETYPE_ROM:
-				requested_config.dos_type = DOS_NONE;
+				xroar_cart_config = cart_config_by_name(load_file);
+				xroar_cart_config->autorun = autorun_loaded_file;
+				free((char *)load_file);
+				load_file = NULL;
 				break;
 			default:
 				break;
@@ -457,10 +551,7 @@ int xroar_init(int argc, char **argv) {
 	xroar_set_kbd_translate(xroar_kbd_translate);
 
 	/* Load carts before initial reset */
-	if (load_file && load_file_type == FILETYPE_ROM) {
-		xroar_load_file_by_type(load_file, autorun_loaded_file);
-		load_file = NULL;
-	}
+	machine_insert_cart(xroar_cart_config);
 	/* Reset everything */
 	machine_reset(RESET_HARD);
 	printer_reset();
@@ -614,7 +705,13 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 		case FILETYPE_SNA:
 			return read_snapshot(filename);
 		case FILETYPE_ROM:
-			machine_insert_cart(cart_rom_new(filename, autorun));
+			machine_remove_cart();
+			xroar_cart_config = cart_config_by_name(filename);
+			xroar_cart_config->autorun = autorun;
+			machine_insert_cart(xroar_cart_config);
+			if (autorun) {
+				machine_reset(RESET_HARD);
+			}
 			return 0;
 		case FILETYPE_CAS:
 		case FILETYPE_ASC:
@@ -864,29 +961,71 @@ void xroar_set_machine(int machine_type) {
 	lock = 0;
 }
 
-void xroar_set_dos(int dos_type) {
+void xroar_set_cart(int cart_index) {
 	static int lock = 0;
 	if (lock) return;
 	lock = 1;
-	int new = requested_config.dos_type;
-	switch (dos_type) {
+	int old = -1;
+	int count = cart_config_count();
+
+	if (xroar_cart_config) old = xroar_cart_config->index;
+	machine_remove_cart();
+	xroar_cart_config = NULL;
+
+	switch (cart_index) {
 		case XROAR_TOGGLE:
-			new = (new != DOS_NONE) ? DOS_NONE : ANY_AUTO;
+			if (old < 0) {
+				switch (requested_config.architecture) {
+				default:
+				case ARCH_DRAGON64: case ARCH_DRAGON32:
+					xroar_cart_config = cart_config_by_name("dragondos");
+					break;
+				case ARCH_COCO:
+					xroar_cart_config = cart_config_by_name("rsdos");
+					break;
+				}
+			}
 			break;
 		case XROAR_CYCLE:
-			new = (new + 1) % NUM_DOS_TYPES;
+			xroar_cart_config = cart_config_index((cart_index + 1) % count);
 			break;
 		default:
-			new = dos_type;
+			xroar_cart_config = cart_config_index(cart_index);
 			break;
 	}
-	if (new == ANY_AUTO || (new >= 0 && new < NUM_DOS_TYPES)) {
-		requested_config.dos_type = new;
-		if (ui_module->dos_changed_cb) {
-			ui_module->dos_changed_cb(new);
+
+	machine_insert_cart(xroar_cart_config);
+	if (ui_module->cart_changed_cb) {
+		if (xroar_cart_config) {
+			ui_module->cart_changed_cb(xroar_cart_config->index);
+		} else {
+			ui_module->cart_changed_cb(-1);
 		}
 	}
 	lock = 0;
+}
+
+/* For old snapshots */
+void xroar_set_dos(int dos_type) {
+	struct cart_config *cc = NULL;
+	int i = -1;
+	switch (dos_type) {
+	case DOS_DRAGONDOS:
+		cc = cart_config_by_name("dragondos");
+		break;
+	case DOS_RSDOS:
+		cc = cart_config_by_name("rsdos");
+		break;
+	case DOS_DELTADOS:
+		cc = cart_config_by_name("delta");
+		break;
+	default:
+		break;
+	}
+	if (cc) {
+		i = cc->index;
+	}
+	xroar_set_cart(i);
 }
 
 void xroar_save_snapshot(void) {

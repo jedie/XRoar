@@ -6,6 +6,9 @@
 #ifndef XROAR_DELTADOS_H_
 #define XROAR_DELTADOS_H_
 
-struct cart *deltados_new(const char *filename);
+struct cart_config;
+struct cart;
+
+void deltados_configure(struct cart *c, struct cart_config *cc);
 
 #endif  /* XROAR_DELTADOS_H_ */

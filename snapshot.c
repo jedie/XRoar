@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "cart.h"
 #include "fs.h"
 #include "keyboard.h"
 #include "logging.h"
@@ -74,7 +75,11 @@ int write_snapshot(const char *filename) {
 	fs_write_uint8(fd, running_config.keymap);
 	fs_write_uint8(fd, running_config.tv_standard);
 	fs_write_uint8(fd, running_config.ram);
-	fs_write_uint8(fd, running_config.dos_type);
+	if (xroar_cart_config) {
+		fs_write_uint8(fd, xroar_cart_config->type);
+	} else {
+		fs_write_uint8(fd, 0);
+	}
 	fs_write_uint8(fd, running_config.cross_colour_phase);
 	/* RAM page 0 */
 	fs_write_uint8(fd, ID_RAM_PAGE0);
@@ -197,7 +202,6 @@ int read_snapshot(const char *filename) {
 	/* Default to Dragon 64 for old snapshots */
 	requested_machine = MACHINE_DRAGON64;
 	machine_clear_requested_config();
-	requested_config.dos_type = DOS_NONE;
 	/* Need reset in case old snapshot doesn't trigger one */
 	machine_reset(RESET_HARD);
 	/* If old snapshot, buffer contains register dump */
@@ -284,7 +288,8 @@ int read_snapshot(const char *filename) {
 				requested_config.keymap = fs_read_uint8(fd);
 				requested_config.tv_standard = fs_read_uint8(fd);
 				requested_config.ram = fs_read_uint8(fd);
-				requested_config.dos_type = fs_read_uint8(fd);
+				tmp = fs_read_uint8(fd);  /* dos_type */
+				xroar_set_dos(tmp);
 				size -= 7;
 				if (size > 0) {
 					requested_config.cross_colour_phase = fs_read_uint8(fd);

@@ -6,6 +6,9 @@
 #ifndef XROAR_DRAGONDOS_H_
 #define XROAR_DRAGONDOS_H_
 
-struct cart *dragondos_new(const char *filename);
+struct cart_config;
+struct cart;
+
+void dragondos_configure(struct cart *c, struct cart_config *cc);
 
 #endif  /* XROAR_DRAGONDOS_H_ */

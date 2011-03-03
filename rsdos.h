@@ -6,6 +6,9 @@
 #ifndef XROAR_RSDOS_H_
 #define XROAR_RSDOS_H_
 
-struct cart *rsdos_new(const char *filename);
+struct cart_config;
+struct cart;
+
+void rsdos_configure(struct cart *c, struct cart_config *cc);
 
 #endif  /* XROAR_RSDOS_H_ */
