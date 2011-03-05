@@ -350,10 +350,13 @@ void tape_update_input(void) {
 	if (!motor || input_type == FILETYPE_CAS || input_type == FILETYPE_ASC)
 		return;
 	sample = wav_sample_in();
-	if (sample >= 0)
+	tape_audio = (sample / 0x1000) + 0x08;
+	if (sample >= 0) {
 		PIA1.a.port_input |= 0x01;
-	else
+	} else {
 		PIA1.a.port_input &= ~0x01;
+	}
+	machine_update_sound();
 }
 #endif
 
