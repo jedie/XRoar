@@ -564,6 +564,7 @@ int xroar_init(int argc, char **argv) {
 	if (!xroar_machine_config) {
 		xroar_machine_config = machine_config_first_working();
 	}
+	alloc_cart_status();
 
 	/* Override DOS cart if autoloading a cassette, or replace with ROM
 	 * cart if appropriate. */
@@ -573,9 +574,10 @@ int xroar_init(int argc, char **argv) {
 			case FILETYPE_CAS:
 			case FILETYPE_ASC:
 			case FILETYPE_WAV:
-				xroar_cart_config = NULL;
+				cart_status_list[xroar_machine_config->index].enabled = 0;
 				break;
 			case FILETYPE_ROM:
+				cart_status_list[xroar_machine_config->index].enabled = 1;
 				xroar_cart_config = cart_config_by_name(load_file);
 				xroar_cart_config->autorun = autorun_loaded_file;
 				free((char *)load_file);
@@ -587,7 +589,6 @@ int xroar_init(int argc, char **argv) {
 	}
 
 	/* Record initial cart configuration */
-	alloc_cart_status();
 	cart_status_list[xroar_machine_config->index].config = xroar_cart_config;
 	/* Re-read cart config - will find a DOS if appropriate */
 	xroar_cart_config = get_machine_cart();
