@@ -507,6 +507,10 @@ int xroar_init(int argc, char **argv) {
 	if (ret != XCONFIG_OK) {
 		exit(1);
 	}
+	/* Determine initial machine configuration */
+	if (!xroar_machine_config) {
+		xroar_machine_config = machine_config_first_working();
+	}
 	/* Finish any machine or cart config on command line */
 	set_machine(NULL);
 	set_cart(NULL);
@@ -560,10 +564,6 @@ int xroar_init(int argc, char **argv) {
 	}
 	xroar_opt_volume = (256 * xroar_opt_volume) / 100;
 
-	/* Determine initial machine configuration */
-	if (!xroar_machine_config) {
-		xroar_machine_config = machine_config_first_working();
-	}
 	alloc_cart_status();
 
 	/* Override DOS cart if autoloading a cassette, or replace with ROM
