@@ -574,6 +574,7 @@ int xroar_init(int argc, char **argv) {
 			case FILETYPE_CAS:
 			case FILETYPE_ASC:
 			case FILETYPE_WAV:
+			case FILETYPE_UNKNOWN:
 				cart_status_list[xroar_machine_config->index].enabled = 0;
 				break;
 			case FILETYPE_ROM:
