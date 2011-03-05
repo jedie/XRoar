@@ -280,7 +280,8 @@ int read_snapshot(const char *filename) {
 				/* Machine running config */
 				if (size < 7) break;
 				(void)fs_read_uint8(fd);  /* requested_machine */
-				xroar_machine_config->architecture = fs_read_uint8(fd);
+				tmp = fs_read_uint8(fd);
+				xroar_machine_config = machine_config_by_arch(tmp);
 				(void)fs_read_uint8(fd);  /* romset */
 				xroar_machine_config->keymap = fs_read_uint8(fd);  /* keymap */
 				xroar_machine_config->tv_standard = fs_read_uint8(fd);
