@@ -407,6 +407,8 @@ void m6809_run(int cycles) {
 			cpu_state = m6809_flow_label_a;
 			continue;
 
+		/* done_instruction case for backwards-compatibility */
+		case m6809_flow_done_instruction:
 		case m6809_flow_label_a:
 			if (halt) {
 				TAKEN_CYCLES(1);

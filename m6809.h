@@ -9,9 +9,10 @@
 #include "types.h"
 
 #define M6809_COMPAT_STATE_NORMAL (0)
-#define M6809_COMPAT_STATE_SYNC   (1)
-#define M6809_COMPAT_STATE_CWAI   (2)
-#define M6809_COMPAT_STATE_HCF    (12)
+#define M6809_COMPAT_STATE_SYNC (1)
+#define M6809_COMPAT_STATE_CWAI (2)
+#define M6809_COMPAT_STATE_DONE_INSTRUCTION (11)
+#define M6809_COMPAT_STATE_HCF (12)
 
 enum m6809_cpu_state {
 	m6809_flow_label_a      = M6809_COMPAT_STATE_NORMAL,
@@ -25,6 +26,7 @@ enum m6809_cpu_state {
 	m6809_flow_instruction_page_3,
 	m6809_flow_cwai_check_halt,
 	m6809_flow_sync_check_halt,
+	m6809_flow_done_instruction = M6809_COMPAT_STATE_DONE_INSTRUCTION,
 	m6809_flow_hcf          = M6809_COMPAT_STATE_HCF
 };
 
