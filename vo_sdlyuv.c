@@ -32,6 +32,7 @@
 
 static int init(void);
 static void shutdown(void);
+static void alloc_colours(void);
 static void reset(void);
 static void vsync(void);
 static void hsync(void);
@@ -43,12 +44,11 @@ static int set_fullscreen(int fullscreen);
 VideoModule video_sdlyuv_module = {
 	.common = { .name = "sdlyuv", .description = "SDL YUV overlay",
 	            .init = init, .shutdown = shutdown },
+	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
 	.render_border = render_border,
 	.resize = resize, .set_fullscreen = set_fullscreen
 };
-
-static void alloc_colours(void);
 
 typedef Uint32 Pixel;
 #define MAPCOLOUR(r,g,b) map_colour((r), (g), (b))

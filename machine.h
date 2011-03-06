@@ -66,6 +66,7 @@ struct machine_config {
 	char *description;
 	int index;
 	int architecture;
+	char *vdg_palette;
 	int keymap;
 	int tv_standard;
 	int ram;

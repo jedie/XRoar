@@ -32,22 +32,24 @@
 
 static int init(void);
 static void shutdown(void);
+static void alloc_colours(void);
 static void reset(void);
 static void vsync(void);
 static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
 static int set_fullscreen(int fullscreen);
-static void alloc_colours(void);
 
 VideoModule video_sdl_module = {
 	.common = { .name = "sdl", .description = "Standard SDL surface",
 	            .init = init, .shutdown = shutdown },
+	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
 	.render_border = render_border, .set_fullscreen = set_fullscreen,
 };
 
 typedef Uint8 Pixel;
+#define RESET_PALETTE() reset_palette()
 #define MAPCOLOUR(r,g,b) alloc_and_map(r, g, b)
 #define VIDEO_SCREENBASE ((Pixel *)screen->pixels)
 #define XSTEP 1
@@ -61,6 +63,11 @@ typedef Uint8 Pixel;
 static SDL_Surface *screen;
 
 static int palette_index = 0;
+
+static void reset_palette(void) {
+	palette_index = 0;
+}
+
 static Pixel alloc_and_map(int r, int g, int b) {
 	SDL_Color c;
 	c.r = r;

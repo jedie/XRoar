@@ -33,6 +33,7 @@
 
 static int init(void);
 static void shutdown(void);
+static void alloc_colours(void);
 static void reset(void);
 static void vsync(void);
 static void hsync(void);
@@ -44,12 +45,11 @@ static int set_fullscreen(int fullscreen);
 VideoModule video_sdlgl_module = {
 	.common = { .name = "sdlgl", .description = "SDL OpenGL",
 	            .init = init, .shutdown = shutdown },
+	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
 	.render_border = render_border,
 	.resize = resize, .set_fullscreen = set_fullscreen
 };
-
-static void alloc_colours(void);
 
 typedef uint16_t Pixel;
 #define MAP_565(r,g,b) ( (((r) & 0xf8) << 8) | (((g) & 0xfc) << 3) | (((b) & 0xf8) >> 3) )

@@ -8,6 +8,7 @@
  * those files (eg, LOCK_SURFACE and XSTEP) */
 
 #include "machine.h"
+#include "vdg_palette.h"
 
 #ifndef FAST_VDG
 # define RENDER_ARGS uint8_t *vram_ptr, int beam_to
@@ -45,7 +46,7 @@ static void render_rg6a(RENDER_ARGS);
 
 static unsigned int subline;
 static Pixel *pixel;
-static Pixel black, darkgreen, darkorange;
+static Pixel black, darkgreen, darkorange, brightorange;
 static Pixel bg_colour;
 static Pixel fg_colour;
 static Pixel vdg_colour[16];
@@ -54,16 +55,30 @@ static Pixel *cg_colours;
 static Pixel border_colour;
 static int beam_pos;
 
+/* Map VDG palette entry */
+static Pixel map_palette_entry(int i) {
+	float R, G, B;
+	vdg_palette_RGB(xroar_vdg_palette, i, &R, &G, &B);
+	R *= 255.0;
+	G *= 255.0;
+	B *= 255.0;
+	return MAPCOLOUR((int)R, (int)G, (int)B);
+}
+
 /* Allocate colours */
 static void alloc_colours(void) {
-	vdg_colour[0] = MAPCOLOUR(0x00, 0xff, 0x00);
-	vdg_colour[1] = MAPCOLOUR(0xff, 0xff, 0x00);
-	vdg_colour[2] = MAPCOLOUR(0x00, 0x00, 0xff);
-	vdg_colour[3] = MAPCOLOUR(0xff, 0x00, 0x00);
-	vdg_colour[4] = MAPCOLOUR(0xff, 0xff, 0xff);
-	vdg_colour[5] = MAPCOLOUR(0x00, 0xff, 0xff);
-	vdg_colour[6] = MAPCOLOUR(0xff, 0x00, 0xff);
-	vdg_colour[7] = MAPCOLOUR(0xff, 0xa5, 0x00);
+	int i;
+#ifdef RESET_PALETTE
+	RESET_PALETTE();
+#endif
+	for (i = 0; i < 8; i++) {
+		vdg_colour[i] = map_palette_entry(i);
+	}
+	black = map_palette_entry(8);
+	darkgreen = map_palette_entry(9);
+	darkorange = map_palette_entry(10);
+	brightorange = map_palette_entry(11);
+
 	vdg_colour[8] = MAPCOLOUR(0x00, 0x00, 0x00);
 	vdg_colour[9] = MAPCOLOUR(0x00, 0x80, 0xff);
 	vdg_colour[10] = MAPCOLOUR(0xff, 0x80, 0x00);
@@ -72,9 +87,6 @@ static void alloc_colours(void) {
 	vdg_colour[13] = MAPCOLOUR(0xff, 0x80, 0x00);
 	vdg_colour[14] = MAPCOLOUR(0x00, 0x80, 0xff);
 	vdg_colour[15] = MAPCOLOUR(0xff, 0xff, 0xff);
-	black = MAPCOLOUR(0x00, 0x00, 0x00);
-	darkgreen = MAPCOLOUR(0x00, 0x20, 0x00);
-	darkorange = MAPCOLOUR(0x20, 0x14, 0x00);
 
 	artifact_colours[0][0x00] = MAPCOLOUR(0x00, 0x00, 0x00);
 	artifact_colours[0][0x01] = MAPCOLOUR(0x00, 0x00, 0x00);
@@ -149,7 +161,7 @@ static void set_mode(unsigned int mode) {
 		case 0: case 2: case 4: case 6:
 			VIDEO_MODULE_NAME.render_scanline = render_sg4;
 			if (mode & 0x08) {
-				fg_colour = vdg_colour[7];
+				fg_colour = brightorange;
 				bg_colour = darkorange;
 			} else {
 				fg_colour = vdg_colour[0];
@@ -161,7 +173,7 @@ static void set_mode(unsigned int mode) {
 			VIDEO_MODULE_NAME.render_scanline = render_sg6;
 			cg_colours = &vdg_colour[(mode & 0x08) >> 1];
 			if (mode & 0x08) {
-				fg_colour = vdg_colour[7];
+				fg_colour = brightorange;
 				bg_colour = darkorange;
 			} else {
 				fg_colour = vdg_colour[0];

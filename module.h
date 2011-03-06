@@ -22,6 +22,7 @@ typedef struct {
 
 typedef struct {
 	Module_Common common;
+	void (*update_palette)(void);
 	void (*reset)(void);
 	void (*vsync)(void);
 	void (*hsync)(void);

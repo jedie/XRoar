@@ -39,6 +39,7 @@
 #include "snapshot.h"
 #include "tape.h"
 #include "vdg.h"
+#include "vdg_palette.h"
 #include "vdisk.h"
 #include "vdrive.h"
 #include "xconfig.h"
@@ -57,6 +58,7 @@
 static void set_machine(char *name);
 static char *opt_machine_desc = NULL;
 static int opt_machine_arch = ANY_AUTO;
+static char *opt_machine_palette = NULL;
 static char *opt_bas = NULL;
 static char *opt_extbas = NULL;
 static char *opt_altbas = NULL;
@@ -154,6 +156,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_CALL_1( "machine",  &set_machine ),
 	XC_OPT_STRING( "machine-desc", &opt_machine_desc ),
 	XC_OPT_ENUM  ( "machine-arch", &opt_machine_arch, arch_list ),
+	XC_OPT_STRING( "machine-palette", &opt_machine_palette ),
 	XC_OPT_STRING( "bas",      &opt_bas ),
 	XC_OPT_STRING( "extbas",   &opt_extbas ),
 	XC_OPT_STRING( "altbas",   &opt_altbas ),
@@ -223,6 +226,7 @@ int xroar_noratelimit = 0;
 
 struct machine_config *xroar_machine_config;
 struct cart_config *xroar_cart_config;
+struct vdg_palette *xroar_vdg_palette;
 
 /**************************************************************************/
 
@@ -274,6 +278,7 @@ void (*xroar_fullscreen_changed_cb)(int fullscreen) = NULL;
 void (*xroar_kbd_translate_changed_cb)(int kbd_translate) = NULL;
 static void alloc_cart_status(void);
 static struct cart_config *get_machine_cart(void);
+static struct vdg_palette *get_machine_palette(void);
 static void do_m6809_sync(void);
 static unsigned int trace_read_byte(unsigned int addr);
 static void trace_done_instruction(M6809State *state);
@@ -310,6 +315,19 @@ static void set_machine(char *name) {
 		if (opt_machine_desc) {
 			xroar_machine_config->description = opt_machine_desc;
 			opt_machine_desc = NULL;
+		}
+		if (opt_machine_palette && 0 == strcmp(opt_machine_palette, "help")) {
+			int count = vdg_palette_count();
+			int i;
+			for (i = 0; i < count; i++) {
+				struct vdg_palette *vp = vdg_palette_index(i);
+				printf("\t%-10s %s\n", vp->name, vp->description);
+			}
+			exit(0);
+		}
+		if (opt_machine_palette) {
+			xroar_machine_config->vdg_palette = opt_machine_palette;
+			opt_machine_palette = NULL;
 		}
 		if (opt_tv != ANY_AUTO) {
 			xroar_machine_config->tv_standard = opt_tv;
@@ -408,15 +426,16 @@ static void helptext(void) {
 "emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
 
 "\n Emulated machine:\n"
-"  -machine NAME         select/configure machine (-machine help for list)\n"
-"  -machine-desc TEXT    machine description\n"
-"  -machine-arch ARCH    machine architecture (-machine-arch help for list)\n"
-"  -bas FILENAME         BASIC ROM to use (CoCo only)\n"
-"  -extbas FILENAME      Extended BASIC ROM to use\n"
-"  -altbas FILENAME      alternate BASIC ROM (Dragon 64)\n"
-"  -noextbas             disable Extended BASIC\n"
-"  -tv-type TYPE         set TV type (-tv-type help for list)\n"
-"  -ram KBYTES           specify amount of RAM in K\n"
+"  -machine NAME           select/configure machine (-machine help for list)\n"
+"  -machine-desc TEXT      machine description\n"
+"  -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
+"  -machine-palette NAME   VDG palette (-machine-palette help for list)\n"
+"  -bas FILENAME           BASIC ROM to use (CoCo only)\n"
+"  -extbas FILENAME        Extended BASIC ROM to use\n"
+"  -altbas FILENAME        alternate BASIC ROM (Dragon 64)\n"
+"  -noextbas               disable Extended BASIC\n"
+"  -tv-type TYPE           set TV type (-tv-type help for list)\n"
+"  -ram KBYTES             specify amount of RAM in K\n"
 
 "\n Emulated cartridge:\n"
 "  -cart NAME            select/configure cartridge (-cart help for list)\n"
@@ -594,6 +613,9 @@ int xroar_init(int argc, char **argv) {
 	/* Re-read cart config - will find a DOS if appropriate */
 	xroar_cart_config = get_machine_cart();
 
+	/* Initial palette */
+	xroar_vdg_palette = get_machine_palette();
+
 	/* Initialise everything */
 	current_cycle = 0;
 	/* ... modules */
@@ -704,6 +726,18 @@ static struct cart_config *get_machine_cart(void) {
 	}
 	return cart_status_list[mindex].config;
 }
+
+static struct vdg_palette *get_machine_palette(void) {
+	struct vdg_palette *vp;
+	vp = vdg_palette_by_name(xroar_machine_config->vdg_palette);
+	if (!vp) {
+		vp = vdg_palette_by_name("ideal");
+		if (!vp) {
+			vp = vdg_palette_index(0);
+		}
+	}
+	return vp;
+};
 
 static void tapehack_instruction_hook(M6809State *cpu_state) {
 	if (IS_COCO) {
@@ -1080,6 +1114,10 @@ void xroar_set_machine(int machine_type) {
 			cart_index = cc->index;
 		}
 		xroar_set_cart(cart_index);
+		xroar_vdg_palette = get_machine_palette();
+		if (video_module->update_palette) {
+			video_module->update_palette();
+		}
 		machine_reset(RESET_HARD);
 		if (ui_module->machine_changed_cb) {
 			ui_module->machine_changed_cb(new);

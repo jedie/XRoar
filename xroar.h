@@ -11,6 +11,7 @@
 
 struct machine_config;
 struct cart_config;
+struct vdg_palette;
 
 /* Convenient values for arguments to helper functions */
 #define XROAR_OFF    (0)
@@ -84,6 +85,7 @@ extern event_t *xroar_machine_events;
 
 extern struct machine_config *xroar_machine_config;
 extern struct cart_config *xroar_cart_config;
+extern struct vdg_palette *xroar_vdg_palette;
 
 /**************************************************************************/
 
