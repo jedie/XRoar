@@ -168,24 +168,36 @@ struct vdg_palette *vdg_palette_by_name(const char *name) {
 /* ---------------------------------------------------------------------- */
 
 /* Map Y'U'V' from palette to pixel value */
-void vdg_palette_RGB(struct vdg_palette *vp, int i,
+void vdg_palette_RGB(struct vdg_palette *vp, int is_pal, int colour,
                      float *Rout, float *Gout, float *Bout) {
 	float scale_y = vp->scale_y;
 	float black_y = vp->black_y;
-	float y = vp->palette[i].y;
-	float chb = vp->palette[i].chb;
-	float b_y = vp->palette[i].b - chb;
-	float r_y = vp->palette[i].a - chb;
+	float y = vp->palette[colour].y;
+	float chb = vp->palette[colour].chb;
+	float b_y = vp->palette[colour].b - chb;
+	float r_y = vp->palette[colour].a - chb;
 
 	y = (black_y - y) * scale_y;
 	if (y < 0.0) y = 0.0;
 	if (y > 1.0) y = 1.0;
-	float u = 0.493 * b_y;
-	float v = 0.877 * r_y;
 
-	float r = 1.0 * y + 0.000 * u + 1.140 * v;
-	float g = 1.0 * y - 0.396 * u - 0.581 * v;
-	float b = 1.0 * y + 2.029 * u + 0.000 * v;
+	float r, g, b;
+	float mlaw;
+	if (is_pal) {
+		float u = 0.493 * b_y;
+		float v = 0.877 * r_y;
+		r = 1.0 * y + 0.000 * u + 1.140 * v;
+		g = 1.0 * y - 0.396 * u - 0.581 * v;
+		b = 1.0 * y + 2.029 * u + 0.000 * v;
+		mlaw = 2.8;
+	} else {
+		float i = -0.27 * b_y + 0.74 * r_y;
+		float q =  0.41 * b_y + 0.48 * r_y;
+		r = 1.0 * y + 0.956 * i + 0.621 * q;
+		g = 1.0 * y - 0.272 * i - 0.647 * q;
+		b = 1.0 * y - 1.105 * i + 1.702 * q;
+		mlaw = 2.2;
+	}
 
 	/* Those are corrected (non-linear) values, but graphics card
 	 * colourspaces tend to be linear, so un-correct here.  Proper
@@ -193,17 +205,17 @@ void vdg_palette_RGB(struct vdg_palette *vp, int i,
 	if (r <= (0.018 * 4.5)) {
 		*Rout = r / 4.5;
 	} else {
-		*Rout = powf((r+0.099)/(1.+0.099), 2.2);
+		*Rout = powf((r+0.099)/(1.+0.099), mlaw);
 	}
 	if (g <= (0.018 * 4.5)) {
 		*Gout = g / 4.5;
 	} else {
-		*Gout = powf((g+0.099)/(1.+0.099), 2.2);
+		*Gout = powf((g+0.099)/(1.+0.099), mlaw);
 	}
 	if (b <= (0.018 * 4.5)) {
 		*Bout = b / 4.5;
 	} else {
-		*Bout = powf((b+0.099)/(1.+0.099), 2.2);
+		*Bout = powf((b+0.099)/(1.+0.099), mlaw);
 	}
 
 	if (*Rout < 0.0) *Rout = 0.0; if (*Rout > 1.0) *Rout = 1.0;

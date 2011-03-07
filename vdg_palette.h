@@ -24,7 +24,7 @@ struct vdg_palette *vdg_palette_index(int i);
 struct vdg_palette *vdg_palette_by_name(const char *name);
 
 /* Map Y'U'V' from palette to pixel value */
-void vdg_palette_RGB(struct vdg_palette *vp, int i,
+void vdg_palette_RGB(struct vdg_palette *vp, int is_pal, int colour,
                      float *Rout, float *Gout, float *Bout);
 
 #endif  /* XROAR_VDG_PALETTE_H_ */

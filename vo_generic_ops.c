@@ -58,7 +58,8 @@ static int beam_pos;
 /* Map VDG palette entry */
 static Pixel map_palette_entry(int i) {
 	float R, G, B;
-	vdg_palette_RGB(xroar_vdg_palette, i, &R, &G, &B);
+	int is_pal = (xroar_machine_config->tv_standard == TV_PAL);
+	vdg_palette_RGB(xroar_vdg_palette, is_pal, i, &R, &G, &B);
 	R *= 255.0;
 	G *= 255.0;
 	B *= 255.0;
