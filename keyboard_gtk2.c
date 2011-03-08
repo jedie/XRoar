@@ -63,11 +63,6 @@ static guint keycode_to_keyval[MAX_KEYCODE];
 /* For translated mode: unicode value last generated for each keycode: */
 static guint32 last_unicode[MAX_KEYCODE];
 
-static void set_translated_keymap(gboolean state) {
-	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
-	gtk_toggle_action_set_active(toggle, state);
-}
-
 static void map_keyboard(unsigned int *map) {
 	int i;
 	/* Map keycode to unshifted keyval: */
@@ -129,7 +124,6 @@ static int init(void) {
 		}
 	}
 	map_keyboard(selected_keymap);
-	set_translated_keymap(0);
 	/* Connect GTK key press/release signals to handlers */
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key_press_event", G_CALLBACK(keypress), NULL);
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key_release_event", G_CALLBACK(keyrelease), NULL);
