@@ -127,6 +127,7 @@ static int populate_config_index(int i) {
 	configs[i]->description = strdup(config_templates[i].description);
 	if (!configs[i]->description) goto failed;
 	configs[i]->architecture = config_templates[i].architecture;
+	configs[i]->keymap = ANY_AUTO;
 	configs[i]->tv_standard = config_templates[i].tv_standard;
 	configs[i]->ram = config_templates[i].ram;
 	configs[i]->index = i;
