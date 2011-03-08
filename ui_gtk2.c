@@ -298,13 +298,14 @@ static int init(void) {
 		 * inserted before the previous */
 		for (i = num_machines-1; i >= 0; i--) {
 			struct machine_config *mc = machine_config_index(i);
-			machine_radio_entries[i].name = mc->name;
+			machine_radio_entries[i].name = g_strconcat("machine-", mc->name, NULL);
 			machine_radio_entries[i].label = escape_underscores(mc->description);
 			machine_radio_entries[i].value = i;
 			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/EmulationMenu/MachineMenu", machine_radio_entries[i].name, machine_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
 		}
 		gtk_action_group_add_radio_actions(action_group, machine_radio_entries, num_machines, selected, (GCallback)set_machine, NULL);
 		for (i = 0; i < num_machines; i++) {
+			g_free((gchar *)machine_radio_entries[i].name);
 			free((char *)machine_radio_entries[i].label);
 		}
 		free(machine_radio_entries);
@@ -321,9 +322,9 @@ static int init(void) {
 		/* add these to the ui in reverse order, as each will be
 		   inserted before the previous */
 		for (i = num_carts-1; i >= 0; i--) {
-			struct cart_config *mc = cart_config_index(i);
-			cart_radio_entries[i].name = mc->name;
-			cart_radio_entries[i].label = escape_underscores(mc->description);
+			struct cart_config *cc = cart_config_index(i);
+			cart_radio_entries[i].name = g_strconcat("cart-", cc->name, NULL);
+			cart_radio_entries[i].label = escape_underscores(cc->description);
 			cart_radio_entries[i].value = i;
 			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/EmulationMenu/CartridgeMenu", cart_radio_entries[i].name, cart_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
 		}
@@ -334,6 +335,7 @@ static int init(void) {
 		gtk_action_group_add_radio_actions(action_group, cart_radio_entries, num_carts+1, selected, (GCallback)set_cart, NULL);
 		/* don't need to free last label */
 		for (i = 0; i < num_carts; i++) {
+			g_free((gchar *)cart_radio_entries[i].name);
 			free((char *)cart_radio_entries[i].label);
 		}
 		free(cart_radio_entries);
@@ -420,12 +422,12 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 /* Emulation callbacks */
 
 static void machine_changed_cb(int machine_type) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/EmulationMenu/MachineMenu/dragon32");
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/EmulationMenu/MachineMenu/machine-dragon32");
 	gtk_radio_action_set_current_value(radio, machine_type);
 }
 
 static void cart_changed_cb(int cart_index) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/EmulationMenu/CartridgeMenu/dragondos");
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/EmulationMenu/CartridgeMenu/cart-dragondos");
 	gtk_radio_action_set_current_value(radio, cart_index);
 }
 
