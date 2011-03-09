@@ -169,20 +169,21 @@ static const gchar *ui =
 	      "<separator/>"
 	      "<menuitem name='Quit' action='QuitAction'/>"
 	    "</menu>"
-	    "<menu name='ViewMenu' action='ViewMenuAction'>"
-	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
-	    "</menu>"
-	    "<menu name='MachineMenu' action='MachineMenuAction'>"
+	    "<menu name='EmulationMenu' action='EmulationMenuAction'>"
+	      "<menu name='MachineMenu' action='MachineMenuAction'>"
+	      "</menu>"
+	      "<menu name='CartridgeMenu' action='CartridgeMenuAction'>"
+	      "</menu>"
+	      "<menu name='KeyboardMenu' action='KeyboardMenuAction'>"
+	        "<menuitem action='keymap_dragon'/>"
+	        "<menuitem action='keymap_coco'/>"
+	      "</menu>"
 	      "<separator/>"
 	      "<menuitem name='SoftReset' action='SoftResetAction'/>"
 	      "<menuitem name='HardReset' action='HardResetAction'/>"
 	    "</menu>"
-	    "<menu name='CartridgeMenu' action='CartridgeMenuAction'>"
-	    "</menu>"
-	    "<menu name='KeyboardMenu' action='KeyboardMenuAction'>"
-	      "<menuitem action='keymap_dragon'/>"
-	      "<menuitem action='keymap_coco'/>"
-	      "<separator/>"
+	    "<menu name='InterfaceMenu' action='InterfaceMenuAction'>"
+	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
 	      "<menuitem name='TranslateKeyboard' action='TranslateKeyboardAction'/>"
 	    "</menu>"
 	    "<menu name='HelpMenu' action='HelpMenuAction'>"
@@ -192,7 +193,12 @@ static const gchar *ui =
 	"</ui>";
 
 static GtkActionEntry ui_entries[] = {
+	/* Top level */
 	{ .name = "FileMenuAction", .label = "_File" },
+	{ .name = "EmulationMenuAction", .label = "_Emulation" },
+	{ .name = "InterfaceMenuAction", .label = "_Interface" },
+	{ .name = "HelpMenuAction", .label = "_Help" },
+	/* File */
 	{ .name = "RunAction", .stock_id = GTK_STOCK_EXECUTE, .label = "_Run",
 	  .accelerator = "<shift><control>L",
 	  .tooltip = "Load and attempt to autorun a file",
@@ -208,8 +214,10 @@ static GtkActionEntry ui_entries[] = {
 	  .accelerator = "<control>Q",
 	  .tooltip = "Quit",
 	  .callback = G_CALLBACK(xroar_quit) },
-	{ .name = "ViewMenuAction", .label = "_View" },
+	/* Emulation */
 	{ .name = "MachineMenuAction", .label = "_Machine" },
+	{ .name = "CartridgeMenuAction", .label = "_Cartridge" },
+	{ .name = "KeyboardMenuAction", .label = "_Keyboard" },
 	{ .name = "SoftResetAction", .label = "_Soft Reset",
 	  .accelerator = "<control>R",
 	  .tooltip = "Soft Reset",
@@ -219,9 +227,7 @@ static GtkActionEntry ui_entries[] = {
 	  .accelerator = "<shift><control>R",
 	  .tooltip = "Hard Reset",
 	  .callback = G_CALLBACK(xroar_hard_reset) },
-	{ .name = "CartridgeMenuAction", .label = "_Cartridge" },
-	{ .name = "KeyboardMenuAction", .label = "_Keyboard" },
-	{ .name = "HelpMenuAction", .label = "_Help" },
+	/* Help */
 	{ .name = "AboutAction", .stock_id = GTK_STOCK_ABOUT,
 	  .label = "_About",
 	  .callback = G_CALLBACK(about) },
@@ -229,6 +235,7 @@ static GtkActionEntry ui_entries[] = {
 static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
 static GtkToggleActionEntry ui_toggles[] = {
+	/* Interface */
 	{ .name = "FullScreenAction", .label = "_Full Screen",
 	  .stock_id = GTK_STOCK_FULLSCREEN,
 	  .accelerator = "F11", .callback = G_CALLBACK(set_fullscreen) },
@@ -291,13 +298,14 @@ static int init(void) {
 		 * inserted before the previous */
 		for (i = num_machines-1; i >= 0; i--) {
 			struct machine_config *mc = machine_config_index(i);
-			machine_radio_entries[i].name = mc->name;
+			machine_radio_entries[i].name = g_strconcat("machine-", mc->name, NULL);
 			machine_radio_entries[i].label = escape_underscores(mc->description);
 			machine_radio_entries[i].value = i;
-			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/MachineMenu", machine_radio_entries[i].name, machine_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/EmulationMenu/MachineMenu", machine_radio_entries[i].name, machine_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
 		}
 		gtk_action_group_add_radio_actions(action_group, machine_radio_entries, num_machines, selected, (GCallback)set_machine, NULL);
 		for (i = 0; i < num_machines; i++) {
+			g_free((gchar *)machine_radio_entries[i].name);
 			free((char *)machine_radio_entries[i].label);
 		}
 		free(machine_radio_entries);
@@ -314,19 +322,20 @@ static int init(void) {
 		/* add these to the ui in reverse order, as each will be
 		   inserted before the previous */
 		for (i = num_carts-1; i >= 0; i--) {
-			struct cart_config *mc = cart_config_index(i);
-			cart_radio_entries[i].name = mc->name;
-			cart_radio_entries[i].label = escape_underscores(mc->description);
+			struct cart_config *cc = cart_config_index(i);
+			cart_radio_entries[i].name = g_strconcat("cart-", cc->name, NULL);
+			cart_radio_entries[i].label = escape_underscores(cc->description);
 			cart_radio_entries[i].value = i;
-			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", cart_radio_entries[i].name, cart_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/EmulationMenu/CartridgeMenu", cart_radio_entries[i].name, cart_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
 		}
 		cart_radio_entries[num_carts].name = "none";
 		cart_radio_entries[num_carts].label = "None";
 		cart_radio_entries[num_carts].value = -1;
-		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", cart_radio_entries[num_carts].name, cart_radio_entries[num_carts].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/EmulationMenu/CartridgeMenu", cart_radio_entries[num_carts].name, cart_radio_entries[num_carts].name, GTK_UI_MANAGER_MENUITEM, TRUE);
 		gtk_action_group_add_radio_actions(action_group, cart_radio_entries, num_carts+1, selected, (GCallback)set_cart, NULL);
 		/* don't need to free last label */
 		for (i = 0; i < num_carts; i++) {
+			g_free((gchar *)cart_radio_entries[i].name);
 			free((char *)cart_radio_entries[i].label);
 		}
 		free(cart_radio_entries);
@@ -410,32 +419,32 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 	return FALSE;
 }
 
-/* Module callbacks */
+/* Emulation callbacks */
 
 static void machine_changed_cb(int machine_type) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/dragon32");
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/EmulationMenu/MachineMenu/machine-dragon32");
 	gtk_radio_action_set_current_value(radio, machine_type);
 }
 
 static void cart_changed_cb(int cart_index) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/CartridgeMenu/dragondos");
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/EmulationMenu/CartridgeMenu/cart-dragondos");
 	gtk_radio_action_set_current_value(radio, cart_index);
 }
 
 static void keymap_changed_cb(int keymap) {
-	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/keymap_dragon");
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/EmulationMenu/KeyboardMenu/keymap_dragon");
 	gtk_radio_action_set_current_value(radio, keymap);
 }
 
-/* UI-specific callbacks */
+/* Interface callbacks */
 
 static void fullscreen_changed_cb(int fullscreen) {
-	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/FullScreen");
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/InterfaceMenu/FullScreen");
 	gtk_toggle_action_set_active(toggle, fullscreen);
 }
 
 static void kbd_translate_changed_cb(int kbd_translate) {
-	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/KeyboardMenu/TranslateKeyboard");
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/InterfaceMenu/TranslateKeyboard");
 	gtk_toggle_action_set_active(toggle, kbd_translate);
 }
 

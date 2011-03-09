@@ -1153,6 +1153,7 @@ void xroar_set_cart(int cart_index) {
 			break;
 		default:
 			cart_status_list[mindex].config = cart_config_index(cart_index);
+			cart_status_list[mindex].enabled = 1;
 			break;
 	}
 
