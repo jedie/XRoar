@@ -71,6 +71,14 @@ GtkUIManager *gtk2_menu_manager;
 GtkWidget *gtk2_menubar;
 GtkWidget *gtk2_drawing_area;
 
+/* Dynamic menus */
+static GtkActionGroup *main_action_group;
+static GtkActionGroup *machine_action_group;
+static GtkActionGroup *cart_action_group;
+static guint merge_machines, merge_carts;
+static void update_machine_menu(void);
+static void update_cartridge_menu(void);
+
 /* for hiding cursor: */
 static int cursor_hidden = 0;
 static GdkCursor *old_cursor, *blank_cursor;
@@ -274,72 +282,26 @@ static int init(void) {
 		g_error_free(error);
 	}
 
+	/* Action groups */
+	main_action_group = gtk_action_group_new("Main");
+	machine_action_group = gtk_action_group_new("Machine");
+	cart_action_group = gtk_action_group_new("Cartridge");
+	gtk_ui_manager_insert_action_group(gtk2_menu_manager, main_action_group, 0);
+	gtk_ui_manager_insert_action_group(gtk2_menu_manager, machine_action_group, 0);
+	gtk_ui_manager_insert_action_group(gtk2_menu_manager, cart_action_group, 0);
+
 	/* Set up main action group */
-	GtkActionGroup *action_group = gtk_action_group_new("Actions");
-	gtk_action_group_add_actions(action_group, ui_entries, ui_n_entries, NULL);
-	gtk_action_group_add_toggle_actions(action_group, ui_toggles, ui_n_toggles, NULL);
-	gtk_action_group_add_radio_actions(action_group, keymap_radio_entries, 2, 0, (GCallback)set_keymap, NULL);
+	gtk_action_group_add_actions(main_action_group, ui_entries, ui_n_entries, NULL);
+	gtk_action_group_add_toggle_actions(main_action_group, ui_toggles, ui_n_toggles, NULL);
+	gtk_action_group_add_radio_actions(main_action_group, keymap_radio_entries, 2, 0, (GCallback)set_keymap, NULL);
 
 	/* Menu merge points */
-	guint merge_machines = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
-	guint merge_carts = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
+	merge_machines = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
+	merge_carts = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
 
-	/* Add machines to menu */
-	{
-		int num_machines = machine_config_count();
-		int i;
-		int selected = -1;
-		if (xroar_machine_config) selected = xroar_machine_config->index;
-		GtkRadioActionEntry *machine_radio_entries = malloc(num_machines * sizeof(GtkRadioActionEntry));
-		memset(machine_radio_entries, 0, num_machines * sizeof(GtkRadioActionEntry));
-		/* add these to the ui in reverse order, as each will be
-		 * inserted before the previous */
-		for (i = num_machines-1; i >= 0; i--) {
-			struct machine_config *mc = machine_config_index(i);
-			machine_radio_entries[i].name = g_strconcat("machine-", mc->name, NULL);
-			machine_radio_entries[i].label = escape_underscores(mc->description);
-			machine_radio_entries[i].value = i;
-			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/MachineMenu", machine_radio_entries[i].name, machine_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
-		}
-		gtk_action_group_add_radio_actions(action_group, machine_radio_entries, num_machines, selected, (GCallback)set_machine, NULL);
-		for (i = 0; i < num_machines; i++) {
-			g_free((gchar *)machine_radio_entries[i].name);
-			free((char *)machine_radio_entries[i].label);
-		}
-		free(machine_radio_entries);
-	}
-
-	/* Add cartridges to menu */
-	{
-		int num_carts = cart_config_count();
-		int i;
-		int selected = 0;
-		if (xroar_cart_config) selected = xroar_cart_config->index;
-		GtkRadioActionEntry *cart_radio_entries = malloc((num_carts+1) * sizeof(GtkRadioActionEntry));
-		memset(cart_radio_entries, 0, (num_carts+1) * sizeof(GtkRadioActionEntry));
-		/* add these to the ui in reverse order, as each will be
-		   inserted before the previous */
-		for (i = num_carts-1; i >= 0; i--) {
-			struct cart_config *cc = cart_config_index(i);
-			cart_radio_entries[i].name = g_strconcat("cart-", cc->name, NULL);
-			cart_radio_entries[i].label = escape_underscores(cc->description);
-			cart_radio_entries[i].value = i;
-			gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", cart_radio_entries[i].name, cart_radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
-		}
-		cart_radio_entries[num_carts].name = "none";
-		cart_radio_entries[num_carts].label = "None";
-		cart_radio_entries[num_carts].value = -1;
-		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", cart_radio_entries[num_carts].name, cart_radio_entries[num_carts].name, GTK_UI_MANAGER_MENUITEM, TRUE);
-		gtk_action_group_add_radio_actions(action_group, cart_radio_entries, num_carts+1, selected, (GCallback)set_cart, NULL);
-		/* don't need to free last label */
-		for (i = 0; i < num_carts; i++) {
-			g_free((gchar *)cart_radio_entries[i].name);
-			free((char *)cart_radio_entries[i].label);
-		}
-		free(cart_radio_entries);
-	}
-
-	gtk_ui_manager_insert_action_group(gtk2_menu_manager, action_group, 0);
+	/* Update all dynamic menus */
+	update_machine_menu();
+	update_cartridge_menu();
 
 	/* Extract menubar widget and add to vbox */
 	gtk2_menubar = gtk_ui_manager_get_widget(gtk2_menu_manager, "/MainMenu");
@@ -388,6 +350,77 @@ static int run_cpu(void *data) {
 static void run(void) {
 	g_idle_add(run_cpu, run_cpu);
 	gtk_main();
+}
+
+static void remove_action_from_group(gpointer data, gpointer user_data) {
+	GtkAction *action = data;
+	GtkActionGroup *action_group = user_data;
+	gtk_action_group_remove_action(action_group, action);
+}
+
+static void free_action_group(GtkActionGroup *action_group) {
+	GList *list = gtk_action_group_list_actions(action_group);
+	g_list_foreach(list, remove_action_from_group, action_group);
+	g_list_free(list);
+}
+
+/* Dynamic machine menu */
+static void update_machine_menu(void) {
+	int num_machines = machine_config_count();
+	int i;
+	int selected = -1;
+	free_action_group(machine_action_group);
+	gtk_ui_manager_remove_ui(gtk2_menu_manager, merge_machines);
+	if (xroar_machine_config) selected = xroar_machine_config->index;
+	GtkRadioActionEntry *radio_entries = malloc(num_machines * sizeof(GtkRadioActionEntry));
+	memset(radio_entries, 0, num_machines * sizeof(GtkRadioActionEntry));
+	/* add these to the ui in reverse order, as each will be
+	 * inserted before the previous */
+	for (i = num_machines-1; i >= 0; i--) {
+		struct machine_config *mc = machine_config_index(i);
+		radio_entries[i].name = g_strconcat("machine-", mc->name, NULL);
+		radio_entries[i].label = escape_underscores(mc->description);
+		radio_entries[i].value = i;
+		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_machines, "/MainMenu/MachineMenu", radio_entries[i].name, radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+	}
+	gtk_action_group_add_radio_actions(machine_action_group, radio_entries, num_machines, selected, (GCallback)set_machine, NULL);
+	for (i = 0; i < num_machines; i++) {
+		g_free((gchar *)radio_entries[i].name);
+		free((char *)radio_entries[i].label);
+	}
+	free(radio_entries);
+}
+
+/* Dynamic cartridge menu */
+static void update_cartridge_menu(void) {
+	int num_carts = cart_config_count();
+	int i;
+	int selected = 0;
+	free_action_group(cart_action_group);
+	gtk_ui_manager_remove_ui(gtk2_menu_manager, merge_carts);
+	if (xroar_cart_config) selected = xroar_cart_config->index;
+	GtkRadioActionEntry *radio_entries = malloc((num_carts+1) * sizeof(GtkRadioActionEntry));
+	memset(radio_entries, 0, (num_carts+1) * sizeof(GtkRadioActionEntry));
+	/* add these to the ui in reverse order, as each will be
+	   inserted before the previous */
+	for (i = num_carts-1; i >= 0; i--) {
+		struct cart_config *cc = cart_config_index(i);
+		radio_entries[i].name = g_strconcat("cart-", cc->name, NULL);
+		radio_entries[i].label = escape_underscores(cc->description);
+		radio_entries[i].value = i;
+		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", radio_entries[i].name, radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+	}
+	radio_entries[num_carts].name = "none";
+	radio_entries[num_carts].label = "None";
+	radio_entries[num_carts].value = -1;
+	gtk_ui_manager_add_ui(gtk2_menu_manager, merge_carts, "/MainMenu/CartridgeMenu", radio_entries[num_carts].name, radio_entries[num_carts].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+	gtk_action_group_add_radio_actions(cart_action_group, radio_entries, num_carts+1, selected, (GCallback)set_cart, NULL);
+	/* don't need to free last label */
+	for (i = 0; i < num_carts; i++) {
+		g_free((gchar *)radio_entries[i].name);
+		free((char *)radio_entries[i].label);
+	}
+	free(radio_entries);
 }
 
 /* Cursor hiding */
