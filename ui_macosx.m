@@ -310,6 +310,7 @@ static void setup_view_menu(void) {
 		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
 		[submenu addItem:item];
 		[item release];
+		[s release];
 	}
 
 	item = [[NSMenuItem alloc] initWithTitle:@"Cross-colour" action:nil keyEquivalent:@""];
