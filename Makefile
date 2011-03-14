@@ -126,6 +126,15 @@ ifeq ($(opt_cli),yes)
 	xroar_opt_LDFLAGS += $(opt_cli_LDFLAGS)
 endif
 
+opt_cocoa_objc_OBJS = ui_macosx.o
+CLEAN += $(opt_cocoa_OBJS) $(opt_cocoa_objc_OBJS)
+ifeq ($(opt_cocoa),yes)
+	xroar_opt_objc_OBJS += $(opt_cocoa_objc_OBJS)
+	xroar_opt_CFLAGS += $(opt_cocoa_CFLAGS)
+	xroar_opt_OBJCFLAGS += $(opt_cocoa_OBJCFLAGS)
+	xroar_opt_LDFLAGS += $(opt_cocoa_LDFLAGS)
+endif
+
 opt_carbon_OBJS = filereq_carbon.o
 CLEAN += $(opt_carbon_OBJS)
 ifeq ($(opt_carbon),yes)

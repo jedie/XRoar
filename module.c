@@ -26,6 +26,7 @@
 /**** Default user interface module list ****/
 
 extern UIModule ui_gtk2_module;
+extern UIModule ui_macosx_module;
 extern UIModule ui_sdl_module;
 extern UIModule ui_gp32_module;
 extern UIModule ui_nds_module;
@@ -37,7 +38,11 @@ static UIModule *default_ui_module_list[] = {
 #endif
 #endif
 #ifdef HAVE_SDL
+#ifdef HAVE_COCOA
+	&ui_macosx_module,
+#else
 	&ui_sdl_module,
+#endif
 #endif
 #ifdef HAVE_GP32
 	&ui_gp32_module,
