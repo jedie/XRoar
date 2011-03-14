@@ -1085,6 +1085,9 @@ void xroar_set_kbd_translate(int kbd_translate) {
 	if (xroar_kbd_translate_changed_cb) {
 		xroar_kbd_translate_changed_cb(xroar_kbd_translate);
 	}
+	if (keyboard_module->update_kbd_translate) {
+		keyboard_module->update_kbd_translate();
+	}
 	lock = 0;
 }
 

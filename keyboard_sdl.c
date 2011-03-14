@@ -33,10 +33,12 @@
 
 static int init(void);
 static void shutdown(void);
+static void update_kbd_translate(void);
 
 KeyboardModule keyboard_sdl_module = {
 	.common = { .name = "sdl", .description = "SDL keyboard driver",
-	            .init = init, .shutdown = shutdown }
+	            .init = init, .shutdown = shutdown },
+	.update_kbd_translate = update_kbd_translate,
 };
 
 static event_t *poll_event;
@@ -102,6 +104,10 @@ static int init(void) {
 
 static void shutdown(void) {
 	event_free(poll_event);
+}
+
+static void update_kbd_translate(void) {
+	SDL_EnableUNICODE(xroar_kbd_translate);
 }
 
 static void emulator_command(SDLKey sym) {
@@ -186,8 +192,6 @@ static void emulator_command(SDLKey sym) {
 #endif
 	case SDLK_z: // running out of letters...
 		xroar_set_kbd_translate(XROAR_TOGGLE);
-		/* UNICODE translation only used in translation mode */
-		SDL_EnableUNICODE(xroar_kbd_translate);
 		break;
 	default:
 		break;

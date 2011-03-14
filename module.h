@@ -45,6 +45,7 @@ typedef struct {
 
 typedef struct {
 	Module_Common common;
+	void (*update_kbd_translate)(void);
 } KeyboardModule;
 
 typedef struct {
