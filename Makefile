@@ -20,7 +20,9 @@ ifeq ($(VERBOSE),)
 WARN = -Wall -W
 
 do_cc = @echo CC $(1); $(CC) -o $(1) $(2)
+do_objc = @echo OBJC $(1); $(OBJC) -o $(1) $(2)
 do_build_cc = @echo BUILD_CC $(1); $(BUILD_CC) -o $(1) $(2)
+do_build_objc = @echo BUILD_OBJC $(1); $(BUILD_OBJC) -o $(1) $(2)
 do_makeinfo = @echo MAKEINFO $(1); $(MAKEINFO) -o $(1) $(2)
 do_texi2pdf = @echo TEXI2PDF $(1); $(TEXI2PDF) -o $(1) $(2)
 
@@ -31,7 +33,9 @@ WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wundef -Wmissing-prototypes -Wredundant-decls
 
 do_cc = $(CC) -o $(1) $(2)
+do_objc = $(OBJC) -o $(1) $(2)
 do_build_cc = $(BUILD_CC) -o $(1) $(2)
+do_build_objc = $(BUILD_OBJC) -o $(1) $(2)
 do_makeinfo = $(MAKEINFO) -o $(1) $(2)
 do_texi2pdf = $(TEXI2PDF) -o $(1) $(2)
 
@@ -56,6 +60,7 @@ CLEAN += $(xroar_unix_OBJS) $(xroar_unix_INT_OBJS)
 # Optional extras (most only apply to Unix-style build)
 
 xroar_opt_OBJS =
+xroar_opt_objc_OBJS =
 xroar_opt_INT_OBJS =
 
 opt_gtk2_OBJS = ui_gtk2.o filereq_gtk2.o keyboard_gtk2.o
@@ -245,16 +250,26 @@ xroar_unix_CFLAGS = $(CFLAGS) $(CPPFLAGS) $(xroar_opt_CFLAGS) \
 	-I$(CURDIR) -I$(SRCROOT) $(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
+xroar_unix_OBJCFLAGS = $(OBJCFLAGS) $(CPPFLAGS) \
+	$(xroar_opt_CFLAGS) $(xroar_opt_OBJCFLAGS) \
+	-I$(CURDIR) -I$(SRCROOT) $(WARN) \
+        -DVERSION=\"$(VERSION)\" \
+        -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_unix_LDFLAGS = $(LDFLAGS) $(LDLIBS) $(xroar_opt_LDFLAGS)
 
 xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 	$(xroar_unix_OBJS) $(xroar_unix_INT_OBJS) \
-	$(xroar_opt_OBJS) $(xroar_opt_INT_OBJS)
+	$(xroar_opt_OBJS) $(xroar_opt_INT_OBJS) \
+	$(xroar_common_objc_OBJS) $(xroar_unix_objc_OBJS) \
+	$(xroar_opt_objc_OBJS)
 
 $(xroar_unix_ALL_OBJS): $(CONFIG_FILES)
 
 $(xroar_common_OBJS) $(xroar_unix_OBJS) $(xroar_opt_OBJS): %.o: $(SRCROOT)/%.c
 	$(call do_cc,$@,$(xroar_unix_CFLAGS) -c $<)
+
+$(xroar_common_objc_OBJS) $(xroar_unix_objc_OBJS) $(xroar_opt_objc_OBJS): %.o: $(SRCROOT)/%.m
+	$(call do_objc,$@,$(xroar_unix_OBJCFLAGS) -c $<)
 
 $(xroar_common_INT_OBJS) $(xroar_unix_INT_OBJS) $(xroar_opt_INT_OBJS): %.o: ./%.c
 	$(call do_cc,$@,$(xroar_unix_CFLAGS) -c $<)

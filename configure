@@ -84,6 +84,7 @@ config_log=3
 echo "# $command_line" >&$config_log
 
 TMPC=conftemp.c
+TMPM=conftemp.m
 TMPO=conftemp.o
 TMPX=conftemp
 
@@ -93,14 +94,18 @@ while test -n "$1"; do
 	--) shift; break; ;;
 	macosx)
 		TARGET_CC="gcc-4.0 -arch ppc -arch i386 -g"
+		TARGET_OBJC="gcc-4.0 -arch ppc -arch i386 -g"
 		CFLAGS="-mmacosx-version-min=10.4 -DMAC_OS_X_VERSION_MIN_REQUIRED=1040"
 		LDFLAGS="-Wl,-headerpad_max_install_names -Wl,-syslibroot,/Developer/SDKs/MacOSX10.4u.sdk"
 		;;
 	CC=*) TARGET_CC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	OBJC=*) TARGET_OBJC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	CFLAGS=*) TARGET_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	OBJCFLAGS=*) TARGET_OBJCFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	CPPFLAGS=*) TARGET_CPPFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	LDFLAGS=*) TARGET_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_CFLAGS=*) BUILD_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	BUILD_OBJCFLAGS=*) BUILD_OBJCFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_LDFLAGS=*) BUILD_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--prefix=*) prefix=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--exec-prefix=*) exec_prefix=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -172,6 +177,9 @@ if test -z "$TARGET_CC"; then
 	fi
 fi
 
+test -z "$BUILD_OBJC" && BUILD_OBJC="$BUILD_CC"
+test -z "$TARGET_OBJC" && TARGET_OBJC="$TARGET_CC"
+
 test -z "$BUILD_AS" && BUILD_AS="as"
 if test -z "$TARGET_AS"; then
 	if ( "$target-as" --version ) > /dev/null 2>&1; then
@@ -238,6 +246,44 @@ build_cc_check () {
 	return $?
 }
 
+objc_check () {
+	ret=1
+	echo "$CC $CFLAGS $OBJCFLAGS $1 -c -o $TMPO $TMPM" >&$config_log
+	if $CC $CFLAGS $OBJCFLAGS $1 -c -o $TMPO $TMPM >&$config_log 2>&1; then
+		if test -n "$objc_build_only"; then
+			rm -f $TMPO
+			return 0
+		fi
+		echo "$CC $CFLAGS $OBJCFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2" >&$config_log
+		if $CC $CFLAGS $OBJCFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2 >&$config_log 2>&1; then
+			echo "# Success" >&$config_log
+			ret=0
+		else
+			echo "# Link failed: exit code = $?" >&$config_log
+		fi
+	else
+		echo "# Compile failed: exit code = $?" >&$config_log
+	fi
+	rm -f $TMPO $TMPX
+	return $ret
+}
+
+target_objc_check () {
+	OBJC="$TARGET_OBJC"
+	OBJCFLAGS="$TARGET_CFLAGS $TARGET_OBJCFLAGS"
+	LDFLAGS="$TARGET_LDFLAGS"
+	objc_check "$@"
+	return $?
+}
+
+target_objc_check_compile () {
+	objc_build_only=1
+	target_objc_check "$@"
+	ret=$?
+	unset objc_build_only
+	return $ret
+}
+
 echocheck () {
 	echo "### Checking for $@" >&$config_log
 	echo $_echo_n "Checking for $@ ... $_echo_c"
@@ -251,12 +297,14 @@ echo "Build system type is $__build_cc_version"
 __target_cc_version=`$TARGET_CC -dumpmachine`
 echo "Target system type is $__target_cc_version" >&$config_log
 echo "Target system type is $__target_cc_version"
+__target_objc_version=`$TARGET_OBJC -dumpmachine`
 
 # Try and determine best optimisation if user has not specified any flags.
 
+unset TARGET_C_OPT
 test -z "$TARGET_CFLAGS" && TARGET_CFLAGS="$CFLAGS"
 if test -z "$TARGET_CFLAGS"; then
-	echocheck optimisation options
+	echocheck C optimisation options
 	__opt="-O3"
 	cat > $TMPC <<EOF
 int main(int argc, char **argv) { return 0; }
@@ -270,7 +318,26 @@ EOF
 		;;
 	esac
 	echo "$__opt"
-	TARGET_CFLAGS="$__opt"
+	TARGET_C_OPT="$__opt"
+fi
+
+unset TARGET_OBJC_OPT
+test -z "$TARGET_OBJCFLAGS" && TARGET_OBJCFLAGS="$OBJCFLAGS"
+if test -z "$TARGET_OBJCFLAGS"; then
+	echocheck Objective C optimisation options
+	cat > $TMPM <<EOF
+int main(int argc, char **argv) { return 0; }
+EOF
+	__opt="-O3"
+	case "$__target_objc_version" in
+	powerpc-apple-*)
+		__opt="-O3 -mcpu=7450 -mdynamic-no-pic"
+		;;
+	*)
+		;;
+	esac
+	target_objc_check "$__opt" "" && TARGET_OBJC_OPT="$__opt"
+	echo "$TARGET_OBJC_OPT"
 fi
 
 test -z "$TARGET_CPPFLAGS" && TARGET_CPPFLAGS="$CPPFLAGS"
@@ -308,6 +375,22 @@ if test "$_c_pipe" = "yes"; then
 	TARGET_CC="$TARGET_CC -pipe"
 fi
 rm -f $TMPC
+
+if test "$TARGET_CC" = "$TARGET_OBJC -pipe"; then
+	TARGET_OBJC="$TARGET_CC";
+else
+	echocheck $TARGET_OBJC accepting -pipe
+	_objc_pipe=no
+	cat > $TMPM <<EOF
+int main(int argc, char **argv) { return 0; }
+EOF
+	target_objc_check_compile "-pipe" "" && _objc_pipe=yes
+	echo "$_objc_pipe"
+	if test "$_objc_pipe" = "yes"; then
+		TARGET_OBJC="$TARGET_OBJC -pipe"
+	fi
+	rm -f $TMPM
+fi
 
 ########
 
@@ -660,6 +743,7 @@ EOF
 fi
 if test "$_carbon" = "yes"; then
 	_carbon_def="#define HAVE_CARBON"
+	sdl_ldflags=`echo $sdl_ldflags|sed 's/[ \t]*-lSDLmain[ \t]*/ /g'`
 else
 	_carbon_def="#undef HAVE_CARBON"
 fi
@@ -970,13 +1054,18 @@ BUILD_STYLE = $BUILD_STYLE
 EXEEXT = $EXEEXT
 AS = $TARGET_AS
 CC = $TARGET_CC
+OBJC = $TARGET_OBJC
 OBJCOPY = $TARGET_OBJCOPY
-CFLAGS = $TARGET_CFLAGS
+
+CFLAGS = $TARGET_C_OPT $TARGET_CFLAGS
+OBJCFLAGS = $TARGET_OBJC_OPT $TARGET_CFLAGS $TARGET_OBJCFLAGS
 CPPFLAGS = $TARGET_CPPFLAGS
 LDFLAGS = $TARGET_LDFLAGS
 
 BUILD_CC = $BUILD_CC
+BUILD_OBJC = $BUILD_OBJC
 BUILD_CFLAGS = $BUILD_CFLAGS
+BUILD_OBJCFLAGS = $BUILD_OBJCFLAGS
 
 MAKEINFO = $MAKEINFO
 TEXI2PDF = $TEXI2PDF
@@ -995,6 +1084,7 @@ for opt in $all_opt; do
 	if test "$isset" = "yes"; then
 		echo "opt_$opt = yes" >> config.mak
 		eval "test -n \"\$${opt}_cflags\" && echo \"opt_${opt}_CFLAGS = \$${opt}_cflags\"" >> config.mak
+		eval "test -n \"\$${opt}_objcflags\" && echo \"opt_${opt}_OBJCFLAGS = \$${opt}_objcflags\"" >> config.mak
 		eval "test -n \"\$${opt}_ldflags\" && echo \"opt_${opt}_LDFLAGS = \$${opt}_ldflags\"" >> config.mak
 	fi
 	eval "test -n \"\$_${opt}_def\" && echo \"\$_${opt}_def\"" >> config.h
