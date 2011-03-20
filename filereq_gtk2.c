@@ -16,8 +16,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* The GTK+ function prototypes shadow 'index' from string.h in many places,
- * so expect lots of compiler warnings about that */
+#include "config.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -29,20 +28,20 @@
 #include "module.h"
 
 static int init(void);
-static void shutdown(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
 FileReqModule filereq_gtk2_module = {
-	{ "gtk2", "GTK+-2 file requester",
-	  init, 0, shutdown },
-	load_filename, save_filename
+	.common = { .name = "gtk2", .description = "GTK+-2 file requester",
+	            .init = init },
+	.load_filename = load_filename,
+	.save_filename = save_filename
 };
 
 extern GtkWidget *gtk2_top_window;
-static char *filename = NULL;
 
 static int init(void) {
+	/* Only initialise if not running as part of general GTK+ interface */
 	if (gtk2_top_window == NULL) {
 		LOG_DEBUG(2, "GTK+-2 file requester selected.\n");
 		gtk_init(NULL, NULL);
@@ -50,74 +49,55 @@ static int init(void) {
 	return 0;
 }
 
-static void shutdown(void) {
-}
-
-static gboolean cancel(GtkWidget *w) {
-	(void)w;  /* unused */
-	gtk_main_quit();
-	return FALSE;
-}
-
-static void file_selected(GtkWidget *w, GtkFileSelection *fs) {
-	const char *fn = gtk_file_selection_get_filename(GTK_FILE_SELECTION(w));
-	(void)fs;  /* unused */
-	if (filename)
-		free(filename);
-	filename = strdup(fn);
-	gtk_widget_destroy(w);
-}
+static GtkWidget *load_dialog = NULL;
+static GtkWidget *save_dialog = NULL;
+static gchar *filename = NULL;
 
 static char *load_filename(const char **extensions) {
-	GtkWidget *fs;
-	int was_fullscreen;
 	(void)extensions;  /* unused */
-
-	was_fullscreen = video_module->is_fullscreen;
-	if (video_module->set_fullscreen && was_fullscreen)
-		video_module->set_fullscreen(0);
-	if (filename)
-		free(filename);
-	filename = NULL;
-	fs = gtk_file_selection_new("Load file");
-	gtk_signal_connect(GTK_OBJECT(fs), "destroy",
-			GTK_SIGNAL_FUNC(cancel), NULL);
-	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->ok_button),
-			"clicked",GTK_SIGNAL_FUNC(file_selected),
-			GTK_OBJECT (fs));
-	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->cancel_button),
-			"clicked",GTK_SIGNAL_FUNC(gtk_widget_destroy),
-			GTK_OBJECT (fs));
-	gtk_widget_show(fs);
-	gtk_main();
-	if (video_module->set_fullscreen && was_fullscreen)
-		video_module->set_fullscreen(1);
+	if (filename) {
+		g_free(filename);
+		filename = NULL;
+	}
+	if (!load_dialog) {
+		load_dialog = gtk_file_chooser_dialog_new("Load file",
+		    GTK_WINDOW(gtk2_top_window), GTK_FILE_CHOOSER_ACTION_OPEN,
+		    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		    GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+	}
+	if (gtk_dialog_run(GTK_DIALOG(load_dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(load_dialog));
+	}
+	gtk_widget_hide(load_dialog);
+	if (!gtk2_top_window) {
+		while (gtk_events_pending()) {
+			gtk_main_iteration();
+		}
+	}
 	return filename;
 }
 
 static char *save_filename(const char **extensions) {
-	GtkWidget *fs;
-	int was_fullscreen;
 	(void)extensions;  /* unused */
-
-	was_fullscreen = video_module->is_fullscreen;
-	if (video_module->set_fullscreen && was_fullscreen)
-		video_module->set_fullscreen(0);
-	if (filename)
-		free(filename);
-	filename = NULL;
-	fs = gtk_file_selection_new("Save file");
-	gtk_signal_connect(GTK_OBJECT(fs), "destroy",
-			GTK_SIGNAL_FUNC(cancel), NULL);
-	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->ok_button),
-			"clicked",GTK_SIGNAL_FUNC(file_selected),
-			GTK_OBJECT (fs));
-	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(fs)->cancel_button),
-			"clicked",GTK_SIGNAL_FUNC(gtk_widget_destroy),
-			GTK_OBJECT (fs));
-	gtk_widget_show(fs);
-	gtk_main();
-	if (video_module->set_fullscreen && was_fullscreen)
-		video_module->set_fullscreen(1);
+	if (filename) {
+		g_free(filename);
+		filename = NULL;
+	}
+	if (!save_dialog) {
+		save_dialog = gtk_file_chooser_dialog_new("Save file",
+		    GTK_WINDOW(gtk2_top_window), GTK_FILE_CHOOSER_ACTION_SAVE,
+		    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		    GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+		gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(save_dialog), TRUE);
+	}
+	if (gtk_dialog_run(GTK_DIALOG(save_dialog)) == GTK_RESPONSE_ACCEPT) {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(save_dialog));
+	}
+	gtk_widget_hide(save_dialog);
+	if (!gtk2_top_window) {
+		while (gtk_events_pending()) {
+			gtk_main_iteration();
+		}
+	}
 	return filename;
 }
