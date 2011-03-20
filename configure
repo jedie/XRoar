@@ -248,14 +248,14 @@ build_cc_check () {
 
 objc_check () {
 	ret=1
-	echo "$CC $CFLAGS $OBJCFLAGS $1 -c -o $TMPO $TMPM" >&$config_log
-	if $CC $CFLAGS $OBJCFLAGS $1 -c -o $TMPO $TMPM >&$config_log 2>&1; then
+	echo "$OBJC $CFLAGS $OBJCFLAGS $1 -c -o $TMPO $TMPM" >&$config_log
+	if $OBJC $CFLAGS $OBJCFLAGS $1 -c -o $TMPO $TMPM >&$config_log 2>&1; then
 		if test -n "$objc_build_only"; then
 			rm -f $TMPO
 			return 0
 		fi
-		echo "$CC $CFLAGS $OBJCFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2" >&$config_log
-		if $CC $CFLAGS $OBJCFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2 >&$config_log 2>&1; then
+		echo "$OBJC $CFLAGS $OBJCFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2" >&$config_log
+		if $OBJC $CFLAGS $OBJCFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2 >&$config_log 2>&1; then
 			echo "# Success" >&$config_log
 			ret=0
 		else
