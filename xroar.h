@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "events.h"
+#include "xconfig.h"
 
 struct machine_config;
 struct cart_config;
@@ -65,6 +66,8 @@ extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
 extern int xroar_tapehack;
 extern int xroar_trace_enabled;
+
+extern struct xconfig_enum xroar_cross_colour_list[];
 
 /**************************************************************************/
 /* Global flags */

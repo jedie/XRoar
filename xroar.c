@@ -150,6 +150,13 @@ static struct xconfig_enum ccr_list[] = {
 	XC_ENUM_END()
 };
 
+struct xconfig_enum xroar_cross_colour_list[] = {
+	{ .value = CROSS_COLOUR_OFF, .name = "none", .description = "None" },
+	{ .value = CROSS_COLOUR_KBRW, .name = "blue-red", .description = "Blue-red" },
+	{ .value = CROSS_COLOUR_KRBW, .name = "red-blue", .description = "Red-blue" },
+	XC_ENUM_END()
+};
+
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
 	/* Emulated machine */
