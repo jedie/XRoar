@@ -410,10 +410,10 @@ void machine_configure(struct machine_config *mc) {
 	xroar_set_keymap(mc->keymap);
 	switch (mc->tv_standard) {
 	case TV_PAL: default:
-		running_config.cross_colour_phase = CROSS_COLOUR_OFF;
+		xroar_select_cross_colour(CROSS_COLOUR_OFF);
 		break;
 	case TV_NTSC:
-		running_config.cross_colour_phase = CROSS_COLOUR_KBRW;
+		xroar_select_cross_colour(CROSS_COLOUR_KBRW);
 		break;
 	}
 	/* Load appropriate ROMs */

@@ -60,6 +60,7 @@ typedef struct {
 	KeyboardModule **keyboard_module_list;
 	JoystickModule **joystick_module_list;
 	void (*run)(void);
+	void (*cross_colour_changed_cb)(int cc);
 	void (*machine_changed_cb)(int machine_type);
 	void (*cart_changed_cb)(int cart_index);
 	void (*keymap_changed_cb)(int keymap);

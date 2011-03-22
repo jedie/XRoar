@@ -150,7 +150,7 @@ static void emulator_command(guint keyval, int shift) {
 		}
 		break;
 	case GDK_a:
-		xroar_cycle_cross_colour();
+		xroar_select_cross_colour(XROAR_CYCLE);
 		break;
 	case GDK_e:
 		xroar_set_cart(XROAR_TOGGLE);
