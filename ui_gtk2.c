@@ -50,6 +50,7 @@ static KeyboardModule *gtk2_keyboard_module_list[] = {
 };
 
 /* Module callbacks */
+static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void cart_changed_cb(int cart_index);
 static void keymap_changed_cb(int keymap);
@@ -60,6 +61,7 @@ UIModule ui_gtk2_module = {
 	.run = &run,
 	.video_module_list = gtk2_video_module_list,
 	.keyboard_module_list = gtk2_keyboard_module_list,
+	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.machine_changed_cb = machine_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
@@ -76,6 +78,7 @@ static GtkActionGroup *main_action_group;
 static GtkActionGroup *machine_action_group;
 static GtkActionGroup *cart_action_group;
 static guint merge_machines, merge_carts;
+static void create_view_menu(void);
 static void update_machine_menu(void);
 static void update_cartridge_menu(void);
 
@@ -100,6 +103,19 @@ static void save_snapshot(void) {
 	g_idle_add(run_cpu, run_cpu);
 }
 
+static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
+	gboolean val = gtk_toggle_action_get_active(current);
+	(void)user_data;
+	xroar_fullscreen(val);
+}
+
+static void set_cc(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	xroar_set_cross_colour(val);
+}
+
 static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
@@ -112,12 +128,6 @@ static void set_cart(GtkRadioAction *action, GtkRadioAction *current, gpointer u
 	(void)action;
 	(void)user_data;
 	xroar_set_cart(val);
-}
-
-static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
-	gboolean val = gtk_toggle_action_get_active(current);
-	(void)user_data;
-	xroar_fullscreen(val);
 }
 
 static void set_keymap(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
@@ -177,6 +187,11 @@ static const gchar *ui =
 	      "<separator/>"
 	      "<menuitem name='Quit' action='QuitAction'/>"
 	    "</menu>"
+	    "<menu name='ViewMenu' action='ViewMenuAction'>"
+	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
+	      "<separator/>"
+	      "<menu name='CrossColourMenu' action='CrossColourMenuAction'/>"
+	    "</menu>"
 	    "<menu name='MachineMenu' action='MachineMenuAction'>"
 	      "<separator/>"
 	      "<menu name='KeymapMenu' action='KeymapMenuAction'>"
@@ -190,7 +205,6 @@ static const gchar *ui =
 	    "<menu name='CartridgeMenu' action='CartridgeMenuAction'>"
 	    "</menu>"
 	    "<menu name='ToolMenu' action='ToolMenuAction'>"
-	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
 	      "<menuitem name='TranslateKeyboard' action='TranslateKeyboardAction'/>"
 	    "</menu>"
 	    "<menu name='HelpMenu' action='HelpMenuAction'>"
@@ -202,6 +216,7 @@ static const gchar *ui =
 static GtkActionEntry ui_entries[] = {
 	/* Top level */
 	{ .name = "FileMenuAction", .label = "_File" },
+	{ .name = "ViewMenuAction", .label = "_View" },
 	{ .name = "MachineMenuAction", .label = "_Machine" },
 	{ .name = "CartridgeMenuAction", .label = "_Cartridge" },
 	{ .name = "ToolMenuAction", .label = "_Tool" },
@@ -222,6 +237,8 @@ static GtkActionEntry ui_entries[] = {
 	  .accelerator = "<control>Q",
 	  .tooltip = "Quit",
 	  .callback = G_CALLBACK(xroar_quit) },
+	/* View */
+	{ .name = "CrossColourMenuAction", .label = "_Cross-colour" },
 	/* Machine */
 	{ .name = "KeymapMenuAction", .label = "_Keyboard Map" },
 	{ .name = "SoftResetAction", .label = "_Soft Reset",
@@ -241,10 +258,11 @@ static GtkActionEntry ui_entries[] = {
 static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
 static GtkToggleActionEntry ui_toggles[] = {
-	/* Tool */
+	/* View */
 	{ .name = "FullScreenAction", .label = "_Full Screen",
 	  .stock_id = GTK_STOCK_FULLSCREEN,
 	  .accelerator = "F11", .callback = G_CALLBACK(set_fullscreen) },
+	/* Tool */
 	{ .name = "TranslateKeyboardAction", .label = "_Keyboard Translation",
 	  .accelerator = "<control>Z",
 	  .callback = G_CALLBACK(toggle_keyboard_translation) },
@@ -300,6 +318,7 @@ static int init(void) {
 	merge_carts = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
 
 	/* Update all dynamic menus */
+	create_view_menu();
 	update_machine_menu();
 	update_cartridge_menu();
 
@@ -362,6 +381,34 @@ static void free_action_group(GtkActionGroup *action_group) {
 	GList *list = gtk_action_group_list_actions(action_group);
 	g_list_foreach(list, remove_action_from_group, action_group);
 	g_list_free(list);
+}
+
+/* Dynamic elements of View menu */
+static void create_view_menu(void) {
+	/* Cross-colour */
+	static guint merge_cc;
+	int i;
+	GtkActionGroup *cc_action_group;
+	merge_cc = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
+	cc_action_group = gtk_action_group_new("View");
+	gtk_ui_manager_insert_action_group(gtk2_menu_manager, cc_action_group, 0);
+
+	GtkRadioActionEntry *radio_entries = malloc(NUM_CROSS_COLOUR_PHASES * sizeof(GtkRadioActionEntry));
+	memset(radio_entries, 0, NUM_CROSS_COLOUR_PHASES * sizeof(GtkRadioActionEntry));
+	/* add these to the ui in reverse order, as each will be
+	 * inserted before the previous */
+	for (i = NUM_CROSS_COLOUR_PHASES-1; i >= 0; i--) {
+		radio_entries[i].name = g_strconcat("cc-", xroar_cross_colour_list[i].name, NULL);
+		radio_entries[i].label = escape_underscores(xroar_cross_colour_list[i].description);
+		radio_entries[i].value = i;
+		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_cc, "/MainMenu/ViewMenu/CrossColourMenu", radio_entries[i].name, radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
+	}
+	gtk_action_group_add_radio_actions(cc_action_group, radio_entries, NUM_CROSS_COLOUR_PHASES, 0, (GCallback)set_cc, NULL);
+	for (i = 0; i < NUM_CROSS_COLOUR_PHASES; i++) {
+		g_free((gchar *)radio_entries[i].name);
+		free((char *)radio_entries[i].label);
+	}
+	free(radio_entries);
 }
 
 /* Dynamic machine menu */
@@ -450,6 +497,18 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 	return FALSE;
 }
 
+/* View callbacks */
+
+static void fullscreen_changed_cb(int fullscreen) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/FullScreen");
+	gtk_toggle_action_set_active(toggle, fullscreen);
+}
+
+static void cross_colour_changed_cb(int cc) {
+	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/CrossColourMenu/cc-none");
+	gtk_radio_action_set_current_value(radio, cc);
+}
+
 /* Emulation callbacks */
 
 static void machine_changed_cb(int machine_type) {
@@ -468,11 +527,6 @@ static void keymap_changed_cb(int keymap) {
 }
 
 /* Tool callbacks */
-
-static void fullscreen_changed_cb(int fullscreen) {
-	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ToolMenu/FullScreen");
-	gtk_toggle_action_set_active(toggle, fullscreen);
-}
 
 static void kbd_translate_changed_cb(int kbd_translate) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ToolMenu/TranslateKeyboard");
