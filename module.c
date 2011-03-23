@@ -58,14 +58,14 @@ static UIModule *default_ui_module_list[] = {
 
 /**** Default file requester module list ****/
 
-extern FileReqModule filereq_carbon_module;
+extern FileReqModule filereq_cocoa_module;
 extern FileReqModule filereq_windows32_module;
 extern FileReqModule filereq_gtk2_module;
 extern FileReqModule filereq_gtk1_module;
 extern FileReqModule filereq_cli_module;
 static FileReqModule *default_filereq_module_list[] = {
-#ifdef HAVE_CARBON
-	&filereq_carbon_module,
+#ifdef HAVE_COCOA
+	&filereq_cocoa_module,
 #endif
 #ifdef WINDOWS32
 	&filereq_windows32_module,

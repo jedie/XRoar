@@ -15,7 +15,7 @@ unset target_sdl_config build_sdl_config
 unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa carbon alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
+all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
 unset $all_opt
 
 _curses=no
@@ -52,7 +52,6 @@ Optional Features:
   --enable-curses       build Curses user-interface
   --disable-gtk1        don't test for GTK+-1
   --disable-cocoa       don't test for Mac OS X Cocoa
-  --disable-carbon      don't test for Mac OS X Carbon
   --disable-alsa        don't test for ALSA audio
   --disable-oss         don't test for OSS audio
   --disable-pulse       don't test for PulseAudio
@@ -446,7 +445,6 @@ if test "$_gp32" = "yes"; then
 	_gtk1=no
 	_cli=no
 	_cocoa=no
-	_carbon=no
 	_alsa=no
 	_oss=no
 	_pulse=no
@@ -491,7 +489,6 @@ if test "$_nds" = "yes"; then
 	_gtk1=no
 	_cli=no
 	_cocoa=no
-	_carbon=no
 	_alsa=no
 	_oss=no
 	_pulse=no
@@ -749,27 +746,6 @@ if test "$_cocoa" = "yes"; then
 	sdl_ldflags=`echo $sdl_ldflags|sed 's/[ \t]*-lSDLmain[ \t]*/ /g'`
 else
 	_cocoa_def="#undef HAVE_COCOA"
-fi
-
-########
-
-if test "$_carbon" \!= "no"; then
-	echocheck Mac OS X Carbon
-	carbon_ldflags="-framework Carbon"
-	cat > $TMPC <<EOF
-#include <Carbon/Carbon.h>
-int main(int argc, char **argv) { NavDialogRef n; NavDialogRun(n); return 0; }
-EOF
-	_carbon=no
-	target_cc_check "" "$carbon_ldflags" && _carbon=yes
-	rm -f $TMPC
-	echo "$_carbon"
-fi
-if test "$_carbon" = "yes"; then
-	_carbon_def="#define HAVE_CARBON"
-	sdl_ldflags=`echo $sdl_ldflags|sed 's/[ \t]*-lSDLmain[ \t]*/ /g'`
-else
-	_carbon_def="#undef HAVE_CARBON"
 fi
 
 ########

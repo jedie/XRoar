@@ -84,6 +84,11 @@ static int current_keymap = 0;
 static int is_fullscreen = 0;
 static int is_kbd_translate = 0;
 
+/* Setting this to true is a massive hack so that cocoa file dialogues receive
+ * keypresses.  Ideally, need to sort SDL out or turn this into a regular
+ * OpenGL application. */
+int cocoa_super_all_keys = 0;
+
 @interface SDLApplication : NSApplication
 @end
 
@@ -99,7 +104,7 @@ static int is_kbd_translate = 0;
 
 - (void)sendEvent:(NSEvent *)anEvent {
 	if (NSKeyDown == [anEvent type] || NSKeyUp == [anEvent type]) {
-		if ([anEvent modifierFlags] & NSCommandKeyMask)
+		if (cocoa_super_all_keys || ([anEvent modifierFlags] & NSCommandKeyMask))
 			[super sendEvent:anEvent];
 	} else {
 		[super sendEvent:anEvent];
