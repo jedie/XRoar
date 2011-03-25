@@ -204,7 +204,6 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	}
 	guint keyval = keycode_to_keyval[event->hardware_keycode];
 	control = event->state & GDK_CONTROL_MASK;
-	shift = event->state & GDK_SHIFT_MASK;
 	if (emulate_joystick) {
 		if (keyval == GDK_Up) { input_control_press(INPUT_JOY_RIGHT_Y, 0); return FALSE; }
 		if (keyval == GDK_Down) { input_control_press(INPUT_JOY_RIGHT_Y, 255); return FALSE; }
@@ -212,13 +211,13 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		if (keyval == GDK_Right) { input_control_press(INPUT_JOY_RIGHT_X, 255); return FALSE; }
 		if (keyval == GDK_Alt_L) { input_control_press(INPUT_JOY_RIGHT_FIRE, 0); return FALSE; }
 	}
-	if (shift) {
-		KEYBOARD_PRESS(0);
-	} else {
-		KEYBOARD_RELEASE(0);
-	}
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
+		KEYBOARD_PRESS(0);
 		goto press_update;
+	}
+	shift = event->state & GDK_SHIFT_MASK;
+	if (!shift) {
+		KEYBOARD_RELEASE(0);
 	}
 	if (keyval == GDK_F12 && !xroar_noratelimit) {
 		xroar_noratelimit = 1;
@@ -268,7 +267,6 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		return FALSE;
 	}
 	guint keyval = keycode_to_keyval[event->hardware_keycode];
-	shift = event->state & GDK_SHIFT_MASK;
 	if (emulate_joystick) {
 		if (keyval == GDK_Up) { input_control_release(INPUT_JOY_RIGHT_Y, 0); return FALSE; }
 		if (keyval == GDK_Down) { input_control_release(INPUT_JOY_RIGHT_Y, 255); return FALSE; }
@@ -276,13 +274,13 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		if (keyval == GDK_Right) { input_control_release(INPUT_JOY_RIGHT_X, 255); return FALSE; }
 		if (keyval == GDK_Alt_L) { input_control_release(INPUT_JOY_RIGHT_FIRE, 0); return FALSE; }
 	}
-	if (shift) {
-		KEYBOARD_PRESS(0);
-	} else {
-		KEYBOARD_RELEASE(0);
-	}
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
+		KEYBOARD_RELEASE(0);
 		goto release_update;
+	}
+	shift = event->state & GDK_SHIFT_MASK;
+	if (!shift) {
+		KEYBOARD_RELEASE(0);
 	}
 	if (keyval == GDK_F12) {
 		xroar_noratelimit = 0;
