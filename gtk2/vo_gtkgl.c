@@ -41,6 +41,7 @@ static void vsync(void);
 static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
+static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
 
 VideoModule video_gtkgl_module = {
@@ -48,7 +49,8 @@ VideoModule video_gtkgl_module = {
 	            .init = init, .shutdown = shutdown },
 	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
-	.render_border = render_border, .set_fullscreen = set_fullscreen
+	.render_border = render_border,
+	.resize = resize, .set_fullscreen = set_fullscreen
 };
 
 
@@ -146,6 +148,29 @@ static void shutdown(void) {
 	free(screen_tex);
 }
 
+static void resize(unsigned int w, unsigned int h) {
+	if (video_gtkgl_module.is_fullscreen) {
+		return;
+	}
+	if (w < 160 || h < 120) {
+		return;
+	}
+	if (w > 1920 || h > 1440) {
+		return;
+	}
+	/* You can't just set the widget size and expect GTK to adapt the
+	 * containing window, * or indeed ask it to.  This will hopefully work
+	 * consistently.  It seems to be basically how GIMP "shrink wrap"s its
+	 * windows.  */
+	gint oldw = gtk2_top_window->allocation.width;
+	gint oldh = gtk2_top_window->allocation.height;
+	gint woff = oldw - gtk2_drawing_area->allocation.width;
+	gint hoff = oldh - gtk2_drawing_area->allocation.height;
+	w += woff;
+	h += hoff;
+	gtk_window_resize(GTK_WINDOW(gtk2_top_window), w, h);
+}
+
 static int set_fullscreen(int fullscreen) {
 	(void)fullscreen;
 	if (fullscreen) {
@@ -173,11 +198,13 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer data
 
 	if (((float)da->allocation.width/(float)da->allocation.height)>(4.0/3.0)) {
 		height = da->allocation.height;
+		video_gtkgl_module.scale = (float)height / 240.;
 		width = ((float)height/3.0)*4;
 		xoffset = (da->allocation.width - width) / 2;
 		yoffset = 0;
 	} else {
 		width = da->allocation.width;
+		video_gtkgl_module.scale = (float)width / 320.;
 		height = ((float)width/4.0)*3;
 		xoffset = 0;
 		yoffset = (da->allocation.height - height)/2;

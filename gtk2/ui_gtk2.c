@@ -114,6 +114,34 @@ static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
 	xroar_fullscreen(val);
 }
 
+static void zoom_1_1(void) {
+	if (video_module && video_module->resize) {
+		video_module->resize(320, 240);
+	}
+}
+
+static void zoom_2_1(void) {
+	if (video_module && video_module->resize) {
+		video_module->resize(640, 480);
+	}
+}
+
+static void zoom_in(void) {
+	if (video_module && video_module->resize) {
+		int scale2 = (int)((video_module->scale * 2.) + 0.5) + 1;
+		if (scale2 < 1) scale2 = 1;
+		video_module->resize(160 * scale2, 120 * scale2);
+	}
+}
+
+static void zoom_out(void) {
+	if (video_module && video_module->resize) {
+		int scale2 = (int)((video_module->scale * 2.) + 0.5) - 1;
+		if (scale2 < 1) scale2 = 1;
+		video_module->resize(160 * scale2, 120 * scale2);
+	}
+}
+
 static void set_cc(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
@@ -193,9 +221,19 @@ static const gchar *ui =
 	      "<menuitem name='Quit' action='QuitAction'/>"
 	    "</menu>"
 	    "<menu name='ViewMenu' action='ViewMenuAction'>"
-	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
-	      "<separator/>"
 	      "<menu name='CrossColourMenu' action='CrossColourMenuAction'/>"
+	      "<separator/>"
+	      "<menu name='ZoomMenu' action='ZoomMenuAction'>"
+	        "<menuitem action='zoom_in'/>"
+	        "<menuitem action='zoom_out'/>"
+	        "<separator/>"
+	        "<menuitem action='zoom_320x240'/>"
+	        "<menuitem action='zoom_640x480'/>"
+	        "<separator/>"
+	        "<menuitem action='zoom_reset'/>"
+	      "</menu>"
+	      "<separator/>"
+	      "<menuitem name='FullScreen' action='FullScreenAction'/>"
 	    "</menu>"
 	    "<menu name='MachineMenu' action='MachineMenuAction'>"
 	      "<separator/>"
@@ -244,6 +282,20 @@ static GtkActionEntry ui_entries[] = {
 	  .callback = G_CALLBACK(xroar_quit) },
 	/* View */
 	{ .name = "CrossColourMenuAction", .label = "_Cross-colour" },
+	{ .name = "ZoomMenuAction", .label = "_Zoom" },
+	{ .name = "zoom_in", .label = "Zoom In",
+	  .accelerator = "<control>plus",
+	  .callback = G_CALLBACK(zoom_in) },
+	{ .name = "zoom_out", .label = "Zoom Out",
+	  .accelerator = "<control>minus",
+	  .callback = G_CALLBACK(zoom_out) },
+	{ .name = "zoom_320x240", .label = "320x240 (1:1)",
+	  .callback = G_CALLBACK(zoom_1_1) },
+	{ .name = "zoom_640x480", .label = "640x480 (2:1)",
+	  .callback = G_CALLBACK(zoom_2_1) },
+	{ .name = "zoom_reset", .label = "Reset",
+	  .accelerator = "<control>0",
+	  .callback = G_CALLBACK(zoom_2_1) },
 	/* Machine */
 	{ .name = "KeymapMenuAction", .label = "_Keyboard Map" },
 	{ .name = "SoftResetAction", .label = "_Soft Reset",
@@ -342,7 +394,7 @@ static int init(void) {
 	/* Create drawing_area widget, add to vbox */
 	gtk2_drawing_area = GTK_WIDGET(gtk_builder_get_object(builder, "drawing_area"));
 	GdkGeometry hints = {
-		.min_width = 320, .min_height = 240,
+		.min_width = 160, .min_height = 120,
 		.base_width = 0, .base_height = 0,
 	};
 	gtk_window_set_geometry_hints(GTK_WINDOW(gtk2_top_window), GTK_WIDGET(gtk2_drawing_area), &hints, GDK_HINT_MIN_SIZE | GDK_HINT_BASE_SIZE);
