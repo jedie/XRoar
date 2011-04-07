@@ -97,7 +97,6 @@ static int alloc_config_array(int size) {
 
 /* Populate config from template */
 static int populate_config_index(int i) {
-	__label__ failed;
 	assert(configs != NULL);
 	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
 	if (configs[i])
