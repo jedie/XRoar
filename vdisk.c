@@ -117,9 +117,11 @@ int vdisk_save(struct vdisk *disk, int force) {
 	}
 	if (disk->filename == NULL) {
 		disk->filename = filereq_module->save_filename(NULL);
-		if (disk->filename != NULL) {
-			disk->filetype = xroar_filetype_by_ext(disk->filename);
+		if (disk->filename == NULL) {
+			 LOG_WARN("No filename given: not writing disk file.\n");
+			 return 1;
 		}
+		disk->filetype = xroar_filetype_by_ext(disk->filename);
 	}
 	for (i = 0; dispatch[i].filetype >= 0 && dispatch[i].filetype != disk->filetype; i++);
 	if (dispatch[i].save_func == NULL) {
@@ -159,6 +161,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		return NULL;
 	fs_read(fd, buf, 12);
 	file_size -= 12;
+	(void)file_size;  /* check this matches what's going to be read */
 	if (buf[0] != 'd' || buf[1] != 'k') {
 		fs_close(fd);
 		return NULL;
@@ -283,8 +286,10 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 	for (track = 0; track < num_tracks; track++) {
 		for (side = 0; side < num_sides; side++) {
 			for (sector = 0; sector < num_sectors; sector++) {
-				uint8_t attr;
-				if (sector_attr) attr = fs_read_uint8(fd);
+				if (sector_attr) {
+					/* skip attribute byte */
+					(void)fs_read_uint8(fd);
+				}
 				fs_read(fd, buf, ssize);
 				vdisk_update_sector(disk, side, track, sector + first_sector, ssize, buf);
 			}
@@ -348,6 +353,7 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	if (header[4] & 0x80)
 		LOG_WARN("DMK is flagged density-agnostic\n");
 	file_size -= 16;
+	(void)file_size;  /* check this matches what's going to be read */
 	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
 	if (disk == NULL) {
 		fs_close(fd);
@@ -377,7 +383,6 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 				buf += 2;
 			}
 			fs_read(fd, buf, track_length - 128);
-			buf += track_length - 128;
 		}
 	}
 	fs_close(fd);
@@ -415,7 +420,6 @@ static int vdisk_save_dmk(struct vdisk *disk) {
 				buf += 2;
 			}
 			fs_write(fd, buf, disk->track_length - 128);
-			buf += disk->track_length - 128;
 		}
 	}
 	fs_close(fd);
