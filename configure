@@ -83,6 +83,22 @@ config_log=3
 
 echo "# $command_line" >&$config_log
 
+# defaults from environment
+test -n "$CC" && TARGET_CC="$CC"
+test -n "$OBJC" && TARGET_OBJC="$OBJC"
+test -n "$CFLAGS" && TARGET_CFLAGS="$CFLAGS"
+test -n "$OBJCFLAGS" && TARGET_OBJCFLAGS="$OBJCFLAGS"
+test -n "$CPPFLAGS" && TARGET_CPPFLAGS="$CPPFLAGS"
+test -n "$LDFLAGS" && TARGET_LDFLAGS="$LDFLAGS"
+test -n "$LDLIBS" && TARGET_LDLIBS="$LDLIBS"
+CC=
+OBJC=
+CFLAGS=
+OBJCFLAGS=
+CPPFLAGS=
+LDFLAGS=
+LDLIBS=
+
 TMPC=conftemp.c
 TMPM=conftemp.m
 TMPO=conftemp.o
@@ -95,8 +111,8 @@ while test -n "$1"; do
 	macosx)
 		TARGET_CC="gcc-4.0 -arch ppc -arch i386 -g"
 		TARGET_OBJC="gcc-4.0 -arch ppc -arch i386 -g"
-		CFLAGS="-mmacosx-version-min=10.4 -DMAC_OS_X_VERSION_MIN_REQUIRED=1040"
-		LDFLAGS="-Wl,-headerpad_max_install_names -Wl,-syslibroot,/Developer/SDKs/MacOSX10.4u.sdk"
+		TARGET_CFLAGS="-mmacosx-version-min=10.4 -DMAC_OS_X_VERSION_MIN_REQUIRED=1040"
+		TARGET_LDFLAGS="-Wl,-headerpad_max_install_names -Wl,-syslibroot,/Developer/SDKs/MacOSX10.4u.sdk"
 		;;
 	CC=*) TARGET_CC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	OBJC=*) TARGET_OBJC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -104,8 +120,11 @@ while test -n "$1"; do
 	OBJCFLAGS=*) TARGET_OBJCFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	CPPFLAGS=*) TARGET_CPPFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	LDFLAGS=*) TARGET_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	BUILD_CC=*) BUILD_CC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	BUILD_OBJC=*) BUILD_OBJC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_CFLAGS=*) BUILD_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_OBJCFLAGS=*) BUILD_OBJCFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	BUILD_CPPFLAGS=*) BUILD_CPPFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_LDFLAGS=*) BUILD_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--prefix=*) prefix=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--exec-prefix=*) exec_prefix=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -168,7 +187,20 @@ test -z "$mandir" && mandir="$prefix/man"
 test -z "$docdir" && docdir="$datadir/doc/xroar"
 test -z "$pdfdir" && pdfdir="$docdir"
 
-test -z "$BUILD_CC" && BUILD_CC="gcc"
+########
+
+if test -z "$BUILD_CC"; then
+	if ( gcc -v ) >/dev/null 2>&1; then
+		BUILD_CC=gcc
+	elif ( clang --version ) >/dev/null 2>&1; then
+		BUILD_CC=clang
+	elif ( cc ) >/dev/null 2>&1; then
+		BUILD_CC=cc
+	else
+		BUILD_CC=false
+	fi
+fi
+
 if test -z "$TARGET_CC"; then
 	if ( "$target-gcc" -v ) > /dev/null 2>&1; then
 		TARGET_CC="$target-gcc"
@@ -179,6 +211,13 @@ fi
 
 test -z "$BUILD_OBJC" && BUILD_OBJC="$BUILD_CC"
 test -z "$TARGET_OBJC" && TARGET_OBJC="$TARGET_CC"
+
+__target_objc_machine="$__target_cc_machine"
+if test -z "$__target_objc_machine"; then
+	if __tmp=`$TARGET_OBJC -dumpmachine 2>/dev/null`; then
+		__target_objc_machine=`$TARGET_OBJC -dumpmachine`
+	fi
+fi
 
 test -z "$BUILD_AS" && BUILD_AS="as"
 if test -z "$TARGET_AS"; then
@@ -196,6 +235,22 @@ if test -z "$TARGET_OBJCOPY"; then
 	else
 		TARGET_OBJCOPY="$BUILD_OBJCOPY"
 	fi
+fi
+
+########
+
+__build_cc_machine=
+if __tmp=`$BUILD_CC -dumpmachine 2>/dev/null`; then
+	__build_cc_machine="$__tmp"
+	echo "Build system type is $__build_cc_machine" >&$config_log
+	echo "Build system type is $__build_cc_machine"
+fi
+
+__target_cc_machine=
+if __tmp=`$TARGET_CC -dumpmachine 2>/dev/null`; then
+	__target_cc_machine="$__tmp"
+	echo "Target system type is $__target_cc_machine" >&$config_log
+	echo "Target system type is $__target_cc_machine"
 fi
 
 ########
@@ -291,14 +346,6 @@ echocheck () {
 
 ########
 
-__build_cc_version=`$BUILD_CC -dumpmachine`
-echo "Build system type is $__build_cc_version" >&$config_log
-echo "Build system type is $__build_cc_version"
-__target_cc_version=`$TARGET_CC -dumpmachine`
-echo "Target system type is $__target_cc_version" >&$config_log
-echo "Target system type is $__target_cc_version"
-__target_objc_version=`$TARGET_OBJC -dumpmachine`
-
 # Try and determine best optimisation if user has not specified any flags.
 
 unset TARGET_C_OPT
@@ -309,7 +356,7 @@ if test -z "$TARGET_CFLAGS"; then
 	cat > $TMPC <<EOF
 int main(int argc, char **argv) { return 0; }
 EOF
-	case "$__target_cc_version" in
+	case "$__target_cc_machine" in
 	powerpc-apple-*)
 		__tmp="-fast -mcpu=7450 -mdynamic-no-pic"
 		target_cc_check "$__tmp" "" && __opt="$__tmp"
@@ -329,7 +376,7 @@ if test -z "$TARGET_OBJCFLAGS"; then
 int main(int argc, char **argv) { return 0; }
 EOF
 	__opt="-O3"
-	case "$__target_objc_version" in
+	case "$__target_objc_machine" in
 	powerpc-apple-*)
 		__opt="-O3 -mcpu=7450 -mdynamic-no-pic"
 		;;
