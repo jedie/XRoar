@@ -683,7 +683,7 @@ static void state_machine(void) {
 				status_register |= STATUS_LOST_DATA;
 				RESET_DRQ;  // XXX
 			}
-			vdrive_write(data_register);
+			vdrive_write(data);
 			bytes_left--;
 			if (bytes_left > 0) {
 				SET_DRQ;
