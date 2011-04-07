@@ -36,10 +36,12 @@ static void shutdown(void);
 static void run(void);
 
 extern VideoModule video_gtkgl_module;
+extern VideoModule video_null_module;
 static VideoModule *gtk2_video_module_list[] = {
 #ifdef HAVE_GTKGL
 	&video_gtkgl_module,
 #endif
+	&video_null_module,
 	NULL
 };
 

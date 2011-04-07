@@ -31,6 +31,7 @@ extern UIModule ui_sdl_module;
 extern UIModule ui_gp32_module;
 extern UIModule ui_nds_module;
 extern UIModule ui_curses_module;
+extern UIModule ui_null_module;
 static UIModule *default_ui_module_list[] = {
 #ifdef HAVE_GTK2
 #ifdef HAVE_GTKGL
@@ -53,6 +54,7 @@ static UIModule *default_ui_module_list[] = {
 #ifdef HAVE_CURSES
 	&ui_curses_module,
 #endif
+	&ui_null_module,
 	NULL
 };
 
@@ -120,6 +122,12 @@ static SoundModule *default_sound_module_list[] = {
 	NULL
 };
 
+extern VideoModule video_null_module;
+static VideoModule *default_video_module_list[] = {
+	&video_null_module,
+	NULL
+};
+
 /**** Default joystick module list ****/
 
 extern JoystickModule joystick_linux_module;
@@ -138,7 +146,7 @@ UIModule **ui_module_list = default_ui_module_list;
 UIModule *ui_module = NULL;
 FileReqModule **filereq_module_list = default_filereq_module_list;
 FileReqModule *filereq_module = NULL;
-VideoModule **video_module_list = NULL;
+VideoModule **video_module_list = default_video_module_list;
 VideoModule *video_module = NULL;
 SoundModule **sound_module_list = default_sound_module_list;
 SoundModule *sound_module = NULL;

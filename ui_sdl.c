@@ -31,6 +31,7 @@ static void shutdown(void);
 extern VideoModule video_sdlgl_module;
 extern VideoModule video_sdlyuv_module;
 extern VideoModule video_sdl_module;
+extern VideoModule video_null_module;
 static VideoModule *sdl_video_module_list[] = {
 #ifdef HAVE_SDLGL
 	&video_sdlgl_module,
@@ -42,6 +43,7 @@ static VideoModule *sdl_video_module_list[] = {
 	&video_sdlyuv_module,
 	&video_sdl_module,
 #endif
+	&video_null_module,
 	NULL
 };
 

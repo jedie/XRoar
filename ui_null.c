@@ -16,52 +16,29 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <curses.h>
 
 #include "types.h"
-#include "logging.h"
 #include "module.h"
 
-static int init(void);
-static void shutdown(void);
-
-extern VideoModule video_curses_module;
 extern VideoModule video_null_module;
-static VideoModule *curses_video_module_list[] = {
-	&video_curses_module,
+static VideoModule *null_video_module_list[] = {
 	&video_null_module,
 	NULL
 };
 
-extern KeyboardModule keyboard_curses_module;
-static KeyboardModule *curses_keyboard_module_list[] = {
-	&keyboard_curses_module,
+static KeyboardModule keyboard_null_module;
+static KeyboardModule *null_keyboard_module_list[] = {
+	&keyboard_null_module,
 	NULL
 };
 
-UIModule ui_curses_module = {
-	.common = { .name = "curses", .description = "Curses user-interface",
-	            .init = init, .shutdown = shutdown },
-	.video_module_list = curses_video_module_list,
-	.keyboard_module_list = curses_keyboard_module_list,
+UIModule ui_null_module = {
+	.common = { .name = "null", .description = "No UI" },
+	.video_module_list = null_video_module_list,
+	.keyboard_module_list = null_keyboard_module_list,
 };
 
-static int init(void) {
-	initscr();
-	start_color();
-	nodelay(stdscr, TRUE);
-	keypad(stdscr, TRUE);
-	nonl();
-	raw();
-	noecho();
-	curs_set(0);
-	return 0;
-}
-
-static void shutdown(void) {
-	curs_set(1);
-	endwin();
-}
+static KeyboardModule keyboard_null_module = {
+	.common = { .name = "null", .description = "No keyboard" },
+};
