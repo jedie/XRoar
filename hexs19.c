@@ -87,6 +87,7 @@ int intel_hex_read(const char *filename) {
 			LOG_DEBUG(5,"\n");
 		}
 		sum = read_byte(fd);
+		(void)sum;  /* XXX check this */
 		if (skip_eol(fd) == 0)
 			break;
 		if (type == 1)
@@ -120,6 +121,7 @@ static int dragon_bin_load(int fd, int autorun) {
 	int filetype, length, load, exec;
 	LOG_DEBUG(2, "Reading Dragon BIN file\n");
 	filetype = fs_read_uint8(fd);
+	(void)filetype;  /* XXX verify this makes sense */
 	load = fs_read_uint16(fd);
 	length = fs_read_uint16(fd);
 	exec = fs_read_uint16(fd);

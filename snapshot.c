@@ -272,7 +272,7 @@ int read_snapshot(const char *filename) {
 				size -= 20;
 				if (size > 0) {
 					/* Skip 'halted' */
-					tmp = fs_read_uint8(fd);
+					(void)fs_read_uint8(fd);
 					size--;
 				}
 				break;
@@ -384,7 +384,7 @@ int read_snapshot(const char *filename) {
 		if (size > 0) {
 			LOG_WARN("Skipping extra bytes in snapshot chunk id=%d.\n", (int)section);
 			for (; size; size--)
-				tmp = fs_read_uint8(fd);
+				(void)fs_read_uint8(fd);
 		}
 	}
 	fs_close(fd);

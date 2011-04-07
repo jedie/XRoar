@@ -158,7 +158,7 @@ static void render_sg4(RENDER_ARGS) {
 		if (c == old_screen[textline][i])
 			continue;
 		old_screen[textline][i] = c;
-		mvaddch(textline, i, c);
+		(void)mvaddch(textline, i, c);
 	}
 }
 
@@ -177,7 +177,7 @@ static void render_cg2(RENDER_ARGS) {
 		if (c == old_screen[textline][i])
 			continue;
 		old_screen[textline][i] = c;
-		mvaddch(textline, i, c);
+		(void)mvaddch(textline, i, c);
 	}
 }
 
