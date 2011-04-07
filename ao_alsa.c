@@ -140,7 +140,7 @@ static int init(void) {
 	//snd_pcm_writei(pcm_handle, buffer, frame_size);
 	return 0;
 failed:
-	LOG_ERROR("Failed to initialise ALSA audio driver\n");
+	LOG_ERROR("Failed to initialise ALSA: %s\n", snd_strerror(err));
 	return 1;
 }
 
@@ -164,7 +164,6 @@ static void update(int value) {
 }
 
 static void flush_frame(void) {
-	int err;
 	Sample *fill_to = buffer + frame_size;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
@@ -175,7 +174,7 @@ static void flush_frame(void) {
 	wrptr = buffer;
 	if (xroar_noratelimit)
 		return;
-	if ((err = snd_pcm_writei(pcm_handle, buffer, frame_size)) < 0) {
+	if (snd_pcm_writei(pcm_handle, buffer, frame_size) < 0) {
 		snd_pcm_prepare(pcm_handle);
 		snd_pcm_writei(pcm_handle, buffer, frame_size);
 	}
