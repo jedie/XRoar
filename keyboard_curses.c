@@ -37,8 +37,8 @@ static int init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_curses_module = {
-	{ "curses", "Curses keyboard driver",
-	  init, 0, shutdown }
+	.common = { .name = "curses", .description = "Curses keyboard driver",
+	            .init = init, .shutdown = shutdown }
 };
 
 static event_t *poll_event;
@@ -64,6 +64,8 @@ static void do_poll(void) {
 		//mvaddstr(0,34, keyval);
 		switch (key) {
 			case 3:   /* Ctrl+C */
+			case 17:  /* Ctrl+Q */
+				endwin();
 				xroar_quit();
 				break;
 			case 5:   /* Ctrl+E */
@@ -75,21 +77,23 @@ static void do_poll(void) {
 			case 12:  /* Ctrl+L */
 			case 2:   /* Ctrl+B */
 			case 20:  /* Ctrl+T */
+				endwin();
 				xroar_run_file(NULL);
 				break;
 			case 18:  /* Ctrl+R */
 				machine_reset(RESET_SOFT);
 				break;
 			case 19:  /* Ctrl+S */
+				endwin();
 				xroar_save_snapshot();
 				break;
 			case 23:  /* Ctrl+W */
+				endwin();
 				xroar_write_tape();
 				break;
 			case 26:  /* Ctrl+Z */
 				endwin();
 				kill(getpid(), SIGSTOP);
-				initscr();
 				break;
 			case 258:  /* Down */
 				keyboard_queue(10);
