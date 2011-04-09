@@ -248,7 +248,8 @@ ROMPATH = \"~/.xroar/roms:$(datadir)/xroar/roms:\"
 CONFPATH = \"~/.xroar:$(sysconfdir):$(datadir)/xroar\"
 endif
 
-xroar_unix_CFLAGS = $(CFLAGS) $(CPPFLAGS) $(xroar_opt_CFLAGS) \
+xroar_unix_CFLAGS = $(CFLAGS) $(CPPFLAGS) -D_XOPEN_SOURCE=700 \
+	$(xroar_opt_CFLAGS) \
 	-I$(CURDIR) -I$(SRCROOT) $(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
