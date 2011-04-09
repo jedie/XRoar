@@ -361,6 +361,10 @@ EOF
 		__tmp="-fast -mcpu=7450 -mdynamic-no-pic"
 		target_cc_check "$__tmp" "" && __opt="$__tmp"
 		;;
+	*-apple-darwin*)
+		__tmp="-fast"
+		target_cc_check "$__tmp" "" && __opt="$__tmp"
+		;;
 	*)
 		;;
 	esac
