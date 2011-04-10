@@ -138,8 +138,6 @@ static void emulator_command(guint keyval, int shift) {
 	case GDK_1: case GDK_2: case GDK_3: case GDK_4:
 		if (shift) {
 			xroar_new_disk(keyval - GDK_1);
-		} else {
-			xroar_insert_disk(keyval - GDK_1);
 		}
 		break;
 	case GDK_5: case GDK_6: case GDK_7: case GDK_8:

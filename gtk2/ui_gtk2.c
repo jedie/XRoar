@@ -102,6 +102,45 @@ static int run_cpu(void *data);
 /* Helpers */
 static char *escape_underscores(const char *str);
 
+static void insert_disk(int drive) {
+	static GtkFileChooser *file_dialog = NULL;
+	static GtkComboBox *drive_combo = NULL;
+	if (!file_dialog) {
+		file_dialog = GTK_FILE_CHOOSER(
+		    gtk_file_chooser_dialog_new("Insert Disk",
+			GTK_WINDOW(gtk2_top_window),
+			GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL,
+			GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN,
+			GTK_RESPONSE_ACCEPT, NULL));
+	}
+	if (!drive_combo) {
+		drive_combo = GTK_COMBO_BOX(gtk_combo_box_new_text());
+		gtk_combo_box_append_text(drive_combo, "Drive 1");
+		gtk_combo_box_append_text(drive_combo, "Drive 2");
+		gtk_combo_box_append_text(drive_combo, "Drive 3");
+		gtk_combo_box_append_text(drive_combo, "Drive 4");
+		gtk_file_chooser_set_extra_widget(file_dialog, GTK_WIDGET(drive_combo));
+	}
+	if (drive < 0 || drive > 3) drive = 0;
+	gtk_combo_box_set_active(GTK_COMBO_BOX(drive_combo), drive);
+	if (gtk_dialog_run(GTK_DIALOG(file_dialog)) == GTK_RESPONSE_ACCEPT) {
+		char *filename = gtk_file_chooser_get_filename(file_dialog);
+		drive = gtk_combo_box_get_active(GTK_COMBO_BOX(drive_combo));
+		if (drive < 0 || drive > 3) drive = 0;
+		if (filename) {
+			xroar_insert_disk_file(filename, drive);
+			g_free(filename);
+		}
+	}
+	gtk_widget_hide(GTK_WIDGET(file_dialog));
+}
+
+/* This is just stupid... */
+static void insert_disk1(void) { insert_disk(0); }
+static void insert_disk2(void) { insert_disk(1); }
+static void insert_disk3(void) { insert_disk(2); }
+static void insert_disk4(void) { insert_disk(3); }
+
 static void save_snapshot(void) {
 	g_idle_remove_by_data(run_cpu);
 	xroar_save_snapshot();
@@ -211,10 +250,16 @@ static void about(GtkMenuItem *item, gpointer data) {
 
 static const gchar *ui =
 	"<ui>"
+	  "<accelerator name='InsertDisk1' action='InsertDisk1Action'/>"
+	  "<accelerator name='InsertDisk2' action='InsertDisk2Action'/>"
+	  "<accelerator name='InsertDisk3' action='InsertDisk3Action'/>"
+	  "<accelerator name='InsertDisk4' action='InsertDisk4Action'/>"
 	  "<menubar name='MainMenu'>"
 	    "<menu name='FileMenu' action='FileMenuAction'>"
 	      "<menuitem name='Run' action='RunAction'/>"
 	      "<menuitem name='Load' action='LoadAction'/>"
+	      "<separator/>"
+	      "<menuitem name='InsertDisk' action='InsertDiskAction'/>"
 	      "<separator/>"
 	      "<menuitem name='SaveSnapshot' action='SaveSnapshotAction'/>"
 	      "<separator/>"
@@ -273,6 +318,14 @@ static GtkActionEntry ui_entries[] = {
 	  .accelerator = "<control>L",
 	  .tooltip = "Load a file",
 	  .callback = G_CALLBACK(xroar_load_file) },
+	{ .name = "InsertDiskAction",
+	  .label = "Insert _Disk",
+	  .tooltip = "Load a virtual disk image",
+	  .callback = G_CALLBACK(insert_disk) },
+	{ .name = "InsertDisk1Action", .accelerator = "<control>1", .callback = G_CALLBACK(insert_disk1) },
+	{ .name = "InsertDisk2Action", .accelerator = "<control>2", .callback = G_CALLBACK(insert_disk2) },
+	{ .name = "InsertDisk3Action", .accelerator = "<control>3", .callback = G_CALLBACK(insert_disk3) },
+	{ .name = "InsertDisk4Action", .accelerator = "<control>4", .callback = G_CALLBACK(insert_disk4) },
 	{ .name = "SaveSnapshotAction", .stock_id = GTK_STOCK_SAVE_AS, .label = "_Save Snapshot",
 	  .accelerator = "<control>S",
 	  .callback = G_CALLBACK(save_snapshot) },
