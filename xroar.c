@@ -973,12 +973,16 @@ void xroar_new_disk(int drive) {
 	vdrive_insert_disk(drive, new_disk);
 }
 
-void xroar_insert_disk(int drive) {
-	char *filename = filereq_module->load_filename(xroar_disk_exts);
+void xroar_insert_disk_file(const char *filename, int drive) {
 	if (filename) {
 		vdrive_eject_disk(drive);
 		vdrive_insert_disk(drive, vdisk_load(filename));
 	}
+}
+
+void xroar_insert_disk(int drive) {
+	char *filename = filereq_module->load_filename(xroar_disk_exts);
+	xroar_insert_disk_file(filename, drive);
 }
 
 void xroar_toggle_write_back(int drive) {

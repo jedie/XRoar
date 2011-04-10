@@ -102,6 +102,7 @@ int xroar_load_file_by_type(const char *filename, int autorun);
 /* Helper functions */
 void xroar_set_trace(int mode);
 void xroar_new_disk(int drive);
+void xroar_insert_disk_file(const char *filename, int drive);
 void xroar_insert_disk(int drive);
 void xroar_toggle_write_back(int drive);
 void xroar_toggle_write_protect(int drive);
