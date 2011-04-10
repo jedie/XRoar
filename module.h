@@ -30,12 +30,13 @@ typedef struct {
 	void (*render_border)(void);
 	void (*resize)(unsigned int w, unsigned int h);
 	int (*set_fullscreen)(int fullscreen);
-	int is_fullscreen;
 #ifndef FAST_VDG
 	void (*render_scanline)(uint8_t *vram_ptr, int beam_to);
 #else
 	void (*render_scanline)(uint8_t *vram_ptr);
 #endif
+	int is_fullscreen;
+	float scale;
 } VideoModule;
 
 typedef struct {
