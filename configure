@@ -594,6 +594,7 @@ if test "$_gtk2" = "yes"; then
 	test -z "$_gtk1" && _gtk1=no
 else
 	_gtk2_def="#undef HAVE_GTK2"
+	test -z "$_gtkgl" && _gtkgl=no
 fi
 
 ########
