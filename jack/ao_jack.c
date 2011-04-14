@@ -70,7 +70,7 @@ static int init(void) {
 	int i;
 
 	LOG_DEBUG(2,"Initialising JACK audio driver\n");
-	if ((client = jack_client_new("XRoar")) == 0) {
+	if ((client = jack_client_open("XRoar", 0, NULL)) == 0) {
 		LOG_ERROR("Initialisation failed: JACK server not running?\n");
 		return 1;
 	}
