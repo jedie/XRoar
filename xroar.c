@@ -747,33 +747,6 @@ static struct vdg_palette *get_machine_palette(void) {
 	return vp;
 };
 
-static void tapehack_instruction_hook(M6809State *cpu_state) {
-	if (IS_COCO) {
-		if (cpu_state->reg_pc == 0xa719) {
-			tape_sync();
-		}
-		if (cpu_state->reg_pc == 0xa75c) {
-			tape_bit_out(cpu_state->reg_cc & 1);
-		}
-		if (cpu_state->reg_pc == 0xa77c) {
-			tape_desync(256);
-		}
-	} else {
-		if (cpu_state->reg_pc == 0xb94d) {
-			tape_sync();
-		}
-		if (cpu_state->reg_pc == 0xbdac) {
-			tape_bit_out(cpu_state->reg_cc & 1);
-		}
-		if (cpu_state->reg_pc == 0xbde7) {
-			tape_desync(256);
-		}
-		if (cpu_state->reg_pc == 0xb97e) {
-			tape_desync(2);
-		}
-	}
-}
-
 void xroar_mainloop(void) {
 	m6809_read_cycle = sam_read_byte;
 	m6809_write_cycle = sam_store_byte;
@@ -781,9 +754,6 @@ void xroar_mainloop(void) {
 	m6809_sync = do_m6809_sync;
 	m6809_interrupt_hook = NULL;
 	m6809_instruction_posthook = NULL;
-	if (xroar_tapehack) {
-		m6809_instruction_hook = tapehack_instruction_hook;
-	}
 
 	xroar_set_trace(xroar_trace_enabled);
 
