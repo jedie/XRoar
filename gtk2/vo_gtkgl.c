@@ -16,8 +16,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* TODO: hide cursor on keypress?  at least in fullscreen mode... */
-
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>

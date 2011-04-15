@@ -15,7 +15,6 @@ Version 0.25, unreleased
   * Added ability to print to file or pipe.
   * TODO: flesh out ui_gtk2.
   * TODO: document new GTK stuff.
-  * TODO: more consistent tape audio feedback
   * TODO: tape control interface
 
 Version 0.24, Wed Sep  8 2010

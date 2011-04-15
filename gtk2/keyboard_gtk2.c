@@ -24,7 +24,6 @@
 
 #include "types.h"
 #include "logging.h"
-#include "events.h"
 #include "input.h"
 #include "keyboard.h"
 #include "machine.h"
