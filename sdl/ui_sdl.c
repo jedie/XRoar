@@ -24,9 +24,10 @@
 #include "types.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "m6809.h"
 #include "machine.h"
 #include "module.h"
+#include "sam.h"
+#include "vdg.h"
 #include "xroar.h"
 
 void sdl_run(void);
@@ -72,7 +73,7 @@ void sdl_keyrelease(SDL_keysym *keysym);
 void sdl_run(void) {
 	while (1) {
 		SDL_Event event;
-		m6809_run(456);
+		sam_run(VDG_LINE_DURATION * 8);
 		while (SDL_PollEvent(&event) == 1) {
 			switch(event.type) {
 			case SDL_VIDEORESIZE:

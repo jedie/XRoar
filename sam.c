@@ -22,6 +22,7 @@
 #include "cart.h"
 #include "logging.h"
 #include "machine.h"
+#include "m6809.h"
 #include "mc6821.h"
 #include "sam.h"
 #include "xroar.h"
@@ -48,6 +49,8 @@ static unsigned int sam_rom_cycles;
 # define sam_rom_cycles CPU_SLOW_DIVISOR
 #endif
 
+static int cycles_remaining = 0;
+
 static unsigned int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
 static unsigned int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
 static unsigned int vdg_mod_clear[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
@@ -71,12 +74,20 @@ static unsigned int ram_ras1;
 static void update_from_register(void);
 
 static inline void slow_cycle(int n) {
-	current_cycle += n * sam_ram_cycles;
+	int cycles = n * sam_ram_cycles;
+	current_cycle += cycles;
+	cycles_remaining -= cycles;
+	if (cycles_remaining <= 0)
+		m6809_running = 0;
 }
 
 #ifdef VARIABLE_MPU_RATE
 static inline void fast_cycle(int n) {
-	current_cycle += n * sam_rom_cycles;
+	int cycles = n * sam_rom_cycles;
+	current_cycle += cycles;
+	cycles_remaining -= cycles;
+	if (cycles_remaining <= 0)
+		m6809_running = 0;
 }
 #else
 # define fast_cycle(n) slow_cycle(n)
@@ -88,6 +99,12 @@ void sam_init(void) {
 void sam_reset(void) {
 	sam_set_register(0);
 	sam_vdg_fsync();
+}
+
+void sam_run(int cycles) {
+	cycles_remaining += cycles;
+	m6809_running = 1;
+	m6809_run();
 }
 
 unsigned int sam_read_byte(unsigned int addr) {

@@ -794,29 +794,9 @@ void xroar_mainloop(void) {
 	}
 
 	while (1) {
-
-		/* Not tracing: */
-		m6809_read_cycle = sam_read_byte;
-		m6809_interrupt_hook = NULL;
-		m6809_instruction_posthook = NULL;
-		while (!xroar_trace_enabled) {
-			m6809_run(456);
-			while (EVENT_PENDING(UI_EVENT_LIST))
-				DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
-		}
-
-#ifdef TRACE
-		/* Tracing: */
-		m6809_read_cycle = trace_read_byte;
-		m6809_interrupt_hook = m6809_trace_irq;
-		m6809_instruction_posthook = trace_done_instruction;
-		while (xroar_trace_enabled) {
-			m6809_run(456);
-			while (EVENT_PENDING(UI_EVENT_LIST))
-				DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
-		}
-#endif
-
+		sam_run(VDG_LINE_DURATION * 8);
+		while (EVENT_PENDING(UI_EVENT_LIST))
+			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
 	}
 }
 

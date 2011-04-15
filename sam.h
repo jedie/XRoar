@@ -18,6 +18,7 @@ static inline void sam_vdg_hsync(void) {
 
 void sam_init(void);
 void sam_reset(void);
+void sam_run(int cycles);
 unsigned int sam_read_byte(unsigned int addr);
 void sam_store_byte(unsigned int addr, unsigned int octet);
 void sam_nvma_cycles(int cycles);

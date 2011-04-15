@@ -166,6 +166,8 @@
 #define ARM_NMI do { nmi_armed = 1; } while (0)
 #define DISARM_NMI do { nmi_armed = 0; } while (0)
 
+int m6809_running;
+
 /* MPU registers */
 static unsigned int reg_cc;
 static uint8_t reg_a;
@@ -368,6 +370,7 @@ void m6809_init(void) {
 	reg_pc = 0;
 	cycle = 0;
 	halt_cycle = nmi_cycle = firq_cycle = irq_cycle = 0;
+	m6809_running = 0;
 }
 
 void m6809_reset(void) {
@@ -376,14 +379,11 @@ void m6809_reset(void) {
 	cpu_state = m6809_flow_reset;
 }
 
-/* Run CPU for a number of cycles.  More cycles may actually be run, as
- * instructions are not broken up. */
+/* Run CPU while m6809_running is true. */
 
-void m6809_run(int cycles) {
+void m6809_run(void) {
 
-	unsigned int start_cycle = cycle;
-
-	while ((int)(cycle - start_cycle) < cycles) {
+	while (m6809_running) {
 
 		m6809_sync();
 
