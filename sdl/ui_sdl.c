@@ -22,11 +22,14 @@
 #include <SDL.h>
 
 #include "types.h"
+#include "keyboard.h"
 #include "logging.h"
+#include "m6809.h"
+#include "machine.h"
 #include "module.h"
+#include "xroar.h"
 
-static int init(void);
-static void shutdown(void);
+void sdl_run(void);
 
 extern VideoModule video_sdlgl_module;
 extern VideoModule video_sdlyuv_module;
@@ -53,19 +56,48 @@ static KeyboardModule *sdl_keyboard_module_list[] = {
 	NULL
 };
 
-/* Note: SDL sound and joystick modules not listed here as they can be used
- * outside of the usual SDL UI */
+/* Note: prefer the default order for sound and joystick modules, which
+ * will include the SDL options. */
 
 UIModule ui_sdl_module = {
-	.common = { .name = "sdl", .description = "SDL user-interface",
-	            .init = init, .shutdown = shutdown },
+	.common = { .name = "sdl", .description = "SDL user-interface" },
 	.video_module_list = sdl_video_module_list,
 	.keyboard_module_list = sdl_keyboard_module_list,
+	.run = sdl_run,
 };
 
-static int init(void) {
-	return 0;
-}
+void sdl_keypress(SDL_keysym *keysym);
+void sdl_keyrelease(SDL_keysym *keysym);
 
-static void shutdown(void) {
+void sdl_run(void) {
+	while (1) {
+		SDL_Event event;
+		m6809_run(456);
+		while (SDL_PollEvent(&event) == 1) {
+			switch(event.type) {
+			case SDL_VIDEORESIZE:
+				if (video_module->resize) {
+					video_module->resize(event.resize.w, event.resize.h);
+				}
+				break;
+			case SDL_QUIT:
+				exit(0); break;
+			case SDL_KEYDOWN:
+				sdl_keypress(&event.key.keysym);
+				keyboard_column_update();
+				keyboard_row_update();
+				break;
+			case SDL_KEYUP:
+				sdl_keyrelease(&event.key.keysym);
+				keyboard_column_update();
+				keyboard_row_update();
+				break;
+			default:
+				break;
+			}
+		}
+		/* XXX will this ever be needed? */
+		while (EVENT_PENDING(UI_EVENT_LIST))
+			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+	}
 }

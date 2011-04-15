@@ -579,6 +579,7 @@ int main(int argc, char **argv) {
 /* XRoar UI definition */
 
 static int init(void);
+void sdl_run(void);
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void keymap_changed_cb(int keymap);
@@ -617,6 +618,7 @@ UIModule ui_macosx_module = {
 	            .init = init },
 	.video_module_list = sdl_video_module_list,
 	.keyboard_module_list = sdl_keyboard_module_list,
+	.run = sdl_run,
 	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.machine_changed_cb = machine_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,

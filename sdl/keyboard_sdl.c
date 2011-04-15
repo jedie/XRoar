@@ -23,7 +23,6 @@
 
 #include "types.h"
 #include "logging.h"
-#include "events.h"
 #include "input.h"
 #include "keyboard.h"
 #include "machine.h"
@@ -32,17 +31,13 @@
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
 static void update_kbd_translate(void);
 
 KeyboardModule keyboard_sdl_module = {
 	.common = { .name = "sdl", .description = "SDL keyboard driver",
-	            .init = init, .shutdown = shutdown },
+	            .init = init },
 	.update_kbd_translate = update_kbd_translate,
 };
-
-static event_t *poll_event;
-static void do_poll(void);
 
 struct keymap {
 	const char *name;
@@ -95,15 +90,7 @@ static int init(void) {
 	}
 	map_keyboard(selected_keymap);
 	SDL_EnableUNICODE(xroar_kbd_translate);
-	poll_event = event_new();
-	poll_event->dispatch = do_poll;
-	poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
-	event_queue(&UI_EVENT_LIST, poll_event);
 	return 0;
-}
-
-static void shutdown(void) {
-	event_free(poll_event);
 }
 
 static void update_kbd_translate(void) {
@@ -199,7 +186,7 @@ static void emulator_command(SDLKey sym) {
 	return;
 }
 
-static void keypress(SDL_keysym *keysym) {
+void sdl_keypress(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
 	if (emulate_joystick) {
 		if (sym == SDLK_UP) { input_control_press(INPUT_JOY_RIGHT_Y, 0); return; }
@@ -254,7 +241,7 @@ static void keypress(SDL_keysym *keysym) {
 #define JOY_UNLOW(j) if (j < 127) j = 127;
 #define JOY_UNHIGH(j) if (j > 128) j = 128;
 
-static void keyrelease(SDL_keysym *keysym) {
+void sdl_keyrelease(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
 	if (emulate_joystick) {
 		if (sym == SDLK_UP) { input_control_release(INPUT_JOY_RIGHT_Y, 0); return; }
@@ -297,33 +284,4 @@ static void keyrelease(SDL_keysym *keysym) {
 		unsigned int mapped = sdl_to_keymap[sym];
 		KEYBOARD_RELEASE(mapped);
 	}
-}
-
-static void do_poll(void) {
-	SDL_Event event;
-	while (SDL_PollEvent(&event) == 1) {
-		switch(event.type) {
-			case SDL_VIDEORESIZE:
-				if (video_module->resize) {
-					video_module->resize(event.resize.w, event.resize.h);
-				}
-				break;
-			case SDL_QUIT:
-				exit(0); break;
-			case SDL_KEYDOWN:
-				keypress(&event.key.keysym);
-				keyboard_column_update();
-				keyboard_row_update();
-				break;
-			case SDL_KEYUP:
-				keyrelease(&event.key.keysym);
-				keyboard_column_update();
-				keyboard_row_update();
-				break;
-			default:
-				break;
-		}
-	}
-	poll_event->at_cycle += OSCILLATOR_RATE / 100;
-	event_queue(&UI_EVENT_LIST, poll_event);
 }
