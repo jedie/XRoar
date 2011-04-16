@@ -4,10 +4,10 @@
 ############################################################################
 # Objects for GP32 build:
 
-xroar_gp32_OBJS = fs_gp32.o keyboard_gp32.o main_gp32.o sound_gp32.o \
-	ui_gp32.o video_gp32.o gp32/gpchatboard.o gp32/gpgfx.o \
-	gp32/gpkeypad.o gp32/gplib.o gp32/gpsound.o gp32/gpstart.o \
-	gp32/udaiis.o
+xroar_gp32_OBJS = gp32/fs_gp32.o gp32/keyboard_gp32.o gp32/main_gp32.o \
+	gp32/sound_gp32.o gp32/ui_gp32.o gp32/video_gp32.o gp32/gpchatboard.o \
+	gp32/gpgfx.o gp32/gpkeypad.o gp32/gplib.o gp32/gpsound.o \
+	gp32/gpstart.o gp32/udaiis.o
 xroar_gp32_INT_OBJS = gp32/cmode_bin.o gp32/copyright.o gp32/kbd_graphics.o \
 	gp32/vdg_bitmaps_gp32.o
 CLEAN += $(xroar_gp32_OBJS) $(xroar_gp32_INT_OBJS)
@@ -27,6 +27,10 @@ xroar_gp32_CPPFLAGS = $(CPPFLAGS) -I$(CURDIR) -I$(SRCROOT) $(WARN) \
 	-DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_gp32_LDFLAGS = $(LDFLAGS) -specs=gp32_gpsdk.specs \
 	-lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic
+
+$(xroar_gp32_OBJS): | gp32
+gp32:
+	mkdir -p gp32
 
 xroar_gp32_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 	$(xroar_gp32_OBJS) $(xroar_gp32_INT_OBJS)

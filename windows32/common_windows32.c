@@ -18,6 +18,6 @@
 
 #include <windows.h>
 
-#include "common_windows32.h"
+#include "windows32/common_windows32.h"
 
 HWND windows32_main_hwnd;

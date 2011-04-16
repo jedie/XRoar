@@ -1147,11 +1147,18 @@ cat >> config.h <<EOF
 #endif  /* def XROAR_CONFIG_H_ */
 EOF
 
+case "$SRCROOT" in
+/*) RELSRCROOT="$SRCROOT"; ;;
+*) RELSRCROOT="../$SRCROOT"; ;;
+esac
+
 if test \! -f Makefile; then
 	echo "Symlinking Makefile"
 	ln -s "$SRCROOT"/Makefile Makefile
-	ln -s "$SRCROOT"/makefile_gp32.mk makefile_gp32.mk
-	ln -s "$SRCROOT"/makefile_nds.mk makefile_nds.mk
+	mkdir -p gp32
+	ln -s "$RELSRCROOT"/gp32/makefile_gp32.mk gp32/makefile_gp32.mk
+	mkdir -p nds
+	ln -s "$RELSRCROOT"/nds/makefile_nds.mk nds/makefile_nds.mk
 fi
 
 exec 3<&-

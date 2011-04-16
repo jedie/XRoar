@@ -27,8 +27,8 @@
 #include "events.h"
 #include "machine.h"
 #include "module.h"
-#include "ao_gp32.h"
 #include "xroar.h"
+#include "gp32/ao_gp32.h"
 #include "gp32/gpsound.h"
 #include "gp32/gp32.h"
 

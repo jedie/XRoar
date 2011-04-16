@@ -28,7 +28,7 @@
 #include "vdg_bitmaps.h"
 #include "xroar.h"
 #ifdef WINDOWS32
-#include "common_windows32.h"
+#include "windows32/common_windows32.h"
 #endif
 
 static int init(void);

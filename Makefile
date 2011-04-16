@@ -64,26 +64,30 @@ xroar_opt_OBJS =
 xroar_opt_objc_OBJS =
 xroar_opt_INT_OBJS =
 
-opt_gtk2_OBJS = ui_gtk2.o filereq_gtk2.o keyboard_gtk2.o
+opt_gtk2_OBJS = gtk2/ui_gtk2.o gtk2/filereq_gtk2.o gtk2/keyboard_gtk2.o
 CLEAN += $(opt_gtk2_OBJS)
 ifeq ($(opt_gtk2),yes)
 	xroar_opt_OBJS += $(opt_gtk2_OBJS)
 	xroar_opt_CFLAGS += $(opt_gtk2_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_gtk2_LDFLAGS)
-keyboard_gtk2.o: $(SRCROOT)/keyboard_gtk2_mappings.c
+keyboard_gtk2.o: $(SRCROOT)/gtk2/keyboard_gtk2_mappings.c
+$(opt_gtk2_OBJS): | gtk2
+gtk2:
+	mkdir -p gtk2
 endif
 
-opt_gtkgl_OBJS = vo_gtkgl.o
+opt_gtkgl_OBJS = gtk2/vo_gtkgl.o
 CLEAN += $(opt_gtkgl_OBJS)
 ifeq ($(opt_gtkgl),yes)
 	xroar_opt_OBJS += $(opt_gtkgl_OBJS)
 	xroar_opt_CFLAGS += $(opt_gtkgl_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_gtkgl_LDFLAGS)
 vo_gtkgl.o: vdg_bitmaps.h
+$(opt_gtkgl_OBJS): | gtk2
 endif
 
-opt_sdl_OBJS = ui_sdl.o vo_sdl.o vo_sdlyuv.o ao_sdl.o keyboard_sdl.o \
-		joystick_sdl.o
+opt_sdl_OBJS = sdl/ui_sdl.o sdl/vo_sdl.o sdl/vo_sdlyuv.o sdl/ao_sdl.o \
+		sdl/keyboard_sdl.o sdl/joystick_sdl.o
 CLEAN += $(opt_sdl_OBJS)
 ifeq ($(opt_sdl),yes)
 	xroar_opt_OBJS += $(opt_sdl_OBJS)
@@ -91,32 +95,42 @@ ifeq ($(opt_sdl),yes)
 	xroar_opt_LDFLAGS += $(opt_sdl_LDFLAGS)
 vo_sdl.o: vdg_bitmaps.h
 vo_sdlyuv.o: vdg_bitmaps.h
-keyboard_sdl.o: $(SRCROOT)/keyboard_sdl_mappings.c
+keyboard_sdl.o: $(SRCROOT)/sdl/keyboard_sdl_mappings.c
+$(opt_sdl_OBJS): | sdl
+sdl:
+	mkdir -p sdl
 endif
 
-opt_sdlgl_OBJS = vo_sdlgl.o
+opt_sdlgl_OBJS = sdl/vo_sdlgl.o
 CLEAN += $(opt_sdlgl_OBJS)
 ifeq ($(opt_sdlgl),yes)
 	xroar_opt_OBJS += $(opt_sdlgl_OBJS)
 	xroar_opt_CFLAGS += $(opt_sdlgl_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_sdlgl_LDFLAGS)
 vo_sdlgl.o: vdg_bitmaps.h
+$(opt_sdlgl_OBJS): | sdl
 endif
 
-opt_curses_OBJS = ui_curses.o vo_curses.o keyboard_curses.o
+opt_curses_OBJS = curses/ui_curses.o curses/vo_curses.o curses/keyboard_curses.o
 CLEAN += $(opt_curses_OBJS)
 ifeq ($(opt_curses),yes)
 	xroar_opt_OBJS += $(opt_curses_OBJS)
 	xroar_opt_CFLAGS += $(opt_curses_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_curses_LDFLAGS)
+$(opt_curses_OBJS): | curses
+curses:
+	mkdir -p curses
 endif
 
-opt_gtk1_OBJS = filereq_gtk1.o
+opt_gtk1_OBJS = gtk1/filereq_gtk1.o
 CLEAN += $(opt_gtk1_OBJS)
 ifeq ($(opt_gtk1),yes)
 	xroar_opt_OBJS += $(opt_gtk1_OBJS)
 	xroar_opt_CFLAGS += $(opt_gtk1_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_gtk1_LDFLAGS)
+$(opt_gtk1_OBJS): | gtk1
+gtk1:
+	mkdir -p gtk1
 endif
 
 opt_cli_OBJS = filereq_cli.o
@@ -127,61 +141,80 @@ ifeq ($(opt_cli),yes)
 	xroar_opt_LDFLAGS += $(opt_cli_LDFLAGS)
 endif
 
-opt_cocoa_objc_OBJS = ui_macosx.o filereq_cocoa.o
+opt_cocoa_objc_OBJS = macosx/ui_macosx.o macosx/filereq_cocoa.o
 CLEAN += $(opt_cocoa_OBJS) $(opt_cocoa_objc_OBJS)
 ifeq ($(opt_cocoa),yes)
 	xroar_opt_objc_OBJS += $(opt_cocoa_objc_OBJS)
 	xroar_opt_CFLAGS += $(opt_cocoa_CFLAGS)
 	xroar_opt_OBJCFLAGS += $(opt_cocoa_OBJCFLAGS)
 	xroar_opt_LDFLAGS += $(opt_cocoa_LDFLAGS)
+$(opt_cocoa_objc_OBJS): | macosx
+macosx:
+	mkdir -p macosx
 endif
 
-opt_alsa_OBJS = ao_alsa.o
+opt_alsa_OBJS = alsa/ao_alsa.o
 CLEAN += $(opt_alsa_OBJS)
 ifeq ($(opt_alsa),yes)
 	xroar_opt_OBJS += $(opt_alsa_OBJS)
 	xroar_opt_CFLAGS += $(opt_alsa_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_alsa_LDFLAGS)
+$(opt_alsa_OBJS): | alsa
+alsa:
+	mkdir -p alsa
 endif
 
-opt_oss_OBJS = ao_oss.o
+opt_oss_OBJS = oss/ao_oss.o
 CLEAN += $(opt_oss_OBJS)
 ifeq ($(opt_oss),yes)
 	xroar_opt_OBJS += $(opt_oss_OBJS)
 	xroar_opt_CFLAGS += $(opt_oss_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_oss_LDFLAGS)
+$(opt_oss_OBJS): | oss
+oss:
+	mkdir -p oss
 endif
 
-opt_pulse_OBJS = ao_pulse.o
+opt_pulse_OBJS = pulseaudio/ao_pulse.o
 CLEAN += $(opt_pulse_OBJS)
 ifeq ($(opt_pulse),yes)
 	xroar_opt_OBJS += $(opt_pulse_OBJS)
 	xroar_opt_CFLAGS += $(opt_pulse_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_pulse_LDFLAGS)
+$(opt_pulse_OBJS): | pulseaudio
+pulseaudio:
+	mkdir -p pulseaudio
 endif
 
-opt_sunaudio_OBJS = ao_sun.o
+opt_sunaudio_OBJS = sunos/ao_sun.o
 CLEAN += $(opt_sunaudio_OBJS)
 ifeq ($(opt_sunaudio),yes)
 	xroar_opt_OBJS += $(opt_sunaudio_OBJS)
 	xroar_opt_CFLAGS += $(opt_sunaudio_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_sunaudio_LDFLAGS)
+$(opt_sunaudio_OBJS): | sunos
+sunos:
+	mkdir -p sunos
 endif
 
-opt_coreaudio_OBJS = ao_macosx.o
+opt_coreaudio_OBJS = macosx/ao_macosx.o
 CLEAN += $(opt_coreaudio_OBJS)
 ifeq ($(opt_coreaudio),yes)
 	xroar_opt_OBJS += $(opt_coreaudio_OBJS)
 	xroar_opt_CFLAGS += $(opt_coreaudio_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_coreaudio_LDFLAGS)
+$(opt_coreaudio_OBJS): | macosx
 endif
 
-opt_jack_OBJS = ao_jack.o
+opt_jack_OBJS = jack/ao_jack.o
 CLEAN += $(opt_jack_OBJS)
 ifeq ($(opt_jack),yes)
 	xroar_opt_OBJS += $(opt_jack_OBJS)
 	xroar_opt_CFLAGS += $(opt_jack_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_jack_LDFLAGS)
+$(opt_jack_OBJS): | jack
+jack:
+	mkdir -p jack
 endif
 
 ifeq ($(opt_sndfile),yes)
@@ -197,20 +230,26 @@ ifeq ($(opt_nullaudio),yes)
 	xroar_opt_LDFLAGS += $(opt_nullaudio_LDFLAGS)
 endif
 
-opt_linux_joystick_OBJS = joystick_linux.o
+opt_linux_joystick_OBJS = linux/joystick_linux.o
 CLEAN += $(opt_linux_joystick_OBJS)
 ifeq ($(opt_linux_joystick),yes)
 	xroar_opt_OBJS += $(opt_linux_joystick_OBJS)
 	xroar_opt_CFLAGS += $(opt_linux_joystick_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_linux_joystick_LDFLAGS)
+$(opt_linux_joystick_OBJS): | linux
+linux:
+	mkdir -p linux
 endif
 
-opt_mingw_OBJS = common_windows32.o filereq_windows32.o
+opt_mingw_OBJS = windows32/common_windows32.o windows32/filereq_windows32.o
 CLEAN += $(opt_mingw_OBJS)
 ifeq ($(opt_mingw),yes)
 	xroar_opt_OBJS += $(opt_mingw_OBJS)
 	xroar_opt_CFLAGS += $(opt_mingw_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_mingw_LDFLAGS)
+$(opt_mingw_OBJS): | windows32
+windows32:
+	mkdir -p windows32
 endif
 
 opt_trace_OBJS = m6809_trace.o
@@ -225,10 +264,10 @@ endif
 # Build rules
 
 # GP32 rules
-include makefile_gp32.mk
+include gp32/makefile_gp32.mk
 
 # Nintendo DS rules
-include makefile_nds.mk
+include nds/makefile_nds.mk
 
 # Unix rules (default)
 ifeq ($(BUILD_STYLE),)
@@ -407,8 +446,8 @@ dist-macosx dist-macos: all doc/xroar.pdf
 	strip XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar
 	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libSDL-1.2.0.dylib
 	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libsndfile.1.dylib
-	sed -e "s!@VERSION@!$(VERSION)!g" macos/Info.plist.in > XRoar-$(VERSION)/XRoar.app/Contents/Info.plist
-	cp $(SRCROOT)/macos/xroar.icns XRoar-$(VERSION)/XRoar.app/Contents/Resources/
+	sed -e "s!@VERSION@!$(VERSION)!g" macosx/Info.plist.in > XRoar-$(VERSION)/XRoar.app/Contents/Info.plist
+	cp $(SRCROOT)/macosx/xroar.icns XRoar-$(VERSION)/XRoar.app/Contents/Resources/
 	cp $(SRCROOT)/README $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog doc/xroar.pdf XRoar-$(VERSION)/
 	cp $(SRCROOT)/COPYING.LGPL-2.1 XRoar-$(VERSION)/COPYING.LGPL-2.1
 	chmod -R o+rX,g+rX XRoar-$(VERSION)/

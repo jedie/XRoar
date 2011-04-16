@@ -27,7 +27,7 @@
 #include "logging.h"
 #include "fs.h"
 #include "module.h"
-#include "common_windows32.h"
+#include "windows32/common_windows32.h"
 
 static int init(void);
 static void shutdown_module(void);
