@@ -339,11 +339,7 @@ static void pia0b_data_postwrite_coco64k(void) {
 		PIA1.b.port_input &= ~(1<<2);
 }
 
-#ifdef HAVE_SNDFILE
-# define pia1a_data_preread tape_update_input
-#else
 # define pia1a_data_preread NULL
-#endif
 
 static void pia1a_data_postwrite(void) {
 	machine_update_sound();

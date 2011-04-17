@@ -65,6 +65,9 @@ typedef struct {
 	void (*machine_changed_cb)(int machine_type);
 	void (*cart_changed_cb)(int cart_index);
 	void (*keymap_changed_cb)(int keymap);
+	void (*input_tape_filename_cb)(const char *filename);
+	void (*output_tape_filename_cb)(const char *filename);
+	void (*update_tape_state)(int flags);  /* flag bits from tape.h */
 } UIModule;
 
 typedef union {

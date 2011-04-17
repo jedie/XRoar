@@ -105,7 +105,9 @@ char *xroar_opt_keymap = NULL;
 int xroar_kbd_translate = 0;
 char *xroar_opt_joy_left = NULL;
 char *xroar_opt_joy_right = NULL;
-int xroar_tapehack = 0;
+static int xroar_opt_tape_fast = 1;
+static int xroar_opt_tape_pad = 0;
+static int xroar_opt_tape_rewrite = 0;
 #ifdef TRACE
 int xroar_trace_enabled = 0;
 #else
@@ -217,7 +219,10 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_BOOL  ( "kbd-translate", &xroar_kbd_translate ),
 	XC_OPT_STRING( "joy-left",      &xroar_opt_joy_left ),
 	XC_OPT_STRING( "joy-right",     &xroar_opt_joy_right ),
-	XC_OPT_BOOL  ( "tapehack",      &xroar_tapehack ),
+	XC_OPT_BOOL  ( "tape-fast",     &xroar_opt_tape_fast ),
+	XC_OPT_BOOL  ( "tape-pad",      &xroar_opt_tape_pad ),
+	XC_OPT_BOOL  ( "tape-rewrite",  &xroar_opt_tape_rewrite ),
+	XC_OPT_BOOL  ( "tapehack",      &xroar_opt_tape_rewrite ),
 #ifdef TRACE
 	XC_OPT_BOOL  ( "trace",         &xroar_trace_enabled ),
 #endif
@@ -480,7 +485,9 @@ static void helptext(void) {
 "  -kbd-translate        enable keyboard translation\n"
 "  -joy-left JOYSPEC     map left joystick\n"
 "  -joy-right JOYSPEC    map right joystick\n"
-"  -tapehack             enable tape hacking mode\n"
+"  -tape-fast            enable fast tape loading\n"
+"  -tape-pad             enable tape leader padding\n"
+"  -tape-rewrite         enable tape rewriting\n"
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
@@ -591,6 +598,9 @@ int xroar_init(int argc, char **argv) {
 		xroar_opt_volume = 100;
 	}
 	xroar_opt_volume = (256 * xroar_opt_volume) / 100;
+	xroar_opt_tape_fast = xroar_opt_tape_fast ? TAPE_FAST : 0;
+	xroar_opt_tape_pad = xroar_opt_tape_pad ? TAPE_PAD : 0;
+	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
 
 	alloc_cart_status();
 
@@ -752,6 +762,7 @@ void xroar_mainloop(void) {
 	m6809_sync = do_m6809_sync;
 	m6809_interrupt_hook = NULL;
 	m6809_instruction_posthook = NULL;
+	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_rewrite);
 
 	xroar_set_trace(xroar_trace_enabled);
 
@@ -786,6 +797,7 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 	int filetype;
 	if (filename == NULL)
 		return 1;
+	int ret;
 	filetype = xroar_filetype_by_ext(filename);
 	switch (filetype) {
 		case FILETYPE_VDK:
@@ -827,10 +839,16 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 		case FILETYPE_WAV:
 		default:
 			if (autorun) {
-				return tape_autorun(filename);
+				ret = tape_autorun(filename);
+			} else {
+				ret = tape_open_reading(filename);
 			}
-			return tape_open_reading(filename);
+			if (ret == 0 && ui_module->input_tape_filename_cb) {
+				ui_module->input_tape_filename_cb(filename);
+			}
+			break;
 	}
+	return ret;
 }
 
 static void do_load_file(void) {
@@ -1175,10 +1193,30 @@ void xroar_save_snapshot(void) {
 	}
 }
 
+void xroar_select_tape_input(void) {
+	char *filename = filereq_module->load_filename(xroar_tape_exts);
+	if (filename) {
+		tape_open_reading(filename);
+		if (ui_module->input_tape_filename_cb) {
+			ui_module->input_tape_filename_cb(filename);
+		}
+	}
+}
+
+void xroar_eject_tape_input(void) {
+	tape_close_reading();
+	if (ui_module->input_tape_filename_cb) {
+		ui_module->input_tape_filename_cb(NULL);
+	}
+}
+
 void xroar_write_tape(void) {
 	char *filename = filereq_module->save_filename(xroar_tape_exts);
 	if (filename) {
 		tape_open_writing(filename);
+		if (ui_module->output_tape_filename_cb) {
+			ui_module->output_tape_filename_cb(filename);
+		}
 	}
 }
 

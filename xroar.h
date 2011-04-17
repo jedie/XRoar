@@ -64,7 +64,6 @@ extern char *xroar_opt_keymap;
 extern int xroar_kbd_translate;
 extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
-extern int xroar_tapehack;
 extern int xroar_trace_enabled;
 
 extern struct xconfig_enum xroar_cross_colour_list[];
@@ -118,6 +117,8 @@ void xroar_set_machine(int machine);
 void xroar_set_cart(int cart_index);
 void xroar_set_dos(int dos_type);  /* for old snapshots only */
 void xroar_save_snapshot(void);
+void xroar_select_tape_input(void);
+void xroar_eject_tape_input(void);
 void xroar_write_tape(void);
 void xroar_hard_reset(void);
 void xroar_soft_reset(void);

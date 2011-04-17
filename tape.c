@@ -18,97 +18,281 @@
 
 #include "config.h"
 
+#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#ifdef HAVE_SNDFILE
-#include <stdlib.h>
-#include <sndfile.h>
-#endif
 
 #include "types.h"
+#include "breakpoint.h"
 #include "events.h"
 #include "fs.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
+#include "misc.h"
+#include "module.h"
 #include "tape.h"
 #include "xroar.h"
 
 int tape_audio;
 
-static int read_fd, write_fd;
 static unsigned int motor;
+
+struct tape *tape_input = NULL;
+struct tape *tape_output = NULL;
 
 static void waggle_bit(void);
 static event_t waggle_event;
+static void flush_output(void);
+static event_t flush_event;
 
-/* For reading */
-static int input_type;
-static int is_ascii;
-static int fake_leader;
-static int block_bytes = 0;
-static int bits_remaining = 0;
-static int current_byte;
-static enum {
-       FIRST_BLOCK,
-       DATA_BLOCK,
-       LAST_BLOCK,
-} current_block = FIRST_BLOCK;
-static uint8_t block[261];
-/* WAV input support */
-#ifdef HAVE_SNDFILE
-static SNDFILE *wav_read_file;
-static int wav_samples_remaining;
-#define SF_BUF_LENGTH (512)
-static short *wav_read_buf = NULL;
-static short *wav_read_ptr;
-static Cycle wav_last_sample_cycle;
-static int wav_sample_rate;
-static int wav_channels;
-#define SAMPLE_CYCLES ((Cycle)(OSCILLATOR_RATE / wav_sample_rate))
-#endif
+static int tape_fast = 0;
+static int tape_pad = 0;
+static int tape_rewrite = 0;
 
-/* For writing */
-static int have_bytes = 0;
-static int have_bits = 0;
-static uint8_t write_buf[512];
-static uint8_t *write_buf_ptr;
-static unsigned int last_sample;
-static Cycle last_read_time;
+static int rewrite_have_sync = 0;
+static int rewrite_leader_count = 256;
+static int rewrite_bit_count = 0;
+static void tape_desync(int leader);
+static void rewrite_sync(M6809State *cpu_state);
+static void rewrite_bitin(M6809State *cpu_state);
+static void rewrite_tape_on(M6809State *cpu_state);
+static void rewrite_end_of_block(M6809State *cpu_state);
 
-/* TAPEHACK: */
-static int have_sync = 0;
+/**************************************************************************/
 
-static int (*bit_in)(void);
-static int bit_in_cas(void);
-static int byte_in(void);
-static int byte_in_serial(void);
-static int block_in(void);
+int tape_pulse_in(struct tape *t, int *pulse_width) {
+	if (!t) return -1;
+	if (t->fake_leader > 0) {
+		if (t->fake_pulse_index == 0) {
+			if (t->fake_bit_index == 0) {
+				if (t->fake_leader == 1 && t->fake_sync) {
+					t->fake_byte = 0x3c;
+					t->fake_sync = 0;
+				} else {
+					t->fake_byte = 0x55;
+				}
+			}
+			t->fake_bit = (t->fake_byte & (1 << t->fake_bit_index)) ? 1 : 0;
+		}
+		if (t->fake_bit == 0) {
+			*pulse_width = TAPE_BIT0_LENGTH / 2;
+		} else {
+			*pulse_width = TAPE_BIT1_LENGTH / 2;
+		}
+		int val = t->fake_pulse_index;
+		t->fake_pulse_index = (t->fake_pulse_index + 1) & 1;
+		if (t->fake_pulse_index == 0) {
+			t->fake_bit_index = (t->fake_bit_index + 1) & 7;
+			if (t->fake_bit_index == 0)
+				t->fake_leader--;
+		}
+		return val;
+	}
+	return t->module->pulse_in(t, pulse_width);
+}
 
-static void bit_out(int);
-static void byte_out(int);
-static void buffer_out(void);
+int tape_bit_in(struct tape *t) {
+	if (!t) return -1;
+	int phase, pulse0_width, pulse1_width, cycle_width;
+	if (tape_pulse_in(t, &pulse1_width) == -1)
+		return -1;
+	do {
+		pulse0_width = pulse1_width;
+		if ((phase = tape_pulse_in(t, &pulse1_width)) == -1)
+			return -1;
+		cycle_width = pulse0_width + pulse1_width;
+	} while (!phase || (cycle_width < (TAPE_BIT1_LENGTH / 2))
+	         || (cycle_width > (TAPE_BIT0_LENGTH * 2)));
+	if (cycle_width < TAPE_AV_BIT_LENGTH) {
+		return 1;
+	}
+	return 0;
+}
 
-#ifdef HAVE_SNDFILE
-static int bit_in_sndfile(void);
-static void wav_buffer_in(void);
-static short wav_sample_in(void);
-#endif
+int tape_byte_in(struct tape *t) {
+	int byte = 0, i;
+	for (i = 8; i; i--) {
+		int bit = tape_bit_in(t);
+		if (bit == -1) return -1;
+		byte = (byte >> 1) | (bit ? 0x80 : 0);
+	}
+	return byte;
+}
+
+void tape_bit_out(struct tape *t, int bit) {
+	if (!t) return;
+	if (bit) {
+		tape_sample_out(t, 0xf8, TAPE_BIT1_LENGTH / 2);
+		tape_sample_out(t, 0x00, TAPE_BIT1_LENGTH / 2);
+	} else {
+		tape_sample_out(t, 0xf8, TAPE_BIT0_LENGTH / 2);
+		tape_sample_out(t, 0x00, TAPE_BIT0_LENGTH / 2);
+	}
+	rewrite_bit_count = (rewrite_bit_count + 1) & 7;
+}
+
+void tape_byte_out(struct tape *t, int byte) {
+	int i;
+	if (!t) return;
+	for (i = 8; i; i--) {
+		tape_bit_out(t, byte & 1);
+		byte >>= 1;
+	}
+}
+
+void tape_play(struct tape *t) {
+	t->playing = 1;
+}
+
+void tape_stop(struct tape *t) {
+	t->playing = 0;
+}
+
+/**************************************************************************/
+
+static int block_sync(struct tape *tape) {
+	int byte = 0;
+	for (;;) {
+		int bit = tape_bit_in(tape);
+		if (bit == -1) return -1;
+		byte = (byte >> 1) | (bit ? 0x80 : 0);
+		if (byte == 0x3c) {
+			return 0;
+		}
+	}
+}
+
+/* read next block.  returns -1 on EOF/error, block type on success. */
+/* *sum will be computed sum - checksum byte, which should be 0 */
+static int block_in(struct tape *t, uint8_t *sum, long *offset, uint8_t *block) {
+	int type, size, sumbyte, i;
+
+	if (block_sync(t) == -1) return -1;
+	if (offset) {
+		*offset = tape_tell(t);
+	}
+	if ((type = tape_byte_in(t)) == -1) return -1;
+	if (block) block[0] = type;
+	if ((size = tape_byte_in(t)) == -1) return -1;
+	if (block) block[1] = size;
+	if (sum) *sum = type + size;
+	for (i = 0; i < size; i++) {
+		int data;
+		if ((data = tape_byte_in(t)) == -1) return -1;
+		if (block) block[2+i] = data;
+		if (sum) *sum += data;
+	}
+	if ((sumbyte = tape_byte_in(t)) == -1) return -1;
+	if (block) block[2+size] = sumbyte;
+	if (sum) *sum -= sumbyte;
+	return type;
+}
+
+struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
+	struct tape_file *f;
+	uint8_t block[258];
+	uint8_t sum;
+	long offset;
+
+	for (;;) {
+		int type = block_in(t, &sum, &offset, block);
+		if (type == -1)
+			return NULL;
+		/* If skip_bad set, this aggressively scans for valid header
+		   blocks by seeking back to just after the last sync byte: */
+		if (skip_bad && (type != 0 || sum != 0 || block[1] < 15)) {
+			tape_seek(t, offset, SEEK_SET);
+			continue;
+		}
+		if (type != 0 || block[1] < 15)
+			continue;
+		f = xmalloc(sizeof(struct tape_file));
+		f->offset = offset;
+		memcpy(f->name, &block[2], 8);
+		int i = 8;
+		do {
+			f->name[i--] = 0;
+		} while (i >= 0 && f->name[i] == ' ');
+		f->type = block[10];
+		f->ascii_flag = block[11];
+		f->gap_flag = block[12];
+		f->start_address = (block[13] << 8) | block[14];
+		f->load_address = (block[15] << 8) | block[16];
+		f->checksum_error = sum;
+		return f;
+	}
+}
+
+void tape_seek_to_file(struct tape *t, struct tape_file *f) {
+	if (!t || !f) return;
+	tape_seek(t, f->offset, SEEK_SET);
+	t->fake_leader = 256;
+	t->fake_sync = 1;
+	t->fake_bit_index = 0;
+	t->fake_pulse_index = 0;
+}
+
+/**************************************************************************/
+
+struct tape *tape_new(void) {
+	struct tape *new = xmalloc(sizeof(struct tape));
+	memset(new, 0, sizeof(struct tape));
+	return new;
+}
+
+void tape_free(struct tape *t) {
+	free(t);
+}
+
+/**************************************************************************/
+
+/* Tape breakpoint convenience functions */
+
+struct tape_breakpoint {
+	int dragon;  /* instruction address */
+	int coco;  /* instruction address */
+	void (*handler)(M6809State *);
+};
+
+static void add_breakpoints(struct tape_breakpoint *bplist) {
+	while (bplist->handler) {
+		if (IS_DRAGON && bplist->dragon >= 0) {
+			bp_add_instr(bplist->dragon, bplist->handler);
+		}
+		if (IS_COCO && bplist->coco >= 0) {
+			bp_add_instr(bplist->coco, bplist->handler);
+		}
+		bplist++;
+	}
+}
+
+static void remove_breakpoints(struct tape_breakpoint *bplist) {
+	while (bplist->handler) {
+		struct breakpoint *bp;
+		if (bplist->dragon >= 0) {
+			if ((bp = bp_find_instr(bplist->dragon, bplist->handler))) {
+				bp_delete(bp);
+			}
+		}
+		if (bplist->coco >= 0) {
+			if ((bp = bp_find_instr(bplist->coco, bplist->handler))) {
+				bp_delete(bp);
+			}
+		}
+		bplist++;
+	}
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
 void tape_init(void) {
 	tape_audio = 0;
-#ifdef HAVE_SNDFILE
-	wav_read_file = NULL;
-#endif
-	read_fd = write_fd = -1;
-	bits_remaining = block_bytes = 0;
-	current_byte = 0;
-	fake_leader = 0;
 	event_init(&waggle_event);
 	waggle_event.dispatch = waggle_bit;
-	write_buf_ptr = write_buf;
-	have_bits = have_bytes = 0;
+	event_init(&flush_event);
+	flush_event.dispatch = flush_output;
 }
 
 void tape_reset(void) {
@@ -122,160 +306,102 @@ void tape_shutdown(void) {
 }
 
 int tape_open_reading(const char *filename) {
-#ifdef HAVE_SNDFILE
-	SF_INFO info;
-#endif
 	tape_close_reading();
-	input_type = xroar_filetype_by_ext(filename);
-	is_ascii = (input_type == FILETYPE_ASC);
-	switch (input_type) {
+	int type = xroar_filetype_by_ext(filename);
+	switch (type) {
 	case FILETYPE_CAS:
-	case FILETYPE_ASC:
-		bit_in = bit_in_cas;
-		if ((read_fd = fs_open(filename, FS_READ)) == -1) {
+		if ((tape_input = tape_cas_open(filename, FS_READ)) == NULL) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
-		bits_remaining = block_bytes = 0;
-		current_byte = 0;
-		current_block = FIRST_BLOCK;
-		/* If motor is on, enable the bit waggler */
-		if (motor) {
-			fake_leader = 64;
-			waggle_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
-		}
-		LOG_DEBUG(2,"Attached virtual cassette%s %s\n", is_ascii ? " (ASCII)" : "", filename);
+
 		break;
 	default:
 #ifdef HAVE_SNDFILE
-		bit_in = bit_in_sndfile;
-		info.format = 0;
-		wav_read_file = sf_open(filename, SFM_READ, &info);
-		if (wav_read_file == NULL) {
-			LOG_WARN("Failed to open '%s': %s\n", filename, sf_strerror(NULL));
+		if ((tape_input = tape_sndfile_open(filename, FS_READ)) == NULL) {
+			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
-		wav_channels = info.channels;
-		wav_sample_rate = info.samplerate;
-		if (wav_read_buf != NULL) {
-			free(wav_read_buf);
-			wav_read_buf = NULL;
-		}
-		if (wav_sample_rate == 0) {
-			tape_close_reading();
-			return -1;
-		}
-		wav_read_buf = malloc(SF_BUF_LENGTH * sizeof(short) * wav_channels);
-		wav_samples_remaining = 0;
-		LOG_DEBUG(2,"Attached audio file %s\n\t%dHz, %d channel%s\n", filename, wav_sample_rate, wav_channels, (wav_channels==1)?"":"s");
-		/* Bit of a hack this, but after this point nothing cares
-		 * about the number of channels, so adjust sample rate to
-		 * compensate. */
-		wav_sample_rate *= wav_channels;
 		break;
 #else
 		LOG_WARN("Failed to open '%s'\n", filename);
 		return -1;
 #endif
 	}
+
+	tape_update_motor();
+	rewrite_have_sync = 0;
+	rewrite_leader_count = 256;
+	LOG_DEBUG(2,"Attached virtual cassette '%s'\n", filename);
 	return 0;
 }
 
 void tape_close_reading(void) {
-	if (read_fd != -1)
-		fs_close(read_fd);
-#ifdef HAVE_SNDFILE
-	if (wav_read_file) {
-		sf_close(wav_read_file);
-		wav_read_file = NULL;
-	}
-#endif
-	read_fd = -1;
-	bit_in = NULL;
+	if (tape_input)
+		tape_close(tape_input);
+	tape_input = NULL;
 }
 
 int tape_open_writing(const char *filename) {
+	(void)filename;
 	tape_close_writing();
-	if ((write_fd = fs_open(filename, FS_WRITE)) == -1)
+	int type = xroar_filetype_by_ext(filename);
+	switch (type) {
+	case FILETYPE_CAS:
+	case FILETYPE_ASC:
+		if ((tape_output = tape_cas_open(filename, FS_WRITE)) == NULL) {
+			LOG_WARN("Failed to open '%s' for writing.", filename);
+			return -1;
+		}
+		break;
+	default:
+#ifdef HAVE_SNDFILE
+		if ((tape_output = tape_sndfile_open(filename, FS_WRITE)) == NULL) {
+			LOG_WARN("Failed to open '%s' for writing.", filename);
+			return -1;
+		}
+#else
+		LOG_WARN("Failed to open '%s' for writing.\n", filename);
 		return -1;
-	have_bits = have_bytes = 0;
+#endif
+		break;
+	}
+
+	tape_update_motor();
+	rewrite_bit_count = 0;
+	LOG_DEBUG(2,"Attached virtual cassette '%s' for writing.\n", filename);
 	return 0;
 }
 
 void tape_close_writing(void) {
-	while (have_bits)
-		bit_out(0);
-	if (xroar_tapehack) {
-		byte_out(0x55);
-		byte_out(0x55);
+	if (tape_rewrite) {
+		tape_byte_out(tape_output, 0x55);
+		tape_byte_out(tape_output, 0x55);
 	}
-	if (have_bytes)
-		buffer_out();
-	if (write_fd != -1)
-		fs_close(write_fd);
-	write_fd = -1;
+	if (tape_output) {
+		event_dequeue(&flush_event);
+		tape_update_output();
+		tape_close(tape_output);
+	}
+	tape_output = NULL;
 }
 
 /* Close any currently-open tape file, open a new one and read the first
  * bufferful of data.  Tries to guess the filetype.  Returns -1 on error,
  * 0 for a BASIC program, 1 for data and 2 for M/C. */
 int tape_autorun(const char *filename) {
-	int state, type, count = 0;
 	if (filename == NULL)
 		return -1;
+	remove_breakpoints(basic_command_breakpoint);
 	if (tape_open_reading(filename) == -1)
 		return -1;
-	assert(bit_in != NULL);
-	/* Little state machine to try and determine type of first
-	 * file on tape */
-	state = 0;
-	type = 1;  /* default to data - no autorun (if trying to) */
-	/* ASCII files are always BASIC */
-	if (is_ascii) {
-		type = 0;    /* BASIC */
-		state = -1;  /* skip state machine */
-	}
-	int byte = 0, bit;
-	while (state >= 0) {
-		switch(state) {
-			case 0:
-				/* Read bits until we see sync byte */
-				bit = bit_in();
-				if (bit == -1) {
-					state = -1;
-				} else {
-					byte = (byte >> 1) | (bit ? 0x80 : 0);
-					if (byte == 0x3c) state = 1;
-				}
-				break;
-			case 1:
-				/* Next byte should be filename block */
-				byte = byte_in_serial();
-				state = 2;
-				count = 10;
-				if (byte != 0x00) state = -1;
-				break;
-			case 2:
-				/* 10 bytes later should see file type */
-				byte = byte_in_serial();
-				if (byte < 0) {
-					state = -1;
-				} else {
-					count--;
-					if (count == 0) {
-						state = -1;
-						type = byte;
-					}
-				}
-				break;
-			default:
-				break;
-		}
-	}
-	tape_close_reading();
-	if (tape_open_reading(filename) == -1)
+	struct tape_file *f = tape_file_next(tape_input, 0);
+	tape_rewind(tape_input);
+	if (!f) {
 		return -1;
+	}
+	int type = f->type;
+	free(f);
 	switch (type) {
 		/* BASIC programs don't autorun yet */
 		case 0: keyboard_queue_string("CLOAD\r");
@@ -291,321 +417,271 @@ int tape_autorun(const char *filename) {
 /* Called whenever PIA1.a control register is written to.
  * Detects changes in motor status. */
 void tape_update_motor(void) {
-	if ((PIA1.a.control_register & 0x08) != motor) {
-		motor = PIA1.a.control_register & 0x08;
-		if (motor) {
-			switch (input_type) {
-			case FILETYPE_CAS:
-			case FILETYPE_ASC:
-				if (block_bytes > 0 || read_fd != -1) {
-					/* If motor turned on and tape file
-					 * attached, enable the tape input bit
-					 * waggler */
-					fake_leader = 64;
-					waggle_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 2);
-					event_queue(&MACHINE_EVENT_LIST, &waggle_event);
-				}
-				break;
-			default:
-#ifdef HAVE_SNDFILE
-				wav_last_sample_cycle = current_cycle;
-#endif
-				break;
+	unsigned int new_motor = PIA1.a.control_register & 0x08;
+	if (new_motor != motor) {
+		if (new_motor) {
+			if (tape_input && !tape_fast && !waggle_event.queued) {
+				/* If motor turned on and tape file attached,
+				 * enable the tape input bit waggler */
+				waggle_event.at_cycle = current_cycle;
+				waggle_bit();
+			}
+			if (tape_output) {
+				flush_event.at_cycle = current_cycle + OSCILLATOR_RATE / 2;
+				event_queue(&MACHINE_EVENT_LIST, &flush_event);
+				tape_output->last_write_cycle = current_cycle;
 			}
 		} else {
 			event_dequeue(&waggle_event);
-			if (xroar_tapehack) {
+			event_dequeue(&flush_event);
+			tape_update_output();
+			if (tape_output && tape_output->module->motor_off) {
+				tape_output->module->motor_off(tape_output);
+			}
+			if (tape_pad || tape_rewrite) {
 				tape_desync(256);
 			}
 		}
+		motor = new_motor;
 	}
 }
 
-/* Called whenever PIA1.a data register is written to.
- * Detects change frequency for writing out bits. */
+/* Called whenever PIA1.a data register is written to. */
 void tape_update_output(void) {
-	unsigned int new_sample;
-	if (!motor)
+	if (!motor || !tape_output || tape_rewrite)
 		return;
-	new_sample = PIA1.a.port_output & 0xfc;
-	if (!last_sample && new_sample > 0xf4) {
-		last_sample = 1;
-		last_read_time = current_cycle;
-		return;
-	}
-	if (last_sample && new_sample < 0x04) {
-		int delta = current_cycle - last_read_time;
-		last_sample = 0;
-		if (delta < (OSCILLATOR_RATE/3600)) {
-			bit_out(1);
-		} else {
-			bit_out(0);
-		}
-	}
+	uint8_t sample = PIA1.a.port_output & 0xfc;
+	int length = current_cycle - tape_output->last_write_cycle;
+	tape_output->module->sample_out(tape_output, sample, length);
+	tape_output->last_write_cycle = current_cycle;
 }
 
-#ifdef HAVE_SNDFILE
-void tape_update_input(void) {
-	short sample;
-	if (!motor || input_type == FILETYPE_CAS || input_type == FILETYPE_ASC)
-		return;
-	sample = wav_sample_in();
-	tape_audio = (sample / 0x1000) + 0x08;
-	if (sample >= 0) {
-		PIA1.a.port_input |= 0x01;
-	} else {
-		PIA1.a.port_input &= ~0x01;
-	}
-	machine_update_sound();
-}
-#endif
-
-static int bit_in_cas(void) {
-	static int cur_byte;
-	int ret;
-	if (bits_remaining == 0) {
-		if ((cur_byte = byte_in()) == -1)
-			return -1;
-		bits_remaining = 8;
-	}
-	ret = cur_byte & 1;
-	cur_byte >>= 1;
-	bits_remaining--;
-	return ret;
-}
-
-static int byte_in(void) {
-	if (fake_leader) {
-		fake_leader--;
-		return 0x55;
-	}
-	if (read_fd == -1)
-		return -1;
-	if (current_byte >= block_bytes) {
-		if (block_in() == -1)
-			return -1;
-		current_byte = 0;
-	}
-	return block[current_byte++];
-}
-
-/* Read in a byte with 8 calls to bit_in() - used by autorun */
-static int byte_in_serial(void) {
-	int byte = 0, i;
-	assert(bit_in != NULL);
-	for (i = 8; i; i--) {
-		int bit = bit_in();
-		if (bit < 0) return -1;
-		byte = (byte >> 1) | (bit ? 0x80 : 0);
-	}
-	return byte;
-}
-
-static int block_in(void) {
-	/* Normal binary mode: just read a block of data */
-	if (!is_ascii) {
-		block_bytes = fs_read(read_fd, block, sizeof(block));
-		if (block_bytes < 0)
-			return -1;
-		return 0;
-	}
-	/* ASCII mode: construct a cassette block */
-	block[0] = 0x55;
-	block[1] = 0x3c;
-	int bsize = 0;
-	switch (current_block) {
-	case FIRST_BLOCK:
-		/* Header block */
-		block[2] = 0x00;
-		memcpy(&block[4], "BASIC   \000\377\377\000\000\000\000", 15);
-		bsize = 15;
-		current_block = DATA_BLOCK;
-		break;
-	case DATA_BLOCK:
-		/* ASCII data block - read up to 255 bytes */
-		block[2] = 0x01;
-		bsize = fs_read(read_fd, &block[4], 255);
-		if (bsize <= 0) {
-			/* EOF block */
-			block[2] = 0xff;
-			bsize = 0;
-			current_block = LAST_BLOCK;
-		}
-		break;
-	case LAST_BLOCK:
-		return -1;
-	}
-	/* Do line-ending conversion and calculate checksum */
-	int sum = block[2], src = 0, dest = 0, cr = 0;
-	for ( ; src < bsize; src++) {
-		uint8_t sbyte = block[4+src];
-		if (sbyte == 0x0d || sbyte == 0x0a) {
-			if (!cr) {
-				block[4+dest] = 0x0d;
-				sum += 0x0d;
-				dest++;
-				cr = 1;
-			}
-		} else {
-			block[4+dest] = sbyte;
-			sum += sbyte;
-			dest++;
-			cr = 0;
-		}
-	}
-	bsize = dest;
-	block[3] = bsize;
-	sum += bsize;
-	block[bsize+4] = sum & 0xff;
-	block[bsize+5] = 0x55;
-	block_bytes = bsize+5;
-	return 0;
-}
-
+/* Read pulse & duration, schedule next read */
 static void waggle_bit(void) {
-	static int cur_bit = 0;
-	static int waggle_state = 0;
-	assert(bit_in != NULL);
-	switch (waggle_state) {
-		default:
-		case 0:
-			PIA1.a.port_input |= 0x01;
-			tape_audio = 0;
-			waggle_state = 1;
-			if (!motor || (cur_bit = bit_in()) == -1) {
-				event_dequeue(&waggle_event);
-				return;
-			}
-			break;
-		case 1:
-			PIA1.a.port_input &= 0xfe;
-			tape_audio = 0x0f;
-			waggle_state = 0;
-			break;
+	int pulse_sense;
+	int pulse_width;
+	pulse_sense = tape_pulse_in(tape_input, &pulse_width);
+	switch (pulse_sense) {
+	default:
+	case -1:
+		tape_audio = 0;
+		machine_update_sound();
+		event_dequeue(&waggle_event);
+		return;
+	case 0:
+		PIA1.a.port_input |= 0x01;
+		tape_audio = 0;
+		break;
+	case 1:
+		PIA1.a.port_input &= 0xfe;
+		tape_audio = 0x0f;
+		break;
 	}
 	machine_update_sound();
-	/* Single cycles of 1200 baud for 0s, and 2400 baud for 1s */
-	if (cur_bit == 0)
-		waggle_event.at_cycle += (OSCILLATOR_RATE / 2400);
-	else
-		waggle_event.at_cycle += (OSCILLATOR_RATE / 4800);
+	waggle_event.at_cycle += pulse_width;
 	event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 }
 
-static void bit_out(int value) {
-	static int cur_byte = 0;
-	cur_byte >>= 1;
-	if (value)
-		cur_byte |= 0x80;
-	have_bits++;
-	if (have_bits < 8)
-		return;
-	byte_out(cur_byte);
-	cur_byte = 0;
-	have_bits = 0;
-}
-
-static void byte_out(int value) {
-	*(write_buf_ptr++) = value;
-	have_bytes++;
-	if (have_bytes < (int)sizeof(write_buf))
-		return;
-	buffer_out();
-}
-
-static void buffer_out(void) {
-	if (write_fd != -1) {
-		fs_write(write_fd, write_buf, have_bytes);
+/* ensure any "pulse" over 1/2 second long is flushed to output, so it doesn't
+ * overflow any counters */
+static void flush_output(void) {
+	tape_update_output();
+	if (motor) {
+		flush_event.at_cycle += OSCILLATOR_RATE / 2;
+		event_queue(&MACHINE_EVENT_LIST, &flush_event);
 	}
-	have_bytes = 0;
-	write_buf_ptr = write_buf;
 }
 
-#ifdef HAVE_SNDFILE
-static int bit_in_sndfile(void) {
-	static int sign = 0;
-	short sample;
-	if (!wav_read_file) return -1;
-	int pulse_count = 0;
-	int cycle_width = 1;
-	if (sign == 0) {
-		if (sf_read_short(wav_read_file, &sample, 1) < 1)
-			return -1;
-		sign = (sample >= 0) ? 1 : -1;
+/* Fast tape */
+
+static void fast_blkin(M6809State *cpu_state) {
+	uint8_t block[258];
+	if (!tape_input) return;
+	uint8_t sum;
+	long offset = tape_tell(tape_input);
+	if (block_in(tape_input, &sum, NULL, block) == -1) {
+		tape_seek(tape_input, offset, FS_SEEK_SET);
+		return;
 	}
-	do {
-		int nsign;
-		if (sf_read_short(wav_read_file, &sample, 1) < 1)
-			return -1;
-		nsign = (sample >= 0) ? 1 : -1;
-		cycle_width++;
-		if (nsign != sign) {
-			pulse_count++;
-			sign = nsign;
+	ram0[0x007c] = block[0];
+	ram0[0x007d] = block[1];
+	if (cpu_state->reg_x + block[1] > 0x10000) {
+		cpu_state->reg_cc &= ~4;
+	} else {
+		memcpy(&ram0[cpu_state->reg_x], &block[2], block[1]);
+		cpu_state->reg_x += block[1];
+		if (sum) {
+			cpu_state->reg_cc &= ~4;
+		} else {
+			cpu_state->reg_cc |= 4;
 		}
-	} while (pulse_count < 2);
-	if (cycle_width <= 1) return 1;
-	/* If cycle frequency > 1800Hz, return a 1 bit, else 0 */
-	if ((wav_sample_rate / (cycle_width - 1)) > 1800)
-		return 1;
-	return 0;
-}
-
-static void wav_buffer_in(void) {
-	wav_read_ptr = wav_read_buf;
-	wav_samples_remaining = 0;
-	if (wav_read_file == NULL || wav_read_buf == NULL)
-		return;
-	wav_samples_remaining = sf_read_short(wav_read_file, wav_read_buf, SF_BUF_LENGTH);
-	if (wav_samples_remaining < SF_BUF_LENGTH)
-		tape_close_reading();
-}
-
-static short wav_sample_in(void) {
-	Cycle elapsed_cycles;
-	if (wav_sample_rate == 0)
-		return 0;
-	elapsed_cycles = current_cycle - wav_last_sample_cycle;
-	while (elapsed_cycles >= SAMPLE_CYCLES) {
-		wav_read_ptr++;
-		if (wav_samples_remaining == 0) {
-			wav_buffer_in();
-			if (wav_samples_remaining <= 0)
-				return 0;
-		}
-		wav_last_sample_cycle += SAMPLE_CYCLES;
-		wav_samples_remaining--;
-		elapsed_cycles -= SAMPLE_CYCLES;
 	}
-	if (wav_read_ptr == NULL)
-		return 0;
-	return *wav_read_ptr;
+	if (IS_COCO) {
+		cpu_state->reg_pc = 0xa748;
+	} else {
+		cpu_state->reg_pc = 0xb980;
+	}
 }
-#endif
 
-/* Tapehack-specific stuff: */
+static void fast_cbin(M6809State *cpu_state) {
+	if (!tape_input) return;
+	cpu_state->reg_a = tape_byte_in(tape_input);
+	cpu_state->reg_cc &= ~1;
+	/* Set PC to the RTS from CBIN */
+	if (IS_COCO) {
+		cpu_state->reg_pc = 0xa754;
+	} else {
+		cpu_state->reg_pc = 0xbdb8;
+	}
+}
 
-static int leader_count = 256;
+static void fast_bitin(M6809State *cpu_state) {
+	if (!tape_input) return;
+	int bit = tape_bit_in(tape_input);
+	cpu_state->reg_cc &= ~1;
+	if (bit != -1) {
+		cpu_state->reg_cc |= bit;
+	}
+	/* Set PC to the RTS from BITIN */
+	if (IS_COCO) {
+		cpu_state->reg_pc = 0xa75c;
+	} else {
+		cpu_state->reg_pc = 0xbdac;
+	}
+}
 
-void tape_sync(void) {
+static void fast_sync_leader(M6809State *cpu_state) {
+	/* skip scanning for leader bits */
+	if (IS_COCO) {
+		cpu_state->reg_pc = 0xa796;
+	} else {
+		cpu_state->reg_pc = 0xbe11;
+	}
+}
+
+static void fast_motor_on(M6809State *cpu_state) {
+	/* skip motor on delay */
+	if (IS_COCO) {
+		cpu_state->reg_pc = 0xa7d7;
+	} else {
+		cpu_state->reg_pc = 0xbbcc;
+	}
+}
+
+/* Leader padding & tape rewriting */
+
+static void tape_desync(int leader) {
+	(void)leader;
+	if (tape_rewrite) {
+		/* complete last byte */
+		while (rewrite_bit_count)
+			tape_bit_out(tape_output, 0);
+		/* desync writing - pick up at next sync byte */
+		rewrite_have_sync = 0;
+		rewrite_leader_count = leader;
+	}
+	if (tape_pad && tape_input) tape_input->fake_leader = leader;
+}
+
+static void rewrite_sync(M6809State *cpu_state) {
+	/* BLKIN, having read sync byte $3C */
+	(void)cpu_state;
 	int i;
-	if (have_sync) return;
-	for (i = 0; i < leader_count; i++)
-		byte_out(0x55);
-	byte_out(0x3c);
-	have_sync = 1;
-}
-
-void tape_desync(int leader) {
-	while (have_bits)
-		bit_out(0);
-	fake_leader = leader;
-	have_sync = 0;
-	leader_count = leader;
-}
-
-void tape_bit_out(int value) {
-	if (have_sync) {
-		bit_out(value);
+	if (rewrite_have_sync) return;
+	if (tape_rewrite) {
+		for (i = 0; i < rewrite_leader_count; i++)
+			tape_byte_out(tape_output, 0x55);
+		tape_byte_out(tape_output, 0x3c);
+		rewrite_have_sync = 1;
 	}
+}
+
+static void rewrite_bitin(M6809State *cpu_state) {
+	/* RTS from BITIN */
+	(void)cpu_state;
+	if (tape_rewrite && rewrite_have_sync) {
+		tape_bit_out(tape_output, cpu_state->reg_cc & 1);
+	}
+}
+
+static void rewrite_tape_on(M6809State *cpu_state) {
+	/* CSRDON */
+	(void)cpu_state;
+	/* desync with long leader */
+	tape_desync(256);
+}
+
+static void rewrite_end_of_block(M6809State *cpu_state) {
+	/* BLKIN, having confirmed checksum */
+	(void)cpu_state;
+	/* desync with short inter-block leader */
+	tape_desync(2);
+}
+
+/* Configuring tape options */
+
+static struct tape_breakpoint bp_list_fast[] = {
+	{ .dragon = 0xbdd7, .coco = 0xa7d1, .handler = fast_motor_on },
+	{ .dragon = 0xbded, .coco = 0xa782, .handler = fast_sync_leader },
+	{ .dragon = 0xbda5, .coco = 0xa755, .handler = fast_bitin },
+	{ .handler = NULL }
+};
+
+static struct tape_breakpoint bp_list_fast_cbin[] = {
+	{ .dragon = 0xbdad, .coco = 0xa749, .handler = fast_cbin },
+	{ .dragon = 0xb944, .coco = 0xa711, .handler = fast_blkin },
+	{ .handler = NULL }
+};
+
+static struct tape_breakpoint bp_list_rewrite[] = {
+	{ .dragon = 0xb94d, .coco = 0xa719, .handler = rewrite_sync },
+	{ .dragon = 0xbdac, .coco = 0xa75c, .handler = rewrite_bitin },
+	{ .dragon = 0xbde7, .coco = 0xa77c, .handler = rewrite_tape_on },
+	{ .dragon = 0xb97e, .coco = 0xa746, .handler = rewrite_end_of_block },
+	{ .handler = NULL }
+};
+
+void tape_set_state(int flags) {
+	/* clear any old breakpoints */
+	remove_breakpoints(bp_list_fast);
+	remove_breakpoints(bp_list_fast_cbin);
+	remove_breakpoints(bp_list_rewrite);
+	/* set flags */
+	tape_fast = flags & TAPE_FAST;
+	tape_pad = flags & TAPE_PAD;
+	tape_rewrite = flags & TAPE_REWRITE;
+	/* add required breakpoints */
+	if (tape_fast) {
+		add_breakpoints(bp_list_fast);
+		/* these are incompatible with the other flags */
+		if (!tape_pad && !tape_rewrite) {
+			add_breakpoints(bp_list_fast_cbin);
+		}
+		/* in fast mode, ensure nothing else is reading the file */
+		event_dequeue(&waggle_event);
+	} else {
+		if (motor && !waggle_event.queued) {
+			waggle_event.at_cycle = current_cycle + OSCILLATOR_RATE / 4;
+			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
+		}
+	}
+	if (tape_pad || tape_rewrite) {
+		add_breakpoints(bp_list_rewrite);
+	}
+}
+
+/* sets state and updates UI */
+void tape_select_state(int flags) {
+	tape_set_state(flags);
+	if (ui_module && ui_module->update_tape_state) {
+		ui_module->update_tape_state(flags);
+	}
+}
+
+int tape_get_state(void) {
+	int flags = 0;
+	if (tape_fast) flags |= TAPE_FAST;
+	if (tape_pad) flags |= TAPE_PAD;
+	if (tape_rewrite) flags |= TAPE_REWRITE;
+	return flags;
 }

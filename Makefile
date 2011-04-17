@@ -218,7 +218,10 @@ jack:
 	mkdir -p jack
 endif
 
+opt_sndfile_OBJS = tape_sndfile.o
+CLEAN += $(opt_sndfile_OBJS)
 ifeq ($(opt_sndfile),yes)
+	xroar_opt_OBJS += $(opt_sndfile_OBJS)
 	xroar_opt_CFLAGS += $(opt_sndfile_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_sndfile_LDFLAGS)
 endif
