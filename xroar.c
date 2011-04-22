@@ -33,6 +33,7 @@
 #include "m6809.h"
 #include "m6809_trace.h"
 #include "machine.h"
+#include "misc.h"
 #include "module.h"
 #include "path.h"
 #include "printer.h"
@@ -703,11 +704,8 @@ void xroar_shutdown(void) {
 static void alloc_cart_status(void) {
 	int count = xroar_machine_config->index;
 	if (count >= cart_status_count) {
-		struct cart_status *new_list = realloc(cart_status_list, (count + 1) * sizeof(struct cart_status));
+		struct cart_status *new_list = xrealloc(cart_status_list, (count + 1) * sizeof(struct cart_status));
 		int i;
-		if (!new_list) {
-			return;
-		}
 		/* clear new entries */
 		cart_status_list = new_list;
 		for (i = cart_status_count; i <= count; i++) {

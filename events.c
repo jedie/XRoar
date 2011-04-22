@@ -21,10 +21,10 @@
 #include "types.h"
 #include "events.h"
 #include "logging.h"
+#include "misc.h"
 
 event_t *event_new(void) {
-	event_t *new = malloc(sizeof(event_t));
-	if (new == NULL) return NULL;
+	event_t *new = xmalloc(sizeof(event_t));
 	event_init(new);
 	return new;
 }

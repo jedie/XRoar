@@ -20,10 +20,10 @@
 #include <string.h>
 
 #include "mc6821.h"
+#include "misc.h"
 
 MC6821_PIA *mc6821_new(void) {
-	MC6821_PIA *new = malloc(sizeof(MC6821_PIA));
-	if (new == NULL) return NULL;
+	MC6821_PIA *new = xmalloc(sizeof(MC6821_PIA));
 	mc6821_init(new);
 	return new;
 }

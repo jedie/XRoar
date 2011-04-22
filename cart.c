@@ -32,6 +32,7 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
+#include "misc.h"
 #include "rsdos.h"
 #include "xroar.h"
 
@@ -87,9 +88,7 @@ static int alloc_config_array(int size) {
 	struct cart_config **new_list;
 	int clear_from = num_configs;
 	if (!configs) clear_from = 0;
-	new_list = realloc(configs, size * sizeof(struct cart_config *));
-	if (!new_list)
-		return -1;
+	new_list = xrealloc(configs, size * sizeof(struct cart_config *));
 	configs = new_list;
 	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct cart_config *));
 	return 0;
@@ -101,9 +100,7 @@ static int populate_config_index(int i) {
 	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
 	if (configs[i])
 		return 0;
-	configs[i] = malloc(sizeof(struct cart_config));
-	if (!configs[i])
-		return -1;
+	configs[i] = xmalloc(sizeof(struct cart_config));
 	memset(configs[i], 0, sizeof(struct cart_config));
 	configs[i]->name = strdup(config_templates[i].name);
 	if (!configs[i]->name) goto failed;
@@ -124,8 +121,7 @@ struct cart_config *cart_config_new(void) {
 	struct cart_config *new;
 	if (alloc_config_array(num_configs+1) != 0)
 		return NULL;
-	new = malloc(sizeof(struct cart_config));
-	if (!new) return NULL;
+	new = xmalloc(sizeof(struct cart_config));
 	memset(new, 0, sizeof(struct cart_config));
 	new->index = num_configs;
 	new->type = CART_ROM;

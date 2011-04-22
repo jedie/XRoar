@@ -37,6 +37,7 @@
 #include "m6809_trace.h"
 #include "machine.h"
 #include "mc6821.h"
+#include "misc.h"
 #include "module.h"
 #include "path.h"
 #include "printer.h"
@@ -104,9 +105,7 @@ static int alloc_config_array(int size) {
 	struct machine_config **new_list;
 	int clear_from = num_configs;
 	if (!configs) clear_from = 0;
-	new_list = realloc(configs, size * sizeof(struct machine_config *));
-	if (!new_list)
-		return -1;
+	new_list = xrealloc(configs, size * sizeof(struct machine_config *));
 	configs = new_list;
 	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct machine_config *));
 	return 0;
@@ -118,9 +117,7 @@ static int populate_config_index(int i) {
 	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
 	if (configs[i])
 		return 0;
-	configs[i] = malloc(sizeof(struct machine_config));
-	if (!configs[i])
-		return -1;
+	configs[i] = xmalloc(sizeof(struct machine_config));
 	memset(configs[i], 0, sizeof(struct machine_config));
 	configs[i]->name = strdup(config_templates[i].name);
 	if (!configs[i]->name) goto failed;
@@ -144,8 +141,7 @@ struct machine_config *machine_config_new(void) {
 	struct machine_config *new;
 	if (alloc_config_array(num_configs+1) != 0)
 		return NULL;
-	new = malloc(sizeof(struct machine_config));
-	if (!new) return NULL;
+	new = xmalloc(sizeof(struct machine_config));
 	memset(new, 0, sizeof(struct machine_config));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
@@ -519,7 +515,7 @@ char *machine_find_rom(const char *romname) {
 	if (romname == NULL)
 		return NULL;
 
-	filename = malloc(strlen(romname) + 5);
+	filename = xmalloc(strlen(romname) + 5);
 	for (i = 0; rom_extensions[i]; i++) {
 		strcpy(filename, romname);
 		strcat(filename, rom_extensions[i]);
