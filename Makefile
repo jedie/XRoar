@@ -70,6 +70,7 @@ ifeq ($(opt_gtk2),yes)
 	xroar_opt_OBJS += $(opt_gtk2_OBJS)
 	xroar_opt_CFLAGS += $(opt_gtk2_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_gtk2_LDFLAGS)
+gtk2/ui_gtk2.o: gtk2/top_window_glade.h
 keyboard_gtk2.o: $(SRCROOT)/gtk2/keyboard_gtk2_mappings.c
 $(opt_gtk2_OBJS): | gtk2
 gtk2:
@@ -413,6 +414,13 @@ vdg_bitmaps.h: tools/font2c | $(SRCROOT)/vdgfont.png
 
 vdg_bitmaps.c: tools/font2c | $(SRCROOT)/vdgfont.png
 	tools/font2c --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
+
+#
+
+gtk2/%_glade.h: $(SRCROOT)/gtk2/%.glade
+	echo "static const gchar *$(@:%.h=%) =" | sed 's/\*.*\//\*/'> $@
+	sed 's/"/'\''/g;s/^\( *\)/\1"/;s/$$/"/;' $< >> $@
+	echo ";" >> $@
 
 ############################################################################
 # Distribution creation

@@ -31,6 +31,9 @@
 #include "module.h"
 #include "xroar.h"
 
+#include "gtk2/top_window_glade.h"
+#include "gtk2/tapecontrol_glade.h"
+
 static int init(void);
 static void shutdown(void);
 static void run(void);
@@ -284,18 +287,24 @@ static int init(void) {
 
 	g_set_application_name("XRoar");
 
-	/* Create top level window */
-	gtk2_top_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	g_signal_connect_swapped(gtk2_top_window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	GtkBuilder *builder;
+	GError *error = NULL;
+	builder = gtk_builder_new();
+	if (!gtk_builder_add_from_string(builder, top_window_glade, -1, &error)) {
+		g_warning("Couldn't create UI: %s", error->message);
+		g_error_free(error);
+		return 1;
+	}
 
-	/* Create vbox */
-	vbox = gtk_vbox_new(FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(gtk2_top_window), vbox);
+	/* Fetch top level window */
+	gtk2_top_window = GTK_WIDGET(gtk_builder_get_object(builder, "top_window"));
+
+	/* Fetch vbox */
+	vbox = GTK_WIDGET(gtk_builder_get_object(builder, "vbox1"));
 
 	/* Create a UI from XML */
 	gtk2_menu_manager = gtk_ui_manager_new();
 
-	GError *error = NULL;
 	gtk_ui_manager_add_ui_from_string(gtk2_menu_manager, ui, -1, &error);
 	if (error) {
 		g_message("building menus failed: %s", error->message);
@@ -328,15 +337,15 @@ static int init(void) {
 	gtk2_menubar = gtk_ui_manager_get_widget(gtk2_menu_manager, "/MainMenu");
 	gtk_box_pack_start(GTK_BOX(vbox), gtk2_menubar, FALSE, FALSE, 0);
 	gtk_window_add_accel_group(GTK_WINDOW(gtk2_top_window), gtk_ui_manager_get_accel_group(gtk2_menu_manager));
+	gtk_box_reorder_child(GTK_BOX(vbox), gtk2_menubar, 0);
 
 	/* Create drawing_area widget, add to vbox */
-	gtk2_drawing_area = gtk_drawing_area_new();
+	gtk2_drawing_area = GTK_WIDGET(gtk_builder_get_object(builder, "drawing_area"));
 	GdkGeometry hints = {
 		.min_width = 320, .min_height = 240,
 		.base_width = 0, .base_height = 0,
 	};
 	gtk_window_set_geometry_hints(GTK_WINDOW(gtk2_top_window), GTK_WIDGET(gtk2_drawing_area), &hints, GDK_HINT_MIN_SIZE | GDK_HINT_BASE_SIZE);
-	gtk_box_pack_start(GTK_BOX(vbox), gtk2_drawing_area, TRUE, TRUE, 0);
 	gtk_widget_show(gtk2_drawing_area);
 
 	/* Now up to video module to do something with this drawing_area */
@@ -350,9 +359,8 @@ static int init(void) {
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key-press-event", G_CALLBACK(hide_cursor), NULL);
 	g_signal_connect(G_OBJECT(gtk2_drawing_area), "motion-notify-event", G_CALLBACK(show_cursor), NULL);
 
-	/* Show everything created underneath gtk2_top_window.  Video module
-	 * init() is responsible for showing gtk2_top_window.  */
-	gtk_widget_show_all(vbox);
+	gtk_builder_connect_signals(builder, NULL);
+	g_object_unref(builder);
 
 	return 0;
 }
