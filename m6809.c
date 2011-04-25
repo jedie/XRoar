@@ -509,6 +509,15 @@ void m6809_run(void) {
 				state.reg_s  = reg_s;
 				state.reg_pc = reg_pc;
 				m6809_instruction_hook(&state);
+				reg_cc = state.reg_cc;
+				reg_a = state.reg_a;
+				reg_b = state.reg_b;
+				reg_dp = state.reg_dp;
+				reg_x = state.reg_x;
+				reg_y = state.reg_y;
+				reg_u = state.reg_u;
+				reg_s = state.reg_s;
+				reg_pc = state.reg_pc;
 			}
 			/* Fetch op-code and process */
 			BYTE_IMMEDIATE(0,op);
