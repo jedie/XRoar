@@ -677,7 +677,7 @@ int xroar_init(int argc, char **argv) {
 	machine_reset(RESET_HARD);
 	printer_reset();
 	if (load_file) {
-		if (load_file_type == FILETYPE_SNA) {
+		if (load_file_type == FILETYPE_SNA || load_file_type == FILETYPE_CAS || load_file_type == FILETYPE_WAV || load_file_type == FILETYPE_UNKNOWN) {
 			/* Load snapshots immediately */
 			xroar_load_file_by_type(load_file, autorun_loaded_file);
 		} else if (!autorun_loaded_file && load_file_type != FILETYPE_BIN
