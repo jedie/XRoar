@@ -386,6 +386,30 @@ void tape_close_writing(void) {
 	tape_output = NULL;
 }
 
+static char *basic_command = NULL;
+
+static void type_command(M6809State *cpu_state);
+
+static struct tape_breakpoint basic_command_breakpoint[] = {
+	{ .dragon = 0xbbe5, .coco = 0xa1cb, .handler = type_command },
+	{ .handler = NULL }
+};
+
+static void type_command(M6809State *cpu_state) {
+	if (basic_command) {
+		cpu_state->reg_a = *(basic_command++);
+		cpu_state->reg_cc &= ~4;
+		if (*basic_command == 0)
+			basic_command = NULL;
+	}
+	if (!basic_command) {
+		remove_breakpoints(basic_command_breakpoint);
+	}
+	/* Use CPU read routine to pull return address back off stack */
+	cpu_state->reg_pc = (m6809_read_cycle(cpu_state->reg_s) << 8) | m6809_read_cycle(cpu_state->reg_s+1);
+	cpu_state->reg_s += 2;
+}
+
 /* Close any currently-open tape file, open a new one and read the first
  * bufferful of data.  Tries to guess the filetype.  Returns -1 on error,
  * 0 for a BASIC program, 1 for data and 2 for M/C. */
@@ -403,10 +427,13 @@ int tape_autorun(const char *filename) {
 	int type = f->type;
 	free(f);
 	switch (type) {
-		/* BASIC programs don't autorun yet */
-		case 0: keyboard_queue_string("CLOAD\r");
+		case 0:
+			basic_command = "\003CLOAD\rRUN\r";
+			add_breakpoints(basic_command_breakpoint);
 			break;
-		case 2: keyboard_queue_string("CLOADM:EXEC\r");
+		case 2:
+			basic_command = "\003CLOADM:EXEC\r";
+			add_breakpoints(basic_command_breakpoint);
 			break;
 		default:
 			break;
