@@ -91,6 +91,7 @@ static const char *opt_lp_pipe = NULL;
 static const char *opt_ui = NULL;
 static const char *opt_filereq = NULL;
 static const char *opt_vo = NULL;
+char *xroar_opt_geometry = NULL;
 int xroar_opt_gl_filter = ANY_AUTO;
 static const char *opt_ao = NULL;
 int xroar_opt_ao_rate = 0;
@@ -205,6 +206,8 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "ui",            &opt_ui ),
 	XC_OPT_STRING( "filereq",       &opt_filereq ),
 	XC_OPT_STRING( "vo",            &opt_vo ),
+	XC_OPT_STRING( "geometry",      &xroar_opt_geometry ),
+	XC_OPT_STRING( "g",             &xroar_opt_geometry ),
 	XC_OPT_ENUM  ( "gl-filter",     &xroar_opt_gl_filter, gl_filter_list ),
 	XC_OPT_STRING( "ao",            &opt_ao ),
 	XC_OPT_INT   ( "ao-rate",       &xroar_opt_ao_rate ),
@@ -469,6 +472,7 @@ static void helptext(void) {
 "\n Emulator interface:\n"
 "  -ui MODULE            user-interface module (-ui help for list)\n"
 "  -vo MODULE            video module (-vo help for list)\n"
+"  -geometry WxH+X+Y     initial emulator geometry\n"
 #ifdef HAVE_SDLGL
 "  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
 #endif

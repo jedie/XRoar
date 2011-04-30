@@ -52,6 +52,7 @@ extern void (*xroar_kbd_translate_changed_cb)(int kbd_translate);
 #define XROAR_GL_FILTER_LINEAR  (1)
 
 /* Emulator interface */
+extern char *xroar_opt_geometry;  /* initial emulator geometry string */
 extern int xroar_opt_gl_filter;
 extern int xroar_opt_ao_rate;
 extern int xroar_opt_volume;
