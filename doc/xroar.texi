@@ -106,11 +106,9 @@ find any ROM images - check that first.
 
 From here you can attach tapes (@file{.cas} or @file{.wav} files) with
 @kbd{Control+L}.  To load a program from tape, type @command{CLOADM} (machine
-code) or @command{CLOAD} (BASIC).  You can hold down @kbd{F12} to force the
-emulator to run as fast as possible while loading.  If the program does not
-start automatically when it has loaded (i.e., returns you to the "OK" prompt),
-you will have to type @command{EXEC} (machine code) or @command{RUN} (BASIC) to
-start it.
+code) or @command{CLOAD} (BASIC).  If the program does not start automatically
+when it has loaded (i.e., returns you to the ``OK'' prompt), you will have to
+type @command{EXEC} (machine code) or @command{RUN} (BASIC) to start it.
 
 XRoar will make use of attached joysticks, but can also emulate them with the
 cursor keys and @kbd{Left Alt}.  Press @kbd{Control+J} to cycle through three
@@ -342,7 +340,7 @@ machine-arch dragon32
 ram 16
 @end example
 
-This will define a machine named "pippin" that is basically a Dragon 32
+This will define a machine named ``pippin'' that is basically a Dragon 32
 with only 16K or RAM.
 
 @node Video hardware
@@ -406,10 +404,10 @@ are used for these.
 
 If you don't use a UK keyboard, but want a close Dragon keyboard layout, you
 can run with the @option{-keymap CODE} command-line option, where @option{CODE}
-is a country code: "uk" (British), "us" (American), "fr" (French AZERTY) or
-"de" (German QWERTZ).
+is a country code: ``uk'' (British), ``us'' (American), ``fr'' (French AZERTY)
+or ``de'' (German QWERTZ).
 
-XRoar can also be put into "translated" keyboard mode, where characters typed
+XRoar can also be put into ``translated'' keyboard mode, where characters typed
 on a PC keyboard are translated into the equivalent keystrokes on the Dragon.
 Run with the @option{-kbd-translate} option to start with this enabled.  Press
 @kbd{Control+Z} to toggle this mode.
@@ -450,10 +448,6 @@ get this old behaviour, use the command line options @option{-joy-left 0,3:2:0
 @node Cassettes
 @section Cassette images
 
-@menu
-* ``Tapehack'' mode: Tapehack.
-@end menu
-
 XRoar supports three types of cassette image: @file{.cas} files, audio files
 such as @file{.wav} and ASCII text files containing BASIC programs (@file{.bas}
 or @file{.asc}).  @file{.cas} files contain a binary representation of what
@@ -465,24 +459,33 @@ To attach a cassette image, press @kbd{Control+L} and select it from the file
 requester.  If instead you press @kbd{Control+Shift+L} and select a @file{.cas}
 file, XRoar can attempt to look into the file and determine whether the program
 is BASIC or machine code and then autorun it by typing the appropriate BASIC
-command for you (either @command{CLOAD} or @command{CLOADM:EXEC}).
+command(s) for you (either @command{CLOAD} then @command{RUN} or
+@command{CLOADM:EXEC}).
 
 To create a cassette image for writing to (with @command{CSAVE} or
 @command{CSAVEM} for example), press @kbd{Control+W} and enter a filename.
 Created files will be truncated to zero length, so be careful not to overwrite
 any existing files with this command.
 
-The currently open tape files used for reading and writing are distinct.  There
-is currently no good user interface for tape control, so if you want to rewind
-a tape, reattach it.
+The currently open tape files used for reading and writing are distinct.
 
-@node Tapehack
-@subsection ``Tapehack'' mode
+Three command line options affect how tapes are read:
 
-When started with the @option{-tapehack} option, XRoar enters a special mode
-that is useful for creating @file{.cas} files from sampled audio cassettes.  It
-intercepts cassette reading ROM routines, and rewrites any date read to the
-tape file selected for writing.
+The @option{-tape-fast} option accelerates tape loading by intercepting ROM
+calls and performing the action outside the emulation.  Disable with
+@option{-no-tape-fast}.  On by default.
+
+The @option{-tape-pad} option monitors ROM calls in order to insert extra
+leader bytes where appropriate (long leaders when the motor is switched on,
+short leaders between blocks). Disable with @option{-no-tape-pad}.  Off by
+default.
+
+The @option{-tape-rewrite} option enables rewriting of anything read from the
+input tape to the output tape.  This is useful for creating ``well formed''
+cassette images.
+
+Where available, these options can be changed on the fly in the GUI.
+@xref{Tape control}.
 
 @node Cartridges
 @section Cartridges
@@ -560,13 +563,16 @@ disk, and is the only one that XRoar will recognise as containing
 single-density data (as used by the Delta system).
 
 When you attach a disk, it is read into memory, and subsequent disk operations
-are performed on this in-memory copy.  Write protect defaults to off (so write
-operations on the copy will work), but write back also defaults to off, so
-updates will not be written to the disk image file.  To toggle write protect,
-press @kbd{Control+[5-8]}, where the number to press is the drive number plus
-4.  To toggle write back, press @kbd{Control+Shift+[5-8]}.  Even with write
-back enabled, image files will not be updated until the disk in a virtual drive
-is changed, or you quit the emulator.
+are performed on this in-memory copy.  Write enable defaults to on (so write
+operations on the copy will work), but write back defaults to off, so updates
+will not be written to the disk image file.  To toggle write enable, press
+@kbd{Control+[5-8]}, where the number to press is the drive number plus 4.  To
+toggle write back, press @kbd{Control+Shift+[5-8]}.  Even with write back
+enabled, image files will not be updated until the disk in a virtual drive is
+changed, or you quit the emulator.
+
+Where available, these options can also be changed on the fly in the GUI.
+@xref{Drive control}.
 
 Write back can be set to default to on with the @option{-disk-write-back}
 command line option.
@@ -583,6 +589,8 @@ extension determines which type of file will be written.
 * Video output::
 * Audio output::
 * Printing::
+* Drive control::
+* Tape control::
 * Keyboard commands::
 * Snapshots::
 * Trace mode::
@@ -600,7 +608,7 @@ selectable with the @option{-vo MODULE} command line option:
 OpenGL accelerated video output.
 @item sdlyuv
 YUV overlay accelerated video output.
-@item sdlgl
+@item sdl
 Basic unaccelerated unscalable video output.
 @end table
 
@@ -624,15 +632,42 @@ XRoar can be started full-screen by specifying @option{-fs}.
 @node Audio output
 @section Audio output
 
-Specific audio modules exist for OSS audio, Sun audio and Mac OS X coreaudio.
-If none of these are available, generic SDL audio will be used.
+Specific audio modules exist for OSS, ALSA, Sun audio, Mac OS X coreaudio and
+PulseAudio.  If none of these are available, generic SDL audio will be used.
 
 Use of a specific module can be forced using @option{-ao MODULE}.  Use
 @option{-ao null} to disable audio, or @option{-ao help} for a list of
 available modules.
 
 For most audio modules, the @option{-ao-rate HZ} option can be used to specify
-a sample rate in Hz.  The default will usually be 44100.
+a sample rate in Hz.  The default will usually be 44100.  The
+@option{-ao-buffer-ms MS} or @option{-ao-buffer-samples N} options may be used
+(where supported) to set an audio buffer size, either in milliseconds or number
+of samples.
+
+@node Drive control
+@section Drive control
+
+Currently only available in the GTK+ interface.  Pressing @kbd{Control+D}, or
+selecting ``Drive Control'' from the ``Tool'' menu will open the drive control
+window.
+
+This window allows you to insert and eject disk images, and toggle their
+write-enable and write-back states.  @xref{Disks}.
+
+@node Tape control
+@section Tape control
+
+Currently only available in the GTK+ interface.  Pressing @kbd{Control+T}, or
+selecting ``Tape Control'' from the ``Tool'' menu will open the tape control
+window.
+
+This window shows the current tape image filename and position.  The input tape
+image is scanned, and any recognised file header blocks listed, along with
+their position within the image.  Double clicking a filename will seek to that
+point in the tape image.
+
+Certain tape options can be configured here.  @xref{Cassettes}.
 
 @node Printing
 @section Printing
@@ -644,8 +679,8 @@ stream by closing it (so if the stream is a pipe, the filter will complete).
 The stream will be re-opened when any new data is sent.
 
 The pipe feature allows you to use useful print filters such as
-@command{enscript}, e.g., @option{-lp-pipe "enscript -B -N r -d
-@emph{printer-name}"}.  This will send a job to your printer, using carriage
+@command{enscript}, e.g., @option{-lp-pipe ``enscript -B -N r -d
+@emph{printer-name}''}.  This will send a job to your printer, using carriage
 returns as line feeds (the Dragon default), each time you press
 @kbd{Control+Shift+P} (or exit the emulator).
 
@@ -662,7 +697,7 @@ Insert a virtual disk into drive 1-4.  @xref{Disks}.
 @item Control+Shift+[1-4]
 Insert a blank virtual disk (40TSS) into drive 1-4.  @xref{Disks}.
 @item Control+[5-8]
-Toggle write protect on disk in drive 1-4.  @xref{Disks}.
+Toggle write enable on disk in drive 1-4.  @xref{Disks}.
 @item Control+Shift+[5-8]
 Toggle write back on disk in drive 1-4.  @xref{Disks}.
 @item Control+A
@@ -697,6 +732,8 @@ Soft reset emulated machine.
 Hard reset emulated machine.
 @item Control+S
 Save a snapshot.  @xref{Snapshots}.
+@item Control+T
+Open the tape control window (certain user interfaces only).  @xref{Tape control}.
 @item Control+W
 Attach a virtual cassette file for writing.  @xref{Cassettes}.
 @item Control+Z
@@ -709,9 +746,9 @@ When using @kbd{Control+L} or @kbd{Control+Shift+L} to load a file, the action
 to be taken is determined by its extension.  See @ref{Supported file types} for
 details.
 
-XRoar still supports the use of old keyboard commands that were used to attach
-specific types of file.  @kbd{Control+B}, @kbd{Control+H} and @kbd{Control+T}
-are all now synonymous with @kbd{Control+T}.
+XRoar still supports the use of some old keyboard commands that were used to
+attach specific types of file.  @kbd{Control+B} and @kbd{Control+H} are
+synonymous with @kbd{Control+L}.
 
 @node Snapshots
 @section Machine snapshots
@@ -730,7 +767,7 @@ it), attached cassettes or cartridges.
 @node Trace mode
 @section Trace mode
 
-XRoar contains a "trace mode", where it will dump a disassembly of every
+XRoar contains a ``trace mode'', where it will dump a disassembly of every
 instruction it executes to the console.  Trace mode defaults to off unless you
 run with @option{-trace}.  Toggle trace mode on or off with @kbd{Control+V}.
 
@@ -812,7 +849,11 @@ Select OpenGL texture filter (auto, linear, nearest)
 @item -ao MODULE
 Specify audio module (@option{-ao help} for a list)
 @item -ao-rate HZ
-Set audio sample rate (if allowed by module)
+Set audio sample rate (if supported by module)
+@item -ao-buffer-ms MS
+Set audio buffer size in ms (if supported)
+@item -ao-buffer-samples N
+Set audio buffer size in samples (if supported)
 @item -volume VOLUME
 Specify audio volume (0 - 100)
 @item -fast-sound
@@ -1050,10 +1091,11 @@ Dragon & CoCo, switch keymaps and reset the machine.
 @chapter Nintendo DS user interface
 
 The touch screen interface is currently quite basic, but functional.  Files can
-be loaded by selecting "Load...", the emulated machine can be changed in the
-"Machine configuration" menu, and snapshots can be taken with "Save snapshot".
+be loaded by selecting ``Load...'', the emulated machine can be changed in the
+``Machine configuration'' menu, and snapshots can be taken with ``Save
+snapshot''.
 
-In the "Input configuration" menu, each of the DS buttons can be mapped to an
+In the ``Input configuration'' menu, each of the DS buttons can be mapped to an
 input function - a keypress, a joystick direction or an emulator configuration
 command.  By default, the @kbd{D-pad} buttons are mapped to the right joystick,
 and @kbd{A} to the right firebutton.  @kbd{Y} swaps joysticks for convenience,
