@@ -61,6 +61,7 @@ static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void cart_changed_cb(int cart_index);
 static void keymap_changed_cb(int keymap);
+static void fast_sound_changed_cb(int fast);
 static void input_tape_filename_cb(const char *filename);
 static void output_tape_filename_cb(const char *filename);
 static void update_tape_state(int flags);
@@ -75,6 +76,7 @@ UIModule ui_gtk2_module = {
 	.machine_changed_cb = machine_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
+	.fast_sound_changed_cb = fast_sound_changed_cb,
 	.input_tape_filename_cb = input_tape_filename_cb,
 	.output_tape_filename_cb = output_tape_filename_cb,
 	.update_tape_state = update_tape_state,
@@ -252,6 +254,12 @@ static void toggle_keyboard_translation(GtkToggleAction *current, gpointer user_
 	xroar_set_kbd_translate(val);
 }
 
+static void toggle_fast_sound(GtkToggleAction *current, gpointer user_data) {
+	gboolean val = gtk_toggle_action_get_active(current);
+	(void)user_data;
+	machine_set_fast_sound(val);
+}
+
 static void close_about(GtkDialog *dialog, gint response_id, gpointer data) {
 	(void)response_id;
 	(void)data;
@@ -332,6 +340,7 @@ static const gchar *ui =
 	    "<menu name='ToolMenu' action='ToolMenuAction'>"
 	      "<menuitem name='TranslateKeyboard' action='TranslateKeyboardAction'/>"
 	      "<menuitem name='TapeControl' action='TapeControlAction'/>"
+	      "<menuitem name='FastSound' action='FastSoundAction'/>"
 	    "</menu>"
 	    "<menu name='HelpMenu' action='HelpMenuAction'>"
 	      "<menuitem name='About' action='AboutAction'/>"
@@ -417,6 +426,8 @@ static GtkToggleActionEntry ui_toggles[] = {
 	{ .name = "TapeControlAction", .label = "_Tape Control",
 	  .accelerator = "<control>T",
 	  .callback = G_CALLBACK(toggle_tc_window) },
+	{ .name = "FastSoundAction", .label = "_Fast Sound",
+	  .callback = G_CALLBACK(toggle_fast_sound) },
 };
 static guint ui_n_toggles = G_N_ELEMENTS(ui_toggles);
 
@@ -701,6 +712,11 @@ static void keymap_changed_cb(int keymap) {
 static void kbd_translate_changed_cb(int kbd_translate) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ToolMenu/TranslateKeyboard");
 	gtk_toggle_action_set_active(toggle, kbd_translate);
+}
+
+static void fast_sound_changed_cb(int fast) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ToolMenu/FastSound");
+	gtk_toggle_action_set_active(toggle, fast);
 }
 
 static char *escape_underscores(const char *str) {
