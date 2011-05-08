@@ -371,11 +371,7 @@ void machine_init(void) {
 	PIA1.a.control_postwrite = pia1a_control_postwrite;
 	PIA1.b.data_postwrite = pia1b_data_postwrite;
 #ifndef FAST_SOUND
-	if (!xroar_fast_sound) {
-		PIA0.a.control_postwrite = pia0a_control_postwrite;
-		PIA0.b.control_postwrite = pia0b_control_postwrite;
-		PIA1.b.control_postwrite = pia1b_control_postwrite;
-	}
+	machine_select_fast_sound(xroar_fast_sound);
 #endif
 	wd279x_init();
 	vdrive_init();
@@ -463,6 +459,28 @@ void machine_reset(int hard) {
 	vdg_reset();
 	tape_reset();
 }
+
+#ifndef FAST_SOUND
+void machine_set_fast_sound(int fast) {
+	xroar_fast_sound = fast;
+	if (fast) {
+		PIA0.a.control_postwrite = NULL;
+		PIA0.b.control_postwrite = NULL;
+		PIA1.b.control_postwrite = NULL;
+	} else  {
+		PIA0.a.control_postwrite = pia0a_control_postwrite;
+		PIA0.b.control_postwrite = pia0b_control_postwrite;
+		PIA1.b.control_postwrite = pia1b_control_postwrite;
+	}
+}
+
+void machine_select_fast_sound(int fast) {
+	if (ui_module->fast_sound_changed_cb) {
+		ui_module->fast_sound_changed_cb(fast);
+	}
+	machine_set_fast_sound(fast);
+}
+#endif
 
 void machine_insert_cart(struct cart_config *cc) {
 	machine_remove_cart();
