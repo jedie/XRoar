@@ -51,6 +51,7 @@ static int channels;
 static Cycle frame_cycle_base;
 static int frame_cycle;
 static Sample *buffer;
+static Sample *zero;
 static Sample *wrptr;
 static Sample lastsample;
 static pthread_mutex_t haltflag;
@@ -68,6 +69,7 @@ static int init(void) {
 	AudioStreamBasicDescription deviceFormat;
 	UInt32 buffer_bytes = FRAME_SIZE * sizeof(Sample);
 	UInt32 count;
+	int i;
 	LOG_DEBUG(2,"Initialising Mac OS X CoreAudio driver\n");
 	count = sizeof(device);
 	if (AudioHardwareGetProperty(
@@ -94,20 +96,23 @@ static int init(void) {
 		goto failed;
 	LOG_DEBUG(2, "\t%d channel%s, %dHz\n", channels, channels > 1 ? "s" : "", sample_rate);
 	buffer = malloc(FRAME_SIZE * sizeof(Sample) * channels);
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample) * channels);
+	zero = malloc(FRAME_SIZE * sizeof(Sample) * channels);
+	lastsample = -64. / 150.;
+	for (i = 0; i < FRAME_SIZE * channels; i++) {
+		buffer[i] = lastsample;
+		zero[i] = lastsample;
+	}
 	pthread_mutex_init(&haltflag, NULL);
 	AudioDeviceAddIOProc(device, callback, NULL);
 	AudioDeviceStart(device, callback);
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample) * channels);
 	wrptr = buffer;
 	frame_cycle_base = current_cycle;
 	frame_cycle = 0;
 	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
 	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0;
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialise Mac OS X CoreAudio driver\n");
@@ -123,18 +128,21 @@ static void shutdown(void) {
 
 static void update(int value) {
 	int elapsed_cycles = current_cycle - frame_cycle_base;
+	int i;
 	if (elapsed_cycles >= FRAME_CYCLES) {
 		elapsed_cycles = FRAME_CYCLES;
 	}
 	while (frame_cycle < elapsed_cycles) {
-		*(wrptr++) = lastsample;
+		for (i = 0; i < channels; i++) {
+			*(wrptr++) = lastsample;
+		}
 		frame_cycle += SAMPLE_CYCLES;
 	}
 	lastsample = (Sample)(value - 64) / 150.;
 }
 
 static void flush_frame(void) {
-	Sample *fill_to = buffer + FRAME_SIZE;
+	Sample *fill_to = buffer + FRAME_SIZE * channels;
 	while (wrptr < fill_to)
 		*(wrptr++) = lastsample;
 	frame_cycle_base += FRAME_CYCLES;
@@ -154,22 +162,16 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		const AudioTimeStamp *inInputTime,
 		AudioBufferList *outOutputData,
 		const AudioTimeStamp *inOutputTime, void *defptr) {
-	int i, j;
-	Sample *src, *dest;
+	Sample *dest;
 	(void)inDevice;      /* unused */
 	(void)inNow;         /* unused */
 	(void)inInputData;   /* unused */
 	(void)inInputTime;   /* unused */
 	(void)inOutputTime;  /* unused */
 	(void)defptr;        /* unused */
-	src = buffer;
 	dest = (Sample *)outOutputData->mBuffers[0].mData;
-	for (i = 0; i < FRAME_SIZE; i++) {
-		for (j = 0; j < channels; j++) {
-			*(dest++) = *src;
-		}
-		src++;
-	}
+	memcpy(dest, buffer, FRAME_SIZE * channels * sizeof(Sample));
+	memcpy(buffer, zero, FRAME_SIZE * channels * sizeof(Sample));
 	pthread_mutex_unlock(&haltflag);
 	return kAudioHardwareNoError;
 }
