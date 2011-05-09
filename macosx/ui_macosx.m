@@ -29,6 +29,7 @@
 #define TAG_KEYMAP (4 << 24)
 #define TAG_KBD_TRANSLATE (5 << 24)
 #define TAG_CC (6 << 24)
+#define TAG_FAST_SOUND (7 << 24)
 
 @interface SDLMain : NSObject
 @end
@@ -83,6 +84,7 @@ static int current_cartridge = 0;
 static int current_keymap = 0;
 static int is_fullscreen = 0;
 static int is_kbd_translate = 0;
+static int is_fast_sound = 0;
 
 /* Setting this to true is a massive hack so that cocoa file dialogues receive
  * keypresses.  Ideally, need to sort SDL out or turn this into a regular
@@ -175,6 +177,12 @@ int cocoa_super_all_keys = 0;
 	xroar_set_kbd_translate(is_kbd_translate);
 }
 
+- (void)do_fast_sound:(id)sender {
+	(void)sender;
+	is_fast_sound = !is_fast_sound;
+	machine_set_fast_sound(is_fast_sound);
+}
+
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
 	int tag = [item tag];
 	if ((tag & TAG_TYPE_MASK) == TAG_MACHINE) {
@@ -191,6 +199,9 @@ int cocoa_super_all_keys = 0;
 	}
 	if ((tag & TAG_TYPE_MASK) == TAG_KBD_TRANSLATE) {
 		[item setState:(is_kbd_translate ? NSOnState : NSOffState)];
+	}
+	if ((tag & TAG_TYPE_MASK) == TAG_FAST_SOUND) {
+		[item setState:(is_fast_sound ? NSOnState : NSOffState)];
 	}
 	if ((tag & TAG_TYPE_MASK) == TAG_CC) {
 		[item setState:((tag == current_cc) ? NSOnState : NSOffState)];
@@ -403,6 +414,11 @@ static void setup_tool_menu(void) {
 	[tool_menu addItem:item];
 	[item release];
 
+	item = [[NSMenuItem alloc] initWithTitle:@"Fast Sound" action:@selector(do_fast_sound:) keyEquivalent:@""];
+	[item setTag:TAG_FAST_SOUND];
+	[tool_menu addItem:item];
+	[item release];
+
 	tool_menu_item = [[NSMenuItem alloc] initWithTitle:@"Tool" action:nil keyEquivalent:@""];
 	[tool_menu_item setSubmenu:tool_menu];
 	[[NSApp mainMenu] addItem:tool_menu_item];
@@ -586,6 +602,7 @@ static void keymap_changed_cb(int keymap);
 static void cart_changed_cb(int cart_index);
 static void fullscreen_changed_cb(int fullscreen);
 static void kbd_translate_changed_cb(int kbd_translate);
+static void fast_sound_changed_cb(int fast_sound);
 
 static void update_machine_menu(void);
 static void update_cartridge_menu(void);
@@ -622,6 +639,7 @@ UIModule ui_macosx_module = {
 	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.machine_changed_cb = machine_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
+	.fast_sound_changed_cb = fast_sound_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
 };
 
@@ -697,4 +715,8 @@ static void fullscreen_changed_cb(int fullscreen) {
 
 static void kbd_translate_changed_cb(int kbd_translate) {
 	is_kbd_translate = kbd_translate;
+}
+
+static void fast_sound_changed_cb(int fast_sound) {
+	is_fast_sound = fast_sound;
 }
