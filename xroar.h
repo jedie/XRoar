@@ -119,7 +119,8 @@ void xroar_set_dos(int dos_type);  /* for old snapshots only */
 void xroar_save_snapshot(void);
 void xroar_select_tape_input(void);
 void xroar_eject_tape_input(void);
-void xroar_write_tape(void);
+void xroar_select_tape_output(void);
+void xroar_eject_tape_output(void);
 void xroar_hard_reset(void);
 void xroar_soft_reset(void);
 

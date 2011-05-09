@@ -228,6 +228,7 @@ static void pulse_out(struct tape *t, int pulse_length) {
 	bit_out(cas, bit);
 	t->offset += 2;
 	cas->last_pulse_length = 0;
+	if (t->offset > t->size) t->size = t->offset;
 }
 
 static int cas_sample_out(struct tape *t, uint8_t sample, int length) {
@@ -258,6 +259,7 @@ static void cas_motor_off(struct tape *t) {
 	while (cas->output_bit_count > 0) {
 		bit_out(cas, 0);
 		t->offset += 2;
+		if (t->offset > t->size) t->size = t->offset;
 	}
 	cas->output_sense = -1;
 	cas->pulse_length = cas->last_pulse_length = 0;

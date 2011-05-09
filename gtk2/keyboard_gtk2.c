@@ -176,7 +176,7 @@ static void emulator_command(guint keyval, int shift) {
 			printer_flush();
 		break;
 	case GDK_w:
-		xroar_write_tape();
+		xroar_select_tape_output();
 		break;
 #ifdef TRACE
 	case GDK_v:

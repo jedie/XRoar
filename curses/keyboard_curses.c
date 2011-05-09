@@ -89,7 +89,7 @@ static void do_poll(void) {
 				break;
 			case 23:  /* Ctrl+W */
 				endwin();
-				xroar_write_tape();
+				xroar_select_tape_output();
 				break;
 			case 26:  /* Ctrl+Z */
 				endwin();

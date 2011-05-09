@@ -170,7 +170,7 @@ static void emulator_command(SDLKey sym) {
 		xroar_save_snapshot();
 		break;
 	case SDLK_w:
-		xroar_write_tape();
+		xroar_select_tape_output();
 		break;
 #ifdef TRACE
 	case SDLK_v:

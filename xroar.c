@@ -1210,13 +1210,20 @@ void xroar_eject_tape_input(void) {
 	}
 }
 
-void xroar_write_tape(void) {
+void xroar_select_tape_output(void) {
 	char *filename = filereq_module->save_filename(xroar_tape_exts);
 	if (filename) {
 		tape_open_writing(filename);
 		if (ui_module->output_tape_filename_cb) {
 			ui_module->output_tape_filename_cb(filename);
 		}
+	}
+}
+
+void xroar_eject_tape_output(void) {
+	tape_close_writing();
+	if (ui_module->output_tape_filename_cb) {
+		ui_module->output_tape_filename_cb(NULL);
 	}
 }
 
