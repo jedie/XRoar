@@ -568,6 +568,9 @@ press @kbd{Control+[5-8]}, where the number to press is the drive number plus
 back enabled, image files will not be updated until the disk in a virtual drive
 is changed, or you quit the emulator.
 
+Write back can be set to default to on with the @option{-disk-write-back}
+command line option.
+
 You can create a new blank disk in a virtual drive by pressing
 @kbd{Control+Shift+[1-4]}.  You will be a prompted for a filename, and the
 extension determines which type of file will be written.
@@ -830,8 +833,14 @@ Enable keyboard translation mode.  @xref{Keyboard}.
 Map a joystick.  @emph{J} = joystick number, @emph{A} = axis number,
 @emph{B} = button number a @emph{-} before axis signifies inverted axis.
 @xref{Joysticks}.
-@item -tapehack
-Enable tape hacking mode.  @xref{Tapehack}.
+@item -tape-fast
+Enable fast tape loading.  @xref{Cassettes}.
+@item -tape-pad
+Enable tape leader padding.  @xref{Cassettes}.
+@item -tape-rewrite
+Enable tape rewriting.  @xref{Cassettes}.
+@item -disk-write-back
+Default to enabling write-back for disk images.  @xref{Disks}.
 @item -trace
 Start with trace mode on.  @xref{Trace mode}.
 @end table

@@ -75,7 +75,7 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 	memset(new_track_data, 0, data_size);
 	new->filetype = FILETYPE_DMK;
 	new->filename = NULL;
-	new->file_write_protect = VDISK_WRITE_PROTECT;
+	new->file_write_protect = xroar_opt_disk_write_back;
 	new->write_protect = 0;
 	new->num_sides = num_sides;
 	new->num_tracks = num_tracks;

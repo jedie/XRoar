@@ -66,6 +66,7 @@ extern int xroar_kbd_translate;
 extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
 extern int xroar_trace_enabled;
+extern int xroar_opt_disk_write_back;
 
 extern struct xconfig_enum xroar_cross_colour_list[];
 

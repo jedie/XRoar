@@ -114,6 +114,7 @@ int xroar_trace_enabled = 0;
 #else
 # define xroar_trace_enabled (0)
 #endif
+int xroar_opt_disk_write_back = 0;
 
 /* Help text */
 static void helptext(void);
@@ -226,6 +227,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_BOOL  ( "tape-pad",      &xroar_opt_tape_pad ),
 	XC_OPT_BOOL  ( "tape-rewrite",  &xroar_opt_tape_rewrite ),
 	XC_OPT_BOOL  ( "tapehack",      &xroar_opt_tape_rewrite ),
+	XC_OPT_BOOL  ( "disk-write-back", &xroar_opt_disk_write_back ),
 #ifdef TRACE
 	XC_OPT_BOOL  ( "trace",         &xroar_trace_enabled ),
 #endif
@@ -492,6 +494,7 @@ static void helptext(void) {
 "  -tape-fast            enable fast tape loading\n"
 "  -tape-pad             enable tape leader padding\n"
 "  -tape-rewrite         enable tape rewriting\n"
+"  -disk-write-back      default to enabling write-back for disk images\n"
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
@@ -605,6 +608,7 @@ int xroar_init(int argc, char **argv) {
 	xroar_opt_tape_fast = xroar_opt_tape_fast ? TAPE_FAST : 0;
 	xroar_opt_tape_pad = xroar_opt_tape_pad ? TAPE_PAD : 0;
 	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
+	xroar_opt_disk_write_back = xroar_opt_disk_write_back ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
 
 	alloc_cart_status();
 
