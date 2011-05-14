@@ -31,10 +31,12 @@
 #include "sam.h"
 #include "tape.h"
 #include "vdg.h"
+#include "vdrive.h"
 #include "xroar.h"
 
 #include "gtk2/top_window_glade.h"
 #include "gtk2/tapecontrol_glade.h"
+#include "gtk2/drivecontrol_glade.h"
 
 static int init(void);
 static void shutdown(void);
@@ -65,6 +67,10 @@ static void fast_sound_changed_cb(int fast);
 static void input_tape_filename_cb(const char *filename);
 static void output_tape_filename_cb(const char *filename);
 static void update_tape_state(int flags);
+static void update_drive_disk(int drive, struct vdisk *disk);
+static void update_drive_write_enable(int drive, int write_enable);
+static void update_drive_write_back(int drive, int write_back);
+static void update_drive_cyl_head(int drive, int cyl, int head);
 
 UIModule ui_gtk2_module = {
 	.common = { .name = "gtk2", .description = "GTK+-2 user-interface",
@@ -80,6 +86,9 @@ UIModule ui_gtk2_module = {
 	.input_tape_filename_cb = input_tape_filename_cb,
 	.output_tape_filename_cb = output_tape_filename_cb,
 	.update_tape_state = update_tape_state,
+	.update_drive_disk = update_drive_disk,
+	.update_drive_write_enable = update_drive_write_enable,
+	.update_drive_write_back = update_drive_write_back,
 };
 
 /* UI events */
@@ -116,6 +125,20 @@ static int run_cpu(void *data);
 /* Helpers */
 static char *escape_underscores(const char *str);
 
+/* Drive control widgets */
+static GtkWidget *dc_window = NULL;
+static GtkWidget *dc_filename_drive[4] = { NULL, NULL, NULL, NULL };
+static GtkToggleButton *dc_we_drive[4] = { NULL, NULL, NULL, NULL };
+static GtkToggleButton *dc_wb_drive[4] = { NULL, NULL, NULL, NULL };
+static GtkWidget *dc_drive_cyl_head = NULL;
+
+static void create_dc_window(void);
+static void toggle_dc_window(GtkToggleAction *current, gpointer user_data);
+static void hide_dc_window(void);
+static void dc_insert(GtkButton *button, gpointer user_data);
+static void dc_eject(GtkButton *button, gpointer user_data);
+
+/* Tape control widgets */
 static GtkWidget *tc_window = NULL;
 static GtkWidget *tc_input_filename = NULL;
 static GtkWidget *tc_output_filename = NULL;
@@ -167,7 +190,7 @@ static void insert_disk(int drive) {
 		drive = gtk_combo_box_get_active(GTK_COMBO_BOX(drive_combo));
 		if (drive < 0 || drive > 3) drive = 0;
 		if (filename) {
-			xroar_insert_disk_file(filename, drive);
+			xroar_insert_disk_file(drive, filename);
 			g_free(filename);
 		}
 	}
@@ -339,6 +362,7 @@ static const gchar *ui =
 	    "</menu>"
 	    "<menu name='ToolMenu' action='ToolMenuAction'>"
 	      "<menuitem name='TranslateKeyboard' action='TranslateKeyboardAction'/>"
+	      "<menuitem name='DriveControl' action='DriveControlAction'/>"
 	      "<menuitem name='TapeControl' action='TapeControlAction'/>"
 	      "<menuitem name='FastSound' action='FastSoundAction'/>"
 	    "</menu>"
@@ -423,6 +447,9 @@ static GtkToggleActionEntry ui_toggles[] = {
 	{ .name = "TranslateKeyboardAction", .label = "_Keyboard Translation",
 	  .accelerator = "<control>Z",
 	  .callback = G_CALLBACK(toggle_keyboard_translation) },
+	{ .name = "DriveControlAction", .label = "_Drive Control",
+	  .accelerator = "<control>D",
+	  .callback = G_CALLBACK(toggle_dc_window) },
 	{ .name = "TapeControlAction", .label = "_Tape Control",
 	  .accelerator = "<control>T",
 	  .callback = G_CALLBACK(toggle_tc_window) },
@@ -523,6 +550,9 @@ static int init(void) {
 
 	gtk_builder_connect_signals(builder, NULL);
 	g_object_unref(builder);
+
+	/* Create (hidden) drive control window */
+	create_dc_window();
 
 	/* Create (hidden) tape control window */
 	create_tc_window();
@@ -740,6 +770,129 @@ static char *escape_underscores(const char *str) {
 	return ret_str;
 }
 
+/* Drive control */
+
+static void create_dc_window(void) {
+	GtkBuilder *builder;
+	GtkWidget *widget;
+	GError *error = NULL;
+	builder = gtk_builder_new();
+	if (!gtk_builder_add_from_string(builder, drivecontrol_glade, -1, &error)) {
+		g_warning("Couldn't create UI: %s", error->message);
+		g_error_free(error);
+		return;
+	}
+
+	/* Extract UI elements modified elsewhere */
+	dc_window = GTK_WIDGET(gtk_builder_get_object(builder, "dc_window"));
+	dc_filename_drive[0] = GTK_WIDGET(gtk_builder_get_object(builder, "filename_drive1"));
+	dc_filename_drive[1] = GTK_WIDGET(gtk_builder_get_object(builder, "filename_drive2"));
+	dc_filename_drive[2] = GTK_WIDGET(gtk_builder_get_object(builder, "filename_drive3"));
+	dc_filename_drive[3] = GTK_WIDGET(gtk_builder_get_object(builder, "filename_drive4"));
+	dc_we_drive[0] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "we_drive1"));
+	dc_we_drive[1] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "we_drive2"));
+	dc_we_drive[2] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "we_drive3"));
+	dc_we_drive[3] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "we_drive4"));
+	dc_wb_drive[0] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "wb_drive1"));
+	dc_wb_drive[1] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "wb_drive2"));
+	dc_wb_drive[2] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "wb_drive3"));
+	dc_wb_drive[3] = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "wb_drive4"));
+	dc_drive_cyl_head = GTK_WIDGET(gtk_builder_get_object(builder, "drive_cyl_head"));
+
+	/* Connect signals */
+	g_signal_connect(dc_window, "delete-event", G_CALLBACK(hide_dc_window), NULL);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive1"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)0);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive2"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)1);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive3"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)2);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive4"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)3);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive1"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)0);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive2"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)1);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive3"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)2);
+	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive4"));
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)3);
+
+	/* In case any signals remain... */
+	gtk_builder_connect_signals(builder, NULL);
+	g_object_unref(builder);
+
+	vdrive_update_drive_cyl_head = update_drive_cyl_head;
+}
+
+/* Drive Control - Signal Handlers */
+
+static void toggle_dc_window(GtkToggleAction *current, gpointer user_data) {
+	gboolean val = gtk_toggle_action_get_active(current);
+	(void)user_data;
+	if (val) {
+		gtk_widget_show(dc_window);
+	} else {
+		gtk_widget_hide(dc_window);
+	}
+}
+
+static void hide_dc_window(void) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ToolMenu/DriveControl");
+	gtk_toggle_action_set_active(toggle, 0);
+}
+
+static void dc_insert(GtkButton *button, gpointer user_data) {
+	int drive = (int)user_data;
+	(void)button;
+	xroar_insert_disk(drive);
+}
+
+static void dc_eject(GtkButton *button, gpointer user_data) {
+	int drive = (int)user_data;
+	(void)button;
+	xroar_eject_disk(drive);
+}
+
+/* Drive Control - UI callbacks */
+
+static void update_drive_disk(int drive, struct vdisk *disk) {
+	if (drive < 0 || drive > 3)
+		return;
+	char *filename = NULL;
+	int we = 1, wb = 0;
+	if (disk) {
+		filename = disk->filename;
+		we = (disk->write_protect == VDISK_WRITE_ENABLE);
+		wb = (disk->file_write_protect == VDISK_WRITE_ENABLE);
+	}
+	gtk_label_set_text(GTK_LABEL(dc_filename_drive[drive]), filename);
+	update_drive_write_enable(drive, we);
+	update_drive_write_back(drive, wb);
+}
+
+static void update_drive_write_enable(int drive, int write_enable) {
+	if (drive >= 0 && drive <= 3) {
+		if (write_enable >= 0) {
+			gtk_toggle_button_set_active(dc_we_drive[drive], write_enable ? TRUE : FALSE);
+		}
+	}
+}
+
+static void update_drive_write_back(int drive, int write_back) {
+	if (drive >= 0 && drive <= 3) {
+		if (write_back >= 0) {
+			gtk_toggle_button_set_active(dc_wb_drive[drive], write_back ? TRUE : FALSE);
+		}
+	}
+}
+
+static void update_drive_cyl_head(int drive, int cyl, int head) {
+	char string[16];
+	snprintf(string, sizeof(string), "Dr %01d Tr %02d He %01d", drive + 1, cyl, head);
+	gtk_label_set_text(GTK_LABEL(dc_drive_cyl_head), string);
+}
+
 /* Tape control window */
 
 static gchar *ms_to_string(int ms);
@@ -769,6 +922,8 @@ static void tc_toggled_pad(GtkToggleButton *togglebutton, gpointer user_data);
 static void tc_toggled_rewrite(GtkToggleButton *togglebutton, gpointer user_data);
 static gboolean tc_input_progress_change(GtkRange *range, GtkScrollType scroll, gdouble value, gpointer user_data);
 static gboolean tc_output_progress_change(GtkRange *range, GtkScrollType scroll, gdouble value, gpointer user_data);
+
+/* Tape control */
 
 static void create_tc_window(void) {
 	GtkBuilder *builder;

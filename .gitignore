@@ -34,6 +34,7 @@ doc/xroar.info
 doc/xroar.pdf
 doc/xroar.html
 doc/xroar.txt
+gtk2/drivecontrol_glade.h
 ## software images that might be left around
 *.cas
 *.vdk
