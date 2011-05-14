@@ -44,9 +44,11 @@ int vdrive_ready;
 int vdrive_tr00;
 int vdrive_index_pulse;
 int vdrive_write_protect;
+void (*vdrive_update_drive_cyl_head)(int drive, int cyl, int head) = NULL;
 
 static struct drive_data drives[MAX_DRIVES], *current_drive;
 static int cur_direction;
+static int cur_drive_number;
 static unsigned int cur_side;
 static unsigned int cur_density;
 static int head_incr;  /* bytes per write - 2 in SD, 1 in DD */
@@ -121,6 +123,32 @@ struct vdisk *vdrive_disk_in_drive(int drive) {
 	return drives[drive].disk;
 }
 
+int vdrive_set_write_enable(int drive, int action) {
+	struct vdisk *disk = vdrive_disk_in_drive(drive);
+	if (!disk) return -1;
+	int new_we = (disk->write_protect == VDISK_WRITE_ENABLE);
+	if (action < 0) {
+		new_we = !new_we;
+	} else {
+		new_we = action ? 1 : 0;
+	}
+	disk->write_protect = new_we ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
+	return new_we;
+}
+
+int vdrive_set_write_back(int drive, int action) {
+	struct vdisk *disk = vdrive_disk_in_drive(drive);
+	if (!disk) return -1;
+	int new_wb = (disk->file_write_protect == VDISK_WRITE_ENABLE);
+	if (action < 0) {
+		new_wb = !new_wb;
+	} else {
+		new_wb = action ? 1 : 0;
+	}
+	disk->write_protect = new_wb ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
+	return new_wb;
+}
+
 unsigned int vdrive_head_pos(void) {
 	return head_pos;
 }
@@ -148,6 +176,9 @@ static void update_signals(void) {
 	assert(current_drive);
 	vdrive_ready = current_drive->disk_present;
 	vdrive_tr00 = (current_drive->current_track == 0) ? 1 : 0;
+	if (vdrive_update_drive_cyl_head) {
+		vdrive_update_drive_cyl_head(cur_drive_number, current_drive->current_track, cur_side);
+	}
 	if (!vdrive_ready) {
 		vdrive_write_protect = VDISK_WRITE_ENABLE;
 		track_base = NULL;
@@ -172,6 +203,7 @@ static void update_signals(void) {
 /* Drive select */
 void vdrive_set_drive(int drive) {
 	if (drive < 0 || drive >= MAX_DRIVES) return;
+	cur_drive_number = drive;
 	current_drive = &drives[drive];
 	update_signals();
 }

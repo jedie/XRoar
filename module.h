@@ -6,6 +6,8 @@
 #ifndef XROAR_MODULE_H_
 #define XROAR_MODULE_H_
 
+struct vdisk;
+
 typedef struct {
 	const char *name;
 	const char *description;
@@ -69,6 +71,9 @@ typedef struct {
 	void (*input_tape_filename_cb)(const char *filename);
 	void (*output_tape_filename_cb)(const char *filename);
 	void (*update_tape_state)(int flags);  /* flag bits from tape.h */
+	void (*update_drive_disk)(int drive, struct vdisk *disk);
+	void (*update_drive_write_enable)(int drive, int write_enable);
+	void (*update_drive_write_back)(int drive, int write_back);
 } UIModule;
 
 typedef union {

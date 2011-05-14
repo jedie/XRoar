@@ -26,6 +26,7 @@ extern int vdrive_ready;
 extern int vdrive_tr00;
 extern int vdrive_index_pulse;
 extern int vdrive_write_protect;
+extern void (*vdrive_update_drive_cyl_head)(int drive, int cyl, int head);
 
 void vdrive_init(void);
 void vdrive_shutdown(void);
@@ -33,6 +34,8 @@ void vdrive_shutdown(void);
 int vdrive_insert_disk(int drive, struct vdisk *disk);
 int vdrive_eject_disk(int drive);
 struct vdisk *vdrive_disk_in_drive(int drive);
+int vdrive_set_write_enable(int drive, int action);
+int vdrive_set_write_back(int drive, int action);
 
 unsigned int vdrive_head_pos(void);
 

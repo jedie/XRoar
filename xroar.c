@@ -811,14 +811,12 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 		case FILETYPE_VDK:
 		case FILETYPE_JVC:
 		case FILETYPE_DMK:
-			vdrive_eject_disk(0);
-			if (vdrive_insert_disk(0, vdisk_load(filename)) == 0) {
-				if (autorun) {
-					if (IS_DRAGON) {
-						keyboard_queue_string("\033BOOT\r");
-					} else {
-						keyboard_queue_string("\033DOS\r");
-					}
+			xroar_insert_disk_file(0, filename);
+			if (autorun && vdrive_disk_in_drive(0)) {
+				if (IS_DRAGON) {
+					keyboard_queue_string("\033BOOT\r");
+				} else {
+					keyboard_queue_string("\033DOS\r");
 				}
 				return 0;
 			}
@@ -926,7 +924,7 @@ void xroar_new_disk(int drive) {
 	if (filename == NULL)
 		return;
 	int filetype = xroar_filetype_by_ext(filename);
-	vdrive_eject_disk(drive);
+	xroar_eject_disk(drive);
 	/* Default to 40T 1H.  XXX: need interface to select */
 	struct vdisk *new_disk = vdisk_blank_disk(1, 40, VDISK_LENGTH_5_25);
 	if (new_disk == NULL)
@@ -945,43 +943,63 @@ void xroar_new_disk(int drive) {
 	new_disk->filename = strdup(filename);
 	new_disk->file_write_protect = VDISK_WRITE_ENABLE;
 	vdrive_insert_disk(drive, new_disk);
+	if (ui_module && ui_module->update_drive_disk) {
+		ui_module->update_drive_disk(drive, new_disk);
+	}
 }
 
-void xroar_insert_disk_file(const char *filename, int drive) {
-	if (filename) {
-		vdrive_eject_disk(drive);
-		vdrive_insert_disk(drive, vdisk_load(filename));
+void xroar_insert_disk_file(int drive, const char *filename) {
+	if (!filename) return;
+	struct vdisk *disk = vdisk_load(filename);
+	vdrive_insert_disk(drive, disk);
+	if (ui_module && ui_module->update_drive_disk) {
+		ui_module->update_drive_disk(drive, disk);
 	}
 }
 
 void xroar_insert_disk(int drive) {
 	char *filename = filereq_module->load_filename(xroar_disk_exts);
-	xroar_insert_disk_file(filename, drive);
+	xroar_insert_disk_file(drive, filename);
 }
 
-void xroar_toggle_write_back(int drive) {
-	struct vdisk *disk = vdrive_disk_in_drive(drive);
-	if (disk != NULL) {
-		if (disk->file_write_protect == VDISK_WRITE_ENABLE) {
-			disk->file_write_protect = VDISK_WRITE_PROTECT;
-			LOG_DEBUG(2, "Write back disallowed for disk in drive %d.\n", drive);
-		} else {
-			disk->file_write_protect = VDISK_WRITE_ENABLE;
-			LOG_DEBUG(2, "Write back allowed for disk in drive %d.\n", drive);
-		}
+void xroar_eject_disk(int drive) {
+	vdrive_eject_disk(drive);
+	if (ui_module && ui_module->update_drive_disk) {
+		ui_module->update_drive_disk(drive, NULL);
 	}
 }
 
-void xroar_toggle_write_protect(int drive) {
-	struct vdisk *disk = vdrive_disk_in_drive(drive);
-	if (disk != NULL) {
-		if (disk->write_protect == VDISK_WRITE_ENABLE) {
-			disk->write_protect = VDISK_WRITE_PROTECT;
-			LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
-		} else {
-			disk->write_protect = VDISK_WRITE_ENABLE;
-			LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
-		}
+int xroar_set_write_enable(int drive, int action) {
+	int we = vdrive_set_write_enable(drive, action);
+	if (we > 0) {
+		LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
+	} else if (we == 0) {
+		LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
+	}
+	return we;
+}
+
+void xroar_select_write_enable(int drive, int action) {
+	int we = xroar_set_write_enable(drive, action);
+	if (ui_module && ui_module->update_drive_write_enable) {
+		ui_module->update_drive_write_enable(drive, we);
+	}
+}
+
+int xroar_set_write_back(int drive, int action) {
+	int wb = vdrive_set_write_back(drive, action);
+	if (wb > 0) {
+		LOG_DEBUG(2, "Write back enabled for disk in drive %d.\n", drive);
+	} else if (wb == 0) {
+		LOG_DEBUG(2, "Write back disabled for disk in drive %d.\n", drive);
+	}
+	return wb;
+}
+
+void xroar_select_write_back(int drive, int action) {
+	int wb = xroar_set_write_back(drive, action);
+	if (wb >= 0 && ui_module && ui_module->update_drive_write_back) {
+		ui_module->update_drive_write_back(drive, wb);
 	}
 }
 
