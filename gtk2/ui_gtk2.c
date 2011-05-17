@@ -804,19 +804,19 @@ static void create_dc_window(void) {
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive1"));
 	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)0);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive2"));
-	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)1);
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)0 + 1);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive3"));
-	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)2);
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)0 + 2);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive4"));
-	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)3);
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)0 + 3);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive1"));
-	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)0);
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)0 + 0);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive2"));
-	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)1);
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)0 + 1);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive3"));
-	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)2);
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)0 + 2);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "insert_drive4"));
-	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)3);
+	g_signal_connect(widget, "clicked", G_CALLBACK(dc_insert), (gpointer)0 + 3);
 
 	/* In case any signals remain... */
 	gtk_builder_connect_signals(builder, NULL);
@@ -843,13 +843,13 @@ static void hide_dc_window(void) {
 }
 
 static void dc_insert(GtkButton *button, gpointer user_data) {
-	int drive = (int)user_data;
+	int drive = user_data - (gpointer)0;
 	(void)button;
 	xroar_insert_disk(drive);
 }
 
 static void dc_eject(GtkButton *button, gpointer user_data) {
-	int drive = (int)user_data;
+	int drive = user_data - (gpointer)0;
 	(void)button;
 	xroar_eject_disk(drive);
 }
