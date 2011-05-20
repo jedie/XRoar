@@ -314,7 +314,12 @@ int tape_open_reading(const char *filename) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
-
+		break;
+	case FILETYPE_ASC:
+		if ((tape_input = tape_asc_open(filename, FS_READ)) == NULL) {
+			LOG_WARN("Failed to open '%s'\n", filename);
+			return -1;
+		}
 		break;
 	default:
 #ifdef HAVE_SNDFILE

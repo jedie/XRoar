@@ -83,6 +83,7 @@ void tape_seek_to_file(struct tape *t, struct tape_file *f);
 
 /* Module-specific open() calls */
 struct tape *tape_cas_open(const char *filename, int mode);
+struct tape *tape_asc_open(const char *filename, int mode);
 struct tape *tape_sndfile_open(const char *filename, int mode);
 
 /* Only to be used by tape modules */

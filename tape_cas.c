@@ -31,6 +31,11 @@ struct tape_cas {
 	int bit;   /* current input bit */
 	int bit_index;  /* 0-7, next bit to be read */
 	int pulse_index;  /* 0-1, next pulse within bit */
+	/* ascii input specific: */
+	int is_ascii;
+	int ascii_blocks;
+	int ascii_last_block_size;
+	int ascii_sum;
 	/* output-specific: */
 	int output_sense;  /* 0 = negative, 1 = positive, -1 = not known */
 	int pulse_length;  /* current pulse */
@@ -59,7 +64,23 @@ struct tape_module tape_cas_module = {
 
 static void bit_out(struct tape_cas *cas, int bit);
 
-struct tape *tape_cas_open(const char *filename, int mode) {
+#define ASCII_LEADER (192)
+#define NAMEBLOCK_LENGTH (21)
+#define EOFBLOCK_LENGTH (6)
+
+static uint8_t ascii_name_block[NAMEBLOCK_LENGTH] = {
+	0x55, 0x3c, 0x00, 0x0f,
+	0x42, 0x41, 0x53, 0x49, 0x43, 0x20, 0x20, 0x20,  /* "BASIC   " */
+	0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
+	0xcf, 0x55
+};
+
+static uint8_t ascii_eof_block[EOFBLOCK_LENGTH] = {
+	0x55, 0x3c, 0xff, 0x00, 0xff, 0x55
+};
+
+static struct tape *do_tape_cas_open(const char *filename, int mode,
+                                     int is_ascii) {
 	struct tape *t;
 	struct tape_cas *cas;
 	int fd;
@@ -71,6 +92,7 @@ struct tape *tape_cas_open(const char *filename, int mode) {
 	t->data = cas;
 	/* initialise cas */
 	cas->fd = fd;
+	cas->is_ascii = is_ascii;
 	cas->output_sense = -1;
 	cas->pulse_length = cas->last_pulse_length = 0;
 	cas->leader_length = cas->leader_bits = 0;
@@ -79,6 +101,15 @@ struct tape *tape_cas_open(const char *filename, int mode) {
 	cas->pulse_index = 0;
 	/* find size */
 	long size = fs_lseek(cas->fd, 0, FS_SEEK_END);
+	if (is_ascii) {
+		cas->ascii_blocks = size / 255;
+		cas->ascii_last_block_size = size % 255;
+		cas->ascii_sum = 0;
+		size = ASCII_LEADER + NAMEBLOCK_LENGTH + cas->ascii_blocks * (ASCII_LEADER + 261) + ASCII_LEADER + EOFBLOCK_LENGTH;
+		if (cas->ascii_last_block_size > 0) {
+			size += ASCII_LEADER + cas->ascii_last_block_size + 6;
+		}
+	}
 	if (size >= 0) {
 		/* 3 bits offset into byte, 1 bit pulse index */
 		t->size = size << 4;
@@ -89,12 +120,78 @@ struct tape *tape_cas_open(const char *filename, int mode) {
 	return t;
 }
 
+struct tape *tape_cas_open(const char *filename, int mode) {
+	return do_tape_cas_open(filename, mode, 0);
+}
+
+struct tape *tape_asc_open(const char *filename, int mode) {
+	return do_tape_cas_open(filename, mode, 1);
+}
+
 static void cas_close(struct tape *t) {
 	struct tape_cas *cas = t->data;
 	cas_motor_off(t);
 	fs_close(cas->fd);
 	free(cas);
 	tape_free(t);
+}
+
+int read_byte(struct tape *t) {
+	struct tape_cas *cas = t->data;
+	if (!cas->is_ascii) return fs_read_uint8(cas->fd);
+	long byte_offset = t->offset >> 4;
+	if (byte_offset < ASCII_LEADER)
+		return 0x55;
+	byte_offset -= ASCII_LEADER;
+	if (byte_offset < NAMEBLOCK_LENGTH)
+		return ascii_name_block[byte_offset];
+	byte_offset -= NAMEBLOCK_LENGTH;
+	byte_offset -= ASCII_LEADER;
+	int block = byte_offset / (ASCII_LEADER + 261);
+	int block_size = 255;
+	if (block >= cas->ascii_blocks) {
+		block = cas->ascii_blocks;
+		block_size = cas->ascii_last_block_size;
+	}
+	byte_offset -= block * (ASCII_LEADER + 261);
+	if (block == cas->ascii_blocks && cas->ascii_last_block_size == 0) {
+		byte_offset += ASCII_LEADER + 6;
+	}
+	if (block == cas->ascii_blocks && byte_offset >= (block_size + ASCII_LEADER + 6)) {
+		byte_offset -= (block_size + ASCII_LEADER + 6);
+		if (byte_offset < ASCII_LEADER)
+			return 0x55;
+		byte_offset -= ASCII_LEADER;
+		if (byte_offset >= EOFBLOCK_LENGTH)
+			return -1;
+		return ascii_eof_block[byte_offset];
+	}
+	if (byte_offset < ASCII_LEADER)
+		return 0x55;
+	byte_offset -= ASCII_LEADER;
+	if (byte_offset == 0)
+		return 0x55;
+	if (byte_offset == 1)
+		return 0x3c;
+	if (byte_offset == 2) {
+		cas->ascii_sum = 0x01;
+		return 0x01;
+	}
+	if (byte_offset == 3) {
+		cas->ascii_sum += block_size;
+		return block_size;
+	}
+	byte_offset -= 4;
+	if (byte_offset < block_size) {
+		int byte = fs_read_uint8(cas->fd);
+		if (byte == 0x0a) byte = 0x0d;
+		cas->ascii_sum += byte;
+		return byte;
+	}
+	byte_offset -= block_size;
+	if (byte_offset == 0)
+		return cas->ascii_sum & 0xff;
+	return 0x55;
 }
 
 /* measures in number of pulses */
@@ -109,13 +206,31 @@ static int cas_seek(struct tape *t, long offset, int whence) {
 	} else if (whence == FS_SEEK_END) {
 		offset += t->size;
 	}
-	if (fs_lseek(cas->fd, offset >> 4, FS_SEEK_SET) == -1)
+	long seek_byte = offset >> 4;
+	if (cas->is_ascii) {
+		seek_byte -= ASCII_LEADER;
+		seek_byte -= NAMEBLOCK_LENGTH;
+		int block = seek_byte / (ASCII_LEADER + 261);
+		int block_offset = seek_byte - (block * (ASCII_LEADER + 261));
+		if (block_offset < 4) block_offset = 0;
+		if (block >= cas->ascii_blocks) {
+			if (block_offset > cas->ascii_last_block_size)
+				block_offset = cas->ascii_last_block_size;
+		} else {
+			if (block_offset > 255)
+				block_offset = 255;
+		}
+		seek_byte = (block * 255) + block_offset;
+		if (seek_byte < 0) seek_byte = 0;
+		if (seek_byte > (t->size >> 4)) seek_byte = (t->size >> 4);
+	}
+	if (fs_lseek(cas->fd, seek_byte, FS_SEEK_SET) == -1)
 		return -1;
 	t->offset = offset;
 	cas->bit_index = (offset >> 1) & 7;
 	cas->pulse_index = offset & 1;
 	if (cas->bit_index != 0 || cas->pulse_index != 0) {
-		cas->byte = fs_read_uint8(cas->fd);
+		cas->byte = read_byte(t);
 		cas->bit = (cas->byte & (1 << cas->bit_index)) ? 1 : 0;
 	}
 	return 0;
@@ -138,7 +253,7 @@ static int cas_pulse_in(struct tape *t, int *pulse_width) {
 	struct tape_cas *cas = t->data;
 	if (cas->pulse_index == 0) {
 		if (cas->bit_index == 0) {
-			cas->byte = fs_read_uint8(cas->fd);
+			cas->byte = read_byte(t);
 			if (cas->byte == -1) return -1;
 		}
 		cas->bit = (cas->byte >> cas->bit_index) & 1;
