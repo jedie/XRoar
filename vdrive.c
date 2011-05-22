@@ -145,7 +145,7 @@ int vdrive_set_write_back(int drive, int action) {
 	} else {
 		new_wb = action ? 1 : 0;
 	}
-	disk->write_protect = new_wb ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
+	disk->file_write_protect = new_wb ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
 	return new_wb;
 }
 
