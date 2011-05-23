@@ -13,8 +13,10 @@ struct vdg_colour {
 struct vdg_palette {
 	char *name;
 	char *description;
-	float black_y;
-	float scale_y;
+	float blank_y;
+	float white_y;
+	float black_level;
+	float rgb_black_level;
 	struct vdg_colour palette[12];
 };
 

@@ -28,8 +28,10 @@ static struct vdg_palette palette_templates[] = {
 	{
 		.name = "ideal",
 		.description = "Typical values from VDG data sheet",
-		.black_y = 0.72,
-		.scale_y = 3.33,
+		.blank_y = 0.77,
+		.white_y = 0.42,
+		.black_level = 0.,
+		.rgb_black_level = 0.,
 		.palette = {
 			{ .y = 0.54, .chb = 1.50, .b = 1.00, .a = 1.00 },
 			{ .y = 0.42, .chb = 1.50, .b = 1.00, .a = 1.50 },
@@ -50,8 +52,9 @@ static struct vdg_palette palette_templates[] = {
 	{
 		.name = "dragon64",
 		.description = "Measured from a real Dragon 64",
-		.black_y = 0.64,
-		.scale_y = 4.00,
+		.blank_y = 0.69,  /* XXX remeasure */
+		.white_y = 0.39,
+		.black_level = 0.,
 		.palette = {
 			{ .y = 0.49, .chb = 1.38, .b = 0.82, .a = 0.89 },
 			{ .y = 0.39, .chb = 1.38, .b = 0.82, .a = 1.38 },
@@ -72,8 +75,9 @@ static struct vdg_palette palette_templates[] = {
 	{
 		.name = "tano",
 		.description = "Measured from a real Tano Dragon",
-		.black_y = 0.70,
-		.scale_y = 3.33,
+		.blank_y = 0.75,  /* XXX remeasure */
+		.white_y = 0.40,
+		.black_level = 0.,
 		.palette = {
 			{ .y = 0.52, .chb = 1.50, .b = 1.02, .a = 1.02 },
 			{ .y = 0.40, .chb = 1.50, .b = 1.02, .a = 1.50 },
@@ -94,8 +98,9 @@ static struct vdg_palette palette_templates[] = {
 	{
 		.name = "d64-2",
 		.description = "Measured from a(nother) real Dragon 64",
-		.black_y = 0.69,
-		.scale_y = 4.00,
+		.blank_y = 0.74,  /* XXX remeasure */
+		.white_y = 0.44,
+		.black_level = 0.,
 		.palette = {
 			{ .y = 0.53, .chb = 1.42, .b = 0.90, .a = 0.95 },
 			{ .y = 0.44, .chb = 1.42, .b = 0.90, .a = 1.41 },
@@ -116,8 +121,9 @@ static struct vdg_palette palette_templates[] = {
 	{
 		.name = "d64-3",
 		.description = "Measured from a(nother) real Dragon 64",
-		.black_y = 0.69,
-		.scale_y = 3.85,
+		.blank_y = 0.74,  /* XXX remeasure */
+		.white_y = 0.44,
+		.black_level = 0.,
 		.palette = {
 			{ .y = 0.53, .chb = 1.42, .b = 0.90, .a = 0.95 },
 			{ .y = 0.43, .chb = 1.42, .b = 0.90, .a = 1.41 },
@@ -170,16 +176,17 @@ struct vdg_palette *vdg_palette_by_name(const char *name) {
 /* Map Y'U'V' from palette to pixel value */
 void vdg_palette_RGB(struct vdg_palette *vp, int is_pal, int colour,
                      float *Rout, float *Gout, float *Bout) {
-	float scale_y = vp->scale_y;
-	float black_y = vp->black_y;
+	float blank_y = vp->blank_y;
+	float white_y = vp->white_y;
+	float black_level = vp->black_level;
+	float rgb_black_level = vp->rgb_black_level;
 	float y = vp->palette[colour].y;
 	float chb = vp->palette[colour].chb;
 	float b_y = vp->palette[colour].b - chb;
 	float r_y = vp->palette[colour].a - chb;
 
-	y = (black_y - y) * scale_y;
-	if (y < 0.0) y = 0.0;
-	if (y > 1.0) y = 1.0;
+	float scale_y = 1. / (blank_y - white_y);
+	y = black_level + (blank_y - y) * scale_y;
 
 	float r, g, b;
 	float mlaw;
@@ -217,6 +224,9 @@ void vdg_palette_RGB(struct vdg_palette *vp, int is_pal, int colour,
 	} else {
 		*Bout = powf((b+0.099)/(1.+0.099), mlaw);
 	}
+	*Rout += rgb_black_level;
+	*Gout += rgb_black_level;
+	*Bout += rgb_black_level;
 
 	if (*Rout < 0.0) *Rout = 0.0; if (*Rout > 1.0) *Rout = 1.0;
 	if (*Gout < 0.0) *Gout = 0.0; if (*Gout > 1.0) *Gout = 1.0;
