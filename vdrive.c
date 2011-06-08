@@ -237,7 +237,7 @@ void vdrive_write(unsigned int data) {
 	data &= 0xff;
 	for (i = head_incr; i; i--) {
 		int j;
-		if (head_pos < current_drive->disk->track_length) {
+		if (track_base && head_pos < current_drive->disk->track_length) {
 			track_base[head_pos] = data;
 			for (j = 0; j < 64; j++) {
 				if (head_pos == (unsigned)(idamptr[j] & 0x3fff)) {
@@ -265,7 +265,7 @@ void vdrive_skip(void) {
 unsigned int vdrive_read(void) {
 	unsigned int ret = 0;
 	if (!vdrive_ready) return 0;
-	if (head_pos < current_drive->disk->track_length) {
+	if (track_base && head_pos < current_drive->disk->track_length) {
 		ret = track_base[head_pos] & 0xff;
 	}
 	head_pos += head_incr;
@@ -280,7 +280,7 @@ unsigned int vdrive_read(void) {
 
 void vdrive_write_idam(void) {
 	int i;
-	if ((head_pos+head_incr) < current_drive->disk->track_length) {
+	if (track_base && (head_pos+head_incr) < current_drive->disk->track_length) {
 		/* Write 0xfe and remove old IDAM ptr if it exists */
 		for (i = 0; i < 64; i++) {
 			int j;
