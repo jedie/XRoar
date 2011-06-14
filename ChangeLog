@@ -1,10 +1,11 @@
-Version 0.25, unreleased
+Version 0.25, Sat Jun 18 2011
 
   * New GTK+2 user-interface.
   * New GtkGLExt video module.
   * Fixed initial TV type bug.
   * Handle >1 channel in tape audio files.
-  * New options: -volume, -ao-rate, -kbd-translate.
+  * New audio options: -ao-rate, -ao-buffer-ms, -ao-buffer-samples, -volume.
+  * New options: -kbd-translate, -disk-write-back.
   * New PulseAudio sound module.
   * New Linux joystick module.
   * CPU emulation accuracy improved [from doc by Darren Atkinson]
@@ -13,9 +14,8 @@ Version 0.25, unreleased
   * Fixed some CPU timings.
   * Dragon 64 IRQ vector fix.
   * Added ability to print to file or pipe.
-  * TODO: flesh out ui_gtk2.
-  * TODO: document new GTK stuff.
-  * TODO: tape control interface
+  * Ability to define new machines or cartridges.
+  * Fixed crash bug accessing non-existent disk side 2.
 
 Version 0.24, Wed Sep  8 2010
 
