@@ -58,9 +58,9 @@ static struct cart_config *rom_cart_config = NULL;
 /* ---------------------------------------------------------------------- */
 
 static const char *dragondos_roms[] = {
-	"dplus49b", "dplus48", "DOSPLUS",
+	"dplus49b", "dplus48", "dosplus-4.8", "DOSPLUS",
 	"sdose6", "PNP - SuperDOS E6", "sdose5", "sdose4",
-	"ddos40", "ddos15", "ddos10",
+	"ddos40", "ddos15", "ddos10", "Dragon Data Ltd - DragonDOS 1.0",
 	"cdos20", "CDOS20",
 	NULL
 };
