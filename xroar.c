@@ -555,6 +555,9 @@ int xroar_init(int argc, char **argv) {
 	}
 	/* Finish any machine or cart config on command line */
 	set_machine(NULL);
+	if (!xroar_cart_config) {
+		xroar_cart_config = cart_find_working_dos(xroar_machine_config);
+	}
 	set_cart(NULL);
 
 	/* Select a UI module then, possibly using lists specified in that
