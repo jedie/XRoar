@@ -94,7 +94,16 @@ static int init(void) {
 		goto failed;
 
 	snd_pcm_hw_params_get_period_size(hw_params, &frame_size, NULL);
-	snd_pcm_uframes_t buffer_size = frame_size * 2;
+
+	snd_pcm_uframes_t buffer_size;
+	if (xroar_opt_ao_buffer_ms > 0) {
+		buffer_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
+	} else if (xroar_opt_ao_buffer_samples > 0) {
+		buffer_size = xroar_opt_ao_buffer_samples;
+	} else {
+		buffer_size = frame_size * 2;
+	}
+
 	snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_size);
 
 	if ((err = snd_pcm_hw_params(pcm_handle, hw_params)) < 0)
@@ -121,7 +130,8 @@ static int init(void) {
 		case 2: LOG_DEBUG(2, "stereo, "); break;
 		default: LOG_DEBUG(2, "%d channel, ", channels); break;
 	}
-	LOG_DEBUG(2, "%dHz\n", sample_rate);
+	LOG_DEBUG(2, "%dHz, ", sample_rate);
+	LOG_DEBUG(2, "%ldms (%ld samples) buffer\n", (buffer_size * 1000) / sample_rate, buffer_size);
 
 	sample_cycles = OSCILLATOR_RATE / sample_rate;
 	frame_cycles = sample_cycles * frame_size;
