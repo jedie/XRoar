@@ -95,6 +95,8 @@ char *xroar_opt_geometry = NULL;
 int xroar_opt_gl_filter = ANY_AUTO;
 static const char *opt_ao = NULL;
 int xroar_opt_ao_rate = 0;
+int xroar_opt_ao_buffer_ms = 0;
+int xroar_opt_ao_buffer_samples = 0;
 int xroar_opt_volume = 100;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
@@ -212,6 +214,8 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_ENUM  ( "gl-filter",     &xroar_opt_gl_filter, gl_filter_list ),
 	XC_OPT_STRING( "ao",            &opt_ao ),
 	XC_OPT_INT   ( "ao-rate",       &xroar_opt_ao_rate ),
+	XC_OPT_INT   ( "ao-buffer-ms",  &xroar_opt_ao_buffer_ms ),
+	XC_OPT_INT   ( "ao-buffer-samples", &xroar_opt_ao_buffer_samples ),
 	XC_OPT_INT   ( "volume",        &xroar_opt_volume ),
 #ifndef FAST_SOUND
 	XC_OPT_BOOL  ( "fast-sound",    &xroar_fast_sound ),
@@ -479,7 +483,9 @@ static void helptext(void) {
 "  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
 #endif
 "  -ao MODULE            audio module (-ao help for list)\n"
-"  -ao-rate HZ           set audio sample rate (if allowed by module)\n"
+"  -ao-rate HZ           set audio sample rate (if supported by module)\n"
+"  -ao-buffer-ms MS      set audio buffer size in ms (if supported)\n"
+"  -ao-buffer-samples N  set audio buffer size in samples (if supported)\n"
 "  -volume VOLUME        audio volume (0 - 100)\n"
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
