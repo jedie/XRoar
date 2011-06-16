@@ -102,17 +102,48 @@ static int init(void) {
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	if (ioctl(sound_fd, SNDCTL_DSP_SPEED, &sample_rate) == -1)
 		goto failed;
-	/* Set number of fragments low */
+
+
+	int fragments = 2;
+	int buffer_size;
+	if (xroar_opt_ao_buffer_ms > 0) {
+		buffer_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
+	} else if (xroar_opt_ao_buffer_samples > 0) {
+		buffer_size = xroar_opt_ao_buffer_samples;
+	} else {
+		buffer_size = 1024;
+	}
+	buffer_size *= bytes_per_sample * channels;
+	buffer_size /= fragments;
+	while (buffer_size > 65536) {
+		buffer_size >>= 1;
+		fragments *= 2;
+		if (buffer_size < 1 || fragments > 0x7fff) {
+			LOG_ERROR("Couldn't determine buffer size\n");
+			goto failed;
+		}
+	}
+
 	fragment_param = 0;
-	tmp = FRAME_SIZE * bytes_per_sample * channels;
-	while (tmp > 1) {
-		tmp >>= 1;
+	while (buffer_size > 1) {
+		buffer_size >>= 1;
 		fragment_param++;
 	}
-	fragment_param |= (FRAGMENTS << 16);
+	fragment_param |= (fragments << 16);
 	tmp = fragment_param;
 	if (ioctl(sound_fd, SNDCTL_DSP_SETFRAGMENT, &fragment_param) == -1)
 		goto failed;
+
+	int delay = 0;
+	if (ioctl(sound_fd, SNDCTL_DSP_GETODELAY, &delay) != -1) {
+		delay /= (channels * bytes_per_sample);
+	}
+	if (delay <= 0) {
+		audio_buf_info bi;
+		if (ioctl(sound_fd, SNDCTL_DSP_GETOSPACE, &bi) != -1) {
+			delay = bi.bytes / (channels * bytes_per_sample);
+		}
+	}
 
 	/* TODO: Need to abstract this logging out */
 	LOG_DEBUG(2, "\t");
@@ -128,7 +159,8 @@ static int init(void) {
 		case 2: LOG_DEBUG(2, "stereo, "); break;
 		default: LOG_DEBUG(2, "%d channel, ", channels); break;
 	}
-	LOG_DEBUG(2, "%dHz\n", sample_rate);
+	LOG_DEBUG(2, "%dHz, ", sample_rate);
+	LOG_DEBUG(2, "%dms (%d samples) buffer\n", (delay * 1000) / sample_rate, delay);
 
 	if (tmp != fragment_param)
 		LOG_WARN("Couldn't set desired buffer parameters: sync to audio might not be ideal\n");
