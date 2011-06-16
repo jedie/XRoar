@@ -47,12 +47,6 @@ SoundModule sound_sdl_module = {
 
 typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
 
-#ifdef WINDOWS32
-#define REQUEST_FRAME_SIZE 1024
-#else
-#define REQUEST_FRAME_SIZE 512
-#endif
-
 static int sample_cycles;
 static int frame_size;
 static int frame_cycles;
@@ -92,7 +86,13 @@ static int init(void) {
 	}
 	desired.freq = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	desired.format = AUDIO_U8;
-	desired.samples = REQUEST_FRAME_SIZE;
+	if (xroar_opt_ao_buffer_ms > 0) {
+		desired.samples = (desired.freq * xroar_opt_ao_buffer_ms) / 1000;
+	} else if (xroar_opt_ao_buffer_samples > 0) {
+		desired.samples = xroar_opt_ao_buffer_samples;
+	} else {
+		desired.samples = 1024;
+	}
 	desired.channels = 1;
 	desired.callback = callback;
 	desired.userdata = NULL;
@@ -119,7 +119,8 @@ static int init(void) {
 		case 2: LOG_DEBUG(2, "stereo, "); break;
 		default: LOG_DEBUG(2, "%d channel, ", audiospec.channels); break;
 	}
-	LOG_DEBUG(2, "%dHz\n", audiospec.freq);
+	LOG_DEBUG(2, "%dHz, ", audiospec.freq);
+	LOG_DEBUG(2, "%dms (%d samples) buffer\n", (audiospec.samples * 1000) / audiospec.freq, audiospec.samples);
 
 	if ((audiospec.format != AUDIO_U8 && audiospec.format != AUDIO_S8)
 	    || (audiospec.channels != 1)) {
