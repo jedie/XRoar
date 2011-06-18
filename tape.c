@@ -32,6 +32,7 @@
 #include "mc6821.h"
 #include "misc.h"
 #include "module.h"
+#include "sound.h"
 #include "tape.h"
 #include "xroar.h"
 
@@ -497,7 +498,7 @@ static void waggle_bit(void) {
 	default:
 	case -1:
 		tape_audio = 0;
-		machine_update_sound();
+		sound_update();
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
@@ -509,7 +510,7 @@ static void waggle_bit(void) {
 		tape_audio = 0x0f;
 		break;
 	}
-	machine_update_sound();
+	sound_update();
 	waggle_event.at_cycle += pulse_width;
 	event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 }

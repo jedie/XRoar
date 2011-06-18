@@ -42,6 +42,7 @@
 #include "path.h"
 #include "printer.h"
 #include "sam.h"
+#include "sound.h"
 #include "tape.h"
 #include "vdg.h"
 #include "vdrive.h"
@@ -292,43 +293,11 @@ void machine_config_complete(struct machine_config *mc) {
 
 /* ---------------------------------------------------------------------- */
 
-void machine_update_sound(void) {
-	int value;
-	if (!(PIA1.b.control_register & 0x08)) {
-		/* Single-bit sound */
-		value = (PIA1.b.port_output & 0x02) ? 0x3f : 0;
-	} else {
-		int source = ((PIA0.b.control_register & 0x08) >> 2)
-		             | ((PIA0.a.control_register & 0x08) >> 3);
-		switch (source) {
-			case 0:
-				/* DAC output */
-				value = (PIA1.a.port_output & 0xfc) >> 1;
-				break;
-			case 1:
-				/* Tape input */
-				value = tape_audio;
-				break;
-			default:
-				/* CART input or disabled */
-				value = 0;
-				break;
-		}
-	}
-#ifndef FAST_SOUND
-	if (value >= 0x4c)
-		PIA1.b.port_input |= 0x02;
-	else
-		PIA1.b.port_input &= 0xfd;
-#endif
-	sound_module->update((value * xroar_opt_volume) >> 8);
-}
-
 #define pia0a_data_postwrite keyboard_row_update
-#define pia0a_control_postwrite machine_update_sound
+#define pia0a_control_postwrite sound_update
 
 #define pia0b_data_postwrite keyboard_column_update
-#define pia0b_control_postwrite machine_update_sound
+#define pia0b_control_postwrite sound_update
 
 static void pia0b_data_postwrite_coco64k(void) {
 	keyboard_column_update();
@@ -342,7 +311,7 @@ static void pia0b_data_postwrite_coco64k(void) {
 # define pia1a_data_preread NULL
 
 static void pia1a_data_postwrite(void) {
-	machine_update_sound();
+	sound_update();
 	joystick_update();
 	tape_update_output();
 	if (IS_DRAGON)
@@ -355,10 +324,10 @@ static void pia1b_data_postwrite(void) {
 	if (IS_DRAGON64) {
 		sam_mapped_rom = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
 	}
-	machine_update_sound();
+	sound_update();
 	vdg_set_mode();
 }
-#define pia1b_control_postwrite machine_update_sound
+#define pia1b_control_postwrite sound_update
 
 void machine_init(void) {
 	sam_init();

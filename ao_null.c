@@ -16,11 +16,12 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 
-#include "config.h"
 #if defined(HAVE_SDL)
 #include <SDL.h>
 #else
@@ -31,19 +32,19 @@
 
 #include "types.h"
 #include "logging.h"
-#include "events.h"
 #include "machine.h"
 #include "module.h"
+#include "sound.h"
 #include "xroar.h"
 
 static int init(void);
 static void shutdown(void);
-static void update(int value);
+static void flush_frame(void);
 
 SoundModule sound_null_module = {
-	{ "null", "No audio",
-	  init, 0, shutdown },
-	update
+	.common = { .name = "null", .description = "No audio",
+		    .init = init, .shutdown = shutdown },
+	.flush_frame = flush_frame,
 };
 
 #define CYCLES_PER_MS (OSCILLATOR_RATE / 1000)
@@ -51,29 +52,18 @@ SoundModule sound_null_module = {
 static Cycle last_pause_cycle;
 static unsigned int last_pause_ms;
 
-static void flush_frame(void);
-static event_t *flush_event;
-
 static unsigned int current_time(void);
 static void sleep_ms(unsigned int ms);
 
 static int init(void) {
 	LOG_DEBUG(2,"Initialising null audio driver\n");
+	sound_init(44100, 1, SOUND_FMT_NULL, 1024);
 	last_pause_cycle = current_cycle;
 	last_pause_ms = current_time();
-	flush_event = event_new();
-	flush_event->dispatch = flush_frame;
-	flush_event->at_cycle = current_cycle + (10 * CYCLES_PER_MS);
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
 	return 0;
 }
 
 static void shutdown(void) {
-	event_free(flush_event);
-}
-
-static void update(int value) {
-	(void)value;
 }
 
 static unsigned int current_time(void) {
@@ -118,6 +108,4 @@ static void flush_frame(void) {
 			last_pause_cycle += difference_ms * CYCLES_PER_MS;
 		}
 	}
-	flush_event->at_cycle = current_cycle + (10 * CYCLES_PER_MS);
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
 }

@@ -39,6 +39,7 @@
 #include "printer.h"
 #include "sam.h"
 #include "snapshot.h"
+#include "sound.h"
 #include "tape.h"
 #include "vdg.h"
 #include "vdg_palette.h"
@@ -97,7 +98,7 @@ static const char *opt_ao = NULL;
 int xroar_opt_ao_rate = 0;
 int xroar_opt_ao_buffer_ms = 0;
 int xroar_opt_ao_buffer_samples = 0;
-int xroar_opt_volume = 100;
+static int xroar_opt_volume = 100;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
 #endif
@@ -607,13 +608,7 @@ int xroar_init(int argc, char **argv) {
 		load_file = strdup(argv[argn]);
 		autorun_loaded_file = 1;
 	}
-	if (xroar_opt_volume < 0) {
-		xroar_opt_volume = 0;
-	}
-	if (xroar_opt_volume > 100) {
-		xroar_opt_volume = 100;
-	}
-	xroar_opt_volume = (256 * xroar_opt_volume) / 100;
+	sound_set_volume(xroar_opt_volume);
 	xroar_opt_tape_fast = xroar_opt_tape_fast ? TAPE_FAST : 0;
 	xroar_opt_tape_pad = xroar_opt_tape_pad ? TAPE_PAD : 0;
 	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
