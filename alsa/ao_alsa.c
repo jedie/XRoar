@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -30,37 +32,23 @@
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
+#include "sound.h"
 #include "xroar.h"
 
 static int init(void);
 static void shutdown(void);
-static void update(int value);
+static void flush_frame(void);
 
 SoundModule sound_alsa_module = {
-	{ "alsa", "ALSA audio",
-	  init, 0, shutdown },
-	update
+	.common = { .name = "alsa", .description = "ALSA audio",
+		    .init = init, .shutdown = shutdown },
+	.flush_frame = flush_frame,
 };
 
-typedef uint8_t Sample;  /* 8-bit mono */
-
 static unsigned int sample_rate;
-unsigned int bytes_per_sample;
-
 static snd_pcm_t *pcm_handle;
-
-static Cycle frame_cycle_base;
-static int frame_cycle;
-static Sample *buffer;
-static Sample *wrptr;
-static Sample lastsample;
-
-static void flush_frame(void);
-static event_t *flush_event;
-
-static int sample_cycles;
+static uint8_t *buffer;
 static snd_pcm_uframes_t frame_size;
-static int frame_cycles;
 
 static int init(void) {
 	int err;
@@ -114,39 +102,19 @@ static int init(void) {
 	if ((err = snd_pcm_prepare(pcm_handle)) < 0)
 		goto failed;
 
-	/* TODO: Need to abstract this logging out */
-	LOG_DEBUG(2, "\t");
+	int request_fmt;
 	switch (format) {
-		case SND_PCM_FORMAT_S8: LOG_DEBUG(2, "8-bit signed, "); break;
-		case SND_PCM_FORMAT_U8: LOG_DEBUG(2, "8-bit unsigned, "); break;
-		case SND_PCM_FORMAT_S16_LE: LOG_DEBUG(2, "16-bit signed little-endian, "); break;
-		case SND_PCM_FORMAT_S16_BE: LOG_DEBUG(2, "16-bit signed big-endian, "); break;
-		case SND_PCM_FORMAT_U16_LE: LOG_DEBUG(2, "16-bit unsigned little-endian, "); break;
-		case SND_PCM_FORMAT_U16_BE: LOG_DEBUG(2, "16-bit unsigned big-endian, "); break;
-		default: LOG_DEBUG(2, "unknown, "); break;
+		case SND_PCM_FORMAT_S8: request_fmt = SOUND_FMT_S8; break;
+		case SND_PCM_FORMAT_U8: request_fmt = SOUND_FMT_U8; break;
+		case SND_PCM_FORMAT_S16_LE: request_fmt = SOUND_FMT_S16_LE; break;
+		case SND_PCM_FORMAT_S16_BE: request_fmt = SOUND_FMT_S16_BE; break;
+		default:
+			LOG_WARN("Unhandled audio format.");
+			goto failed;
 	}
-	switch (channels) {
-		case 1: LOG_DEBUG(2, "mono, "); break;
-		case 2: LOG_DEBUG(2, "stereo, "); break;
-		default: LOG_DEBUG(2, "%d channel, ", channels); break;
-	}
-	LOG_DEBUG(2, "%dHz, ", sample_rate);
-	LOG_DEBUG(2, "%ldms (%ld samples) buffer\n", (buffer_size * 1000) / sample_rate, buffer_size);
+	buffer = sound_init(sample_rate, 1, request_fmt, frame_size);
+	LOG_DEBUG(2, "\t%ldms (%ld samples) buffer\n", (buffer_size * 1000) / sample_rate, buffer_size);
 
-	sample_cycles = OSCILLATOR_RATE / sample_rate;
-	frame_cycles = sample_cycles * frame_size;
-
-	buffer = malloc(frame_size * sizeof(Sample));
-	flush_event = event_new();
-	flush_event->dispatch = flush_frame;
-
-	memset(buffer, 0x80, frame_size * sizeof(Sample));
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + frame_cycles;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0x80;
 	//snd_pcm_writei(pcm_handle, buffer, frame_size);
 	return 0;
 failed:
@@ -156,32 +124,10 @@ failed:
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down ALSA audio driver\n");
-	event_free(flush_event);
 	snd_pcm_close(pcm_handle);
-	free(buffer);
-}
-
-static void update(int value) {
-	int elapsed_cycles = current_cycle - frame_cycle_base;
-	if (elapsed_cycles >= frame_cycles) {
-		elapsed_cycles = frame_cycles;
-	}
-	while (frame_cycle < elapsed_cycles) {
-		*(wrptr++) = lastsample;
-		frame_cycle += sample_cycles;
-	}
-	lastsample = value ^ 0x80;
 }
 
 static void flush_frame(void) {
-	Sample *fill_to = buffer + frame_size;
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	frame_cycle_base += frame_cycles;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + frame_cycles;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	wrptr = buffer;
 	if (xroar_noratelimit)
 		return;
 	if (snd_pcm_writei(pcm_handle, buffer, frame_size) < 0) {
