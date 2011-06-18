@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -27,49 +29,35 @@
 #include <sys/stropts.h>
 
 #include "types.h"
-#include "events.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
+#include "sound.h"
 #include "xroar.h"
 
 static int init(void);
 static void shutdown(void);
-static void update(int value);
-
 static void flush_frame(void);
-static event_t *flush_event;
 
 SoundModule sound_sun_module = {
-	{ "sun", "Sun audio",
-	  init, 0, shutdown },
-	update
+	.common = { .name = "sun", .description = "Sun audio",
+		    .init = init, .shutdown = shutdown },
+	.flush_frame = flush_frame,
 };
 
 typedef uint8_t Sample;  /* 8-bit mono */
 
-#define CHANNELS 1
-#define FRAME_SIZE 512
-#define SAMPLE_CYCLES (OSCILLATOR_RATE / sample_rate)
-#define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
-
 static unsigned int sample_rate;
 static int sound_fd;
-static unsigned int channels = CHANNELS;
 static uint_t samples_written;
 
-static Cycle frame_cycle_base;
-static int frame_cycle;
-static Sample *buffer;
-static Sample *wrptr;
-static Sample lastsample;
+static uint8_t *buffer;
 
 static int init(void) {
 	audio_info_t device_info;
 	const char *device = "/dev/audio";
 
 	LOG_DEBUG(2,"Initialising Sun audio driver\n");
-	channels = CHANNELS;
 	sound_fd = open(device, O_WRONLY);
 	if (sound_fd == -1) {
 		LOG_ERROR("Couldn't open audio device %s: %s!\n", device, strerror(errno));
@@ -78,7 +66,7 @@ static int init(void) {
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	AUDIO_INITINFO(&device_info);
 	device_info.play.sample_rate = sample_rate;
-	device_info.play.channels = CHANNELS;
+	device_info.play.channels = 1;
 	device_info.play.precision = 8;
 	device_info.play.encoding = AUDIO_ENCODING_LINEAR;
 	if (ioctl(sound_fd, AUDIO_SETINFO, &device_info) < 0) {
@@ -86,30 +74,23 @@ static int init(void) {
 				device, strerror(errno));
 		return 1;
 	}
-	if (device_info.play.channels != channels) {
-		LOG_ERROR("Couldn't set desired (%d) audio channels.  Got %d.\n", channels, device_info.play.channels);
-		return 1;
-	}
 	if (device_info.play.encoding != AUDIO_ENCODING_LINEAR) {
 		LOG_ERROR("Couldn't set desired audio format.\n");
 		return 1;
 	}
-	if (device_info.play.sample_rate != sample_rate) {
-		LOG_ERROR("Couldn't set desired (%dHz) audio rate.  Got %dHz.\n", sample_rate, device_info.play.sample_rate);
-		return 1;
-	}
-	LOG_DEBUG(2, "Set up audio device at %dHz, %d channels.\n", sample_rate, channels);
-	buffer = (Sample *)malloc(FRAME_SIZE * sizeof(Sample));
-	flush_event = event_new();
-	flush_event->dispatch = flush_frame;
 
-	memset(buffer, 0x80, FRAME_SIZE);
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0x00;
+	int frame_size;
+	if (xroar_opt_ao_buffer_ms > 0) {
+		frame_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
+	} else if (xroar_opt_ao_buffer_samples > 0) {
+		frame_size = xroar_opt_ao_buffer_samples;
+	} else {
+		frame_size = 1024;
+	}
+
+	buffer = sound_init(device_info.play.sample_rate, device_info.play.channels, SOUND_FMT_U8, frame_size);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (frame_size * 1000) / device_info.play.sample_rate, frame_size);
+
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
 	samples_written = device_info.play.samples;
@@ -118,35 +99,13 @@ static int init(void) {
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
-	event_free(flush_event);
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	close(sound_fd);
-	free(buffer);
-}
-
-static void update(int value) {
-	int elapsed_cycles = current_cycle - frame_cycle_base;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		elapsed_cycles = FRAME_CYCLES;
-	}
-	while (frame_cycle < elapsed_cycles) {
-		*(wrptr++) = lastsample;
-		frame_cycle += SAMPLE_CYCLES;
-	}
-	lastsample = value;
 }
 
 static void flush_frame(void) {
 	audio_info_t device_info;
 	int samples_left;
-	Sample *fill_to = buffer + FRAME_SIZE;
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	frame_cycle_base += FRAME_CYCLES;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	wrptr = buffer;
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
 	if (xroar_noratelimit) {
 		ioctl(sound_fd, I_FLUSH, FLUSHW);
@@ -154,8 +113,8 @@ static void flush_frame(void) {
 		return;
 	}
 	samples_left = samples_written - device_info.play.samples;
-	if (samples_left > FRAME_SIZE) {
-		int sleep_ms = ((samples_left - FRAME_SIZE) * 1000)/sample_rate;
+	if (samples_left > frame_size) {
+		int sleep_ms = ((samples_left - frame_size) * 1000)/sample_rate;
 		struct timespec elapsed, tv;
 		int errcode;
 		sleep_ms -= 10;
@@ -168,6 +127,6 @@ static void flush_frame(void) {
 			errcode = nanosleep(&tv, &elapsed);
 		} while ( errcode && (errno == EINTR) );
 	}
-	write(sound_fd, buffer, FRAME_SIZE);
-	samples_written += FRAME_SIZE;
+	write(sound_fd, buffer, frame_size);
+	samples_written += frame_size;
 }
