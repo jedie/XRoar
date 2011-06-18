@@ -29,35 +29,26 @@
 #endif
 
 #include "types.h"
-#include "events.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
+#include "sound.h"
 #include "xroar.h"
 
 static int init(void);
 static void _shutdown(void);
-static void update(int value);
+static void flush_frame(void);
 
 SoundModule sound_sdl_module = {
-	{ "sdl", "SDL ring-buffer audio",
-	  init, 0, _shutdown },
-	update
+	.common = { .name = "sdl", .description = "SDL ring-buffer audio",
+		    .init = init, .shutdown = _shutdown },
+	.flush_frame = flush_frame,
 };
 
-typedef Uint8 Sample;  /* 8-bit mono (SDL type) */
-
-static int sample_cycles;
-static int frame_size;
-static int frame_cycles;
-static uint8_t sample_eor;
+static int buffer_bytes;
+static uint8_t *buffer;
 
 static SDL_AudioSpec audiospec;
-static Cycle frame_cycle_base;
-static int frame_cycle;
-static Sample *buffer;
-static Sample *wrptr;
-static Sample lastsample;
 #ifndef WINDOWS32
  static SDL_mutex *halt_mutex;
  static SDL_cond *halt_cv;
@@ -65,9 +56,6 @@ static Sample lastsample;
  HANDLE hEvent;
 #endif
 static int haltflag;
-
-static void flush_frame(void);
-static event_t *flush_event;
 
 static void callback(void *userdata, Uint8 *stream, int len);
 
@@ -102,115 +90,69 @@ static int init(void) {
 		return 1;
 	}
 
-	sample_eor = 0;
-	/* TODO: Need to abstract this logging out */
-	LOG_DEBUG(2, "\t");
+	int request_fmt;
 	switch (audiospec.format) {
-		case AUDIO_U8: LOG_DEBUG(2, "8-bit unsigned, "); sample_eor = 0x80; break;
-		case AUDIO_S8: LOG_DEBUG(2, "8-bit signed, "); break;
-		case AUDIO_U16LSB: LOG_DEBUG(2, "16-bit unsigned little-endian, "); break;
-		case AUDIO_S16LSB: LOG_DEBUG(2, "16-bit signed little-endian, "); break;
-		case AUDIO_U16MSB: LOG_DEBUG(2, "16-bit unsigned big-endian, "); break;
-		case AUDIO_S16MSB: LOG_DEBUG(2, "16-bit signed big-endian, "); break;
-		default: LOG_DEBUG(2, "unknown, "); break;
+		case AUDIO_U8: request_fmt = SOUND_FMT_U8; break;
+		case AUDIO_S8: request_fmt = SOUND_FMT_S8; break;
+		case AUDIO_S16LSB: request_fmt = SOUND_FMT_S16_LE; break;
+		case AUDIO_S16MSB: request_fmt = SOUND_FMT_S16_BE; break;
+		default:
+			LOG_WARN("Unhandled audio format.");
+			goto failed;
 	}
-	switch (audiospec.channels) {
-		case 1: LOG_DEBUG(2, "mono, "); break;
-		case 2: LOG_DEBUG(2, "stereo, "); break;
-		default: LOG_DEBUG(2, "%d channel, ", audiospec.channels); break;
-	}
-	LOG_DEBUG(2, "%dHz, ", audiospec.freq);
-	LOG_DEBUG(2, "%dms (%d samples) buffer\n", (audiospec.samples * 1000) / audiospec.freq, audiospec.samples);
+	int buffer_length = audiospec.samples;
+	buffer_bytes = audiospec.size;
+	buffer = sound_init(audiospec.freq, audiospec.channels, request_fmt, buffer_length);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_length * 1000) / audiospec.freq, buffer_length);
 
-	if ((audiospec.format != AUDIO_U8 && audiospec.format != AUDIO_S8)
-	    || (audiospec.channels != 1)) {
-		LOG_ERROR("Obtained unsupported audio format.\n");
-		SDL_CloseAudio();
-		SDL_QuitSubSystem(SDL_INIT_AUDIO);
-		return 1;
-	}
-
-	sample_cycles = OSCILLATOR_RATE / audiospec.freq;
-	frame_size = audiospec.samples;
-	frame_cycles = sample_cycles * frame_size;
-
-	buffer = (Sample *)malloc(frame_size * sizeof(Sample));
 #ifndef WINDOWS32
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
 #else
 	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
-	flush_event = event_new();
-	flush_event->dispatch = flush_frame;
-
-	memset(buffer, sample_eor, frame_size * sizeof(Sample));
 	SDL_PauseAudio(0);
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + frame_cycles;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = sample_eor;
 	return 0;
+failed:
+	SDL_CloseAudio();
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+	return 1;
 }
 
 static void _shutdown(void) {
 	LOG_DEBUG(2,"Shutting down SDL audio driver\n");
-	event_free(flush_event);
 #ifndef WINDOWS32
 	SDL_DestroyCond(halt_cv);
 	SDL_DestroyMutex(halt_mutex);
 #endif
 	SDL_CloseAudio();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
-	free(buffer);
-}
-
-static void update(int value) {
-	int elapsed_cycles = current_cycle - frame_cycle_base;
-	if (elapsed_cycles >= frame_cycles) {
-		elapsed_cycles = frame_cycles;
-	}
-	while (frame_cycle < elapsed_cycles) {
-		*(wrptr++) = lastsample;
-		frame_cycle += sample_cycles;
-	}
-	lastsample = value ^ sample_eor;
 }
 
 static void flush_frame(void) {
-	Sample *fill_to = buffer + frame_size;
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	frame_cycle_base += frame_cycles;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + frame_cycles;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	wrptr = buffer;
-	if (!xroar_noratelimit) {
+	if (xroar_noratelimit)
+		return;
 #ifndef WINDOWS32
-		SDL_LockMutex(halt_mutex);
-		haltflag = 1;
-		while (haltflag)
-			SDL_CondWait(halt_cv, halt_mutex);
-		SDL_UnlockMutex(halt_mutex);
+	SDL_LockMutex(halt_mutex);
+	haltflag = 1;
+	while (haltflag)
+		SDL_CondWait(halt_cv, halt_mutex);
+	SDL_UnlockMutex(halt_mutex);
 #else
-		haltflag = 1;
-		WaitForSingleObject(hEvent, INFINITE);
+	haltflag = 1;
+	WaitForSingleObject(hEvent, INFINITE);
 #endif
-	}
 }
 
 static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
-	if (len == frame_size) {
+	if (len == buffer_bytes) {
 		if (haltflag == 1) {
 			/* Data is ready */
-			memcpy(stream, buffer, len * sizeof(Sample));
+			memcpy(stream, buffer, buffer_bytes);
 		} else {
 			/* Not ready - provide a "padding" frame */
-			memset(buffer, buffer[len-1], len * sizeof(Sample));
+			sound_render_silence(buffer, len);
 		}
 	}
 #ifndef WINDOWS32
