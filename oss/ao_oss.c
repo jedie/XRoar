@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -26,44 +28,25 @@
 #include <sys/soundcard.h>
 
 #include "types.h"
-#include "events.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
+#include "sound.h"
 #include "xroar.h"
 
 static int init(void);
 static void shutdown(void);
-static void update(int value);
+static void flush_frame(void);
 
 SoundModule sound_oss_module = {
-	{ "oss", "OSS audio",
-	  init, 0, shutdown },
-	update
+	.common = { .name = "oss", .description = "OSS audio",
+		    .init = init, .shutdown = shutdown },
+	.flush_frame = flush_frame,
 };
 
-typedef int8_t Sample;  /* 8-bit mono */
-
-#define FRAGMENTS 2
-#define FRAME_SIZE 512
-#define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / sample_rate))
-#define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
-
-static unsigned int sample_rate;
 static int sound_fd;
-static int channels;
-static int format;
-unsigned int bytes_per_sample;
-
-static Cycle frame_cycle_base;
-static int frame_cycle;
-static Sample *buffer;
-static Sample *wrptr;
-static Sample lastsample;
-static int8_t *convbuf;
-
-static void flush_frame(void);
-static event_t *flush_event;
+static void *buffer;
+static int fragment_size;
 
 static int init(void) {
 	const char *device = "/dev/dsp";
@@ -78,6 +61,8 @@ static int init(void) {
 	 * sample rate, and setting channels can affect sample rate. */
 	/* Set audio format.  Only support AFMT_S8 (signed 8-bit) and
 	 * AFMT_S16_NE (signed 16-bit, host-endian) */
+	int format;
+	int bytes_per_sample;
 	if (ioctl(sound_fd, SNDCTL_DSP_GETFMTS, &format) == -1)
 		goto failed;
 	if ((format & (AFMT_S8 | AFMT_S16_NE)) == 0) {
@@ -94,39 +79,42 @@ static int init(void) {
 	if (ioctl(sound_fd, SNDCTL_DSP_SETFMT, &format) == -1)
 		goto failed;
 	/* Set device to mono if possible */
-	channels = 0;
+	int channels = 0;
 	if (ioctl(sound_fd, SNDCTL_DSP_STEREO, &channels) == -1)
 		goto failed;
 	channels++;
+
+	unsigned int sample_rate;
 	/* Attempt to set sample_rate, but live with whatever we get */
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	if (ioctl(sound_fd, SNDCTL_DSP_SPEED, &sample_rate) == -1)
 		goto failed;
 
-
 	int fragments = 2;
-	int buffer_size;
+	int buffer_samples;
 	if (xroar_opt_ao_buffer_ms > 0) {
-		buffer_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
+		buffer_samples = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
 	} else if (xroar_opt_ao_buffer_samples > 0) {
-		buffer_size = xroar_opt_ao_buffer_samples;
+		buffer_samples = xroar_opt_ao_buffer_samples;
 	} else {
-		buffer_size = 1024;
+		buffer_samples = 1024;
 	}
-	buffer_size *= bytes_per_sample * channels;
-	buffer_size /= fragments;
-	while (buffer_size > 65536) {
-		buffer_size >>= 1;
+	int fragment_samples = buffer_samples / fragments;
+	fragment_size = fragment_samples * bytes_per_sample * channels;
+	while (fragment_size > 65536) {
+		fragment_size >>= 1;
+		fragment_samples >>= 1;
 		fragments *= 2;
-		if (buffer_size < 1 || fragments > 0x7fff) {
+		if (fragment_samples < 1 || fragments > 0x7fff) {
 			LOG_ERROR("Couldn't determine buffer size\n");
 			goto failed;
 		}
 	}
 
+	tmp = fragment_size;
 	fragment_param = 0;
-	while (buffer_size > 1) {
-		buffer_size >>= 1;
+	while (tmp > 1) {
+		tmp >>= 1;
 		fragment_param++;
 	}
 	fragment_param |= (fragments << 16);
@@ -145,38 +133,22 @@ static int init(void) {
 		}
 	}
 
-	/* TODO: Need to abstract this logging out */
-	LOG_DEBUG(2, "\t");
-	if (format & AFMT_U8) LOG_DEBUG(2, "8-bit unsigned, ");
-	else if (format & AFMT_S16_LE) LOG_DEBUG(2, "16-bit signed little-endian, ");
-	else if (format & AFMT_S16_BE) LOG_DEBUG(2, "16-bit signed big-endian, ");
-	else if (format & AFMT_S8) LOG_DEBUG(2, "8-bit signed, ");
-	else if (format & AFMT_U16_LE) LOG_DEBUG(2, "16-bit unsigned little-endian, ");
-	else if (format & AFMT_U16_BE) LOG_DEBUG(2, "16-bit unsigned big-endian, ");
-	else LOG_DEBUG(2, "Unknown format, ");
-	switch (channels) {
-		case 1: LOG_DEBUG(2, "mono, "); break;
-		case 2: LOG_DEBUG(2, "stereo, "); break;
-		default: LOG_DEBUG(2, "%d channel, ", channels); break;
+	int request_fmt;
+	if (format & AFMT_U8) request_fmt = SOUND_FMT_U8;
+	else if (format & AFMT_S16_LE) request_fmt = SOUND_FMT_S16_LE;
+	else if (format & AFMT_S16_BE) request_fmt = SOUND_FMT_S16_BE;
+	else if (format & AFMT_S8) request_fmt = SOUND_FMT_S8;
+	else {
+		LOG_WARN("Unhandled audio format.");
+		goto failed;
 	}
-	LOG_DEBUG(2, "%dHz, ", sample_rate);
-	LOG_DEBUG(2, "%dms (%d samples) buffer\n", (delay * 1000) / sample_rate, delay);
+	buffer = sound_init(sample_rate, channels, request_fmt, fragment_samples);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (delay * 1000) / sample_rate, delay);
 
 	if (tmp != fragment_param)
 		LOG_WARN("Couldn't set desired buffer parameters: sync to audio might not be ideal\n");
-	buffer = malloc(FRAME_SIZE * sizeof(Sample));
-	convbuf = malloc(FRAME_SIZE * bytes_per_sample * channels);
-	flush_event = event_new();
-	flush_event->dispatch = flush_frame;
 
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
-	memset(buffer, 0, FRAME_SIZE * sizeof(Sample));
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0;
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialise OSS audio driver\n");
@@ -185,62 +157,14 @@ failed:
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down OSS audio driver\n");
-	event_free(flush_event);
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
-	free(convbuf);
-	free(buffer);
-}
-
-static void update(int value) {
-	int elapsed_cycles = current_cycle - frame_cycle_base;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		elapsed_cycles = FRAME_CYCLES;
-	}
-	while (frame_cycle < elapsed_cycles) {
-		*(wrptr++) = lastsample;
-		frame_cycle += SAMPLE_CYCLES;
-	}
-	lastsample = value;
 }
 
 static void flush_frame(void) {
-	int8_t *source = buffer;
-	Sample *fill_to = buffer + FRAME_SIZE;
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	frame_cycle_base += FRAME_CYCLES;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	wrptr = buffer;
 	if (xroar_noratelimit)
 		return;
-	/* Convert buffer and write to device */
-	if (format == AFMT_S8) {
-		int8_t *dest = convbuf;
-		int8_t tmp;
-		int i, j;
-		for (i = FRAME_SIZE; i; i--) {
-			tmp = *(source++);
-			for (j = 0; j < channels; j++)
-				*(dest++) = tmp;
-		}
-		int r = write(sound_fd, convbuf, FRAME_SIZE * channels);
-		(void)r;
-		return;
-	}
-	if (format == AFMT_S16_NE) {
-		int16_t *dest = (int16_t *)convbuf;
-		int16_t tmp;
-		int i, j;
-		for (i = FRAME_SIZE; i; i--) {
-			tmp = *(source++) << 8;
-			for (j = 0; j < channels; j++)
-				*(dest++) = tmp;
-		}
-		int r = write(sound_fd, convbuf, FRAME_SIZE * channels * 2);
-		(void)r;
-		return;
-	}
+	int r = write(sound_fd, buffer, fragment_size);
+	(void)r;
+	return;
 }
