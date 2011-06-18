@@ -16,6 +16,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -24,40 +26,31 @@
 
 #include "types.h"
 #include "logging.h"
-#include "events.h"
 #include "machine.h"
 #include "module.h"
+#include "sound.h"
 #include "xroar.h"
 
 static int init(void);
 static void shutdown(void);
-static void update(int value);
+static void flush_frame(void);
 
 SoundModule sound_macosx_module = {
-	{ "macosx", "Mac OS X CoreAudio",
-	  init, 0, shutdown },
-	update
+	.common = { .name = "macosx", .description = "Mac OS X CoreAudio",
+		    .init = init, .shutdown = shutdown },
+	.flush_frame = flush_frame,
 };
 
-typedef float Sample;
-
-#define FRAME_SIZE 256
-#define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / sample_rate))
-#define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
-
-static AudioDeviceID device;
-static int sample_rate;
-static int channels;
-static Cycle frame_cycle_base;
-static int frame_cycle;
-static Sample *buffer;
-static Sample *zero;
-static Sample *wrptr;
-static Sample lastsample;
-static pthread_mutex_t haltflag;
-
-static void flush_frame(void);
-static event_t *flush_event;
+static AudioObjectID device;
+#ifdef MAC_OS_X_VERSION_10_5
+static AudioDeviceIOProcID aprocid;
+#endif
+static float *buffer;
+static int buffer_size;
+static UInt32 buffer_bytes;
+static pthread_mutex_t halt_mutex;
+static pthread_cond_t halt_cv;
+static int ready;
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		const AudioBufferList *inInputData,
@@ -66,53 +59,64 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		const AudioTimeStamp *inOutputTime, void *defptr);
 
 static int init(void) {
+	AudioObjectPropertyAddress propertyAddress;
 	AudioStreamBasicDescription deviceFormat;
-	UInt32 buffer_bytes = FRAME_SIZE * sizeof(Sample);
-	UInt32 count;
-	int i;
+	UInt32 propertySize;
 	LOG_DEBUG(2,"Initialising Mac OS X CoreAudio driver\n");
-	count = sizeof(device);
-	if (AudioHardwareGetProperty(
-				kAudioHardwarePropertyDefaultOutputDevice,
-				&count, (void *)&device
-				) != kAudioHardwareNoError)
+
+	propertyAddress.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
+	propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
+	propertyAddress.mElement = kAudioObjectPropertyElementMaster;
+
+	propertySize = sizeof(device);
+	if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &propertySize, &device) != noErr)
 		goto failed;
-	count = sizeof(deviceFormat);
-	if (AudioDeviceGetProperty(device, 0, false,
-				kAudioDevicePropertyStreamFormat, &count,
-				&deviceFormat) != kAudioHardwareNoError)
+
+	propertySize = sizeof(deviceFormat);
+	propertyAddress.mSelector = kAudioDevicePropertyStreamFormat;
+	propertyAddress.mScope = kAudioDevicePropertyScopeOutput;
+	propertyAddress.mElement = 0;
+	if (AudioObjectGetPropertyData(device, &propertyAddress, 0, NULL, &propertySize, &deviceFormat) != noErr)
 		goto failed;
+
 	if (deviceFormat.mFormatID != kAudioFormatLinearPCM)
 		goto failed;
 	if (!(deviceFormat.mFormatFlags & kLinearPCMFormatFlagIsFloat))
 		goto failed;
-	sample_rate = deviceFormat.mSampleRate;
-	channels = deviceFormat.mChannelsPerFrame;
-	buffer_bytes = FRAME_SIZE * sizeof(Sample) * channels;
-	count = sizeof(buffer_bytes);
-	if (AudioDeviceSetProperty(device, NULL, 0, false,
-				kAudioDevicePropertyBufferSize, count,
-				&buffer_bytes) != kAudioHardwareNoError)
-		goto failed;
-	LOG_DEBUG(2, "\t%d channel%s, %dHz\n", channels, channels > 1 ? "s" : "", sample_rate);
-	buffer = malloc(FRAME_SIZE * sizeof(Sample) * channels);
-	zero = malloc(FRAME_SIZE * sizeof(Sample) * channels);
-	lastsample = -64. / 150.;
-	for (i = 0; i < FRAME_SIZE * channels; i++) {
-		buffer[i] = lastsample;
-		zero[i] = lastsample;
-	}
-	pthread_mutex_init(&haltflag, NULL);
-	AudioDeviceAddIOProc(device, callback, NULL);
-	AudioDeviceStart(device, callback);
-	flush_event = event_new();
-	flush_event->dispatch = flush_frame;
 
-	wrptr = buffer;
-	frame_cycle_base = current_cycle;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
+	int sample_rate = deviceFormat.mSampleRate;
+	int channels = deviceFormat.mChannelsPerFrame;
+
+	int frame_size;
+	if (xroar_opt_ao_buffer_ms > 0) {
+		frame_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
+	} else if (xroar_opt_ao_buffer_samples > 0) {
+		frame_size = xroar_opt_ao_buffer_samples;
+	} else {
+		frame_size = 1024;
+	}
+
+	buffer_size = frame_size * channels;
+	buffer_bytes = buffer_size * sizeof(float);
+	propertySize = sizeof(buffer_bytes);
+	propertyAddress.mSelector = kAudioDevicePropertyBufferSize;
+	if (AudioObjectSetPropertyData(device, &propertyAddress, 0, NULL, propertySize, &buffer_bytes) != kAudioHardwareNoError)
+		goto failed;
+	buffer_size = buffer_bytes / sizeof(float);
+	frame_size = buffer_size / channels;
+	buffer = sound_init(sample_rate, channels, SOUND_FMT_FLOAT, frame_size);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (frame_size * 1000) / sample_rate, frame_size);
+
+	pthread_mutex_init(&halt_mutex, NULL);
+	pthread_cond_init(&halt_cv, NULL);
+	ready = 0;
+#ifdef MAC_OS_X_VERSION_10_5
+	AudioDeviceCreateIOProcID(device, callback, NULL, &aprocid);
+#else
+	AudioDeviceAddIOProc(device, callback, NULL);
+#endif
+	AudioDeviceStart(device, callback);
+
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialise Mac OS X CoreAudio driver\n");
@@ -121,40 +125,25 @@ failed:
 
 static void shutdown(void) {
 	LOG_DEBUG(2,"Shutting down Mac OS X CoreAudio driver\n");
-	event_free(flush_event);
-	pthread_mutex_destroy(&haltflag);
-	free(buffer);
-}
-
-static void update(int value) {
-	int elapsed_cycles = current_cycle - frame_cycle_base;
-	int i;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		elapsed_cycles = FRAME_CYCLES;
-	}
-	while (frame_cycle < elapsed_cycles) {
-		for (i = 0; i < channels; i++) {
-			*(wrptr++) = lastsample;
-		}
-		frame_cycle += SAMPLE_CYCLES;
-	}
-	lastsample = (Sample)(value - 64) / 150.;
+#ifdef MAC_OS_X_VERSION_10_5
+	AudioDeviceDestroyIOProcID(device, aprocid);
+#else
+	AudioDeviceRemoveIOProc(device, callback);
+#endif
+	AudioDeviceStop(device, callback);
+	pthread_mutex_destroy(&halt_mutex);
+	pthread_cond_destroy(&halt_cv);
 }
 
 static void flush_frame(void) {
-	Sample *fill_to = buffer + FRAME_SIZE * channels;
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	frame_cycle_base += FRAME_CYCLES;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	wrptr = buffer;
 	if (xroar_noratelimit)
 		return;
-	pthread_mutex_lock(&haltflag);
-	pthread_mutex_lock(&haltflag);
-	pthread_mutex_unlock(&haltflag);
+	pthread_mutex_lock(&halt_mutex);
+	ready = 1;
+	while (ready) {
+		pthread_cond_wait(&halt_cv, &halt_mutex);
+	}
+	pthread_mutex_unlock(&halt_mutex);
 }
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
@@ -162,16 +151,21 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		const AudioTimeStamp *inInputTime,
 		AudioBufferList *outOutputData,
 		const AudioTimeStamp *inOutputTime, void *defptr) {
-	Sample *dest;
 	(void)inDevice;      /* unused */
 	(void)inNow;         /* unused */
 	(void)inInputData;   /* unused */
 	(void)inInputTime;   /* unused */
 	(void)inOutputTime;  /* unused */
 	(void)defptr;        /* unused */
-	dest = (Sample *)outOutputData->mBuffers[0].mData;
-	memcpy(dest, buffer, FRAME_SIZE * channels * sizeof(Sample));
-	memcpy(buffer, zero, FRAME_SIZE * channels * sizeof(Sample));
-	pthread_mutex_unlock(&haltflag);
+	float *dest = (float *)outOutputData->mBuffers[0].mData;
+	if (ready) {
+		memcpy(dest, buffer, buffer_bytes);
+	} else {
+		sound_render_silence(dest, buffer_size);
+	}
+	pthread_mutex_lock(&halt_mutex);
+	ready = 0;
+	pthread_cond_signal(&halt_cv);
+	pthread_mutex_unlock(&halt_mutex);
 	return kAudioHardwareNoError;
 }
