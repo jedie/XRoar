@@ -34,6 +34,8 @@ doc/xroar.info
 doc/xroar.pdf
 doc/xroar.html
 doc/xroar.txt
+gtk2/top_window_glade.h
+gtk2/tapecontrol_glade.h
 gtk2/drivecontrol_glade.h
 ## software images that might be left around
 *.cas
@@ -44,6 +46,8 @@ gtk2/drivecontrol_glade.h
 ## testing under wine
 stderr.txt
 stdout.txt
+SDL.dll
+libsndfile-1.dll
 ## deps files
 .deps.mak
 .deps.mak.bak
