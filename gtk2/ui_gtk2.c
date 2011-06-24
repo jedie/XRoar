@@ -772,10 +772,14 @@ static char *escape_underscores(const char *str) {
 
 /* Drive control */
 
+static void dc_toggled_we(GtkToggleButton *togglebutton, gpointer user_data);
+static void dc_toggled_wb(GtkToggleButton *togglebutton, gpointer user_data);
+
 static void create_dc_window(void) {
 	GtkBuilder *builder;
 	GtkWidget *widget;
 	GError *error = NULL;
+	int i;
 	builder = gtk_builder_new();
 	if (!gtk_builder_add_from_string(builder, drivecontrol_glade, -1, &error)) {
 		g_warning("Couldn't create UI: %s", error->message);
@@ -800,6 +804,10 @@ static void create_dc_window(void) {
 	dc_drive_cyl_head = GTK_WIDGET(gtk_builder_get_object(builder, "drive_cyl_head"));
 
 	/* Connect signals */
+	for (i = 0; i < 4; i++) {
+		g_signal_connect(dc_we_drive[i], "toggled", G_CALLBACK(dc_toggled_we), (gpointer)0 + i);
+		g_signal_connect(dc_wb_drive[i], "toggled", G_CALLBACK(dc_toggled_wb), (gpointer)0 + i);
+	}
 	g_signal_connect(dc_window, "delete-event", G_CALLBACK(hide_dc_window), NULL);
 	widget = GTK_WIDGET(gtk_builder_get_object(builder, "eject_drive1"));
 	g_signal_connect(widget, "clicked", G_CALLBACK(dc_eject), (gpointer)0);
@@ -852,6 +860,18 @@ static void dc_eject(GtkButton *button, gpointer user_data) {
 	int drive = user_data - (gpointer)0;
 	(void)button;
 	xroar_eject_disk(drive);
+}
+
+static void dc_toggled_we(GtkToggleButton *togglebutton, gpointer user_data) {
+	int set = gtk_toggle_button_get_active(togglebutton) ? 1 : 0;
+	int drive = user_data - (gpointer)0;
+	xroar_set_write_enable(drive, set);
+}
+
+static void dc_toggled_wb(GtkToggleButton *togglebutton, gpointer user_data) {
+	int set = gtk_toggle_button_get_active(togglebutton) ? 1 : 0;
+	int drive = user_data - (gpointer)0;
+	xroar_set_write_back(drive, set);
 }
 
 /* Drive Control - UI callbacks */
