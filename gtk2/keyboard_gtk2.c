@@ -141,9 +141,9 @@ static void emulator_command(guint keyval, int shift) {
 		break;
 	case GDK_5: case GDK_6: case GDK_7: case GDK_8:
 		if (shift) {
-			xroar_set_write_back(keyval - GDK_5, XROAR_TOGGLE);
+			xroar_select_write_back(keyval - GDK_5, XROAR_TOGGLE);
 		} else {
-			xroar_set_write_enable(keyval - GDK_5, XROAR_TOGGLE);
+			xroar_select_write_enable(keyval - GDK_5, XROAR_TOGGLE);
 		}
 		break;
 	case GDK_a:

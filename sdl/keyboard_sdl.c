@@ -108,9 +108,9 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8:
 		if (shift) {
-			xroar_set_write_back(sym - SDLK_5, XROAR_TOGGLE);
+			xroar_select_write_back(sym - SDLK_5, XROAR_TOGGLE);
 		} else {
-			xroar_set_write_enable(sym - SDLK_5, XROAR_TOGGLE);
+			xroar_select_write_enable(sym - SDLK_5, XROAR_TOGGLE);
 		}
 		break;
 	case SDLK_a:
