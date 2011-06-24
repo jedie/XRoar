@@ -6,7 +6,7 @@
 -include config.mak
 
 #VERBOSE = 1
-VERSION := 0.25.2
+VERSION := 0.25.3
 DISTNAME = xroar-$(VERSION)
 
 .PHONY: all
