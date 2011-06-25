@@ -19,6 +19,7 @@ all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli c
 unset $all_opt
 
 _curses=no
+_jack=no
 
 case `echo -n` in
 -n) _echo_n=""; _echo_c='\c'; ;;	# SysV echo
@@ -57,7 +58,7 @@ Optional Features:
   --disable-pulse       don't test for PulseAudio
   --disable-sun         don't test for Sun audio
   --disable-coreaudio   don't test for Mac OS X Core Audio
-  --disable-jack        don't test for JACK audio
+  --enable-jack         test for JACK audio
   --disable-nullaudio   don't include null audio driver
   --disable-mingw       don't test for MinGW
   --disable-gp32        don't test for GP32
