@@ -41,8 +41,6 @@ typedef int int_least32_t __attribute__ ((aligned (4)));
 
 typedef int ssize_t;
 
-typedef uint32_t Cycle __attribute__ ((aligned (4)));
-
 /* FCLK = 100/50/50MHz */
 /*
 #define SPEED_FAST GpClockSpeedChange(100000000, 0x2a011, 2)

@@ -23,6 +23,8 @@
 #include "logging.h"
 #include "misc.h"
 
+cycle_t current_cycle = 0;
+
 event_t *event_new(void) {
 	event_t *new = xmalloc(sizeof(event_t));
 	event_init(new);
@@ -31,7 +33,7 @@ event_t *event_new(void) {
 
 void event_init(event_t *event) {
 	if (event == NULL) return;
-	event->at_cycle = 0;
+	event->at_cycle = current_cycle;
 	event->dispatch = NULL;
 	event->queued = 0;
 	event->list = NULL;

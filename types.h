@@ -20,8 +20,6 @@
 #ifndef HAVE_GP32
 #include <sys/types.h>
 #include <inttypes.h>
-
-typedef int32_t Cycle;
 #endif
 
 #endif  /* XROAR_TYPES_H_ */

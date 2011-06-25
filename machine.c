@@ -59,8 +59,6 @@ MC6821_PIA PIA0, PIA1;
 struct cart *machine_cart = NULL;
 static struct cart running_cart;
 
-Cycle current_cycle;
-
 static const char *d32_extbas_roms[] = { "d32", "dragon32", "d32rom", "Dragon Data Ltd - Dragon 32 - IC17", "dragon", NULL };
 static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "Dragon Data Ltd - Dragon 64 - IC17", "dragrom", "dragon", NULL };
 static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", "Dragon Data Ltd - Dragon 64 - IC18", NULL };

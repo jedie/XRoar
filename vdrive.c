@@ -58,8 +58,8 @@ static unsigned int head_pos;  /* index into current track for read/write */
 
 static void update_signals(void);
 
-static Cycle last_update_cycle;
-static Cycle track_start_cycle;
+static cycle_t last_update_cycle;
+static cycle_t track_start_cycle;
 static event_t index_pulse_event;
 static event_t reset_index_pulse_event;
 static void do_index_pulse(void);
@@ -303,7 +303,7 @@ void vdrive_write_idam(void) {
 }
 
 unsigned int vdrive_time_to_next_byte(void) {
-	Cycle next_cycle = track_start_cycle + (head_pos - 128) * BYTE_TIME;
+	cycle_t next_cycle = track_start_cycle + (head_pos - 128) * BYTE_TIME;
 	int to_time = next_cycle - current_cycle;
 	if (to_time < 0) {
 		LOG_DEBUG(4,"Negative time to next byte!\n");
@@ -318,7 +318,7 @@ unsigned int vdrive_time_to_next_byte(void) {
 unsigned int vdrive_time_to_next_idam(void) {
 	unsigned int next_head_pos;
 	unsigned int i, tmp;
-	Cycle next_cycle;
+	cycle_t next_cycle;
 	int to_time;
 	if (!vdrive_ready) return OSCILLATOR_RATE / 5;
 	/* Update head_pos based on time elapsed since track start */

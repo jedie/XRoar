@@ -7,12 +7,13 @@
 #define XROAR_TAPE_H_
 
 #include "types.h"
+#include "events.h"
 #include "machine.h"
 
 /* These are the usual cycle lengths for each bit as written by the Dragon
  * BASIC ROM. */
-#define TAPE_BIT0_LENGTH (13008)
-#define TAPE_BIT1_LENGTH (6960)
+#define TAPE_BIT0_LENGTH (813 * CPU_SLOW_DIVISOR)
+#define TAPE_BIT1_LENGTH (435 * CPU_SLOW_DIVISOR)
 #define TAPE_AV_BIT_LENGTH ((TAPE_BIT0_LENGTH + TAPE_BIT1_LENGTH) / 2)
 
 struct tape_module;
@@ -29,7 +30,7 @@ struct tape {
 	int fake_bit;
 	int fake_bit_index;  /* 0-7 */
 	int fake_pulse_index;
-	Cycle last_write_cycle;
+	cycle_t last_write_cycle;
 };
 
 struct tape_module {

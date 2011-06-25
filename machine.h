@@ -96,8 +96,6 @@ extern uint8_t rom1[0x4000];
 extern MC6821_PIA PIA0, PIA1;
 extern struct cart *machine_cart;
 
-extern Cycle current_cycle;
-
 /* Add a new machine config: */
 struct machine_config *machine_config_new(void);
 /* For finding known configs: */

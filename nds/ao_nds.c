@@ -43,7 +43,7 @@ SoundModule sound_nds_module = {
 #define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
 #define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
-static Cycle frame_cycle_base;
+static cycle_t frame_cycle_base;
 static int frame_cycle;
 static uint8_t buf[FRAME_SIZE * 2] __attribute__ ((aligned (32)));
 static uint8_t *frame_base;

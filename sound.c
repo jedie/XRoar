@@ -44,7 +44,7 @@ void *buffer = NULL;
 int buffer_index;
 int buffer_size;
 static union sample_t last_sample;
-static Cycle last_cycle;
+static cycle_t last_cycle;
 static int cycles_per_sample;
 static int cycles_per_frame;
 int volume;

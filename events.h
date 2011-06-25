@@ -6,9 +6,12 @@
 #ifndef XROAR_EVENT_H_
 #define XROAR_EVENT_H_
 
+typedef unsigned int cycle_t;
+extern cycle_t current_cycle;
+
 typedef struct event_t event_t;
 struct event_t {
-	Cycle at_cycle;
+	cycle_t at_cycle;
 	void (*dispatch)(void);
 	int queued;
 	event_t **list;

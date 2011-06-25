@@ -31,6 +31,7 @@
 #endif
 
 #include "types.h"
+#include "events.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -49,7 +50,7 @@ SoundModule sound_null_module = {
 
 #define CYCLES_PER_MS (OSCILLATOR_RATE / 1000)
 
-static Cycle last_pause_cycle;
+static cycle_t last_pause_cycle;
 static unsigned int last_pause_ms;
 
 static unsigned int current_time(void);
@@ -92,7 +93,7 @@ static void sleep_ms(unsigned int ms) {
 }
 
 static void flush_frame(void) {
-	Cycle elapsed_cycles = current_cycle - last_pause_cycle;
+	cycle_t elapsed_cycles = current_cycle - last_pause_cycle;
 	unsigned int expected_elapsed_ms = elapsed_cycles / CYCLES_PER_MS;
 	unsigned int actual_elapsed_ms, difference_ms;
 	actual_elapsed_ms = current_time() - last_pause_ms;
