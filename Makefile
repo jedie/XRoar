@@ -64,7 +64,8 @@ xroar_opt_OBJS =
 xroar_opt_objc_OBJS =
 xroar_opt_INT_OBJS =
 
-opt_gtk2_OBJS = gtk2/ui_gtk2.o gtk2/filereq_gtk2.o gtk2/keyboard_gtk2.o
+opt_gtk2_OBJS = gtk2/ui_gtk2.o gtk2/tapecontrol.o gtk2/drivecontrol.o \
+	gtk2/filereq_gtk2.o gtk2/keyboard_gtk2.o
 CLEAN += $(opt_gtk2_OBJS)
 ifeq ($(opt_gtk2),yes)
 	xroar_opt_OBJS += $(opt_gtk2_OBJS)
