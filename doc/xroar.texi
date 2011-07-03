@@ -72,9 +72,6 @@ Save and load snapshots.
 * Supported file types::
 * Firmware ROM image names::
 * Configuration file::
-* GP32 user interface::
-* Nintendo DS user interface::
-* Curses user interface::
 * Acknowledgements::
 @end menu
 @end ifnottex
@@ -115,17 +112,11 @@ cursor keys and @kbd{Left Alt}.  Press @kbd{Control+J} to cycle through three
 emulation modes: No joystick emulation (default), Left joystick, Right
 joystick.
 
-Most of this manual documents how to use the PC builds, where a full keyboard
-is available.  See @ref{GP32 user interface} or @ref{Nintendo DS user
-interface} for information about using the hand-held versions.
-
 @node Installation
 @chapter Installation
 
 @menu
 * Mac OS X binary package::
-* Nintendo DS binary package::
-* GP32 binary package::
 * Windows binary package::
 * Building from source code::
 * Cross-compilation of source code::
@@ -142,34 +133,6 @@ Firmware ROM images can be stored either in @file{~/Library/XRoar/Roms/} or
 emulator will search for.
 
 XRoar can be started by double-clicking the application icon.
-
-@node Nintendo DS binary package
-@section Nintendo DS binary package
-
-Unpack the downloaded ZIP file and copy @file{xroar.nds} to your flash
-cartridge.  Older flash cartridges may need you to DLDI patch the binary in
-order for the emulator to see files on it.  The
-@myuref{http://chishm.drunkencoders.com/DLDI/, DLDI wiki} has more information.
-
-Create a directory on your flash cartridge called @file{/dragon/roms} and copy
-any firmware ROM images into this directory.  See @ref{Firmware ROM image
-names} for filenames the emulator will search for.
-
-How to start the XRoar application will depend on your flash cartridge, but you
-probably just need to pick it from a menu (it should appear with a Dragon
-logo).
-
-@node GP32 binary package
-@section GP32 binary package
-
-Unpack the downloaded ZIP file and copy @file{xroar.fxe} to your SmartMedia
-card (usually this would be under the @file{/gpmm/} directory).
-
-Create a directory on the card called @file{/gpmm/dragon} to copy your firmware
-ROM images to.  See @ref{Firmware ROM image names} for filenames the emulator
-will search for.
-
-XRoar should appear in the menu when you start up your GP32.
 
 @node Windows binary package
 @section Windows binary package
@@ -246,19 +209,13 @@ prefix as above.
 @node Cross-compilation of source code
 @section Cross-compilation of source code
 
-XRoar can be built on one platform to run on another.  The Nintendo DS, GP32
-and Windows binary packages are all built like this.
+XRoar can be built on one platform to run on another.  The Windows binary
+package is built like this.
 
 To specify a cross-compile, use the @option{--target=TARGET} argument to
 @command{configure}.  For example, to build for Windows, you might use
 @samp{./configure --target=i586-mingw32}.  @command{configure} will detect
 Windows headers and configure the build accordingly.
-
-A patch is available for download that increases the overall speed at the
-expense of some accuracy.  This patch is required for the emulator to be fast
-enough on the GP32 and Nintendo DS.  It is available from the
-@uref{http://www.6809.org.uk/dragon/xroar.shtml, XRoar home page}, and can be
-applied to the unpacked source tree with the @command{patch} command.
 
 @node Emulated hardware
 @chapter Emulated hardware
@@ -1056,73 +1013,14 @@ usually @file{/usr/local}.
 Directives are listed one per line without the leading dashes of the command
 line option.
 
-In a future release it should be possible to group machine or DOS
-configurations by some arbitrary name, allowing easy access to sets of
-configurations.  For now though, it is only really useful for specifying a
-default machine, video output module, joystick mapping, etc.
-
-@node GP32 user interface
-@chapter GP32 user interface
-
-The controller can be cycled through four modes by pressing the left
-shoulder button.  These modes are:
-
-@multitable {Right joystickzzz} {12345678901234567890123456789012345678901234567890}
-@headitem Mode @tab Button mappings
-@item Keyboard
-@tab @kbd{D-pad} selects a key, @kbd{B} presses a key, hold down
-@kbd{Right shoulder button} to press shift.
-@item Cursors
-@tab @kbd{D-pad} maps to Dragon's cursor keys.  @kbd{B} is shift, @kbd{A} is
-space, @kbd{Right shoulder button} is enter.
-@item Right joystick
-@tab @kbd{D-pad} controls right joystick motion.  @kbd{B} is fire button.
-@kbd{A} is space, @kbd{Right shoulder button} is enter.
-@item Left joystick
-@tab @kbd{D-pad} controls left joystick motion, with other controls as with
-right joystick mode.
-@end multitable
-
-At any time, pressing @kbd{Select} will bring up a menu allowing you to load or
-save snapshots, toggle DOS emulation, insert a tape or disk, switch between
-Dragon & CoCo, switch keymaps and reset the machine.
-
-@node Nintendo DS user interface
-@chapter Nintendo DS user interface
-
-The touch screen interface is currently quite basic, but functional.  Files can
-be loaded by selecting ``Load...'', the emulated machine can be changed in the
-``Machine configuration'' menu, and snapshots can be taken with ``Save
-snapshot''.
-
-In the ``Input configuration'' menu, each of the DS buttons can be mapped to an
-input function - a keypress, a joystick direction or an emulator configuration
-command.  By default, the @kbd{D-pad} buttons are mapped to the right joystick,
-and @kbd{A} to the right firebutton.  @kbd{Y} swaps joysticks for convenience,
-and @kbd{Start} swaps the DS screens, allowing you to use the touch screen as
-an analogue joystick input.
-
-@node Curses user interface
-@chapter Curses user interface
-
-On compatible systems (probably only Unix-based), an experimental Curses user
-interface may be available, specified by starting with the @option{-ui curses}
-option.  This uses Unix terminal capabilities to render a text-only view of the
-video output.  Keyboard commands are broadly the same as those defined for the
-SDL user interface.
-
 @node Acknowledgements
 @chapter Acknowledgements
-
-The Mac OS X 'Carbon' file requester code is based on a contribution by Stuart
-Teasdale.
 
 I made reference to the MAME 6809 core for clues on how the overflow bit in the
 condition code register was handled.
 
-The rest is the result of reading too many datasheets.
-
-Thanks to all the people on the @myuref{http://archive.worldofdragon.org/phpBB3/,
-Dragon Archive Forums} for helpful feedback and insight.
+Thanks to all the people on the
+@myuref{http://archive.worldofdragon.org/phpBB3/, Dragon Archive Forums} for
+helpful feedback and insight.
 
 @bye
