@@ -54,9 +54,7 @@ Emulates DragonDOS, Delta and RSDOS disk systems.
 @item
 Raw and translated keyboard modes.
 @item
-Reads and writes virtual cassettes (@file{.cas} files).
-@item
-Reads audio files as cassette input.
+Reads and writes virtual cassettes (compact @file{.cas} files and audio files).
 @item
 Reads and writes VDK, JVC and DMK format virtual floppy diskettes.
 @item
