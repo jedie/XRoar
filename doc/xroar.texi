@@ -381,7 +381,9 @@ combinations.  See @ref{Keyboard commands} for a list.
 XRoar supports attached joysticks, or can emulate them from the keyboard.
 
 Joystick emulation starts off disabled, but you can cycle through three states
-by pressing @kbd{Control+J}: Off, Left Joystick and Right Joystick.
+by pressing @kbd{Control+J}: Off, Left Joystick and Right Joystick.  When
+emulating a joystick, the cursor keys control the axes and @kbd{Left Alt} maps
+to the fire button.
 
 By default, the first real joystick found is mapped to the Dragon's left
 joystick port, and the second real joystick to the right port.  Left and right
