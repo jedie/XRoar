@@ -40,7 +40,8 @@ static void render_cg2(void);
 
 VideoModule video_nds_module = {
 	.common = { .init = init },
-	.vsync = vsync, .set_mode = set_mode,
+	.vsync = vsync,
+	.set_mode = set_mode,
 };
 
 /* This is now implemented a set of 12 64x64 sprites pulling tiles

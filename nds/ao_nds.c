@@ -29,56 +29,34 @@
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
-#include "xroar.h"
+#include "sound.h"
 
 static int init(void);
-static void update(int value);
+static void flush_frame(void *buffer);
 
 SoundModule sound_nds_module = {
 	.common = { .init = init },
-	update
+	.flush_frame = flush_frame,
 };
 
 /* 32728 here as that's what it *actually* is */
 #define SAMPLE_RATE 32728
 #define FRAME_SIZE 256
-#define SAMPLE_CYCLES ((int)(OSCILLATOR_RATE / SAMPLE_RATE))
-#define FRAME_CYCLES (SAMPLE_CYCLES * FRAME_SIZE)
 
-static cycle_t frame_cycle_base;
-static int frame_cycle;
-static uint8_t buf[FRAME_SIZE * 2] __attribute__ ((aligned (32)));
-static uint8_t *frame_base;
-static uint8_t *wrptr;
-static unsigned int lastsample;
-static int writing_buf;
-
-static void flush_frame(void);
-static event_t *flush_event;
+static uint8_t *buf[2];
 
 static int init(void) {
-	flush_event = event_new();
-	flush_event->dispatch = flush_frame;
-
-	memset(buf, 0x80, sizeof(buf));
-	writing_buf = 0;
-	frame_base = buf;
-	wrptr = buf;
-
-	frame_cycle_base = current_cycle;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	lastsample = 0x80; //0;
+	buf[0] = sound_init_2(SAMPLE_RATE, 1, SOUND_FMT_U8, FRAME_SIZE);
+	buf[1] = buf[0] + FRAME_SIZE;
 
 	/* handshake with ARM7 to pass sound buffer address */
 	REG_IPC_FIFO_CR = (1 << 3) | (1 << 15);  /* enable FIFO, clear sendq */
 	REG_IPC_SYNC = (14 << 8);
 	while ((REG_IPC_SYNC & 15) != 14);
-	REG_IPC_FIFO_TX = (uint32_t)buf;
+	REG_IPC_FIFO_TX = (uint32_t)buf[0];
 	REG_IPC_SYNC = (1 << 14) | (0 << 8);  /* IRQ on sync */
 	irqEnable(IRQ_IPC_SYNC);
-	
+
 	/* now wait for ARM7 to be playing frame 1 */
 	while ((REG_IPC_SYNC & 1) != 1) {
 		swiIntrWait(1, IRQ_IPC_SYNC);
@@ -86,30 +64,9 @@ static int init(void) {
 	return 0;
 }
 
-static void update(int value) {
-	int elapsed_cycles = current_cycle - frame_cycle_base;
-	if (elapsed_cycles >= FRAME_CYCLES) {
-		elapsed_cycles = FRAME_CYCLES;
-	}
-	while (frame_cycle < elapsed_cycles) {
-		*(wrptr++) = lastsample;
-		frame_cycle += SAMPLE_CYCLES;
-	}
-	lastsample = value ^ 0x80;
-}
-
-static void flush_frame(void) {
-	uint8_t *fill_to = frame_base + FRAME_SIZE;
-	while (wrptr < fill_to)
-		*(wrptr++) = lastsample;
-	DC_FlushRange(frame_base, FRAME_SIZE);
-	frame_cycle_base += FRAME_CYCLES;
-	frame_cycle = 0;
-	flush_event->at_cycle = frame_cycle_base + FRAME_CYCLES;
-	event_queue(&MACHINE_EVENT_LIST, flush_event);
-	writing_buf ^= 1;
-	frame_base = buf + (writing_buf * FRAME_SIZE);
-	wrptr = frame_base;
+static void flush_frame(void *buffer) {
+	DC_FlushRange(buffer, FRAME_SIZE);
+	int writing_buf = (buffer == buf[1]);
 	/* wait here */
 	if ((REG_IPC_SYNC & 1) == writing_buf) {
 		swiIntrWait(1, IRQ_IPC_SYNC);

@@ -125,9 +125,7 @@ void ndsui_undraw_component(struct ndsui_component *c) {
 }
 
 void ndsui_resize_component(struct ndsui_component *c, int w, int h) {
-	int visible;
 	if (c == NULL) return;
-	visible = c->visible;
 	ndsui_undraw_component(c);
 	c->w = w;
 	c->h = h;

@@ -27,8 +27,30 @@
 #include "xroar.h"
 #include "events.h"
 #include "logging.h"
-#include "m6809.h"
-#include "machine.h"
+#include "sam.h"
+#include "vdg.h"
+
+#include <libgen.h>
+char *basename (char *path) {
+	char *base = path;
+	for (base = path; *path; path++) {
+		if (*path == '/') {
+			base = path;
+		}
+	}
+	return base;
+}
+
+FILE *popen(const char *c, const char *t) {
+	(void)c;
+	(void)t;
+	return NULL;
+}
+
+int pclose(FILE *s) {
+	(void)s;
+	return 0;
+}
 
 int main(int argc, char **argv) {
 	if (!fatInitDefault()) {
@@ -38,7 +60,7 @@ int main(int argc, char **argv) {
 	xroar_init(argc, argv);
 	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 	while (1) {
-		m6809_run(456);
+		sam_run(VDG_LINE_DURATION * 8);
 		while (EVENT_PENDING(UI_EVENT_LIST))
 			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
 	}

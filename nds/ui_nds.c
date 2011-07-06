@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "types.h"
+#include "cart.h"
 #include "events.h"
 #include "hexs19.h"
 #include "keyboard.h"
@@ -286,7 +287,7 @@ static void mi_load_release(int id) {
 
 static void mi_load_file(char *filename) {
 	irqDisable(IRQ_VBLANK | IRQ_VCOUNT);
-	xroar_load_file(filename, 1);
+	xroar_load_file_by_type(filename, 1);
 	irqEnable(IRQ_VBLANK | IRQ_VCOUNT);
 }
 
@@ -349,15 +350,19 @@ static void mc_cross_colour_release(int id);
 static void mc_close_release(int id);
 
 static void mc_update_labels(void) {
+	const char *machine_label = "Unknown";
 	const char *dos_type_label = "Machine default";
 	const char *cross_colour_label = cross_colour_labels[0];
-	if (requested_config.dos_type >= 0) {
-		dos_type_label = dos_type_names[requested_config.dos_type];
+	if (xroar_machine_config) {
+		machine_label = xroar_machine_config->description;
+	}
+	if (xroar_cart_config) {
+		dos_type_label = xroar_cart_config->description;
 	}
 	if (xroar_machine_config->cross_colour_phase >= 0) {
 		cross_colour_label = cross_colour_labels[xroar_machine_config->cross_colour_phase];
 	}
-	ndsui_button_set_label(mc_machine_button, machine_names[requested_machine]);
+	ndsui_button_set_label(mc_machine_button, machine_label);
 	ndsui_button_set_label(mc_dos_type_button, dos_type_label);
 	ndsui_button_set_label(mc_cross_colour_button, cross_colour_label);
 }
@@ -399,16 +404,13 @@ static void show_machine_configuration_screen(void) {
 
 static void mc_machine_release(int id) {
 	(void)id;
-	requested_machine = (requested_machine + 1) % NUM_MACHINE_TYPES;
-	machine_clear_requested_config();
+	xroar_set_machine(XROAR_CYCLE);
 	mc_update_labels();
 }
 
 static void mc_dos_type_release(int id) {
 	(void)id;
-	requested_config.dos_type++;
-	if (requested_config.dos_type >= NUM_DOS_TYPES)
-		requested_config.dos_type = ANY_AUTO;
+	xroar_set_cart(XROAR_CYCLE);
 	mc_update_labels();
 }
 
