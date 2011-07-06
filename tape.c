@@ -205,7 +205,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 		/* If skip_bad set, this aggressively scans for valid header
 		   blocks by seeking back to just after the last sync byte: */
 		if (skip_bad && (type != 0 || sum != 0 || block[1] < 15)) {
-			tape_seek(t, offset, SEEK_SET);
+			tape_seek(t, offset, FS_SEEK_SET);
 			continue;
 		}
 		if (type != 0 || block[1] < 15)
@@ -229,7 +229,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 
 void tape_seek_to_file(struct tape *t, struct tape_file *f) {
 	if (!t || !f) return;
-	tape_seek(t, f->offset, SEEK_SET);
+	tape_seek(t, f->offset, FS_SEEK_SET);
 	t->fake_leader = 256;
 	t->fake_sync = 1;
 	t->fake_bit_index = 0;

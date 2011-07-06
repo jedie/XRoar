@@ -56,7 +56,7 @@ extern struct tape *tape_output;
 #define tape_seek(t,...) (t)->module->seek((t), __VA_ARGS__)
 #define tape_to_ms(t,...) (t)->module->to_ms((t), __VA_ARGS__)
 #define tape_ms_to(t,...) (t)->module->ms_to((t), __VA_ARGS__)
-#define tape_rewind(t) tape_seek(t, 0, SEEK_SET)
+#define tape_rewind(t) tape_seek(t, 0, FS_SEEK_SET)
 int tape_pulse_in(struct tape *t, int *pulse_width);
 int tape_bit_in(struct tape *t);
 int tape_byte_in(struct tape *t);
