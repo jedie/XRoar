@@ -18,6 +18,7 @@
 #define SOUND_FMT_FLOAT (10)
 
 void *sound_init(int sample_rate, int channels, int fmt, int frame_size);
+void *sound_init_2(int sample_rate, int channels, int fmt, int frame_size);
 void sound_set_volume(int v);
 void sound_update(void);
 void sound_silence(void);

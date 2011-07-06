@@ -41,9 +41,12 @@ union sample_t {
 
 int format;
 int num_channels;
-void *buffer = NULL;
-int buffer_index;
+void *buffer[2] = { NULL, NULL };
+int num_buffers;
+int buffer_num;
 int buffer_size;
+int sample_num;
+
 static union sample_t last_sample;
 static cycle_t last_cycle;
 static int cycles_per_sample;
@@ -115,10 +118,12 @@ void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 		default: LOG_DEBUG(2, "%d channel, ", channels); break;
 		}
 		LOG_DEBUG(2, "%dHz\n", sample_rate);
-		buffer = xrealloc(buffer, frame_size * channels * size);
+		buffer[0] = xrealloc(buffer[0], frame_size * channels * size);
 	}
 
 	buffer_size = frame_size * channels;
+	num_buffers = 1;
+	buffer_num = 0;
 	format = fmt;
 	num_channels = channels;
 	cycles_per_sample = OSCILLATOR_RATE / sample_rate;
@@ -132,7 +137,15 @@ void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 	flush_event.at_cycle = current_cycle + cycles_per_frame;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
 
-	return buffer;
+	return buffer[0];
+}
+
+void *sound_init_2(int sample_rate, int channels, int fmt, int frame_size) {
+	sound_init(sample_rate, channels, fmt, frame_size * 2);
+	buffer_size = frame_size * channels;
+	num_buffers = 2;
+	buffer[1] = (uint8_t *)buffer[0] + buffer_size;
+	return buffer[0];
 }
 
 void sound_set_volume(int v) {
@@ -145,11 +158,12 @@ void sound_set_volume(int v) {
 #define fill_buffer(type,member) do { \
 		while ((int)(current_cycle - last_cycle) > 0) { \
 			for (i = num_channels; i; i--) \
-				((type *)buffer)[buffer_index++] = last_sample.member; \
+				((type *)buffer[buffer_num])[sample_num++] = last_sample.member; \
 			last_cycle += cycles_per_sample; \
-			if (buffer_index >= buffer_size) { \
-				sound_module->flush_frame(buffer); \
-				buffer_index = 0; \
+			if (sample_num >= buffer_size) { \
+				sound_module->flush_frame(buffer[buffer_num]); \
+				sample_num = 0; \
+				buffer_num = (buffer_num + 1) % num_buffers; \
 			} \
 		} \
 	} while (0)
@@ -173,7 +187,7 @@ void sound_update(void) {
 		case SOUND_FMT_NULL:
 			while ((int)(current_cycle - last_cycle) <= 0) {
 				last_cycle += cycles_per_frame;
-				sound_module->flush_frame(buffer);
+				sound_module->flush_frame(buffer[buffer_num]);
 			}
 			break;
 		default:
@@ -233,7 +247,9 @@ void sound_update(void) {
 }
 
 void sound_silence(void) {
-	sound_render_silence(buffer, buffer_size);
+	sound_render_silence(buffer[0], buffer_size);
+	if (num_buffers > 1)
+		sound_render_silence(buffer[1], buffer_size);
 }
 
 void sound_render_silence(void *buf, int samples) {
