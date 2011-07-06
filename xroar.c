@@ -305,8 +305,10 @@ static void alloc_cart_status(void);
 static struct cart_config *get_machine_cart(void);
 static struct vdg_palette *get_machine_palette(void);
 static void do_m6809_sync(void);
+#ifdef TRACE
 static uint8_t trace_read_byte(uint16_t addr);
 static void trace_done_instruction(M6809State *state);
+#endif
 
 /**************************************************************************/
 
@@ -777,7 +779,9 @@ void xroar_mainloop(void) {
 	m6809_instruction_posthook = NULL;
 	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_rewrite);
 
+#ifdef TRACE
 	xroar_set_trace(xroar_trace_enabled);
+#endif
 
 	/* If UI module has its own idea of a main loop, delegate to that */
 	if (ui_module->run) {
@@ -898,7 +902,9 @@ static void trace_done_instruction(M6809State *state) {
 
 /* Helper functions */
 
+#ifdef TRACE
 void xroar_set_trace(int mode) {
+#ifdef TRACE
 	int set_to;
 	switch (mode) {
 		case XROAR_OFF: default:
@@ -921,7 +927,9 @@ void xroar_set_trace(int mode) {
 		m6809_interrupt_hook = NULL;
 		m6809_instruction_posthook = NULL;
 	}
+#endif
 }
+#endif
 
 void xroar_new_disk(int drive) {
 	char *filename = filereq_module->save_filename(xroar_disk_exts);
