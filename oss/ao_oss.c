@@ -38,7 +38,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 SoundModule sound_oss_module = {
 	.common = { .name = "oss", .description = "OSS audio",
@@ -47,7 +47,6 @@ SoundModule sound_oss_module = {
 };
 
 static int sound_fd;
-static void *buffer;
 static int fragment_size;
 
 static int init(void) {
@@ -143,7 +142,7 @@ static int init(void) {
 		LOG_WARN("Unhandled audio format.");
 		goto failed;
 	}
-	buffer = sound_init(sample_rate, channels, request_fmt, fragment_samples);
+	sound_init(sample_rate, channels, request_fmt, fragment_samples);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (delay * 1000) / sample_rate, delay);
 
 	if (tmp != fragment_param)
@@ -160,7 +159,7 @@ static void shutdown(void) {
 	close(sound_fd);
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
 	if (xroar_noratelimit)
 		return;
 	int r = write(sound_fd, buffer, fragment_size);

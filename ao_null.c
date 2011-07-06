@@ -41,7 +41,7 @@
 #include "xroar.h"
 
 static int init(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 SoundModule sound_null_module = {
 	.common = { .name = "null", .description = "No audio",
@@ -89,7 +89,8 @@ static void sleep_ms(unsigned int ms) {
 #endif
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
+	(void)buffer;
 	cycle_t elapsed_cycles = current_cycle - last_pause_cycle;
 	unsigned int expected_elapsed_ms = elapsed_cycles / CYCLES_PER_MS;
 	unsigned int actual_elapsed_ms, difference_ms;

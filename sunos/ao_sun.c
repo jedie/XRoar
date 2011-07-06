@@ -39,7 +39,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 SoundModule sound_sun_module = {
 	.common = { .name = "sun", .description = "Sun audio",
@@ -52,8 +52,6 @@ typedef uint8_t Sample;  /* 8-bit mono */
 static unsigned int sample_rate;
 static int sound_fd;
 static uint_t samples_written;
-
-static uint8_t *buffer;
 
 static int init(void) {
 	audio_info_t device_info;
@@ -89,7 +87,7 @@ static int init(void) {
 		frame_size = 1024;
 	}
 
-	buffer = sound_init(device_info.play.sample_rate, device_info.play.channels, SOUND_FMT_U8, frame_size);
+	sound_init(device_info.play.sample_rate, device_info.play.channels, SOUND_FMT_U8, frame_size);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (frame_size * 1000) / device_info.play.sample_rate, frame_size);
 
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
@@ -103,7 +101,7 @@ static void shutdown(void) {
 	close(sound_fd);
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
 	audio_info_t device_info;
 	int samples_left;
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);

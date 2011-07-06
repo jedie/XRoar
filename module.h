@@ -43,7 +43,7 @@ typedef struct {
 
 typedef struct {
 	Module_Common common;
-	void (*flush_frame)(void);
+	void (*flush_frame)(void *buffer);
 } SoundModule;
 
 typedef struct {

@@ -39,7 +39,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 SoundModule sound_alsa_module = {
 	.common = { .name = "alsa", .description = "ALSA audio",
@@ -49,7 +49,6 @@ SoundModule sound_alsa_module = {
 
 static unsigned int sample_rate;
 static snd_pcm_t *pcm_handle;
-static uint8_t *buffer;
 static snd_pcm_uframes_t frame_size;
 
 static int init(void) {
@@ -112,7 +111,7 @@ static int init(void) {
 			LOG_WARN("Unhandled audio format.");
 			goto failed;
 	}
-	buffer = sound_init(sample_rate, 1, request_fmt, frame_size);
+	sound_init(sample_rate, 1, request_fmt, frame_size);
 	LOG_DEBUG(2, "\t%ldms (%ld samples) buffer\n", (buffer_size * 1000) / sample_rate, buffer_size);
 
 	//snd_pcm_writei(pcm_handle, buffer, frame_size);
@@ -126,7 +125,7 @@ static void shutdown(void) {
 	snd_pcm_close(pcm_handle);
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
 	if (xroar_noratelimit)
 		return;
 	if (snd_pcm_writei(pcm_handle, buffer, frame_size) < 0) {

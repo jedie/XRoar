@@ -36,7 +36,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 SoundModule sound_pulse_module = {
 	.common = { .name = "pulse", .description = "Pulse audio",
@@ -47,7 +47,6 @@ SoundModule sound_pulse_module = {
 static unsigned int sample_rate;
 static pa_simple *pa;
 
-static uint8_t *buffer;
 static int fragment_bytes;
 
 static int init(void) {
@@ -91,7 +90,7 @@ static int init(void) {
 		LOG_WARN("Unhandled audio format.");
 		goto failed;
 	}
-	buffer = sound_init(sample_rate, 1, request_fmt, fragment_size);
+	sound_init(sample_rate, 1, request_fmt, fragment_size);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
 	return 0;
 failed:
@@ -104,7 +103,7 @@ static void shutdown(void) {
 	pa_simple_free(pa);
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
 	int error;
 	if (xroar_noratelimit)
 		return;

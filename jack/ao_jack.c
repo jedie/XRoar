@@ -37,7 +37,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 static int jack_callback(jack_nframes_t nframes, void *arg);
 
@@ -104,7 +104,8 @@ static void shutdown(void) {
 	client = NULL;
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
+	(void)buffer;
 	if (xroar_noratelimit)
 		return;
 	pthread_mutex_lock(&haltflag);

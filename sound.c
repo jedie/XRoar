@@ -148,7 +148,7 @@ void sound_set_volume(int v) {
 				((type *)buffer)[buffer_index++] = last_sample.member; \
 			last_cycle += cycles_per_sample; \
 			if (buffer_index >= buffer_size) { \
-				sound_module->flush_frame(); \
+				sound_module->flush_frame(buffer); \
 				buffer_index = 0; \
 			} \
 		} \
@@ -173,7 +173,7 @@ void sound_update(void) {
 		case SOUND_FMT_NULL:
 			while ((int)(current_cycle - last_cycle) <= 0) {
 				last_cycle += cycles_per_frame;
-				sound_module->flush_frame();
+				sound_module->flush_frame(buffer);
 			}
 			break;
 		default:

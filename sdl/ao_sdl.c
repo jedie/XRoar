@@ -39,7 +39,7 @@
 
 static int init(void);
 static void _shutdown(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 SoundModule sound_sdl_module = {
 	.common = { .name = "sdl", .description = "SDL audio",
@@ -129,7 +129,7 @@ static void _shutdown(void) {
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
 	if (xroar_noratelimit)
 		return;
 #ifndef WINDOWS32

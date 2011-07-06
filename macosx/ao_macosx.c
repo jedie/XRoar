@@ -35,7 +35,7 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void);
+static void flush_frame(void *buffer);
 
 SoundModule sound_macosx_module = {
 	.common = { .name = "macosx", .description = "Mac OS X audio",
@@ -134,7 +134,8 @@ static void shutdown(void) {
 	pthread_cond_destroy(&halt_cv);
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *buffer) {
+	(void)buffer;
 	if (xroar_noratelimit)
 		return;
 	pthread_mutex_lock(&halt_mutex);
