@@ -33,11 +33,12 @@
 #include "xroar.h"
 
 #ifdef WINDOWS32
-#include "common_windows32.h"
+#include "windows32/common_windows32.h"
+#include <GL/glext.h>
 #endif
 
 static int init(void);
-static void shutdown(void);
+static void _shutdown(void);
 static void alloc_colours(void);
 static void reset(void);
 static void vsync(void);
@@ -49,7 +50,7 @@ static int set_fullscreen(int fullscreen);
 
 VideoModule video_gtkgl_module = {
 	.common = { .name = "gtkgl", .description = "GtkGLExt video",
-	            .init = init, .shutdown = shutdown },
+	            .init = init, .shutdown = _shutdown },
 	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
 	.render_border = render_border,
@@ -142,7 +143,7 @@ static int init(void) {
 	return 0;
 }
 
-static void shutdown(void) {
+static void _shutdown(void) {
 	set_fullscreen(0);
 	glDeleteTextures(1, &texnum);
 	free(screen_tex);

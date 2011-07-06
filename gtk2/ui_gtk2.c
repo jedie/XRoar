@@ -628,12 +628,14 @@ static gboolean hide_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 	(void)widget;
 	(void)event;
 	(void)data;
+#ifndef WINDOWS32
 	if (cursor_hidden)
 		return FALSE;
 	GdkWindow *window = gtk_widget_get_window(gtk2_drawing_area);
 	old_cursor = gdk_window_get_cursor(window);
 	gdk_window_set_cursor(window, blank_cursor);
 	cursor_hidden = 1;
+#endif
 	return FALSE;
 }
 
@@ -641,11 +643,13 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 	(void)widget;
 	(void)event;
 	(void)data;
+#ifndef WINDOWS32
 	if (!cursor_hidden)
 		return FALSE;
 	GdkWindow *window = gtk_widget_get_window(gtk2_drawing_area);
 	gdk_window_set_cursor(window, old_cursor);
 	cursor_hidden = 0;
+#endif
 	return FALSE;
 }
 
