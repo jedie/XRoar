@@ -23,7 +23,8 @@
 #include <string.h>
 #include <nds.h>
 #include <fat.h>
-#include <sys/dir.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <sys/unistd.h>
 
 #include "types.h"
@@ -207,7 +208,7 @@ static void show(struct ndsui_component *self) {
 			nds_set_text_colour(NDS_WHITE, NDS_BLACK);
 		}
 		if (num < data->num_files && data->files[num].filename) {
-			if (data->files[num].mode & S_IFDIR) {
+			if (data->files[num].mode == DT_DIR) {
 				snprintf(fn_buf, data->w + 1, "<%s>", data->files[num].filename);
 			} else {
 				snprintf(fn_buf, data->w + 1, "%s", data->files[num].filename);
@@ -236,7 +237,7 @@ static void pen_down(struct ndsui_component *self, int x, int y) {
 	sel = data->offset + ((y - self->y) / FONT_HEIGHT);
 	if (sel >= data->num_files) return;
 	if (sel == data->selected_file) {
-		if (data->files[sel].mode & S_IFDIR) {
+		if (data->files[sel].mode == DT_DIR) {
 			chdir(data->files[sel].filename);
 			get_directory(self);
 		}
@@ -268,14 +269,14 @@ static int compar_dirents(const void *aa, const void *bb) {
 	if (a == NULL && b == NULL) return 0;
 	if (a == NULL) return -1;
 	if (b == NULL) return 1;
-	if ((a->mode & S_IFDIR) && !(b->mode & S_IFDIR)) return -1;
-	if (!(a->mode & S_IFDIR) && (b->mode & S_IFDIR)) return 1;
+	if ((a->mode == DT_DIR) && !(b->mode == DT_DIR)) return -1;
+	if (!(a->mode == DT_DIR) && (b->mode == DT_DIR)) return 1;
 	return strcasecmp(a->filename, b->filename);
 }
 
 static void get_directory(struct ndsui_component *self) {
-	struct stat stat_buf;
-	DIR_ITER *dir;
+	DIR *dir;
+	struct dirent *ent;
 	struct file_list_data *data;
 	if (!self || !self->data) return;
 	data = self->data;
@@ -289,9 +290,9 @@ static void get_directory(struct ndsui_component *self) {
 		}
 	}
 	data->num_files = 0;
-	dir = diropen(".");
+	dir = opendir(".");
 	if (dir == NULL) return;
-	while (dirnext(dir, fn_buf, &stat_buf) == 0) {
+	while ((ent = readdir(dir))) {
 		int slot = data->num_files;
 		if (slot >= data->num_slots) {
 			int i = data->num_slots + 16;
@@ -303,13 +304,13 @@ static void get_directory(struct ndsui_component *self) {
 			data->files = new_files;
 			data->num_slots = i;
 		}
-		data->files[slot].filename = strdup(fn_buf);
+		data->files[slot].filename = strdup(ent->d_name);
 		if (data->files[slot].filename == NULL)
 			break;
-		data->files[slot].mode = stat_buf.st_mode;
+		data->files[slot].mode = ent->d_type;
 		data->num_files = slot + 1;
 	}
-	dirclose(dir);
+	closedir(dir);
 	qsort(data->files, data->num_files, sizeof(struct file_info), compar_dirents);
 	if (data->num_files_callback)
 		data->num_files_callback(data->num_files);
