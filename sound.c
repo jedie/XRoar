@@ -242,14 +242,14 @@ void sound_render_silence(void *buf, int samples) {
 		switch (format) {
 		case SOUND_FMT_U8:
 		case SOUND_FMT_S8:
-			*((uint8_t *)buf++) = last_sample.as_int8;
+			((uint8_t *)buf)[i] = last_sample.as_int8;
 			break;
 		case SOUND_FMT_S16_HE:
 		case SOUND_FMT_S16_SE:
-			*((uint16_t *)buf++) = last_sample.as_int16;
+			((uint16_t *)buf)[i] = last_sample.as_int16;
 			break;
 		case SOUND_FMT_FLOAT:
-			*((float *)buf++) = last_sample.as_float;
+			((float *)buf)[i] = last_sample.as_float;
 			break;
 		default:
 			break;
