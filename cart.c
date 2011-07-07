@@ -182,7 +182,7 @@ struct cart_config *cart_config_by_name(const char *name) {
 			for (sep = bname + 1; *sep; sep++) {
 				if ((*sep == '(') ||
 				    (*sep == '.') ||
-				    (isspace(*sep) && *(sep+1) == '(')) {
+				    (isspace((int)*sep) && *(sep+1) == '(')) {
 					*sep = 0;
 					break;
 				}

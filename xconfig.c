@@ -128,7 +128,7 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 	line_number = 0;
 	while ((line = fgets(buf, sizeof(buf), cfg))) {
 		line_number++;
-		while (isspace(*line))
+		while (isspace((int)*line))
 			line++;
 		if (*line == 0 || *line == '#')
 			continue;
@@ -151,7 +151,7 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 			/* preserve spaces */
 			arg = strtok(NULL, "\n\v\f\r");
 			if (arg) {
-				while (isspace(*arg) || *arg == '=') {
+				while (isspace((int)*arg) || *arg == '=') {
 					arg++;
 				}
 			}
