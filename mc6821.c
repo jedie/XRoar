@@ -61,6 +61,33 @@ void mc6821_reset(MC6821_PIA *pia) {
 	mc6821_update_state(pia);
 }
 
+#define PIA_INTERRUPT_ENABLED(s) (s->control_register & 0x01)
+#define PIA_ACTIVE_TRANSITION(s) (s->control_register & 0x02)
+#define PIA_DDR_SELECTED(s)      (!(s->control_register & 0x04))
+#define PIA_PDR_SELECTED(s)      (s->control_register & 0x04)
+
+void mc6821_set_cx1(struct MC6821_PIA_side *side) {
+	if (PIA_ACTIVE_TRANSITION(side)) {
+		side->interrupt_received = 0x80;
+		if (PIA_INTERRUPT_ENABLED(side)) {
+			side->irq = 1;
+		} else {
+			side->irq = 0;
+		}
+	}
+}
+
+void mc6821_reset_cx1(struct MC6821_PIA_side *side) {
+	if (!PIA_ACTIVE_TRANSITION(side)) {
+		side->interrupt_received = 0x80;
+		if (PIA_INTERRUPT_ENABLED(side)) {
+			side->irq = 1;
+		} else {
+			side->irq = 0;
+		}
+	}
+}
+
 #define UPDATE_OUTPUT(p) do { \
 		p.port_output = ((p.output_register & p.direction_register) | (p.port_input & ~(p.direction_register))) & p.tied_low; \
 		if (p.data_postwrite) p.data_postwrite(); \
