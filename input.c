@@ -44,6 +44,8 @@ void input_control_press(int command, unsigned int arg) {
 			break;
 		case INPUT_KEY:
 			KEYBOARD_PRESS(arg);
+			keyboard_column_update();
+			keyboard_row_update();
 			break;
 		case INPUT_UNICODE_KEY:
 			keyboard_unicode_press(arg);
@@ -75,6 +77,8 @@ void input_control_release(int command, unsigned int arg) {
 			break;
 		case INPUT_KEY:
 			KEYBOARD_RELEASE(arg);
+			keyboard_column_update();
+			keyboard_row_update();
 			break;
 		case INPUT_UNICODE_KEY:
 			keyboard_unicode_release(arg);
