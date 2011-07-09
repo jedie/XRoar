@@ -305,7 +305,7 @@ static void alloc_cart_status(void);
 static struct cart_config *get_machine_cart(void);
 static struct vdg_palette *get_machine_palette(void);
 static void do_m6809_sync(void);
-static unsigned int trace_read_byte(unsigned int addr);
+static uint8_t trace_read_byte(uint16_t addr);
 static void trace_done_instruction(M6809State *state);
 
 /**************************************************************************/
@@ -882,7 +882,7 @@ static void do_m6809_sync(void) {
 }
 
 #ifdef TRACE
-static unsigned int trace_read_byte(unsigned int addr) {
+static uint8_t trace_read_byte(uint16_t addr) {
 	unsigned int value = sam_read_byte(addr);
 	m6809_trace_byte(value, addr);
 	return value;

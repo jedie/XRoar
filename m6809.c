@@ -170,10 +170,10 @@
 int m6809_running;
 
 /* MPU registers */
-static unsigned int reg_cc;
+static uint8_t reg_cc;
 static uint8_t reg_a;
 static uint8_t reg_b;
-static unsigned int reg_dp;
+static uint8_t reg_dp;
 static uint16_t reg_x;
 static uint16_t reg_y;
 static uint16_t reg_u;
@@ -197,8 +197,8 @@ static enum m6809_cpu_state cpu_state;
 #define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))
 
 /* External handlers */
-unsigned int (*m6809_read_cycle)(unsigned int addr);
-void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
+uint8_t (*m6809_read_cycle)(uint16_t addr);
+void (*m6809_write_cycle)(uint16_t addr, uint8_t value);
 void (*m6809_nvma_cycles)(int cycles);
 void (*m6809_sync)(void);
 void (*m6809_instruction_hook)(M6809State *state);
@@ -282,7 +282,6 @@ void (*m6809_interrupt_hook)(unsigned int vector);
 #define OP_ASRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r = (r & 0x80) | (r >> 1); SET_NZ8(r); peek_byte(reg_pc); }
 #define OP_ASLR(r) { unsigned int tmp = r << 1; CLR_NZVC; SET_NZVC8(r, r, tmp); r = tmp; peek_byte(reg_pc); }
 #define OP_ROLR(r) { unsigned int tmp = (reg_cc & CC_C) | (r << 1); CLR_NZVC; SET_NZVC8(r, r, tmp); r = tmp; peek_byte(reg_pc); }
-/* Note: this used to be "r--; r &= 0xff;", but gcc optimises too much away */
 #define OP_DECR(r) { r = r - 1; CLR_NZV; SET_NZ8(r); if (r == 0x7f) reg_cc |= CC_V; peek_byte(reg_pc); }
 #define OP_INCR(r) { r = r + 1; CLR_NZV; SET_NZ8(r); if (r == 0x80) reg_cc |= CC_V; peek_byte(reg_pc); }
 #define OP_TSTR(r) { CLR_NZV; SET_NZ8(r); peek_byte(reg_pc); }
@@ -660,8 +659,8 @@ void m6809_run(void) {
 					case 0x5: tmp2 = reg_pc; reg_pc = tmp1; break;
 					case 0x8: tmp2 = reg_a | 0xff00; reg_a = tmp1; break;
 					case 0x9: tmp2 = reg_b | 0xff00; reg_b = tmp1; break;
-					case 0xa: tmp2 = reg_cc | 0xff00; reg_cc = tmp1 & 0xff; break;
-					case 0xb: tmp2 = reg_dp | 0xff00; reg_dp = tmp1 & 0xff; break;
+					case 0xa: tmp2 = reg_cc | 0xff00; reg_cc = tmp1; break;
+					case 0xb: tmp2 = reg_dp | 0xff00; reg_dp = tmp1; break;
 					default:  tmp2 = 0xffff; break;
 				}
 				switch (postbyte >> 4) {
@@ -673,8 +672,8 @@ void m6809_run(void) {
 					case 0x5: reg_pc = tmp2; break;
 					case 0x8: reg_a = tmp2; break;
 					case 0x9: reg_b = tmp2; break;
-					case 0xa: reg_cc = tmp2 & 0xff; break;
-					case 0xb: reg_dp = tmp2 & 0xff; break;
+					case 0xa: reg_cc = tmp2; break;
+					case 0xb: reg_dp = tmp2; break;
 				}
 				TAKEN_CYCLES(6);
 			} break;
@@ -705,8 +704,8 @@ void m6809_run(void) {
 					case 0x5: reg_pc = tmp1; break;
 					case 0x8: reg_a = tmp1; break;
 					case 0x9: reg_b = tmp1; break;
-					case 0xa: reg_cc = tmp1 & 0xff; break;
-					case 0xb: reg_dp = tmp1 & 0xff; break;
+					case 0xa: reg_cc = tmp1; break;
+					case 0xb: reg_dp = tmp1; break;
 				}
 				TAKEN_CYCLES(4);
 			} break;

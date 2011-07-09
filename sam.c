@@ -108,9 +108,8 @@ void sam_run(int cycles) {
 	m6809_run();
 }
 
-unsigned int sam_read_byte(unsigned int addr) {
-	static unsigned int last_read = 0;
-	addr &= 0xffff;
+uint8_t sam_read_byte(uint16_t addr) {
+	static uint8_t last_read = 0;
 	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20)) {
 		slow_cycle(1);
 	} else {
@@ -165,8 +164,7 @@ unsigned int sam_read_byte(unsigned int addr) {
 	return last_read = sam_mapped_rom[addr-0xc000];
 }
 
-void sam_store_byte(unsigned int addr, unsigned int octet) {
-	addr &= 0xffff;
+void sam_store_byte(uint16_t addr, uint8_t octet) {
 	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20)) {
 		slow_cycle(1);
 	} else {

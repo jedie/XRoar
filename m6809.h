@@ -59,10 +59,10 @@ void m6809_irq_clear(void);
 /*** Private ***/
 
 /* Returns result of a byte read cycle */
-extern unsigned int (*m6809_read_cycle)(unsigned int addr);
+extern uint8_t (*m6809_read_cycle)(uint16_t addr);
 
 /* Performs a byte write cycle */
-extern void (*m6809_write_cycle)(unsigned int addr, unsigned int value);
+extern void (*m6809_write_cycle)(uint16_t addr, uint8_t value);
 
 /* Non valid memory access ("busy") cycles */
 extern void (*m6809_nvma_cycles)(int cycles);
