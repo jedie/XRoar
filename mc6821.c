@@ -87,7 +87,7 @@ void mc6821_update_state(MC6821_PIA *pia) {
 		return (p.control_register | p.interrupt_received); \
 	} while (0)
 
-unsigned int mc6821_read(MC6821_PIA *pia, unsigned int addr) {
+uint8_t mc6821_read(MC6821_PIA *pia, unsigned int addr) {
 	switch (addr & 3) {
 		default:
 		case 0:
@@ -128,7 +128,7 @@ unsigned int mc6821_read(MC6821_PIA *pia, unsigned int addr) {
 		if (p.control_postwrite) p.control_postwrite(); \
 	} while (0)
 
-void mc6821_write(MC6821_PIA *pia, unsigned int addr, unsigned int val) {
+void mc6821_write(MC6821_PIA *pia, unsigned int addr, uint8_t val) {
 	switch (addr & 3) {
 		default:
 		case 0:

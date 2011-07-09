@@ -6,6 +6,8 @@
 #ifndef XROAR_MC6821_H_
 #define XROAR_MC6821_H_
 
+#include "types.h"
+
 /* 
  * Two "sides" per PIA (A & B), each basically the same except side A
  * initialised with "internal pull-up resistors" (effectively port_input all
@@ -22,14 +24,14 @@
 
 typedef struct {
 	struct {
-		unsigned int control_register;
-		unsigned int direction_register;
-		unsigned int output_register;
-		unsigned int port_output;
-		unsigned int port_input;
-		unsigned int tied_low;
-		unsigned int interrupt_received;
-		unsigned int irq;
+		uint8_t control_register;
+		uint8_t direction_register;
+		uint8_t output_register;
+		uint8_t port_output;
+		uint8_t port_input;
+		uint8_t tied_low;
+		int interrupt_received;
+		int irq;
 		void (*control_preread)(void);
 		void (*control_postwrite)(void);
 		void (*data_preread)(void);
@@ -70,7 +72,7 @@ void mc6821_destroy(MC6821_PIA *pia);
 
 void mc6821_reset(MC6821_PIA *pia);
 void mc6821_update_state(MC6821_PIA *pia);
-unsigned int mc6821_read(MC6821_PIA *pia, unsigned int addr);
-void mc6821_write(MC6821_PIA *pia, unsigned int addr, unsigned int val);
+uint8_t mc6821_read(MC6821_PIA *pia, unsigned int addr);
+void mc6821_write(MC6821_PIA *pia, unsigned int addr, uint8_t val);
 
 #endif  /* XROAR_MC6821_H_ */
