@@ -76,8 +76,8 @@
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) do { (void)m6809_read_cycle(a); } while (0)
 
-#define EA_DIRECT(a)    do { a = reg_dp << 8 | fetch_byte(reg_pc); reg_pc += 1; TAKEN_CYCLES(1); } while (0)
-#define EA_EXTENDED(a)  do { a = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; TAKEN_CYCLES(1); } while (0)
+#define EA_DIRECT(a)    do { a = ea_direct(); } while (0)
+#define EA_EXTENDED(a)  do { a = ea_extended(); } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
  * macros.  */
@@ -330,6 +330,19 @@ void (*m6809_interrupt_hook)(unsigned int vector);
 	} while (0)
 
 /* ------------------------------------------------------------------------- */
+
+static unsigned int ea_direct(void) {
+	unsigned int ea = reg_dp << 8 | fetch_byte(reg_pc++);
+	TAKEN_CYCLES(1);
+	return ea;
+}
+
+static unsigned int ea_extended(void) {
+	unsigned int ea = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1);
+	reg_pc += 2;
+	TAKEN_CYCLES(1);
+	return ea;
+}
 
 static unsigned int ea_indexed(void) {
 	unsigned int ea;
