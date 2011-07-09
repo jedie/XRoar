@@ -35,8 +35,8 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-static int io_read(int addr);
-static void io_write(int addr, int val);
+static uint8_t io_read(unsigned int addr);
+static void io_write(unsigned int addr, uint8_t val);
 static void reset(void);
 static void detach(void);
 
@@ -82,7 +82,7 @@ static void reset(void) {
 static void detach(void) {
 }
 
-static int io_read(int addr) {
+static uint8_t io_read(unsigned int addr) {
 	if ((addr & 15) == 8) return wd279x_status_read();
 	if ((addr & 15) == 9) return wd279x_track_register_read();
 	if ((addr & 15) == 10) return wd279x_sector_register_read();
@@ -90,7 +90,7 @@ static int io_read(int addr) {
 	return 0x7e;
 }
 
-static void io_write(int addr, int val) {
+static void io_write(unsigned int addr, uint8_t val) {
 	if ((addr & 15) == 8) wd279x_command_write(val);
 	if ((addr & 15) == 9) wd279x_track_register_write(val);
 	if ((addr & 15) == 10) wd279x_sector_register_write(val);

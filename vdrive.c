@@ -232,10 +232,9 @@ static int compar_idams(const void *aa, const void *bb) {
 	return 1;
 }
 
-void vdrive_write(unsigned int data) {
+void vdrive_write(uint8_t data) {
 	int i;
 	if (!vdrive_ready) return;
-	data &= 0xff;
 	for (i = head_incr; i; i--) {
 		int j;
 		if (track_base && head_pos < current_drive->disk->track_length) {
@@ -263,8 +262,8 @@ void vdrive_skip(void) {
 	}
 }
 
-unsigned int vdrive_read(void) {
-	unsigned int ret = 0;
+uint8_t vdrive_read(void) {
+	uint8_t ret = 0;
 	if (!vdrive_ready) return 0;
 	if (track_base && head_pos < current_drive->disk->track_length) {
 		ret = track_base[head_pos] & 0xff;

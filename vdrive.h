@@ -49,9 +49,9 @@ void vdrive_set_drive(int drive);
 
 /* Drive-specific actions */
 void vdrive_step(void);
-void vdrive_write(unsigned int data);
+void vdrive_write(uint8_t data);
 void vdrive_skip(void);
-unsigned int vdrive_read(void);
+uint8_t vdrive_read(void);
 void vdrive_write_idam(void);
 int vdrive_new_index_pulse(void);  /* Has there been one? */
 unsigned int vdrive_time_to_next_byte(void);

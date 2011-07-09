@@ -29,8 +29,8 @@ struct cart {
 	uint8_t mem_data[0x4000];
 	int mem_writable;
 	int mem_size;
-	int (*io_read)(int addr);
-	void (*io_write)(int addr, int value);
+	uint8_t (*io_read)(unsigned int addr);
+	void (*io_write)(unsigned int addr, uint8_t value);
 	void (*reset)(void);
 	void (*attach)(void);
 	void (*detach)(void);

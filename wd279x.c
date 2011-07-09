@@ -95,7 +95,7 @@
 	} while (0)
 
 /* From enum WD279X_type */
-unsigned int wd279x_type;
+int wd279x_type;
 
 #define HAS_SSO (wd279x_type == WD2795 || wd279x_type == WD2797)
 #define HAS_LENGTH_FLAG (wd279x_type == WD2795 || wd279x_type == WD2797)
@@ -141,29 +141,29 @@ static event_t state_event;
 static enum wd279x_state state;
 
 /* WD279X registers */
-static unsigned int status_register;
-static unsigned int track_register;
-static unsigned int sector_register;
-static unsigned int data_register;
+static uint8_t status_register;
+static uint8_t track_register;
+static uint8_t sector_register;
+static uint8_t data_register;
 
 /* WD279X internal state */
-static unsigned int command_register;
-static unsigned int is_step_cmd;
+static uint8_t command_register;
+static int is_step_cmd;
 static int direction;
-static unsigned int side;
-static unsigned int step_delay;
-static unsigned int index_holes_count;
-static unsigned int bytes_left;
-static unsigned int dam;
-static unsigned int track_register_tmp;
+static int side;
+static int step_delay;
+static int index_holes_count;
+static int bytes_left;
+static int dam;
+static uint8_t track_register_tmp;
 
-static unsigned int stepping_rate[4] = { 6, 12, 20, 30 };
-static unsigned int sector_size[2][4] = {
+static int stepping_rate[4] = { 6, 12, 20, 30 };
+static int sector_size[2][4] = {
 	{ 256, 512, 1024, 128 },
 	{ 128, 256, 512, 1024 }
 };
 
-static unsigned int density;
+static int density;
 
 void wd279x_init(void) {
 	wd279x_type = WD2797;
@@ -186,51 +186,51 @@ void wd279x_reset(void) {
 	SET_SIDE(0);
 }
 
-void wd279x_set_density(unsigned int d) {
+void wd279x_set_density(int d) {
 	/* DDEN# is active-low */
 	density = d ? SINGLE_DENSITY : DOUBLE_DENSITY;
 	vdrive_set_density(d ? VDISK_SINGLE_DENSITY : VDISK_DOUBLE_DENSITY);
 }
 
-void wd279x_track_register_write(unsigned int octet) {
+void wd279x_track_register_write(uint8_t octet) {
 	if (INVERTED_DATA)
 		octet = ~octet;
-	track_register = octet & 0xff;
+	track_register = octet;
 }
 
-unsigned int wd279x_track_register_read(void) {
+uint8_t wd279x_track_register_read(void) {
 	if (INVERTED_DATA)
-		return ~track_register & 0xff;
-	return track_register & 0xff;
+		return ~track_register;
+	return track_register;
 }
 
-void wd279x_sector_register_write(unsigned int octet) {
+void wd279x_sector_register_write(uint8_t octet) {
 	if (INVERTED_DATA)
 		octet = ~octet;
-	sector_register = octet & 0xff;
+	sector_register = octet;
 }
 
-unsigned int wd279x_sector_register_read(void) {
+uint8_t wd279x_sector_register_read(void) {
 	if (INVERTED_DATA)
-		return ~sector_register & 0xff;
-	return sector_register & 0xff;
+		return ~sector_register;
+	return sector_register;
 }
 
-void wd279x_data_register_write(unsigned int octet) {
+void wd279x_data_register_write(uint8_t octet) {
 	RESET_DRQ;
 	if (INVERTED_DATA)
 		octet = ~octet;
-	data_register = octet & 0xff;
+	data_register = octet;
 }
 
-unsigned int wd279x_data_register_read(void) {
+uint8_t wd279x_data_register_read(void) {
 	RESET_DRQ;
 	if (INVERTED_DATA)
-		return ~data_register & 0xff;
-	return data_register & 0xff;
+		return ~data_register;
+	return data_register;
 }
 
-unsigned int wd279x_status_read(void) {
+uint8_t wd279x_status_read(void) {
 	RESET_INTRQ;
 	if (vdrive_ready)
 		status_register &= ~STATUS_NOT_READY;
@@ -247,16 +247,16 @@ unsigned int wd279x_status_read(void) {
 			status_register &= ~STATUS_INDEX_PULSE;
 	}
 	if (INVERTED_DATA)
-		return ~status_register & 0xff;
-	return status_register & 0xff;
+		return ~status_register;
+	return status_register;
 }
 
-void wd279x_command_write(unsigned int cmd) {
+void wd279x_command_write(uint8_t cmd) {
 	RESET_INTRQ;
 	if (INVERTED_DATA)
-		command_register = ~cmd & 0xff;
+		command_register = ~cmd;
 	else
-		command_register = cmd & 0xff;
+		command_register = cmd;
 	/* FORCE INTERRUPT */
 	if ((command_register & 0xf0) == 0xd0) {
 		LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",command_register&0x0f);
@@ -287,7 +287,7 @@ void wd279x_command_write(unsigned int cmd) {
 
 static void state_machine(void) {
 	uint8_t *idam;
-	unsigned int data;
+	uint8_t data;
 	int i;
 	for (;;) {
 		switch (state) {
@@ -516,7 +516,7 @@ static void state_machine(void) {
 				NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
 				return;
 			}
-			if (side != vdrive_read()) {
+			if (side != (int)vdrive_read()) {
 				/* No error if no SSO or 'C' not set */
 				if (HAS_SSO || command_register & 0x02) {
 					NEXT_STATE(type_2_state_2, vdrive_time_to_next_idam());
@@ -543,7 +543,7 @@ static void state_machine(void) {
 			}
 
 			if ((command_register & 0x20) == 0) {
-				unsigned int bytes_to_scan, j, tmp;
+				int bytes_to_scan, j, tmp;
 				if (IS_SINGLE_DENSITY)
 					bytes_to_scan = 30;
 				else
