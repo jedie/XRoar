@@ -861,7 +861,7 @@ static struct {
 
 struct {
 	const char *fmt;
-	unsigned int flags;
+	int flags;
 } indexed_modes[] = {
 	{ "%s,%s+%s",      INDEXED_WANT_REG },
 	{ "%s,%s++%s",     INDEXED_WANT_REG },
@@ -898,11 +898,11 @@ static const char *irq_names[8] = {
 };
 
 static int state, page;
-static unsigned int instr_pc;
+static uint16_t instr_pc;
 #define BYTES_BUF_SIZE 5
 static int bytes_count;
-static unsigned int bytes_buf[BYTES_BUF_SIZE];
-static unsigned int irq_vector;
+static uint8_t bytes_buf[BYTES_BUF_SIZE];
+static int irq_vector;
 
 static const char *mnemonic;
 static char operand_text[19];
@@ -930,15 +930,13 @@ void m6809_trace_reset(void) {
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 
-void m6809_trace_byte(unsigned int byte, unsigned int pc) {
+void m6809_trace_byte(uint8_t byte, uint16_t pc) {
 	static int ins_type = PAGE0;
-	static unsigned int byte_val = 0, word_val = 0;
+	static uint8_t byte_val = 0;
+	static uint16_t word_val = 0;
 	static int indexed_mode = 0;
 	static const char *indexed_fmt;
-	static unsigned int indexed_flags;
-
-	byte &= 0xff;
-	pc &= 0xffff;
+	static int indexed_flags;
 
 	if (bytes_count == 0) {
 		instr_pc = pc;
@@ -1122,7 +1120,7 @@ void m6809_trace_byte(unsigned int byte, unsigned int pc) {
 	byte_val = word_val = 0;
 }
 
-void m6809_trace_irq(unsigned int vector) {
+void m6809_trace_irq(uint16_t vector) {
 	reset_state();
 	state = WANT_IRQVEC1;
 	irq_vector = (vector & 15) >> 1;
@@ -1145,9 +1143,9 @@ static void trace_print_short(void) {
 	reset_state();
 }
 
-void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
-		unsigned int reg_b, unsigned int reg_dp, unsigned int reg_x,
-		unsigned int reg_y, unsigned int reg_u, unsigned int reg_s) {
+void m6809_trace_print(uint8_t reg_cc, uint8_t reg_a,
+		uint8_t reg_b, uint8_t reg_dp, uint16_t reg_x,
+		uint16_t reg_y, uint16_t reg_u, uint16_t reg_s) {
 	char bytes_string[(BYTES_BUF_SIZE*2)+1];
 	int i;
 

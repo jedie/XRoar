@@ -181,10 +181,10 @@ static uint16_t reg_s;
 static uint16_t reg_pc;
 
 /* MPU interrupt state variables */
-static unsigned int halt, nmi, firq, irq;
-static unsigned int halt_cycle, nmi_cycle, firq_cycle, irq_cycle;
+static int halt, nmi, firq, irq;
 static int nmi_armed;
 static unsigned int cycle;
+static unsigned int halt_cycle, nmi_cycle, firq_cycle, irq_cycle;
 
 /* MPU state.  Represents current position in the high-level flow chart
  * from the data sheet (figure 14). */
@@ -203,7 +203,7 @@ void (*m6809_nvma_cycles)(int cycles);
 void (*m6809_sync)(void);
 void (*m6809_instruction_hook)(M6809State *state);
 void (*m6809_instruction_posthook)(M6809State *state);
-void (*m6809_interrupt_hook)(unsigned int vector);
+void (*m6809_interrupt_hook)(uint16_t vector);
 
 /* ------------------------------------------------------------------------- */
 

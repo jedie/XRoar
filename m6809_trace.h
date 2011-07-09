@@ -7,10 +7,10 @@
 #define XROAR_M6809_TRACE_H_
 
 void m6809_trace_reset(void);
-void m6809_trace_byte(unsigned int byte, unsigned int pc);
-void m6809_trace_irq(unsigned int vector);
-void m6809_trace_print(unsigned int reg_cc, unsigned int reg_a,
-		unsigned int reg_b, unsigned int reg_dp, unsigned int reg_x,
-		unsigned int reg_y, unsigned int reg_u, unsigned int reg_s);
+void m6809_trace_byte(uint8_t byte, uint16_t pc);
+void m6809_trace_irq(uint16_t vector);
+void m6809_trace_print(uint8_t reg_cc, uint8_t reg_a,
+		uint8_t reg_b, uint8_t reg_dp, uint16_t reg_x,
+		uint16_t reg_y, uint16_t reg_u, uint16_t reg_s);
 
 #endif  /* XROAR_M6809_TRACE_H_ */

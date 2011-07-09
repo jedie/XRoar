@@ -77,6 +77,6 @@ extern void (*m6809_instruction_hook)(M6809State *state);
 extern void (*m6809_instruction_posthook)(M6809State *state);
 
 /* Called just before an interrupt vector is read */
-extern void (*m6809_interrupt_hook)(unsigned int vector);
+extern void (*m6809_interrupt_hook)(uint16_t vector);
 
 #endif  /* XROAR_M6809_H_ */
