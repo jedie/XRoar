@@ -28,7 +28,6 @@
 #include "sam.h"
 #include "xroar.h"
 
-uint8_t *sam_mapped_rom;
 static unsigned int map_type;
 static unsigned int ram_page_bit;
 
@@ -121,12 +120,12 @@ uint8_t sam_read_byte(uint16_t addr) {
 		/* RAM access */
 		unsigned int ram_addr = RAM_TRANSLATE(addr);
 		if (addr < machine_ram_size)
-			return last_read = ram0[ram_addr];
+			return last_read = machine_ram[ram_addr];
 		return last_read;
 	}
 	if (addr < 0xc000) {
 		/* BASIC ROM access */
-		return last_read = sam_mapped_rom[addr & 0x3fff];
+		return last_read = machine_rom[addr & 0x3fff];
 	}
 	if (addr < 0xff00) {
 		/* Cartridge ROM access */
@@ -161,7 +160,7 @@ uint8_t sam_read_byte(uint16_t addr) {
 	}
 	if (addr < 0xffe0)
 		return last_read;
-	return last_read = sam_mapped_rom[addr-0xc000];
+	return last_read = machine_rom[addr-0xc000];
 }
 
 void sam_store_byte(uint16_t addr, uint8_t octet) {
@@ -180,11 +179,11 @@ void sam_store_byte(uint16_t addr, uint8_t octet) {
 			/* TODO: Assuming cartridge ROM doesn't get selected
 			 * here if present? */
 			if (ram_addr < machine_ram_size && addr < 0xc000)
-					ram0[ram_addr] = rom0[addr & 0x3fff];
+					machine_ram[ram_addr] = machine_rom[addr & 0x3fff];
 			return;
 		}
 		if (addr < machine_ram_size)
-			ram0[ram_addr] = octet;
+			machine_ram[ram_addr] = octet;
 		return;
 	}
 	if (addr < 0xc000) {
@@ -268,9 +267,9 @@ void sam_vdg_bytes(int nbytes, uint8_t *dest) {
 			/* In FAST mode, the VDG does not get access to RAM.
 			 * Simulate by copying random data: */
 			if (sam_ram_cycles == CPU_FAST_DIVISOR) {
-				src = ram0;
+				src = machine_ram;
 			} else {
-				src = ram0 + VRAM_TRANSLATE(sam_vdg_address);
+				src = machine_ram + VRAM_TRANSLATE(sam_vdg_address);
 			}
 			memcpy(dest, src, n);
 			dest += n;

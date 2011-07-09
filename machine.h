@@ -90,9 +90,8 @@ typedef struct {
 extern MachineConfig running_config;
 
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
-extern uint8_t ram0[0x10000];
-extern uint8_t rom0[0x4000];
-extern uint8_t rom1[0x4000];
+extern uint8_t machine_ram[0x10000];
+extern uint8_t *machine_rom;
 extern MC6821_PIA PIA0, PIA1;
 extern struct cart *machine_cart;
 

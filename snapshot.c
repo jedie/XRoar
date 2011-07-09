@@ -85,12 +85,12 @@ int write_snapshot(const char *filename) {
 	/* RAM page 0 */
 	fs_write_uint8(fd, ID_RAM_PAGE0);
 	fs_write_uint16(fd, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
-	fs_write(fd, ram0, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
+	fs_write(fd, machine_ram, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
 	/* RAM page 1 */
 	if (machine_ram_size > 0x8000) {
 		fs_write_uint8(fd, ID_RAM_PAGE1);
 		fs_write_uint16(fd, machine_ram_size - 0x8000);
-		fs_write(fd, ram0 + 0x8000, machine_ram_size - 0x8000);
+		fs_write(fd, machine_ram + 0x8000, machine_ram_size - 0x8000);
 	}
 	/* PIA state written before CPU state because PIA may have
 	 * unacknowledged interrupts pending already cleared in the CPU
@@ -325,17 +325,17 @@ int read_snapshot(const char *filename) {
 				mc6821_update_state(&PIA1);
 				break;
 			case ID_RAM_PAGE0:
-				if (size <= (int)sizeof(ram0)) {
-					size -= fs_read(fd, ram0, size);
+				if (size <= (int)sizeof(machine_ram)) {
+					size -= fs_read(fd, machine_ram, size);
 				} else {
-					size -= fs_read(fd, ram0, sizeof(ram0));
+					size -= fs_read(fd, machine_ram, sizeof(machine_ram));
 				}
 				break;
 			case ID_RAM_PAGE1:
-				if (size <= (int)(sizeof(ram0) - 0x8000)) {
-					size -= fs_read(fd, ram0 + 0x8000, size);
+				if (size <= (int)(sizeof(machine_ram) - 0x8000)) {
+					size -= fs_read(fd, machine_ram + 0x8000, size);
 				} else {
-					size -= fs_read(fd, ram0 + 0x8000, sizeof(ram0) - 0x8000);
+					size -= fs_read(fd, machine_ram + 0x8000, sizeof(machine_ram) - 0x8000);
 				}
 				break;
 			case ID_SAM_REGISTERS:

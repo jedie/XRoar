@@ -537,12 +537,12 @@ static void fast_blkin(M6809State *cpu_state) {
 		tape_seek(tape_input, offset, FS_SEEK_SET);
 		return;
 	}
-	ram0[0x007c] = block[0];
-	ram0[0x007d] = block[1];
+	machine_ram[0x007c] = block[0];
+	machine_ram[0x007d] = block[1];
 	if (cpu_state->reg_x + block[1] > 0x10000) {
 		cpu_state->reg_cc &= ~4;
 	} else {
-		memcpy(&ram0[cpu_state->reg_x], &block[2], block[1]);
+		memcpy(&machine_ram[cpu_state->reg_x], &block[2], block[1]);
 		cpu_state->reg_x += block[1];
 		if (sum) {
 			cpu_state->reg_cc &= ~4;

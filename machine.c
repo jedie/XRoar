@@ -53,9 +53,10 @@
 MachineConfig running_config;
 
 unsigned int machine_ram_size = 0x10000;  /* RAM in bytes, up to 64K */
-uint8_t ram0[0x10000];
-uint8_t rom0[0x4000];
-uint8_t rom1[0x4000];
+uint8_t machine_ram[0x10000];
+uint8_t *machine_rom;
+static uint8_t rom0[0x4000];
+static uint8_t rom1[0x4000];
 MC6821_PIA PIA0, PIA1;
 struct cart *machine_cart = NULL;
 static struct cart running_cart;
@@ -321,7 +322,7 @@ static void pia1a_data_postwrite(void) {
 
 static void pia1b_data_postwrite(void) {
 	if (IS_DRAGON64) {
-		sam_mapped_rom = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
+		machine_rom = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
 	}
 	sound_update();
 	vdg_set_mode();
@@ -389,7 +390,7 @@ void machine_configure(struct machine_config *mc) {
 	}
 	machine_ram_size = mc->ram * 1024;
 	/* This will be under PIA control on a Dragon 64 */
-	sam_mapped_rom = rom0;
+	machine_rom = rom0;
 	/* Machine-specific PIA connections */
 	PIA1.b.tied_low |= (1<<2);
 	PIA1.b.port_input &= ~(1<<2);
@@ -473,10 +474,10 @@ static void initialise_ram(void) {
 	int loc = 0, val = 0xff;
 	/* Don't know why, but RAM seems to start in this state: */
 	while (loc < 0x10000) {
-		ram0[loc++] = val;
-		ram0[loc++] = val;
-		ram0[loc++] = val;
-		ram0[loc++] = val;
+		machine_ram[loc++] = val;
+		machine_ram[loc++] = val;
+		machine_ram[loc++] = val;
+		machine_ram[loc++] = val;
 		if ((loc & 0xff) != 0)
 			val ^= 0xff;
 	}

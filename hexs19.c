@@ -80,7 +80,7 @@ int intel_hex_read(const char *filename) {
 			data = read_byte(fd);
 			if (type == 0) {
 				LOG_DEBUG(5,"%02x ", (int)data);
-				ram0[addr] = data;
+				machine_ram[addr] = data;
 				addr++;
 			}
 		}
@@ -128,13 +128,13 @@ static int dragon_bin_load(int fd, int autorun) {
 	exec = fs_read_uint16(fd);
 	(void)fs_read_uint8(fd);
 	LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
-	fs_read(fd, &ram0[load], length);
+	fs_read(fd, &machine_ram[load], length);
 	if (autorun) {
 		LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
 		m6809_jump(exec);
 	} else {
-		ram0[0x9d] = exec >> 8;
-		ram0[0x9e] = exec & 0xff;
+		machine_ram[0x9d] = exec >> 8;
+		machine_ram[0x9e] = exec & 0xff;
 	}
 	fs_close(fd);
 	return 0;
@@ -149,7 +149,7 @@ static int coco_bin_load(int fd, int autorun) {
 			length = fs_read_uint16(fd);
 			load = fs_read_uint16(fd);
 			LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
-			fs_read(fd, &ram0[load], length);
+			fs_read(fd, &machine_ram[load], length);
 			continue;
 		}
 		if (data == 0xff) {
@@ -159,8 +159,8 @@ static int coco_bin_load(int fd, int autorun) {
 				LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
 				m6809_jump(exec);
 			} else {
-				ram0[0x9d] = exec >> 8;
-				ram0[0x9e] = exec & 0xff;
+				machine_ram[0x9d] = exec >> 8;
+				machine_ram[0x9e] = exec & 0xff;
 			}
 			break;
 		}
