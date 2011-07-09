@@ -8,19 +8,13 @@
 
 #include "types.h"
 
-extern unsigned int sam_vdg_address;
-extern unsigned int sam_vdg_mod_clear;
-
-static inline void sam_vdg_hsync(void) {
-	sam_vdg_address &= sam_vdg_mod_clear;
-}
-
 void sam_init(void);
 void sam_reset(void);
 void sam_run(int cycles);
 uint8_t sam_read_byte(uint16_t addr);
 void sam_store_byte(uint16_t addr, uint8_t octet);
 void sam_nvma_cycles(int cycles);
+void sam_vdg_hsync(void);
 void sam_vdg_fsync(void);
 void sam_vdg_bytes(int nbytes, uint8_t *dest);
 void sam_set_register(unsigned int value);

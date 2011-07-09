@@ -29,21 +29,20 @@
 #include "xroar.h"
 
 static unsigned int map_type;
-static unsigned int ram_page_bit;
 
 static unsigned int sam_register;
 
-static unsigned int sam_vdg_base;
-static unsigned int sam_vdg_mode;
-unsigned int sam_vdg_address;
-static unsigned int sam_vdg_mod_xdiv;
-static unsigned int sam_vdg_mod_ydiv;
-unsigned int sam_vdg_mod_clear;
-static unsigned int sam_vdg_xcount;
-static unsigned int sam_vdg_ycount;
+static uint16_t sam_vdg_base;
+static int sam_vdg_mode;
+static uint16_t sam_vdg_address;
+static int sam_vdg_mod_xdiv;
+static int sam_vdg_mod_ydiv;
+static uint16_t sam_vdg_mod_clear;
+static int sam_vdg_xcount;
+static int sam_vdg_ycount;
 #ifdef VARIABLE_MPU_RATE
-static unsigned int sam_ram_cycles;
-static unsigned int sam_rom_cycles;
+static int sam_ram_cycles;
+static int sam_rom_cycles;
 #else
 # define sam_ram_cycles CPU_SLOW_DIVISOR
 # define sam_rom_cycles CPU_SLOW_DIVISOR
@@ -51,19 +50,21 @@ static unsigned int sam_rom_cycles;
 
 static int cycles_remaining = 0;
 
-static unsigned int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
-static unsigned int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
-static unsigned int vdg_mod_clear[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
+static int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
+static int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
+static uint16_t vdg_mod_clear[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
 
 /* SAM Data Sheet,
  *   Figure 6 - Signal routing for address multiplexer */
-static unsigned int ram_row_masks[4] = { 0x007f, 0x007f, 0x00ff, 0x00ff };
+static uint16_t ram_row_masks[4] = { 0x007f, 0x007f, 0x00ff, 0x00ff };
 static int ram_col_shifts[4] = { 2, 1, 0, 0 };
-static unsigned int ram_col_masks[4] = { 0x3f00, 0x7f00, 0xff00, 0xff00 };
-static unsigned int ram_row_mask;
-static unsigned int ram_col_shift;
-static unsigned int ram_col_mask;
-static unsigned int ram_ras1;
+static uint16_t ram_col_masks[4] = { 0x3f00, 0x7f00, 0xff00, 0xff00 };
+
+static uint16_t ram_row_mask;
+static int ram_col_shift;
+static uint16_t ram_col_mask;
+static uint16_t ram_ras1;
+static uint16_t ram_page_bit;
 #define VRAM_TRANSLATE(a) ( \
 		((a << ram_col_shift) & ram_col_mask) \
 		| (a & ram_row_mask) \
@@ -239,6 +240,10 @@ void sam_nvma_cycles(int cycles) {
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 }
 
+void sam_vdg_hsync(void) {
+	sam_vdg_address &= sam_vdg_mod_clear;
+}
+
 void sam_vdg_fsync(void) {
 	sam_vdg_address = sam_vdg_base;
 	sam_vdg_xcount = 0;
@@ -251,7 +256,7 @@ void sam_vdg_fsync(void) {
  * (with dest == NULL) to indicate the extra clocks a real VDG emits. */
 
 void sam_vdg_bytes(int nbytes, uint8_t *dest) {
-	unsigned int b15_5, b4, b3_0;
+	uint16_t b15_5, b4, b3_0;
 	b15_5 = sam_vdg_address & ~0x1f;
 	b4 = sam_vdg_address & 0x10;
 	b3_0 = sam_vdg_address & 0xf;
@@ -288,7 +293,6 @@ void sam_vdg_bytes(int nbytes, uint8_t *dest) {
 					if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
 						sam_vdg_ycount = 0;
 						b15_5 += 0x20;
-						b15_5 &= 0xffff;
 					}
 				}
 			}
