@@ -90,7 +90,7 @@ static struct {
 	{ 0, 0, 0 }  /* Left firebutton */
 };
 
-static event_t *poll_event;
+static event_t *poll_event = NULL;
 static void do_poll(void);
 
 static int open_joystick(int device_num) {
@@ -171,13 +171,6 @@ static void parse_joystick_def(char *def, int base) {
 static int init(void) {
 	int valid, i;
 
-	poll_event = event_new();
-	if (poll_event == NULL) {
-		LOG_WARN("Couldn't create joystick polling event.\n");
-		return 1;
-	}
-	poll_event->dispatch = do_poll;
-
 	/* Count how many joystick devices we can open. */
 	num_joystick_devices = 0;
 	for (i = 0; i < MAX_JOYSTICK_DEVICES; i++) {
@@ -189,9 +182,16 @@ static int init(void) {
 	}
 
 	if (num_joystick_devices < 1) {
-		LOG_DEBUG(2, "\tNo joysticks attached.\n");
+		LOG_DEBUG(2, "\tNo joysticks found\n");
 		return 1;
 	}
+
+	poll_event = event_new();
+	if (poll_event == NULL) {
+		LOG_WARN("Couldn't create joystick polling event.\n");
+		return 1;
+	}
+	poll_event->dispatch = do_poll;
 
 	/* If only one joystick attached, change the right joystick defaults */
 	if (num_joystick_devices == 1) {
@@ -249,7 +249,10 @@ static void shutdown(void) {
 		close(joy[i].fd);
 	}
 	num_joys = 0;
-	event_free(poll_event);
+	if (poll_event) {
+		event_free(poll_event);
+		poll_event = NULL;
+	}
 }
 
 static void do_poll(void) {

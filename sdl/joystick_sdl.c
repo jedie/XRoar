@@ -148,20 +148,20 @@ static void parse_joystick_def(char *def, int base) {
 static int init(void) {
 	int valid, i;
 
+	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+
+	num_sdl_joysticks = SDL_NumJoysticks();
+	if (num_sdl_joysticks < 1) {
+		LOG_DEBUG(2, "\tNo joysticks found\n");
+		return 1;
+	}
+
 	poll_event = event_new();
 	if (poll_event == NULL) {
 		LOG_WARN("Couldn't create joystick polling event.\n");
 		return 1;
 	}
 	poll_event->dispatch = do_poll;
-
-	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-
-	num_sdl_joysticks = SDL_NumJoysticks();
-	if (num_sdl_joysticks < 1) {
-		LOG_DEBUG(2, "\tNo joysticks attached.\n");
-		return 1;
-	}
 
 	/* If only one joystick attached, change the right joystick defaults */
 	if (num_sdl_joysticks == 1) {
