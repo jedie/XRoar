@@ -17,13 +17,15 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
 
 #include "types.h"
+
 #include "cart.h"
-#include "logging.h"
-#include "machine.h"
 #include "m6809.h"
+#include "machine.h"
 #include "mc6821.h"
 #include "sam.h"
 #include "xroar.h"
@@ -33,7 +35,6 @@ static unsigned int map_type;
 static unsigned int sam_register;
 
 static uint16_t sam_vdg_base;
-static int sam_vdg_mode;
 static uint16_t sam_vdg_address;
 static int sam_vdg_mod_xdiv;
 static int sam_vdg_mod_ydiv;
@@ -314,11 +315,11 @@ static void update_from_register(void) {
 	int memory_size = (sam_register >> 13) & 3;
 	int mpu_rate = (sam_register >> 11) & 3;
 
-	sam_vdg_mode = sam_register & 0x0007;
+	int vdg_mode = sam_register & 7;
 	sam_vdg_base = (sam_register & 0x03f8) << 6;
-	sam_vdg_mod_xdiv = vdg_mod_xdiv[sam_vdg_mode];
-	sam_vdg_mod_ydiv = vdg_mod_ydiv[sam_vdg_mode];
-	sam_vdg_mod_clear = vdg_mod_clear[sam_vdg_mode];
+	sam_vdg_mod_xdiv = vdg_mod_xdiv[vdg_mode];
+	sam_vdg_mod_ydiv = vdg_mod_ydiv[vdg_mode];
+	sam_vdg_mod_clear = vdg_mod_clear[vdg_mode];
 
 	ram_row_mask = ram_row_masks[memory_size];
 	ram_col_shift = ram_col_shifts[memory_size];
