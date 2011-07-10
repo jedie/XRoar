@@ -44,8 +44,8 @@ static int sam_vdg_ycount;
 static int sam_ram_cycles;
 static int sam_rom_cycles;
 #else
-# define sam_ram_cycles CPU_SLOW_DIVISOR
-# define sam_rom_cycles CPU_SLOW_DIVISOR
+# define sam_ram_cycles SAM_CPU_SLOW_DIVISOR
+# define sam_rom_cycles SAM_CPU_SLOW_DIVISOR
 #endif
 
 static int cycles_remaining = 0;
@@ -271,7 +271,7 @@ void sam_vdg_bytes(int nbytes, uint8_t *dest) {
 			uint8_t *src;
 			/* In FAST mode, the VDG does not get access to RAM.
 			 * Simulate by copying random data: */
-			if (sam_ram_cycles == CPU_FAST_DIVISOR) {
+			if (sam_ram_cycles == SAM_CPU_FAST_DIVISOR) {
 				src = machine_ram;
 			} else {
 				src = machine_ram + VRAM_TRANSLATE(sam_vdg_address);
@@ -346,16 +346,16 @@ static void update_from_register(void) {
 #ifdef VARIABLE_MPU_RATE
 	switch (mpu_rate) {
 		case 0:
-			sam_ram_cycles = CPU_SLOW_DIVISOR;
-			sam_rom_cycles = CPU_SLOW_DIVISOR;
+			sam_ram_cycles = SAM_CPU_SLOW_DIVISOR;
+			sam_rom_cycles = SAM_CPU_SLOW_DIVISOR;
 			break;
 		case 1:
-			sam_ram_cycles = CPU_SLOW_DIVISOR;
-			sam_rom_cycles = CPU_FAST_DIVISOR;
+			sam_ram_cycles = SAM_CPU_SLOW_DIVISOR;
+			sam_rom_cycles = SAM_CPU_FAST_DIVISOR;
 			break;
 		default:
-			sam_ram_cycles = CPU_FAST_DIVISOR;
-			sam_rom_cycles = CPU_FAST_DIVISOR;
+			sam_ram_cycles = SAM_CPU_FAST_DIVISOR;
+			sam_rom_cycles = SAM_CPU_FAST_DIVISOR;
 			break;
 	}
 #endif

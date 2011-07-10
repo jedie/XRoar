@@ -8,12 +8,12 @@
 
 #include "types.h"
 #include "events.h"
-#include "machine.h"
+#include "sam.h"
 
 /* These are the usual cycle lengths for each bit as written by the Dragon
  * BASIC ROM. */
-#define TAPE_BIT0_LENGTH (813 * CPU_SLOW_DIVISOR)
-#define TAPE_BIT1_LENGTH (435 * CPU_SLOW_DIVISOR)
+#define TAPE_BIT0_LENGTH (813 * SAM_CPU_SLOW_DIVISOR)
+#define TAPE_BIT1_LENGTH (435 * SAM_CPU_SLOW_DIVISOR)
 #define TAPE_AV_BIT_LENGTH ((TAPE_BIT0_LENGTH + TAPE_BIT1_LENGTH) / 2)
 
 struct tape_module;

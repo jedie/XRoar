@@ -17,9 +17,6 @@ struct cart;
 //#define OSCILLATOR_RATE 14218000
 #define OSCILLATOR_RATE 14318180
 
-#define CPU_SLOW_DIVISOR 16
-#define CPU_FAST_DIVISOR 8
-
 #define RESET_SOFT 0
 #define RESET_HARD 1
 

@@ -8,6 +8,9 @@
 
 #include "types.h"
 
+#define SAM_CPU_SLOW_DIVISOR 16
+#define SAM_CPU_FAST_DIVISOR 8
+
 void sam_init(void);
 void sam_reset(void);
 void sam_run(int cycles);
