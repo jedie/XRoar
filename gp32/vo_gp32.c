@@ -17,18 +17,20 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <gpgraphic.h>
 #include "gp32/gpgfx.h"
 
 #include "types.h"
+
 #include "machine.h"
 #include "module.h"
 #include "sam.h"
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
 static void vdg_vsync(void);
 static void vdg_set_mode(unsigned int mode);
 static void render_sg4(void);
@@ -38,11 +40,8 @@ static void render_cg2(void);
 static void render_rg6(void);
 
 VideoModule video_gp32_module = {
-	{ "gp32", "GP32 video driver",
-	  init, 0, shutdown },
-	NULL, NULL, 0,
-	vdg_vsync, vdg_set_mode,
-	NULL, NULL
+	.common = { .init = init },
+	.vsync = vdg_vsync, .set_mode = vdg_set_mode,
 };
 
 #define MAPCOLOUR GPGFX_MAPCOLOUR
@@ -86,9 +85,6 @@ static int init(void) {
 	darkgreen = MAPCOLOUR(0x00, 0x20, 0x00);
 	darkgreen = (darkgreen<<24) | (darkgreen<<16) | (darkgreen<<8) | darkgreen;
 	return 0;
-}
-
-static void shutdown(void) {
 }
 
 static void vdg_vsync(void) {

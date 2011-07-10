@@ -22,7 +22,7 @@
 #import <Cocoa/Cocoa.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "module.h"
 
 static char *load_filename(const char **extensions);

@@ -17,7 +17,10 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include "types.h"
+
 #include "module.h"
 
 #ifndef FAST_VDG

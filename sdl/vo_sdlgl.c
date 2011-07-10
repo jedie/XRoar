@@ -17,6 +17,8 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
@@ -24,6 +26,7 @@
 #include <SDL/SDL_syswm.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "module.h"
 #include "vdg_bitmaps.h"
@@ -44,7 +47,7 @@ static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
 
 VideoModule video_sdlgl_module = {
-	.common = { .name = "sdlgl", .description = "SDL OpenGL",
+	.common = { .name = "sdlgl", .description = "SDL OpenGL video",
 	            .init = init, .shutdown = shutdown },
 	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
@@ -83,7 +86,6 @@ static enum {
 static int init(void) {
 	const SDL_VideoInfo *video_info;
 
-	LOG_DEBUG(2,"Initialising SDL OpenGL driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
 		putenv("SDL_VIDEODRIVER=windib");
@@ -95,7 +97,7 @@ static int init(void) {
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
-		LOG_ERROR("Failed to initialise SDL OpenGL driver: %s\n", SDL_GetError());
+		LOG_ERROR("Failed to initialise SDL video: %s\n", SDL_GetError());
 		return 1;
 	}
 
@@ -149,7 +151,6 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down SDL OpenGL driver\n");
 	set_fullscreen(0);
 	glDeleteTextures(1, &texnum);
 	free(screen_tex);

@@ -17,6 +17,8 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <gpdef.h>
 #include <gpstdlib.h>
@@ -29,11 +31,12 @@
 #include "gp32/gpchatboard.h"
 
 #include "types.h"
-#include "logging.h"
+
 #include "events.h"
 #include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "module.h"
@@ -46,8 +49,7 @@ static int init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_gp32_module = {
-	{ "gp32", "GP32 virtual keyboard driver",
-	  init, 0, shutdown }
+	.common = { .init = init, .shutdown = shutdown },
 };
 
 static event_t poll_event;

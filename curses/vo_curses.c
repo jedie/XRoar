@@ -17,18 +17,20 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <curses.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "module.h"
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
 static void reset(void);
 static void vsync(void);
 static void hsync(void);
@@ -43,13 +45,12 @@ static int colourbase;
 
 VideoModule video_curses_module = {
 	.common = { .name = "curses", .description = "Curses video",
-	            .init = init, .shutdown = shutdown },
+	            .init = init, },
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
 	.render_border = render_border
 };
 
 static int init(void) {
-	LOG_DEBUG(2,"Initialising curses video driver\n");
 	memset(old_screen, 0, sizeof(old_screen));
 	clear();
 	old_mode = 0xff;
@@ -77,10 +78,6 @@ static int init(void) {
 		init_pair(8, COLOR_BLACK, COLOR_YELLOW);
 	}
 	return 0;
-}
-
-static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down curses video driver\n");
 }
 
 #ifndef FAST_VDG

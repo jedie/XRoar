@@ -17,10 +17,13 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <SDL.h>
 
 #include "types.h"
+
 #include "events.h"
 #include "input.h"
 #include "joystick.h"
@@ -34,8 +37,8 @@ static int init(void);
 static void shutdown(void);
 
 JoystickModule joystick_sdl_module = {
-	{ "sdl", "SDL joystick driver",
-	  init, 0, shutdown }
+	.common = { .name = "sdl", .description = "SDL joystick input",
+	            .init = init, .shutdown = shutdown }
 };
 
 static int num_sdl_joysticks;
@@ -145,8 +148,6 @@ static void parse_joystick_def(char *def, int base) {
 static int init(void) {
 	int valid, i;
 
-	LOG_DEBUG(2,"Initialising SDL joystick driver\n");
-
 	poll_event = event_new();
 	if (poll_event == NULL) {
 		LOG_WARN("Couldn't create joystick polling event.\n");
@@ -158,7 +159,7 @@ static int init(void) {
 
 	num_sdl_joysticks = SDL_NumJoysticks();
 	if (num_sdl_joysticks < 1) {
-		LOG_WARN("No joysticks attached.\n");
+		LOG_DEBUG(2, "\tNo joysticks attached.\n");
 		return 1;
 	}
 
@@ -214,7 +215,6 @@ static int init(void) {
 
 static void shutdown(void) {
 	int i;
-	LOG_DEBUG(2,"Shutting down SDL joystick driver\n");
 	for (i = 0; i < num_joys; i++) {
 		SDL_JoystickClose(joy[i].device);
 	}

@@ -17,33 +17,26 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "fs.h"
+#include "logging.h"
 #include "module.h"
 
-static int init(void);
-static void shutdown(void);
 static char *get_filename(const char **extensions);
 
 FileReqModule filereq_cli_module = {
-	{ "cli", "Command-line file requester",
-	  init, 0, shutdown },
-	get_filename, get_filename
+	.common = { .name = "cli",
+	            .description = "Command-line file requester" },
+	.load_filename = get_filename, .save_filename = get_filename
 };
 
 static char fnbuf[256];
-
-static int init(void) {
-	LOG_DEBUG(2, "Command-line file requester selected.\n");
-	return 0;
-}
-
-static void shutdown(void) {
-}
 
 static char *get_filename(const char **extensions) {
 	char *in, *cr;

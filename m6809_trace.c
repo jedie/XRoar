@@ -17,11 +17,14 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "m6809_trace.h"
 
 enum {
@@ -1138,7 +1141,7 @@ static void trace_print_short(void) {
 		snprintf(bytes_string + i*2, 3, "%02x", bytes_buf[i]);
 	}
 
-	LOG_DEBUG(0, "%04x| %-12s%-8s%-20s\n", instr_pc, bytes_string, mnemonic, operand_text);
+	printf("%04x| %-12s%-8s%-20s\n", instr_pc, bytes_string, mnemonic, operand_text);
 
 	reset_state();
 }
@@ -1157,8 +1160,8 @@ void m6809_trace_print(uint8_t reg_cc, uint8_t reg_a,
 		snprintf(bytes_string + i*2, 3, "%02x", bytes_buf[i]);
 	}
 
-	LOG_DEBUG(0, "%04x| %-12s%-8s%-20s", instr_pc, bytes_string, mnemonic, operand_text);
-	LOG_DEBUG(0, "cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
+	printf("%04x| %-12s%-8s%-20s", instr_pc, bytes_string, mnemonic, operand_text);
+	printf("cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
 
 	reset_state();
 }

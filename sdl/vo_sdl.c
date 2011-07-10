@@ -17,12 +17,15 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 #include <SDL/SDL_syswm.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "module.h"
 #include "vdg_bitmaps.h"
@@ -42,7 +45,7 @@ static void render_border(void);
 static int set_fullscreen(int fullscreen);
 
 VideoModule video_sdl_module = {
-	.common = { .name = "sdl", .description = "Standard SDL surface",
+	.common = { .name = "sdl", .description = "Minimal SDL video",
 	            .init = init, .shutdown = shutdown },
 	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
@@ -83,7 +86,6 @@ static Pixel alloc_and_map(int r, int g, int b) {
 #include "vo_generic_ops.c"
 
 static int init(void) {
-	LOG_DEBUG(2,"Initialising SDL video driver\n");
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
 		putenv("SDL_VIDEODRIVER=windib");
@@ -95,7 +97,7 @@ static int init(void) {
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
-		LOG_ERROR("Failed to initialise SDL video driver: %s\n", SDL_GetError());
+		LOG_ERROR("Failed to initialise SDL video: %s\n", SDL_GetError());
 		return 1;
 	}
 	if (set_fullscreen(xroar_opt_fullscreen))
@@ -116,7 +118,6 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down SDL video driver\n");
 	set_fullscreen(0);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);

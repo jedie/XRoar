@@ -17,6 +17,8 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <gpdef.h>
 #include <gpstdlib.h>
@@ -25,21 +27,21 @@
 #include <gpfont.h>
 
 #include "types.h"
+
 #include "events.h"
 #include "machine.h"
 #include "module.h"
 #include "xroar.h"
 #include "gp32/ao_gp32.h"
-#include "gp32/gpsound.h"
 #include "gp32/gp32.h"
+#include "gp32/gpsound.h"
 
 static int init(void);
 static void shutdown(void);
 static void update(int value);
 
 SoundModule sound_gp32_module = {
-	{ "gp32", "GP32 audio",
-	  init, 0, shutdown },
+	.common = { .init = init, .shutdown = shutdown },
 	update
 };
 

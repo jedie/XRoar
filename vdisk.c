@@ -17,12 +17,15 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "types.h"
+
 #include "crc16.h"
 #include "fs.h"
 #include "logging.h"

@@ -30,6 +30,7 @@
 #endif
 
 #include "types.h"
+
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -41,7 +42,7 @@ static void _shutdown(void);
 static void flush_frame(void);
 
 SoundModule sound_sdl_module = {
-	.common = { .name = "sdl", .description = "SDL ring-buffer audio",
+	.common = { .name = "sdl", .description = "SDL audio",
 		    .init = init, .shutdown = _shutdown },
 	.flush_frame = flush_frame,
 };
@@ -62,7 +63,6 @@ static void callback(void *userdata, Uint8 *stream, int len);
 
 static int init(void) {
 	static SDL_AudioSpec desired;
-	LOG_DEBUG(2,"Initialising SDL audio driver\n");
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 			LOG_ERROR("Failed to initialise SDL\n");
@@ -70,7 +70,7 @@ static int init(void) {
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-		LOG_ERROR("Failed to initialise SDL audio driver\n");
+		LOG_ERROR("Failed to initialise SDL audio\n");
 		return 1;
 	}
 	desired.freq = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
@@ -121,7 +121,6 @@ failed:
 }
 
 static void _shutdown(void) {
-	LOG_DEBUG(2,"Shutting down SDL audio driver\n");
 #ifndef WINDOWS32
 	SDL_DestroyCond(halt_cv);
 	SDL_DestroyMutex(halt_mutex);

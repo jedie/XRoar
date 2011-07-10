@@ -27,6 +27,7 @@
 #include <pulse/gccmacro.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -61,8 +62,6 @@ static int init(void) {
 	};
 	int error;
 
-	LOG_DEBUG(2,"Initialising PulseAudio driver\n");
-
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	ss.rate = sample_rate;
 
@@ -96,12 +95,10 @@ static int init(void) {
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
 	return 0;
 failed:
-	LOG_ERROR("Failed to initialise PulseAudio driver\n");
 	return 1;
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2, "Shutting down PulseAudio driver\n");
 	int error;
 	pa_simple_flush(pa, &error);
 	pa_simple_free(pa);

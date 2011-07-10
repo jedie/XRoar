@@ -17,7 +17,10 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -26,6 +29,7 @@
 #include <linux/joystick.h>
 
 #include "types.h"
+
 #include "events.h"
 #include "input.h"
 #include "joystick.h"
@@ -39,7 +43,7 @@ static int init(void);
 static void shutdown(void);
 
 JoystickModule joystick_linux_module = {
-	.common = { .name = "linux", .description = "Linux joystick driver",
+	.common = { .name = "linux", .description = "Linux joystick input",
 	            .init = init, .shutdown = shutdown }
 };
 
@@ -167,8 +171,6 @@ static void parse_joystick_def(char *def, int base) {
 static int init(void) {
 	int valid, i;
 
-	LOG_DEBUG(2,"Initialising Linux joystick driver\n");
-
 	poll_event = event_new();
 	if (poll_event == NULL) {
 		LOG_WARN("Couldn't create joystick polling event.\n");
@@ -187,7 +189,7 @@ static int init(void) {
 	}
 
 	if (num_joystick_devices < 1) {
-		LOG_WARN("No joysticks attached.\n");
+		LOG_DEBUG(2, "\tNo joysticks attached.\n");
 		return 1;
 	}
 
@@ -243,7 +245,6 @@ static int init(void) {
 
 static void shutdown(void) {
 	int i;
-	LOG_DEBUG(2,"Shutting down Linux joystick driver\n");
 	for (i = 0; i < num_joys; i++) {
 		close(joy[i].fd);
 	}

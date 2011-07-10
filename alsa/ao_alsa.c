@@ -29,6 +29,7 @@
 #include <alsa/asoundlib.h>
 
 #include "types.h"
+
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -56,8 +57,6 @@ static int init(void) {
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_format_t format = SND_PCM_FORMAT_U8;
 	unsigned int channels = 1;
-
-	LOG_DEBUG(2,"Initialising ALSA audio driver\n");
 
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 
@@ -124,7 +123,6 @@ failed:
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down ALSA audio driver\n");
 	snd_pcm_close(pcm_handle);
 }
 

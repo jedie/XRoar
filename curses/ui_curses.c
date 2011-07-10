@@ -44,7 +44,7 @@ static KeyboardModule *curses_keyboard_module_list[] = {
 };
 
 UIModule ui_curses_module = {
-	.common = { .name = "curses", .description = "Curses user-interface",
+	.common = { .name = "curses", .description = "Curses UI",
 	            .init = init, .shutdown = shutdown },
 	.video_module_list = curses_video_module_list,
 	.keyboard_module_list = curses_keyboard_module_list,

@@ -631,7 +631,7 @@ static KeyboardModule *sdl_keyboard_module_list[] = {
 };
 
 UIModule ui_macosx_module = {
-	.common = { .name = "macosx", .description = "Mac OS X SDL user-interface",
+	.common = { .name = "macosx", .description = "Mac OS X SDL UI",
 	            .init = init },
 	.video_module_list = sdl_video_module_list,
 	.keyboard_module_list = sdl_keyboard_module_list,

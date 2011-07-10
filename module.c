@@ -17,10 +17,14 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "module.h"
 
@@ -189,11 +193,18 @@ Module *module_select_by_arg(Module **list, const char *name) {
 }
 
 Module *module_init(Module *module) {
-	if (module) {
-		if (!module->common.init || module->common.init() == 0) {
-			module->common.initialised = 1;
-			return module;
-		}
+	if (!module)
+		return NULL;
+	int have_description = (module->common.description != NULL);
+	if (have_description) {
+		LOG_DEBUG(2, "Module init: %s\n", module->common.description);
+	}
+	if (!module->common.init || module->common.init() == 0) {
+		module->common.initialised = 1;
+		return module;
+	}
+	if (have_description) {
+		LOG_DEBUG(2, "Module init failed: %s\n", module->common.description);
 	}
 	return NULL;
 }
@@ -214,6 +225,11 @@ Module *module_init_from_list(Module **list, Module *module) {
 }
 
 void module_shutdown(Module *module) {
-	if (module && module->common.shutdown && module->common.initialised)
+	if (!module || !module->common.initialised)
+		return;
+	if (module->common.description) {
+		LOG_DEBUG(2, "Module shutdown: %s\n", module->common.description);
+	}
+	if (module->common.shutdown)
 		module->common.shutdown();
 }

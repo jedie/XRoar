@@ -38,7 +38,7 @@ static int init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_curses_module = {
-	.common = { .name = "curses", .description = "Curses keyboard driver",
+	.common = { .name = "curses", .description = "Curses keyboard input",
 	            .init = init, .shutdown = shutdown }
 };
 

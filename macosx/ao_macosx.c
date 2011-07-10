@@ -26,6 +26,7 @@
 #include <pthread.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -37,7 +38,7 @@ static void shutdown(void);
 static void flush_frame(void);
 
 SoundModule sound_macosx_module = {
-	.common = { .name = "macosx", .description = "Mac OS X CoreAudio",
+	.common = { .name = "macosx", .description = "Mac OS X audio",
 		    .init = init, .shutdown = shutdown },
 	.flush_frame = flush_frame,
 };
@@ -63,7 +64,6 @@ static int init(void) {
 	AudioObjectPropertyAddress propertyAddress;
 	AudioStreamBasicDescription deviceFormat;
 	UInt32 propertySize;
-	LOG_DEBUG(2,"Initialising Mac OS X CoreAudio driver\n");
 
 	propertyAddress.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
 	propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
@@ -120,12 +120,10 @@ static int init(void) {
 
 	return 0;
 failed:
-	LOG_ERROR("Failed to initialise Mac OS X CoreAudio driver\n");
 	return 1;
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down Mac OS X CoreAudio driver\n");
 #ifdef MAC_OS_X_VERSION_10_5
 	AudioDeviceDestroyIOProcID(device, aprocid);
 #else

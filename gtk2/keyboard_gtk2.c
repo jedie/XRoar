@@ -17,6 +17,8 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,9 +26,10 @@
 #include <gdk/gdkkeysyms.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "input.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "machine.h"
 #include "module.h"
 #include "printer.h"
@@ -36,7 +39,7 @@ static int init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_gtk2_module = {
-	.common = { .name = "gtk2", .description = "GTK+-2 keyboard driver",
+	.common = { .name = "gtk2", .description = "GTK+-2 keyboard input",
 	            .init = init, .shutdown = shutdown }
 };
 

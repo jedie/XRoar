@@ -6,7 +6,7 @@
 #ifndef XROAR_LOGGING_H_
 #define XROAR_LOGGING_H_
 
-#if defined(HAVE_GP32) || defined(HAVE_NDS)
+#ifndef LOGGING
 
 #define LOG_DEBUG(...) do {} while (0)
 #define LOG_WARN(...) do {} while (0)

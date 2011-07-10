@@ -17,6 +17,8 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,13 +26,14 @@
 #include <strings.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "cart.h"
 #include "events.h"
 #include "fs.h"
 #include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "m6809.h"
 #include "m6809_trace.h"
 #include "machine.h"
@@ -324,6 +327,7 @@ static void set_ntsc(void) {
  * config was in progress, copies any machine-related options into it and
  * clears those options.  Starts a new config. */
 static void set_machine(char *name) {
+#ifdef LOGGING
 	if (name && 0 == strcmp(name, "help")) {
 		int count = machine_config_count();
 		int i;
@@ -333,6 +337,7 @@ static void set_machine(char *name) {
 		}
 		exit(0);
 	}
+#endif
 
 	if (xroar_machine_config) {
 		if (opt_machine_arch != ANY_AUTO) {
@@ -343,6 +348,7 @@ static void set_machine(char *name) {
 			xroar_machine_config->description = opt_machine_desc;
 			opt_machine_desc = NULL;
 		}
+#ifdef LOGGING
 		if (opt_machine_palette && 0 == strcmp(opt_machine_palette, "help")) {
 			int count = vdg_palette_count();
 			int i;
@@ -352,6 +358,7 @@ static void set_machine(char *name) {
 			}
 			exit(0);
 		}
+#endif
 		if (opt_machine_palette) {
 			xroar_machine_config->vdg_palette = opt_machine_palette;
 			opt_machine_palette = NULL;
@@ -395,6 +402,7 @@ static void set_machine(char *name) {
 * in progress, copies any cart-related options into it and clears those
 * options.  Starts a new config.  */
 static void set_cart(char *name) {
+#ifdef LOGGING
 	if (name && 0 == strcmp(name, "help")) {
 		int count = cart_config_count();
 		int i;
@@ -404,6 +412,7 @@ static void set_cart(char *name) {
 		}
 		exit(0);
 	}
+#endif
 	if (xroar_cart_config) {
 		if (opt_cart_desc) {
 			xroar_cart_config->description = opt_cart_desc;
@@ -436,6 +445,7 @@ static void set_cart(char *name) {
 }
 
 static void versiontext(void) {
+#ifdef LOGGING
 	puts(
 "XRoar " VERSION "\n"
 "Copyright (C) 2003-2011 Ciaran Anscomb\n"
@@ -443,10 +453,12 @@ static void versiontext(void) {
 "the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
 "There is NO WARRANTY, to the extent permitted by law."
 	    );
+#endif
 	exit(0);
 }
 
 static void helptext(void) {
+#ifdef LOGGING
 	puts(
 "Usage: xroar [OPTION]...\n"
 "XRoar is a Dragon emulator.  Due to hardware similarities, XRoar also\n"
@@ -518,6 +530,7 @@ static void helptext(void) {
 "mapping two axes and a button to the X, Y and firebutton on the emulated\n"
 "joystick respectively."
 	);
+#endif
 	exit(0);
 }
 

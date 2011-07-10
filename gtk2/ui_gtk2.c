@@ -65,7 +65,7 @@ static void keymap_changed_cb(int keymap);
 static void fast_sound_changed_cb(int fast);
 
 UIModule ui_gtk2_module = {
-	.common = { .name = "gtk2", .description = "GTK+-2 user-interface",
+	.common = { .name = "gtk2", .description = "GTK+-2 UI",
 	            .init = init, .shutdown = shutdown },
 	.run = &run,
 	.video_module_list = gtk2_video_module_list,
@@ -413,8 +413,6 @@ static GtkRadioActionEntry keymap_radio_entries[] = {
 };
 
 static int init(void) {
-
-	LOG_DEBUG(2, "Initialising GTK+2 UI\n");
 
 	gtk_init(NULL, NULL);
 

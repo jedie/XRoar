@@ -17,12 +17,14 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <nds.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "machine.h"
 #include "module.h"
 #include "sam.h"
@@ -30,7 +32,6 @@
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
 static void vsync(void);
 static void set_mode(unsigned int mode);
 static void render_sg4(void);
@@ -38,11 +39,8 @@ static void render_cg1(void);
 static void render_cg2(void);
 
 VideoModule video_nds_module = {
-	{ "nds", "NDS video",
-	  init, 0, shutdown },
-	NULL, NULL, 0,
-	vsync, set_mode,
-	NULL, NULL, NULL
+	.common = { .init = init },
+	.vsync = vsync, .set_mode = set_mode,
 };
 
 /* This is now implemented a set of 12 64x64 sprites pulling tiles
@@ -100,7 +98,6 @@ static void vcount_handle(void) {
 
 static int init(void) {
 	int i, j;
-	LOG_DEBUG(2,"Initialising NDS video driver\n");
 
 	videoSetMode(MODE_5_2D | DISPLAY_SPR_ACTIVE | DISPLAY_SPR_2D);
 	vramSetBankE(VRAM_E_MAIN_SPRITE);
@@ -129,10 +126,6 @@ static int init(void) {
 	SetYtrigger(204);
 	irqSet(IRQ_VCOUNT, vcount_handle);
 	return 0;
-}
-
-static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down NDS video driver\n");
 }
 
 static void vsync(void) {

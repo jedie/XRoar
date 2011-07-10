@@ -41,7 +41,6 @@
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
 void gp32_menu(void);
 static char *get_filename(const char **extensions);
 
@@ -66,13 +65,12 @@ static KeyboardModule *gp32_keyboard_module_list[] = {
 };
 
 UIModule ui_gp32_module = {
-	{ "gp32", "GP32 user-interface",
-	  init, 0, shutdown },
-	(FileReqModule **)empty_module_list,
-	gp32_video_module_list,
-	gp32_sound_module_list,
-	gp32_keyboard_module_list,
-	(JoystickModule **)empty_module_list
+	.common = { .init = init },
+	.filereq_module_list = (FileReqModule **)empty_module_list,
+	.video_module_list = gp32_video_module_list,
+	.sound_module_list = gp32_sound_module_list,
+	.keyboard_module_list = gp32_keyboard_module_list,
+	.joystick_module_list = (JoystickModule **)empty_module_list
 };
 
 #define FG (0xffffff00)
@@ -136,9 +134,6 @@ static int init(void) {
 	gpgfx_fillrect(0, 0, 320, 196, 0x00000000);
 	gpgfx_fillrect(0, 196, 320, 44, 0xffffff00);
 	return 0;
-}
-
-static void shutdown(void) {
 }
 
 static void draw_char(int x, int y, char c) {

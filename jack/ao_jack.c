@@ -28,6 +28,7 @@
 #include <pthread.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -57,7 +58,6 @@ static int init(void) {
 	const char **ports;
 	int i;
 
-	LOG_DEBUG(2,"Initialising JACK audio driver\n");
 	if ((client = jack_client_open("XRoar", 0, NULL)) == 0) {
 		LOG_ERROR("Initialisation failed: JACK server not running?\n");
 		return 1;
@@ -98,7 +98,6 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down JACK audio driver\n");
 	pthread_mutex_destroy(&haltflag);
 	if (client)
 		jack_client_close(client);

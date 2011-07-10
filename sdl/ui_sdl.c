@@ -62,7 +62,7 @@ static KeyboardModule *sdl_keyboard_module_list[] = {
  * will include the SDL options. */
 
 UIModule ui_sdl_module = {
-	.common = { .name = "sdl", .description = "SDL user-interface" },
+	.common = { .name = "sdl", .description = "SDL UI" },
 	.video_module_list = sdl_video_module_list,
 	.keyboard_module_list = sdl_keyboard_module_list,
 	.run = sdl_run,

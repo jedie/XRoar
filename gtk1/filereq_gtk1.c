@@ -20,35 +20,34 @@
 /* The GTK+ function prototypes shadow 'index' from string.h in many places,
  * so expect lots of compiler warnings about that */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "fs.h"
+#include "logging.h"
 #include "module.h"
 
 static int init(void);
-static void shutdown(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
 FileReqModule filereq_gtk1_module = {
-	{ "gtk1", "GTK+-1 file requester",
-	  init, 0, shutdown },
-	load_filename, save_filename
+	.common = { .name = "gtk1", .description = "GTK+-1 file requester",
+	            .init = init },
+	.load_filename = load_filename,
+	.save_filename = save_filename
 };
 
 static char *filename = NULL;
 
 static int init(void) {
-	LOG_DEBUG(2, "GTK+-1 file requester selected.\n");
 	gtk_init(NULL, NULL);
 	return 0;
-}
-
-static void shutdown(void) {
 }
 
 static gboolean cancel(GtkWidget *w) {

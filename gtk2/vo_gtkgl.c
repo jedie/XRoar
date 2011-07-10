@@ -17,6 +17,8 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
@@ -24,10 +26,12 @@
 #include <GL/gl.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "module.h"
 #include "vdg_bitmaps.h"
 #include "xroar.h"
+
 #ifdef WINDOWS32
 #include "common_windows32.h"
 #endif
@@ -44,7 +48,7 @@ static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(int fullscreen);
 
 VideoModule video_gtkgl_module = {
-	.common = { .name = "gtkgl", .description = "GtkGLExt",
+	.common = { .name = "gtkgl", .description = "GtkGLExt video",
 	            .init = init, .shutdown = shutdown },
 	.update_palette = alloc_colours,
 	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
@@ -84,8 +88,6 @@ enum {
 #include "vo_generic_ops.c"
 
 static int init(void) {
-	LOG_DEBUG(2, "Initialising GtkGLExt video module\n");
-
 	gtk_gl_init(NULL, NULL);
 
 	if (gdk_gl_query_extension() != TRUE) {
@@ -141,7 +143,6 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down GtkGLExt video module\n");
 	set_fullscreen(0);
 	glDeleteTextures(1, &texnum);
 	free(screen_tex);

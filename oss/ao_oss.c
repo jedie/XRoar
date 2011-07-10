@@ -29,6 +29,7 @@
 #include <sys/soundcard.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -53,7 +54,6 @@ static int init(void) {
 	const char *device = "/dev/dsp";
 	int fragment_param, tmp;
 
-	LOG_DEBUG(2,"Initialising OSS audio driver\n");
 	sound_fd = open(device, O_WRONLY);
 	if (sound_fd == -1)
 		goto failed;
@@ -152,12 +152,10 @@ static int init(void) {
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	return 0;
 failed:
-	LOG_ERROR("Failed to initialise OSS audio driver\n");
 	return 1;
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down OSS audio driver\n");
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
 }

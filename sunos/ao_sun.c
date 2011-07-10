@@ -30,6 +30,7 @@
 #include <sys/stropts.h>
 
 #include "types.h"
+
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -58,7 +59,6 @@ static int init(void) {
 	audio_info_t device_info;
 	const char *device = "/dev/audio";
 
-	LOG_DEBUG(2,"Initialising Sun audio driver\n");
 	sound_fd = open(device, O_WRONLY);
 	if (sound_fd == -1) {
 		LOG_ERROR("Couldn't open audio device %s: %s!\n", device, strerror(errno));
@@ -99,7 +99,6 @@ static int init(void) {
 }
 
 static void shutdown(void) {
-	LOG_DEBUG(2,"Shutting down Sun audio driver\n");
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	close(sound_fd);
 }

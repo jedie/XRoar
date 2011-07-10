@@ -24,8 +24,9 @@
 #include <gtk/gtk.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "fs.h"
+#include "logging.h"
 #include "module.h"
 
 static int init(void);
@@ -44,7 +45,6 @@ extern GtkWidget *gtk2_top_window;
 static int init(void) {
 	/* Only initialise if not running as part of general GTK+ interface */
 	if (gtk2_top_window == NULL) {
-		LOG_DEBUG(2, "GTK+-2 file requester selected.\n");
 		gtk_init(NULL, NULL);
 	}
 	return 0;

@@ -19,37 +19,31 @@
 
 /* This Windows32 code is probably all wrong, but it does seem to work */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 #include <commdlg.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "fs.h"
+#include "logging.h"
 #include "module.h"
 #include "windows32/common_windows32.h"
 
-static int init(void);
-static void shutdown_module(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
 FileReqModule filereq_windows32_module = {
-	{ "windows32", "Windows32 file requester",
-	  init, 0, shutdown_module },
-	load_filename, save_filename
+	.common = { .name = "windows32",
+	            .description = "Windows32 file requester" },
+	.load_filename = load_filename,
+	.save_filename = save_filename
 };
 
 static char *filename = NULL;
-
-static int init(void) {
-	LOG_DEBUG(2, "Windows32 file requester selected.\n");
-	return 0;
-}
-
-static void shutdown_module(void) {
-}
 
 static char *load_filename(const char **extensions) {
 	OPENFILENAME ofn;

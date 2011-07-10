@@ -15,7 +15,7 @@ unset target_sdl_config build_sdl_config
 unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound"
+all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -509,6 +509,7 @@ if test "$_gp32" = "yes"; then
 	_trace=no
 	test -z "$_mpu_rate" && _mpu_rate=no
 	test -z "$_fast_sound" && _fast_sound=yes
+	test -z "$_logging" && _logging=no
 else
 	_gp32_def="#undef HAVE_GP32"
 fi
@@ -552,6 +553,7 @@ if test "$_nds" = "yes"; then
 	_trace=no
 	test -z "$_mpu_rate" && _mpu_rate=no
 	test -z "$_fast_sound" && _fast_sound=yes
+	test -z "$_logging" && _logging=no
 else
 	_nds_def="#undef HAVE_NDS"
 fi
@@ -1081,6 +1083,15 @@ if test "$_fast_sound" = "yes"; then
 else
 	echo "Accurate audio enabled"
 	_fast_sound_def="#undef FAST_SOUND"
+fi
+
+########
+
+test -z "$_logging" && _logging=yes
+if test "$_logging" = "yes"; then
+	_logging_def="#define LOGGING"
+else
+	_logging_def="#undef LOGGING"
 fi
 
 ############################################################################

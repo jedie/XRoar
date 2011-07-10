@@ -17,11 +17,16 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
+#include <stdlib.h>
+
 #include "types.h"
-#include "logging.h"
+
 #include "fs.h"
-#include "m6809.h"
 #include "hexs19.h"
+#include "logging.h"
+#include "m6809.h"
 #include "machine.h"
 
 static int dragon_bin_load(int fd, int autorun);

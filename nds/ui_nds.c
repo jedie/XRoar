@@ -50,7 +50,6 @@
 #include "nds/ndsui_textbox.h"
 
 static int init(void);
-static void shutdown(void);
 
 extern VideoModule video_nds_module;
 static VideoModule *nds_video_module_list[] = {
@@ -65,13 +64,9 @@ static SoundModule *nds_sound_module_list[] = {
 };
 
 UIModule ui_nds_module = {
-	{ "nds", "NDS user-interface",
-	  init, 0, shutdown },
-	NULL,  /* use default filereq module list */
-	nds_video_module_list,
-	nds_sound_module_list,
-	NULL,  /* nds_keyboard_module_list, */
-	NULL  /* use default joystick module list */
+	.common = { .init = init },
+	.video_module_list = nds_video_module_list,
+	.sound_module_list = nds_sound_module_list,
 };
 
 static int input_joysticks_swapped = 0;
@@ -104,9 +99,6 @@ static int init(void) {
 	show_main_input_screen();
 
 	return 0;
-}
-
-static void shutdown(void) {
 }
 
 /* NDS-specific UI commands supplementing those in input.h */

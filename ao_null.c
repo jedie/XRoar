@@ -32,6 +32,7 @@
 #endif
 
 #include "types.h"
+
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -40,12 +41,11 @@
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
 static void flush_frame(void);
 
 SoundModule sound_null_module = {
 	.common = { .name = "null", .description = "No audio",
-		    .init = init, .shutdown = shutdown },
+		    .init = init, },
 	.flush_frame = flush_frame,
 };
 
@@ -58,14 +58,10 @@ static unsigned int current_time(void);
 static void sleep_ms(unsigned int ms);
 
 static int init(void) {
-	LOG_DEBUG(2,"Initialising null audio driver\n");
 	sound_init(44100, 1, SOUND_FMT_NULL, 1024);
 	last_pause_cycle = current_cycle;
 	last_pause_ms = current_time();
 	return 0;
-}
-
-static void shutdown(void) {
 }
 
 static unsigned int current_time(void) {

@@ -17,11 +17,14 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <nds.h>
 
 #include "types.h"
+
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -29,12 +32,10 @@
 #include "xroar.h"
 
 static int init(void);
-static void shutdown(void);
 static void update(int value);
 
 SoundModule sound_nds_module = {
-	{ "nds", "NDS audio",
-	  init, 0, shutdown },
+	.common = { .init = init },
 	update
 };
 
@@ -56,7 +57,6 @@ static void flush_frame(void);
 static event_t *flush_event;
 
 static int init(void) {
-	LOG_DEBUG(2,"Initialising NDS audio (ARM9 side)\n");
 	flush_event = event_new();
 	flush_event->dispatch = flush_frame;
 
@@ -84,10 +84,6 @@ static int init(void) {
 		swiIntrWait(1, IRQ_IPC_SYNC);
 	}
 	return 0;
-}
-
-static void shutdown(void) {
-	event_free(flush_event);
 }
 
 static void update(int value) {

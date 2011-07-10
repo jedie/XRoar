@@ -17,15 +17,18 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 
 #include "types.h"
-#include "logging.h"
+
 #include "input.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "machine.h"
 #include "module.h"
 #include "printer.h"
@@ -35,7 +38,7 @@ static int init(void);
 static void update_kbd_translate(void);
 
 KeyboardModule keyboard_sdl_module = {
-	.common = { .name = "sdl", .description = "SDL keyboard driver",
+	.common = { .name = "sdl", .description = "SDL keyboard input",
 	            .init = init },
 	.update_kbd_translate = update_kbd_translate,
 };
