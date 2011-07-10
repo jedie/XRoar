@@ -23,13 +23,13 @@ struct cart;
 #define RESET_SOFT 0
 #define RESET_HARD 1
 
-#define IS_DRAGON64 (running_config.architecture == ARCH_DRAGON64)
-#define IS_DRAGON32 (running_config.architecture == ARCH_DRAGON32)
+#define IS_DRAGON64 (xroar_machine_config->architecture == ARCH_DRAGON64)
+#define IS_DRAGON32 (xroar_machine_config->architecture == ARCH_DRAGON32)
 #define IS_DRAGON (!IS_COCO)
-#define IS_COCO (running_config.architecture == ARCH_COCO)
+#define IS_COCO (xroar_machine_config->architecture == ARCH_COCO)
 
-#define IS_PAL (running_config.tv_standard == TV_PAL)
-#define IS_NTSC (running_config.tv_standard == TV_NTSC)
+#define IS_PAL (xroar_machine_config->tv_standard == TV_PAL)
+#define IS_NTSC (xroar_machine_config->tv_standard == TV_NTSC)
 
 #define ANY_AUTO (-1)
 #define MACHINE_DRAGON32 (0)
@@ -69,6 +69,7 @@ struct machine_config {
 	char *vdg_palette;
 	int keymap;
 	int tv_standard;
+	int cross_colour_phase;
 	int ram;
 	int nobas;
 	int noextbas;
@@ -77,17 +78,6 @@ struct machine_config {
 	char *extbas_rom;
 	char *altbas_rom;
 };
-
-typedef struct {
-	int architecture;
-	int romset;
-	int keymap;
-	int tv_standard;
-	int cross_colour_phase;
-	int ram;
-} MachineConfig;
-
-extern MachineConfig running_config;
 
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
 extern uint8_t machine_ram[0x10000];

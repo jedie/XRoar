@@ -1011,11 +1011,11 @@ void xroar_select_write_back(int drive, int action) {
 void xroar_set_cross_colour(int action) {
 	switch (action) {
 	case XROAR_CYCLE:
-		running_config.cross_colour_phase++;
-		running_config.cross_colour_phase %= NUM_CROSS_COLOUR_PHASES;
+		xroar_machine_config->cross_colour_phase++;
+		xroar_machine_config->cross_colour_phase %= NUM_CROSS_COLOUR_PHASES;
 		break;
 	default:
-		running_config.cross_colour_phase = action;
+		xroar_machine_config->cross_colour_phase = action;
 		break;
 	}
 	vdg_set_mode();
@@ -1024,7 +1024,7 @@ void xroar_set_cross_colour(int action) {
 void xroar_select_cross_colour(int action) {
 	xroar_set_cross_colour(action);
 	if (ui_module->cross_colour_changed_cb) {
-		ui_module->cross_colour_changed_cb(running_config.cross_colour_phase);
+		ui_module->cross_colour_changed_cb(xroar_machine_config->cross_colour_phase);
 	}
 }
 
@@ -1077,7 +1077,7 @@ void xroar_set_keymap(int keymap) {
 	int new;
 	switch (keymap) {
 		case XROAR_CYCLE:
-			new = (running_config.keymap + 1) % NUM_KEYMAPS;
+			new = (xroar_machine_config->keymap + 1) % NUM_KEYMAPS;
 			break;
 		default:
 			new = keymap;

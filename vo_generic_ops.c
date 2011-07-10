@@ -199,9 +199,9 @@ static void set_mode(unsigned int mode) {
 			border_colour = cg_colours[0];
 			break;
 		case 15: default:
-			if ((mode & 0x08) && running_config.cross_colour_phase) {
+			if ((mode & 0x08) && xroar_machine_config->cross_colour_phase) {
 				VIDEO_MODULE_NAME.render_scanline = RENDER_CROSS_COLOUR;
-				cg_colours = &vdg_colour[4 + running_config.cross_colour_phase * 4];
+				cg_colours = &vdg_colour[4 + xroar_machine_config->cross_colour_phase * 4];
 				border_colour = vdg_colour[4];;
 			} else {
 				VIDEO_MODULE_NAME.render_scanline = render_rg6;
@@ -441,7 +441,7 @@ static void render_rg6a(RENDER_ARGS) {
 		octet = *(vram_ptr++);
 		for (i = 0; i < 8; i++) {
 			aindex = ((aindex << 1) | (octet >> 7)) & 0x1f;
-			*(pixel-2*XSTEP) = artifact_colours[(i&1)^(running_config.cross_colour_phase-1)][aindex];
+			*(pixel-2*XSTEP) = artifact_colours[(i&1)^(xroar_machine_config->cross_colour_phase-1)][aindex];
 			octet = (octet << 1) & 0xff;
 			pixel += XSTEP;
 		}
@@ -449,7 +449,7 @@ static void render_rg6a(RENDER_ARGS) {
 	}
 	while (beam_pos >= 288 && beam_pos < 293 && beam_pos < beam_to) {
 		aindex = ((aindex << 1) | 1) & 0x1f;
-		*(pixel-2*XSTEP) = artifact_colours[(beam_pos&1)^(running_config.cross_colour_phase-1)][aindex];
+		*(pixel-2*XSTEP) = artifact_colours[(beam_pos&1)^(xroar_machine_config->cross_colour_phase-1)][aindex];
 		pixel += XSTEP;
 		beam_pos++;
 	}

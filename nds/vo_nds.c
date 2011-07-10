@@ -160,8 +160,8 @@ static void set_mode(unsigned int mode) {
 			break;
 		case 15: default:
 			render_screen = render_cg2;
-			if ((mode & 0x08) && running_config.cross_colour_phase) {
-				cg_colours = rg6_pixels[1 + running_config.cross_colour_phase];
+			if ((mode & 0x08) && xroar_machine_config->cross_colour_phase) {
+				cg_colours = rg6_pixels[1 + xroar_machine_config->cross_colour_phase];
 			} else {
 				cg_colours = rg6_pixels[(mode & 0x08)>>3];
 			}

@@ -71,17 +71,17 @@ int write_snapshot(const char *filename) {
 	/* Machine running config */
 	fs_write_uint8(fd, ID_MACHINECONFIG); fs_write_uint16(fd, 8);
 	fs_write_uint8(fd, xroar_machine_config->index);
-	fs_write_uint8(fd, running_config.architecture);
-	fs_write_uint8(fd, running_config.romset);
-	fs_write_uint8(fd, running_config.keymap);
-	fs_write_uint8(fd, running_config.tv_standard);
-	fs_write_uint8(fd, running_config.ram);
+	fs_write_uint8(fd, xroar_machine_config->architecture);
+	fs_write_uint8(fd, xroar_machine_config->architecture);  /* romset */
+	fs_write_uint8(fd, xroar_machine_config->keymap);
+	fs_write_uint8(fd, xroar_machine_config->tv_standard);
+	fs_write_uint8(fd, xroar_machine_config->ram);
 	if (xroar_cart_config) {
 		fs_write_uint8(fd, xroar_cart_config->type);
 	} else {
 		fs_write_uint8(fd, 0);
 	}
-	fs_write_uint8(fd, running_config.cross_colour_phase);
+	fs_write_uint8(fd, xroar_machine_config->cross_colour_phase);
 	/* RAM page 0 */
 	fs_write_uint8(fd, ID_RAM_PAGE0);
 	fs_write_uint16(fd, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
@@ -291,7 +291,7 @@ int read_snapshot(const char *filename) {
 				xroar_set_dos(tmp);
 				size -= 7;
 				if (size > 0) {
-					running_config.cross_colour_phase = fs_read_uint8(fd);
+					xroar_machine_config->cross_colour_phase = fs_read_uint8(fd);
 					size--;
 				}
 				machine_configure(xroar_machine_config);

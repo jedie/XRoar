@@ -50,8 +50,6 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-MachineConfig running_config;
-
 unsigned int machine_ram_size = 0x10000;  /* RAM in bytes, up to 64K */
 uint8_t machine_ram[0x10000];
 uint8_t *machine_rom;
@@ -361,9 +359,6 @@ void machine_configure(struct machine_config *mc) {
 		LOG_DEBUG(2, "Machine: %s\n", mc->description);
 	}
 	/* */
-	running_config.architecture = mc->architecture;
-	running_config.tv_standard = mc->tv_standard;
-	running_config.ram = mc->ram;
 	xroar_set_keymap(mc->keymap);
 	switch (mc->tv_standard) {
 	case TV_PAL: default:

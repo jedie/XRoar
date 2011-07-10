@@ -15,8 +15,8 @@
 typedef struct { unsigned int col, row; } Keymap[128];
 extern Keymap keymap;
 
-#define IS_DRAGON_KEYMAP (running_config.keymap == KEYMAP_DRAGON)
-#define IS_COCO_KEYMAP (running_config.keymap == KEYMAP_COCO)
+#define IS_DRAGON_KEYMAP (xroar_machine_config->keymap == KEYMAP_DRAGON)
+#define IS_COCO_KEYMAP (xroar_machine_config->keymap == KEYMAP_COCO)
 
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will

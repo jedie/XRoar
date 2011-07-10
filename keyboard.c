@@ -110,7 +110,7 @@ void keyboard_init(void) {
 
 void keyboard_set_keymap(int map) {
 	map %= NUM_KEYMAPS;
-	running_config.keymap = map;
+	xroar_machine_config->keymap = map;
 	switch (map) {
 		default:
 		case KEYMAP_DRAGON:

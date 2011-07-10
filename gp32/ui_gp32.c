@@ -119,7 +119,7 @@ static Menu main_menu[] = {
 	{ "Insert tape...", NULL, 0, 2, tape_opts, tape_callback, NULL },
 	{ "Insert disk...", NULL, 0, 4, disk_opts, disk_callback, NULL },
 	{ "Cartridge:", NULL, 0, 2, cart_opts, cart_callback, NULL },
-	{ "Hi-res artifacts", &running_config.cross_colour_phase, 0, 3, artifact_opts, NULL, artifact_callback },
+	{ "Hi-res artifacts", &xroar_machine_config->cross_colour_phase, 0, 3, artifact_opts, NULL, artifact_callback },
 	{ "Emulated machine", &requested_machine, 1, 5, machine_names, machine_callback, NULL },
 	{ "Keyboard layout", &requested_config.keymap, 0, 3, keymap_opts, keymap_callback, NULL },
 	{ "RAM", NULL, 4, 5, ram_opts, do_hard_reset, ram_callback },
@@ -507,7 +507,7 @@ static void cart_callback(unsigned int opt) {
 }
 
 static void artifact_callback(unsigned int opt) {
-	running_config.cross_colour_phase = opt;
+	xroar_machine_config->cross_colour_phase = opt;
 	vdg_set_mode();
 }
 

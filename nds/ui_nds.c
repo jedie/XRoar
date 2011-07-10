@@ -362,8 +362,8 @@ static void mc_update_labels(void) {
 	if (requested_config.dos_type >= 0) {
 		dos_type_label = dos_type_names[requested_config.dos_type];
 	}
-	if (running_config.cross_colour_phase >= 0) {
-		cross_colour_label = cross_colour_labels[running_config.cross_colour_phase];
+	if (xroar_machine_config->cross_colour_phase >= 0) {
+		cross_colour_label = cross_colour_labels[xroar_machine_config->cross_colour_phase];
 	}
 	ndsui_button_set_label(mc_machine_button, machine_names[requested_machine]);
 	ndsui_button_set_label(mc_dos_type_button, dos_type_label);
@@ -422,8 +422,8 @@ static void mc_dos_type_release(int id) {
 
 static void mc_cross_colour_release(int id) {
 	(void)id;
-	running_config.cross_colour_phase++;
-	running_config.cross_colour_phase %= NUM_CROSS_COLOUR_PHASES;
+	xroar_machine_config->cross_colour_phase++;
+	xroar_machine_config->cross_colour_phase %= NUM_CROSS_COLOUR_PHASES;
 	vdg_set_mode();
 	mc_update_labels();
 }
