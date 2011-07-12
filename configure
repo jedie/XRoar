@@ -10,6 +10,7 @@ test -z "$prefix" && prefix=/usr/local
 
 unset BUILD_STYLE
 unset EXEEXT
+
 unset target_pkg_config build_pkg_config
 unset target_sdl_config build_sdl_config
 unset target_gtk_config
@@ -86,13 +87,16 @@ echo "# $command_line" >&$config_log
 
 # defaults from environment
 test -n "$CC" && TARGET_CC="$CC"
+test -n "$CXX" && TARGET_CXX="$CXX"
 test -n "$OBJC" && TARGET_OBJC="$OBJC"
 test -n "$CFLAGS" && TARGET_CFLAGS="$CFLAGS"
+test -n "$CXXFLAGS" && TARGET_CXXFLAGS="$CXXFLAGS"
 test -n "$OBJCFLAGS" && TARGET_OBJCFLAGS="$OBJCFLAGS"
 test -n "$CPPFLAGS" && TARGET_CPPFLAGS="$CPPFLAGS"
 test -n "$LDFLAGS" && TARGET_LDFLAGS="$LDFLAGS"
 test -n "$LDLIBS" && TARGET_LDLIBS="$LDLIBS"
 CC=
+CXX=
 OBJC=
 CFLAGS=
 OBJCFLAGS=
@@ -101,6 +105,7 @@ LDFLAGS=
 LDLIBS=
 
 TMPC=conftemp.c
+TMPCXX=conftemp.cc
 TMPM=conftemp.m
 TMPO=conftemp.o
 TMPX=conftemp
@@ -111,19 +116,24 @@ while test -n "$1"; do
 	--) shift; break; ;;
 	macosx)
 		TARGET_CC="gcc-4.0 -arch ppc -arch i386 -g"
+		TARGET_CXX="g++-4.0 -arch ppc -arch i386 -g"
 		TARGET_OBJC="gcc-4.0 -arch ppc -arch i386 -g"
 		TARGET_CFLAGS="-mmacosx-version-min=10.4 -DMAC_OS_X_VERSION_MIN_REQUIRED=1040"
 		TARGET_LDFLAGS="-Wl,-headerpad_max_install_names -Wl,-syslibroot,/Developer/SDKs/MacOSX10.4u.sdk"
 		;;
 	CC=*) TARGET_CC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	CXX=*) TARGET_CXX=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	OBJC=*) TARGET_OBJC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	CFLAGS=*) TARGET_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	CXXFLAGS=*) TARGET_CXXFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	OBJCFLAGS=*) TARGET_OBJCFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	CPPFLAGS=*) TARGET_CPPFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	LDFLAGS=*) TARGET_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_CC=*) BUILD_CC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	BUILD_CXX=*) BUILD_CXX=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_OBJC=*) BUILD_OBJC=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_CFLAGS=*) BUILD_CFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	BUILD_CXXFLAGS=*) BUILD_CXXFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_OBJCFLAGS=*) BUILD_OBJCFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_CPPFLAGS=*) BUILD_CPPFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	BUILD_LDFLAGS=*) BUILD_LDFLAGS=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -207,6 +217,31 @@ if test -z "$TARGET_CC"; then
 		TARGET_CC="$target-gcc"
 	else
 		TARGET_CC="$BUILD_CC"
+	fi
+fi
+
+if test -z "$BUILD_CXX"; then
+	if ( g++ -v ) >/dev/null 2>&1; then
+		BUILD_CXX=g++
+	elif ( c++ ) >/dev/null 2>&1; then
+		BUILD_CXX=c++
+	else
+		BUILD_CXX=false
+	fi
+fi
+
+if test -z "$TARGET_CXX"; then
+	if ( "$target-g++" -v ) > /dev/null 2>&1; then
+		TARGET_CXX="$target-g++"
+	else
+		TARGET_CXX="$BUILD_CXX"
+	fi
+fi
+
+__target_cxx_machine="$__target_cc_machine"
+if test -z "$__target_cxx_machine"; then
+	if __tmp=`$TARGET_CXX -dumpmachine 2>/dev/null`; then
+		__target_cxx_machine=`$TARGET_CXX -dumpmachine`
 	fi
 fi
 
@@ -302,6 +337,44 @@ build_cc_check () {
 	return $?
 }
 
+cxx_check () {
+	ret=1
+	echo "$CXX $CFLAGS $CXXFLAGS $1 -c -o $TMPO $TMPCXX" >&$config_log
+	if $CXX $CFLAGS $CXXFLAGS $1 -c -o $TMPO $TMPCXX >&$config_log 2>&1; then
+		if test -n "$cxx_build_only"; then
+			rm -f $TMPO
+			return 0
+		fi
+		echo "$CXX $CFLAGS $CXXFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2" >&$config_log
+		if $CXX $CFLAGS $CXXFLAGS $1 $TMPO -o $TMPX $LDFLAGS $2 >&$config_log 2>&1; then
+			echo "# Success" >&$config_log
+			ret=0
+		else
+			echo "# Link failed: exit code = $?" >&$config_log
+		fi
+	else
+		echo "# Compile failed: exit code = $?" >&$config_log
+	fi
+	rm -f $TMPO $TMPX
+	return $ret
+}
+
+target_cxx_check () {
+	CXX="$TARGET_CXX"
+	CXXFLAGS="$TARGET_CFLAGS $TARGET_CXXFLAGS"
+	LDFLAGS="$TARGET_LDFLAGS"
+	cxx_check "$@"
+	return $?
+}
+
+target_cxx_check_compile () {
+	cxx_build_only=1
+	target_cxx_check "$@"
+	ret=$?
+	unset cxx_build_only
+	return $ret
+}
+
 objc_check () {
 	ret=1
 	echo "$OBJC $CFLAGS $OBJCFLAGS $1 -c -o $TMPO $TMPM" >&$config_log
@@ -373,6 +446,25 @@ EOF
 	TARGET_C_OPT="$__opt"
 fi
 
+unset TARGET_CXX_OPT
+test -z "$TARGET_CXXFLAGS" && TARGET_CXXFLAGS="$CXXFLAGS"
+if test -z "$TARGET_CXXFLAGS"; then
+	echocheck C++ optimisation options
+	cat > $TMPCXX <<EOF
+int main(int argc, char **argv) { return 0; }
+EOF
+	__opt="-O3"
+	case "$__target_cxx_machine" in
+	powerpc-apple-*)
+		__opt="-O3 -mcpu=7450 -mdynamic-no-pic"
+		;;
+	*)
+		;;
+	esac
+	target_cxx_check "$__opt" "" && TARGET_CXX_OPT="$__opt"
+	echo "$TARGET_CXX_OPT"
+fi
+
 unset TARGET_OBJC_OPT
 test -z "$TARGET_OBJCFLAGS" && TARGET_OBJCFLAGS="$OBJCFLAGS"
 if test -z "$TARGET_OBJCFLAGS"; then
@@ -427,6 +519,22 @@ if test "$_c_pipe" = "yes"; then
 	TARGET_CC="$TARGET_CC -pipe"
 fi
 rm -f $TMPC
+
+if test "$TARGET_CC" = "$TARGET_CXX -pipe"; then
+	TARGET_CXX="$TARGET_CC";
+else
+	echocheck $TARGET_CXX accepting -pipe
+	_cxx_pipe=no
+	cat > $TMPCXX <<EOF
+int main(int argc, char **argv) { return 0; }
+EOF
+	target_cxx_check_compile "-pipe" "" && _cxx_pipe=yes
+	echo "$_cxx_pipe"
+	if test "$_cxx_pipe" = "yes"; then
+		TARGET_CXX="$TARGET_CXX -pipe"
+	fi
+	rm -f $TMPM
+fi
 
 if test "$TARGET_CC" = "$TARGET_OBJC -pipe"; then
 	TARGET_OBJC="$TARGET_CC";
@@ -1118,17 +1226,21 @@ BUILD_STYLE = $BUILD_STYLE
 EXEEXT = $EXEEXT
 AS = $TARGET_AS
 CC = $TARGET_CC
+CXX = $TARGET_CXX
 OBJC = $TARGET_OBJC
 OBJCOPY = $TARGET_OBJCOPY
 
 CFLAGS = $TARGET_C_OPT $TARGET_CFLAGS
+CXXFLAGS = $TARGET_CXX_OPT $TARGET_CFLAGS $TARGET_CXXFLAGS
 OBJCFLAGS = $TARGET_OBJC_OPT $TARGET_CFLAGS $TARGET_OBJCFLAGS
 CPPFLAGS = $TARGET_CPPFLAGS
 LDFLAGS = $TARGET_LDFLAGS
 
 BUILD_CC = $BUILD_CC
+BUILD_CXX = $BUILD_CXX
 BUILD_OBJC = $BUILD_OBJC
 BUILD_CFLAGS = $BUILD_CFLAGS
+BUILD_CXXFLAGS = $BUILD_CXXFLAGS
 BUILD_OBJCFLAGS = $BUILD_OBJCFLAGS
 
 MAKEINFO = $MAKEINFO
@@ -1148,6 +1260,7 @@ for opt in $all_opt; do
 	if test "$isset" = "yes"; then
 		echo "opt_$opt = yes" >> config.mak
 		eval "test -n \"\$${opt}_cflags\" && echo \"opt_${opt}_CFLAGS = \$${opt}_cflags\"" >> config.mak
+		eval "test -n \"\$${opt}_cxxflags\" && echo \"opt_${opt}_CXXFLAGS = \$${opt}_cxxflags\"" >> config.mak
 		eval "test -n \"\$${opt}_objcflags\" && echo \"opt_${opt}_OBJCFLAGS = \$${opt}_objcflags\"" >> config.mak
 		eval "test -n \"\$${opt}_ldflags\" && echo \"opt_${opt}_LDFLAGS = \$${opt}_ldflags\"" >> config.mak
 	fi
