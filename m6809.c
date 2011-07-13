@@ -181,7 +181,8 @@ static uint16_t reg_s;
 static uint16_t reg_pc;
 
 /* MPU interrupt state variables */
-static int halt, nmi, firq, irq;
+int m6809_halt, m6809_nmi;
+int m6809_firq, m6809_irq;
 static int nmi_armed;
 static unsigned int cycle;
 static unsigned int halt_cycle, nmi_cycle, firq_cycle, irq_cycle;
@@ -387,7 +388,9 @@ void m6809_init(void) {
 }
 
 void m6809_reset(void) {
-	halt = nmi = firq = irq = 0;
+	m6809_halt = m6809_nmi = 0;
+	m6809_firq = m6809_irq = 0;
+	halt_cycle = nmi_cycle = firq_cycle = irq_cycle = cycle;
 	DISARM_NMI;
 	cpu_state = m6809_flow_reset;
 }
@@ -400,18 +403,25 @@ void m6809_run(void) {
 
 		m6809_sync();
 
+		if (!m6809_nmi) nmi_cycle = cycle;
+		int nmi_active = (cycle - nmi_cycle) >= 3;
+		if (!m6809_firq) firq_cycle = cycle;
+		int firq_active = (cycle - firq_cycle) >= 3;
+		if (!m6809_irq) irq_cycle = cycle;
+		int irq_active = (cycle - irq_cycle) >= 3;
+
 		switch (cpu_state) {
 
 		case m6809_flow_reset:
 			reg_dp = 0;
 			reg_cc |= (CC_F | CC_I);
-			nmi = 0;
+			m6809_nmi = 0;
 			DISARM_NMI;
 			cpu_state = m6809_flow_reset_check_halt;
 			/* fall through */
 
 		case m6809_flow_reset_check_halt:
-			if (halt) {
+			if (m6809_halt) {
 				TAKEN_CYCLES(1);
 				continue;
 			}
@@ -423,7 +433,7 @@ void m6809_run(void) {
 		/* done_instruction case for backwards-compatibility */
 		case m6809_flow_done_instruction:
 		case m6809_flow_label_a:
-			if (halt) {
+			if (m6809_halt) {
 				TAKEN_CYCLES(1);
 				continue;
 			}
@@ -431,21 +441,21 @@ void m6809_run(void) {
 			/* fall through */
 
 		case m6809_flow_label_b:
-			if (nmi_armed && nmi  && (int)(cycle - nmi_cycle) > 0) {
+			if (nmi_armed && nmi_active) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
 				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			}
-			if (firq && !(reg_cc & CC_F) && (int)(cycle - firq_cycle) > 0) {
+			if (!(reg_cc & CC_F) && firq_active) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_FIRQ_REGISTERS();
 				cpu_state = m6809_flow_dispatch_irq;
 				continue;
 			}
-			if (irq && !(reg_cc & CC_I) && (int)(cycle - irq_cycle) > 0) {
+			if (!(reg_cc & CC_I) && irq_active) {
 				peek_byte(reg_pc);
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS();
@@ -456,22 +466,22 @@ void m6809_run(void) {
 			continue;
 
 		case m6809_flow_dispatch_irq:
-			if (nmi_armed && nmi) {
-				nmi = 0;
+			if (nmi_armed && nmi_active) {
+				m6809_nmi = 0;
 				reg_cc |= (CC_F | CC_I);
-				TAKE_INTERRUPT(nmi, CC_F|CC_I, 0xfffc);
+				TAKE_INTERRUPT(m6809_nmi, CC_F|CC_I, 0xfffc);
 				cpu_state = m6809_flow_label_a;
 				continue;
 			}
-			if (firq && !(reg_cc & CC_F)) {
+			if (!(reg_cc & CC_F) && firq_active) {
 				reg_cc |= (CC_F | CC_I);
-				TAKE_INTERRUPT(firq, CC_F|CC_I, 0xfff6);
+				TAKE_INTERRUPT(m6809_firq, CC_F|CC_I, 0xfff6);
 				cpu_state = m6809_flow_label_a;
 				continue;
 			}
-			if (irq && !(reg_cc & CC_I)) {
+			if (!(reg_cc & CC_I) && irq_active) {
 				reg_cc |= CC_I;
-				TAKE_INTERRUPT(irq, CC_I, 0xfff8);
+				TAKE_INTERRUPT(m6809_irq, CC_I, 0xfff8);
 				cpu_state = m6809_flow_label_a;
 				continue;
 			}
@@ -480,28 +490,26 @@ void m6809_run(void) {
 
 		case m6809_flow_cwai_check_halt:
 			TAKEN_CYCLES(1);
-			if (halt) {
+			if (m6809_halt) {
 				continue;
 			}
 			cpu_state = m6809_flow_dispatch_irq;
 			continue;
 
 		case m6809_flow_sync:
-			if ((nmi  && (int)(cycle - nmi_cycle) > 0) ||
-			    (firq && (int)(cycle - firq_cycle) > 0) ||
-			    (irq  && (int)(cycle - irq_cycle) > 0)) {
+			if (nmi_active || firq_active || irq_active) {
 				TAKEN_CYCLES(2);
 				cpu_state = m6809_flow_label_b;
 				continue;
 			}
 			TAKEN_CYCLES(1);
-			if (halt)
+			if (m6809_halt)
 				cpu_state = m6809_flow_sync_check_halt;
 			continue;
 
 		case m6809_flow_sync_check_halt:
 			TAKEN_CYCLES(1);
-			if (!halt) {
+			if (!m6809_halt) {
 				cpu_state = m6809_flow_sync;
 			}
 			continue;
@@ -1453,10 +1461,10 @@ void m6809_get_state(M6809State *state) {
 	state->reg_u = reg_u;
 	state->reg_s = reg_s;
 	state->reg_pc = reg_pc;
-	state->halt = halt;
-	state->nmi = nmi;
-	state->firq = firq;
-	state->irq = irq;
+	state->halt = m6809_halt;
+	state->nmi = m6809_nmi;
+	state->firq = m6809_firq;
+	state->irq = m6809_irq;
 	state->cpu_state = cpu_state;
 	state->nmi_armed = nmi_armed;
 }
@@ -1471,58 +1479,14 @@ void m6809_set_state(M6809State *state) {
 	reg_u = state->reg_u;
 	reg_s = state->reg_s;
 	reg_pc = state->reg_pc;
-	halt = state->halt;
-	nmi = state->nmi;
-	firq = state->firq;
-	irq = state->irq;
+	m6809_halt = state->halt;
+	m6809_nmi = state->nmi;
+	m6809_firq = state->firq;
+	m6809_irq = state->irq;
 	cpu_state = state->cpu_state;
 	nmi_armed = state->nmi_armed;
 }
 
 void m6809_jump(unsigned int pc) {
 	reg_pc = pc;
-}
-
-void m6809_halt_set(void) {
-	if (!halt) {
-		halt_cycle = cycle + 1;
-	}
-	halt = 1;
-}
-
-void m6809_halt_clear(void) {
-	halt = 0;
-}
-
-void m6809_nmi_set(void) {
-	if (!nmi) {
-		nmi_cycle = cycle + 1;
-	}
-	nmi = 1;
-}
-
-void m6809_nmi_clear(void) {
-	nmi = 0;
-}
-
-void m6809_firq_set(void) {
-	if (!firq) {
-		firq_cycle = cycle + 1;
-	}
-	firq = 1;
-}
-
-void m6809_firq_clear(void) {
-	firq = 0;
-}
-
-void m6809_irq_set(void) {
-	if (!irq) {
-		irq_cycle = cycle + 1;
-	}
-	irq = 1;
-}
-
-void m6809_irq_clear(void) {
-	irq = 0;
 }

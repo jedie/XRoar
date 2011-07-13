@@ -39,6 +39,8 @@ typedef struct {
 } M6809State;
 
 extern int m6809_running;
+extern int m6809_halt, m6809_nmi;
+extern int m6809_firq, m6809_irq;
 
 void m6809_init(void);
 void m6809_reset(void);
@@ -47,14 +49,14 @@ void m6809_get_state(M6809State *state);
 void m6809_set_state(M6809State *state);
 void m6809_jump(unsigned int pc);
 
-void m6809_halt_set(void);
-void m6809_halt_clear(void);
-void m6809_nmi_set(void);
-void m6809_nmi_clear(void);
-void m6809_firq_set(void);
-void m6809_firq_clear(void);
-void m6809_irq_set(void);
-void m6809_irq_clear(void);
+#define m6809_halt_set() do { m6809_halt = 1; } while (0)
+#define m6809_halt_clear() do { m6809_halt = 0; } while (0)
+#define m6809_nmi_set() do { m6809_nmi = 1; } while (0)
+#define m6809_nmi_clear() do { m6809_nmi = 0; } while (0)
+#define m6809_firq_set() do { m6809_firq = 1; } while (0)
+#define m6809_firq_clear() do { m6809_firq = 0; } while (0)
+#define m6809_irq_set() do { m6809_irq = 1; } while (0)
+#define m6809_irq_clear() do { m6809_irq = 0; } while (0)
 
 /*** Private ***/
 
