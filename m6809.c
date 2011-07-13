@@ -311,7 +311,7 @@ void (*m6809_interrupt_hook)(uint16_t vector);
 #define OP_BIT(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r & d; CLR_NZV; SET_NZ8(tmp); }
 #define OP_LD(r,fb) { unsigned int a; fb(a,r); CLR_NZV; SET_NZ8(r); }
 #define OP_DISCARD(fb) { unsigned int a, tmp; fb(a,tmp); CLR_NZV; reg_cc |= CC_N; }
-#define OP_ST(r,fb) { unsigned int a; fb(a); store_byte(a, r); CLR_NZV; SET_NZ8(r); }
+#define OP_ST(r,ea) { unsigned int a; ea(a); store_byte(a, r); CLR_NZV; SET_NZ8(r); }
 #define OP_EOR(r,fb) { unsigned int a, d; fb(a,d); r ^= d; CLR_NZV; SET_NZ8(r); }
 #define OP_ADC(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r + d + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, d, tmp); SET_H(r, d, tmp); r = tmp; }
 #define OP_OR(r,fb) { unsigned int a, d; fb(a,d); r |= d; CLR_NZV; SET_NZ8(r); }
