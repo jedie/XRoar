@@ -1222,6 +1222,7 @@ pdfdir = $pdfdir
 
 SRCROOT = $SRCROOT
 
+TARGET_ARCH = $__target_cc_machine
 BUILD_STYLE = $BUILD_STYLE
 EXEEXT = $EXEEXT
 AS = $TARGET_AS
