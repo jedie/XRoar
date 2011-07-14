@@ -252,7 +252,7 @@ linux:
 	mkdir -p linux
 endif
 
-opt_mingw_OBJS = windows32/common_windows32.o windows32/filereq_windows32.o
+opt_mingw_OBJS = windows32/common_windows32.o windows32/filereq_windows32.o windows32/ao_windows32.o
 CLEAN += $(opt_mingw_OBJS)
 ifeq ($(opt_mingw),yes)
 	xroar_opt_OBJS += $(opt_mingw_OBJS)
