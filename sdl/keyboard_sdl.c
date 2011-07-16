@@ -52,7 +52,6 @@ struct keymap {
 
 static unsigned int control = 0, shift = 0;
 static unsigned int emulate_joystick = 0;
-static int old_frameskip = 0;
 
 static uint_least16_t sdl_to_keymap[768];
 
@@ -211,7 +210,6 @@ void sdl_keypress(SDL_keysym *keysym) {
 	}
 	if (sym == SDLK_F12) {
 		xroar_noratelimit = 1;
-		old_frameskip = xroar_frameskip;
 		xroar_frameskip = 10;
 	}
 	if (control) {
@@ -262,7 +260,7 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 0; return; }
 	if (sym == SDLK_F12) {
 		xroar_noratelimit = 0;
-		xroar_frameskip = old_frameskip;
+		xroar_frameskip = xroar_opt_frameskip;
 	}
 	if (sym == SDLK_UP) { KEYBOARD_RELEASE(94); return; }
 	if (sym == SDLK_DOWN) { KEYBOARD_RELEASE(10); return; }

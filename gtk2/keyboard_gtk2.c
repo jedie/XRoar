@@ -56,7 +56,6 @@ struct keymap {
 #include "keyboard_gtk2_mappings.c"
 
 static unsigned int emulate_joystick = 0;
-static int old_frameskip = 0;
 
 #define MAX_KEYCODE (256)
 
@@ -222,7 +221,6 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	}
 	if (keyval == GDK_F12 && !xroar_noratelimit) {
 		xroar_noratelimit = 1;
-		old_frameskip = xroar_frameskip;
 		xroar_frameskip = 10;
 	}
 	if (control) {
@@ -285,7 +283,7 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	}
 	if (keyval == GDK_F12) {
 		xroar_noratelimit = 0;
-		xroar_frameskip = old_frameskip;
+		xroar_frameskip = xroar_opt_frameskip;
 	}
 	if (keyval == GDK_Up) { KEYBOARD_RELEASE(94); goto release_update; }
 	if (keyval == GDK_Down) { KEYBOARD_RELEASE(10); goto release_update; }

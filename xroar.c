@@ -108,7 +108,7 @@ int xroar_fast_sound = 0;
 #endif
 int xroar_opt_fullscreen = 0;
 int xroar_opt_ccr = DEFAULT_CCR;
-int xroar_frameskip = 0;
+int xroar_opt_frameskip = 0;
 char *xroar_opt_keymap = NULL;
 int xroar_kbd_translate = 0;
 char *xroar_opt_joy_left = NULL;
@@ -227,7 +227,7 @@ static struct xconfig_option xroar_options[] = {
 #endif
 	XC_OPT_BOOL  ( "fs",            &xroar_opt_fullscreen ),
 	XC_OPT_ENUM  ( "ccr",           &xroar_opt_ccr, ccr_list ),
-	XC_OPT_INT   ( "fskip",         &xroar_frameskip ),
+	XC_OPT_INT   ( "fskip",         &xroar_opt_frameskip ),
 	XC_OPT_STRING( "keymap",        &xroar_opt_keymap ),
 	XC_OPT_BOOL  ( "kbd-translate", &xroar_kbd_translate ),
 	XC_OPT_STRING( "joy-left",      &xroar_opt_joy_left ),
@@ -251,6 +251,7 @@ static struct xconfig_option xroar_options[] = {
 /* Global flags */
 
 int xroar_noratelimit = 0;
+int xroar_frameskip = 0;
 
 struct machine_config *xroar_machine_config;
 struct cart_config *xroar_cart_config;
@@ -612,8 +613,9 @@ int xroar_init(int argc, char **argv) {
 	joystick_module = NULL;
 
 	/* Check other command-line options */
-	if (xroar_frameskip < 0)
-		xroar_frameskip = 0;
+	if (xroar_opt_frameskip < 0)
+		xroar_opt_frameskip = 0;
+	xroar_frameskip = xroar_opt_frameskip;
 	if (opt_load) {
 		load_file = opt_load;
 		autorun_loaded_file = 0;

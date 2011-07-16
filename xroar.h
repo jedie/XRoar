@@ -61,7 +61,7 @@ extern int xroar_opt_ao_buffer_samples;
 extern int xroar_fast_sound;
 #endif
 extern int xroar_opt_fullscreen;
-extern int xroar_frameskip;
+extern int xroar_opt_frameskip;
 extern char *xroar_opt_keymap;
 extern int xroar_kbd_translate;
 extern char *xroar_opt_joy_left;
@@ -80,6 +80,7 @@ extern struct xconfig_enum xroar_cross_colour_list[];
 #define CROSS_COLOUR_5BIT   (1)
 extern int xroar_opt_ccr;
 extern int xroar_noratelimit;
+extern int xroar_frameskip;
 
 extern const char *xroar_rom_path;
 
