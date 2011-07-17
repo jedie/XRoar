@@ -48,7 +48,7 @@ SoundModule sound_sdl_module = {
 };
 
 static int buffer_bytes;
-static uint8_t *buffer;
+static uint8_t *sound_buf;
 
 static SDL_AudioSpec audiospec;
 #ifndef WINDOWS32
@@ -103,7 +103,7 @@ static int init(void) {
 	}
 	int buffer_length = audiospec.samples;
 	buffer_bytes = audiospec.size;
-	buffer = sound_init(audiospec.freq, audiospec.channels, request_fmt, buffer_length);
+	sound_buf = sound_init(audiospec.freq, audiospec.channels, request_fmt, buffer_length);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_length * 1000) / audiospec.freq, buffer_length);
 
 #ifndef WINDOWS32
@@ -130,6 +130,7 @@ static void _shutdown(void) {
 }
 
 static void flush_frame(void *buffer) {
+	(void)buffer;
 	if (xroar_noratelimit)
 		return;
 #ifndef WINDOWS32
@@ -149,10 +150,10 @@ static void callback(void *userdata, Uint8 *stream, int len) {
 	if (len == buffer_bytes) {
 		if (haltflag == 1) {
 			/* Data is ready */
-			memcpy(stream, buffer, buffer_bytes);
+			memcpy(stream, sound_buf, buffer_bytes);
 		} else {
 			/* Not ready - provide a "padding" frame */
-			sound_render_silence(buffer, len);
+			sound_render_silence(stream, len);
 		}
 	}
 #ifndef WINDOWS32
