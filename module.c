@@ -110,9 +110,11 @@ static SoundModule *default_sound_module_list[] = {
 #ifdef HAVE_OSS_AUDIO
 	&sound_oss_module,
 #endif
+/*
 #ifdef WINDOWS32
 	&sound_windows32_module,
 #endif
+*/
 #ifdef HAVE_PULSE_AUDIO
 	&sound_pulse_module,
 #endif
