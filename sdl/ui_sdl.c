@@ -30,13 +30,8 @@
 #include "sam.h"
 #include "vdg.h"
 #include "xroar.h"
+#include "sdl/ui_sdl.h"
 
-void sdl_run(void);
-
-extern VideoModule video_sdlgl_module;
-extern VideoModule video_sdlyuv_module;
-extern VideoModule video_sdl_module;
-extern VideoModule video_null_module;
 static VideoModule *sdl_video_module_list[] = {
 #ifdef HAVE_SDLGL
 	&video_sdlgl_module,
@@ -52,7 +47,6 @@ static VideoModule *sdl_video_module_list[] = {
 	NULL
 };
 
-extern KeyboardModule keyboard_sdl_module;
 static KeyboardModule *sdl_keyboard_module_list[] = {
 	&keyboard_sdl_module,
 	NULL
@@ -67,9 +61,6 @@ UIModule ui_sdl_module = {
 	.keyboard_module_list = sdl_keyboard_module_list,
 	.run = sdl_run,
 };
-
-void sdl_keypress(SDL_keysym *keysym);
-void sdl_keyrelease(SDL_keysym *keysym);
 
 void sdl_run(void) {
 	while (1) {

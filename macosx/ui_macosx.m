@@ -20,6 +20,7 @@
 #include "machine.h"
 #include "module.h"
 #include "xroar.h"
+#include "sdl/ui_sdl.h"
 
 #define TAG_TYPE_MASK (0xff << 24)
 #define TAG_VALUE_MASK (0xffffff)
@@ -595,7 +596,6 @@ int main(int argc, char **argv) {
 /* XRoar UI definition */
 
 static int init(void);
-void sdl_run(void);
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void keymap_changed_cb(int keymap);
@@ -607,9 +607,6 @@ static void fast_sound_changed_cb(int fast_sound);
 static void update_machine_menu(void);
 static void update_cartridge_menu(void);
 
-extern VideoModule video_sdlgl_module;
-extern VideoModule video_sdlyuv_module;
-extern VideoModule video_sdl_module;
 static VideoModule *sdl_video_module_list[] = {
 #ifdef HAVE_SDLGL
 	&video_sdlgl_module,
@@ -624,7 +621,6 @@ static VideoModule *sdl_video_module_list[] = {
 	NULL
 };
 
-extern KeyboardModule keyboard_sdl_module;
 static KeyboardModule *sdl_keyboard_module_list[] = {
 	&keyboard_sdl_module,
 	NULL

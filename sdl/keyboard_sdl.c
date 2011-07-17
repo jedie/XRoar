@@ -33,6 +33,7 @@
 #include "module.h"
 #include "printer.h"
 #include "xroar.h"
+#include "sdl/ui_sdl.h"
 
 static int init(void);
 static void update_kbd_translate(void);
