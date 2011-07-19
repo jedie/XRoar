@@ -65,6 +65,8 @@ static void rewrite_bitin(M6809State *cpu_state);
 static void rewrite_tape_on(M6809State *cpu_state);
 static void rewrite_end_of_block(M6809State *cpu_state);
 
+static void set_breakpoints(void);
+
 /**************************************************************************/
 
 int tape_pulse_in(struct tape *t, int *pulse_width) {
@@ -479,6 +481,7 @@ void tape_update_motor(void) {
 		}
 	}
 	motor = new_motor;
+	set_breakpoints();
 }
 
 /* Called whenever PIA1.a data register is written to. */
@@ -871,15 +874,13 @@ static struct tape_breakpoint bp_list_rewrite[] = {
 	{ .handler = NULL }
 };
 
-void tape_set_state(int flags) {
+static void set_breakpoints(void) {
 	/* clear any old breakpoints */
 	remove_breakpoints(bp_list_fast);
 	remove_breakpoints(bp_list_fast_cbin);
 	remove_breakpoints(bp_list_rewrite);
-	/* set flags */
-	tape_fast = flags & TAPE_FAST;
-	tape_pad = flags & TAPE_PAD;
-	tape_rewrite = flags & TAPE_REWRITE;
+	if (!motor)
+		return;
 	/* add required breakpoints */
 	if (tape_fast) {
 		add_breakpoints(bp_list_fast);
@@ -891,6 +892,14 @@ void tape_set_state(int flags) {
 	if (tape_pad || tape_rewrite) {
 		add_breakpoints(bp_list_rewrite);
 	}
+}
+
+void tape_set_state(int flags) {
+	/* set flags */
+	tape_fast = flags & TAPE_FAST;
+	tape_pad = flags & TAPE_PAD;
+	tape_rewrite = flags & TAPE_REWRITE;
+	set_breakpoints();
 }
 
 /* sets state and updates UI */
