@@ -17,29 +17,20 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 
 #include "types.h"
+
 #include "breakpoint.h"
 #include "list.h"
 #include "m6809.h"
+#include "machine.h"
 #include "misc.h"
+#include "sam.h"
 #include "xroar.h"
-
-enum bp_type {
-	BP_INSTRUCTION,
-};
-
-struct breakpoint {
-	int type;
-	union {
-		struct {
-			int addr;
-			void (*handler)(M6809State *);
-		} instruction;
-	} data;
-};
 
 static struct list *bp_instruction_list = NULL;
 
@@ -47,14 +38,7 @@ static void bp_instruction_hook(M6809State *cpu_state);
 
 /**************************************************************************/
 
-static struct breakpoint *bp_new(int type) {
-	struct breakpoint *new = xmalloc(sizeof(struct breakpoint));
-	memset(new, 0, sizeof(struct breakpoint));
-	new->type = type;
-	return new;
-}
-
-static void bp_add(struct breakpoint *bp) {
+void bp_add(struct breakpoint *bp) {
 	switch (bp->type) {
 	case BP_INSTRUCTION:
 		bp_instruction_list = list_prepend(bp_instruction_list, bp);
@@ -62,6 +46,13 @@ static void bp_add(struct breakpoint *bp) {
 		break;
 	default:
 		break;
+	}
+}
+
+void bp_add_n(struct breakpoint *bp, int n) {
+	int i;
+	for (i = 0; i < n; i++) {
+		bp_add(&bp[i]);
 	}
 }
 
@@ -78,34 +69,11 @@ void bp_remove(struct breakpoint *bp) {
 	}
 }
 
-void bp_delete(struct breakpoint *bp) {
-	bp_remove(bp);
-	free(bp);
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-struct breakpoint *bp_add_instr(int addr, void (*handler)(M6809State *)) {
-	struct breakpoint *bp;
-	if ((bp = bp_find_instr(addr, handler)))
-		return bp;
-	bp = bp_new(BP_INSTRUCTION);
-	bp->data.instruction.addr = addr;
-	bp->data.instruction.handler = handler;
-	bp_add(bp);
-	return bp;
-}
-
-struct breakpoint *bp_find_instr(int addr, void (*handler)(M6809State *)) {
-	struct list *iter;
-	for (iter = bp_instruction_list; iter; iter = iter->next) {
-		struct breakpoint *bp = iter->data;
-		if (bp->data.instruction.addr == addr
-		    && bp->data.instruction.handler == handler) {
-			return bp;
-		}
+void bp_remove_n(struct breakpoint *bp, int n) {
+	int i;
+	for (i = 0; i < n; i++) {
+		bp_remove(&bp[i]);
 	}
-	return NULL;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -113,12 +81,16 @@ struct breakpoint *bp_find_instr(int addr, void (*handler)(M6809State *)) {
 static void bp_instruction_hook(M6809State *cpu_state) {
 	struct list *iter;
 	int pc = cpu_state->reg_pc;
+	int flags = IS_DRAGON ? BP_DRAGON : BP_COCO;
+	unsigned int sam_register = sam_get_register();
+	flags |= (sam_register & 0x0400) ? BP_PAGE_1 : BP_PAGE_0;
+	flags |= (sam_register & 0x8000) ? BP_MAP_TYPE_1 : BP_MAP_TYPE_0;
 	iter = bp_instruction_list;
 	while (iter) {
 		struct breakpoint *bp = iter->data;
 		struct list *next = iter->next;
-		if (pc == bp->data.instruction.addr) {
-			bp->data.instruction.handler(cpu_state);
+		if ((bp->flags & flags) == flags && pc == bp->address) {
+			bp->handler(cpu_state);
 			if (pc != cpu_state->reg_pc) {
 				/* pc changed, start again */
 				next = bp_instruction_list;

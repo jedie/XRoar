@@ -255,45 +255,6 @@ void tape_free(struct tape *t) {
 
 /**************************************************************************/
 
-/* Tape breakpoint convenience functions */
-
-struct tape_breakpoint {
-	int dragon;  /* instruction address */
-	int coco;  /* instruction address */
-	void (*handler)(M6809State *);
-};
-
-static void add_breakpoints(struct tape_breakpoint *bplist) {
-	while (bplist->handler) {
-		if (IS_DRAGON && bplist->dragon >= 0) {
-			bp_add_instr(bplist->dragon, bplist->handler);
-		}
-		if (IS_COCO && bplist->coco >= 0) {
-			bp_add_instr(bplist->coco, bplist->handler);
-		}
-		bplist++;
-	}
-}
-
-static void remove_breakpoints(struct tape_breakpoint *bplist) {
-	while (bplist->handler) {
-		struct breakpoint *bp;
-		if (bplist->dragon >= 0) {
-			if ((bp = bp_find_instr(bplist->dragon, bplist->handler))) {
-				bp_delete(bp);
-			}
-		}
-		if (bplist->coco >= 0) {
-			if ((bp = bp_find_instr(bplist->coco, bplist->handler))) {
-				bp_delete(bp);
-			}
-		}
-		bplist++;
-	}
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
 void tape_init(void) {
 	tape_audio = 0;
 	event_init(&waggle_event);
@@ -402,9 +363,9 @@ static char *basic_command = NULL;
 
 static void type_command(M6809State *cpu_state);
 
-static struct tape_breakpoint basic_command_breakpoint[] = {
-	{ .dragon = 0xbbe5, .coco = 0xa1cb, .handler = type_command },
-	{ .handler = NULL }
+static struct breakpoint basic_command_breakpoint[] = {
+	{ .flags = BP_DRAGON_ROM, .address = 0xbbe5, .handler = type_command },
+	{ .flags = BP_COCO_ROM, .address = 0xa1cb, .handler = type_command },
 };
 
 static void type_command(M6809State *cpu_state) {
@@ -415,7 +376,7 @@ static void type_command(M6809State *cpu_state) {
 			basic_command = NULL;
 	}
 	if (!basic_command) {
-		remove_breakpoints(basic_command_breakpoint);
+		bp_remove_list(basic_command_breakpoint);
 	}
 	/* Use CPU read routine to pull return address back off stack */
 	cpu_state->reg_pc = (m6809_read_cycle(cpu_state->reg_s) << 8) | m6809_read_cycle(cpu_state->reg_s+1);
@@ -428,7 +389,7 @@ static void type_command(M6809State *cpu_state) {
 int tape_autorun(const char *filename) {
 	if (filename == NULL)
 		return -1;
-	remove_breakpoints(basic_command_breakpoint);
+	bp_remove_list(basic_command_breakpoint);
 	if (tape_open_reading(filename) == -1)
 		return -1;
 	struct tape_file *f = tape_file_next(tape_input, 0);
@@ -441,11 +402,11 @@ int tape_autorun(const char *filename) {
 	switch (type) {
 		case 0:
 			basic_command = "\003CLOAD\rRUN\r";
-			add_breakpoints(basic_command_breakpoint);
+			bp_add_list(basic_command_breakpoint);
 			break;
 		case 2:
 			basic_command = "\003CLOADM:EXEC\r";
-			add_breakpoints(basic_command_breakpoint);
+			bp_add_list(basic_command_breakpoint);
 			break;
 		default:
 			break;
@@ -854,43 +815,48 @@ static void rewrite_end_of_block(M6809State *cpu_state) {
 
 /* Configuring tape options */
 
-static struct tape_breakpoint bp_list_fast[] = {
-	{ .dragon = 0xbdd7, .coco = 0xa7d1, .handler = fast_motor_on },
-	{ .dragon = 0xbded, .coco = 0xa782, .handler = fast_sync_leader },
-	{ .dragon = 0xbda5, .coco = 0xa755, .handler = fast_bitin },
-	{ .handler = NULL }
+static struct breakpoint bp_list_fast[] = {
+	{ .flags = BP_DRAGON_ROM, .address = 0xbdd7, .handler = fast_motor_on },
+	{ .flags = BP_COCO_ROM, .address = 0xa7d1, .handler = fast_motor_on },
+	{ .flags = BP_DRAGON_ROM, .address = 0xbded, .handler = fast_sync_leader },
+	{ .flags = BP_COCO_ROM, .address = 0xa782, .handler = fast_sync_leader },
+	{ .flags = BP_DRAGON_ROM, .address = 0xbda5, .handler = fast_bitin },
+	{ .flags = BP_COCO_ROM, .address = 0xa755, .handler = fast_bitin },
 };
 
-static struct tape_breakpoint bp_list_fast_cbin[] = {
-	{ .dragon = 0xbdad, .coco = 0xa749, .handler = fast_cbin },
-	{ .handler = NULL }
+static struct breakpoint bp_list_fast_cbin[] = {
+	{ .flags = BP_DRAGON_ROM, .address = 0xbdad, .handler = fast_cbin },
+	{ .flags = BP_COCO_ROM, .address = 0xa749, .handler = fast_cbin },
 };
 
-static struct tape_breakpoint bp_list_rewrite[] = {
-	{ .dragon = 0xb94d, .coco = 0xa719, .handler = rewrite_sync },
-	{ .dragon = 0xbdac, .coco = 0xa75c, .handler = rewrite_bitin },
-	{ .dragon = 0xbde7, .coco = 0xa77c, .handler = rewrite_tape_on },
-	{ .dragon = 0xb97e, .coco = 0xa746, .handler = rewrite_end_of_block },
-	{ .handler = NULL }
+static struct breakpoint bp_list_rewrite[] = {
+	{ .flags = BP_DRAGON_ROM, .address = 0xb94d, .handler = rewrite_sync },
+	{ .flags = BP_COCO_ROM, .address = 0xa719, .handler = rewrite_sync },
+	{ .flags = BP_DRAGON_ROM, .address = 0xbdac, .handler = rewrite_bitin },
+	{ .flags = BP_COCO_ROM, .address = 0xa75c, .handler = rewrite_bitin },
+	{ .flags = BP_DRAGON_ROM, .address = 0xbde7, .handler = rewrite_tape_on },
+	{ .flags = BP_COCO_ROM, .address = 0xa77c, .handler = rewrite_tape_on },
+	{ .flags = BP_DRAGON_ROM, .address = 0xb97e, .handler = rewrite_end_of_block },
+	{ .flags = BP_COCO_ROM, .address = 0xa746, .handler = rewrite_end_of_block },
 };
 
 static void set_breakpoints(void) {
 	/* clear any old breakpoints */
-	remove_breakpoints(bp_list_fast);
-	remove_breakpoints(bp_list_fast_cbin);
-	remove_breakpoints(bp_list_rewrite);
+	bp_remove_list(bp_list_fast);
+	bp_remove_list(bp_list_fast_cbin);
+	bp_remove_list(bp_list_rewrite);
 	if (!motor)
 		return;
 	/* add required breakpoints */
 	if (tape_fast) {
-		add_breakpoints(bp_list_fast);
+		bp_add_list(bp_list_fast);
 		/* these are incompatible with the other flags */
 		if (!tape_pad && !tape_rewrite) {
-			add_breakpoints(bp_list_fast_cbin);
+			bp_add_list(bp_list_fast_cbin);
 		}
 	}
 	if (tape_pad || tape_rewrite) {
-		add_breakpoints(bp_list_rewrite);
+		bp_add_list(bp_list_rewrite);
 	}
 }
 

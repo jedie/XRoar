@@ -8,16 +8,38 @@
 
 #include "m6809.h"
 
-struct breakpoint;
+enum bp_type {
+	BP_INSTRUCTION = 0,  /* specifically 0 to be the C99 default */
+};
 
-/* add a new instruction breakpoint */
-struct breakpoint *bp_add_instr(int addr, void (*handler)(M6809State *));
-/* find any matching instruction breakpoint */
-struct breakpoint *bp_find_instr(int addr, void (*handler)(M6809State *));
+/* flags determine conditions in which breakpoint applies */
+#define BP_DRAGON (1 << 0)
+#define BP_COCO (1 << 1)
+#define BP_PAGE_0 (1 << 2)
+#define BP_PAGE_1 (1 << 3)
+#define BP_PAGE_ANY (BP_PAGE_0 | BP_PAGE_1)
+#define BP_MAP_TYPE_0 (1 << 4)
+#define BP_MAP_TYPE_1 (1 << 5)
 
-/* remove a referenced breakpoint - call free() manually */
+#define BP_DRAGON_ROM (BP_DRAGON | BP_PAGE_ANY | BP_MAP_TYPE_0)
+#define BP_COCO_ROM (BP_COCO | BP_PAGE_ANY | BP_MAP_TYPE_0)
+
+struct breakpoint {
+	enum bp_type type;
+	int flags;
+	int address;
+	void (*handler)(M6809State *);
+};
+
+#define bp_add_list(bp) bp_add_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
+#define bp_remove_list(bp) bp_remove_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
+
+void bp_add(struct breakpoint *bp);
+void bp_add_n(struct breakpoint *bp, int n);
+
 void bp_remove(struct breakpoint *bp);
-/* remove a referenced breakpoint and free() it */
-void bp_delete(struct breakpoint *bp);
+void bp_remove_n(struct breakpoint *bp, int n);
+
+void bp_clear(void);
 
 #endif  /* XROAR_BREAKPOINT_H_ */
