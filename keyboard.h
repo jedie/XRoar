@@ -54,5 +54,6 @@ void keyboard_queue_string(const char *s);
 void keyboard_queue(unsigned int c);
 void keyboard_unicode_press(unsigned int unicode);
 void keyboard_unicode_release(unsigned int unicode);
+void keyboard_queue_basic(const char *s);
 
 #endif  /* XROAR_KEYBOARD_H_ */

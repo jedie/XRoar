@@ -17,9 +17,13 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
 
 #include "types.h"
+
+#include "breakpoint.h"
 #include "events.h"
 #include "keyboard.h"
 #include "logging.h"
@@ -243,4 +247,35 @@ static void keyboard_release_queued(void) {
 		queue_event.at_cycle += OSCILLATOR_RATE / 20;
 		event_queue(&MACHINE_EVENT_LIST, &queue_event);
 	}
+}
+
+static const char *basic_command = NULL;
+
+static void type_command(M6809State *cpu_state);
+
+static struct breakpoint basic_command_breakpoint[] = {
+	{ .flags = BP_DRAGON_ROM, .address = 0xbbe5, .handler = type_command },
+	{ .flags = BP_COCO_ROM, .address = 0xa1cb, .handler = type_command },
+};
+
+static void type_command(M6809State *cpu_state) {
+	if (basic_command) {
+		cpu_state->reg_a = *(basic_command++);
+		cpu_state->reg_cc &= ~4;
+		if (*basic_command == 0)
+			basic_command = NULL;
+	}
+	if (!basic_command) {
+		bp_remove_list(basic_command_breakpoint);
+	}
+	/* Use CPU read routine to pull return address back off stack */
+	cpu_state->reg_pc = (m6809_read_cycle(cpu_state->reg_s) << 8) | m6809_read_cycle(cpu_state->reg_s+1);
+	cpu_state->reg_s += 2;
+}
+
+void keyboard_queue_basic(const char *s) {
+	bp_remove_list(basic_command_breakpoint);
+	basic_command = s;
+	if (basic_command)
+		bp_add_list(basic_command_breakpoint);
 }
