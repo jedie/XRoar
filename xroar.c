@@ -837,9 +837,9 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 			xroar_insert_disk_file(0, filename);
 			if (autorun && vdrive_disk_in_drive(0)) {
 				if (IS_DRAGON) {
-					keyboard_queue_string("\033BOOT\r");
+					keyboard_queue_basic("\033BOOT\r");
 				} else {
-					keyboard_queue_string("\033DOS\r");
+					keyboard_queue_basic("\033DOS\r");
 				}
 				return 0;
 			}
