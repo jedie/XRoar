@@ -513,6 +513,24 @@ static uint8_t op_sub(M6809State *cpu_state, uint8_t v1, uint8_t v2) {
 	return v;
 }
 
+static void motor_on(M6809State *cpu_state) {
+	int delay = IS_DRAGON ? 0x95 : 0x8a;
+	pskip += 5;  /* LDX <$95 */
+	int i = (machine_ram[delay] << 8) | machine_ram[delay+1];
+	if (IS_DRAGON)
+		pskip += 5;  /* LBRA delay_X */
+	for (; i; i--) {
+		pskip += 5;  /* LEAX -1,X */
+		pskip += 3;  /* BNE delay_X */
+		/* periodically sync up tape position */
+		if ((i & 63) == 0)
+			pulse_skip();
+	}
+	cpu_state->reg_x = 0;
+	cpu_state->reg_cc |= 0x04;
+	pskip += 5;  /* RTS */
+}
+
 static uint8_t op_clr(M6809State *cpu_state) {
 	cpu_state->reg_cc &= ~0x0b;  /* clear NVC */
 	cpu_state->reg_cc |= 0x04;  /* set Z */
@@ -712,8 +730,10 @@ static void cbin(M6809State *cpu_state) {
 }
 
 static void fast_motor_on(M6809State *cpu_state) {
-	/* skip motor on delay */
+	motor_on(cpu_state);
+	pskip -= 5;  /* remove last RTS */
 	cpu_state->reg_pc = IS_DRAGON ? 0xbbcc : 0xa7d7;
+	pulse_skip();
 }
 
 static void fast_sync_leader(M6809State *cpu_state) {
