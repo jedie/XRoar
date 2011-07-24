@@ -38,6 +38,7 @@ static uint16_t sam_vdg_base;
 static uint16_t sam_vdg_address;
 static int sam_vdg_mod_xdiv;
 static int sam_vdg_mod_ydiv;
+static int sam_vdg_mod_add;
 static uint16_t sam_vdg_mod_clear;
 static int sam_vdg_xcount;
 static int sam_vdg_ycount;
@@ -53,6 +54,7 @@ static int cycles_remaining = 0;
 
 static int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
 static int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
+static int vdg_mod_add[8] = { 16, 8, 16, 8, 16, 8, 16, 0 };
 static uint16_t vdg_mod_clear[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
 
 /* SAM Data Sheet,
@@ -242,6 +244,12 @@ void sam_nvma_cycles(int cycles) {
 }
 
 void sam_vdg_hsync(void) {
+	/* The top cleared bit will, if a transition to low occurs, increment
+	 * the bits above it.  This dummy fetch will achieve the same effective
+	 * result. */
+	if (sam_vdg_address & sam_vdg_mod_add) {
+		sam_vdg_bytes(sam_vdg_mod_add, NULL);
+	}
 	sam_vdg_address &= sam_vdg_mod_clear;
 }
 
@@ -319,6 +327,7 @@ static void update_from_register(void) {
 	sam_vdg_base = (sam_register & 0x03f8) << 6;
 	sam_vdg_mod_xdiv = vdg_mod_xdiv[vdg_mode];
 	sam_vdg_mod_ydiv = vdg_mod_ydiv[vdg_mode];
+	sam_vdg_mod_add = vdg_mod_add[vdg_mode];
 	sam_vdg_mod_clear = vdg_mod_clear[vdg_mode];
 
 	ram_row_mask = ram_row_masks[memory_size];
