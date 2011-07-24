@@ -1,3 +1,8 @@
+Version 0.26, Mon Aug  1 2011
+
+  * SAM-VDG interaction fix - 48 byte-per-line mode now works.
+  * More resilient fast tape loading.
+
 Version 0.25, Sat Jun 18 2011
 
   * New GTK+2 user-interface.
