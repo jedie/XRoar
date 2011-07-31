@@ -169,14 +169,6 @@ void tape_byte_out(struct tape *t, int byte) {
 	}
 }
 
-void tape_play(struct tape *t) {
-	t->playing = 1;
-}
-
-void tape_stop(struct tape *t) {
-	t->playing = 0;
-}
-
 /**************************************************************************/
 
 static int block_sync(struct tape *tape) {

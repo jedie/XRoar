@@ -21,7 +21,6 @@ struct tape_module;
 struct tape {
 	struct tape_module *module;
 	void *data;  /* module-specific data */
-	int playing;  /* 0 means tape stopped, must be manually restarted */
 	long offset;  /* current tape position */
 	long size;  /* current tape size */
 	int leader_count;  /* CAS files will report initial leader bytes */
@@ -58,8 +57,6 @@ int tape_byte_in(struct tape *t);
 #define tape_sample_out(t,...) (t)->module->sample_out((t), __VA_ARGS__)
 void tape_bit_out(struct tape *t, int bit);
 void tape_byte_out(struct tape *t, int byte);
-void tape_play(struct tape *t);
-void tape_stop(struct tape *t);
 
 struct tape_file {
 	long offset;
