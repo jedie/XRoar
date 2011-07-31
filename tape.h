@@ -25,12 +25,6 @@ struct tape {
 	long offset;  /* current tape position */
 	long size;  /* current tape size */
 	int leader_count;  /* CAS files will report initial leader bytes */
-	int fake_leader;  /* number of fake leader bytes */
-	int fake_sync;  /* flag that fake leader should end with $3c (sync) */
-	int fake_byte;
-	int fake_bit;
-	int fake_bit_index;  /* 0-7 */
-	int fake_pulse_index;
 	cycle_t last_write_cycle;
 };
 

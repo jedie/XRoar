@@ -45,6 +45,14 @@ static unsigned int motor;
 struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
 
+/* input file: */
+int fake_leader;  /* number of fake leader bytes */
+int fake_sync;  /* flag that fake leader should end with $3c (sync) */
+int fake_byte;
+int fake_bit;
+int fake_bit_index;  /* 0-7 */
+int fake_pulse_index;
+
 static void waggle_bit(void);
 static event_t waggle_event;
 static void flush_output(void);
@@ -83,29 +91,29 @@ int tape_seek(struct tape *t, long offset, int whence) {
 
 int tape_pulse_in(struct tape *t, int *pulse_width) {
 	if (!t) return -1;
-	if (t->fake_leader > 0) {
-		if (t->fake_pulse_index == 0) {
-			if (t->fake_bit_index == 0) {
-				if (t->fake_leader == 1 && t->fake_sync) {
-					t->fake_byte = 0x3c;
-					t->fake_sync = 0;
+	if (fake_leader > 0) {
+		if (fake_pulse_index == 0) {
+			if (fake_bit_index == 0) {
+				if (fake_leader == 1 && fake_sync) {
+					fake_byte = 0x3c;
+					fake_sync = 0;
 				} else {
-					t->fake_byte = 0x55;
+					fake_byte = 0x55;
 				}
 			}
-			t->fake_bit = (t->fake_byte & (1 << t->fake_bit_index)) ? 1 : 0;
+			fake_bit = (fake_byte & (1 << fake_bit_index)) ? 1 : 0;
 		}
-		if (t->fake_bit == 0) {
+		if (fake_bit == 0) {
 			*pulse_width = TAPE_BIT0_LENGTH / 2;
 		} else {
 			*pulse_width = TAPE_BIT1_LENGTH / 2;
 		}
-		int val = t->fake_pulse_index;
-		t->fake_pulse_index = (t->fake_pulse_index + 1) & 1;
-		if (t->fake_pulse_index == 0) {
-			t->fake_bit_index = (t->fake_bit_index + 1) & 7;
-			if (t->fake_bit_index == 0)
-				t->fake_leader--;
+		int val = fake_pulse_index;
+		fake_pulse_index = (fake_pulse_index + 1) & 1;
+		if (fake_pulse_index == 0) {
+			fake_bit_index = (fake_bit_index + 1) & 7;
+			if (fake_bit_index == 0)
+				fake_leader--;
 		}
 		return val;
 	}
@@ -247,10 +255,10 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 void tape_seek_to_file(struct tape *t, struct tape_file *f) {
 	if (!t || !f) return;
 	tape_seek(t, f->offset, FS_SEEK_SET);
-	t->fake_leader = 256;
-	t->fake_sync = 1;
-	t->fake_bit_index = 0;
-	t->fake_pulse_index = 0;
+	fake_leader = 256;
+	fake_sync = 1;
+	fake_bit_index = 0;
+	fake_pulse_index = 0;
 }
 
 /**************************************************************************/
@@ -792,7 +800,7 @@ static void tape_desync(int leader) {
 		rewrite_have_sync = 0;
 		rewrite_leader_count = leader;
 	}
-	if (tape_pad && tape_input) tape_input->fake_leader = leader;
+	if (tape_pad && tape_input) fake_leader = leader;
 }
 
 static void rewrite_sync(M6809State *cpu_state) {
