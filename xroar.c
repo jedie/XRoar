@@ -714,20 +714,25 @@ int xroar_init(int argc, char **argv) {
 	printer_reset();
 	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_pad_auto | xroar_opt_tape_rewrite);
 	if (load_file) {
-		if (load_file_type == FILETYPE_SNA || load_file_type == FILETYPE_CAS || load_file_type == FILETYPE_WAV || load_file_type == FILETYPE_UNKNOWN) {
-			/* Load snapshots immediately */
+		switch (load_file_type) {
+		/* most things can be loaded/run straight off */
+		case FILETYPE_VDK:
+		case FILETYPE_JVC:
+		case FILETYPE_DMK:
+		case FILETYPE_CAS:
+		case FILETYPE_WAV:
+		case FILETYPE_SNA:
+		case FILETYPE_ASC:
 			xroar_load_file_by_type(load_file, autorun_loaded_file);
-		} else if (!autorun_loaded_file && load_file_type != FILETYPE_BIN
-				&& load_file_type != FILETYPE_HEX) {
-			/* Everything else except CoCo binaries and hex
-			 * records can be attached now if not autorunning */
-			xroar_load_file_by_type(load_file, 0);
-		} else {
+			break;
+		/* delay loading everything else by 2s */
+		default:
 			/* For everything else, defer loading the file */
 			event_init(&load_file_event);
 			load_file_event.dispatch = do_load_file;
 			load_file_event.at_cycle = current_cycle + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
+			break;
 		}
 	}
 	if (opt_lp_file) {
