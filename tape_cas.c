@@ -63,6 +63,7 @@ struct tape_module tape_cas_module = {
 	.motor_off = cas_motor_off,
 };
 
+static int read_byte(struct tape *t);
 static void bit_out(struct tape_cas *cas, int bit);
 
 #define ASCII_LEADER (192)
@@ -137,7 +138,7 @@ static void cas_close(struct tape *t) {
 	tape_free(t);
 }
 
-int read_byte(struct tape *t) {
+static int read_byte(struct tape *t) {
 	struct tape_cas *cas = t->data;
 	if (!cas->is_ascii) return fs_read_uint8(cas->fd);
 	long byte_offset = t->offset >> 4;
