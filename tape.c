@@ -57,6 +57,7 @@ static int tape_rewrite = 0;
 static int in_pulse = -1;
 static int in_pulse_width = 0;
 
+static int input_skip_sync = 0;
 static int rewrite_have_sync = 0;
 static int rewrite_leader_count = 256;
 static int rewrite_bit_count = 0;
@@ -286,6 +287,7 @@ void tape_shutdown(void) {
 
 int tape_open_reading(const char *filename) {
 	tape_close_reading();
+	input_skip_sync = 0;
 	int type = xroar_filetype_by_ext(filename);
 	switch (type) {
 	case FILETYPE_CAS:
@@ -294,7 +296,7 @@ int tape_open_reading(const char *filename) {
 			return -1;
 		}
 		if (tape_pad_auto) {
-			int flags = tape_fast | tape_pad_auto | tape_rewrite;
+			int flags = tape_get_state() & ~TAPE_PAD;
 			if (tape_input->leader_count < 120)
 				flags |= TAPE_PAD;
 			tape_select_state(flags);
@@ -312,6 +314,11 @@ int tape_open_reading(const char *filename) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
+		if (tape_pad_auto) {
+			int flags = tape_get_state() | TAPE_PAD;
+			tape_select_state(flags);
+		}
+		input_skip_sync = 1;
 		break;
 #else
 		LOG_WARN("Failed to open '%s'\n", filename);
@@ -814,6 +821,10 @@ static void rewrite_tape_on(M6809State *cpu_state) {
 	(void)cpu_state;
 	/* desync with long leader */
 	tape_desync(256);
+	if (input_skip_sync) {
+		machine_ram[0x84] = 0;  /* phase */
+		cpu_state->reg_pc = IS_DRAGON ? 0xbe11 : 0xa796;
+	}
 }
 
 static void rewrite_end_of_block(M6809State *cpu_state) {
@@ -844,8 +855,8 @@ static struct breakpoint bp_list_rewrite[] = {
 	{ .flags = BP_COCO_ROM, .address = 0xa719, .handler = rewrite_sync },
 	{ .flags = BP_DRAGON_ROM, .address = 0xbdac, .handler = rewrite_bitin },
 	{ .flags = BP_COCO_ROM, .address = 0xa75c, .handler = rewrite_bitin },
-	{ .flags = BP_DRAGON_ROM, .address = 0xbde7, .handler = rewrite_tape_on },
-	{ .flags = BP_COCO_ROM, .address = 0xa77c, .handler = rewrite_tape_on },
+	{ .flags = BP_DRAGON_ROM, .address = 0xbdeb, .handler = rewrite_tape_on },
+	{ .flags = BP_COCO_ROM, .address = 0xa780, .handler = rewrite_tape_on },
 	{ .flags = BP_DRAGON_ROM, .address = 0xb97e, .handler = rewrite_end_of_block },
 	{ .flags = BP_COCO_ROM, .address = 0xa746, .handler = rewrite_end_of_block },
 };
