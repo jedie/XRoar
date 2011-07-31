@@ -52,6 +52,7 @@ static event_t flush_event;
 
 static int tape_fast = 0;
 static int tape_pad = 0;
+static int tape_pad_auto = 0;
 static int tape_rewrite = 0;
 static int in_pulse = -1;
 static int in_pulse_width = 0;
@@ -68,6 +69,16 @@ static void rewrite_end_of_block(M6809State *cpu_state);
 static void set_breakpoints(void);
 
 /**************************************************************************/
+
+int tape_seek(struct tape *t, long offset, int whence) {
+	int r = t->module->seek(t, offset, whence);
+	/* if seeking to beginning of tape, ensure any fake leader etc.
+	 * is set up properly */
+	if (r >= 0 && t->offset == 0) {
+		tape_desync(256);
+	}
+	return r;
+}
 
 int tape_pulse_in(struct tape *t, int *pulse_width) {
 	if (!t) return -1;
@@ -282,6 +293,12 @@ int tape_open_reading(const char *filename) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
+		if (tape_pad_auto) {
+			int flags = tape_fast | tape_pad_auto | tape_rewrite;
+			if (tape_input->leader_count < 120)
+				flags |= TAPE_PAD;
+			tape_select_state(flags);
+		}
 		break;
 	case FILETYPE_ASC:
 		if ((tape_input = tape_asc_open(filename, FS_READ)) == NULL) {
@@ -302,9 +319,8 @@ int tape_open_reading(const char *filename) {
 #endif
 	}
 
+	tape_desync(256);
 	tape_update_motor();
-	rewrite_have_sync = 0;
-	rewrite_leader_count = 256;
 	LOG_DEBUG(2,"Attached virtual cassette '%s'\n", filename);
 	return 0;
 }
@@ -858,6 +874,7 @@ void tape_set_state(int flags) {
 	/* set flags */
 	tape_fast = flags & TAPE_FAST;
 	tape_pad = flags & TAPE_PAD;
+	tape_pad_auto = flags & TAPE_PAD_AUTO;
 	tape_rewrite = flags & TAPE_REWRITE;
 	set_breakpoints();
 }
@@ -874,6 +891,7 @@ int tape_get_state(void) {
 	int flags = 0;
 	if (tape_fast) flags |= TAPE_FAST;
 	if (tape_pad) flags |= TAPE_PAD;
+	if (tape_pad_auto) flags |= TAPE_PAD_AUTO;
 	if (tape_rewrite) flags |= TAPE_REWRITE;
 	return flags;
 }

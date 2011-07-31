@@ -92,6 +92,7 @@ static struct tape *do_tape_cas_open(const char *filename, int mode,
 	t->module = &tape_cas_module;
 	cas = xmalloc(sizeof(struct tape_cas));
 	t->data = cas;
+	t->leader_count = 0;
 	/* initialise cas */
 	cas->fd = fd;
 	cas->is_ascii = is_ascii;
@@ -101,6 +102,18 @@ static struct tape *do_tape_cas_open(const char *filename, int mode,
 	cas->output_byte = cas->output_bit_count = 0;
 	cas->bit_index = 0;  /* next read will fetch a new byte */
 	cas->pulse_index = 0;
+	/* count leader bytes in CAS files - auto padding will decide things
+	 * based on this */
+	if (!is_ascii) {
+		int lb = fs_read_uint8(cas->fd);
+		int nb;
+		if (lb == 0x55 || lb == 0xaa) {
+			do {
+				t->leader_count++;
+				nb = fs_read_uint8(cas->fd);
+			} while (nb == lb);
+		}
+	}
 	/* find size */
 	long size = fs_lseek(cas->fd, 0, FS_SEEK_END);
 	if (is_ascii) {

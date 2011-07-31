@@ -24,6 +24,7 @@ struct tape {
 	int playing;  /* 0 means tape stopped, must be manually restarted */
 	long offset;  /* current tape position */
 	long size;  /* current tape size */
+	int leader_count;  /* CAS files will report initial leader bytes */
 	int fake_leader;  /* number of fake leader bytes */
 	int fake_sync;  /* flag that fake leader should end with $3c (sync) */
 	int fake_byte;
@@ -53,7 +54,7 @@ extern struct tape *tape_output;
    or sample number whichever is appropriate.  for cas file, it'll probably be
    file position * 8 + bit position */
 #define tape_tell(t) (t)->module->tell(t)
-#define tape_seek(t,...) (t)->module->seek((t), __VA_ARGS__)
+int tape_seek(struct tape *t, long offset, int whence);
 #define tape_to_ms(t,...) (t)->module->to_ms((t), __VA_ARGS__)
 #define tape_ms_to(t,...) (t)->module->ms_to((t), __VA_ARGS__)
 #define tape_rewind(t) tape_seek(t, 0, FS_SEEK_SET)
@@ -111,7 +112,8 @@ void tape_update_output(void);
 
 #define TAPE_FAST (1 << 0)
 #define TAPE_PAD (1 << 1)
-#define TAPE_REWRITE (1 << 2)
+#define TAPE_PAD_AUTO (1 << 2)
+#define TAPE_REWRITE (1 << 3)
 
 void tape_set_state(int flags);
 void tape_select_state(int flags);  /* set & update UI */

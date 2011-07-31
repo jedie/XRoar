@@ -113,7 +113,8 @@ int xroar_kbd_translate = 0;
 char *xroar_opt_joy_left = NULL;
 char *xroar_opt_joy_right = NULL;
 static int xroar_opt_tape_fast = 1;
-static int xroar_opt_tape_pad = 0;
+static int xroar_opt_tape_pad = -1;
+static int xroar_opt_tape_pad_auto = 1;
 static int xroar_opt_tape_rewrite = 0;
 #ifdef TRACE
 int xroar_trace_enabled = 0;
@@ -233,6 +234,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "joy-right",     &xroar_opt_joy_right ),
 	XC_OPT_BOOL  ( "tape-fast",     &xroar_opt_tape_fast ),
 	XC_OPT_BOOL  ( "tape-pad",      &xroar_opt_tape_pad ),
+	XC_OPT_BOOL  ( "tape-pad-auto", &xroar_opt_tape_pad_auto ),
 	XC_OPT_BOOL  ( "tape-rewrite",  &xroar_opt_tape_rewrite ),
 	XC_OPT_BOOL  ( "tapehack",      &xroar_opt_tape_rewrite ),
 	XC_OPT_BOOL  ( "disk-write-back", &xroar_opt_disk_write_back ),
@@ -515,6 +517,7 @@ static void helptext(void) {
 "  -joy-right JOYSPEC    map right joystick\n"
 "  -tape-fast            enable fast tape loading\n"
 "  -tape-pad             enable tape leader padding\n"
+"  -tape-pad-auto        detect need for leader padding automatically\n"
 "  -tape-rewrite         enable tape rewriting\n"
 "  -disk-write-back      default to enabling write-back for disk images\n"
 #ifdef TRACE
@@ -626,8 +629,12 @@ int xroar_init(int argc, char **argv) {
 		autorun_loaded_file = 1;
 	}
 	sound_set_volume(xroar_opt_volume);
+	/* turn off tape_pad_auto if any tape_pad specified */
+	if (xroar_opt_tape_pad >= 0)
+		xroar_opt_tape_pad_auto = 0;
 	xroar_opt_tape_fast = xroar_opt_tape_fast ? TAPE_FAST : 0;
-	xroar_opt_tape_pad = xroar_opt_tape_pad ? TAPE_PAD : 0;
+	xroar_opt_tape_pad = (xroar_opt_tape_pad > 0) ? TAPE_PAD : 0;
+	xroar_opt_tape_pad_auto = xroar_opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
 	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
 	xroar_opt_disk_write_back = xroar_opt_disk_write_back ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
 
@@ -705,6 +712,7 @@ int xroar_init(int argc, char **argv) {
 	/* Reset everything */
 	machine_reset(RESET_HARD);
 	printer_reset();
+	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_pad_auto | xroar_opt_tape_rewrite);
 	if (load_file) {
 		if (load_file_type == FILETYPE_SNA || load_file_type == FILETYPE_CAS || load_file_type == FILETYPE_WAV || load_file_type == FILETYPE_UNKNOWN) {
 			/* Load snapshots immediately */
@@ -791,7 +799,6 @@ void xroar_mainloop(void) {
 	m6809_sync = do_m6809_sync;
 	m6809_interrupt_hook = NULL;
 	m6809_instruction_posthook = NULL;
-	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_rewrite);
 
 #ifdef TRACE
 	xroar_set_trace(xroar_trace_enabled);

@@ -434,8 +434,11 @@ calls and performing the action outside the emulation.  Disable with
 
 The @option{-tape-pad} option monitors ROM calls in order to insert extra
 leader bytes where appropriate (long leaders when the motor is switched on,
-short leaders between blocks). Disable with @option{-no-tape-pad}.  Off by
-default.
+short leaders between blocks). Disable with @option{-no-tape-pad}.
+
+The @option{-tape-pad-auto} option will, for @file{.cas} files, automatically
+switch on leader padding when insufficient initial leader bytes are found.
+Disable with @option{-no-tape-pad-auto}.  On by default.
 
 The @option{-tape-rewrite} option enables rewriting of anything read from the
 input tape to the output tape.  This is useful for creating ``well formed''
@@ -835,6 +838,8 @@ Map a joystick.  @emph{J} = joystick number, @emph{A} = axis number,
 Enable fast tape loading.  @xref{Cassettes}.
 @item -tape-pad
 Enable tape leader padding.  @xref{Cassettes}.
+@item -tape-pad-auto
+Detect need for leader padding automatically.  @xref{Cassettes}.
 @item -tape-rewrite
 Enable tape rewriting.  @xref{Cassettes}.
 @item -disk-write-back
