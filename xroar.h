@@ -118,7 +118,7 @@ void xroar_quit(void);
 void xroar_fullscreen(int action);
 void xroar_load_file(const char **exts);
 void xroar_run_file(const char **exts);
-void xroar_set_keymap(int keymap);
+void xroar_set_keymap(int map);
 void xroar_set_kbd_translate(int kbd_translate);
 void xroar_set_machine(int machine);
 void xroar_set_cart(int cart_index);

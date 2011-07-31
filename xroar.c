@@ -86,18 +86,18 @@ static int opt_cart_autorun = ANY_AUTO;
 static int opt_nodos = 0;
 
 /* Attach files */
-static const char *opt_load = NULL;
-static const char *opt_run = NULL;
-static const char *opt_lp_file = NULL;
-static const char *opt_lp_pipe = NULL;
+static char *opt_load = NULL;
+static char *opt_run = NULL;
+static char *opt_lp_file = NULL;
+static char *opt_lp_pipe = NULL;
 
 /* Emulator interface */
-static const char *opt_ui = NULL;
-static const char *opt_filereq = NULL;
-static const char *opt_vo = NULL;
+static char *opt_ui = NULL;
+static char *opt_filereq = NULL;
+static char *opt_vo = NULL;
 char *xroar_opt_geometry = NULL;
 int xroar_opt_gl_filter = ANY_AUTO;
-static const char *opt_ao = NULL;
+static char *opt_ao = NULL;
 int xroar_opt_ao_rate = 0;
 int xroar_opt_ao_buffer_ms = 0;
 int xroar_opt_ao_buffer_samples = 0;
@@ -268,7 +268,7 @@ event_t *xroar_machine_events = NULL;
 
 static event_t load_file_event;
 static void do_load_file(void);
-static const char *load_file = NULL;
+static char *load_file = NULL;
 static int load_file_type = FILETYPE_UNKNOWN;
 static int autorun_loaded_file = 0;
 
@@ -1096,17 +1096,17 @@ void xroar_run_file(const char **exts) {
 	}
 }
 
-void xroar_set_keymap(int keymap) {
+void xroar_set_keymap(int map) {
 	static int lock = 0;
 	if (lock) return;
 	lock = 1;
 	int new;
-	switch (keymap) {
+	switch (map) {
 		case XROAR_CYCLE:
 			new = (xroar_machine_config->keymap + 1) % NUM_KEYMAPS;
 			break;
 		default:
-			new = keymap;
+			new = map;
 			break;
 	}
 	if (new >= 0 && new < NUM_KEYMAPS) {

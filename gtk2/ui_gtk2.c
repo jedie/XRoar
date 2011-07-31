@@ -61,7 +61,7 @@ static KeyboardModule *gtk2_keyboard_module_list[] = {
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void cart_changed_cb(int cart_index);
-static void keymap_changed_cb(int keymap);
+static void keymap_changed_cb(int map);
 static void fast_sound_changed_cb(int fast);
 
 UIModule ui_gtk2_module = {
@@ -677,9 +677,9 @@ static void cart_changed_cb(int cart_index) {
 	gtk_radio_action_set_current_value(radio, cart_index);
 }
 
-static void keymap_changed_cb(int keymap) {
+static void keymap_changed_cb(int map) {
 	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/KeymapMenu/keymap_dragon");
-	gtk_radio_action_set_current_value(radio, keymap);
+	gtk_radio_action_set_current_value(radio, map);
 }
 
 /* Tool callbacks */

@@ -598,7 +598,7 @@ int main(int argc, char **argv) {
 static int init(void);
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
-static void keymap_changed_cb(int keymap);
+static void keymap_changed_cb(int map);
 static void cart_changed_cb(int cart_index);
 static void fullscreen_changed_cb(int fullscreen);
 static void kbd_translate_changed_cb(int kbd_translate);
@@ -697,8 +697,8 @@ static void machine_changed_cb(int machine_type) {
 	current_machine = TAG_MACHINE | (machine_type & TAG_VALUE_MASK);
 }
 
-static void keymap_changed_cb(int keymap) {
-	current_keymap = TAG_KEYMAP | (keymap & TAG_VALUE_MASK);
+static void keymap_changed_cb(int map) {
+	current_keymap = TAG_KEYMAP | (map & TAG_VALUE_MASK);
 }
 
 static void cart_changed_cb(int cart_index) {

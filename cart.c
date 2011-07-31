@@ -167,10 +167,10 @@ struct cart_config *cart_config_by_name(const char *name) {
 			if (!(rom_cart_config = cart_config_new())) {
 				return NULL;
 			}
-			rom_cart_config->name = "romcart";
+			rom_cart_config->name = strdup("romcart");
 		}
 		if (rom_cart_config->description) {
-			free((char *)rom_cart_config->description);
+			free(rom_cart_config->description);
 		}
 		/* Make up a description from filename */
 		char *tmp_name = strdup(name);
