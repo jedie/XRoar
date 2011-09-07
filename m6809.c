@@ -46,6 +46,7 @@
 #define N_EOR_V ((reg_cc & CC_N)^((reg_cc & CC_V)<<2))
 
 #define CLR_HNZVC       do { reg_cc &= ~(CC_H|CC_N|CC_Z|CC_V|CC_C); } while (0)
+#define CLR_NZ          do { reg_cc &= ~(CC_N|CC_Z); } while (0)
 #define CLR_NZV         do { reg_cc &= ~(CC_N|CC_Z|CC_V); } while (0)
 #define CLR_NZVC        do { reg_cc &= ~(CC_N|CC_Z|CC_V|CC_C); } while (0)
 #define CLR_Z           do { reg_cc &= ~(CC_Z); } while (0)
@@ -649,7 +650,7 @@ void m6809_run(void) {
 			/* 0x1D SEX inherent */
 			case 0x1d:
 				reg_a = (reg_b & 0x80) ? 0xff : 0;
-				CLR_NZV;
+				CLR_NZ;
 				SET_NZ_D();
 				peek_byte(reg_pc);
 				break;
