@@ -81,6 +81,7 @@ static void set_breakpoints(void);
 
 int tape_seek(struct tape *t, long offset, int whence) {
 	int r = t->module->seek(t, offset, whence);
+	tape_update_motor();
 	/* if seeking to beginning of tape, ensure any fake leader etc.
 	 * is set up properly */
 	if (r >= 0 && t->offset == 0) {
@@ -315,7 +316,7 @@ int tape_open_reading(const char *filename) {
 			return -1;
 		}
 		if (tape_pad_auto) {
-			int flags = tape_get_state() | TAPE_PAD;
+			int flags = tape_get_state() & ~TAPE_PAD;
 			tape_select_state(flags);
 		}
 		input_skip_sync = 1;
@@ -821,7 +822,8 @@ static void rewrite_tape_on(M6809State *cpu_state) {
 	(void)cpu_state;
 	/* desync with long leader */
 	tape_desync(256);
-	if (input_skip_sync) {
+	/* for audio files, when padding leaders, assume a phase */
+	if (tape_pad && input_skip_sync) {
 		machine_ram[0x84] = 0;  /* phase */
 		cpu_state->reg_pc = IS_DRAGON ? 0xbe11 : 0xa796;
 	}
@@ -888,6 +890,8 @@ void tape_set_state(int flags) {
 	tape_pad_auto = flags & TAPE_PAD_AUTO;
 	tape_rewrite = flags & TAPE_REWRITE;
 	set_breakpoints();
+	if (!tape_pad)
+		fake_leader = 0;
 }
 
 /* sets state and updates UI */
