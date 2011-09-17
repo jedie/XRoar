@@ -205,8 +205,8 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	return disk;
 }
 
-/* XXX: there's probably more to this format, this is what I've
-   inferred so far. */
+/* VDK header entry meanings taken from the source to PC-Dragon II
+ * see http://www.emulator.org.uk/ */
 static int vdisk_save_vdk(struct vdisk *disk) {
 	unsigned int track, sector, side;
 	uint8_t buf[1024];
@@ -217,13 +217,18 @@ static int vdisk_save_vdk(struct vdisk *disk) {
 	if (fd < 0)
 		return -1;
 	LOG_DEBUG(2,"Writing VDK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
-	memset(buf, 0, 12);
-	buf[0] = 'd';
-	buf[1] = 'k';
-	buf[2] = 12;
-	buf[3] = 0;
+	buf[0] = 'd';   /* magic */
+	buf[1] = 'k';   /* magic */
+	buf[2] = 12;    /* header size LSB */
+	buf[3] = 0;     /* header size MSB */
+	buf[4] = 0x10;  /* VDK version */
+	buf[5] = 0x10;  /* VDK backwards compatibility version */
+	buf[6] = 'X';	/* file source - 'X' for XRoar */
+	buf[7] = 0;	/* version of file source */
 	buf[8] = disk->num_tracks;
 	buf[9] = disk->num_sides;
+	buf[10] = 0;    /* flags */
+	buf[11] = 0;    /* name length & compression flag (we write neither) */
 	fs_write(fd, buf, 12);
 	for (track = 0; track < disk->num_tracks; track++) {
 		for (side = 0; side < disk->num_sides; side++) {
