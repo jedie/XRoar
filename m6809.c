@@ -627,7 +627,8 @@ void m6809_run(void) {
 				if (reg_a >= 0xa0 || reg_cc & CC_C) tmp |= 0x60;
 				tmp += reg_a;
 				reg_a = tmp;
-				CLR_NZVC;
+				/* CC.C NOT cleared, only set if appropriate */
+				CLR_NZV;
 				SET_NZC8(tmp);
 				peek_byte(reg_pc);
 			} break;
