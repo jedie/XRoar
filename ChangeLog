@@ -1,3 +1,9 @@
+Version 0.27, Tue Sep 27 2011
+
+  * CPU fixes: verified flags set/cleared in SEX and DAA instructions.
+  * Tape fixes: various usability fixes.
+  * VDK files: fill in header bytes more completely when writing.
+
 Version 0.26, Mon Aug  1 2011
 
   * SAM-VDG interaction fix - 48 byte-per-line mode now works.
