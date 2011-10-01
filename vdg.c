@@ -30,8 +30,9 @@
 #include "vdg.h"
 #include "xroar.h"
 
-/* Offset to account for unseen portion of left border */
-#define SCAN_OFFSET (VDG_LEFT_BORDER_START - VDG_LEFT_BORDER_UNSEEN + 76)
+/* Offset to the first displayed pixel.  Accounts for unseen portion of left
+ * border.  10 VDG cycles (20 pixels) of fudge factor! */
+#define SCAN_OFFSET (VDG_LEFT_BORDER_START + VDG_LEFT_BORDER_UNSEEN - VDG_CYCLES(10))
 
 static cycle_t scanline_start;
 static int is_32byte;

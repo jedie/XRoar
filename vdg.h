@@ -10,13 +10,19 @@
 
 #define VDG_CYCLES(c) ((c) * 4)
 
-#define VDG_tFP   VDG_CYCLES(7.0)
-#define VDG_tWHS  VDG_CYCLES(16.0)
+#define VDG_tFP   VDG_CYCLES(8.5)   // 7.0
+#define VDG_tWHS  VDG_CYCLES(16.0)  // 17.5
 #define VDG_tBP   VDG_CYCLES(17.5)
 #define VDG_tHBNK (VDG_tFP + VDG_tWHS + VDG_tBP)
-#define VDG_tLB   VDG_CYCLES(29.5)
+#define VDG_tLB   VDG_CYCLES(30.0)  // 29.5
 #define VDG_tAV   VDG_CYCLES(128)
 #define VDG_tRB   VDG_CYCLES(28.0)
+#define VDG_tAVB  (VDG_tLB + VDG_tAV + VDG_tRB)
+#define VDG_tHST  (VDG_tHBNK + VDG_tAVB)
+/* tHCD = time from start of back porch to beginning of colour burst */
+#define VDG_tHCD  VDG_CYCLES(3.5)
+/* tCB = duration of colour burst */
+#define VDG_tCB   VDG_CYCLES(10.5)
 
 #define VDG_LEFT_BORDER_UNSEEN    (VDG_tLB - VDG_CYCLES(16))
 
@@ -27,7 +33,7 @@
 #define VDG_ACTIVE_LINE_START  (VDG_LEFT_BORDER_START + VDG_tLB)
 #define VDG_RIGHT_BORDER_START (VDG_ACTIVE_LINE_START + VDG_tAV)
 #define VDG_RIGHT_BORDER_END   (VDG_RIGHT_BORDER_START + VDG_tRB)
-#define VDG_LINE_DURATION      VDG_CYCLES(228)
+#define VDG_LINE_DURATION      (VDG_tHBNK + VDG_tAVB)
 #define VDG_PAL_PADDING_LINE   VDG_LINE_DURATION
 
 #define VDG_VBLANK_START       (0)
