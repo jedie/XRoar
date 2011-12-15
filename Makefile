@@ -425,10 +425,10 @@ CLEAN += tools/font2c
 #
 
 vdg_bitmaps.h: tools/font2c | $(SRCROOT)/vdgfont.png
-	tools/font2c --header --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
+	tools/font2c --header --array vdg_alpha --type "unsigned char" --vdg $(SRCROOT)/vdgfont.png > $@
 
 vdg_bitmaps.c: tools/font2c | $(SRCROOT)/vdgfont.png
-	tools/font2c --array vdg_alpha --type "unsigned int" --vdg $(SRCROOT)/vdgfont.png > $@
+	tools/font2c --array vdg_alpha --type "unsigned char" --vdg $(SRCROOT)/vdgfont.png > $@
 
 #
 
