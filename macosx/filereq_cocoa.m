@@ -48,7 +48,7 @@ static char *load_filename(const char **extensions) {
 		filename = NULL;
 	}
 	if ([dialog runModal] == NSFileHandlingPanelOKButton) {
-		filename = strdup([[[dialog filenames] objectAtIndex:0] UTF8String]);
+		filename = strdup([[[[dialog URLs] objectAtIndex:0] path] UTF8String]);
 	}
 	cocoa_super_all_keys = 0;
 	return filename;
@@ -63,7 +63,7 @@ static char *save_filename(const char **extensions) {
 		filename = NULL;
 	}
 	if ([dialog runModal] == NSFileHandlingPanelOKButton) {
-		filename = strdup([[dialog filename] UTF8String]);
+		filename = strdup([[[dialog URL] path] UTF8String]);
 	}
 	cocoa_super_all_keys = 0;
 	return filename;
