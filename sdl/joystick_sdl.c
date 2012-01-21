@@ -31,6 +31,7 @@
 #include "machine.h"
 #include "mc6821.h"
 #include "module.h"
+#include "portalib.h"
 #include "xroar.h"
 
 static int init(void);

@@ -26,10 +26,14 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/unistd.h>
+#ifdef XROAR_HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 #include "types.h"
 #include "logging.h"
 #include "module.h"
+#include "portalib.h"
 #include "nds/ndsgfx.h"
 #include "nds/ndsui.h"
 #include "nds/ndsui_filelist.h"

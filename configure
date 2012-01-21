@@ -16,7 +16,7 @@ unset target_sdl_config build_sdl_config
 unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound logging"
+all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -666,6 +666,48 @@ if test "$_nds" = "yes"; then
 	test -z "$_logging" && _logging=no
 else
 	_nds_def="#undef HAVE_NDS"
+fi
+
+########
+
+if test "$_strings_h" \!= "no"; then
+	echocheck "strings.h"
+	cat > $TMPC <<EOF
+#include <strings.h>
+int main(int argc, char **argv) { return 0; }
+EOF
+	_strings_h=no
+	target_cc_check "" "" && _strings_h=yes
+	rm -f $TMPC
+	echo "$_strings_h"
+fi
+if test "$_strings_h" = "yes"; then
+	_strings_h_def="#define XROAR_HAVE_STRINGS_H"
+else
+	_strings_h_def="#undef XROAR_HAVE_STRINGS_H"
+fi
+
+########
+
+if test "$_strcasecmp" \!= "no"; then
+	echocheck "strcasecmp()"
+	cat > $TMPC <<EOF
+$_strings_h_def
+#include <string.h>
+#ifdef XROAR_HAVE_STRINGS_H
+#include <strings.h>
+#endif
+int main(int argc, char **argv) { (void)strcasecmp(0,0); }
+EOF
+	_strcasecmp=no
+	target_cc_check "" "" && _strcasecmp=yes
+	rm -f $TMPC
+	echo "$_strcasecmp"
+fi
+if test "$_strcasecmp" = "yes"; then
+	_strcasecmp_def="#undef NEED_STRCASECMP"
+else
+	_strcasecmp_def="#define NEED_STRCASECMP"
 fi
 
 ########

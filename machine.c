@@ -26,6 +26,9 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef XROAR_HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 #include "types.h"
 #include "cart.h"
@@ -40,6 +43,7 @@
 #include "misc.h"
 #include "module.h"
 #include "path.h"
+#include "portalib.h"
 #include "printer.h"
 #include "sam.h"
 #include "sound.h"
