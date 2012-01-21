@@ -181,6 +181,9 @@ static uint16_t reg_u;
 static uint16_t reg_s;
 static uint16_t reg_pc;
 
+#define reg_d ((reg_a << 8) | reg_b)
+#define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
+
 /* MPU interrupt state variables */
 int m6809_halt, m6809_nmi;
 int m6809_firq, m6809_irq;
@@ -191,9 +194,6 @@ static unsigned int halt_cycle, nmi_cycle, firq_cycle, irq_cycle;
 /* MPU state.  Represents current position in the high-level flow chart
  * from the data sheet (figure 14). */
 static enum m6809_cpu_state cpu_state;
-
-#define reg_d ((reg_a << 8) | reg_b)
-#define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
 
 /* In theory, detect if this compiler will generate arithmetic shifts for
  * signed shifts right and use faster code if so. */
@@ -282,7 +282,7 @@ void (*m6809_interrupt_hook)(uint16_t vector);
 #define OP_INC(fb) { unsigned int a, d; fb(a,d); d++; d &= 0xff; CLR_NZV; SET_NZ8(d); if (d == 0x80) reg_cc |= CC_V; TAKEN_CYCLES(1); store_byte(a,d); }
 #define OP_TST(fb) { unsigned int a, d; fb(a,d); CLR_NZV; SET_NZ8(d); TAKEN_CYCLES(2); }
 #define OP_JMP(ea) { unsigned int a; ea(a); reg_pc = a; }
-#define OP_CLR(fb) { unsigned int a, d; fb(a,d); TAKEN_CYCLES(1); store_byte(a,0); CLR_NVC; reg_cc |= CC_Z; }
+#define OP_CLR(fb) { unsigned int a, d; fb(a,d); (void)d; TAKEN_CYCLES(1); store_byte(a,0); CLR_NVC; reg_cc |= CC_Z; }
 
 #define OP_NEGR(r) { unsigned int tmp = ~(r) + 1; CLR_NZVC; SET_NZVC8(0, r, tmp); r = tmp; peek_byte(reg_pc); }
 #define OP_COMR(r) { r = ~(r); CLR_NZV; SET_NZ8(r); reg_cc |= CC_C; peek_byte(reg_pc); }
@@ -303,8 +303,6 @@ void (*m6809_interrupt_hook)(uint16_t vector);
 #define OP_LDD_IMM() { BYTE_IMMEDIATE(0,reg_a); BYTE_IMMEDIATE(0,reg_b); CLR_NZV; SET_NZ_D(); }
 #define OP_STD(ea) { unsigned int a; ea(a); store_byte(a, reg_a); store_byte(a+1, reg_b); CLR_NZV; SET_NZ_D(); }
 
-/* #define OP_SUB16(r,fw) { unsigned int a, d, tmp; fw(a,d); tmp = r - d; CLR_NZVC; SET_NZVC16(r, d, tmp); r = tmp; TAKEN_CYCLES(1); } */
-/* #define OP_ADD16(r,fw) { unsigned int a, d, tmp; fw(a,d); tmp = r + d; CLR_NZVC; SET_NZVC16(r, d, tmp); r = tmp; TAKEN_CYCLES(1); } */
 #define OP_CMP16(r,fw) { unsigned int a, d, tmp; fw(a,d); tmp = r - d; CLR_NZVC; SET_NZVC16(r, d, tmp); TAKEN_CYCLES(1); }
 #define OP_LD16(r,fw) { unsigned int a; fw(a,r); CLR_NZV; SET_NZ16(r); }
 #define OP_ST16(r,ea) { unsigned int a; ea(a); store_byte(a, r >> 8); store_byte(a+1, r); CLR_NZV; SET_NZ16(r); }
@@ -318,7 +316,7 @@ void (*m6809_interrupt_hook)(uint16_t vector);
 #define OP_AND(r,fb) { unsigned int a, d; fb(a,d); r &= d; CLR_NZV; SET_NZ8(r); }
 #define OP_BIT(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r & d; CLR_NZV; SET_NZ8(tmp); }
 #define OP_LD(r,fb) { unsigned int a; fb(a,r); CLR_NZV; SET_NZ8(r); }
-#define OP_DISCARD(fb) { unsigned int a, tmp; fb(a,tmp); CLR_NZV; reg_cc |= CC_N; }
+#define OP_DISCARD(fb) { unsigned int a, tmp; fb(a,tmp); (void)tmp; CLR_NZV; reg_cc |= CC_N; }
 #define OP_ST(r,ea) { unsigned int a; ea(a); store_byte(a, r); CLR_NZV; SET_NZ8(r); }
 #define OP_EOR(r,fb) { unsigned int a, d; fb(a,d); r ^= d; CLR_NZV; SET_NZ8(r); }
 #define OP_ADC(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r + d + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, d, tmp); SET_H(r, d, tmp); r = tmp; }
@@ -704,6 +702,7 @@ void m6809_run(void) {
 					case 0x9: reg_b = tmp2; break;
 					case 0xa: reg_cc = tmp2; break;
 					case 0xb: reg_dp = tmp2; break;
+					default: break;
 				}
 				TAKEN_CYCLES(6);
 			} break;
@@ -736,6 +735,7 @@ void m6809_run(void) {
 					case 0x9: reg_b = tmp1; break;
 					case 0xa: reg_cc = tmp1; break;
 					case 0xb: reg_dp = tmp1; break;
+					default: break;
 				}
 				TAKEN_CYCLES(4);
 			} break;
@@ -989,7 +989,7 @@ void m6809_run(void) {
 			/* 0x70 NEG extended */
 			case 0x70:
 			case 0x71: OP_NEG(BYTE_EXTENDED); break;
-			/* 0x72 NEG/COM indexed (illegal) */
+			/* 0x72 NEG/COM extended (illegal) */
 			case 0x72:
 				   if (reg_cc & CC_C) {
 					   OP_COM(BYTE_EXTENDED);
