@@ -40,10 +40,6 @@ static char *strcattoc_esc(char *dst, const char *src, char c);
  * directories, etc.) and are readable by the user.  This is not intended as a
  * security check, just a convenience. */
 
-/* TODO: calls to stat() and access() need to be abstracted out into fs_*.c, as
- * they will differ on GP32.  Perhaps roll them into one function that tests
- * for readable regular file. */
-
 char *find_in_path(const char *path, const char *filename) {
 	struct stat statbuf;
 	const char *home;
@@ -54,11 +50,16 @@ char *find_in_path(const char *path, const char *filename) {
 		return NULL;
 	/* If no path or filename contains a directory, just test file */
 	if (path == NULL || *path == 0 || strchr(filename, '/')) {
-		if (stat(filename, &statbuf) == 0)
-			if (statbuf.st_mode & S_IFREG)
+		if (stat(filename, &statbuf) == 0) {
+			if (statbuf.st_mode & S_IFREG) {
+				/* Only consider a file if user has read
+				 * access.  This is NOT a security check, it's
+				 * purely for usability. */
 				if (access(filename, R_OK) == 0) {
 					return strdup(filename);
 				}
+			}
+		}
 		return NULL;
 	}
 #ifdef WINDOWS32
