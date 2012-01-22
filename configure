@@ -533,7 +533,7 @@ EOF
 	if test "$_cxx_pipe" = "yes"; then
 		TARGET_CXX="$TARGET_CXX -pipe"
 	fi
-	rm -f $TMPM
+	rm -f $TMPCXX
 fi
 
 if test "$TARGET_CC" = "$TARGET_OBJC -pipe"; then
