@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
 	SDL_Surface *in;
 	int i, num_chars, char_height;
 	int header_only = 0;
+	Uint32 pmask = ~0;
 
 	argv0 = argv[0];
 	for (i = 1; i < argc; i++) {
@@ -79,6 +80,9 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "%s: %s: Wrong resolution for a font image file\n", argv0, argv[i]);
 		exit(1);
 	}
+	if (in->format->BytesPerPixel == 4) {
+		pmask = in->format->Rmask | in->format->Gmask | in->format->Bmask;
+	}
 
 	if (output_mode == VDG) {
 		num_chars = 64;
@@ -112,7 +116,7 @@ int main(int argc, char **argv) {
 			if (j > 0) printf(", ");
 			for (k = 0; k < 8; k++) {
 				b <<= 1;
-				b |= (getpixel(in, xbase + k, ybase + j) == 0) ? 0 : 1;
+				b |= ((getpixel(in, xbase + k, ybase + j) & pmask) == 0) ? 0 : 1;
 			}
 			printf("0x%02x", b);
 		}
