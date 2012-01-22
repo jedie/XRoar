@@ -134,8 +134,8 @@ static void shutdown(void) {
 	pthread_cond_destroy(&halt_cv);
 }
 
-static void flush_frame(void *buffer) {
-	(void)buffer;
+static void flush_frame(void *fbuffer) {
+	(void)fbuffer;
 	if (xroar_noratelimit)
 		return;
 	pthread_mutex_lock(&halt_mutex);
