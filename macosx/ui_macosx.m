@@ -656,7 +656,7 @@ static void update_machine_menu(void) {
 
 	for (i = num_machines-1; i >= 0; i--) {
 		struct machine_config *mc = machine_config_index(i);
-		NSString *description = [[NSString alloc] initWithCString:mc->description];
+		NSString *description = [[NSString alloc] initWithUTF8String:mc->description];
 		item = [[NSMenuItem alloc] initWithTitle:description action:@selector(set_machine:) keyEquivalent:@""];
 		[item setTag:(TAG_MACHINE | mc->index)];
 		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
@@ -675,7 +675,7 @@ static void update_cartridge_menu(void) {
 
 	for (i = num_carts-1; i >= 0; i--) {
 		struct cart_config *cc = cart_config_index(i);
-		NSString *description = [[NSString alloc] initWithCString:cc->description];
+		NSString *description = [[NSString alloc] initWithUTF8String:cc->description];
 		item = [[NSMenuItem alloc] initWithTitle:description action:@selector(set_cartridge:) keyEquivalent:@""];
 		[item setTag:(TAG_CARTRIDGE | cc->index)];
 		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
