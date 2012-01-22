@@ -251,10 +251,12 @@ void machine_config_complete(struct machine_config *mc) {
 		} else if (mc->altbas_rom) {
 			mc->architecture = ARCH_DRAGON64;
 		} else if (mc->extbas_rom) {
-			if (fs_size(mc->extbas_rom) > 0x2000) {
-				mc->architecture = ARCH_DRAGON64;
-			} else {
-				mc->architecture = ARCH_COCO;
+			struct stat statbuf;
+			mc->architecture = ARCH_DRAGON64;
+			if (stat(mc->extbas_rom, &statbuf) == 0) {
+				if (statbuf.st_size <= 0x2000) {
+					mc->architecture = ARCH_COCO;
+				}
 			}
 		} else {
 			mc->architecture = find_working_arch();
@@ -521,22 +523,22 @@ char *machine_find_rom_in_list(const char **list) {
 
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	char *dot;
-	int fd;
+	FILE *fd;
 	int size;
 
 	if (path == NULL)
 		return -1;
 	dot = strrchr(path, '.');
-	if ((fd = fs_open(path, FS_READ)) == -1) {
+	if (!(fd = fopen(path, "rb"))) {
 		return -1;
 	}
 	if (dot && strcasecmp(dot, ".dgn") == 0) {
 		LOG_DEBUG(2, "Loading DGN: %s\n", path);
-		fs_read(fd, dest, 16);
+		fread(dest, 1, 16, fd);
 	} else {
 		LOG_DEBUG(2, "Loading ROM: %s\n", path);
 	}
-	size = fs_read(fd, dest, max_size);
-	fs_close(fd);
+	size = fread(dest, 1, max_size, fd);
+	fclose(fd);
 	return size;
 }

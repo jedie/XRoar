@@ -48,7 +48,7 @@ endif
 CONFIG_FILES = config.h config.mak
 
 # Objects common to all builds:
-xroar_common_OBJS = crc16.o list.o misc.o path.o portalib.o xconfig.o \
+xroar_common_OBJS = crc16.o fs.o list.o misc.o path.o portalib.o xconfig.o \
 	breakpoint.o cart.o deltados.o dragondos.o events.o hexs19.o input.o \
 	joystick.o keyboard.o m6809.o machine.o mc6821.o module.o printer.o \
 	rsdos.o sam.o snapshot.o sound.o tape.o tape_cas.o ui_null.o vdg.o \
@@ -57,7 +57,7 @@ xroar_common_INT_OBJS = vdg_bitmaps.o
 CLEAN = $(xroar_common_OBJS) $(xroar_common_INT_OBJS)
 
 # Objects for all Unix-style builds (the default):
-xroar_unix_OBJS = fs_unix.o main_unix.o
+xroar_unix_OBJS = main_unix.o
 xroar_unix_INT_OBJS =
 CLEAN += $(xroar_unix_OBJS) $(xroar_unix_INT_OBJS)
 

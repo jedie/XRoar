@@ -26,7 +26,7 @@
 #include "tape.h"
 
 struct tape_cas {
-	int fd;
+	FILE *fd;
 	/* input-specific: */
 	int byte;  /* current input byte */
 	int bit;   /* current input bit */
@@ -81,13 +81,13 @@ static uint8_t ascii_eof_block[EOFBLOCK_LENGTH] = {
 	0x55, 0x3c, 0xff, 0x00, 0xff, 0x55
 };
 
-static struct tape *do_tape_cas_open(const char *filename, int mode,
+static struct tape *do_tape_cas_open(const char *filename, const char *mode,
                                      int is_ascii) {
 	struct tape *t;
 	struct tape_cas *cas;
-	int fd;
-	fd = fs_open(filename, mode);
-	if (fd == -1) return NULL;
+	FILE *fd;
+	if (!(fd = fopen(filename, mode)))
+		return NULL;
 	t = tape_new();
 	t->module = &tape_cas_module;
 	cas = xmalloc(sizeof(struct tape_cas));
@@ -115,7 +115,8 @@ static struct tape *do_tape_cas_open(const char *filename, int mode,
 		}
 	}
 	/* find size */
-	long size = fs_lseek(cas->fd, 0, FS_SEEK_END);
+	fseek(cas->fd, 0, SEEK_END);
+	long size = ftell(cas->fd);
 	if (is_ascii) {
 		cas->ascii_blocks = size / 255;
 		cas->ascii_last_block_size = size % 255;
@@ -130,23 +131,23 @@ static struct tape *do_tape_cas_open(const char *filename, int mode,
 		t->size = size << 4;
 	}
 	/* rewind to start */
-	fs_lseek(cas->fd, 0, FS_SEEK_SET);
+	fseek(cas->fd, 0, SEEK_SET);
 	t->offset = 0;
 	return t;
 }
 
-struct tape *tape_cas_open(const char *filename, int mode) {
+struct tape *tape_cas_open(const char *filename, const char *mode) {
 	return do_tape_cas_open(filename, mode, 0);
 }
 
-struct tape *tape_asc_open(const char *filename, int mode) {
+struct tape *tape_asc_open(const char *filename, const char *mode) {
 	return do_tape_cas_open(filename, mode, 1);
 }
 
 static void cas_close(struct tape *t) {
 	struct tape_cas *cas = t->data;
 	cas_motor_off(t);
-	fs_close(cas->fd);
+	fclose(cas->fd);
 	free(cas);
 	tape_free(t);
 }
@@ -216,9 +217,9 @@ static long cas_tell(struct tape *t) {
 
 static int cas_seek(struct tape *t, long offset, int whence) {
 	struct tape_cas *cas = t->data;
-	if (whence == FS_SEEK_CUR) {
+	if (whence == SEEK_CUR) {
 		offset += t->offset;
-	} else if (whence == FS_SEEK_END) {
+	} else if (whence == SEEK_END) {
 		offset += t->size;
 	}
 	long seek_byte = offset >> 4;
@@ -239,7 +240,7 @@ static int cas_seek(struct tape *t, long offset, int whence) {
 		if (seek_byte < 0) seek_byte = 0;
 		if (seek_byte > (t->size >> 4)) seek_byte = (t->size >> 4);
 	}
-	if (fs_lseek(cas->fd, seek_byte, FS_SEEK_SET) == -1)
+	if (fseek(cas->fd, seek_byte, SEEK_SET) == -1)
 		return -1;
 	t->offset = offset;
 	cas->bit_index = (offset >> 1) & 7;

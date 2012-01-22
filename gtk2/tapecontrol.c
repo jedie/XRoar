@@ -175,7 +175,7 @@ static void update_input_list_store(void) {
 				   TC_FILE_POINTER, file,
 				   -1);
 	}
-	tape_seek(tape_input, old_offset, FS_SEEK_SET);
+	tape_seek(tape_input, old_offset, SEEK_SET);
 }
 
 static gchar *ms_to_string(int ms) {
@@ -214,7 +214,7 @@ static void tc_seek(struct tape *tape, GtkScrollType scroll, gdouble value) {
 		if (seekms < 0) return;
 		long seek_to = tape_ms_to(tape, seekms);
 		if (seek_to > tape->size) seek_to = tape->size;
-		tape_seek(tape, seek_to, FS_SEEK_SET);
+		tape_seek(tape, seek_to, SEEK_SET);
 	}
 }
 
@@ -337,7 +337,7 @@ static void tc_input_rewind(GtkButton *button, gpointer user_data) {
 	(void)button;
 	(void)user_data;
 	if (tape_input) {
-		tape_seek(tape_input, 0, FS_SEEK_SET);
+		tape_seek(tape_input, 0, SEEK_SET);
 	}
 }
 
@@ -364,7 +364,7 @@ static void tc_output_rewind(GtkButton *button, gpointer user_data) {
 	(void)button;
 	(void)user_data;
 	if (tape_output) {
-		tape_seek(tape_output, 0, FS_SEEK_SET);
+		tape_seek(tape_output, 0, SEEK_SET);
 	}
 }
 

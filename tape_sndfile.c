@@ -55,7 +55,7 @@ struct tape_module tape_sndfile_module = {
 	.motor_off = sndfile_motor_off,
 };
 
-struct tape *tape_sndfile_open(const char *filename, int mode) {
+struct tape *tape_sndfile_open(const char *filename, const char *mode) {
 	struct tape *t;
 	struct tape_sndfile *sndfile;
 	t = tape_new();
@@ -64,7 +64,7 @@ struct tape *tape_sndfile_open(const char *filename, int mode) {
 	t->data = sndfile;
 	/* initialise sndfile */
 	sndfile->info.format = 0;
-	if (mode == FS_WRITE) {
+	if (mode[0] == 'w') {
 		sndfile->writing = 1;
 		sndfile->info.samplerate = 22050;
 		sndfile->info.channels = 1;
@@ -114,15 +114,6 @@ static long sndfile_tell(struct tape *t) {
 
 static int sndfile_seek(struct tape *t, long offset, int whence) {
 	struct tape_sndfile *sndfile = t->data;
-	/* paranoia, as FS_SEEK_* mirrors POSIX SEEK_*. should optimise away to
-	 * nothing: */
-	if (whence == FS_SEEK_SET) {
-		whence = SEEK_SET;
-	} else if (whence == FS_SEEK_CUR) {
-		whence = SEEK_CUR;
-	} else if (whence == FS_SEEK_END) {
-		whence = SEEK_END;
-	}
 	sf_count_t new_offset = sf_seek(sndfile->fd, offset, whence);
 	if (new_offset == -1)
 		return -1;

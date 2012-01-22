@@ -20,6 +20,7 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "types.h"
 
@@ -29,10 +30,10 @@
 #include "m6809.h"
 #include "machine.h"
 
-static int dragon_bin_load(int fd, int autorun);
-static int coco_bin_load(int fd, int autorun);
+static int dragon_bin_load(FILE *fd, int autorun);
+static int coco_bin_load(FILE *fd, int autorun);
 
-static uint8_t read_nibble(int fd) {
+static uint8_t read_nibble(FILE *fd) {
 	int in;
 	in = fs_read_uint8(fd);
 	if (in >= '0' && in <= '9')
@@ -43,15 +44,15 @@ static uint8_t read_nibble(int fd) {
 	return 0xff;
 }
 
-static uint8_t read_byte(int fd) {
+static uint8_t read_byte(FILE *fd) {
 	return read_nibble(fd) << 4 | read_nibble(fd);
 }
 
-static uint16_t read_word(int fd) {
+static uint16_t read_word(FILE *fd) {
 	return read_byte(fd) << 8 | read_byte(fd);
 }
 
-static int skip_eol(int fd) {
+static int skip_eol(FILE *fd) {
 	int d;
 	do {
 		d = fs_read_uint8(fd);
@@ -62,17 +63,17 @@ static int skip_eol(int fd) {
 }
 
 int intel_hex_read(const char *filename) {
-	int fd;
+	FILE *fd;
 	int data, length, addr, type, sum;
 	int i;
 	if (filename == NULL)
 		return -1;
-	if ((fd = fs_open(filename, FS_READ)) == -1)
+	if (!(fd = fopen(filename, "rb")))
 		return -1;
 	LOG_DEBUG(2, "Reading HEX file\n");
 	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data != ':') {
-			fs_close(fd);
+			fclose(fd);
 			return -1;
 		}
 		length = read_byte(fd);
@@ -99,15 +100,16 @@ int intel_hex_read(const char *filename) {
 		if (type == 1)
 			break;
 	}
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }
 
 int bin_load(const char *filename, int autorun) {
-	int fd, type;
+	FILE *fd;
+	int type;
 	if (filename == NULL)
 		return -1;
-	if ((fd = fs_open(filename, FS_READ)) == -1)
+	if (!(fd = fopen(filename, "rb")))
 		return -1;
 	type = fs_read_uint8(fd);
 	switch (type) {
@@ -119,11 +121,11 @@ int bin_load(const char *filename, int autorun) {
 		break;
 	}
 	LOG_DEBUG(2, "Unknown binary file type.\n");
-	fs_close(fd);
+	fclose(fd);
 	return -1;
 }
 
-static int dragon_bin_load(int fd, int autorun) {
+static int dragon_bin_load(FILE *fd, int autorun) {
 	int filetype, length, load, exec;
 	LOG_DEBUG(2, "Reading Dragon BIN file\n");
 	filetype = fs_read_uint8(fd);
@@ -133,7 +135,7 @@ static int dragon_bin_load(int fd, int autorun) {
 	exec = fs_read_uint16(fd);
 	(void)fs_read_uint8(fd);
 	LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
-	fs_read(fd, &machine_ram[load], length);
+	fread(&machine_ram[load], length, 1, fd);
 	if (autorun) {
 		LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
 		m6809_jump(exec);
@@ -141,20 +143,20 @@ static int dragon_bin_load(int fd, int autorun) {
 		machine_ram[0x9d] = exec >> 8;
 		machine_ram[0x9e] = exec & 0xff;
 	}
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }
 
-static int coco_bin_load(int fd, int autorun) {
+static int coco_bin_load(FILE *fd, int autorun) {
 	int data, length, load, exec;
 	LOG_DEBUG(2, "Reading CoCo BIN file\n");
-	fs_lseek(fd, 0, FS_SEEK_SET);
+	fseek(fd, 0, SEEK_SET);
 	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data == 0) {
 			length = fs_read_uint16(fd);
 			load = fs_read_uint16(fd);
 			LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
-			fs_read(fd, &machine_ram[load], length);
+			fread(&machine_ram[load], length, 1, fd);
 			continue;
 		}
 		if (data == 0xff) {
@@ -170,6 +172,6 @@ static int coco_bin_load(int fd, int autorun) {
 			break;
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }

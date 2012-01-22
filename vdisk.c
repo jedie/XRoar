@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "types.h"
 
@@ -139,7 +140,8 @@ int vdisk_save(struct vdisk *disk, int force) {
 		 * already exist */
 		if (backup_filename != NULL) {
 			snprintf(backup_filename, bf_len, "%s.bak", disk->filename);
-			if (fs_size(backup_filename) == -1) {
+			struct stat statbuf;
+			if (stat(backup_filename, &statbuf) != 0) {
 				rename(disk->filename, backup_filename);
 			}
 			free(backup_filename);
@@ -158,16 +160,18 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	unsigned int ssize_code = 1, ssize;
 	unsigned int track, sector, side;
 	uint8_t buf[1024];
-	int fd;
-	if ((file_size = fs_size(filename)) < 0)
+	FILE *fd;
+	struct stat statbuf;
+	if (stat(filename, &statbuf) != 0)
 		return NULL;
-	if ((fd = fs_open(filename, FS_READ)) < 0)
+	file_size = statbuf.st_size;
+	if (!(fd = fopen(filename, "rb")))
 		return NULL;
-	fs_read(fd, buf, 12);
+	fread(buf, 12, 1, fd);
 	file_size -= 12;
 	(void)file_size;  /* check this matches what's going to be read */
 	if (buf[0] != 'd' || buf[1] != 'k') {
-		fs_close(fd);
+		fclose(fd);
 		return NULL;
 	}
 	header_size = (buf[2] | (buf[3]<<8)) - 12;
@@ -177,18 +181,18 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		LOG_WARN("Possibly corrupt VDK file: mismatched header size and name length\n");
 	}
 	if (header_size > 0) {
-		fs_read(fd, buf, header_size);
+		fread(buf, header_size, 1, fd);
 	}
 	ssize = 128 << ssize_code;
 	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
 	if (disk == NULL) {
-		fs_close(fd);
+		fclose(fd);
 		return NULL;
 	}
 	disk->filetype = FILETYPE_VDK;
 	disk->filename = strdup(filename);
 	if (vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, 1, ssize_code) < 0) {
-		fs_close(fd);
+		fclose(fd);
 		vdisk_destroy(disk);
 		return NULL;
 	}
@@ -196,12 +200,12 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	for (track = 0; track < num_tracks; track++) {
 		for (side = 0; side < num_sides; side++) {
 			for (sector = 0; sector < num_sectors; sector++) {
-				fs_read(fd, buf, ssize);
+				fread(buf, ssize, 1, fd);
 				vdisk_update_sector(disk, side, track, sector + 1, ssize, buf);
 			}
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return disk;
 }
 
@@ -210,11 +214,10 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 static int vdisk_save_vdk(struct vdisk *disk) {
 	unsigned int track, sector, side;
 	uint8_t buf[1024];
-	int fd;
+	FILE *fd;
 	if (disk == NULL)
 		return -1;
-	fd = fs_open(disk->filename, FS_WRITE);
-	if (fd < 0)
+	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
 	LOG_DEBUG(2,"Writing VDK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
 	buf[0] = 'd';   /* magic */
@@ -229,22 +232,22 @@ static int vdisk_save_vdk(struct vdisk *disk) {
 	buf[9] = disk->num_sides;
 	buf[10] = 0;    /* flags */
 	buf[11] = 0;    /* name length & compression flag (we write neither) */
-	fs_write(fd, buf, 12);
+	fwrite(buf, 12, 1, fd);
 	for (track = 0; track < disk->num_tracks; track++) {
 		for (side = 0; side < disk->num_sides; side++) {
 			for (sector = 0; sector < 18; sector++) {
 				vdisk_fetch_sector(disk, side, track, sector + 1, 256, buf);
-				fs_write(fd, buf, 256);
+				fwrite(buf, 256, 1, fd);
 			}
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }
 
 static struct vdisk *vdisk_load_jvc(const char *filename) {
 	struct vdisk *disk;
-	ssize_t file_size = fs_size(filename);
+	ssize_t file_size;
 	unsigned int header_size;
 	unsigned int num_tracks;
 	unsigned int num_sides = 1;
@@ -254,20 +257,21 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 	unsigned int sector_attr = 0;
 	unsigned int track, sector, side;
 	uint8_t buf[1024];
-	int fd;
-	if (file_size < 0)
+	FILE *fd;
+	struct stat statbuf;
+	if (stat(filename, &statbuf) != 0)
 		return NULL;
+	file_size = statbuf.st_size;
 	header_size = file_size % 256;
 	file_size -= header_size;
 	/* Supposedly, we are supposed to default to single sided if there's
 	 * no header information overriding, but I found double sided
 	 * headerless DSK files. */
 	if (file_size > 198144) num_sides = 2;
-	fd = fs_open(filename, FS_READ);
-	if (fd < 0)
+	if (!(fd = fopen(filename, "rb")))
 		return NULL;
 	if (header_size > 0) {
-		fs_read(fd, buf, header_size);
+		fread(buf, header_size, 1, fd);
 		num_sectors = buf[0];
 	}
 	if (header_size > 1) num_sides = buf[1];
@@ -281,13 +285,13 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 		num_tracks = file_size / (num_sectors * (ssize+1)) / num_sides;
 	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
 	if (disk == NULL) {
-		fs_close(fd);
+		fclose(fd);
 		return NULL;
 	}
 	disk->filetype = FILETYPE_JVC;
 	disk->filename = strdup(filename);
 	if (vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, first_sector, ssize_code) < 0) {
-		fs_close(fd);
+		fclose(fd);
 		vdisk_destroy(disk);
 		return NULL;
 	}
@@ -299,23 +303,22 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 					/* skip attribute byte */
 					(void)fs_read_uint8(fd);
 				}
-				fs_read(fd, buf, ssize);
+				fread(buf, ssize, 1, fd);
 				vdisk_update_sector(disk, side, track, sector + first_sector, ssize, buf);
 			}
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return disk;
 }
 
 static int vdisk_save_jvc(struct vdisk *disk) {
 	unsigned int track, sector, side;
 	uint8_t buf[1024];
-	int fd;
+	FILE *fd;
 	if (disk == NULL)
 		return -1;
-	fd = fs_open(disk->filename, FS_WRITE);
-	if (fd < 0)
+	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
 	LOG_DEBUG(2,"Writing JVC virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
 	/* XXX: assume 18 tracks per sector */
@@ -327,11 +330,11 @@ static int vdisk_save_jvc(struct vdisk *disk) {
 		for (side = 0; side < disk->num_sides; side++) {
 			for (sector = 0; sector < 18; sector++) {
 				vdisk_fetch_sector(disk, side, track, sector + 1, 256, buf);
-				fs_write(fd, buf, 256);
+				fwrite(buf, 256, 1, fd);
 			}
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }
 
@@ -342,18 +345,19 @@ static int vdisk_save_jvc(struct vdisk *disk) {
 static struct vdisk *vdisk_load_dmk(const char *filename) {
 	struct vdisk *disk;
 	uint8_t header[16];
-	ssize_t file_size = fs_size(filename);
+	ssize_t file_size;
 	unsigned int num_sides;
 	unsigned int num_tracks;
 	unsigned int track_length;
 	unsigned int track, side;
-	int fd;
-	if (file_size < 0)
+	FILE *fd;
+	struct stat statbuf;
+	if (stat(filename, &statbuf) != 0)
 		return NULL;
-	fd = fs_open(filename, FS_READ);
-	if (fd < 0)
+	file_size = statbuf.st_size;
+	if (!(fd = fopen(filename, "rb")))
 		return NULL;
-	fs_read(fd, header, 16);
+	fread(header, 16, 1, fd);
 	num_tracks = header[1];
 	track_length = (header[3] << 8) | header[2];  /* yes, little-endian! */
 	num_sides = (header[4] & 0x10) ? 1 : 2;
@@ -365,7 +369,7 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	(void)file_size;  /* check this matches what's going to be read */
 	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
 	if (disk == NULL) {
-		fs_close(fd);
+		fclose(fd);
 		return NULL;
 	}
 	LOG_DEBUG(2,"Loading DMK virtual disk: %dT %dH (%d-byte)\n", num_tracks, num_sides, track_length);
@@ -381,31 +385,26 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	for (track = 0; track < num_tracks; track++) {
 		for (side = 0; side < num_sides; side++) {
 			uint16_t *idams = vdisk_track_base(disk, side, track);
-			uint8_t *buf = (uint8_t *)idams;
+			uint8_t *buf = (uint8_t *)idams + 128;
 			int i;
-			if (buf == NULL) continue;
-			fs_read(fd, buf, 128);
+			if (idams == NULL) continue;
 			for (i = 0; i < 64; i++) {
-				/* ensure correct endianness */
-				uint16_t tmp = (buf[1] << 8) | buf[0];
-				idams[i] = tmp;
-				buf += 2;
+				idams[i] = fs_read_uint16_le(fd);
 			}
-			fs_read(fd, buf, track_length - 128);
+			fread(buf, track_length - 128, 1, fd);
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return disk;
 }
 
 static int vdisk_save_dmk(struct vdisk *disk) {
 	uint8_t header[16];
 	unsigned int track, side;
-	int fd;
+	FILE *fd;
 	if (disk == NULL)
 		return -1;
-	fd = fs_open(disk->filename, FS_WRITE);
-	if (fd < 0)
+	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
 	LOG_DEBUG(2,"Writing DMK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
 	memset(header, 0, sizeof(header));
@@ -417,21 +416,20 @@ static int vdisk_save_dmk(struct vdisk *disk) {
 	if (disk->num_sides == 1)
 		header[4] |= 0x10;
 	header[11] = disk->write_protect;
-	fs_write(fd, header, 16);
+	fwrite(header, 16, 1, fd);
 	for (track = 0; track < disk->num_tracks; track++) {
 		for (side = 0; side < disk->num_sides; side++) {
 			uint16_t *idams = vdisk_track_base(disk, side, track);
-			uint8_t *buf = (uint8_t *)idams;
+			uint8_t *buf = (uint8_t *)idams + 128;
 			int i;
-			if (buf == NULL) continue;
+			if (idams == NULL) continue;
 			for (i = 0; i < 64; i++) {
 				fs_write_uint16_le(fd, idams[i]);
-				buf += 2;
 			}
-			fs_write(fd, buf, disk->track_length - 128);
+			fwrite(buf, disk->track_length - 128, 1, fd);
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }
 

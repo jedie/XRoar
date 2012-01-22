@@ -223,7 +223,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 		/* If skip_bad set, this aggressively scans for valid header
 		   blocks by seeking back to just after the last sync byte: */
 		if (skip_bad && (type != 0 || sum != 0 || block[1] < 15)) {
-			tape_seek(t, offset, FS_SEEK_SET);
+			tape_seek(t, offset, SEEK_SET);
 			continue;
 		}
 		if (type != 0 || block[1] < 15)
@@ -247,7 +247,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 
 void tape_seek_to_file(struct tape *t, struct tape_file *f) {
 	if (!t || !f) return;
-	tape_seek(t, f->offset, FS_SEEK_SET);
+	tape_seek(t, f->offset, SEEK_SET);
 	fake_leader = 256;
 	fake_sync = 1;
 	fake_bit_index = 0;
@@ -292,7 +292,7 @@ int tape_open_reading(const char *filename) {
 	int type = xroar_filetype_by_ext(filename);
 	switch (type) {
 	case FILETYPE_CAS:
-		if ((tape_input = tape_cas_open(filename, FS_READ)) == NULL) {
+		if ((tape_input = tape_cas_open(filename, "rb")) == NULL) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
@@ -304,14 +304,14 @@ int tape_open_reading(const char *filename) {
 		}
 		break;
 	case FILETYPE_ASC:
-		if ((tape_input = tape_asc_open(filename, FS_READ)) == NULL) {
+		if ((tape_input = tape_asc_open(filename, "rb")) == NULL) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
 		break;
 	default:
 #ifdef HAVE_SNDFILE
-		if ((tape_input = tape_sndfile_open(filename, FS_READ)) == NULL) {
+		if ((tape_input = tape_sndfile_open(filename, "rb")) == NULL) {
 			LOG_WARN("Failed to open '%s'\n", filename);
 			return -1;
 		}
@@ -346,14 +346,14 @@ int tape_open_writing(const char *filename) {
 	switch (type) {
 	case FILETYPE_CAS:
 	case FILETYPE_ASC:
-		if ((tape_output = tape_cas_open(filename, FS_WRITE)) == NULL) {
+		if ((tape_output = tape_cas_open(filename, "wb")) == NULL) {
 			LOG_WARN("Failed to open '%s' for writing.", filename);
 			return -1;
 		}
 		break;
 	default:
 #ifdef HAVE_SNDFILE
-		if ((tape_output = tape_sndfile_open(filename, FS_WRITE)) == NULL) {
+		if ((tape_output = tape_sndfile_open(filename, "wb")) == NULL) {
 			LOG_WARN("Failed to open '%s' for writing.", filename);
 			return -1;
 		}

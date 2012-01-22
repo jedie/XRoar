@@ -50,7 +50,7 @@ extern struct tape *tape_output;
 int tape_seek(struct tape *t, long offset, int whence);
 #define tape_to_ms(t,...) (t)->module->to_ms((t), __VA_ARGS__)
 #define tape_ms_to(t,...) (t)->module->ms_to((t), __VA_ARGS__)
-#define tape_rewind(t) tape_seek(t, 0, FS_SEEK_SET)
+#define tape_rewind(t) tape_seek(t, 0, SEEK_SET)
 int tape_pulse_in(struct tape *t, int *pulse_width);
 int tape_bit_in(struct tape *t);
 int tape_byte_in(struct tape *t);
@@ -75,9 +75,9 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad);
 void tape_seek_to_file(struct tape *t, struct tape_file *f);
 
 /* Module-specific open() calls */
-struct tape *tape_cas_open(const char *filename, int mode);
-struct tape *tape_asc_open(const char *filename, int mode);
-struct tape *tape_sndfile_open(const char *filename, int mode);
+struct tape *tape_cas_open(const char *filename, const char *mode);
+struct tape *tape_asc_open(const char *filename, const char *mode);
+struct tape *tape_sndfile_open(const char *filename, const char *mode);
 
 /* Only to be used by tape modules */
 struct tape *tape_new(void);

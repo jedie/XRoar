@@ -62,11 +62,11 @@
 #define SNAPSHOT_VERSION_MINOR 6
 
 int write_snapshot(const char *filename) {
-	int fd;
+	FILE *fd;
 	M6809State cpu_state;
-	if ((fd = fs_open(filename, FS_WRITE)) == -1)
+	if (!(fd = fopen(filename, "wb")))
 		return -1;
-	fs_write(fd, "XRoar snapshot.\012\000", 17);
+	fwrite("XRoar snapshot.\012\000", 17, 1, fd);
 	/* Snapshot version */
 	fs_write_uint8(fd, ID_SNAPVERSION); fs_write_uint16(fd, 3);
 	fs_write_uint8(fd, SNAPSHOT_VERSION_MAJOR);
@@ -88,12 +88,12 @@ int write_snapshot(const char *filename) {
 	/* RAM page 0 */
 	fs_write_uint8(fd, ID_RAM_PAGE0);
 	fs_write_uint16(fd, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
-	fs_write(fd, machine_ram, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
+	fwrite(machine_ram, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size, 1, fd);
 	/* RAM page 1 */
 	if (machine_ram_size > 0x8000) {
 		fs_write_uint8(fd, ID_RAM_PAGE1);
 		fs_write_uint16(fd, machine_ram_size - 0x8000);
-		fs_write(fd, machine_ram + 0x8000, machine_ram_size - 0x8000);
+		fwrite(machine_ram + 0x8000, machine_ram_size - 0x8000, 1, fd);
 	}
 	/* PIA state written before CPU state because PIA may have
 	 * unacknowledged interrupts pending already cleared in the CPU
@@ -147,12 +147,12 @@ int write_snapshot(const char *filename) {
 				fs_write_uint8(fd, ID_VDISK_FILE);
 				fs_write_uint16(fd, 1 + length);
 				fs_write_uint8(fd, drive);
-				fs_write(fd, disk->filename, length);
+				fwrite(disk->filename, length, 1, fd);
 			}
 		}
 	}
 	/* Finish up */
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }
 
@@ -184,22 +184,22 @@ static void old_set_registers(uint8_t *regs) {
 }
 
 int read_snapshot(const char *filename) {
-	int fd;
+	FILE *fd;
 	uint8_t buffer[17];
 	int section, size, tmp;
 	M6809State cpu_state;
 	if (filename == NULL)
 		return -1;
-	if ((fd = fs_open(filename, FS_READ)) == -1)
+	if (!(fd = fopen(filename, "rb")))
 		return -1;
-	fs_read(fd, buffer, 17);
+	fread(buffer, 17, 1, fd);
 	if (strncmp((char *)buffer, "XRoar snapshot.\012\000", 17)) {
 		/* Very old-style snapshot.  Register dump always came first.
 		 * Also, it used to be written out as only taking 12 bytes. */
 		if (buffer[0] != ID_REGISTER_DUMP || buffer[1] != 0
 				|| (buffer[2] != 12 && buffer[2] != 14)) {
 			LOG_WARN("Snapshot format not recognised.\n");
-			fs_close(fd);
+			fclose(fd);
 			return -1;
 		}
 	}
@@ -233,7 +233,7 @@ int read_snapshot(const char *filename) {
 			case ID_REGISTER_DUMP:
 				/* Deprecated */
 				if (size < 14) break;
-				size -= fs_read(fd, buffer, 14);
+				size -= fread(buffer, 1, 14, fd);
 				old_set_registers(buffer);
 				break;
 			case ID_M6809_STATE:
@@ -329,16 +329,16 @@ int read_snapshot(const char *filename) {
 				break;
 			case ID_RAM_PAGE0:
 				if (size <= (int)sizeof(machine_ram)) {
-					size -= fs_read(fd, machine_ram, size);
+					size -= fread(machine_ram, 1, size, fd);
 				} else {
-					size -= fs_read(fd, machine_ram, sizeof(machine_ram));
+					size -= fread(machine_ram, 1, sizeof(machine_ram), fd);
 				}
 				break;
 			case ID_RAM_PAGE1:
 				if (size <= (int)(sizeof(machine_ram) - 0x8000)) {
-					size -= fs_read(fd, machine_ram + 0x8000, size);
+					size -= fread(machine_ram + 0x8000, 1, size, fd);
 				} else {
-					size -= fs_read(fd, machine_ram + 0x8000, sizeof(machine_ram) - 0x8000);
+					size -= fread(machine_ram + 0x8000, 1, sizeof(machine_ram) - 0x8000, fd);
 				}
 				break;
 			case ID_SAM_REGISTERS:
@@ -359,7 +359,7 @@ int read_snapshot(const char *filename) {
 				size -= 3;
 				if (major != SNAPSHOT_VERSION_MAJOR || minor > SNAPSHOT_VERSION_MINOR) {
 					LOG_WARN("Snapshot version %d.%d not supported.\n", major, minor);
-					fs_close(fd);
+					fclose(fd);
 					return -1;
 				}
 				}
@@ -374,7 +374,7 @@ int read_snapshot(const char *filename) {
 					if (size > 0) {
 						char *name = malloc(size);
 						if (name != NULL) {
-							size -= fs_read(fd, name, size);
+							size -= fread(name, 1, size, fd);
 							vdrive_insert_disk(drive, vdisk_load(name));
 						}
 					}
@@ -391,6 +391,6 @@ int read_snapshot(const char *filename) {
 				(void)fs_read_uint8(fd);
 		}
 	}
-	fs_close(fd);
+	fclose(fd);
 	return 0;
 }
