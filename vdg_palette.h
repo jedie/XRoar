@@ -13,6 +13,7 @@ struct vdg_colour {
 struct vdg_palette {
 	const char *name;
 	const char *description;
+	float sync_y;
 	float blank_y;
 	float white_y;
 	float black_level;
