@@ -78,8 +78,9 @@ static void map_keyboard(unsigned int *map) {
 				/* Hack for certain GDK keyvals */
 				if (keyval >= 0xff00 && keyval < 0xff20) {
 					keycode_to_keyval[i] = keyval & 0xff;
-					continue;
-				keycode_to_keyval[i] = keyval;
+				} else {
+					keycode_to_keyval[i] = keyval;
+				}
 			}
 			g_free(keyvals);
 		} else {
