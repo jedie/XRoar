@@ -133,8 +133,11 @@ static int init(void) {
 	/* Show top window first so that drawing area is realised to the
 	 * right size even if we then fullscreen.  */
 	gtk_widget_show(gtk2_top_window);
-	/* Use helper so UI is updated. */
-	xroar_fullscreen(xroar_opt_fullscreen);
+	/* Set fullscreen and update UI. */
+	set_fullscreen(xroar_opt_fullscreen);
+	if (xroar_fullscreen_changed_cb) {
+		xroar_fullscreen_changed_cb(xroar_opt_fullscreen);
+	}
 
 	alloc_colours();
 	reset();
