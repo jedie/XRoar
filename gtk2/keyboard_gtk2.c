@@ -67,18 +67,18 @@ static guint32 last_unicode[MAX_KEYCODE];
 
 static void map_keyboard(unsigned int *map) {
 	int i;
+	GdkKeymap *gdk_keymap = gdk_keymap_get_for_display(gdk_display_get_default());
 	/* Map keycode to unshifted keyval: */
 	for (i = 0; i < MAX_KEYCODE; i++) {
 		guint *keyvals;
 		gint n_entries;
-		if (gdk_keymap_get_entries_for_keycode(NULL, i, NULL, &keyvals, &n_entries) == TRUE) {
+		if (gdk_keymap_get_entries_for_keycode(gdk_keymap, i, NULL, &keyvals, &n_entries) == TRUE) {
 			if (n_entries > 0) {
 				guint keyval = keyvals[0];
 				/* Hack for certain GDK keyvals */
 				if (keyval >= 0xff00 && keyval < 0xff20) {
 					keycode_to_keyval[i] = keyval & 0xff;
 					continue;
-				}
 				keycode_to_keyval[i] = keyval;
 			}
 			g_free(keyvals);
