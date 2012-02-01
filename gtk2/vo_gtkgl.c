@@ -248,6 +248,9 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer data
 	glTexSubImage2D(GL_TEXTURE_2D, 0,   0, 240, 512,   1,
 			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
 
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glColor4f(1.0, 1.0, 1.0, 1.0);
+
 	gdk_gl_drawable_gl_end(gldrawable);
 
 	return 0;
@@ -267,10 +270,7 @@ static void vsync(void) {
 		g_assert_not_reached ();
 	}
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glColor4f(1.0, 1.0, 1.0, 1.0);
 	/* Draw main window */
-	glBindTexture(GL_TEXTURE_2D, texnum);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 			320, 240, GL_RGB,
 			GL_UNSIGNED_SHORT_5_6_5, screen_tex);
