@@ -10,5 +10,6 @@
  * exit(1) on failure. */
 void *xmalloc(size_t size);
 void *xrealloc(void *ptr, size_t size);
+char *xstrdup(const char *s1);
 
 #endif  /* XROAR_MISC_H_ */

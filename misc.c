@@ -17,8 +17,11 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "types.h"
 #include "misc.h"
@@ -26,7 +29,7 @@
 void *xmalloc(size_t size) {
 	void *m = malloc(size);
 	if (!m) {
-		fprintf(stderr, "malloc() failed: exiting.\n");
+		perror(NULL);
 		exit(1);
 	}
 	return m;
@@ -35,8 +38,17 @@ void *xmalloc(size_t size) {
 void *xrealloc(void *ptr, size_t size) {
 	void *m = realloc(ptr, size);
 	if (!m) {
-		fprintf(stderr, "realloc() failed: exiting.\n");
+		perror(NULL);
 		exit(1);
 	}
 	return m;
+}
+
+char *xstrdup(const char *s1) {
+	char *r = strdup(s1);
+	if (!r) {
+		perror(NULL);
+		exit(1);
+	}
+	return r;
 }
