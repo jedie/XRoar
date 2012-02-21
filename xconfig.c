@@ -156,7 +156,14 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 				}
 			}
 		} else {
-			arg = strtok(NULL, "\t\n\v\f\r =");
+			arg = strtok(NULL, "\n\v\f\r");
+			if (arg) {
+				int i;
+				for (i = strlen(arg)-1; i >= 0; i--) {
+					if (isspace(arg[i]))
+						arg[i] = 0;
+				}
+			}
 		}
 		if (option->type == XCONFIG_BOOL ||
 		    option->type == XCONFIG_BOOL0 ||
