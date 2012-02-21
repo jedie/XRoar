@@ -106,8 +106,6 @@ void machine_update_sound(void);
 void machine_insert_cart(struct cart_config *cc);
 void machine_remove_cart(void);
 
-char *machine_find_rom(const char *romname);
-char *machine_find_rom_in_list(const char **list);
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size);
 
 #endif  /* XROAR_MACHINE_H_ */

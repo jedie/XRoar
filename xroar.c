@@ -40,6 +40,7 @@
 #include "module.h"
 #include "path.h"
 #include "printer.h"
+#include "romlist.h"
 #include "sam.h"
 #include "snapshot.h"
 #include "sound.h"
@@ -202,6 +203,8 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "dos",          &opt_cart_rom ),
 
 	/* Attach files */
+	XC_OPT_CALL_1( "romlist", &romlist_assign ),
+	XC_OPT_CALL_0( "romlist-print", &romlist_print ),
 	XC_OPT_STRING( "load",    &opt_load ),
 	XC_OPT_STRING( "cartna",  &opt_load ),
 	XC_OPT_STRING( "snap",    &opt_load ),
@@ -395,7 +398,7 @@ static void set_machine(char *name) {
 		xroar_machine_config = machine_config_by_name(name);
 		if (!xroar_machine_config) {
 			xroar_machine_config = machine_config_new();
-			xroar_machine_config->name = strdup(name);
+			xroar_machine_config->name = xstrdup(name);
 		}
 	}
 }
@@ -441,7 +444,7 @@ static void set_cart(char *name) {
 		xroar_cart_config = cart_config_by_name(name);
 		if (!xroar_cart_config) {
 			xroar_cart_config = cart_config_new();
-			xroar_cart_config->name = strdup(name);
+			xroar_cart_config->name = xstrdup(name);
 		}
 	}
 }
@@ -471,9 +474,9 @@ static void helptext(void) {
 "  -machine-desc TEXT      machine description\n"
 "  -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
 "  -machine-palette NAME   VDG palette (-machine-palette help for list)\n"
-"  -bas FILENAME           BASIC ROM to use (CoCo only)\n"
-"  -extbas FILENAME        Extended BASIC ROM to use\n"
-"  -altbas FILENAME        alternate BASIC ROM (Dragon 64)\n"
+"  -bas NAME               BASIC ROM to use (CoCo only)\n"
+"  -extbas NAME            Extended BASIC ROM to use\n"
+"  -altbas NAME            alternate BASIC ROM (Dragon 64)\n"
 "  -noextbas               disable Extended BASIC\n"
 "  -tv-type TYPE           set TV type (-tv-type help for list)\n"
 "  -ram KBYTES             specify amount of RAM in K\n"
@@ -482,12 +485,14 @@ static void helptext(void) {
 "  -cart NAME            select/configure cartridge (-cart help for list)\n"
 "  -cart-desc TEXT       set cartridge description\n"
 "  -cart-type TYPE       set cartridge type (-cart-type help for list)\n"
-"  -cart-rom FILENAME    ROM image to load ($C000-)\n"
-"  -cart-rom2 FILENAME   second ROM image to load ($E000-)\n"
+"  -cart-rom NAME        ROM image to load ($C000-)\n"
+"  -cart-rom2 NAME       second ROM image to load ($E000-)\n"
 "  -cart-autorun         autorun cartridge\n"
 "  -nodos                don't automatically pick a DOS cartridge\n"
 
 "\n Attach files:\n"
+"  -romlist NAME=LIST    define a ROM list\n"
+"  -romlist-print        print defined ROM lists\n"
 "  -load FILENAME        load or attach FILENAME\n"
 "  -run FILENAME         load or attach FILENAME and attempt autorun\n"
 "  -lp-file FILENAME     append Dragon printer output to FILENAME\n"

@@ -34,6 +34,7 @@
 #include "machine.h"
 #include "mc6821.h"
 #include "misc.h"
+#include "romlist.h"
 #include "rsdos.h"
 #include "xroar.h"
 
@@ -41,12 +42,13 @@ struct cart_config_template {
 	const char *name;
 	const char *description;
 	int type;
+	const char *rom;
 };
 
 static struct cart_config_template config_templates[] = {
-	{ "dragondos", "DragonDOS", CART_DRAGONDOS, },
-	{ "rsdos", "RS-DOS", CART_RSDOS, },
-	{ "delta", "Delta System", CART_DELTADOS, },
+	{ "dragondos", "DragonDOS", CART_DRAGONDOS, "@dragondos_compat" },
+	{ "rsdos", "RS-DOS", CART_RSDOS, "@rsdos" },
+	{ "delta", "Delta System", CART_DELTADOS, "@delta" },
 };
 #define NUM_CONFIG_TEMPLATES (int)(sizeof(config_templates)/sizeof(struct cart_config_template))
 
@@ -57,25 +59,6 @@ static int num_configs = NUM_CONFIG_TEMPLATES;
 static struct cart_config *rom_cart_config = NULL;
 
 /* ---------------------------------------------------------------------- */
-
-static const char *dragondos_roms[] = {
-	"dplus49b", "dplus48", "dosplus-4.8", "DOSPLUS",
-	"sdose6", "PNP - SuperDOS E6", "sdose5", "sdose4",
-	"ddos40", "ddos15", "ddos10", "Dragon Data Ltd - DragonDOS 1.0",
-	"cdos20", "CDOS20",
-	NULL
-};
-
-static const char *rsdos_roms[] = { "disk11", "disk10", NULL };
-
-static const char *deltados_roms[] = {
-	"delta", "deltados", "Premier Micros - DeltaDOS",
-	NULL
-};
-
-static const char **rom_list[] = {
-	NULL, dragondos_roms, rsdos_roms, deltados_roms, NULL
-};
 
 static void rom_configure(struct cart *c, struct cart_config *cc);
 
@@ -103,19 +86,12 @@ static int populate_config_index(int i) {
 		return 0;
 	configs[i] = xmalloc(sizeof(struct cart_config));
 	memset(configs[i], 0, sizeof(struct cart_config));
-	configs[i]->name = strdup(config_templates[i].name);
-	if (!configs[i]->name) goto failed;
+	configs[i]->name = xstrdup(config_templates[i].name);
 	configs[i]->description = strdup(config_templates[i].description);
-	if (!configs[i]->description) goto failed;
 	configs[i]->type = config_templates[i].type;
+	configs[i]->rom = xstrdup(config_templates[i].rom);
 	configs[i]->index = i;
 	return 0;
-	/* clean up on error */
-failed:
-	if (configs[i]->name) free(configs[i]->name);
-	free(configs[i]);
-	configs[i] = NULL;
-	return -1;
 }
 
 struct cart_config *cart_config_new(void) {
@@ -167,13 +143,13 @@ struct cart_config *cart_config_by_name(const char *name) {
 			if (!(rom_cart_config = cart_config_new())) {
 				return NULL;
 			}
-			rom_cart_config->name = strdup("romcart");
+			rom_cart_config->name = xstrdup("romcart");
 		}
 		if (rom_cart_config->description) {
 			free(rom_cart_config->description);
 		}
 		/* Make up a description from filename */
-		char *tmp_name = strdup(name);
+		char *tmp_name = xstrdup(name);
 		char *bname = basename(tmp_name);
 		if (bname && *bname) {
 			char *sep;
@@ -194,7 +170,7 @@ struct cart_config *cart_config_by_name(const char *name) {
 		free(tmp_name);
 		rom_cart_config->type = CART_ROM;
 		if (rom_cart_config->rom) free(rom_cart_config->rom);
-		rom_cart_config->rom = strdup(name);
+		rom_cart_config->rom = xstrdup(name);
 		rom_cart_config->autorun = 1;
 		return rom_cart_config;
 	}
@@ -205,13 +181,13 @@ struct cart_config *cart_find_working_dos(struct machine_config *mc) {
 	char *tmp = NULL;
 	struct cart_config *cc = NULL;
 	if (!mc || mc->architecture != ARCH_COCO) {
-		if ((tmp = machine_find_rom_in_list(dragondos_roms))) {
+		if ((tmp = romlist_find("@dragondos_compat"))) {
 			cc = cart_config_by_name("dragondos");
-		} else if ((tmp = machine_find_rom_in_list(deltados_roms))) {
+		} else if ((tmp = romlist_find("@delta"))) {
 			cc = cart_config_by_name("delta");
 		}
 	} else {
-		if ((tmp = machine_find_rom_in_list(rsdos_roms))) {
+		if ((tmp = romlist_find("@rsdos"))) {
 			cc = cart_config_by_name("rsdos");
 		}
 	}
@@ -224,25 +200,12 @@ void cart_config_complete(struct cart_config *cc) {
 	if (!cc->description) {
 		cc->description = strdup(cc->name);
 	}
-	if (cc->rom) {
-		char *tmp = machine_find_rom(cc->rom);
-		free(cc->rom);
-		cc->rom = tmp;
-	}
-	if (cc->rom2) {
-		char *tmp = machine_find_rom(cc->rom2);
-		free(cc->rom2);
-		cc->rom2 = tmp;
-	}
 	if (cc->autorun == ANY_AUTO) {
 		if (cc->type == CART_ROM) {
 			cc->autorun = 1;
 		} else {
 			cc->autorun = 0;
 		}
-	}
-	if (!cc->rom) {
-		cc->rom = machine_find_rom_in_list(rom_list[cc->type]);
 	}
 }
 
@@ -257,10 +220,18 @@ void cart_configure(struct cart *c, struct cart_config *cc) {
 	/* */
 	memset(c->mem_data, 0, sizeof(c->mem_data));
 	if (cc->rom) {
-		machine_load_rom(cc->rom, c->mem_data, sizeof(c->mem_data));
+		char *tmp = romlist_find(cc->rom);
+		if (tmp) {
+			machine_load_rom(tmp, c->mem_data, sizeof(c->mem_data));
+			free(tmp);
+		}
 	}
 	if (cc->rom2) {
-		machine_load_rom(cc->rom2, c->mem_data + 0x2000, sizeof(c->mem_data) - 0x2000);
+		char *tmp = romlist_find(cc->rom2);
+		if (tmp) {
+			machine_load_rom(tmp, c->mem_data + 0x2000, sizeof(c->mem_data) - 0x2000);
+			free(tmp);
+		}
 	}
 	switch (cc->type) {
 		default:

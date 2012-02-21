@@ -51,6 +51,7 @@ CONFIG_FILES = config.h config.mak
 xroar_common_OBJS = crc16.o fs.o list.o misc.o path.o portalib.o xconfig.o \
 	breakpoint.o cart.o deltados.o dragondos.o events.o hexs19.o input.o \
 	joystick.o keyboard.o m6809.o machine.o mc6821.o module.o printer.o \
+	romlist.o \
 	rsdos.o sam.o snapshot.o sound.o tape.o tape_cas.o ui_null.o vdg.o \
 	vdg_palette.o vdisk.o vdrive.o vo_null.o wd279x.o xroar.o
 xroar_common_INT_OBJS = vdg_bitmaps.o

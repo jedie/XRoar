@@ -45,6 +45,7 @@
 #include "path.h"
 #include "portalib.h"
 #include "printer.h"
+#include "romlist.h"
 #include "sam.h"
 #include "sound.h"
 #include "tape.h"
@@ -62,20 +63,14 @@ MC6821_PIA PIA0, PIA1;
 struct cart *machine_cart = NULL;
 static struct cart running_cart;
 
-static const char *d32_extbas_roms[] = { "d32", "dragon32", "d32rom", "Dragon Data Ltd - Dragon 32 - IC17", "dragon", NULL };
-static const char *d64_extbas_roms[] = { "d64_1", "d64rom1", "Dragon Data Ltd - Dragon 64 - IC17", "dragrom", "dragon", NULL };
-static const char *d64_altbas_roms[] = { "d64_2", "d64rom2", "Dragon Data Ltd - Dragon 64 - IC18", NULL };
-static const char *coco_bas_roms[] = { "bas13", "bas12", "bas11", "bas10", NULL };
-static const char *coco_extbas_roms[] = { "extbas11", "extbas10", NULL };
-
 static struct {
-	const char **bas;
-	const char **extbas;
-	const char **altbas;
+	const char *bas;
+	const char *extbas;
+	const char *altbas;
 } rom_list[] = {
-	{ NULL, d32_extbas_roms, NULL },
-	{ NULL, d64_extbas_roms, d64_altbas_roms },
-	{ coco_bas_roms, coco_extbas_roms, NULL }
+	{ NULL, "@dragon32", NULL },
+	{ NULL, "@dragon64", "@dragon64_alt" },
+	{ "@coco", "@coco_ext", NULL }
 };
 
 struct machine_config_template {
@@ -121,22 +116,14 @@ static int populate_config_index(int i) {
 		return 0;
 	configs[i] = xmalloc(sizeof(struct machine_config));
 	memset(configs[i], 0, sizeof(struct machine_config));
-	configs[i]->name = strdup(config_templates[i].name);
-	if (!configs[i]->name) goto failed;
+	configs[i]->name = xstrdup(config_templates[i].name);
 	configs[i]->description = strdup(config_templates[i].description);
-	if (!configs[i]->description) goto failed;
 	configs[i]->architecture = config_templates[i].architecture;
 	configs[i]->keymap = ANY_AUTO;
 	configs[i]->tv_standard = config_templates[i].tv_standard;
 	configs[i]->ram = config_templates[i].ram;
 	configs[i]->index = i;
 	return 0;
-	/* clean up on error */
-failed:
-	if (configs[i]->name) free(configs[i]->name);
-	free(configs[i]);
-	configs[i] = NULL;
-	return -1;
 }
 
 struct machine_config *machine_config_new(void) {
@@ -201,11 +188,11 @@ struct machine_config *machine_config_by_arch(int arch) {
 static int find_working_arch(void) {
 	int arch;
 	char *tmp = NULL;
-	if ((tmp = machine_find_rom_in_list(d64_extbas_roms))) {
+	if ((tmp = romlist_find("@dragon64"))) {
 		arch = ARCH_DRAGON64;
-	} else if ((tmp = machine_find_rom_in_list(d32_extbas_roms))) {
+	} else if ((tmp = romlist_find("@dragon32"))) {
 		arch = ARCH_DRAGON32;
-	} else if ((tmp = machine_find_rom_in_list(coco_bas_roms))) {
+	} else if ((tmp = romlist_find("@coco"))) {
 		arch = ARCH_COCO;
 	} else {
 		/* Fall back to this, which won't start up properly */
@@ -226,23 +213,6 @@ void machine_config_complete(struct machine_config *mc) {
 	}
 	if (mc->tv_standard == ANY_AUTO)
 		mc->tv_standard = TV_PAL;
-	/* Find actual path to any specified ROMs */
-	if (mc->bas_rom) {
-		char *tmp = machine_find_rom(mc->bas_rom);
-		free(mc->bas_rom);
-		mc->bas_rom = tmp;
-	}
-	if (mc->extbas_rom) {
-		char *tmp = machine_find_rom(mc->extbas_rom);
-		free(mc->extbas_rom);
-		mc->extbas_rom = tmp;
-	}
-	if (mc->altbas_rom) {
-		char *tmp = machine_find_rom(mc->altbas_rom);
-		free(mc->altbas_rom);
-		mc->altbas_rom = tmp;
-	}
-
 	/* Various heuristics to find a working architecture */
 	if (mc->architecture == ANY_AUTO) {
 		/* TODO: checksum ROMs to help determine arch */
@@ -283,14 +253,14 @@ void machine_config_complete(struct machine_config *mc) {
 		}
 	}
 	/* Now find which ROMs we're actually going to use */
-	if (!mc->nobas && !mc->bas_rom) {
-		mc->bas_rom = machine_find_rom_in_list(rom_list[mc->architecture].bas);
+	if (!mc->nobas && !mc->bas_rom && rom_list[mc->architecture].bas) {
+		mc->bas_rom = xstrdup(rom_list[mc->architecture].bas);
 	}
-	if (!mc->noextbas && !mc->extbas_rom) {
-		mc->extbas_rom = machine_find_rom_in_list(rom_list[mc->architecture].extbas);
+	if (!mc->noextbas && !mc->extbas_rom && rom_list[mc->architecture].extbas) {
+		mc->extbas_rom = xstrdup(rom_list[mc->architecture].extbas);
 	}
-	if (!mc->noaltbas && !mc->altbas_rom) {
-		mc->altbas_rom = machine_find_rom_in_list(rom_list[mc->architecture].altbas);
+	if (!mc->noaltbas && !mc->altbas_rom && rom_list[mc->architecture].altbas) {
+		mc->altbas_rom = xstrdup(rom_list[mc->architecture].altbas);
 	}
 }
 
@@ -378,15 +348,27 @@ void machine_configure(struct machine_config *mc) {
 	memset(rom1, 0, sizeof(rom1));
 	/* ... BASIC */
 	if (!mc->nobas && mc->bas_rom) {
-		machine_load_rom(mc->bas_rom, rom0 + 0x2000, sizeof(rom0) - 0x2000);
+		char *tmp = romlist_find(mc->bas_rom);
+		if (tmp) {
+			machine_load_rom(tmp, rom0 + 0x2000, sizeof(rom0) - 0x2000);
+			free(tmp);
+		}
 	}
 	/* ... Extended BASIC */
 	if (!mc->noextbas && mc->extbas_rom) {
-		machine_load_rom(mc->extbas_rom, rom0, sizeof(rom0));
+		char *tmp = romlist_find(mc->extbas_rom);
+		if (tmp) {
+			machine_load_rom(tmp, rom0, sizeof(rom0));
+			free(tmp);
+		}
 	}
 	/* ... Alternate BASIC ROM */
 	if (!mc->noaltbas && mc->altbas_rom) {
-		machine_load_rom(mc->altbas_rom, rom1, sizeof(rom1));
+		char *tmp = romlist_find(mc->altbas_rom);
+		if (tmp) {
+			machine_load_rom(tmp, rom1, sizeof(rom1));
+			free(tmp);
+		}
 	}
 	machine_ram_size = mc->ram * 1024;
 	/* This will be under PIA control on a Dragon 64 */
@@ -484,42 +466,6 @@ static void initialise_ram(void) {
 }
 
 /**************************************************************************/
-
-static const char *rom_extensions[] = {
-	"", ".rom", ".ROM", ".dgn", ".DGN", NULL
-};
-
-/* Find a ROM within rom path. */
-char *machine_find_rom(const char *romname) {
-	char *filename;
-	char *path = NULL;
-	int i;
-
-	if (romname == NULL)
-		return NULL;
-
-	filename = xmalloc(strlen(romname) + 5);
-	for (i = 0; rom_extensions[i]; i++) {
-		strcpy(filename, romname);
-		strcat(filename, rom_extensions[i]);
-		path = find_in_path(xroar_rom_path, filename);
-		if (path) break;
-	}
-	free(filename);
-	return path;
-}
-
-char *machine_find_rom_in_list(const char **list) {
-	char *path;
-	int i;
-	if (list == NULL)
-		return NULL;
-	for (i = 0; list[i]; i++) {
-		if ((path = machine_find_rom(list[i])))
-			return path;
-	}
-	return NULL;
-}
 
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	char *dot;
