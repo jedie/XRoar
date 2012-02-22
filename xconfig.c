@@ -72,12 +72,6 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 		case XCONFIG_STRING:
 			*(char **)option->dest = strdup(arg);
 			break;
-		case XCONFIG_STRING0:
-			if (*(char **)option->dest) {
-				free(*(char **)option->dest);
-				*(char **)option->dest = NULL;
-			}
-			break;
 		case XCONFIG_CALL_0:
 			((void (*)(void))option->dest)();
 			break;
