@@ -89,6 +89,7 @@ static int opt_nodos = 0;
 /* Attach files */
 static char *opt_load = NULL;
 static char *opt_run = NULL;
+static char *opt_tape_write = NULL;
 static char *opt_lp_file = NULL;
 static char *opt_lp_pipe = NULL;
 
@@ -209,6 +210,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "cartna",  &opt_load ),
 	XC_OPT_STRING( "snap",    &opt_load ),
 	XC_OPT_STRING( "run",     &opt_run ),
+	XC_OPT_STRING( "tape-write", &opt_tape_write ),
 	XC_OPT_STRING( "cart",    &opt_run ),
 	XC_OPT_STRING( "lp-file", &opt_lp_file ),
 	XC_OPT_STRING( "lp-pipe", &opt_lp_pipe ),
@@ -495,6 +497,7 @@ static void helptext(void) {
 "  -romlist-print        print defined ROM lists\n"
 "  -load FILENAME        load or attach FILENAME\n"
 "  -run FILENAME         load or attach FILENAME and attempt autorun\n"
+"  -tape-write FILENAME  open FILENAME for tape writing\n"
 "  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
 "  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
 
@@ -718,6 +721,7 @@ int xroar_init(int argc, char **argv) {
 	machine_reset(RESET_HARD);
 	printer_reset();
 	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_pad_auto | xroar_opt_tape_rewrite);
+
 	if (load_file) {
 		switch (load_file_type) {
 		/* most things can be loaded/run straight off */
@@ -740,6 +744,22 @@ int xroar_init(int argc, char **argv) {
 			break;
 		}
 	}
+
+	if (opt_tape_write) {
+		int write_file_type = xroar_filetype_by_ext(opt_tape_write);
+		switch (write_file_type) {
+			case FILETYPE_CAS:
+			case FILETYPE_WAV:
+				tape_open_writing(opt_tape_write);
+				if (ui_module->output_tape_filename_cb) {
+					ui_module->output_tape_filename_cb(opt_tape_write);
+				}
+				break;
+			default:
+				break;
+		}
+	}
+
 	if (opt_lp_file) {
 		printer_open_file(opt_lp_file);
 	} else if (opt_lp_pipe) {
