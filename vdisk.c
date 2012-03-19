@@ -279,10 +279,13 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 	ssize = 128 << ssize_code;
 	if (header_size > 3) first_sector = buf[3];
 	if (header_size > 4) sector_attr = buf[4] ? 1 : 0;
-	if (sector_attr == 0)
-		num_tracks = file_size / (num_sectors * ssize) / num_sides;
-	else
-		num_tracks = file_size / (num_sectors * (ssize+1)) / num_sides;
+	int bytes_per_sector = ssize + sector_attr;
+	int bytes_per_track = num_sectors * bytes_per_sector * num_sides;
+	num_tracks = file_size / bytes_per_track;
+	/* if there is at least one more sector of data, allow an extra track */
+	if ((file_size % bytes_per_track) >= bytes_per_sector) {
+		num_tracks++;
+	}
 	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
 	if (disk == NULL) {
 		fclose(fd);
@@ -303,7 +306,9 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 					/* skip attribute byte */
 					(void)fs_read_uint8(fd);
 				}
-				fread(buf, ssize, 1, fd);
+				if (fread(buf, ssize, 1, fd) < 1) {
+					memset(buf, 0, ssize);
+				}
 				vdisk_update_sector(disk, side, track, sector + first_sector, ssize, buf);
 			}
 		}
