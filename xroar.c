@@ -32,6 +32,7 @@
 #include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
+#include "list.h"
 #include "logging.h"
 #include "m6809.h"
 #include "m6809_trace.h"
@@ -93,6 +94,9 @@ static char *opt_tape_write = NULL;
 static char *opt_lp_file = NULL;
 static char *opt_lp_pipe = NULL;
 
+/* Automatic actions */
+static void type_command(char *string);
+
 /* Emulator interface */
 static char *opt_ui = NULL;
 static char *opt_filereq = NULL;
@@ -124,6 +128,8 @@ int xroar_trace_enabled = 0;
 # define xroar_trace_enabled (0)
 #endif
 int xroar_opt_disk_write_back = 0;
+
+static struct list *type_command_list = NULL;
 
 /* Help text */
 static void helptext(void);
@@ -214,6 +220,9 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "cart",    &opt_run ),
 	XC_OPT_STRING( "lp-file", &opt_lp_file ),
 	XC_OPT_STRING( "lp-pipe", &opt_lp_pipe ),
+
+	/* Automatic actions */
+	XC_OPT_CALL_1( "type",    &type_command ),
 
 	/* Emulator interface */
 	XC_OPT_STRING( "ui",            &opt_ui ),
@@ -451,6 +460,10 @@ static void set_cart(char *name) {
 	}
 }
 
+static void type_command(char *string) {
+	type_command_list = list_append(type_command_list, string);
+}
+
 static void versiontext(void) {
 #ifdef LOGGING
 	puts(
@@ -500,6 +513,9 @@ static void helptext(void) {
 "  -tape-write FILENAME  open FILENAME for tape writing\n"
 "  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
 "  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
+
+"\n Automatic actions:\n"
+"  -type STRING          intercept ROM calls to type STRING into BASIC\n"
 
 "\n Emulator interface:\n"
 "  -ui MODULE            user-interface module (-ui help for list)\n"
@@ -658,6 +674,11 @@ int xroar_init(int argc, char **argv) {
 			case FILETYPE_WAV:
 			case FILETYPE_UNKNOWN:
 				cart_status_list[xroar_machine_config->index].enabled = 0;
+				/* if user specified commands to type, override
+				 * automatic CLOAD[M] */
+				if (type_command_list) {
+					autorun_loaded_file = 0;
+				}
 				break;
 			case FILETYPE_ROM:
 				cart_status_list[xroar_machine_config->index].enabled = 1;
@@ -760,6 +781,10 @@ int xroar_init(int argc, char **argv) {
 		}
 	}
 
+	while (type_command_list) {
+		keyboard_queue_basic(type_command_list->data);
+		type_command_list = list_delete(type_command_list, type_command_list->data);
+	}
 	if (opt_lp_file) {
 		printer_open_file(opt_lp_file);
 	} else if (opt_lp_pipe) {

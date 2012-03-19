@@ -20,6 +20,7 @@
 #include "config.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "types.h"
 
@@ -27,8 +28,10 @@
 #include "events.h"
 #include "keyboard.h"
 #include "logging.h"
+#include "list.h"
 #include "machine.h"
 #include "mc6821.h"
+#include "misc.h"
 #include "xroar.h"
 
 /* These map virtual scancodes to keyboard matrix points */
@@ -249,33 +252,64 @@ static void keyboard_release_queued(void) {
 	}
 }
 
+static struct list *basic_command_list = NULL;
 static const char *basic_command = NULL;
 
 static void type_command(M6809State *cpu_state);
 
 static struct breakpoint basic_command_breakpoint[] = {
-	{ .flags = BP_DRAGON_ROM, .address = 0xbbe5, .handler = type_command },
+	{ .flags = BP_DRAGON_ROM, .address = 0xbbe7, .handler = type_command },
 	{ .flags = BP_COCO_ROM, .address = 0xa1cb, .handler = type_command },
 };
 
 static void type_command(M6809State *cpu_state) {
 	if (basic_command) {
-		cpu_state->reg_a = *(basic_command++);
+		int chr = *(basic_command++);
+		if (chr == '\\') {
+			chr = *(basic_command++);
+			switch (chr) {
+				case '0': chr = '\0'; break;
+				case 'e': chr = '\003'; break;
+				case 'f': chr = '\f'; break;
+				case 'n':
+				case 'r': chr = '\r'; break;
+				default: break;
+			}
+		}
+		cpu_state->reg_a = chr;
 		cpu_state->reg_cc &= ~4;
 		if (*basic_command == 0)
 			basic_command = NULL;
 	}
 	if (!basic_command) {
-		bp_remove_list(basic_command_breakpoint);
+		if (basic_command_list) {
+			void *data = basic_command_list->data;
+			basic_command_list = list_delete(basic_command_list, data);
+			free(data);
+		}
+		if (basic_command_list) {
+			basic_command = basic_command_list->data;
+		} else {
+			bp_remove_list(basic_command_breakpoint);
+		}
 	}
 	/* Use CPU read routine to pull return address back off stack */
+	cpu_state->reg_s += 3;
 	cpu_state->reg_pc = (m6809_read_cycle(cpu_state->reg_s) << 8) | m6809_read_cycle(cpu_state->reg_s+1);
 	cpu_state->reg_s += 2;
 }
 
 void keyboard_queue_basic(const char *s) {
+	char *data = NULL;
 	bp_remove_list(basic_command_breakpoint);
-	basic_command = s;
-	if (basic_command)
+	if (s) {
+		data = xstrdup(s);
+		basic_command_list = list_append(basic_command_list, data);
+	}
+	if (!basic_command) {
+		basic_command = data;
+	}
+	if (basic_command) {
 		bp_add_list(basic_command_breakpoint);
+	}
 }
