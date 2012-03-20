@@ -195,8 +195,15 @@ static enum m6809_cpu_state cpu_state;
 #define reg_d ((reg_a << 8) | reg_b)
 #define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
 
-#define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
-#define sex(v) ((int)(((v) & 0x7f) - ((v) & 0x80)))
+/* In theory, detect if this compiler will generate arithmetic shifts for
+ * signed shifts right and use faster code if so. */
+#if ((-1>>1) == (-1))
+# define sex5(v) (((signed int)(v)<<((8*sizeof(signed int))-5)) >> ((8*sizeof(signed int))-5))
+# define sex(v) (((signed int)(v)<<((8*sizeof(signed int))-8)) >> ((8*sizeof(signed int))-8))
+#else
+# define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
+# define sex(v) ((int8_t)(v))
+#endif
 
 /* External handlers */
 uint8_t (*m6809_read_cycle)(uint16_t addr);
