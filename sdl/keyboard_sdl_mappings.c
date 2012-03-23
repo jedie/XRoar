@@ -46,6 +46,15 @@ static unsigned int raw_keymap_fr[] = {
 	0, 0
 };
 
+/* Canadian French QWERTY */
+static unsigned int raw_keymap_fr_CA[] = {
+	'-',  ':',
+	'=',  '-',
+	SDLK_CARET,    '@',  /* key at right of P */
+	SDLK_WORLD_73, '/',  /* key at right of period */
+	0, 0
+};
+
 /* German QWERTZ */
 static unsigned int raw_keymap_de[] = {
 	SDLK_WORLD_63, ':',
@@ -62,6 +71,7 @@ static struct keymap mappings[] = {
 	{ "uk", raw_keymap_uk },
 	{ "us", raw_keymap_uk },
 	{ "fr", raw_keymap_fr },
+	{ "fr_CA", raw_keymap_fr_CA },
 	{ "de", raw_keymap_de },
 	{ NULL, NULL }
 };

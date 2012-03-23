@@ -46,6 +46,15 @@ static unsigned int raw_keymap_fr[] = {
 	0, 0
 };
 
+/* Canadian French QWERTY */
+static unsigned int raw_keymap_fr_CA[] = {
+	GDK_minus,           GDK_colon,
+	GDK_equal,           GDK_minus,
+	GDK_dead_circumflex, GDK_at,
+	GDK_eacute,          GDK_slash,
+	0, 0
+};
+
 /* German QWERTZ */
 static unsigned int raw_keymap_de[] = {
 	GDK_ssharp,     GDK_colon,
@@ -62,6 +71,7 @@ static struct keymap mappings[] = {
 	{ "uk", raw_keymap_uk },
 	{ "us", raw_keymap_uk },
 	{ "fr", raw_keymap_fr },
+	{ "fr_CA", raw_keymap_fr_CA },
 	{ "de", raw_keymap_de },
 	{ NULL, NULL }
 };

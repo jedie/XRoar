@@ -511,7 +511,7 @@ static void helptext(void) {
 "  -fs                   start emulator full-screen if possible\n"
 "  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
 "  -fskip FRAMES         frameskip (default: 0)\n"
-"  -keymap CODE          host keyboard type (uk, us, fr, de)\n"
+"  -keymap CODE          host keyboard type (uk, us, fr, fr_CA, de)\n"
 "  -kbd-translate        enable keyboard translation\n"
 "  -joy-left JOYSPEC     map left joystick\n"
 "  -joy-right JOYSPEC    map right joystick\n"
