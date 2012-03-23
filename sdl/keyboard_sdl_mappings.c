@@ -11,45 +11,50 @@
  * 'key' is the SDL keysym, 'mapping' is the Dragon key it gets mapped to.
  */
 
+/* United Kingdom QWERTY */
 static unsigned int raw_keymap_uk[] = {
-	'-',		':',
-	'=',		'-',
-	'[',		'@',
+	'-',  ':',
+	'=',  '-',
+	'[',  '@',
 	0, 0
 };
+
+/* French AZERTY */
 static unsigned int raw_keymap_fr[] = {
-	'&',		'1',
-	SDLK_WORLD_73,	'2',
-	'"',		'3',
-	'\'',		'4',
-	'(',		'5',
-	'-',		'6',
-	SDLK_WORLD_72,	'7',
-	'_',		'8',
-	SDLK_WORLD_71,	'9',
-	SDLK_WORLD_64,	'0',
-	')',		':',
-	'=',		'-',
-	'a',		'q',
-	'z',		'w',
-	'^',		'@',
-	'q',		'a',
-	'm',		';',
-	'w',		'z',
-	',',		'm',
-	';',		',',
-	':',		'.',
-	'!',		'/',
+	'&',  '1',
+	SDLK_WORLD_73, '2',
+	'"',  '3',
+	'\'', '4',
+	'(',  '5',
+	'-',  '6',
+	SDLK_WORLD_72, '7',
+	'_',  '8',
+	SDLK_WORLD_71, '9',
+	SDLK_WORLD_64, '0',
+	')',  ':',
+	'=',  '-',
+	'a',  'q',
+	'z',  'w',
+	'^',  '@',
+	'q',  'a',
+	'm',  ';',
+	'w',  'z',
+	',',  'm',
+	';',  ',',
+	':',  '.',
+	'!',  '/',
 	0, 0
 };
+
+/* German QWERTZ */
 static unsigned int raw_keymap_de[] = {
-	SDLK_WORLD_63,	':',
-	'\'',		'-',
-	'z',		'y',
-	SDLK_WORLD_92,	'@',
-	SDLK_WORLD_86,	';',
-	'y',		'z',
-	'-',		'/',
+	SDLK_WORLD_63, ':',
+	'\'', '-',
+	'z',  'y',
+	SDLK_WORLD_92, '@',
+	SDLK_WORLD_86, ';',
+	'y',  'z',
+	'-',  '/',
 	0, 0
 };
 

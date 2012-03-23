@@ -11,12 +11,15 @@
  * 'key' is the GTK keyval, 'mapping' is the Dragon key it gets mapped to.
  */
 
+/* United Kingdom QWERTY */
 static unsigned int raw_keymap_uk[] = {
 	GDK_minus,       GDK_colon,
 	GDK_equal,       GDK_minus,
 	GDK_bracketleft, GDK_at,
 	0, 0
 };
+
+/* French AZERTY */
 static unsigned int raw_keymap_fr[] = {
 	GDK_ampersand,   GDK_1,
 	GDK_eacute,      GDK_2,
@@ -42,6 +45,8 @@ static unsigned int raw_keymap_fr[] = {
 	GDK_exclam,      GDK_slash,
 	0, 0
 };
+
+/* German QWERTZ */
 static unsigned int raw_keymap_de[] = {
 	GDK_ssharp,     GDK_colon,
 	GDK_apostrophe, GDK_minus,

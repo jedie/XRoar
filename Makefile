@@ -101,9 +101,9 @@ ifeq ($(opt_sdl),yes)
 	xroar_opt_OBJS += $(opt_sdl_OBJS)
 	xroar_opt_CFLAGS += $(opt_sdl_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_sdl_LDFLAGS)
-vo_sdl.o: vdg_bitmaps.h
-vo_sdlyuv.o: vdg_bitmaps.h
-keyboard_sdl.o: $(SRCROOT)/sdl/keyboard_sdl_mappings.c
+sdl/vo_sdl.o: vdg_bitmaps.h
+sdl/vo_sdlyuv.o: vdg_bitmaps.h
+sdl/keyboard_sdl.o: $(SRCROOT)/sdl/keyboard_sdl_mappings.c
 $(opt_sdl_OBJS): | sdl
 sdl:
 	mkdir -p sdl
