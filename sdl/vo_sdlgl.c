@@ -23,7 +23,7 @@
 #include <string.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
-#include <SDL/SDL_syswm.h>
+#include <SDL_syswm.h>
 
 #include "types.h"
 
