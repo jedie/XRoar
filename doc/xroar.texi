@@ -68,11 +68,12 @@ Save and load snapshots.
 * Emulated hardware::
 * User interface::
 * Supported file types::
-* Firmware ROM image names::
+* ROM lists::
 * Configuration file::
 * Acknowledgements::
 @end menu
 @end ifnottex
+
 
 @node Getting started, Installation, Top, Top
 @chapter Getting started
@@ -84,18 +85,18 @@ not available for your architecture, you will have to build from source.  XRoar
 should build and run on any POSIX-like system for which
 @myuref{http://www.libsdl.org/, SDL} is available.
 
-You'll also need to get hold of firmware ROM images for the machine you wish to
-emulate.  As Microsoft wrote the BASIC ROM, I don't feel comfortable offering
-them up myself, but they may well be obtainable elsewhere on the Web.
+You'll also need to get hold of ROM images for the machine you wish to emulate.
+As Microsoft wrote the BASIC ROM, I don't feel comfortable offering them up
+myself, but they may well be obtainable elsewhere on the Web.
 
 For instructions on installing from source or binary package, and where to put
-firmware images, see @ref{Installation}.
+ROM images, see @ref{Installation}.
 
-Once you've installed XRoar, run it and an emulator screen should appear.  It
-tries to be a Dragon 64 first, but if ROM images can't be found for that, it
-then tries Dragon 32 and CoCo in that order.  If you just get a strange
-checkerboard pattern of orange and inverse '@@' signs, it probably failed to
-find any ROM images - check that first.
+Once you've installed XRoar, run it and an emulator screen should appear.
+Depending on which ROM images are found, XRoar will attempt to emulate a Dragon
+64, a Dragon 32 and a CoCo, in that order.  If you just get a strange
+checkerboard pattern of orange and inverse @samp{@@} signs, it probably failed
+to find any ROM images - check that first.
 
 @image{xroar-screens,,, Emulator with and without BASIC ROM, png}
 
@@ -110,27 +111,16 @@ cursor keys and @kbd{Left Alt}.  Press @kbd{Control+J} to cycle through three
 emulation modes: No joystick emulation (default), Left joystick, Right
 joystick.
 
+
 @node Installation
 @chapter Installation
 
 @menu
-* Mac OS X binary package::
 * Windows binary package::
+* Mac OS X binary package::
 * Building from source code::
 * Cross-compilation of source code::
 @end menu
-
-@node Mac OS X binary package
-@section Mac OS X binary package
-
-Mount the downloaded disk image and drag the XRoar application icon into your
-Applications directory.
-
-Firmware ROM images can be stored either in @file{~/Library/XRoar/Roms/} or
-@file{~/.xroar/roms/}.  See @ref{Firmware ROM image names} for filenames the
-emulator will search for.
-
-XRoar can be started by double-clicking the application icon.
 
 @node Windows binary package
 @section Windows binary package
@@ -138,14 +128,28 @@ XRoar can be started by double-clicking the application icon.
 First, unpack the downloaded ZIP file.  A subdirectory should be created
 containing the main binary, supporting DLL files and documentation.
 
-Firmware images can be copied to this directory, or in a directory called
+ROM images can be copied to this directory, or to a directory called
 @file{@emph{USERPROFILE}/Application Data/XRoar/roms/}.  @emph{USERPROFILE} is
 usually something like @file{C:/Documents and Settings/@emph{username}} or
-@file{C:/Users/@emph{username}}.  See @ref{Firmware ROM image names} for
-filenames the emulator will search for.
+@file{C:/Users/@emph{username}}.  ROM images in these locations with standard
+filenames will be found automatically.  See @ref{ROM lists} for information on
+filenames, and modifying the search lists.
 
 XRoar can be started by running @file{xroar.exe} either from a file browser or
 the command line.
+
+@node Mac OS X binary package
+@section Mac OS X binary package
+
+Mount the downloaded disk image and drag the XRoar application icon into your
+Applications directory.
+
+ROM images can be copied either to @file{~/Library/XRoar/Roms/} or
+@file{~/.xroar/roms/}.  ROM images in these locations with standard filenames
+will be found automatically.  See @ref{ROM lists} for information on filenames,
+and modifying the search lists.
+
+XRoar can be started by double-clicking the application icon.
 
 @node Building from source code
 @section Building from source code
@@ -156,13 +160,13 @@ to build:
 
 @itemize @bullet
 @item
-@strong{GTK+}, the GIMP tookit, is used to provide a file requester on Linux
-and Unix builds.  It is available from the @myuref{http://www.gtk.org/, GTK+
-home page}.
+@strong{GTK+}, the GIMP tookit, is used to provide (at least) a file requester
+on Linux and Unix builds.  It is available from the
+@myuref{http://www.gtk.org/, GTK+ home page}.
 @item
 @strong{GtkGLExt}, an OpenGL extension to GTK+.  This is optional, but if
-present, a full GTK+ interface can be presented.  Under Linux, this obviates
-the need for SDL entirely.  It is available from the
+present, a full GTK+ user interface can be presented.  Under Linux, this
+obviates the need for SDL entirely.  It is available from the
 @myuref{http://projects.gnome.org/gtkglext/, GTK+ OpenGL Extension project
 page}.
 @item
@@ -191,18 +195,17 @@ $ ./configure
 $ make
 @end example
 
-By default, @command{configure} will set things up to install to
-@file{/usr/local}, but this can be changed by using the
-@option{--prefix=/path/to/destination} option.
-
 @command{configure} will detect any optionally supported drivers like Sun
 audio, OpenGL video, etc.
 
+By default, @command{configure} will set up an install @emph{PREFIX} of
+@file{/usr/local}, but this can be changed by using the @option{--prefix=PATH}
+option.
+
 Once built, run @command{make install} to install the binary and info
-documentation on your system.  Firmware ROM images should be placed either in
-your home directory under @file{.xroar/roms/}, or in
-@file{@emph{PREFIX}/share/xroar/roms/}, where @emph{PREFIX} is the install
-prefix as above.
+documentation on your system.  ROM images should be placed either in your home
+directory under @file{.xroar/roms/}, or under the installation directory at
+@file{@emph{PREFIX}/share/xroar/roms/}.
 
 @node Cross-compilation of source code
 @section Cross-compilation of source code
@@ -214,6 +217,7 @@ To specify a cross-compile, use the @option{--target=TARGET} argument to
 @command{configure}.  For example, to build for Windows, you might use
 @samp{./configure --target=i586-mingw32}.  @command{configure} will detect
 Windows headers and configure the build accordingly.
+
 
 @node Emulated hardware
 @chapter Emulated hardware
@@ -248,17 +252,17 @@ Tandy Colour Computer (PAL).
 Tandy Color Computer (NTSC).
 @end table
 
-If no machine is specified on the command line, XRoar will try and find a good
-default machine to emulate based on which ROM images you have installed (see
-@ref{Firmware ROM image names}).  Alternatively, once started, pressing
-@kbd{Control+M} cycles through all the supported machine types.
+If no machine is specified on the command line (with @option{-machine NAME}),
+XRoar will try and find a good default machine to emulate based on which ROM
+images you have installed (see @ref{ROM lists}).  Alternatively, once started,
+pressing @kbd{Control+M} cycles through all the supported machine types.
 
 Additionally extra machines can be configured, or existing ones reconfigured,
 with the following options:
 
 @table @option
 @item -machine NAME
-Select existing or configure new cartridge (@option{-cart help} for list).
+Select existing or configure new machine (@option{-machine help} for list).
 @item -machine-desc TEXT
 Machine description (showed in @option{-machine help}).
 @item -machine-arch ARCH
@@ -301,31 +305,22 @@ with only 16K or RAM.
 @node Video hardware
 @section Video hardware
 
-The Dragon is a UK machine, and as such generates a 50Hz PAL output.  The video
-chip targets 60Hz NTSC displays, so extra work is required to pad this out to a
-50Hz signal.  This is done by stopping the video chip at two points each field
-and generating extra scanlines.
+UK machines generate a 50Hz PAL display, whereas US machines output 60Hz NTSC.
+XRoar will emulate the appropriate mode depending on the machine chosen (see
+@ref{Emulated machines}), but you can force one or the other with the
+@option{-pal} or @option{-ntsc} command line options.
 
-However a US version, the Tano Dragon, exists for use with 60Hz NTSC
-televisions and US CoCo machines all use NTSC.  When you select which machine
-to emulate (see @ref{Emulated machines}), XRoar picks the appropriate mode.  This can
-be overridden with the @option{-pal} or @option{-ntsc} command line options.
+Many programs employ a trick with cross-colour on NTSC televisions to generate
+a colour display from an otherwise black & white video mode.  XRoar can
+approximate the colours generated in these modes to varying levels of detail.
+The default approach is to use a 5 bit lookup table, but a faster four colour
+mode can be selected by running with @option{-ccr simple}.
 
-On NTSC televisions, high frequency changes in luminance create cross-colour
-artifacts (harmonics that interfere with the embedded chroma signal).  Some
-games use this to their advantage, creating colours in the otherwise black and
-white high resolution video modes.  XRoar can approximate the colours generated
-in these modes to varying levels of detail.  The default approach is to use a 5
-bit lookup table, but a faster four colour mode can be selected by running with
-@option{-ccr simple}.
-
-NTSC machines have another peculiarity in that from reset, the video chip could
-settle into one of two states (180@textdegree{} out of phase with each other)
-that affected how the cross-colour interference was interpreted by the
-television.  Games often prompt the user to ``Press Enter if the screen is
-red'' (for example) to identify which phase the machine started in.  You can
-adjust which state it's in by pressing @kbd{Control+A}, which cycles through
-three artifacted colour modes: Off, Blue-red and Red-blue.
+NTSC machines start in one of two cross-colour states at random.  Games often
+prompt the user to ``Press Enter if the screen is red'' (for example) to
+identify which state the machine started in.  You can adjust which state it's
+in by pressing @kbd{Control+A}, which cycles through three artifacted colour
+modes: Off, Blue-red and Red-blue.
 
 @node Audio hardware
 @section Audio hardware
@@ -333,17 +328,12 @@ three artifacted colour modes: Off, Blue-red and Red-blue.
 The Dragon can route analogue audio from three different sources: attached
 cartridges, the cassette port and an internal 6-bit DAC.  Additionally, a PIA
 line is connected to the audio output stage, so manipulating that gives a
-single-bit sound source.  XRoar supports the DAC and the single bit audio.
+single-bit sound source.  XRoar supports the DAC, single bit audio, and will
+approximate cassette audio input.
 
 Rarely, a game generates audio by toggling the analogue sound select source
 rapidly.  XRoar will cope with this, but needs to work harder.  Disable support
 for this with the @option{-fast-sound} command line option.
-
-As it is connected to the output of the analogue mux, if the single bit sound
-output is instead configured as an input, the analogue level will be reflected
-fed back.  While I can't claim that XRoar exactly simulates the electrical
-characteristics, it will emulate this as a trigger level from the DAC output
-derived from experimentation.
 
 @node Keyboard
 @section Keyboard
@@ -359,8 +349,8 @@ are used for these.
 
 If you don't use a UK keyboard, but want a close Dragon keyboard layout, you
 can run with the @option{-keymap CODE} command-line option, where @option{CODE}
-is a country code: ``uk'' (British), ``us'' (American), ``fr'' (French AZERTY)
-or ``de'' (German QWERTZ).
+is a country code: ``uk'' (British), ``us'' (American), ``fr'' (French AZERTY),
+``fr_CA'' (Canadian French QWERTY) or ``de'' (German QWERTZ).
 
 XRoar can also be put into ``translated'' keyboard mode, where characters typed
 on a PC keyboard are translated into the equivalent keystrokes on the Dragon.
@@ -368,9 +358,9 @@ Run with the @option{-kbd-translate} option to start with this enabled.  Press
 @kbd{Control+Z} to toggle this mode.
 
 The keyboards of the Dragon and Tandy CoCo are connected in the same way, but
-the matrix is layed out slightly differently.  When you select a machine (see
-@ref{Emulated machines}), the appropriate matrix layout is selected for you, but you can
-toggle between the two layouts by pressing @kbd{Control+K}.
+the matrix is laid out slightly differently.  When you select a machine (see
+@ref{Emulated machines}), the appropriate matrix layout is selected for you,
+but you can toggle between the two layouts by pressing @kbd{Control+K}.
 
 Additionally, most emulator functions are currently accessed through key
 combinations.  See @ref{Keyboard commands} for a list.
@@ -412,29 +402,26 @@ would be loaded from tape, audio files are a recording of the tape itself, and
 ASCII files contain plain text that is automatically wrapped up as an ASCII
 BASIC file for loading.
 
-To attach a cassette image, press @kbd{Control+L} and select it from the file
-requester.  If instead you press @kbd{Control+Shift+L} and select a @file{.cas}
-file, XRoar can attempt to look into the file and determine whether the program
-is BASIC or machine code and then autorun it by typing the appropriate BASIC
-command(s) for you (either @command{CLOAD} then @command{RUN} or
-@command{CLOADM:EXEC}).
+To attach a cassette image for reading, use the @option{-load} or @option{-run}
+command line options, or press @kbd{Control+L} and select it from the file
+requester (hold @kbd{Shift} as well to attempt to autorun).
 
-To create a cassette image for writing to (with @command{CSAVE} or
-@command{CSAVEM} for example), press @kbd{Control+W} and enter a filename.
+To create a cassette image for writing (with the @command{CSAVE} or
+@command{CSAVEM} BASIC commands, for example), use the @option{-tape-write}
+command line option, or press @kbd{Control+W} and enter a filename.
 Created files will be truncated to zero length, so be careful not to overwrite
 any existing files with this command.
 
 The currently open tape files used for reading and writing are distinct.
 
-Three command line options affect how tapes are read:
+Four command line options affect how tapes are read:
 
 The @option{-tape-fast} option accelerates tape loading by intercepting ROM
-calls and performing the action outside the emulation.  Disable with
-@option{-no-tape-fast}.  On by default.
+calls.  Disable with @option{-no-tape-fast}.  On by default.
 
-The @option{-tape-pad} option monitors ROM calls in order to insert extra
-leader bytes where appropriate (long leaders when the motor is switched on,
-short leaders between blocks). Disable with @option{-no-tape-pad}.
+The @option{-tape-pad} option tries to make loading more reliable by
+intercepting ROM calls and inserting extra leader bytes where appropriate.
+Disable with @option{-no-tape-pad}.
 
 The @option{-tape-pad-auto} option will, for @file{.cas} files, automatically
 switch on leader padding when insufficient initial leader bytes are found.
@@ -450,8 +437,8 @@ Where available, these options can be changed on the fly in the GUI.
 @node Cartridges
 @section Cartridges
 
-XRoar has built-in definitions for three types of cartridge, selectable with
-the @option{-cart NAME} option:
+XRoar has built-in definitions for three cartridges, selectable with the
+@option{-cart NAME} option:
 
 @table @option
 @item dragondos
@@ -498,15 +485,16 @@ cart-rom sdose6
 cart-rom2 dosdream
 @end example
 
-This will define a cartridge called ``sdose6'' that is basically a DragonDOS
-cartridge with its ROM replaced with @file{sdose6}, and an additional ROM
-called @file{dosdream}.
+This will define a cartridge called ``sdose6'' as a DragonDOS cartridge with
+its ROM replaced with @file{sdose6}, and an additional ROM called
+@file{dosdream}.
 
 XRoar will automatically attempt to find a disk controller cartridge relevant
 to the current machine unless the @option{-nodos} option is specified.
 
-Loading a ROM image file with @kbd{Control+L} or @kbd{Control+Shift_L} will
-attach a ROM cartridge.
+Selecting a ROM image file with the @option{-load} or @option{-run} command
+line options, or with @kbd{Control+L} or @kbd{Control+Shift+L}, will attach a
+ROM cartridge.
 
 Within the emulator, cartridges can be enabled or disabled by pressing
 @kbd{Control+E}.  You will almost certainly want to follow this with a hard
@@ -647,9 +635,11 @@ returns as line feeds (the Dragon default), each time you press
 @node Keyboard commands
 @section Keyboard commands
 
-XRoar's user interface is currently based around @myuref{http://www.libsdl.org/,
-SDL}.  The emulator video output window is shown, and all operations are
-performed with keyboard combinations, usually accessed as @kbd{Control+KEY}:
+XRoar's user interface is currently based around either
+@myuref{http://www.gtk.org/, GTK+} or @myuref{http://www.libsdl.org/, SDL}.
+The emulator video output window is shown, and all operations are
+performed with keyboard combinations, usually accessed as @kbd{Control+KEY}.
+Under Mac OS X, most functions will be accessible as @kbd{Command+KEY}.
 
 @table @kbd
 @item Control+[1-4]
@@ -668,10 +658,6 @@ Quit emulator.
 Toggle DOS emulation on/off - reset to take effect.  @xref{Disks}.
 @item Control+F
 Toggle full screen mode.
-@item Control+I
-Insert a ROM cartridge.  @xref{Cartridges}.
-@item Control+Shift+I
-Insert a ROM cartridge, no autorun.  @xref{Cartridges}.
 @item Control+J
 Cycle through joystick emulation modes (None, Left, Right).  @xref{Joysticks}.
 @item Control+Shift+J
@@ -787,14 +773,33 @@ The ROM image specified will be mapped to $E000-.
 @subsection Options to attach files
 
 @table @option
+@item -romlist NAME=LIST
+Define a ROM list.  @xref{ROM lists}.
+@item -romlist-print
+Print defined ROM lists.
+@item -crclist NAME=LIST
+Define a ROM CRC list.  @xref{ROM lists}.
+@item -crclist-print
+Print defined ROM CRC lists.
+@item -force-crc-match
+Force per-architecture CRC matches.
 @item -load FILENAME
 Load or attach @file{FILENAME}.  @xref{Supported file types}.
 @item -run FILENAME
 Load or attach @file{FILENAME} and attempt autorun.
+@item -tape-write FILENAME
+Open @file{FILENAME} for tape writing.
 @item -lp-file FILENAME
 Append Dragon printer output to FILENAME.
 @item -lp-pipe COMMAND
 Pipe Dragon printer output to COMMAND.
+@end table
+
+@subsection Automatic actions
+
+@table @option
+@item -type STRING
+Intercept ROM calls to type STRING into BASIC.
 @end table
 
 @subsection Emulator interface options
@@ -857,6 +862,7 @@ Display help text and exit
 Output version information and exit
 @end table
 
+
 @node Supported file types
 @chapter Supported file types
 
@@ -901,9 +907,9 @@ unknown extension is passed to libsndfile to see if it recognises it as
 an audio file.  @xref{Cassettes}.
 @tab Read-only
 @item .rom
-@tab This represents two things: when starting, XRoar looks for firmware ROM
-images with this extension. When subsequently told to load one, however, they
-are assumed to be dumps of cartridge ROMs.
+@tab This represents two things: when starting, XRoar looks for ROM images with
+this extension.  When subsequently told to load one, however, they are assumed
+to be dumps of cartridge ROMs.
 @xref{Cartridges}.
 @tab Read-only
 @end multitable
@@ -918,38 +924,38 @@ interfere with some cassette-based games.  In addition, the first non-option
 argument to XRoar is taken as a filename and treated as though it were the
 argument to the @option{-run} option.
 
-@node Firmware ROM image names
-@chapter Firmware ROM image names
+
+@node ROM lists
+@chapter ROM lists
 
 XRoar searches for ROM images in a variety of locations.  See
 @ref{Installation} for where your particular platform will search.  The search
 path can be overridden by including a colon-separated list of paths in the
 @env{XROAR_ROM_PATH} environment variable.
 
-Images are expected to have certain names.  Here's a table showing the names it
-searches for each ROM in each system.  ROM images can have either a @file{.rom}
-or a @file{.dgn} extension.  @file{.dgn} files contain a 16 byte header, which
-is ignored.
+Images are expected to have certain names.  There are a set of built-in lists
+which can be modified using the @option{-romlist} option.  List elements are
+comma-separated, and an element prefixed with an @samp{@@} character indicates
+a nested list.  As an example, to append the ROM image ``d64extended'' to the
+``d64_1'' list, use @option{-romlist d64_1=@@d64_1,d64extended}.
 
-@multitable {Controller type} {ROM search order} {Disk Extended Color BASIC 1.1 or 1.0.}
-@headitem Machine @tab ROM search order @tab Description
+ROM images are searched for with either a @file{.rom} or a @file{.dgn}
+extension.  @file{.dgn} files contain a 16 byte header, which is ignored.
+
+View the currently defined ROM lists with the @option{-romlist-print} option,
+but here are the canonical names for BASIC ROM images:
+
+@multitable {Controller type} {ROM image name} {Disk Extended Color BASIC 1.1 or 1.0.}
+@headitem Machine @tab ROM image name @tab Description
 @item dragon32
-@tab d32@*
-dragon32@*
-d32rom@*
-dragon
-@tab Dragon BASIC.
+@tab d32
+@tab Dragon 32 BASIC.
 @item dragon64@*
 tano
 @tab d64_1@*
-d64rom1@*
-dragrom@*
-dragon
-@tab 32K-mode Dragon BASIC.
-@item
-@tab d64_2@*
-d64rom2
-@tab 64K-mode Dragon BASIC.
+d64_2
+@tab 32K-mode Dragon 64 BASIC.@*
+64K-mode Dragon 64 BASIC.
 @item coco@*
 cocous
 @tab bas13@*
@@ -963,11 +969,12 @@ extbas10
 @tab Extended Color BASIC 1.1 or 1.0.
 @end multitable
 
-Further, emulating a floppy drive controller cartridge requires that you have
-an image of the DOS ROM that would have been part of it.
+Emulating a floppy drive controller cartridge requires that you have an image
+of the DOS ROM that would have been part of it.  The same ROM lists are
+consulted, but here are the canonical names for DOS ROM images:
 
-@multitable {Controller type} {ROM search order} {Disk Extended Color BASIC 1.1 or 1.0.}
-@headitem Controller type @tab ROM search order @tab Description
+@multitable {Controller type} {ROM image name} {Disk Extended Color BASIC 1.1 or 1.0.}
+@headitem Controller type @tab ROM image name @tab Description
 @item dragondos
 @tab dplus49b@*
 dplus48@*
@@ -979,14 +986,26 @@ ddos15@*
 ddos10
 @tab DragonDOS (using DOSplus, SuperDOS or original DragonDOS ROM).
 @item delta
-@tab delta@*
-deltados
+@tab delta
 @tab Delta System.
 @item rsdos
 @tab disk11@*
 disk10
 @tab Disk Extended Color BASIC 1.1 or 1.0.
 @end multitable
+
+A CRC32 value is calculated (and reported) for BASIC ROMs loaded - this is used
+to determine whether certain breakpoints can be used (e.g., for fast tape
+loading).  The lists of CRCs matched can be defined in a similar way to ROM
+lists using the @option{-crclist} option - you might do this if you have a
+modified version of a BASIC ROM that maintains compatible entry points with an
+original.  View the current list with @option{-crclist-print}.
+
+Sometimes it may be useful to force CRC matching so that breakpoints apply
+(e.g., you are modifying a ROM image and don't wish to have to add its CRC to
+the match list each time you modify it).  The @option{-force-crc-match} option
+forces the CRCs to be as if an original ROM image were loaded.
+
 
 @node Configuration file
 @chapter Configuration file
@@ -1017,6 +1036,7 @@ usually @file{/usr/local}.
 
 Directives are listed one per line without the leading dashes of the command
 line option.
+
 
 @node Acknowledgements
 @chapter Acknowledgements
