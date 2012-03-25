@@ -353,7 +353,7 @@ doc/xroar.info: $(SRCROOT)/doc/xroar.texi | doc
 	$(call do_makeinfo,$@,-D "VERSION $(VERSION)" $<)
 
 doc/xroar.pdf: $(SRCROOT)/doc/xroar.texi | doc
-	$(call do_texi2pdf,$@,-q -t "@set VERSION $(VERSION)" --build=clean $<)
+	$(call do_texi2pdf,$@,-q -t "@set VERSION $(VERSION)" --build=clean $<)
 
 doc/xroar.html: $(SRCROOT)/doc/xroar.texi | doc
 	$(call do_makeinfo,$@,--html --no-headers --no-split -D "VERSION $(VERSION)" $<)
