@@ -54,17 +54,17 @@
 #define CLR_NVC   ( reg_cc &= ~(CC_N|CC_V|CC_C) )
 #define CLR_ZC    ( reg_cc &= ~(CC_Z|CC_C) )
 
-#define SET_Z(a)          ( reg_cc |= ((a) ? 0 : CC_Z) )
-#define SET_N8(a)         ( reg_cc |= (a&0x80)>>4 )
-#define SET_N16(a)        ( reg_cc |= (a&0x8000)>>12 )
+#define SET_Z(r)          ( reg_cc |= ((r) ? 0 : CC_Z) )
+#define SET_N8(r)         ( reg_cc |= (r&0x80)>>4 )
+#define SET_N16(r)        ( reg_cc |= (r&0x8000)>>12 )
 #define SET_H(a,b,r)      ( reg_cc |= ((a^b^r)&0x10)<<1 )
-#define SET_C8(a)         ( reg_cc |= (a&0x100)>>8 )
-#define SET_C16(a)        ( reg_cc |= (a&0x10000)>>16 )
+#define SET_C8(r)         ( reg_cc |= (r&0x100)>>8 )
+#define SET_C16(r)        ( reg_cc |= (r&0x10000)>>16 )
 #define SET_V8(a,b,r)     ( reg_cc |= ((a^b^r^(r>>1))&0x80)>>6 )
 #define SET_V16(a,b,r)    ( reg_cc |= ((a^b^r^(r>>1))&0x8000)>>14 )
-#define SET_NZ8(a)        ( SET_N8(a), SET_Z(a&0xff) )
-#define SET_NZ16(a)       ( SET_N16(a), SET_Z(a&0xffff) )
-#define SET_NZC8(a)       ( SET_N8(a), SET_Z(a&0xff), SET_C8(a) )
+#define SET_NZ8(r)        ( SET_N8(r), SET_Z(r&0xff) )
+#define SET_NZ16(r)       ( SET_N16(r), SET_Z(r&0xffff) )
+#define SET_NZC8(r)       ( SET_N8(r), SET_Z(r&0xff), SET_C8(r) )
 #define SET_NZVC8(a,b,r)  ( SET_N8(r), SET_Z(r&0xff), SET_V8(a,b,r), SET_C8(r) )
 #define SET_NZVC16(a,b,r) ( SET_N16(r), SET_Z(r&0xffff), SET_V16(a,b,r), SET_C16(r) )
 
@@ -166,31 +166,28 @@
 		TAKEN_CYCLES(1); \
 	} while (0)
 
-#define ARM_NMI do { nmi_armed = 1; } while (0)
-#define DISARM_NMI do { nmi_armed = 0; } while (0)
-
-int m6809_running;
-
 /* MPU registers */
-static uint8_t reg_cc;
-static uint8_t reg_a;
-static uint8_t reg_b;
-static uint8_t reg_dp;
-static uint16_t reg_x;
-static uint16_t reg_y;
-static uint16_t reg_u;
-static uint16_t reg_s;
-static uint16_t reg_pc;
+static uint8_t reg_cc = 0;
+static uint8_t reg_a = 0;
+static uint8_t reg_b = 0;
+static uint8_t reg_dp = 0;
+static uint16_t reg_x = 0;
+static uint16_t reg_y = 0;
+static uint16_t reg_u = 0;
+static uint16_t reg_s = 0;
+static uint16_t reg_pc = 0;
 
 #define reg_d ((reg_a << 8) | reg_b)
 #define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
 
-/* MPU interrupt state variables */
-int m6809_halt, m6809_nmi;
-int m6809_firq, m6809_irq;
-static int nmi_armed;
-static unsigned int cycle;
-static unsigned int halt_cycle, nmi_cycle, firq_cycle, irq_cycle;
+/* MPU state variables */
+int m6809_running = 0;
+int m6809_halt = 0, m6809_nmi = 0;
+int m6809_firq = 0, m6809_irq = 0;
+static int nmi_armed = 0;
+static unsigned int cycle = 0;
+static unsigned int halt_cycle = 0, nmi_cycle = 0;
+static unsigned int firq_cycle = 0, irq_cycle = 0;
 
 /* MPU state.  Represents current position in the high-level flow chart
  * from the data sheet (figure 14). */
@@ -206,14 +203,20 @@ static enum m6809_cpu_state cpu_state;
 # define sex(v) ((int8_t)(v))
 #endif
 
+/* Dummy handlers */
+static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
+static void dummy_write_cycle(uint16_t a, uint8_t v) { (void)a; (void)v; }
+static void dummy_nvma_cycles(int c) { (void)c; }
+static void dummy_sync(void) { }
+
 /* External handlers */
-uint8_t (*m6809_read_cycle)(uint16_t addr);
-void (*m6809_write_cycle)(uint16_t addr, uint8_t value);
-void (*m6809_nvma_cycles)(int cycles);
-void (*m6809_sync)(void);
-void (*m6809_instruction_hook)(M6809State *state);
-void (*m6809_instruction_posthook)(M6809State *state);
-void (*m6809_interrupt_hook)(uint16_t vector);
+uint8_t (*m6809_read_cycle)(uint16_t addr) = dummy_read_cycle;
+void (*m6809_write_cycle)(uint16_t addr, uint8_t value) = dummy_write_cycle;
+void (*m6809_nvma_cycles)(int cycles) = dummy_nvma_cycles;
+void (*m6809_sync)(void) = dummy_sync;
+void (*m6809_instruction_hook)(M6809State *state) = NULL;
+void (*m6809_instruction_posthook)(M6809State *state) = NULL;
+void (*m6809_interrupt_hook)(uint16_t vector) = NULL;
 
 /* ------------------------------------------------------------------------- */
 
@@ -351,27 +354,11 @@ static unsigned int ea_indexed(void) {
 	return ea;
 }
 
-void m6809_init(void) {
-	m6809_read_cycle = NULL;
-	m6809_write_cycle = NULL;
-	m6809_nvma_cycles = NULL;
-	m6809_sync = NULL;
-	m6809_instruction_hook = NULL;
-	m6809_instruction_posthook = NULL;
-	m6809_interrupt_hook = NULL;
-	reg_cc = reg_a = reg_b = reg_dp = 0;
-	reg_x = reg_y = reg_u = reg_s = 0;
-	reg_pc = 0;
-	cycle = 0;
-	halt_cycle = nmi_cycle = firq_cycle = irq_cycle = 0;
-	m6809_running = 0;
-}
-
 void m6809_reset(void) {
 	m6809_halt = m6809_nmi = 0;
 	m6809_firq = m6809_irq = 0;
-	halt_cycle = nmi_cycle = firq_cycle = irq_cycle = cycle;
-	DISARM_NMI;
+	halt_cycle = nmi_cycle = firq_cycle = irq_cycle = cycle = 0;
+	nmi_armed = 0;
 	cpu_state = m6809_flow_reset;
 }
 
@@ -396,7 +383,7 @@ void m6809_run(void) {
 			reg_dp = 0;
 			reg_cc |= (CC_F | CC_I);
 			m6809_nmi = 0;
-			DISARM_NMI;
+			nmi_armed = 0;
 			cpu_state = m6809_flow_reset_check_halt;
 			/* fall through */
 
@@ -529,12 +516,12 @@ void m6809_run(void) {
 				OP_NEG(BYTE_DIRECT); break;
 			/* 0x02 NEG/COM direct (illegal) */
 			case 0x02:
-				   if (reg_cc & CC_C) {
-					   OP_COM(BYTE_DIRECT);
-				   } else {
-					   OP_NEG(BYTE_DIRECT);
-				   }
-				   break;
+				if (reg_cc & CC_C) {
+					OP_COM(BYTE_DIRECT);
+				} else {
+					OP_NEG(BYTE_DIRECT);
+				}
+				break;
 			/* 0x03 COM direct */
 			case 0x03: OP_COM(BYTE_DIRECT); break;
 			/* 0x04 LSR direct */
@@ -563,12 +550,12 @@ void m6809_run(void) {
 			case 0x0F: OP_CLR(BYTE_DIRECT); break;
 			/* 0x10 Page 2 */
 			case 0x10:
-				   cpu_state = m6809_flow_instruction_page_2;
-				   continue;
+				cpu_state = m6809_flow_instruction_page_2;
+				continue;
 			/* 0x11 Page 3 */
 			case 0x11:
-				   cpu_state = m6809_flow_instruction_page_3;
-				   continue;
+				cpu_state = m6809_flow_instruction_page_3;
+				continue;
 			/* 0x12 NOP inherent */
 			case 0x12: peek_byte(reg_pc); break;
 			/* 0x13 SYNC inherent */
@@ -696,7 +683,7 @@ void m6809_run(void) {
 					case 0x9: tmp1 = reg_b | 0xff00; break;
 					case 0xa: tmp1 = reg_cc | 0xff00; break;
 					case 0xb: tmp1 = reg_dp | 0xff00; break;
-					default:  tmp1 = 0xffff; break;
+					default: tmp1 = 0xffff; break;
 				}
 				switch (postbyte & 0xf) {
 					case 0x0: set_reg_d(tmp1); break;
@@ -760,7 +747,7 @@ void m6809_run(void) {
 			/* 0x32 LEAS indexed */
 			case 0x32: EA_INDEXED(reg_s);
 				TAKEN_CYCLES(1);
-				ARM_NMI;  /* XXX: Really? */
+				nmi_armed = 1;  /* XXX: Really? */
 				break;
 			/* 0x33 LEAU indexed */
 			case 0x33: EA_INDEXED(reg_u);
@@ -811,7 +798,7 @@ void m6809_run(void) {
 				} else {
 					PULLWORD(reg_s, reg_pc);
 				}
-				ARM_NMI;
+				nmi_armed = 1;
 				peek_byte(reg_s);
 				break;
 			/* 0x3C CWAI immediate */
@@ -854,12 +841,12 @@ void m6809_run(void) {
 			case 0x41: OP_NEGR(reg_a); break;
 			/* 0x42 NEG/COM inherent (illegal) */
 			case 0x42:
-				   if (reg_cc & CC_C) {
-					   OP_COMR(reg_a);
-				   } else {
-					   OP_NEGR(reg_a);
-				   }
-				   break;
+				if (reg_cc & CC_C) {
+					OP_COMR(reg_a);
+				} else {
+					OP_NEGR(reg_a);
+				}
+				break;
 			/* 0x43 COMA inherent */
 			case 0x43: OP_COMR(reg_a); break;
 			/* 0x44 LSRA inherent */
@@ -891,12 +878,12 @@ void m6809_run(void) {
 			case 0x51: OP_NEGR(reg_b); break;
 			/* 0x52 NEG/COM inherent (illegal) */
 			case 0x52:
-				   if (reg_cc & CC_C) {
-					   OP_COMR(reg_b);
-				   } else {
-					   OP_NEGR(reg_b);
-				   }
-				   break;
+				if (reg_cc & CC_C) {
+					OP_COMR(reg_b);
+				} else {
+					OP_NEGR(reg_b);
+				}
+				break;
 			/* 0x53 COMB inherent */
 			case 0x53: OP_COMR(reg_b); break;
 			/* 0x54 LSRB inherent */
@@ -928,12 +915,12 @@ void m6809_run(void) {
 			case 0x61: OP_NEG(BYTE_INDEXED); break;
 			/* 0x62 NEG/COM indexed (illegal) */
 			case 0x62:
-				   if (reg_cc & CC_C) {
-					   OP_COM(BYTE_INDEXED);
-				   } else {
-					   OP_NEG(BYTE_INDEXED);
-				   }
-				   break;
+				if (reg_cc & CC_C) {
+					OP_COM(BYTE_INDEXED);
+				} else {
+					OP_NEG(BYTE_INDEXED);
+				}
+				break;
 			/* 0x63 COM indexed */
 			case 0x63: OP_COM(BYTE_INDEXED); break;
 			/* 0x64 LSR indexed */
@@ -965,12 +952,12 @@ void m6809_run(void) {
 			case 0x71: OP_NEG(BYTE_EXTENDED); break;
 			/* 0x72 NEG/COM extended (illegal) */
 			case 0x72:
-				   if (reg_cc & CC_C) {
-					   OP_COM(BYTE_EXTENDED);
-				   } else {
-					   OP_NEG(BYTE_EXTENDED);
-				   }
-				   break;
+				if (reg_cc & CC_C) {
+					OP_COM(BYTE_EXTENDED);
+				} else {
+					OP_NEG(BYTE_EXTENDED);
+				}
+				break;
 			/* 0x73 COM extended */
 			case 0x73: OP_COM(BYTE_EXTENDED); break;
 			/* 0x74 LSR extended */
@@ -1348,17 +1335,17 @@ void m6809_run(void) {
 			/* 0x10BF STY extended */
 			case 0xbf: OP_ST16(reg_y, EA_EXTENDED); break;
 			/* 0x10CE LDS immediate */
-			case 0xce: OP_LD16(reg_s, WORD_IMMEDIATE); ARM_NMI; break;
+			case 0xce: OP_LD16(reg_s, WORD_IMMEDIATE); nmi_armed = 1; break;
 			/* 0x10DE LDS direct */
-			case 0xde: OP_LD16(reg_s, WORD_DIRECT); ARM_NMI; break;
+			case 0xde: OP_LD16(reg_s, WORD_DIRECT); nmi_armed = 1; break;
 			/* 0x10DF STS direct */
 			case 0xdf: OP_ST16(reg_s, EA_DIRECT); break;
 			/* 0x10EE LDS indexed */
-			case 0xee: OP_LD16(reg_s, WORD_INDEXED); ARM_NMI; break;
+			case 0xee: OP_LD16(reg_s, WORD_INDEXED); nmi_armed = 1; break;
 			/* 0x10EF STS indexed */
 			case 0xef: OP_ST16(reg_s, EA_INDEXED); break;
 			/* 0x10FE LDS extended */
-			case 0xfe: OP_LD16(reg_s, WORD_EXTENDED); ARM_NMI; break;
+			case 0xfe: OP_LD16(reg_s, WORD_EXTENDED); nmi_armed = 1; break;
 			/* 0x10FF STS extended */
 			case 0xff: OP_ST16(reg_s, EA_EXTENDED); break;
 			/* Illegal instruction */

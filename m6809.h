@@ -42,7 +42,7 @@ extern int m6809_running;
 extern int m6809_halt, m6809_nmi;
 extern int m6809_firq, m6809_irq;
 
-void m6809_init(void);
+#define m6809_init()
 void m6809_reset(void);
 void m6809_run(void);
 void m6809_get_state(M6809State *state);
