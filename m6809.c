@@ -79,6 +79,7 @@
 
 #define EA_DIRECT(a)    do { a = ea_direct(); } while (0)
 #define EA_EXTENDED(a)  do { a = ea_extended(); } while (0)
+#define EA_INDEXED(a)   do { a = ea_indexed(); } while (0)
 
 /* These macros are designed to be "passed as an argument" to the op-code
  * macros.  */
@@ -216,49 +217,6 @@ void (*m6809_interrupt_hook)(uint16_t vector);
 
 /* ------------------------------------------------------------------------- */
 
-#define EA_ROFF0(b,r) case (b): ea = (r); peek_byte(reg_pc)
-#define EA_ROFF5P(b,r,o) case ((b)+(o)): ea = (r) + (o); peek_byte(reg_pc); TAKEN_CYCLES(1)
-#define EA_ROFF5N(b,r,o) case ((b)+32+(o)): ea = (r) + (o); peek_byte(reg_pc); TAKEN_CYCLES(1)
-#define EA_ROFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + (r); TAKEN_CYCLES(1)
-#define EA_ROFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += (r); TAKEN_CYCLES(3)
-#define EA_ROFFA(b,r) case (b): ea = (r) + sex(reg_a); peek_byte(reg_pc); TAKEN_CYCLES(1)
-#define EA_ROFFB(b,r) case (b): ea = (r) + sex(reg_b); peek_byte(reg_pc); TAKEN_CYCLES(1)
-#define EA_ROFFD(b,r) case (b): ea = (r) + reg_d; peek_byte(reg_pc); peek_byte(reg_pc+1); TAKEN_CYCLES(3)
-#define EA_RI1(b,r) case (b): ea = (r); r += 1; peek_byte(reg_pc); TAKEN_CYCLES(2)
-#define EA_RI2(b,r) case (b): ea = (r); r += 2; peek_byte(reg_pc); TAKEN_CYCLES(3)
-#define EA_RD1(b,r) case (b): r -= 1; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(2)
-#define EA_RD2(b,r) case (b): r -= 2; ea = (r); peek_byte(reg_pc); TAKEN_CYCLES(3)
-#define EA_PCOFFFF(b,r) case (b): ea = reg_pc | 0xff
-#define EA_PCOFF8(b,r) case (b): BYTE_IMMEDIATE(0,ea); ea = sex(ea) + reg_pc; TAKEN_CYCLES(1)
-#define EA_PCOFF16(b,r) case (b): WORD_IMMEDIATE(0,ea); ea += reg_pc; peek_byte(reg_pc); TAKEN_CYCLES(3)
-/* Without indirection this is an illegal instruction, but it seems to work
- * on a real 6809: */
-#define EA_EXT(b,r) case (b): WORD_IMMEDIATE(0,ea); TAKEN_CYCLES(1)
-
-#define EA_ROFF5(b,r) \
-	case (b)+0: case (b)+1: case (b)+2: case (b)+3: case (b)+4: \
-	case (b)+5: case (b)+6: case (b)+7: case (b)+8: case (b)+9: \
-	case (b)+10: case (b)+11: case (b)+12: case (b)+13: case (b)+14: \
-	case (b)+15: case (b)+16: case (b)+17: case (b)+18: case (b)+19: \
-	case (b)+20: case (b)+21: case (b)+22: case (b)+23: case (b)+24: \
-	case (b)+25: case (b)+26: case (b)+27: case (b)+28: case (b)+29: \
-	case (b)+30: case (b)+31: \
-		peek_byte(reg_pc); \
-		TAKEN_CYCLES(1); \
-		ea = (r) + sex5(postbyte)
-
-#define EA_ALLR(m,b) m((b), reg_x); break; m((b)+0x20, reg_y); break; \
-	m((b)+0x40, reg_u); break; m((b)+0x60, reg_s); break
-#define EA_ALLRI(m,b) EA_IND(m,(b),reg_x); break; \
-	EA_IND(m,(b)+0x20,reg_y); break; \
-	EA_IND(m,(b)+0x40,reg_u); break; \
-	EA_IND(m,(b)+0x60,reg_s); break
-#define EA_IND(m,b,r) m(b,r); ea = fetch_byte(ea) << 8 | fetch_byte(ea+1); TAKEN_CYCLES(1)
-
-#define EA_INDEXED(a) do { a = ea_indexed(); } while (0)
-
-/* ------------------------------------------------------------------------- */
-
 /* Operation templates */
 
 /* Convention for the following macros:
@@ -354,25 +312,41 @@ static unsigned int ea_extended(void) {
 static unsigned int ea_indexed(void) {
 	unsigned int ea;
 	unsigned int postbyte;
-	BYTE_IMMEDIATE(0,postbyte);
-	switch (postbyte) {
-		EA_ALLR(EA_ROFF5,   0x00);
-		EA_ALLR(EA_RI1,     0x80); EA_ALLRI(EA_RI1,     0x90);
-		EA_ALLR(EA_RI2,     0x81); EA_ALLRI(EA_RI2,     0x91);
-		EA_ALLR(EA_RD1,     0x82); EA_ALLRI(EA_RD1,     0x92);
-		EA_ALLR(EA_RD2,     0x83); EA_ALLRI(EA_RD2,     0x93);
-		EA_ALLR(EA_ROFF0,   0x84); EA_ALLRI(EA_ROFF0,   0x94);
-		EA_ALLR(EA_ROFFB,   0x85); EA_ALLRI(EA_ROFFB,   0x95);
-		EA_ALLR(EA_ROFFA,   0x86); EA_ALLRI(EA_ROFFA,   0x96);
-		EA_ALLR(EA_ROFF0,   0x87); EA_ALLRI(EA_ROFF0,   0x97);
-		EA_ALLR(EA_ROFF8,   0x88); EA_ALLRI(EA_ROFF8,   0x98);
-		EA_ALLR(EA_ROFF16,  0x89); EA_ALLRI(EA_ROFF16,  0x99);
-		EA_ALLR(EA_PCOFFFF, 0x8a); EA_ALLRI(EA_PCOFFFF, 0x9a);
-		EA_ALLR(EA_ROFFD,   0x8b); EA_ALLRI(EA_ROFFD,   0x9b);
-		EA_ALLR(EA_PCOFF8,  0x8c); EA_ALLRI(EA_PCOFF8,  0x9c);
-		EA_ALLR(EA_PCOFF16, 0x8d); EA_ALLRI(EA_PCOFF16, 0x9d);
-		EA_ALLR(EA_EXT,     0x8f); EA_ALLRI(EA_EXT,     0x9f);
+	uint16_t *reg;
+	BYTE_IMMEDIATE(0, postbyte);
+	switch ((postbyte >> 5) & 3) {
+		case 0: reg = &reg_x; break;
+		case 1: reg = &reg_y; break;
+		case 2: reg = &reg_u; break;
+		case 3: reg = &reg_s; break;
+		default: return 0;
+	}
+	if ((postbyte & 0x80) == 0) {
+		peek_byte(reg_pc);
+		TAKEN_CYCLES(1);
+		return *reg + sex5(postbyte);
+	}
+	switch (postbyte & 0x0f) {
+		case 0x00: ea = *reg; *reg += 1; peek_byte(reg_pc); TAKEN_CYCLES(2); break;
+		case 0x01: ea = *reg; *reg += 2; peek_byte(reg_pc); TAKEN_CYCLES(3); break;
+		case 0x02: *reg -= 1; ea = *reg; peek_byte(reg_pc); TAKEN_CYCLES(2); break;
+		case 0x03: *reg -= 2; ea = *reg; peek_byte(reg_pc); TAKEN_CYCLES(3); break;
+		case 0x04:
+		case 0x07: ea = *reg; peek_byte(reg_pc); break;
+		case 0x05: ea = *reg + sex(reg_b); peek_byte(reg_pc); TAKEN_CYCLES(1); break;
+		case 0x06: ea = *reg + sex(reg_a); peek_byte(reg_pc); TAKEN_CYCLES(1); break;
+		case 0x08: BYTE_IMMEDIATE(0, ea); ea = sex(ea) + *reg; TAKEN_CYCLES(1); break;
+		case 0x09: WORD_IMMEDIATE(0, ea); ea = ea + *reg; TAKEN_CYCLES(3); break;
+		case 0x0a: ea = reg_pc | 0xff; break;
+		case 0x0b: ea = *reg + reg_d; peek_byte(reg_pc); peek_byte(reg_pc + 1); TAKEN_CYCLES(3); break;
+		case 0x0c: BYTE_IMMEDIATE(0, ea); ea = sex(ea) + reg_pc; TAKEN_CYCLES(1); break;
+		case 0x0d: WORD_IMMEDIATE(0, ea); ea = ea + reg_pc; peek_byte(reg_pc); TAKEN_CYCLES(3); break;
+		case 0x0f: WORD_IMMEDIATE(0, ea); TAKEN_CYCLES(1); break;
 		default: ea = 0; break;
+	}
+	if (postbyte & 0x10) {
+		ea = (fetch_byte(ea) << 8) | fetch_byte(ea + 1);
+		TAKEN_CYCLES(1);
 	}
 	return ea;
 }
