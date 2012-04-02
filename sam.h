@@ -11,12 +11,10 @@
 #define SAM_CPU_SLOW_DIVISOR 16
 #define SAM_CPU_FAST_DIVISOR 8
 
-void sam_init(void);
+#define sam_init()
 void sam_reset(void);
-void sam_run(int cycles);
-uint8_t sam_read_byte(uint16_t addr);
-void sam_store_byte(uint16_t addr, uint8_t octet);
-void sam_nvma_cycles(int cycles);
+int sam_run(uint16_t A, int RnW, int *S, uint16_t *Z, int *ncycles);
+int sam_nvma_cycles(int c);
 void sam_vdg_hsync(void);
 void sam_vdg_fsync(void);
 void sam_vdg_bytes(int nbytes, uint8_t *dest);

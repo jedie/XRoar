@@ -95,6 +95,12 @@ static int num_configs = NUM_CONFIG_TEMPLATES;
 
 static void initialise_ram(void);
 
+static int cycles;
+static uint8_t read_cycle(uint16_t A);
+static void write_cycle(uint16_t A, uint8_t D);
+static void nvma_cycles(int ncycles);
+static void sync(void);
+
 /**************************************************************************/
 
 /* Create config array */
@@ -320,6 +326,11 @@ void machine_init(void) {
 	m6809_init();
 	vdg_init();
 	tape_init();
+
+	m6809_read_cycle = read_cycle;
+	m6809_write_cycle = write_cycle;
+	m6809_nvma_cycles = nvma_cycles;
+	m6809_sync = sync;
 }
 
 void machine_shutdown(void) {
@@ -409,6 +420,146 @@ void machine_reset(int hard) {
 #endif
 	vdg_reset();
 	tape_reset();
+}
+
+void machine_run(int ncycles) {
+	cycles += ncycles;
+	m6809_running = 1;
+	m6809_run();
+}
+
+static uint16_t decode_Z(uint16_t Z) {
+	if (IS_COCO) {
+		if (machine_ram_size <= 0x2000) {
+			return (Z & 0x3f) | ((Z & 0x3f00) >> 2) | ((~Z & 0x8000) >> 3);
+		} else if (machine_ram_size <= 0x4000) {
+			return (Z & 0x7f) | ((Z & 0x7f00) >> 1) | ((~Z & 0x8000) >> 1);
+		}
+	} else if (IS_DRAGON32) {
+		return Z & 0x7fff;
+	}
+	return Z;
+}
+
+/* Interface to SAM to decode and translate address */
+static int do_cpu_cycle(uint16_t A, int RnW, int *S, uint16_t *Z) {
+	uint16_t tmp_Z;
+	int ncycles;
+	int is_ram_access = sam_run(A, RnW, S, &tmp_Z, &ncycles);
+	if (is_ram_access) {
+		*Z = decode_Z(tmp_Z);
+	}
+	cycles -= ncycles;
+	if (cycles <= 0) m6809_running = 0;
+	current_cycle += ncycles;
+	while (EVENT_PENDING(MACHINE_EVENT_LIST))
+		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+	return is_ram_access;
+}
+
+static uint8_t read_cycle(uint16_t A) {
+	static uint8_t D = 0;
+	int S;
+	uint16_t Z;
+	(void)do_cpu_cycle(A, 1, &S, &Z);
+	switch (S) {
+		case 0:
+			if (Z < machine_ram_size)
+				D = machine_ram[Z];
+			break;
+		case 1:
+		case 2:
+			D = machine_rom[A & 0x3fff];
+			break;
+		case 3:
+			if (machine_cart)
+				D = machine_cart->mem_data[A & 0x3fff];
+			break;
+		case 4:
+			if (IS_COCO) {
+				D = mc6821_read(&PIA0, A & 3);
+			} else {
+				if ((A & 4) == 0) {
+					D = mc6821_read(&PIA0, A & 3);
+				}
+				/* Not yet implemented:
+				if ((addr & 7) == 4) return serial_stuff;
+				if ((addr & 7) == 5) return serial_stuff;
+				if ((addr & 7) == 6) return serial_stuff;
+				if ((addr & 7) == 7) return serial_stuff; */
+			}
+			break;
+		case 5:
+			D = mc6821_read(&PIA1, A & 3);
+			break;
+		case 6:
+			if (machine_cart && machine_cart->io_read) {
+				D = machine_cart->io_read(A);
+			}
+			break;
+		default:
+			break;
+	}
+#ifdef TRACE
+	if (xroar_trace_enabled) m6809_trace_byte(D, A);
+#endif
+	return D;
+}
+
+static void write_cycle(uint16_t A, uint8_t D) {
+	int S;
+	uint16_t Z;
+	int is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
+	if ((S & 4) || IS_DRAGON32) {
+		switch (S) {
+			case 1:
+			case 2:
+				D = machine_rom[A & 0x3fff];
+				break;
+			case 3:
+				if (machine_cart)
+					D = machine_cart->mem_data[A & 0x3fff];
+				break;
+			case 4:
+				if (IS_COCO) {
+					mc6821_write(&PIA0, A & 3, D);
+				} else {
+					if ((A & 4) == 0) {
+						mc6821_write(&PIA0, A & 3, D);
+					}
+				}
+				break;
+			case 5:
+				mc6821_write(&PIA1, A & 3, D);
+				break;
+			case 6:
+				if (machine_cart && machine_cart->io_write) {
+					machine_cart->io_write(A, D);
+				}
+				break;
+			default:
+				break;
+		}
+	}
+	if (is_ram_access) {
+		machine_ram[Z] = D;
+	}
+}
+
+static void nvma_cycles(int ncycles) {
+	int c = sam_nvma_cycles(ncycles);
+	cycles -= c;
+	if (cycles <= 0) m6809_running = 0;
+	current_cycle += c;
+	while (EVENT_PENDING(MACHINE_EVENT_LIST))
+		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+}
+
+static void sync(void) {
+	while (EVENT_PENDING(MACHINE_EVENT_LIST))
+		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+	m6809_irq = PIA0.a.irq | PIA0.b.irq;
+	m6809_firq = PIA1.a.irq | PIA1.b.irq;
 }
 
 #ifndef FAST_SOUND

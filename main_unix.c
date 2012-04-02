@@ -32,6 +32,6 @@ int main(int argc, char **argv) {
 	atexit(xroar_shutdown);
 	if (xroar_init(argc, argv) != 0)
 		exit(1);
-	xroar_mainloop();
+	xroar_run();
 	return 0;
 }

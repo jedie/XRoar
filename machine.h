@@ -98,6 +98,7 @@ void machine_init(void);
 void machine_shutdown(void);
 void machine_configure(struct machine_config *mc);  /* apply config */
 void machine_reset(int hard);
+void machine_run(int ncycles);
 
 void machine_set_fast_sound(int fast);
 void machine_select_fast_sound(int fast);

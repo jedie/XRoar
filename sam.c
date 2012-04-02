@@ -23,231 +23,138 @@
 
 #include "types.h"
 
-#include "cart.h"
-#include "m6809.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "sam.h"
 #include "xroar.h"
 
-static unsigned int map_type;
+/* Constants for tracking VDG address counter */
+static int vdg_mod_xdivs[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
+static int vdg_mod_ydivs[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
+static int vdg_mod_adds[8] = { 16, 8, 16, 8, 16, 8, 16, 0 };
+static uint16_t vdg_mod_clears[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
 
-static unsigned int sam_register;
-
-static uint16_t sam_vdg_base;
-static uint16_t sam_vdg_address;
-static int sam_vdg_mod_xdiv;
-static int sam_vdg_mod_ydiv;
-static int sam_vdg_mod_add;
-static uint16_t sam_vdg_mod_clear;
-static int sam_vdg_xcount;
-static int sam_vdg_ycount;
-static int sam_ram_cycles;
-static int sam_rom_cycles;
-
-static int cycles_remaining = 0;
-
-static int vdg_mod_xdiv[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
-static int vdg_mod_ydiv[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
-static int vdg_mod_add[8] = { 16, 8, 16, 8, 16, 8, 16, 0 };
-static uint16_t vdg_mod_clear[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
-
-/* SAM Data Sheet,
+/* Constants for address multiplexer
+ * SAM Data Sheet,
  *   Figure 6 - Signal routing for address multiplexer */
 static uint16_t ram_row_masks[4] = { 0x007f, 0x007f, 0x00ff, 0x00ff };
 static int ram_col_shifts[4] = { 2, 1, 0, 0 };
 static uint16_t ram_col_masks[4] = { 0x3f00, 0x7f00, 0xff00, 0xff00 };
+static uint16_t ram_ras1_bits[4] = { 0x1000, 0x4000, 0, 0 };
 
+/* VDG address counter */
+static uint16_t vdg_base;
+static uint16_t vdg_address;
+static int vdg_mod_xdiv;
+static int vdg_mod_ydiv;
+static int vdg_mod_add;
+static uint16_t vdg_mod_clear;
+static int vdg_xcount;
+static int vdg_ycount;
+
+/* Address multiplexer */
 static uint16_t ram_row_mask;
 static int ram_col_shift;
 static uint16_t ram_col_mask;
+static uint16_t ram_ras1_bit;
 static uint16_t ram_ras1;
 static uint16_t ram_page_bit;
-#define VRAM_TRANSLATE(a) ( \
-		((a << ram_col_shift) & ram_col_mask) \
-		| (a & ram_row_mask) \
-		| (!(a & 0x4000) ? ram_ras1 : 0) \
-	)
-#define RAM_TRANSLATE(a) (VRAM_TRANSLATE(a) | ram_page_bit)
+
+/* Address decode */
+static int map_type_1;
+
+/* SAM control register */
+static uint_fast16_t sam_register;
+
+/* MPU rate */
+static int sam_ram_cycles;
+static int sam_rom_cycles;
 
 static void update_from_register(void);
-
-static inline void slow_cycle(int n) {
-	int cycles = n * sam_ram_cycles;
-	current_cycle += cycles;
-	cycles_remaining -= cycles;
-	if (cycles_remaining <= 0)
-		m6809_running = 0;
-}
-
-static inline void fast_cycle(int n) {
-	int cycles = n * sam_rom_cycles;
-	current_cycle += cycles;
-	cycles_remaining -= cycles;
-	if (cycles_remaining <= 0)
-		m6809_running = 0;
-}
-
-void sam_init(void) {
-}
 
 void sam_reset(void) {
 	sam_set_register(0);
 	sam_vdg_fsync();
 }
 
-void sam_run(int cycles) {
-	cycles_remaining += cycles;
-	m6809_running = 1;
-	m6809_run();
-}
+#define VRAM_TRANSLATE(a) ( \
+		((a << ram_col_shift) & ram_col_mask) \
+		| (a & ram_row_mask) \
+		| (!(a & ram_ras1_bit) ? ram_ras1 : 0) \
+	)
 
-uint8_t sam_read_byte(uint16_t addr) {
-	static uint8_t last_read = 0;
-	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20)) {
-		slow_cycle(1);
+#define RAM_TRANSLATE(a) (VRAM_TRANSLATE(a) | ram_page_bit)
+
+/* The primary function of the SAM: translates an address (A) plus Read/!Write
+ * flag (RnW) into an S value and RAM address (Z).  Writes to the SAM control
+ * register will update the configuration.  The number of (SAM) cycles the CPU
+ * clock would be use for this access is written to ncycles.  Returns 1 when
+ * the access is to a RAM area, 0 otherwise. */
+
+int sam_run(uint16_t A, int RnW, int *S, uint16_t *Z, int *ncycles) {
+	int is_ram_access;
+	if (A < 0x8000 || (map_type_1 && A < 0xff00)) {
+		*Z = RAM_TRANSLATE(A);
+		*ncycles = sam_ram_cycles;
+		is_ram_access = 1;
 	} else {
-		fast_cycle(1);
+		*ncycles = sam_rom_cycles;
+		is_ram_access = 0;
 	}
-	while (EVENT_PENDING(MACHINE_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
-	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
-		/* RAM access */
-		unsigned int ram_addr = RAM_TRANSLATE(addr);
-		if (addr < machine_ram_size)
-			return last_read = machine_ram[ram_addr];
-		return last_read;
-	}
-	if (addr < 0xc000) {
-		/* BASIC ROM access */
-		return last_read = machine_rom[addr & 0x3fff];
-	}
-	if (addr < 0xff00) {
-		/* Cartridge ROM access */
-		if (machine_cart) {
-			return last_read = machine_cart->mem_data[addr & 0x3fff];
+	if (A < 0x8000) {
+		*S = RnW ? 0 : 7;
+	} else if (map_type_1 && RnW && A < 0xff00) {
+		*S = 0;
+	} else if (A < 0xa000) {
+		*S = 1;
+	} else if (A < 0xc000) {
+		*S = 2;
+	} else if (A < 0xff00) {
+		*S = 3;
+	} else if (A < 0xff20) {
+		*S = 4;
+		*ncycles = sam_ram_cycles;
+	} else if (A < 0xff40) {
+		*S = 5;
+	} else if (A < 0xff60) {
+		*S = 6;
+	} else if (A < 0xffe0) {
+		*S = 7;
+		if (!RnW && A >= 0xffc0) {
+			uint_fast16_t b = 1 << ((A >> 1) & 0x0f);
+			if (A & 1) {
+				sam_register |= b;
+			} else {
+				sam_register &= ~b;
+			}
+			update_from_register();
 		}
-		return last_read;
-	}
-	if (addr < 0xff20) {
-		/* PIA0 */
-		if (IS_COCO) {
-			return last_read = mc6821_read(&PIA0, addr & 3);
-		} else {
-			if ((addr & 4) == 0) return last_read = mc6821_read(&PIA0, addr & 3);
-			/* Not yet implemented:
-			if ((addr & 7) == 4) return serial_stuff;
-			if ((addr & 7) == 5) return serial_stuff;
-			if ((addr & 7) == 6) return serial_stuff;
-			if ((addr & 7) == 7) return serial_stuff;
-			*/
-		}
-		return last_read;
-	}
-	if (addr < 0xff40) {
-		return last_read = mc6821_read(&PIA1, addr & 3);
-	}
-	if (addr < 0xff60) {
-		if (machine_cart && machine_cart->io_read) {
-			return last_read = machine_cart->io_read(addr);
-		}
-		return last_read;
-	}
-	if (addr < 0xffe0)
-		return last_read;
-	return last_read = machine_rom[addr-0xc000];
-}
-
-void sam_store_byte(uint16_t addr, uint8_t octet) {
-	if (addr < 0x8000 || (addr >= 0xff00 && addr < 0xff20)) {
-		slow_cycle(1);
 	} else {
-		fast_cycle(1);
+		*S = 2;
 	}
-	while (EVENT_PENDING(MACHINE_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
-	if (addr < 0x8000 || (map_type && addr < 0xff00)) {
-		/* RAM access */
-		unsigned int ram_addr = RAM_TRANSLATE(addr);
-		if (IS_DRAGON32 && addr >= 0x8000 && machine_ram_size <= 0x8000) {
-			ram_addr &= 0x7fff;
-			/* TODO: Assuming cartridge ROM doesn't get selected
-			 * here if present? */
-			if (ram_addr < machine_ram_size && addr < 0xc000)
-					machine_ram[ram_addr] = machine_rom[addr & 0x3fff];
-			return;
-		}
-		if (addr < machine_ram_size)
-			machine_ram[ram_addr] = octet;
-		return;
-	}
-	if (addr < 0xc000) {
-		/* BASIC ROM access */
-		return;
-	}
-	if (addr < 0xff00) {
-		/* Cartridge ROM access */
-		if (machine_cart && machine_cart->mem_writable) {
-			machine_cart->mem_data[addr & 0x3fff] = octet;
-		}
-		return;
-	}
-	if (addr < 0xff20) {
-		if (IS_COCO) {
-			mc6821_write(&PIA0, addr & 3, octet);
-		} else {
-			if ((addr & 4) == 0) mc6821_write(&PIA0, addr & 3, octet);
-			/* Not yet implemented:
-			if ((addr & 7) == 4) serial_stuff;
-			if ((addr & 7) == 5) serial_stuff;
-			if ((addr & 7) == 6) serial_stuff;
-			if ((addr & 7) == 7) serial_stuff;
-			*/
-		}
-		return;
-	}
-	if (addr < 0xff40) {
-		mc6821_write(&PIA1, addr & 3, octet);
-		return;
-	}
-	if (addr < 0xff60) {
-		if (machine_cart && machine_cart->io_write) {
-			machine_cart->io_write(addr, octet);
-		}
-		return;
-	}
-	if (addr < 0xffc0)
-		return;
-	if (addr < 0xffe0) {
-		addr -= 0xffc0;
-		if (addr & 1)
-			sam_register |= 1 << (addr>>1);
-		else
-			sam_register &= ~(1 << (addr>>1));
-		update_from_register();
-	}
+	return is_ram_access;
 }
 
-void sam_nvma_cycles(int cycles) {
-	slow_cycle(cycles);
-	while (EVENT_PENDING(MACHINE_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+/* Convenience function returns number of cycles for specified number of 6809
+ * busy cycles. */
+
+int sam_nvma_cycles(int c) {
+	return c * sam_ram_cycles;
 }
 
 void sam_vdg_hsync(void) {
 	/* The top cleared bit will, if a transition to low occurs, increment
 	 * the bits above it.  This dummy fetch will achieve the same effective
 	 * result. */
-	if (sam_vdg_address & sam_vdg_mod_add) {
-		sam_vdg_bytes(sam_vdg_mod_add, NULL);
+	if (vdg_address & vdg_mod_add) {
+		sam_vdg_bytes(vdg_mod_add, NULL);
 	}
-	sam_vdg_address &= sam_vdg_mod_clear;
+	vdg_address &= vdg_mod_clear;
 }
 
 void sam_vdg_fsync(void) {
-	sam_vdg_address = sam_vdg_base;
-	sam_vdg_xcount = 0;
-	sam_vdg_ycount = 0;
+	vdg_address = vdg_base;
+	vdg_xcount = 0;
+	vdg_ycount = 0;
 }
 
 /* This routine copies bytes for the VDG.  Why so complex?  This implements the
@@ -257,9 +164,9 @@ void sam_vdg_fsync(void) {
 
 void sam_vdg_bytes(int nbytes, uint8_t *dest) {
 	uint16_t b15_5, b4, b3_0;
-	b15_5 = sam_vdg_address & ~0x1f;
-	b4 = sam_vdg_address & 0x10;
-	b3_0 = sam_vdg_address & 0xf;
+	b15_5 = vdg_address & ~0x1f;
+	b4 = vdg_address & 0x10;
+	b3_0 = vdg_address & 0xf;
 	while (nbytes > 0) {
 		int n;
 		if (b3_0 + nbytes >= 16) {
@@ -274,7 +181,7 @@ void sam_vdg_bytes(int nbytes, uint8_t *dest) {
 			if (sam_ram_cycles == SAM_CPU_FAST_DIVISOR) {
 				src = machine_ram;
 			} else {
-				src = machine_ram + VRAM_TRANSLATE(sam_vdg_address);
+				src = machine_ram + VRAM_TRANSLATE(vdg_address);
 			}
 			memcpy(dest, src, n);
 			dest += n;
@@ -283,21 +190,21 @@ void sam_vdg_bytes(int nbytes, uint8_t *dest) {
 		nbytes -= n;
 		if (b3_0 & 0x10) {
 			b3_0 &= 0x0f;
-			sam_vdg_xcount++;
-			if (sam_vdg_xcount >= sam_vdg_mod_xdiv) {
-				sam_vdg_xcount = 0;
+			vdg_xcount++;
+			if (vdg_xcount >= vdg_mod_xdiv) {
+				vdg_xcount = 0;
 				b4 += 0x10;
 				if (b4 & 0x20) {
 					b4 &= 0x10;
-					sam_vdg_ycount++;
-					if (sam_vdg_ycount >= sam_vdg_mod_ydiv) {
-						sam_vdg_ycount = 0;
+					vdg_ycount++;
+					if (vdg_ycount >= vdg_mod_ydiv) {
+						vdg_ycount = 0;
 						b15_5 += 0x20;
 					}
 				}
 			}
 		}
-		sam_vdg_address = b15_5 | b4 | b3_0;
+		vdg_address = b15_5 | b4 | b3_0;
 	}
 }
 
@@ -311,49 +218,50 @@ unsigned int sam_get_register(void) {
 }
 
 static void update_from_register(void) {
-	int memory_size = (sam_register >> 13) & 3;
-	int mpu_rate = (sam_register >> 11) & 3;
-
 	int vdg_mode = sam_register & 7;
-	sam_vdg_base = (sam_register & 0x03f8) << 6;
-	sam_vdg_mod_xdiv = vdg_mod_xdiv[vdg_mode];
-	sam_vdg_mod_ydiv = vdg_mod_ydiv[vdg_mode];
-	sam_vdg_mod_add = vdg_mod_add[vdg_mode];
-	sam_vdg_mod_clear = vdg_mod_clear[vdg_mode];
+	vdg_base = (sam_register & 0x03f8) << 6;
+	vdg_mod_xdiv = vdg_mod_xdivs[vdg_mode];
+	vdg_mod_ydiv = vdg_mod_ydivs[vdg_mode];
+	vdg_mod_add = vdg_mod_adds[vdg_mode];
+	vdg_mod_clear = vdg_mod_clears[vdg_mode];
 
+	int memory_size = (sam_register >> 13) & 3;
 	ram_row_mask = ram_row_masks[memory_size];
 	ram_col_shift = ram_col_shifts[memory_size];
 	ram_col_mask = ram_col_masks[memory_size];
+	ram_ras1_bit = ram_ras1_bits[memory_size];
 	switch (memory_size) {
 		case 0: /* 4K */
 		case 1: /* 16K */
 			ram_page_bit = 0;
 			ram_ras1 = 0x8080;
 			break;
-		default: /* 64K */
+		default:
+		case 2:
+		case 3: /* 64K */
 			ram_page_bit = (sam_register & 0x0400) << 5;
 			ram_ras1 = 0;
 			break;
 	}
 
-	if ((map_type = sam_register & 0x8000)) {
-		/* Map type 1 */
-		if (mpu_rate == 1) {
-			/* Disallow address-dependent MPU rate in map type 1 */
-			mpu_rate = 0;
-		}
+	int mpu_rate = (sam_register >> 11) & 3;
+	map_type_1 = (0 != (sam_register & 0x8000));
+	if (map_type_1 && mpu_rate == 1) {
+		/* Disallow address-dependent MPU rate in map type 1 */
+		mpu_rate = 0;
 	}
-
 	switch (mpu_rate) {
-		case 0:
+		default:
+		case 0: /* SLOW */
 			sam_ram_cycles = SAM_CPU_SLOW_DIVISOR;
 			sam_rom_cycles = SAM_CPU_SLOW_DIVISOR;
 			break;
-		case 1:
+		case 1: /* ADDRESS DEPENDENT */
 			sam_ram_cycles = SAM_CPU_SLOW_DIVISOR;
 			sam_rom_cycles = SAM_CPU_FAST_DIVISOR;
 			break;
-		default:
+		case 2:
+		case 3: /* FAST */
 			sam_ram_cycles = SAM_CPU_FAST_DIVISOR;
 			sam_rom_cycles = SAM_CPU_FAST_DIVISOR;
 			break;

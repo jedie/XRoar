@@ -323,9 +323,7 @@ void (*xroar_kbd_translate_changed_cb)(int kbd_translate) = NULL;
 static void alloc_cart_status(void);
 static struct cart_config *get_machine_cart(void);
 static struct vdg_palette *get_machine_palette(void);
-static void do_m6809_sync(void);
 #ifdef TRACE
-static uint8_t trace_read_byte(uint16_t addr);
 static void trace_done_instruction(M6809State *state);
 #endif
 
@@ -847,11 +845,7 @@ static struct vdg_palette *get_machine_palette(void) {
 	return vp;
 };
 
-void xroar_mainloop(void) {
-	m6809_read_cycle = sam_read_byte;
-	m6809_write_cycle = sam_store_byte;
-	m6809_nvma_cycles = sam_nvma_cycles;
-	m6809_sync = do_m6809_sync;
+void xroar_run(void) {
 	m6809_interrupt_hook = NULL;
 	m6809_instruction_posthook = NULL;
 
@@ -866,7 +860,7 @@ void xroar_mainloop(void) {
 	}
 
 	while (1) {
-		sam_run(VDG_LINE_DURATION * 8);
+		machine_run(VDG_LINE_DURATION * 8);
 		while (EVENT_PENDING(UI_EVENT_LIST))
 			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
 	}
@@ -946,20 +940,7 @@ static void do_load_file(void) {
 	xroar_load_file_by_type(load_file, autorun_loaded_file);
 }
 
-static void do_m6809_sync(void) {
-	while (EVENT_PENDING(MACHINE_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
-	m6809_irq = PIA0.a.irq | PIA0.b.irq;
-	m6809_firq = PIA1.a.irq | PIA1.b.irq;
-}
-
 #ifdef TRACE
-static uint8_t trace_read_byte(uint16_t addr) {
-	unsigned int value = sam_read_byte(addr);
-	m6809_trace_byte(value, addr);
-	return value;
-}
-
 static void trace_done_instruction(M6809State *state) {
 	m6809_trace_print(state->reg_cc, state->reg_a,
 			state->reg_b, state->reg_dp,
@@ -987,11 +968,9 @@ void xroar_set_trace(int mode) {
 	}
 	xroar_trace_enabled = set_to;
 	if (xroar_trace_enabled) {
-		m6809_read_cycle = trace_read_byte;
 		m6809_interrupt_hook = m6809_trace_irq;
 		m6809_instruction_posthook = trace_done_instruction;
 	} else {
-		m6809_read_cycle = sam_read_byte;
 		m6809_interrupt_hook = NULL;
 		m6809_instruction_posthook = NULL;
 	}

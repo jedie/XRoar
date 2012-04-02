@@ -28,7 +28,6 @@
 #include "keyboard.h"
 #include "machine.h"
 #include "module.h"
-#include "sam.h"
 #include "vdg.h"
 #include "vdrive.h"
 #include "xroar.h"
@@ -512,7 +511,7 @@ static void shutdown(void) {
 
 static int run_cpu(void *data) {
 	(void)data;
-	sam_run(VDG_LINE_DURATION * 8);
+	machine_run(VDG_LINE_DURATION * 8);
 	while (EVENT_PENDING(UI_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
 	return 1;
