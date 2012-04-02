@@ -19,7 +19,7 @@
 
 #include "config.h"
 
-#include <string.h>
+#include <stdlib.h>
 
 #include "types.h"
 
@@ -141,13 +141,29 @@ int sam_nvma_cycles(int c) {
 	return c * sam_ram_cycles;
 }
 
+static void vdg_address_add(int n) {
+	uint16_t new_B = vdg_address + n;
+	if ((vdg_address ^ new_B) & 0x10) {
+		vdg_xcount = (vdg_xcount + 1) % vdg_mod_xdiv;
+		if (vdg_xcount != 0) {
+			new_B -= 0x10;
+		} else {
+			if ((vdg_address ^ new_B) & 0x20) {
+				vdg_ycount = (vdg_ycount + 1) % vdg_mod_ydiv;
+				if (vdg_ycount != 0) {
+					new_B -= 0x20;
+				}
+			}
+		}
+	}
+	vdg_address = new_B;
+}
+
 void sam_vdg_hsync(void) {
 	/* The top cleared bit will, if a transition to low occurs, increment
 	 * the bits above it.  This dummy fetch will achieve the same effective
 	 * result. */
-	if (vdg_address & vdg_mod_add) {
-		sam_vdg_bytes(vdg_mod_add, NULL);
-	}
+	vdg_address_add(vdg_mod_add);
 	vdg_address &= vdg_mod_clear;
 }
 
@@ -157,55 +173,25 @@ void sam_vdg_fsync(void) {
 	vdg_ycount = 0;
 }
 
-/* This routine copies bytes for the VDG.  Why so complex?  This implements the
- * divide-by-X and divide-by-Y parts of the SAM video address counter.  VDG
- * code will not only call this for video data, but at the end of each scanline
- * (with dest == NULL) to indicate the extra clocks a real VDG emits. */
+/* Called with the number of bytes of video data required, this implements the
+ * divide-by-X and divide-by-Y parts of the SAM video address counter.  Sets
+ * 'V' to the base address of available data and returns the actual number of
+ * bytes available.  As the next byte may not be sequential, continue calling
+ * until all required data is fetched. */
 
-void sam_vdg_bytes(int nbytes, uint8_t *dest) {
-	uint16_t b15_5, b4, b3_0;
-	b15_5 = vdg_address & ~0x1f;
-	b4 = vdg_address & 0x10;
-	b3_0 = vdg_address & 0xf;
-	while (nbytes > 0) {
-		int n;
-		if (b3_0 + nbytes >= 16) {
-			n = 16 - b3_0;
-		} else {
-			n = nbytes;
-		}
-		if (dest) {
-			uint8_t *src;
-			/* In FAST mode, the VDG does not get access to RAM.
-			 * Simulate by copying random data: */
-			if (sam_ram_cycles == SAM_CPU_FAST_DIVISOR) {
-				src = machine_ram;
-			} else {
-				src = machine_ram + VRAM_TRANSLATE(vdg_address);
-			}
-			memcpy(dest, src, n);
-			dest += n;
-		}
-		b3_0 += n;
-		nbytes -= n;
-		if (b3_0 & 0x10) {
-			b3_0 &= 0x0f;
-			vdg_xcount++;
-			if (vdg_xcount >= vdg_mod_xdiv) {
-				vdg_xcount = 0;
-				b4 += 0x10;
-				if (b4 & 0x20) {
-					b4 &= 0x10;
-					vdg_ycount++;
-					if (vdg_ycount >= vdg_mod_ydiv) {
-						vdg_ycount = 0;
-						b15_5 += 0x20;
-					}
-				}
-			}
-		}
-		vdg_address = b15_5 | b4 | b3_0;
+int sam_vdg_bytes(int nbytes, uint16_t *V, int *valid) {
+	uint16_t b3_0 = vdg_address & 0xf;
+	int is_valid = (sam_ram_cycles != SAM_CPU_FAST_DIVISOR);
+	if (valid) *valid = is_valid;
+	if (is_valid && V)
+		*V = VRAM_TRANSLATE(vdg_address);
+	if ((b3_0 + nbytes) < 16) {
+		vdg_address += nbytes;
+		return nbytes;
 	}
+	nbytes = 16 - b3_0;
+	vdg_address_add(nbytes);
+	return nbytes;
 }
 
 void sam_set_register(unsigned int value) {

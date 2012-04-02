@@ -46,6 +46,10 @@
 
 extern const unsigned int vdg_alpha[768];
 
+/* External handler to fetch data for display.  First arg is number of bytes,
+ * second a pointer to a buffer to receive them. */
+extern void (*vdg_fetch_bytes)(int, uint8_t *);
+
 void vdg_init(void);
 void vdg_reset(void);
 void vdg_set_mode(void);

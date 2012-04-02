@@ -34,6 +34,10 @@
  * border.  10 VDG cycles (20 pixels) of fudge factor! */
 #define SCAN_OFFSET (VDG_LEFT_BORDER_START + VDG_LEFT_BORDER_UNSEEN - VDG_CYCLES(10))
 
+/* External handler to fetch data for display.  First arg is number of bytes,
+ * second a pointer to a buffer to receive them. */
+void (*vdg_fetch_bytes)(int, uint8_t *);
+
 static cycle_t scanline_start;
 static int is_32byte;
 static void render_scanline(void);
@@ -223,14 +227,14 @@ static void render_scanline(void) {
 			beam_pos = 32;
 		if (!is_32byte) {
 			int nbytes = (draw_to - beam_pos) >> 4;
-			sam_vdg_bytes(nbytes, scanline_data);
+			vdg_fetch_bytes(nbytes, scanline_data);
 			if (draw_to == 288)
-				sam_vdg_bytes(6, NULL);
+				vdg_fetch_bytes(6, NULL);
 		} else {
 			int nbytes = (draw_to - beam_pos) >> 3;
-			sam_vdg_bytes(nbytes, scanline_data);
+			vdg_fetch_bytes(nbytes, scanline_data);
 			if (draw_to == 288)
-				sam_vdg_bytes(10, NULL);
+				vdg_fetch_bytes(10, NULL);
 		}
 	}
 	beam_pos = beam_to;
@@ -242,11 +246,11 @@ static void render_scanline(void) {
 static void render_scanline(void) {
 	uint8_t scanline_data[32];
 	if (!is_32byte) {
-		sam_vdg_bytes(16, scanline_data);
-		sam_vdg_bytes(6, NULL);
+		vdg_fetch_bytes(16, scanline_data);
+		vdg_fetch_bytes(6, NULL);
 	} else {
-		sam_vdg_bytes(32, scanline_data);
-		sam_vdg_bytes(10, NULL);
+		vdg_fetch_bytes(32, scanline_data);
+		vdg_fetch_bytes(10, NULL);
 	}
 	video_module->render_scanline(scanline_data);
 }
@@ -257,10 +261,10 @@ static void render_scanline(void) {
 
 static void render_scanline(void) {
 	if (!is_32byte) {
-		sam_vdg_bytes(22, scanline_data_ptr);
+		vdg_fetch_bytes(22, scanline_data_ptr);
 		scanline_data_ptr += 16;
 	} else {
-		sam_vdg_bytes(42, scanline_data_ptr);
+		vdg_fetch_bytes(42, scanline_data_ptr);
 		scanline_data_ptr += 32;
 	}
 }

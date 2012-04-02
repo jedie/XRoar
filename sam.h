@@ -17,7 +17,7 @@ int sam_run(uint16_t A, int RnW, int *S, uint16_t *Z, int *ncycles);
 int sam_nvma_cycles(int c);
 void sam_vdg_hsync(void);
 void sam_vdg_fsync(void);
-void sam_vdg_bytes(int nbytes, uint8_t *dest);
+int sam_vdg_bytes(int nbytes, uint16_t *V, int *valid);
 void sam_set_register(unsigned int value);
 unsigned int sam_get_register(void);
 

@@ -100,6 +100,7 @@ static uint8_t read_cycle(uint16_t A);
 static void write_cycle(uint16_t A, uint8_t D);
 static void nvma_cycles(int ncycles);
 static void sync(void);
+static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
 /**************************************************************************/
 
@@ -331,6 +332,7 @@ void machine_init(void) {
 	m6809_write_cycle = write_cycle;
 	m6809_nvma_cycles = nvma_cycles;
 	m6809_sync = sync;
+	vdg_fetch_bytes = vdg_fetch_handler;
 }
 
 void machine_shutdown(void) {
@@ -560,6 +562,22 @@ static void sync(void) {
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 	m6809_irq = PIA0.a.irq | PIA0.b.irq;
 	m6809_firq = PIA1.a.irq | PIA1.b.irq;
+}
+
+static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
+	while (nbytes > 0) {
+		uint16_t V = 0;
+		int valid;
+		int n = sam_vdg_bytes(nbytes, &V, &valid);
+		if (dest) {
+			if (valid) {
+				V = decode_Z(V);
+			}
+			memcpy(dest, machine_ram + V, n);
+			dest += n;
+		}
+		nbytes -= n;
+	}
 }
 
 #ifndef FAST_SOUND
