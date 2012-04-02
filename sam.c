@@ -42,13 +42,8 @@ static int sam_vdg_mod_add;
 static uint16_t sam_vdg_mod_clear;
 static int sam_vdg_xcount;
 static int sam_vdg_ycount;
-#ifdef VARIABLE_MPU_RATE
 static int sam_ram_cycles;
 static int sam_rom_cycles;
-#else
-# define sam_ram_cycles SAM_CPU_SLOW_DIVISOR
-# define sam_rom_cycles SAM_CPU_SLOW_DIVISOR
-#endif
 
 static int cycles_remaining = 0;
 
@@ -85,7 +80,6 @@ static inline void slow_cycle(int n) {
 		m6809_running = 0;
 }
 
-#ifdef VARIABLE_MPU_RATE
 static inline void fast_cycle(int n) {
 	int cycles = n * sam_rom_cycles;
 	current_cycle += cycles;
@@ -93,9 +87,6 @@ static inline void fast_cycle(int n) {
 	if (cycles_remaining <= 0)
 		m6809_running = 0;
 }
-#else
-# define fast_cycle(n) slow_cycle(n)
-#endif
 
 void sam_init(void) {
 }
@@ -353,7 +344,6 @@ static void update_from_register(void) {
 		}
 	}
 
-#ifdef VARIABLE_MPU_RATE
 	switch (mpu_rate) {
 		case 0:
 			sam_ram_cycles = SAM_CPU_SLOW_DIVISOR;
@@ -368,5 +358,4 @@ static void update_from_register(void) {
 			sam_rom_cycles = SAM_CPU_FAST_DIVISOR;
 			break;
 	}
-#endif
 }

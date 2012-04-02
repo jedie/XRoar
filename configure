@@ -16,7 +16,7 @@ unset target_sdl_config build_sdl_config
 unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw mpu_rate trace fast_vdg fast_sound logging"
+all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw trace fast_vdg fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -65,7 +65,6 @@ Optional Features:
   --disable-gp32        don't test for GP32
   --disable-nds         don't test for Nintendo DS
   --disable-trace       disable trace mode
-  --disable-mpu-rate    disable setting of emulated MPU rate
   --enable-fast-vdg     enable faster but less accurate VDG code
   --enable-fast-sound   enable faster but less accurate sound code
 
@@ -616,7 +615,6 @@ if test "$_gp32" = "yes"; then
 	_mingw=no
 	_nds=no
 	_trace=no
-	test -z "$_mpu_rate" && _mpu_rate=no
 	test -z "$_fast_sound" && _fast_sound=yes
 	test -z "$_logging" && _logging=no
 else
@@ -661,7 +659,6 @@ if test "$_nds" = "yes"; then
 	_linux_joystick=no
 	_mingw=no
 	_trace=no
-	test -z "$_mpu_rate" && _mpu_rate=no
 	test -z "$_fast_sound" && _fast_sound=yes
 	test -z "$_logging" && _logging=no
 else
@@ -1193,15 +1190,6 @@ if test "$_cli" = "yes"; then
 	_cli_def="#define HAVE_CLI"
 else
 	_cli_def="#undef HAVE_CLI"
-fi
-
-########
-
-test -z "$_mpu_rate" && _mpu_rate=yes
-if test "$_mpu_rate" = "yes"; then
-	_mpu_rate_def="#define VARIABLE_MPU_RATE"
-else
-	_mpu_rate_def="#undef VARIABLE_MPU_RATE"
 fi
 
 ########
