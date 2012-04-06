@@ -60,7 +60,6 @@ static UIModule *default_ui_module_list[] = {
 extern FileReqModule filereq_cocoa_module;
 extern FileReqModule filereq_windows32_module;
 extern FileReqModule filereq_gtk2_module;
-extern FileReqModule filereq_gtk1_module;
 extern FileReqModule filereq_cli_module;
 static FileReqModule *default_filereq_module_list[] = {
 #ifdef HAVE_COCOA
@@ -71,9 +70,6 @@ static FileReqModule *default_filereq_module_list[] = {
 #endif
 #ifdef HAVE_GTK2
 	&filereq_gtk2_module,
-#endif
-#ifdef HAVE_GTK1
-	&filereq_gtk1_module,
 #endif
 #ifdef HAVE_CLI
 	&filereq_cli_module,

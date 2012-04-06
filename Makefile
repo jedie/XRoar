@@ -131,17 +131,6 @@ curses:
 	mkdir -p curses
 endif
 
-opt_gtk1_OBJS = gtk1/filereq_gtk1.o
-CLEAN += $(opt_gtk1_OBJS)
-ifeq ($(opt_gtk1),yes)
-	xroar_opt_OBJS += $(opt_gtk1_OBJS)
-	xroar_opt_CFLAGS += $(opt_gtk1_CFLAGS)
-	xroar_opt_LDFLAGS += $(opt_gtk1_LDFLAGS)
-$(opt_gtk1_OBJS): | gtk1
-gtk1:
-	mkdir -p gtk1
-endif
-
 opt_cli_OBJS = filereq_cli.o
 CLEAN += $(opt_cli_OBJS)
 ifeq ($(opt_cli),yes)

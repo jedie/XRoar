@@ -13,10 +13,9 @@ unset EXEEXT
 
 unset target_pkg_config build_pkg_config
 unset target_sdl_config build_sdl_config
-unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
+all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -52,7 +51,6 @@ Optional Features:
   --disable-sdl         don't test for SDL
   --disable-sdlgl       don't test for SDL OpenGL support
   --enable-curses       build Curses user-interface
-  --disable-gtk1        don't test for GTK+-1
   --disable-cocoa       don't test for Mac OS X Cocoa
   --disable-alsa        don't test for ALSA audio
   --disable-oss         don't test for OSS audio
@@ -68,7 +66,6 @@ Optional Features:
 
   --with-sdl-config=PATH   set path to sdl-config script
   --with-pkg-config=PATH   set path to pkg-config script
-  --with-gtk-config=PATH   set path to gtk-config script
   --with-makeinfo=PATH     set path to makeinfo
   --with-texi2pdf=PATH     set path to texi2pdf
   --with-install=PATH      set path to install
@@ -157,16 +154,10 @@ while test -n "$1"; do
 		sdl_includes="$_tmp/include"
 		sdl_libs="$_tmp/lib"
 		;;
-	--with-gtk-config=*) gtk_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--with-gtk2=*)
 		_tmp=`echo "$opt"|sed 's/^[^=]*=//'`
 		gtk2_includes="$_tmp/include"
 		gtk2_libs="$_tmp/lib"
-		;;
-	--with-gtk1=*)
-		_tmp=`echo "$opt"|sed 's/^[^=]*=//'`
-		gtk1_includes="$_tmp/include"
-		gtk1_libs="$_tmp/lib"
 		;;
 	--with-pkg-config=*) target_pkg_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--with-makeinfo=*) MAKEINFO=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -627,7 +618,6 @@ EOF
 fi
 if test "$_gtk2" = "yes"; then
 	_gtk2_def="#define HAVE_GTK2"
-	test -z "$_gtk1" && _gtk1=no
 else
 	_gtk2_def="#undef HAVE_GTK2"
 	test -z "$_gtkgl" && _gtkgl=no
@@ -780,39 +770,6 @@ if test "$_curses" = "yes"; then
 	test -z "$_cli" && _cli=yes
 else
 	_curses_def="#undef HAVE_CURSES"
-fi
-
-########
-
-if test -z "$target_gtk_config"; then
-	if ( "$target-gtk-config" --version ) > /dev/null 2>&1; then
-		target_gtk_config="$target-gtk-config"
-	elif ( gtk-config --version ) > /dev/null 2>&1; then
-		target_gtk_config="gtk-config"
-	else
-		target_gtk_config="false"
-	fi
-fi
-
-if test "$_gtk1" \!= "no"; then
-	echocheck GTK+-1
-	test -z "$gtk1_cflags" && gtk1_cflags=`$target_gtk_config --cflags 2> /dev/null`
-	test -z "$gtk1_cflags" && gtk1_cflags=`$target_pkg_config --cflags gtk+ 2> /dev/null`
-	test -z "$gtk1_ldflags" && gtk1_ldflags=`$target_gtk_config --libs 2> /dev/null`
-	test -z "$gtk1_ldflags" && gtk1_ldflags=`$target_pkg_config --libs gtk+ 2> /dev/null`
-	cat > $TMPC <<EOF
-#include <gtk/gtk.h>
-int main(int argc, char **argv) { gtk_init(&argc, &argv); return 0; }
-EOF
-	_gtk1=no
-	target_cc_check "$gtk1_cflags" "$gtk1_ldflags" && _gtk1=yes
-	rm -f $TMPC
-	echo "$_gtk1"
-fi
-if test "$_gtk1" = "yes"; then
-	_gtk1_def="#define HAVE_GTK1"
-else
-	_gtk1_def="#undef HAVE_GTK1"
 fi
 
 ########
