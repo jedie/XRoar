@@ -275,12 +275,6 @@ endif
 ############################################################################
 # Build rules
 
-# GP32 rules
-include gp32/makefile_gp32.mk
-
-# Nintendo DS rules
-include nds/makefile_nds.mk
-
 # Unix rules (default)
 ifeq ($(BUILD_STYLE),)
 

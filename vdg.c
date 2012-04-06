@@ -17,6 +17,8 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 
 #include "types.h"
@@ -51,11 +53,6 @@ static int inhibit_mode_change;
 # define beam_to (320)
 #endif
 
-#ifdef HAVE_NDS
-uint8_t scanline_data[6154];
-static uint8_t *scanline_data_ptr;
-#endif
-
 static int scanline;
 static int frame;
 
@@ -64,10 +61,6 @@ static void do_hs_fall(void);
 static void do_hs_rise(void);
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
-
-#ifdef HAVE_NDS
-int nds_update_screen = 0;
-#endif
 
 void vdg_init(void) {
 	event_init(&hs_fall_event);
@@ -88,29 +81,10 @@ void vdg_reset(void) {
 #ifndef FAST_VDG
 	inhibit_mode_change = 0;
 #endif
-#ifdef HAVE_NDS
-	scanline_data_ptr = scanline_data;
-#endif
 }
 
 static void do_hs_fall(void) {
 	/* Finish rendering previous scanline */
-#ifdef HAVE_GP32
-	/* GP32 renders 4 scanlines at once */
-	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START
-			&& scanline < VDG_ACTIVE_AREA_END
-			&& (scanline & 3) == ((VDG_ACTIVE_AREA_START+3)&3)
-			) {
-		video_module->render_scanline();
-	}
-#elif defined (HAVE_NDS)
-	/* NDS video module does its own thing */
-	if (scanline >= VDG_ACTIVE_AREA_START
-			&& scanline < VDG_ACTIVE_AREA_END) {
-		render_scanline();
-		sam_vdg_hsync();
-	}
-#else
 	/* Normal code */
 	if (frame == 0 && scanline >= (VDG_TOP_BORDER_START + 1)) {
 		if (scanline < VDG_ACTIVE_AREA_START) {
@@ -123,7 +97,6 @@ static void do_hs_fall(void) {
 			video_module->render_border();
 		}
 	}
-#endif
 
 	/* HS falling edge */
 	PIA_RESET_Cx1(PIA0.a);
@@ -146,7 +119,7 @@ static void do_hs_fall(void) {
 #ifndef FAST_VDG
 	event_queue(&MACHINE_EVENT_LIST, &hs_rise_event);
 #else
-	/* Faster, less accurate timing for GP32/NDS */
+	/* Faster, less accurate timing */
 	PIA_SET_Cx1(PIA0.a);
 #endif
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
@@ -158,9 +131,6 @@ static void do_hs_fall(void) {
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END)) {
 		/* FS falling edge */
 		PIA_RESET_Cx1(PIA0.b);
-#ifdef HAVE_NDS
-		nds_update_screen = 1;
-#endif
 	}
 	if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
 		/* FS rising edge */
@@ -170,15 +140,11 @@ static void do_hs_fall(void) {
 	/* Frame sync */
 	if (scanline == SCANLINE(VDG_VBLANK_START)) {
 		sam_vdg_fsync();
-#ifndef HAVE_NDS
 		frame--;
 		if (frame < 0)
 			frame = xroar_frameskip;
 		if (frame == 0)
 			video_module->vsync();
-#else
-		scanline_data_ptr = scanline_data;
-#endif
 	}
 
 #ifndef FAST_VDG
@@ -203,8 +169,6 @@ static void do_hs_rise(void) {
 /* Two versions of render_scanline(): first accounts for mid-scanline mode
  * changes and only fetches as many bytes from the SAM as required, second
  * does a whole scanline at a time. */
-
-#ifndef HAVE_NDS
 
 #ifndef FAST_VDG
 
@@ -257,29 +221,12 @@ static void render_scanline(void) {
 
 #endif  /* ndef FAST_VDG */
 
-#else  /* HAVE_NDS */
-
-static void render_scanline(void) {
-	if (!is_32byte) {
-		vdg_fetch_bytes(22, scanline_data_ptr);
-		scanline_data_ptr += 16;
-	} else {
-		vdg_fetch_bytes(42, scanline_data_ptr);
-		scanline_data_ptr += 32;
-	}
-}
-
-#endif  /* ndef HAVE_NDS */
-
 void vdg_set_mode(void) {
 	int mode;
 #ifndef FAST_VDG
-	/* No need to inhibit mode changes during borders on GP32/NDS, as
-	 * they're not rendered anyway. */
 	if (inhibit_mode_change)
 		return;
-	/* Render scanline so far before changing modes (disabled for speed
-	 * on GP32/NDS). */
+	/* Render scanline so far before changing modes */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
 		render_scanline();
 	}

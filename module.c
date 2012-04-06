@@ -33,8 +33,6 @@
 extern UIModule ui_gtk2_module;
 extern UIModule ui_macosx_module;
 extern UIModule ui_sdl_module;
-extern UIModule ui_gp32_module;
-extern UIModule ui_nds_module;
 extern UIModule ui_curses_module;
 extern UIModule ui_null_module;
 static UIModule *default_ui_module_list[] = {
@@ -49,12 +47,6 @@ static UIModule *default_ui_module_list[] = {
 #else
 	&ui_sdl_module,
 #endif
-#endif
-#ifdef HAVE_GP32
-	&ui_gp32_module,
-#endif
-#ifdef HAVE_NDS
-	&ui_nds_module,
 #endif
 #ifdef HAVE_CURSES
 	&ui_curses_module,

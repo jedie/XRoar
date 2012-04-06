@@ -16,7 +16,7 @@ unset target_sdl_config build_sdl_config
 unset target_gtk_config
 unset _have_video_driver
 
-all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile gp32 nds mingw trace fast_vdg fast_sound logging"
+all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses gtk1 cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -62,8 +62,6 @@ Optional Features:
   --enable-jack         test for JACK audio
   --disable-nullaudio   don't include null audio driver
   --disable-mingw       don't test for MinGW
-  --disable-gp32        don't test for GP32
-  --disable-nds         don't test for Nintendo DS
   --disable-trace       disable trace mode
   --enable-fast-vdg     enable faster but less accurate VDG code
   --enable-fast-sound   enable faster but less accurate sound code
@@ -549,120 +547,6 @@ EOF
 		TARGET_OBJC="$TARGET_OBJC -pipe"
 	fi
 	rm -f $TMPM
-fi
-
-########
-
-# Check for specific architectures being selected
-
-if test "$_gp32" = "yes"; then
-	_nds=no
-fi
-
-if test "$_nds" = "yes"; then
-	_gp32=no
-fi
-
-########
-
-# Rather involved tests to see if we can build against the GP32 SDK.
-# Omits testing for the gpsound library, as I don't use that.
-if test "$_gp32" \!= "no"; then
-	echocheck GP32
-	gp32_cflags="-march=armv4t -mtune=arm920t -fomit-frame-pointer -ffast-math"
-	gp32_ldflags="-specs=gp32_gpsdk.specs -lgpmem -lgpstdlib -lgpos -lgpstdio -lgpgraphic"
-	_gp32=no
-	cat > $TMPC <<EOF
-#include <gpdef.h>
-#include <gpstdlib.h>
-#include <initval_port.h>
-#ifdef USE_GP_MEM
-#include <gpmem.h>
-#endif
-#include <gpgraphic.h>
-unsigned int HEAPSTART;
-unsigned int HEAPEND;
-int main(int argc, char *argv) { return 0; }
-int GpPredefinedStackGet(H_THREAD th) { return 0; }
-void GpMain(void *arg) { GPDRAWSURFACE g; GpGraphicModeSet(GPC_DFLAG_8BPP, NULL); GpLcdSurfaceGet(&g, 0); }
-void GpProcSound(void) { }
-EOF
-	target_cc_check "$gp32_cflags" "$gp32_ldflags" && _gp32=yes
-	rm -f $TMPC
-	echo "$_gp32"
-fi
-if test "$_gp32" = "yes"; then
-	BUILD_STYLE=gp32
-	_gp32_def="#define HAVE_GP32"
-	_have_video_driver=yes
-	_fast_vdg=yes
-	_gtk2=no
-	_gtkgl=no
-	_sdl=no
-	_sdlgl=no
-	_curses=no
-	_gtk1=no
-	_cli=no
-	_cocoa=no
-	_alsa=no
-	_oss=no
-	_pulse=no
-	_sunaudio=no
-	_coreaudio=no
-	_jack=no
-	_nullaudio=no
-	_linux_joystick=no
-	_mingw=no
-	_nds=no
-	_trace=no
-	test -z "$_fast_sound" && _fast_sound=yes
-	test -z "$_logging" && _logging=no
-else
-	_gp32_def="#undef HAVE_GP32"
-fi
-
-########
-
-if test "$_nds" \!= "no"; then
-	echocheck NDS
-	nds_cflags="-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -mthumb-interwork -DARM9"
-	nds_ldflags="-specs=ds_arm9.specs -lfat -lnds9"
-	cat > $TMPC <<EOF
-#include <nds.h>
-int main(int argc, char **argv) { powerOn(POWER_LCD | POWER_2D_B); return 0; }
-EOF
-	_nds=no
-	target_cc_check "$nds_cflags" "$nds_ldflags" && _nds=yes
-	rm -f $TMPC
-	echo "$_nds"
-fi
-if test "$_nds" = "yes"; then
-	BUILD_STYLE=nds
-	_nds_def="#define HAVE_NDS"
-	_have_video_driver=yes
-	_fast_vdg=yes
-	_gtk2=no
-	_gtkgl=no
-	_sdl=no
-	_sdlgl=no
-	_curses=no
-	_gtk1=no
-	_cli=no
-	_cocoa=no
-	_alsa=no
-	_oss=no
-	_pulse=no
-	_sunaudio=no
-	_coreaudio=no
-	_jack=no
-	_nullaudio=no
-	_linux_joystick=no
-	_mingw=no
-	_trace=no
-	test -z "$_fast_sound" && _fast_sound=yes
-	test -z "$_logging" && _logging=no
-else
-	_nds_def="#undef HAVE_NDS"
 fi
 
 ########
@@ -1313,10 +1197,6 @@ esac
 if test \! -f Makefile; then
 	echo "Symlinking Makefile"
 	ln -s "$SRCROOT"/Makefile Makefile
-	mkdir -p gp32
-	ln -s "$RELSRCROOT"/gp32/makefile_gp32.mk gp32/makefile_gp32.mk
-	mkdir -p nds
-	ln -s "$RELSRCROOT"/nds/makefile_nds.mk nds/makefile_nds.mk
 fi
 
 exec 3<&-
