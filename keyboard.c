@@ -258,7 +258,10 @@ static const char *basic_command = NULL;
 static void type_command(M6809State *cpu_state);
 
 static struct breakpoint basic_command_breakpoint[] = {
-	{ .flags = BP_DRAGON_ROM, .address = 0xbbe7, .handler = type_command },
+	{ .flags = BP_DRAGON_ROM, .address = 0xbbe5, .handler = type_command },
+	/* CoCo COLOR BASIC 1.0 points this to $A1C1, later versions point to
+	 * $A1CB, but the entry point at A1C1 is still valid */
+	{ .flags = BP_COCO_ROM, .address = 0xa1c1, .handler = type_command },
 	{ .flags = BP_COCO_ROM, .address = 0xa1cb, .handler = type_command },
 };
 
@@ -294,7 +297,6 @@ static void type_command(M6809State *cpu_state) {
 		}
 	}
 	/* Use CPU read routine to pull return address back off stack */
-	cpu_state->reg_s += 3;
 	cpu_state->reg_pc = (m6809_read_cycle(cpu_state->reg_s) << 8) | m6809_read_cycle(cpu_state->reg_s+1);
 	cpu_state->reg_s += 2;
 }
