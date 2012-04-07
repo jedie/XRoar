@@ -40,6 +40,7 @@ static uint16_t crc16_table[256] = {
 	0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 };
 
+/*
 static uint16_t crc16;
 
 void crc16_set_value(uint16_t value) {
@@ -49,13 +50,14 @@ void crc16_set_value(uint16_t value) {
 uint16_t crc16_value(void) {
 	return crc16;
 }
+*/
 
-void crc16_byte(uint8_t value) {
-	uint16_t tmp = crc16;
-	crc16 = (tmp << 8) ^ crc16_table[(tmp >> 8) ^ value];
+uint16_t crc16_byte(uint16_t crc, uint8_t value) {
+	return (crc << 8) ^ crc16_table[(crc >> 8) ^ value];
 }
 
-void crc16_block(uint8_t *block, int length) {
+uint16_t crc16_block(uint16_t crc, uint8_t *block, int length) {
 	for (; length; length--)
-		crc16_byte(*(block++));
+		crc = crc16_byte(crc, *(block++));
+	return crc;
 }

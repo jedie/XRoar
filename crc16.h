@@ -8,11 +8,9 @@
 
 #include "types.h"
 
-#define crc16_reset() crc16_set_value(0xffff)
+#define CRC16_RESET (0xffff)
 
-void crc16_set_value(uint16_t value);
-uint16_t crc16_value(void);
-void crc16_byte(uint8_t value);
-void crc16_block(uint8_t *block, int length);
+uint16_t crc16_byte(uint16_t crc, uint8_t value);
+uint16_t crc16_block(uint16_t crc, uint8_t *block, int length);
 
 #endif  /* XROAR_CRC16_H_ */

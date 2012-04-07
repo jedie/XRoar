@@ -22,7 +22,6 @@
 #include <string.h>
 
 #include "types.h"
-#include "crc16.h"
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -248,7 +247,6 @@ void vdrive_write(uint8_t data) {
 		}
 		head_pos++;
 	}
-	crc16_byte(data);
 	if (head_pos >= current_drive->disk->track_length) {
 		vdrive_index_pulse = 1;
 	}
@@ -269,7 +267,6 @@ uint8_t vdrive_read(void) {
 		ret = track_base[head_pos] & 0xff;
 	}
 	head_pos += head_incr;
-	crc16_byte(ret);
 	if (head_pos >= current_drive->disk->track_length) {
 		vdrive_index_pulse = 1;
 	}
@@ -296,7 +293,6 @@ void vdrive_write_idam(void) {
 		qsort(idamptr, 64, sizeof(uint16_t), compar_idams);
 	}
 	head_pos += head_incr;
-	crc16_byte(0xfe);
 	if (head_pos >= current_drive->disk->track_length) {
 		vdrive_index_pulse = 1;
 	}

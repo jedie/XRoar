@@ -457,13 +457,12 @@ static unsigned int sect_interleave[18] =
 
 #define WRITE_BYTE_CRC(v) do { \
 		WRITE_BYTE(v); \
-		crc16_byte(v); \
+		crc = crc16_byte(crc, v); \
 	} while (0)
 
 #define WRITE_CRC() do { \
-		uint16_t tmpcrc = crc16_value(); \
-		data[offset++] = (tmpcrc & 0xff00) >> 8; \
-		data[offset++] = tmpcrc & 0xff; \
+		data[offset++] = (crc & 0xff00) >> 8; \
+		data[offset++] = crc & 0xff; \
 	} while (0)
 
 int vdisk_format_disk(struct vdisk *disk, int density,
@@ -484,8 +483,8 @@ int vdisk_format_disk(struct vdisk *disk, int density,
 			WRITE_BYTE(0xfc);
 			for (i = 0; i < 32; i++) data[offset++] = 0x4e;
 			for (sector = 0; sector < num_sectors; sector++) {
+				uint16_t crc = CRC16_RESET;
 				for (i = 0; i < 8; i++) data[offset++] = 0x00;
-				crc16_reset();
 				for (i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
 				idams[idam++] = offset | density;
 				WRITE_BYTE_CRC(0xfe);
@@ -496,7 +495,7 @@ int vdisk_format_disk(struct vdisk *disk, int density,
 				WRITE_CRC();
 				for (i = 0; i < 22; i++) WRITE_BYTE(0x4e);
 				for (i = 0; i < 12; i++) WRITE_BYTE(0x00);
-				crc16_reset();
+				crc = CRC16_RESET;
 				for (i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
 				WRITE_BYTE_CRC(0xfb);
 				for (i = 0; i < ssize; i++)
@@ -518,6 +517,7 @@ int vdisk_update_sector(struct vdisk *disk, int side, int track,
 	uint16_t *idams;
 	unsigned int offset;
 	int ssize, i;
+	uint16_t crc;
 	if (disk == NULL) return -1;
 	idams = vdisk_track_base(disk, side, track);
 	if (idams == NULL) return -1;
@@ -533,7 +533,7 @@ int vdisk_update_sector(struct vdisk *disk, int side, int track,
 	offset += 7;
 	offset += 22;
 	for (i = 0; i < 12; i++) WRITE_BYTE(0x00);
-	crc16_reset();
+	crc = CRC16_RESET;
 	for (i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
 	WRITE_BYTE_CRC(0xfb);
 	for (i = 0; i < sector_length; i++) {
