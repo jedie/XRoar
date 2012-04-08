@@ -25,6 +25,7 @@
 #include "types.h"
 
 #include "breakpoint.h"
+#include "crc16.h"
 #include "list.h"
 #include "m6809.h"
 #include "machine.h"
@@ -39,6 +40,15 @@ static void bp_instruction_hook(M6809State *cpu_state);
 /**************************************************************************/
 
 void bp_add(struct breakpoint *bp) {
+	unsigned int flags = IS_DRAGON ? BP_DRAGON : BP_COCO;
+	if ((bp->flags & flags) != flags)
+		return;
+	if (bp->crc_nbytes > 0) {
+		uint16_t crc = crc16_block(CRC16_RESET, &machine_rom[bp->crc_address & 0x3fff], bp->crc_nbytes);
+		if (crc != bp->crc) {
+			return;
+		}
+	}
 	switch (bp->type) {
 	case BP_INSTRUCTION:
 		bp_instruction_list = list_prepend(bp_instruction_list, bp);
@@ -80,10 +90,9 @@ void bp_remove_n(struct breakpoint *bp, int n) {
 
 static void bp_instruction_hook(M6809State *cpu_state) {
 	struct list *iter;
-	int pc = cpu_state->reg_pc;
-	int flags = IS_DRAGON ? BP_DRAGON : BP_COCO;
+	uint16_t pc = cpu_state->reg_pc;
 	unsigned int sam_register = sam_get_register();
-	flags |= (sam_register & 0x0400) ? BP_PAGE_1 : BP_PAGE_0;
+	unsigned int flags = (sam_register & 0x0400) ? BP_PAGE_1 : BP_PAGE_0;
 	flags |= (sam_register & 0x8000) ? BP_MAP_TYPE_1 : BP_MAP_TYPE_0;
 	iter = bp_instruction_list;
 	while (iter) {

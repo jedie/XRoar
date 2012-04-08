@@ -26,9 +26,14 @@ enum bp_type {
 
 struct breakpoint {
 	enum bp_type type;
-	int flags;
-	int address;
+	unsigned int flags;
+	uint16_t address;
 	void (*handler)(M6809State *);
+	/* If crc_nbytes > 0, breakpoint only added if CRC16 from given base
+	 * address matches. */
+	int crc_nbytes;
+	uint16_t crc_address;
+	uint16_t crc;
 };
 
 #define bp_add_list(bp) bp_add_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
