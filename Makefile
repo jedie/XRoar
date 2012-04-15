@@ -12,6 +12,17 @@ DISTNAME = xroar-$(VERSION)
 .PHONY: all
 all: build-bin build-doc
 
+.PHONY: profile-generate profile-use
+profile-generate: CFLAGS += -fprofile-generate
+profile-generate: CXXFLAGS += -fprofile-generate
+profile-generate: OBJCFLAGS += -fprofile-generate
+profile-generate: LDFLAGS += -fprofile-generate
+profile-use: CFLAGS += -fprofile-use
+profile-use: CXXFLAGS += -fprofile-use
+profile-use: OBJCFLAGS += -fprofile-use
+profile-use: LDFLAGS += -fprofile-use
+profile-generate profile-use: all
+
 ############################################################################
 # Base object files and settings required by all builds
 
