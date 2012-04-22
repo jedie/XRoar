@@ -30,79 +30,14 @@
 #include "romlist.h"
 #include "xroar.h"
 
-/* Built-in rom lists */
-struct romlist_builtin {
-	const char *name;
-	const char **list;
-	int flag;
-};
-
 /* User defined rom lists */
 struct romlist {
-	char *name;
 	GSList *list;
 	int flag;
 };
 
-/* List of all user defined rom lists */
-static GSList *romlist_list = NULL;
-
-/* Fallback Dragon BASIC */
-static const char *romlist_dragon[] = { "dragon", NULL };
-static const char *romlist_d64_1[] = { "d64_1", "d64rom1", "Dragon Data Ltd - Dragon 64 - IC17", "dragrom", NULL };
-static const char *romlist_d64_2[] = { "d64_2", "d64rom2", "Dragon Data Ltd - Dragon 64 - IC18", NULL };
-static const char *romlist_d32[] = { "d32", "dragon32", "d32rom", "Dragon Data Ltd - Dragon 32 - IC17", NULL };
-/* Specific Dragon BASIC */
-static const char *romlist_dragon64[] = { "@d64_1", "@dragon", NULL };
-static const char *romlist_dragon64_alt[] = { "@d64_2", NULL };
-static const char *romlist_dragon32[] = { "@d32", "@dragon", NULL };
-/* Fallback CoCo BASIC */
-static const char *romlist_coco[] = { "bas13", "bas12", "bas11", "bas10", NULL };
-static const char *romlist_coco_ext[] = { "extbas11", "extbas10", NULL };
-/* Specific CoCo BASIC */
-static const char *romlist_coco1[] = { "bas10", "@coco", NULL };
-static const char *romlist_coco1e[] = { "bas11", "@coco", NULL };
-static const char *romlist_coco1e_ext[] = { "extbas10", "@coco_ext", NULL };
-static const char *romlist_coco2[] = { "bas12", "@coco", NULL };
-static const char *romlist_coco2_ext[] = { "extbas11", "@coco_ext", NULL };
-static const char *romlist_coco2b[] = { "bas13", "@coco", NULL };
-
-/* DragonDOS */
-static const char *romlist_dragondos[] = { "ddos40", "ddos15", "ddos10", "Dragon Data Ltd - DragonDOS 1.0", NULL };
-static const char *romlist_dosplus[] = { "dplus49b", "dplus48", "dosplus-4.8", "DOSPLUS", NULL };
-static const char *romlist_superdos[] = { "sdose6", "PNP - SuperDOS E6", "sdose5", "sdose4", NULL };
-static const char *romlist_cumana[] = { "cdos20", "CDOS20", NULL };
-static const char *romlist_dragondos_compat[] = { "@dosplus", "@superdos", "@dragondos", "@cumana", NULL };
-/* RSDOS */
-static const char *romlist_rsdos[] = { "disk11", "disk10", NULL };
-/* Delta */
-static const char *romlist_delta[] = { "delta", "deltados", "Premier Micros - DeltaDOS", NULL };
-
-static struct romlist_builtin romlist_builtins[] = {
-	{ .name = "dragon", .list = romlist_dragon, },
-	{ .name = "d64_1", .list = romlist_d64_1, },
-	{ .name = "d64_2", .list = romlist_d64_2, },
-	{ .name = "d32", .list = romlist_d32, },
-	{ .name = "dragon64", .list = romlist_dragon64, },
-	{ .name = "dragon64_alt", .list = romlist_dragon64_alt, },
-	{ .name = "dragon32", .list = romlist_dragon32, },
-	{ .name = "coco", .list = romlist_coco, },
-	{ .name = "coco_ext", .list = romlist_coco_ext, },
-	{ .name = "coco1", .list = romlist_coco1, },
-	{ .name = "coco1e", .list = romlist_coco1e, },
-	{ .name = "coco1e_ext", .list = romlist_coco1e_ext, },
-	{ .name = "coco2", .list = romlist_coco2, },
-	{ .name = "coco2_ext", .list = romlist_coco2_ext, },
-	{ .name = "coco2b", .list = romlist_coco2b, },
-	{ .name = "dragondos", .list = romlist_dragondos, },
-	{ .name = "dosplus", .list = romlist_dosplus, },
-	{ .name = "superdos", .list = romlist_superdos, },
-	{ .name = "cumana", .list = romlist_cumana, },
-	{ .name = "dragondos_compat", .list = romlist_dragondos_compat, },
-	{ .name = "rsdos", .list = romlist_rsdos, },
-	{ .name = "delta", .list = romlist_delta, },
-};
-#define NUM_ROM_LIST_BUILTINS (int)(sizeof(romlist_builtins)/sizeof(struct romlist_builtin))
+/* Hash containing all defined rom lists */
+static GHashTable *romlist_hash = NULL;
 
 static const char *rom_extensions[] = {
 	"", ".rom", ".ROM", ".dgn", ".DGN"
@@ -111,43 +46,46 @@ static const char *rom_extensions[] = {
 
 /**************************************************************************/
 
-static struct romlist_builtin *builtin_by_name(const char *name) {
-	int i;
-	if (!name) return NULL;
-	for (i = 0; i < NUM_ROM_LIST_BUILTINS; i++) {
-		if (0 == strcmp(name, romlist_builtins[i].name))
-			return &romlist_builtins[i];
-	}
-	return NULL;
+static void init_romlist_hash(void) {
+	if (romlist_hash)
+		return;
+
+	romlist_hash = g_hash_table_new(g_str_hash, g_str_equal);
+
+	/* Fallback Dragon BASIC */
+	romlist_assign("dragon=dragon");
+	romlist_assign("d64_1=d64_1,d64rom1,Dragon Data Ltd - Dragon 64 - IC17,dragrom");
+	romlist_assign("d64_2=d64_2,d64rom2,Dragon Data Ltd - Dragon 64 - IC18");
+	romlist_assign("d32=d32,dragon32,d32rom,Dragon Data Ltd - Dragon 32 - IC17");
+	/* Specific Dragon BASIC */
+	romlist_assign("dragon64=@d64_1,@dragon");
+	romlist_assign("dragon64_alt=@d64_2");
+	romlist_assign("dragon32=@d32,@dragon");
+	/* Fallback CoCo BASIC */
+	romlist_assign("coco=bas13,bas12,bas11,bas10");
+	romlist_assign("coco_ext=extbas11,extbas10");
+	/* Specific CoCo BASIC */
+	romlist_assign("coco1=bas10,@coco");
+	romlist_assign("coco1e=bas11,@coco");
+	romlist_assign("coco1e_ext=extbas10,@coco_ext");
+	romlist_assign("coco2=bas12,@coco");
+	romlist_assign("coco2_ext=extbas11,@coco_ext");
+	romlist_assign("coco2b=bas13,@coco");
+
+	/* DragonDOS */
+	romlist_assign("dragondos=ddos40,ddos15,ddos10,Dragon Data Ltd - DragonDOS 1.0");
+	romlist_assign("dosplus=dplus49b,dplus48,dosplus-4.8,DOSPLUS");
+	romlist_assign("superdos=sdose6,PNP - SuperDOS E6,sdose5,sdose4");
+	romlist_assign("cumana=cdos20,CDOS20");
+	romlist_assign("dragondos_compat=@dosplus,@superdos,@dragondos,@cumana");
+	/* RSDOS */
+	romlist_assign("rsdos=disk11,disk10");
+	/* Delta */
+	romlist_assign("delta=delta,deltados,Premier Micros - DeltaDOS");
 }
 
-static struct romlist *user_defined_by_name(const char *name) {
-	GSList *iter;
-	/* scan user defined rom lists */
-	for (iter = romlist_list; iter; iter = iter->next) {
-		struct romlist *tmp = iter->data;
-		if (0 == strcmp(tmp->name, name)) {
-			return tmp;
-		}
-	}
-	return NULL;
-}
-
-static GSList *list_from_builtin(const char *name) {
-	int i;
-	struct romlist_builtin *builtin = builtin_by_name(name);
-	if (!builtin) return NULL;
-	if (!builtin->list) return NULL;
-	GSList *list = NULL;
-	for (i = 0; builtin->list[i]; i++) {
-		list = g_slist_append(list, strdup(builtin->list[i]));
-	}
-	return list;
-}
-
-static struct romlist *new_romlist(const char *name) {
+static struct romlist *new_romlist(void) {
 	struct romlist *new = xmalloc(sizeof(struct romlist));
-	new->name = strdup(name);
 	new->list = NULL;
 	new->flag = 0;
 	return new;
@@ -160,36 +98,31 @@ static void free_romlist(struct romlist *romlist) {
 		free(list->data);
 		list = g_slist_remove(list, list);
 	}
-	free(romlist->name);
 	free(romlist);
 }
 
 /* Parse an assignment string of the form "LIST=ROMNAME[,ROMNAME]...".
  * Overwrites any existing list with name LIST. */
 void romlist_assign(const char *astring) {
+	init_romlist_hash();
 	if (!astring) return;
 	char *tmp = strdup(astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;
-	struct romlist *new_list = new_romlist(name);
+	struct romlist *new_list = new_romlist();
 	/* find if there's an old list with this name */
-	struct romlist *old_list = user_defined_by_name(name);;
+	struct romlist *old_list = g_hash_table_lookup(romlist_hash, name);
 	if (old_list) {
-		/* if so, remove it's reference in romlist_list */
-		romlist_list = g_slist_remove(romlist_list, old_list);
+		/* if so, remove its reference in romlist_hash */
+		g_hash_table_remove(romlist_hash, name);
 	}
 	char *value;
 	while ((value = strtok(NULL, "\n\v\f\r,"))) {
 		if (value[0] == '@' && 0 == strcmp(value+1, name)) {
 			/* reference to this list - append current contents */
-			GSList **l;
-			for (l = &new_list->list; *l; l = &((*l)->next));
 			if (old_list) {
-				*l = old_list->list;
+				new_list->list = g_slist_concat(new_list->list, old_list->list);
 				old_list->list = NULL;
-			} else {
-				/* attempt to create it from builtin */
-				*l = list_from_builtin(name);
 			}
 		} else {
 			/* otherwise just add a new entry */
@@ -199,9 +132,9 @@ void romlist_assign(const char *astring) {
 	if (old_list) {
 		free_romlist(old_list);
 	}
-	free(tmp);
 	/* add new list to romlist_list */
-	romlist_list = g_slist_append(romlist_list, new_list);
+	g_hash_table_insert(romlist_hash, strdup(name), new_list);
+	free(tmp);
 }
 
 /* Find a ROM within ROMPATH */
@@ -224,43 +157,23 @@ static char *find_rom(const char *romname) {
 /* Attempt to find a ROM image.  If name starts with '@', search the named
  * list for the first accessible entry, otherwise search for a single entry. */
 char *romlist_find(const char *name) {
+	init_romlist_hash();
 	if (!name) return NULL;
 	char *path = NULL;
-	/* not prefixes with an '@'?  then it's not a list! */
+	/* not prefixed with an '@'?  then it's not a list! */
 	if (name[0] != '@') {
 		return find_rom(name);
 	}
-	struct romlist *romlist = user_defined_by_name(name+1);
+	struct romlist *romlist = g_hash_table_lookup(romlist_hash, name+1);
 	/* found an appropriate list?  flag it and start scanning it */
-	if (romlist) {
-		GSList *iter;
-		if (romlist->flag)
-			return NULL;
-		romlist->flag = 1;
-		for (iter = romlist->list; iter; iter = iter->next) {
-			char *ent = iter->data;
-			if (ent) {
-				if (ent[0] == '@') {
-					path = romlist_find(ent);
-					break;
-				}
-				if ((path = find_rom(ent))) {
-					break;
-				}
-			}
-		}
-		romlist->flag = 0;
-		return path;
-	}
-	/* no?  fall back to the builtins */
-	struct romlist_builtin *builtin = builtin_by_name(name+1);
-	if (!builtin) return NULL;
-	if (!builtin->list) return NULL;
-	if (builtin->flag) return NULL;
-	builtin->flag = 1;
-	int i;
-	for (i = 0; builtin->list[i]; i++) {
-		const char *ent = builtin->list[i];
+	if (!romlist)
+		return NULL;
+	GSList *iter;
+	if (romlist->flag)
+		return NULL;
+	romlist->flag = 1;
+	for (iter = romlist->list; iter; iter = iter->next) {
+		char *ent = iter->data;
 		if (ent) {
 			if (ent[0] == '@') {
 				path = romlist_find(ent);
@@ -271,46 +184,31 @@ char *romlist_find(const char *name) {
 			}
 		}
 	}
-	builtin->flag = 0;
+	romlist->flag = 0;
 	return path;
+}
+
+static void print_romlist_entry(char *key, struct romlist *list, void *user_data) {
+	GSList *jter;
+	(void)user_data;
+	if (strlen(key) > 15) {
+		printf("\t%s\n\t%16s", key, "");
+	} else {
+		printf("\t%-15s ", key);
+	}
+	for (jter = list->list; jter; jter = jter->next) {
+		printf("%s", (char *)jter->data);
+		if (jter->next) {
+			putchar(',');
+		}
+	}
+	printf("\n");
 }
 
 /* Print a list of defined ROM lists to stdout */
 void romlist_print(void) {
-	int i, j;
-	GSList *iter;
-	printf("Built-in ROM lists:\n");
-	for (i = 0; i < NUM_ROM_LIST_BUILTINS; i++) {
-		if (strlen(romlist_builtins[i].name) > 15) {
-			printf("\t%s\n\t%16s", romlist_builtins[i].name, "");
-		} else {
-			printf("\t%-15s ", romlist_builtins[i].name);
-		}
-		for (j = 0; romlist_builtins[i].list[j]; j++) {
-			printf("%s", romlist_builtins[i].list[j]);
-			if (romlist_builtins[i].list[j+1]) {
-				putchar(',');
-			}
-		}
-		printf("\n");
-	}
-	if (romlist_list)
-		printf("User-defined ROM lists:\n");
-	for (iter = romlist_list; iter; iter = iter->next) {
-		struct romlist *list = iter->data;
-		GSList *jter;
-		if (strlen(list->name) > 15) {
-			printf("\t%s\n\t%16s", list->name, "");
-		} else {
-			printf("\t%-15s ", list->name);
-		}
-		for (jter = list->list; jter; jter = jter->next) {
-			printf("%s", (char *)jter->data);
-			if (jter->next) {
-				putchar(',');
-			}
-		}
-		printf("\n");
-	}
+	init_romlist_hash();
+	printf("ROM lists:\n");
+	g_hash_table_foreach(romlist_hash, (GHFunc)print_romlist_entry, NULL);
 	exit(0);
 }
