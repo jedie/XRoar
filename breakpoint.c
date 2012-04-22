@@ -21,19 +21,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <glib.h>
 
 #include "types.h"
 
 #include "breakpoint.h"
 #include "crc16.h"
-#include "list.h"
 #include "m6809.h"
 #include "machine.h"
 #include "misc.h"
 #include "sam.h"
 #include "xroar.h"
 
-static struct list *bp_instruction_list = NULL;
+static GSList *bp_instruction_list = NULL;
 
 static void bp_instruction_hook(M6809State *cpu_state);
 
@@ -51,7 +51,7 @@ void bp_add(struct breakpoint *bp) {
 	}
 	switch (bp->type) {
 	case BP_INSTRUCTION:
-		bp_instruction_list = list_prepend(bp_instruction_list, bp);
+		bp_instruction_list = g_slist_prepend(bp_instruction_list, bp);
 		m6809_instruction_hook = bp_instruction_hook;
 		break;
 	default:
@@ -69,7 +69,7 @@ void bp_add_n(struct breakpoint *bp, int n) {
 void bp_remove(struct breakpoint *bp) {
 	switch (bp->type) {
 	case BP_INSTRUCTION:
-		bp_instruction_list = list_delete(bp_instruction_list, bp);
+		bp_instruction_list = g_slist_remove(bp_instruction_list, bp);
 		if (!bp_instruction_list) {
 			m6809_instruction_hook = NULL;
 		}
@@ -89,7 +89,7 @@ void bp_remove_n(struct breakpoint *bp, int n) {
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
 static void bp_instruction_hook(M6809State *cpu_state) {
-	struct list *iter;
+	GSList *iter;
 	uint16_t pc = cpu_state->reg_pc;
 	unsigned int sam_register = sam_get_register();
 	unsigned int flags = (sam_register & 0x0400) ? BP_PAGE_1 : BP_PAGE_0;
@@ -97,7 +97,7 @@ static void bp_instruction_hook(M6809State *cpu_state) {
 	iter = bp_instruction_list;
 	while (iter) {
 		struct breakpoint *bp = iter->data;
-		struct list *next = iter->next;
+		GSList *next = iter->next;
 		if ((bp->flags & flags) == flags && pc == bp->address) {
 			bp->handler(cpu_state);
 			if (pc != cpu_state->reg_pc) {

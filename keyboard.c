@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <glib.h>
 
 #include "types.h"
 
@@ -28,7 +29,6 @@
 #include "events.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "list.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "misc.h"
@@ -252,7 +252,7 @@ static void keyboard_release_queued(void) {
 	}
 }
 
-static struct list *basic_command_list = NULL;
+static GSList *basic_command_list = NULL;
 static const char *basic_command = NULL;
 
 static void type_command(M6809State *cpu_state);
@@ -298,7 +298,7 @@ static void type_command(M6809State *cpu_state) {
 	if (!basic_command) {
 		if (basic_command_list) {
 			void *data = basic_command_list->data;
-			basic_command_list = list_delete(basic_command_list, data);
+			basic_command_list = g_slist_remove(basic_command_list, data);
 			free(data);
 		}
 		if (basic_command_list) {
@@ -317,7 +317,7 @@ void keyboard_queue_basic(const char *s) {
 	bp_remove_list(basic_command_breakpoint);
 	if (s) {
 		data = xstrdup(s);
-		basic_command_list = list_append(basic_command_list, data);
+		basic_command_list = g_slist_append(basic_command_list, data);
 	}
 	if (!basic_command) {
 		basic_command = data;

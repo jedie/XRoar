@@ -22,9 +22,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <glib.h>
 
 #include "types.h"
-#include "list.h"
 #include "misc.h"
 #include "path.h"
 #include "romlist.h"
@@ -40,12 +40,12 @@ struct romlist_builtin {
 /* User defined rom lists */
 struct romlist {
 	char *name;
-	struct list *list;
+	GSList *list;
 	int flag;
 };
 
 /* List of all user defined rom lists */
-static struct list *romlist_list = NULL;
+static GSList *romlist_list = NULL;
 
 /* Fallback Dragon BASIC */
 static const char *romlist_dragon[] = { "dragon", NULL };
@@ -122,7 +122,7 @@ static struct romlist_builtin *builtin_by_name(const char *name) {
 }
 
 static struct romlist *user_defined_by_name(const char *name) {
-	struct list *iter;
+	GSList *iter;
 	/* scan user defined rom lists */
 	for (iter = romlist_list; iter; iter = iter->next) {
 		struct romlist *tmp = iter->data;
@@ -133,14 +133,14 @@ static struct romlist *user_defined_by_name(const char *name) {
 	return NULL;
 }
 
-static struct list *list_from_builtin(const char *name) {
+static GSList *list_from_builtin(const char *name) {
 	int i;
 	struct romlist_builtin *builtin = builtin_by_name(name);
 	if (!builtin) return NULL;
 	if (!builtin->list) return NULL;
-	struct list *list = NULL;
+	GSList *list = NULL;
 	for (i = 0; builtin->list[i]; i++) {
-		list = list_append(list, strdup(builtin->list[i]));
+		list = g_slist_append(list, strdup(builtin->list[i]));
 	}
 	return list;
 }
@@ -155,10 +155,10 @@ static struct romlist *new_romlist(const char *name) {
 
 static void free_romlist(struct romlist *romlist) {
 	if (!romlist) return;
-	struct list *list = romlist->list;
+	GSList *list = romlist->list;
 	while (list) {
 		free(list->data);
-		list = list_delete(list, list);
+		list = g_slist_remove(list, list);
 	}
 	free(romlist->name);
 	free(romlist);
@@ -176,13 +176,13 @@ void romlist_assign(const char *astring) {
 	struct romlist *old_list = user_defined_by_name(name);;
 	if (old_list) {
 		/* if so, remove it's reference in romlist_list */
-		romlist_list = list_delete(romlist_list, old_list);
+		romlist_list = g_slist_remove(romlist_list, old_list);
 	}
 	char *value;
 	while ((value = strtok(NULL, "\n\v\f\r,"))) {
 		if (value[0] == '@' && 0 == strcmp(value+1, name)) {
 			/* reference to this list - append current contents */
-			struct list **l;
+			GSList **l;
 			for (l = &new_list->list; *l; l = &((*l)->next));
 			if (old_list) {
 				*l = old_list->list;
@@ -193,7 +193,7 @@ void romlist_assign(const char *astring) {
 			}
 		} else {
 			/* otherwise just add a new entry */
-			new_list->list = list_append(new_list->list, strdup(value));
+			new_list->list = g_slist_append(new_list->list, strdup(value));
 		}
 	}
 	if (old_list) {
@@ -201,7 +201,7 @@ void romlist_assign(const char *astring) {
 	}
 	free(tmp);
 	/* add new list to romlist_list */
-	romlist_list = list_append(romlist_list, new_list);
+	romlist_list = g_slist_append(romlist_list, new_list);
 }
 
 /* Find a ROM within ROMPATH */
@@ -233,7 +233,7 @@ char *romlist_find(const char *name) {
 	struct romlist *romlist = user_defined_by_name(name+1);
 	/* found an appropriate list?  flag it and start scanning it */
 	if (romlist) {
-		struct list *iter;
+		GSList *iter;
 		if (romlist->flag)
 			return NULL;
 		romlist->flag = 1;
@@ -278,7 +278,7 @@ char *romlist_find(const char *name) {
 /* Print a list of defined ROM lists to stdout */
 void romlist_print(void) {
 	int i, j;
-	struct list *iter;
+	GSList *iter;
 	printf("Built-in ROM lists:\n");
 	for (i = 0; i < NUM_ROM_LIST_BUILTINS; i++) {
 		if (strlen(romlist_builtins[i].name) > 15) {
@@ -298,7 +298,7 @@ void romlist_print(void) {
 		printf("User-defined ROM lists:\n");
 	for (iter = romlist_list; iter; iter = iter->next) {
 		struct romlist *list = iter->data;
-		struct list *jter;
+		GSList *jter;
 		if (strlen(list->name) > 15) {
 			printf("\t%s\n\t%16s", list->name, "");
 		} else {

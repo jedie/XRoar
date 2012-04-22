@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <glib.h>
 
 #include "types.h"
 
@@ -32,7 +33,6 @@
 #include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
-#include "list.h"
 #include "logging.h"
 #include "m6809.h"
 #include "m6809_trace.h"
@@ -129,7 +129,7 @@ int xroar_trace_enabled = 0;
 #endif
 int xroar_opt_disk_write_back = 0;
 
-static struct list *type_command_list = NULL;
+static GSList *type_command_list = NULL;
 
 /* Help text */
 static void helptext(void);
@@ -459,7 +459,7 @@ static void set_cart(char *name) {
 }
 
 static void type_command(char *string) {
-	type_command_list = list_append(type_command_list, string);
+	type_command_list = g_slist_append(type_command_list, string);
 }
 
 static void versiontext(void) {
@@ -781,7 +781,7 @@ int xroar_init(int argc, char **argv) {
 
 	while (type_command_list) {
 		keyboard_queue_basic(type_command_list->data);
-		type_command_list = list_delete(type_command_list, type_command_list->data);
+		type_command_list = g_slist_remove(type_command_list, type_command_list->data);
 	}
 	if (opt_lp_file) {
 		printer_open_file(opt_lp_file);
