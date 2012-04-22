@@ -81,6 +81,14 @@ xroar_opt_cxx_OBJS =
 xroar_opt_objc_OBJS =
 xroar_opt_INT_OBJS =
 
+opt_glib2_OBJS =
+CLEAN += $(opt_glib2_OBJS)
+ifeq ($(opt_glib2),yes)
+	xroar_opt_OBJS += $(opt_glib2_OBJS)
+	xroar_opt_CFLAGS += $(opt_glib2_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_glib2_LDFLAGS)
+endif
+
 opt_gtk2_OBJS = gtk2/ui_gtk2.o gtk2/tapecontrol.o gtk2/drivecontrol.o \
 	gtk2/filereq_gtk2.o gtk2/keyboard_gtk2.o
 CLEAN += $(opt_gtk2_OBJS)

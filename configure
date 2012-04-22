@@ -15,7 +15,7 @@ unset target_pkg_config build_pkg_config
 unset target_sdl_config build_sdl_config
 unset _have_video_driver
 
-all_opt="strings_h strcasecmp strsep gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
+all_opt="strings_h strcasecmp strsep glib2 gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -599,6 +599,27 @@ if test "$_strsep" = "yes"; then
 	_strsep_def="#undef NEED_STRSEP"
 else
 	_strsep_def="#define NEED_STRSEP"
+fi
+
+########
+
+if test "$_glib2" \!= "no"; then
+	echocheck GLib2
+	test -z "$glib2_cflags" && glib2_cflags=`$target_pkg_config --cflags glib-2.0 2> /dev/null`
+	test -z "$glib2_ldflags" && glib2_ldflags=`$target_pkg_config --libs glib-2.0 2> /dev/null`
+	cat > $TMPC <<EOF
+#include <glib.h>
+int main(int argc, char **argv) { (void)g_main_loop_new(NULL, FALSE); return 0; }
+EOF
+	_glib2=no
+	target_cc_check "$glib2_cflags" "$glib2_ldflags" && _glib2=yes
+	rm -f $TMPC
+	echo "$_glib2"
+fi
+if test "$_glib2" = "yes"; then
+	_glib2_def="#define HAVE_GLIB2"
+else
+	_glib2_def="#undef HAVE_GLIB2"
 fi
 
 ########
