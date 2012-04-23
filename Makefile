@@ -81,6 +81,14 @@ xroar_opt_cxx_OBJS =
 xroar_opt_objc_OBJS =
 xroar_opt_INT_OBJS =
 
+opt_zlib_OBJS =
+CLEAN += $(opt_zlib_OBJS)
+ifeq ($(opt_zlib),yes)
+	xroar_opt_OBJS += $(opt_zlib_OBJS)
+	xroar_opt_CFLAGS += $(opt_zlib_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_zlib_LDFLAGS)
+endif
+
 opt_glib2_OBJS =
 CLEAN += $(opt_glib2_OBJS)
 ifeq ($(opt_glib2),yes)

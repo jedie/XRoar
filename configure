@@ -15,7 +15,7 @@ unset target_pkg_config build_pkg_config
 unset target_sdl_config build_sdl_config
 unset _have_video_driver
 
-all_opt="strings_h strcasecmp strsep glib2 gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
+all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -599,6 +599,27 @@ if test "$_strsep" = "yes"; then
 	_strsep_def="#undef NEED_STRSEP"
 else
 	_strsep_def="#define NEED_STRSEP"
+fi
+
+########
+
+if test "$_zlib" \!= "no"; then
+	echocheck zlib
+	test -z "$zlib_cflags" && zlib_cflags=`$target_pkg_config --cflags zlib 2> /dev/null`
+	test -z "$zlib_ldflags" && zlib_ldflags=`$target_pkg_config --libs zlib 2> /dev/null`
+	cat > $TMPC <<EOF
+#include <zlib.h>
+int main(int argc, char **argv) { (void)crc32(0L, NULL, 0); return 0; }
+EOF
+	_zlib=no
+	target_cc_check "$zlib_cflags" "$zlib_ldflags" && _zlib=yes
+	rm -f $TMPC
+	echo "$_zlib"
+fi
+if test "$_zlib" = "yes"; then
+	_zlib_def="#define HAVE_ZLIB"
+else
+	_zlib_def="#undef HAVE_ZLIB"
 fi
 
 ########
