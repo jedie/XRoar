@@ -1,5 +1,6 @@
 ## ignore build files
 *.o
+*.gcda
 xroar
 xroar.exe
 xroar.arm7
