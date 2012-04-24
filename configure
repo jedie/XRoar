@@ -608,6 +608,7 @@ if test "$_zlib" \!= "no"; then
 	test -z "$zlib_cflags" && zlib_cflags=`$target_pkg_config --cflags zlib 2> /dev/null`
 	test -z "$zlib_ldflags" && zlib_ldflags=`$target_pkg_config --libs zlib 2> /dev/null`
 	cat > $TMPC <<EOF
+#include <stdlib.h>
 #include <zlib.h>
 int main(int argc, char **argv) { (void)crc32(0L, NULL, 0); return 0; }
 EOF
@@ -629,6 +630,7 @@ if test "$_glib2" \!= "no"; then
 	test -z "$glib2_cflags" && glib2_cflags=`$target_pkg_config --cflags glib-2.0 2> /dev/null`
 	test -z "$glib2_ldflags" && glib2_ldflags=`$target_pkg_config --libs glib-2.0 2> /dev/null`
 	cat > $TMPC <<EOF
+#include <stdlib.h>
 #include <glib.h>
 int main(int argc, char **argv) { (void)g_main_loop_new(NULL, FALSE); return 0; }
 EOF
@@ -924,6 +926,7 @@ if test "$_coreaudio" \!= "no"; then
 	echocheck Mac OS X Core Audio
 	coreaudio_ldflags="-framework CoreAudio"
 	cat > $TMPC <<EOF
+#include <stdlib.h>
 #include <CoreAudio/AudioHardware.h>
 int main(int argc, char **argv) { AudioDeviceID d; AudioDeviceSetProperty(d, NULL, 0, false, 0, 0, NULL); return 0; }
 EOF
