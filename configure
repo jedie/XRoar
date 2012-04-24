@@ -2,7 +2,7 @@
 
 # This is not a GNU Autoconf configure script.  It is manually maintained.
 
-command_line="$*"
+cli="$0"
 
 SRCROOT=`dirname $0`
 
@@ -77,8 +77,6 @@ EOF
 exec 3>config.log
 config_log=3
 
-echo "# $command_line" >&$config_log
-
 # defaults from environment
 test -n "$CC" && TARGET_CC="$CC"
 test -n "$CXX" && TARGET_CXX="$CXX"
@@ -106,6 +104,16 @@ TMPX=conftemp
 
 while test -n "$1"; do
 	opt="$1"
+	case "$opt" in
+	*=*)
+		key=`echo "$opt"|sed 's/^\([^=]*\)=.*$/\1/'`
+		value=`echo "$opt"|sed 's/^[^=]*=//;s/"/\\\\"/g'`
+		cli="$cli $key=\"$value\""
+		;;
+	*)
+		cli="$cli $opt";
+		;;
+	esac
 	case "$opt" in
 	--) shift; break; ;;
 	macosx)
@@ -171,6 +179,8 @@ while test -n "$1"; do
 	esac
 	shift
 done
+
+echo "# $cli" >&$config_log
 
 test -z "$exec_prefix" && exec_prefix="$prefix"
 test -z "$bindir" && bindir="$exec_prefix/bin"
