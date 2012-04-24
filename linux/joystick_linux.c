@@ -28,8 +28,9 @@
 #include <fcntl.h>
 #include <linux/joystick.h>
 
-#include "types.h"
+#include "portalib/string.h"
 
+#include "types.h"
 #include "events.h"
 #include "input.h"
 #include "joystick.h"
@@ -37,7 +38,6 @@
 #include "machine.h"
 #include "mc6821.h"
 #include "module.h"
-#include "portalib.h"
 #include "xroar.h"
 
 static int init(void);

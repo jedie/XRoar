@@ -59,7 +59,8 @@ endif
 CONFIG_FILES = config.h config.mak
 
 # Objects common to all builds:
-xroar_common_OBJS = crc16.o crc32.o fs.o misc.o path.o portalib.o xconfig.o \
+xroar_common_OBJS = \
+	crc16.o crc32.o fs.o misc.o path.o xconfig.o \
 	breakpoint.o cart.o deltados.o dragondos.o events.o hexs19.o input.o \
 	joystick.o keyboard.o m6809.o machine.o mc6821.o module.o printer.o \
 	romlist.o \
@@ -67,6 +68,10 @@ xroar_common_OBJS = crc16.o crc32.o fs.o misc.o path.o portalib.o xconfig.o \
 	vdg_palette.o vdisk.o vdrive.o vo_null.o wd279x.o xroar.o
 xroar_common_INT_OBJS = vdg_bitmaps.o
 CLEAN = $(xroar_common_OBJS) $(xroar_common_INT_OBJS)
+
+# Portalib objects:
+portalib_OBJS = portalib/strcasecmp.o portalib/strsep.o
+CLEAN += $(portalib_OBJS)
 
 # Objects for all Unix-style builds (the default):
 xroar_unix_OBJS = main_unix.o
@@ -321,13 +326,23 @@ xroar_unix_OBJCFLAGS = $(OBJCFLAGS) $(CPPFLAGS) \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_unix_LDFLAGS = $(LDFLAGS) $(LDLIBS) $(xroar_opt_LDFLAGS)
 
+portalib_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
+	-I$(CURDIR) -I$(SRCROOT) $(WARN)
+
 xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
+	$(portalib_OBJS) \
 	$(xroar_unix_OBJS) $(xroar_unix_INT_OBJS) \
 	$(xroar_opt_OBJS) $(xroar_opt_INT_OBJS) \
 	$(xroar_common_cxx_OBJS) $(xroar_unix_cxx_OBJS) \
 	$(xroar_opt_cxx_OBJS) \
 	$(xroar_common_objc_OBJS) $(xroar_unix_objc_OBJS) \
 	$(xroar_opt_objc_OBJS)
+
+portalib:
+	mkdir -p portalib
+
+$(portalib_OBJS): %.o: $(SRCROOT)/%.c | portalib
+	$(call do_cc,$@,$(portalib_CFLAGS) -c $<)
 
 $(xroar_unix_ALL_OBJS): $(CONFIG_FILES)
 
@@ -343,7 +358,7 @@ $(xroar_common_objc_OBJS) $(xroar_unix_objc_OBJS) $(xroar_opt_objc_OBJS): %.o: $
 $(xroar_common_INT_OBJS) $(xroar_unix_INT_OBJS) $(xroar_opt_INT_OBJS): %.o: ./%.c
 	$(call do_cc,$@,$(xroar_unix_CFLAGS) -c $<)
 
-xroar$(EXEEXT): $(xroar_unix_ALL_OBJS)
+xroar$(EXEEXT): $(xroar_unix_ALL_OBJS) $(portalib_OBJS)
 	$(call do_cc,$@,$(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS))
 
 .PHONY: build-bin

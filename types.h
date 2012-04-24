@@ -7,7 +7,6 @@
 #define XROAR_TYPES_H_
 
 #include "config.h"
-#include "portalib.h"
 
 #include <sys/types.h>
 #include <inttypes.h>
