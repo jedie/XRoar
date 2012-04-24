@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "portalib/glib.h"
 
 #include "logging.h"
 #include "xconfig.h"
@@ -70,7 +71,7 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 			*(double *)option->dest = strtod(arg, NULL);
 			break;
 		case XCONFIG_STRING:
-			*(char **)option->dest = strdup(arg);
+			*(char **)option->dest = g_strdup(arg);
 			break;
 		case XCONFIG_CALL_0:
 			((void (*)(void))option->dest)();
@@ -97,7 +98,7 @@ static int unset_option(struct xconfig_option *option) {
 		return 0;
 	case XCONFIG_STRING:
 		if (*(char **)option->dest) {
-			free(*(char **)option->dest);
+			g_free(*(char **)option->dest);
 			*(char **)option->dest = NULL;
 		}
 		return 0;

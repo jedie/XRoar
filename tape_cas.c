@@ -17,12 +17,14 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
+#include "portalib/glib.h"
 
 #include "fs.h"
 #include "machine.h"
-#include "misc.h"
 #include "tape.h"
 
 struct tape_cas {
@@ -90,7 +92,7 @@ static struct tape *do_tape_cas_open(const char *filename, const char *mode,
 		return NULL;
 	t = tape_new();
 	t->module = &tape_cas_module;
-	cas = xmalloc(sizeof(struct tape_cas));
+	cas = g_malloc(sizeof(struct tape_cas));
 	t->data = cas;
 	t->leader_count = 0;
 	/* initialise cas */
@@ -148,7 +150,7 @@ static void cas_close(struct tape *t) {
 	struct tape_cas *cas = t->data;
 	cas_motor_off(t);
 	fclose(cas->fd);
-	free(cas);
+	g_free(cas);
 	tape_free(t);
 }
 

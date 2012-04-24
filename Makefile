@@ -60,7 +60,7 @@ CONFIG_FILES = config.h config.mak
 
 # Objects common to all builds:
 xroar_common_OBJS = \
-	crc16.o crc32.o fs.o misc.o path.o xconfig.o \
+	crc16.o crc32.o fs.o path.o xconfig.o \
 	breakpoint.o cart.o deltados.o dragondos.o events.o hexs19.o input.o \
 	joystick.o keyboard.o m6809.o machine.o mc6821.o module.o printer.o \
 	romlist.o \

@@ -25,9 +25,9 @@
 #include <string.h>
 #include <windows.h>
 #include <commdlg.h>
+#include "portalib/glib.h"
 
 #include "types.h"
-
 #include "fs.h"
 #include "logging.h"
 #include "module.h"
@@ -70,10 +70,10 @@ static char *load_filename(const char **extensions) {
 		| OFN_HIDEREADONLY;
 
 	if (filename)
-		free(filename);
+		g_free(filename);
 	filename = NULL;
 	if (GetOpenFileName(&ofn)==TRUE) {
-		filename = strdup(ofn.lpstrFile);
+		filename = g_strdup(ofn.lpstrFile);
 	}
 	if (video_module->set_fullscreen && was_fullscreen)
 		video_module->set_fullscreen(1);
@@ -105,10 +105,10 @@ static char *save_filename(const char **extensions) {
 		| OFN_OVERWRITEPROMPT;
 
 	if (filename)
-		free(filename);
+		g_free(filename);
 	filename = NULL;
 	if (GetSaveFileName(&ofn)==TRUE) {
-		filename = strdup(ofn.lpstrFile);
+		filename = g_strdup(ofn.lpstrFile);
 	}
 	if (video_module->set_fullscreen && was_fullscreen)
 		video_module->set_fullscreen(1);

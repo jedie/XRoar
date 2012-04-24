@@ -21,13 +21,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "portalib/glib.h"
 
 #include "types.h"
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "misc.h"
 #include "module.h"
 #include "sound.h"
 #include "tape.h"
@@ -118,7 +118,7 @@ void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 		default: LOG_DEBUG(2, "%d channel, ", channels); break;
 		}
 		LOG_DEBUG(2, "%dHz\n", sample_rate);
-		buffer[0] = xrealloc(buffer[0], frame_size * channels * size);
+		buffer[0] = g_realloc(buffer[0], frame_size * channels * size);
 	}
 
 	buffer_size = frame_size * channels;

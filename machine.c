@@ -26,8 +26,8 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
 #include "portalib/strings.h"
+#include "portalib/glib.h"
 
 #include "types.h"
 #include "cart.h"
@@ -39,7 +39,6 @@
 #include "m6809_trace.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "misc.h"
 #include "module.h"
 #include "path.h"
 #include "printer.h"
@@ -107,7 +106,7 @@ static int alloc_config_array(int size) {
 	struct machine_config **new_list;
 	int clear_from = num_configs;
 	if (!configs) clear_from = 0;
-	new_list = xrealloc(configs, size * sizeof(struct machine_config *));
+	new_list = g_realloc(configs, size * sizeof(struct machine_config *));
 	configs = new_list;
 	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct machine_config *));
 	return 0;
@@ -119,10 +118,9 @@ static int populate_config_index(int i) {
 	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
 	if (configs[i])
 		return 0;
-	configs[i] = xmalloc(sizeof(struct machine_config));
-	memset(configs[i], 0, sizeof(struct machine_config));
-	configs[i]->name = xstrdup(config_templates[i].name);
-	configs[i]->description = strdup(config_templates[i].description);
+	configs[i] = g_malloc0(sizeof(struct machine_config));
+	configs[i]->name = g_strdup(config_templates[i].name);
+	configs[i]->description = g_strdup(config_templates[i].description);
 	configs[i]->architecture = config_templates[i].architecture;
 	configs[i]->keymap = ANY_AUTO;
 	configs[i]->tv_standard = config_templates[i].tv_standard;
@@ -135,8 +133,7 @@ struct machine_config *machine_config_new(void) {
 	struct machine_config *new;
 	if (alloc_config_array(num_configs+1) != 0)
 		return NULL;
-	new = xmalloc(sizeof(struct machine_config));
-	memset(new, 0, sizeof(struct machine_config));
+	new = g_malloc0(sizeof(struct machine_config));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
 	new->keymap = ANY_AUTO;
@@ -204,7 +201,7 @@ static int find_working_arch(void) {
 		arch = ARCH_DRAGON64;
 	}
 	if (tmp)
-		free(tmp);
+		g_free(tmp);
 	return arch;
 }
 
@@ -214,7 +211,7 @@ struct machine_config *machine_config_first_working(void) {
 
 void machine_config_complete(struct machine_config *mc) {
 	if (!mc->description) {
-		mc->description = strdup(mc->name);
+		mc->description = g_strdup(mc->name);
 	}
 	if (mc->tv_standard == ANY_AUTO)
 		mc->tv_standard = TV_PAL;
@@ -259,13 +256,13 @@ void machine_config_complete(struct machine_config *mc) {
 	}
 	/* Now find which ROMs we're actually going to use */
 	if (!mc->nobas && !mc->bas_rom && rom_list[mc->architecture].bas) {
-		mc->bas_rom = xstrdup(rom_list[mc->architecture].bas);
+		mc->bas_rom = g_strdup(rom_list[mc->architecture].bas);
 	}
 	if (!mc->noextbas && !mc->extbas_rom && rom_list[mc->architecture].extbas) {
-		mc->extbas_rom = xstrdup(rom_list[mc->architecture].extbas);
+		mc->extbas_rom = g_strdup(rom_list[mc->architecture].extbas);
 	}
 	if (!mc->noaltbas && !mc->altbas_rom && rom_list[mc->architecture].altbas) {
-		mc->altbas_rom = xstrdup(rom_list[mc->architecture].altbas);
+		mc->altbas_rom = g_strdup(rom_list[mc->architecture].altbas);
 	}
 }
 
@@ -362,7 +359,7 @@ void machine_configure(struct machine_config *mc) {
 		char *tmp = romlist_find(mc->bas_rom);
 		if (tmp) {
 			machine_load_rom(tmp, rom0 + 0x2000, sizeof(rom0) - 0x2000);
-			free(tmp);
+			g_free(tmp);
 		}
 	}
 	/* ... Extended BASIC */
@@ -370,7 +367,7 @@ void machine_configure(struct machine_config *mc) {
 		char *tmp = romlist_find(mc->extbas_rom);
 		if (tmp) {
 			machine_load_rom(tmp, rom0, sizeof(rom0));
-			free(tmp);
+			g_free(tmp);
 		}
 	}
 	/* ... Alternate BASIC ROM */
@@ -378,7 +375,7 @@ void machine_configure(struct machine_config *mc) {
 		char *tmp = romlist_find(mc->altbas_rom);
 		if (tmp) {
 			machine_load_rom(tmp, rom1, sizeof(rom1));
-			free(tmp);
+			g_free(tmp);
 		}
 	}
 	machine_ram_size = mc->ram * 1024;

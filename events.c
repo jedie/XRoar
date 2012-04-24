@@ -17,17 +17,19 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
+#include "portalib/glib.h"
 
 #include "types.h"
 #include "events.h"
 #include "logging.h"
-#include "misc.h"
 
 cycle_t current_cycle = 0;
 
 event_t *event_new(void) {
-	event_t *new = xmalloc(sizeof(event_t));
+	event_t *new = g_malloc(sizeof(event_t));
 	event_init(new);
 	return new;
 }
@@ -43,7 +45,7 @@ void event_init(event_t *event) {
 
 void event_free(event_t *event) {
 	event_dequeue(event);
-	free(event);
+	g_free(event);
 }
 
 void event_queue(event_t **list, event_t *event) {

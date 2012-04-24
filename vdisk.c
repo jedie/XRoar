@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "portalib/glib.h"
 
 #include "types.h"
 
@@ -68,13 +69,13 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 			|| track_length < 129 || track_length > 0x2940) {
 		return NULL;
 	}
-	new = malloc(sizeof(struct vdisk));
+	new = g_try_malloc(sizeof(struct vdisk));
 	if (new == NULL)
 		return NULL;
 	data_size = num_tracks * num_sides * track_length;
-	new_track_data = malloc(data_size);
+	new_track_data = g_try_malloc(data_size);
 	if (new_track_data == NULL) {
-		free(new);
+		g_free(new);
 		return NULL;
 	}
 	memset(new_track_data, 0, data_size);
@@ -92,11 +93,11 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 void vdisk_destroy(struct vdisk *disk) {
 	if (disk == NULL) return;
 	if (disk->filename) {
-		free(disk->filename);
+		g_free(disk->filename);
 		disk->filename = NULL;
 	}
-	free(disk->track_data);
-	free(disk);
+	g_free(disk->track_data);
+	g_free(disk);
 }
 
 struct vdisk *vdisk_load(const char *filename) {
@@ -135,7 +136,7 @@ int vdisk_save(struct vdisk *disk, int force) {
 	}
 	{
 		int bf_len = strlen(disk->filename) + 5;
-		backup_filename = malloc(bf_len);
+		backup_filename = g_try_malloc(bf_len);
 		/* Rename old file to filename.bak if that .bak file does not
 		 * already exist */
 		if (backup_filename != NULL) {
@@ -144,7 +145,7 @@ int vdisk_save(struct vdisk *disk, int force) {
 			if (stat(backup_filename, &statbuf) != 0) {
 				rename(disk->filename, backup_filename);
 			}
-			free(backup_filename);
+			g_free(backup_filename);
 		}
 	}
 	return dispatch[i].save_func(disk);
@@ -190,7 +191,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		return NULL;
 	}
 	disk->filetype = FILETYPE_VDK;
-	disk->filename = strdup(filename);
+	disk->filename = g_strdup(filename);
 	if (vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, 1, ssize_code) < 0) {
 		fclose(fd);
 		vdisk_destroy(disk);
@@ -292,7 +293,7 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 		return NULL;
 	}
 	disk->filetype = FILETYPE_JVC;
-	disk->filename = strdup(filename);
+	disk->filename = g_strdup(filename);
 	if (vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, first_sector, ssize_code) < 0) {
 		fclose(fd);
 		vdisk_destroy(disk);
@@ -379,7 +380,7 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	}
 	LOG_DEBUG(2,"Loading DMK virtual disk: %dT %dH (%d-byte)\n", num_tracks, num_sides, track_length);
 	disk->filetype = FILETYPE_DMK;
-	disk->filename = strdup(filename);
+	disk->filename = g_strdup(filename);
 	disk->file_write_protect = header[0] ? VDISK_WRITE_PROTECT : VDISK_WRITE_ENABLE;
 	if (header[11] == VDISK_WRITE_ENABLE
 			|| header[11] == VDISK_WRITE_PROTECT) {

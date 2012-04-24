@@ -23,10 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glib.h>
+#include "portalib/glib.h"
 
 #include "types.h"
-
 #include "cart.h"
 #include "events.h"
 #include "fs.h"
@@ -37,7 +36,6 @@
 #include "m6809.h"
 #include "m6809_trace.h"
 #include "machine.h"
-#include "misc.h"
 #include "module.h"
 #include "path.h"
 #include "printer.h"
@@ -407,7 +405,7 @@ static void set_machine(char *name) {
 		xroar_machine_config = machine_config_by_name(name);
 		if (!xroar_machine_config) {
 			xroar_machine_config = machine_config_new();
-			xroar_machine_config->name = xstrdup(name);
+			xroar_machine_config->name = g_strdup(name);
 		}
 	}
 }
@@ -453,7 +451,7 @@ static void set_cart(char *name) {
 		xroar_cart_config = cart_config_by_name(name);
 		if (!xroar_cart_config) {
 			xroar_cart_config = cart_config_new();
-			xroar_cart_config->name = xstrdup(name);
+			xroar_cart_config->name = g_strdup(name);
 		}
 	}
 }
@@ -583,7 +581,7 @@ int xroar_init(int argc, char **argv) {
 	if (conffile) {
 		/* ignore bad lines in config file */
 		(void)xconfig_parse_file(xroar_options, conffile);
-		free(conffile);
+		g_free(conffile);
 	}
 	/* Finish any machine or cart config in config file */
 	set_machine(NULL);
@@ -647,7 +645,7 @@ int xroar_init(int argc, char **argv) {
 		load_file = opt_run;
 		autorun_loaded_file = 1;
 	} else if (argn < argc) {
-		load_file = strdup(argv[argn]);
+		load_file = g_strdup(argv[argn]);
 		autorun_loaded_file = 1;
 	}
 	sound_set_volume(xroar_opt_volume);
@@ -682,7 +680,7 @@ int xroar_init(int argc, char **argv) {
 				cart_status_list[xroar_machine_config->index].enabled = 1;
 				xroar_cart_config = cart_config_by_name(load_file);
 				xroar_cart_config->autorun = autorun_loaded_file;
-				free((char *)load_file);
+				g_free((char *)load_file);
 				load_file = NULL;
 				break;
 			default:
@@ -804,7 +802,7 @@ void xroar_shutdown(void) {
 static void alloc_cart_status(void) {
 	int count = xroar_machine_config->index;
 	if (count >= cart_status_count) {
-		struct cart_status *new_list = xrealloc(cart_status_list, (count + 1) * sizeof(struct cart_status));
+		struct cart_status *new_list = g_realloc(cart_status_list, (count + 1) * sizeof(struct cart_status));
 		int i;
 		/* clear new entries */
 		cart_status_list = new_list;
@@ -1000,7 +998,7 @@ void xroar_new_disk(int drive) {
 			break;
 	}
 	new_disk->filetype = filetype;
-	new_disk->filename = strdup(filename);
+	new_disk->filename = g_strdup(filename);
 	new_disk->file_write_protect = VDISK_WRITE_ENABLE;
 	vdrive_insert_disk(drive, new_disk);
 	if (ui_module && ui_module->update_drive_disk) {

@@ -22,9 +22,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include "portalib/glib.h"
 
 #include "types.h"
-
 #include "breakpoint.h"
 #include "events.h"
 #include "fs.h"
@@ -32,7 +32,6 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "misc.h"
 #include "module.h"
 #include "sound.h"
 #include "tape.h"
@@ -228,7 +227,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 		}
 		if (type != 0 || block[1] < 15)
 			continue;
-		f = xmalloc(sizeof(struct tape_file));
+		f = g_malloc(sizeof(struct tape_file));
 		f->offset = offset;
 		memcpy(f->name, &block[2], 8);
 		int i = 8;
@@ -257,13 +256,12 @@ void tape_seek_to_file(struct tape *t, struct tape_file *f) {
 /**************************************************************************/
 
 struct tape *tape_new(void) {
-	struct tape *new = xmalloc(sizeof(struct tape));
-	memset(new, 0, sizeof(struct tape));
+	struct tape *new = g_malloc0(sizeof(struct tape));
 	return new;
 }
 
 void tape_free(struct tape *t) {
-	free(t);
+	g_free(t);
 }
 
 /**************************************************************************/
@@ -398,7 +396,7 @@ int tape_autorun(const char *filename) {
 		return -1;
 	}
 	int type = f->type;
-	free(f);
+	g_free(f);
 	switch (type) {
 		case 0:
 			keyboard_queue_basic("\003CLOAD\rRUN\r");

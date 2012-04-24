@@ -21,17 +21,15 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <glib.h>
+#include "portalib/glib.h"
 
 #include "types.h"
-
 #include "breakpoint.h"
 #include "events.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "misc.h"
 #include "xroar.h"
 
 /* These map virtual scancodes to keyboard matrix points */
@@ -299,7 +297,7 @@ static void type_command(M6809State *cpu_state) {
 		if (basic_command_list) {
 			void *data = basic_command_list->data;
 			basic_command_list = g_slist_remove(basic_command_list, data);
-			free(data);
+			g_free(data);
 		}
 		if (basic_command_list) {
 			basic_command = basic_command_list->data;
@@ -316,7 +314,7 @@ void keyboard_queue_basic(const char *s) {
 	char *data = NULL;
 	bp_remove_list(basic_command_breakpoint);
 	if (s) {
-		data = xstrdup(s);
+		data = g_strdup(s);
 		basic_command_list = g_slist_append(basic_command_list, data);
 	}
 	if (!basic_command) {

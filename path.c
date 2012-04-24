@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "portalib/glib.h"
 
 #include "types.h"
 #include "path.h"
@@ -56,7 +57,7 @@ char *find_in_path(const char *path, const char *filename) {
 				 * access.  This is NOT a security check, it's
 				 * purely for usability. */
 				if (access(filename, R_OK) == 0) {
-					return strdup(filename);
+					return g_strdup(filename);
 				}
 			}
 		}
@@ -73,7 +74,7 @@ char *find_in_path(const char *path, const char *filename) {
 	if (home) {
 		buf_size += strlen(home) - 1;
 	}
-	buf = malloc(buf_size);
+	buf = g_try_malloc(buf_size);
 	if (buf == NULL)
 		return NULL;
 	for (;;) {
@@ -109,7 +110,7 @@ char *find_in_path(const char *path, const char *filename) {
 			break;
 		path++;
 	}
-	free(buf);
+	g_free(buf);
 	return NULL;
 }
 

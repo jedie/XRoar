@@ -544,8 +544,7 @@ static void create_view_menu(void) {
 	cc_action_group = gtk_action_group_new("View");
 	gtk_ui_manager_insert_action_group(gtk2_menu_manager, cc_action_group, 0);
 
-	GtkRadioActionEntry *radio_entries = malloc(NUM_CROSS_COLOUR_PHASES * sizeof(GtkRadioActionEntry));
-	memset(radio_entries, 0, NUM_CROSS_COLOUR_PHASES * sizeof(GtkRadioActionEntry));
+	GtkRadioActionEntry *radio_entries = g_malloc0(NUM_CROSS_COLOUR_PHASES * sizeof(GtkRadioActionEntry));
 	/* add these to the ui in reverse order, as each will be
 	 * inserted before the previous */
 	for (i = NUM_CROSS_COLOUR_PHASES-1; i >= 0; i--) {
@@ -557,9 +556,9 @@ static void create_view_menu(void) {
 	gtk_action_group_add_radio_actions(cc_action_group, radio_entries, NUM_CROSS_COLOUR_PHASES, 0, (GCallback)set_cc, NULL);
 	for (i = 0; i < NUM_CROSS_COLOUR_PHASES; i++) {
 		g_free((gchar *)radio_entries[i].name);
-		free((char *)radio_entries[i].label);
+		g_free((gchar *)radio_entries[i].label);
 	}
-	free(radio_entries);
+	g_free(radio_entries);
 }
 
 /* Dynamic machine menu */
@@ -570,8 +569,7 @@ static void update_machine_menu(void) {
 	free_action_group(machine_action_group);
 	gtk_ui_manager_remove_ui(gtk2_menu_manager, merge_machines);
 	if (xroar_machine_config) selected = xroar_machine_config->index;
-	GtkRadioActionEntry *radio_entries = malloc(num_machines * sizeof(GtkRadioActionEntry));
-	memset(radio_entries, 0, num_machines * sizeof(GtkRadioActionEntry));
+	GtkRadioActionEntry *radio_entries = g_malloc0(num_machines * sizeof(GtkRadioActionEntry));
 	/* add these to the ui in reverse order, as each will be
 	 * inserted before the previous */
 	for (i = num_machines-1; i >= 0; i--) {
@@ -584,9 +582,9 @@ static void update_machine_menu(void) {
 	gtk_action_group_add_radio_actions(machine_action_group, radio_entries, num_machines, selected, (GCallback)set_machine, NULL);
 	for (i = 0; i < num_machines; i++) {
 		g_free((gchar *)radio_entries[i].name);
-		free((char *)radio_entries[i].label);
+		g_free((gchar *)radio_entries[i].label);
 	}
-	free(radio_entries);
+	g_free(radio_entries);
 }
 
 /* Dynamic cartridge menu */
@@ -597,8 +595,7 @@ static void update_cartridge_menu(void) {
 	free_action_group(cart_action_group);
 	gtk_ui_manager_remove_ui(gtk2_menu_manager, merge_carts);
 	if (xroar_cart_config) selected = xroar_cart_config->index;
-	GtkRadioActionEntry *radio_entries = malloc((num_carts+1) * sizeof(GtkRadioActionEntry));
-	memset(radio_entries, 0, (num_carts+1) * sizeof(GtkRadioActionEntry));
+	GtkRadioActionEntry *radio_entries = g_malloc0((num_carts+1) * sizeof(GtkRadioActionEntry));
 	/* add these to the ui in reverse order, as each will be
 	   inserted before the previous */
 	for (i = num_carts-1; i >= 0; i--) {
@@ -616,9 +613,9 @@ static void update_cartridge_menu(void) {
 	/* don't need to free last label */
 	for (i = 0; i < num_carts; i++) {
 		g_free((gchar *)radio_entries[i].name);
-		free((char *)radio_entries[i].label);
+		g_free((gchar *)radio_entries[i].label);
 	}
-	free(radio_entries);
+	g_free(radio_entries);
 }
 
 /* Cursor hiding */
@@ -702,8 +699,7 @@ static char *escape_underscores(const char *str) {
 		if (*in == '_')
 			len++;
 	}
-	char *ret_str = malloc(len + 1);
-	if (!ret_str) return NULL;
+	char *ret_str = g_malloc(len + 1);
 	for (in = str, out = ret_str; *in; in++) {
 		*(out++) = *in;
 		if (*in == '_') {

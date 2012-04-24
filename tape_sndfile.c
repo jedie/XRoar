@@ -17,13 +17,16 @@
  *  Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <sndfile.h>
+#include "portalib/glib.h"
 
+#include "types.h"
 #include "fs.h"
 #include "logging.h"
 #include "machine.h"
-#include "misc.h"
 #include "tape.h"
 
 #define BLOCK_LENGTH (512)
@@ -60,7 +63,7 @@ struct tape *tape_sndfile_open(const char *filename, const char *mode) {
 	struct tape_sndfile *sndfile;
 	t = tape_new();
 	t->module = &tape_sndfile_module;
-	sndfile = xmalloc(sizeof(struct tape_sndfile));
+	sndfile = g_malloc(sizeof(struct tape_sndfile));
 	t->data = sndfile;
 	/* initialise sndfile */
 	sndfile->info.format = 0;
@@ -76,7 +79,7 @@ struct tape *tape_sndfile_open(const char *filename, const char *mode) {
 	}
 	if (!sndfile->fd) {
 		LOG_WARN("libsndfile error: %s\n", sf_strerror(NULL));
-		free(sndfile);
+		g_free(sndfile);
 		tape_free(t);
 		return NULL;
 	}
@@ -85,7 +88,7 @@ struct tape *tape_sndfile_open(const char *filename, const char *mode) {
 		return NULL;
 	}
 	sndfile->cycles_per_frame = OSCILLATOR_RATE / sndfile->info.samplerate;
-	sndfile->block = xmalloc(BLOCK_LENGTH * sizeof(short) * sndfile->info.channels);
+	sndfile->block = g_malloc(BLOCK_LENGTH * sizeof(short) * sndfile->info.channels);
 	sndfile->block_length = 0;
 	sndfile->cursor = 0;
 	/* find size */
@@ -102,9 +105,9 @@ struct tape *tape_sndfile_open(const char *filename, const char *mode) {
 static void sndfile_close(struct tape *t) {
 	struct tape_sndfile *sndfile = t->data;
 	sndfile_motor_off(t);
-	free(sndfile->block);
+	g_free(sndfile->block);
 	sf_close(sndfile->fd);
-	free(sndfile);
+	g_free(sndfile);
 	tape_free(t);
 }
 

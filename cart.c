@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "portalib/glib.h"
 
 #include "types.h"
 #include "cart.h"
@@ -33,7 +34,6 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "misc.h"
 #include "romlist.h"
 #include "rsdos.h"
 #include "xroar.h"
@@ -72,7 +72,7 @@ static int alloc_config_array(int size) {
 	struct cart_config **new_list;
 	int clear_from = num_configs;
 	if (!configs) clear_from = 0;
-	new_list = xrealloc(configs, size * sizeof(struct cart_config *));
+	new_list = g_realloc(configs, size * sizeof(struct cart_config *));
 	configs = new_list;
 	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct cart_config *));
 	return 0;
@@ -84,12 +84,11 @@ static int populate_config_index(int i) {
 	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
 	if (configs[i])
 		return 0;
-	configs[i] = xmalloc(sizeof(struct cart_config));
-	memset(configs[i], 0, sizeof(struct cart_config));
-	configs[i]->name = xstrdup(config_templates[i].name);
-	configs[i]->description = strdup(config_templates[i].description);
+	configs[i] = g_malloc0(sizeof(struct cart_config));
+	configs[i]->name = g_strdup(config_templates[i].name);
+	configs[i]->description = g_strdup(config_templates[i].description);
 	configs[i]->type = config_templates[i].type;
-	configs[i]->rom = xstrdup(config_templates[i].rom);
+	configs[i]->rom = g_strdup(config_templates[i].rom);
 	configs[i]->index = i;
 	return 0;
 }
@@ -98,8 +97,7 @@ struct cart_config *cart_config_new(void) {
 	struct cart_config *new;
 	if (alloc_config_array(num_configs+1) != 0)
 		return NULL;
-	new = xmalloc(sizeof(struct cart_config));
-	memset(new, 0, sizeof(struct cart_config));
+	new = g_malloc0(sizeof(struct cart_config));
 	new->index = num_configs;
 	new->type = CART_ROM;
 	new->autorun = ANY_AUTO;
@@ -143,13 +141,13 @@ struct cart_config *cart_config_by_name(const char *name) {
 			if (!(rom_cart_config = cart_config_new())) {
 				return NULL;
 			}
-			rom_cart_config->name = xstrdup("romcart");
+			rom_cart_config->name = g_strdup("romcart");
 		}
 		if (rom_cart_config->description) {
-			free(rom_cart_config->description);
+			g_free(rom_cart_config->description);
 		}
 		/* Make up a description from filename */
-		char *tmp_name = xstrdup(name);
+		char *tmp_name = g_strdup(name);
 		char *bname = basename(tmp_name);
 		if (bname && *bname) {
 			char *sep;
@@ -163,14 +161,14 @@ struct cart_config *cart_config_by_name(const char *name) {
 					break;
 				}
 			}
-			rom_cart_config->description = strdup(bname);
+			rom_cart_config->description = g_strdup(bname);
 		} else {
-			rom_cart_config->description = strdup("ROM cartridge");
+			rom_cart_config->description = g_strdup("ROM cartridge");
 		}
-		free(tmp_name);
+		g_free(tmp_name);
 		rom_cart_config->type = CART_ROM;
-		if (rom_cart_config->rom) free(rom_cart_config->rom);
-		rom_cart_config->rom = xstrdup(name);
+		if (rom_cart_config->rom) g_free(rom_cart_config->rom);
+		rom_cart_config->rom = g_strdup(name);
 		rom_cart_config->autorun = 1;
 		return rom_cart_config;
 	}
@@ -192,13 +190,13 @@ struct cart_config *cart_find_working_dos(struct machine_config *mc) {
 		}
 	}
 	if (tmp)
-		free(tmp);
+		g_free(tmp);
 	return cc;
 }
 
 void cart_config_complete(struct cart_config *cc) {
 	if (!cc->description) {
-		cc->description = strdup(cc->name);
+		cc->description = g_strdup(cc->name);
 	}
 	if (cc->autorun == ANY_AUTO) {
 		if (cc->type == CART_ROM) {
@@ -223,14 +221,14 @@ void cart_configure(struct cart *c, struct cart_config *cc) {
 		char *tmp = romlist_find(cc->rom);
 		if (tmp) {
 			machine_load_rom(tmp, c->mem_data, sizeof(c->mem_data));
-			free(tmp);
+			g_free(tmp);
 		}
 	}
 	if (cc->rom2) {
 		char *tmp = romlist_find(cc->rom2);
 		if (tmp) {
 			machine_load_rom(tmp, c->mem_data + 0x2000, sizeof(c->mem_data) - 0x2000);
-			free(tmp);
+			g_free(tmp);
 		}
 	}
 	switch (cc->type) {

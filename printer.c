@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "portalib/glib.h"
 
 #include "types.h"
 #include "printer.h"
@@ -61,16 +62,16 @@ void printer_reset(void) {
 
 void printer_open_file(const char *filename) {
 	printer_close();
-	if (stream_dest) free(stream_dest);
-	stream_dest = strdup(filename);
+	if (stream_dest) g_free(stream_dest);
+	stream_dest = g_strdup(filename);
 	is_pipe = 0;
 	set_busy(0);
 }
 
 void printer_open_pipe(const char *command) {
 	printer_close();
-	if (stream_dest) free(stream_dest);
-	stream_dest = strdup(command);
+	if (stream_dest) g_free(stream_dest);
+	stream_dest = g_strdup(command);
 	is_pipe = 1;
 	set_busy(0);
 }
@@ -78,7 +79,7 @@ void printer_open_pipe(const char *command) {
 void printer_close(void) {
 	/* flush stream, but destroy stream_dest so it won't be reopened */
 	printer_flush();
-	if (stream_dest) free(stream_dest);
+	if (stream_dest) g_free(stream_dest);
 	stream_dest = NULL;
 	is_pipe = 0;
 	set_busy(1);

@@ -19,12 +19,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "portalib/glib.h"
 
 #include "mc6821.h"
-#include "misc.h"
 
 MC6821_PIA *mc6821_new(void) {
-	MC6821_PIA *new = xmalloc(sizeof(MC6821_PIA));
+	MC6821_PIA *new = g_malloc(sizeof(MC6821_PIA));
 	mc6821_init(new);
 	return new;
 }
@@ -38,7 +38,7 @@ void mc6821_init(MC6821_PIA *pia) {
 
 void mc6821_destroy(MC6821_PIA *pia) {
 	if (pia == NULL) return;
-	free(pia);
+	g_free(pia);
 }
 
 #define INTERRUPT_ENABLED(p) (p.control_register & 0x01)

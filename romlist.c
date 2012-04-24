@@ -22,10 +22,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <glib.h>
+#include "portalib/glib.h"
 
 #include "types.h"
-#include "misc.h"
 #include "path.h"
 #include "romlist.h"
 #include "xroar.h"
@@ -85,7 +84,7 @@ static void init_romlist_hash(void) {
 }
 
 static struct romlist *new_romlist(void) {
-	struct romlist *new = xmalloc(sizeof(struct romlist));
+	struct romlist *new = g_malloc(sizeof(struct romlist));
 	new->list = NULL;
 	new->flag = 0;
 	return new;
@@ -95,10 +94,10 @@ static void free_romlist(struct romlist *romlist) {
 	if (!romlist) return;
 	GSList *list = romlist->list;
 	while (list) {
-		free(list->data);
+		g_free(list->data);
 		list = g_slist_remove(list, list);
 	}
-	free(romlist);
+	g_free(romlist);
 }
 
 /* Parse an assignment string of the form "LIST=ROMNAME[,ROMNAME]...".
@@ -106,7 +105,7 @@ static void free_romlist(struct romlist *romlist) {
 void romlist_assign(const char *astring) {
 	init_romlist_hash();
 	if (!astring) return;
-	char *tmp = strdup(astring);
+	char *tmp = g_strdup(astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;
 	struct romlist *new_list = new_romlist();
@@ -126,15 +125,15 @@ void romlist_assign(const char *astring) {
 			}
 		} else {
 			/* otherwise just add a new entry */
-			new_list->list = g_slist_append(new_list->list, strdup(value));
+			new_list->list = g_slist_append(new_list->list, g_strdup(value));
 		}
 	}
 	if (old_list) {
 		free_romlist(old_list);
 	}
 	/* add new list to romlist_list */
-	g_hash_table_insert(romlist_hash, strdup(name), new_list);
-	free(tmp);
+	g_hash_table_insert(romlist_hash, g_strdup(name), new_list);
+	g_free(tmp);
 }
 
 /* Find a ROM within ROMPATH */
@@ -143,14 +142,14 @@ static char *find_rom(const char *romname) {
 	char *path = NULL;
 	int i;
 	if (!romname) return NULL;
-	filename = xmalloc(strlen(romname) + 5);
+	filename = g_malloc(strlen(romname) + 5);
 	for (i = 0; i < NUM_ROM_EXTENSIONS; i++) {
 		strcpy(filename, romname);
 		strcat(filename, rom_extensions[i]);
 		path = find_in_path(xroar_rom_path, filename);
 		if (path) break;
 	}
-	free(filename);
+	g_free(filename);
 	return path;
 }
 

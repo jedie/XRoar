@@ -265,7 +265,7 @@ void gtk2_input_tape_filename_cb(const char *filename) {
 		do {
 			struct tape_file *file;
 			gtk_tree_model_get(GTK_TREE_MODEL(tc_input_list_store), &iter, TC_FILE_POINTER, &file, -1);
-			free(file);
+			g_free(file);
 		} while (gtk_tree_model_iter_next(GTK_TREE_MODEL(tc_input_list_store), &iter));
 	}
 	gtk_list_store_clear(tc_input_list_store);

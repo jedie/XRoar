@@ -21,15 +21,13 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <glib.h>
+#include "portalib/glib.h"
 
 #include "types.h"
-
 #include "breakpoint.h"
 #include "crc16.h"
 #include "m6809.h"
 #include "machine.h"
-#include "misc.h"
 #include "sam.h"
 #include "xroar.h"
 
