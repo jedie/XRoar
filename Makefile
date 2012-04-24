@@ -70,8 +70,8 @@ xroar_common_INT_OBJS = vdg_bitmaps.o
 CLEAN = $(xroar_common_OBJS) $(xroar_common_INT_OBJS)
 
 # Portalib objects:
-portalib_OBJS = portalib/strcasecmp.o portalib/strsep.o
-CLEAN += $(portalib_OBJS)
+portalib_common_OBJS = portalib/strcasecmp.o portalib/strsep.o
+CLEAN += $(portalib_common_OBJS)
 
 # Objects for all Unix-style builds (the default):
 xroar_unix_OBJS = main_unix.o
@@ -85,6 +85,8 @@ xroar_opt_OBJS =
 xroar_opt_cxx_OBJS =
 xroar_opt_objc_OBJS =
 xroar_opt_INT_OBJS =
+
+portalib_opt_OBJS =
 
 opt_zlib_OBJS =
 CLEAN += $(opt_zlib_OBJS)
@@ -101,6 +103,15 @@ ifeq ($(opt_glib2),yes)
 	xroar_opt_CFLAGS += $(opt_glib2_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_glib2_LDFLAGS)
 endif
+
+portalib_opt_glib2_OBJS = portalib/glib/ghash.o portalib/glib/gmem.o portalib/glib/gstrfuncs.o portalib/glib/gslist.o
+CLEAN += $(portalib_opt_glib2_OBJS)
+ifneq ($(opt_glib2),yes)
+	portalib_opt_OBJS += $(portalib_opt_glib2_OBJS)
+endif
+$(portalib_opt_glib2_OBJS): | portalib/glib
+portalib/glib: | portalib
+	mkdir -p portalib/glib
 
 opt_gtk2_OBJS = gtk2/ui_gtk2.o gtk2/tapecontrol.o gtk2/drivecontrol.o \
 	gtk2/filereq_gtk2.o gtk2/keyboard_gtk2.o
@@ -329,8 +340,10 @@ xroar_unix_LDFLAGS = $(LDFLAGS) $(LDLIBS) $(xroar_opt_LDFLAGS)
 portalib_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
 	-I$(CURDIR) -I$(SRCROOT) $(WARN)
 
+portalib_ALL_OBJS = $(portalib_common_OBJS) \
+	$(portalib_opt_OBJS)
+
 xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
-	$(portalib_OBJS) \
 	$(xroar_unix_OBJS) $(xroar_unix_INT_OBJS) \
 	$(xroar_opt_OBJS) $(xroar_opt_INT_OBJS) \
 	$(xroar_common_cxx_OBJS) $(xroar_unix_cxx_OBJS) \
@@ -341,7 +354,9 @@ xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 portalib:
 	mkdir -p portalib
 
-$(portalib_OBJS): %.o: $(SRCROOT)/%.c | portalib
+$(portalib_ALL_OBJS): $(CONFIG_FILES)
+
+$(portalib_common_OBJS) $(portalib_opt_OBJS): %.o: $(SRCROOT)/%.c | portalib
 	$(call do_cc,$@,$(portalib_CFLAGS) -c $<)
 
 $(xroar_unix_ALL_OBJS): $(CONFIG_FILES)
@@ -358,8 +373,8 @@ $(xroar_common_objc_OBJS) $(xroar_unix_objc_OBJS) $(xroar_opt_objc_OBJS): %.o: $
 $(xroar_common_INT_OBJS) $(xroar_unix_INT_OBJS) $(xroar_opt_INT_OBJS): %.o: ./%.c
 	$(call do_cc,$@,$(xroar_unix_CFLAGS) -c $<)
 
-xroar$(EXEEXT): $(xroar_unix_ALL_OBJS) $(portalib_OBJS)
-	$(call do_cc,$@,$(xroar_unix_ALL_OBJS) $(xroar_unix_LDFLAGS))
+xroar$(EXEEXT): $(xroar_unix_ALL_OBJS) $(portalib_ALL_OBJS)
+	$(call do_cc,$@,$(xroar_unix_ALL_OBJS) $(portalib_ALL_OBJS) $(xroar_unix_LDFLAGS))
 
 .PHONY: build-bin
 build-bin: xroar$(EXEEXT)
