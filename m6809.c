@@ -72,7 +72,6 @@
 
 /* CPU fetch/store goes via SAM */
 #define fetch_byte(a) (cycle++, m6809_read_cycle(a))
-#define fetch_word(a) (fetch_byte(a) << 8 | fetch_byte((a)+1))
 #define store_byte(a,v) do { m6809_write_cycle(a,v); cycle++; } while (0)
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) do { (void)m6809_read_cycle(a); } while (0)
@@ -87,10 +86,10 @@
 #define BYTE_DIRECT(a,v)        { EA_DIRECT(a); v = fetch_byte(a); }
 #define BYTE_INDEXED(a,v)       { EA_INDEXED(a); v = fetch_byte(a); }
 #define BYTE_EXTENDED(a,v)      { EA_EXTENDED(a); v = fetch_byte(a); }
-#define WORD_IMMEDIATE(a,v)     { (void)a; v = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1); reg_pc += 2; }
-#define WORD_DIRECT(a,v)        { EA_DIRECT(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
-#define WORD_INDEXED(a,v)       { EA_INDEXED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
-#define WORD_EXTENDED(a,v)      { EA_EXTENDED(a); v = fetch_byte(a) << 8 | fetch_byte(a+1); }
+#define WORD_IMMEDIATE(a,v)     { (void)a; v = fetch_byte(reg_pc) << 8; v |= fetch_byte(reg_pc+1); reg_pc += 2; }
+#define WORD_DIRECT(a,v)        { EA_DIRECT(a); v = fetch_byte(a) << 8; v |= fetch_byte(a+1); }
+#define WORD_INDEXED(a,v)       { EA_INDEXED(a); v = fetch_byte(a) << 8; v |= fetch_byte(a+1); }
+#define WORD_EXTENDED(a,v)      { EA_EXTENDED(a); v = fetch_byte(a) << 8; v |= fetch_byte(a+1); }
 
 #define SHORT_RELATIVE(r)       { BYTE_IMMEDIATE(0,r); r = sex(r); }
 #define LONG_RELATIVE(r)        WORD_IMMEDIATE(0,r)
@@ -162,7 +161,8 @@
 		if (m6809_interrupt_hook) { \
 			m6809_interrupt_hook(v); \
 		} \
-		reg_pc = fetch_word(v); \
+		reg_pc = fetch_byte(v) << 8; \
+		reg_pc |= fetch_byte((v)+1); \
 		TAKEN_CYCLES(1); \
 	} while (0)
 
@@ -304,7 +304,8 @@ static unsigned int ea_direct(void) {
 }
 
 static unsigned int ea_extended(void) {
-	unsigned int ea = fetch_byte(reg_pc) << 8 | fetch_byte(reg_pc+1);
+	unsigned int ea = fetch_byte(reg_pc) << 8;
+	ea |= fetch_byte(reg_pc+1);
 	reg_pc += 2;
 	TAKEN_CYCLES(1);
 	return ea;
@@ -346,7 +347,8 @@ static unsigned int ea_indexed(void) {
 		default: ea = 0; break;
 	}
 	if (postbyte & 0x10) {
-		ea = (fetch_byte(ea) << 8) | fetch_byte(ea + 1);
+		uint16_t tmp_ea = fetch_byte(ea) << 8;
+		ea = tmp_ea | fetch_byte(ea + 1);
 		TAKEN_CYCLES(1);
 	}
 	return ea;
@@ -388,7 +390,10 @@ void m6809_run(void) {
 				TAKEN_CYCLES(1);
 				continue;
 			}
-			reg_pc = fetch_word(0xfffe);
+			{
+				uint16_t tmp_pc = fetch_byte(0xfffe) << 8;
+				reg_pc = tmp_pc | fetch_byte(0xffff);
+			}
 			TAKEN_CYCLES(1);
 			cpu_state = m6809_flow_label_a;
 			continue;
