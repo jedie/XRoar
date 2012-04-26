@@ -96,7 +96,6 @@ static int cycles;
 static uint8_t read_cycle(uint16_t A);
 static void write_cycle(uint16_t A, uint8_t D);
 static void nvma_cycles(int ncycles);
-static void sync(void);
 static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
 /**************************************************************************/
@@ -326,7 +325,6 @@ void machine_init(void) {
 	m6809_read_cycle = read_cycle;
 	m6809_write_cycle = write_cycle;
 	m6809_nvma_cycles = nvma_cycles;
-	m6809_sync = sync;
 	vdg_fetch_bytes = vdg_fetch_handler;
 }
 
@@ -451,6 +449,8 @@ static int do_cpu_cycle(uint16_t A, int RnW, int *S, uint16_t *Z) {
 	current_cycle += ncycles;
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+	m6809_irq = PIA0.a.irq | PIA0.b.irq;
+	m6809_firq = PIA1.a.irq | PIA1.b.irq;
 	return is_ram_access;
 }
 
@@ -548,11 +548,6 @@ static void nvma_cycles(int ncycles) {
 	cycles -= c;
 	if (cycles <= 0) m6809_running = 0;
 	current_cycle += c;
-	while (EVENT_PENDING(MACHINE_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
-}
-
-static void sync(void) {
 	while (EVENT_PENDING(MACHINE_EVENT_LIST))
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 	m6809_irq = PIA0.a.irq | PIA0.b.irq;

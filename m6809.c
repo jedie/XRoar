@@ -207,13 +207,11 @@ static enum m6809_cpu_state cpu_state;
 static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
 static void dummy_write_cycle(uint16_t a, uint8_t v) { (void)a; (void)v; }
 static void dummy_nvma_cycles(int c) { (void)c; }
-static void dummy_sync(void) { }
 
 /* External handlers */
 uint8_t (*m6809_read_cycle)(uint16_t addr) = dummy_read_cycle;
 void (*m6809_write_cycle)(uint16_t addr, uint8_t value) = dummy_write_cycle;
 void (*m6809_nvma_cycles)(int cycles) = dummy_nvma_cycles;
-void (*m6809_sync)(void) = dummy_sync;
 void (*m6809_instruction_hook)(M6809State *state) = NULL;
 void (*m6809_instruction_posthook)(M6809State *state) = NULL;
 void (*m6809_interrupt_hook)(uint16_t vector) = NULL;
@@ -367,8 +365,6 @@ void m6809_reset(void) {
 void m6809_run(void) {
 
 	while (m6809_running) {
-
-		m6809_sync();
 
 		if (!m6809_nmi) nmi_cycle = cycle;
 		int nmi_active = (cycle - nmi_cycle) >= 3;

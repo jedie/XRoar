@@ -69,9 +69,6 @@ extern void (*m6809_write_cycle)(uint16_t addr, uint8_t value);
 /* Non valid memory access ("busy") cycles */
 extern void (*m6809_nvma_cycles)(int cycles);
 
-/* Ensure all outside events are complete up to current cycle */
-extern void (*m6809_sync)(void);
-
 /* Called just before instruction fetch if non-NULL */
 extern void (*m6809_instruction_hook)(M6809State *state);
 
