@@ -21,7 +21,6 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "module.h"
 #include "joystick.h"
 
 /* Some dissonance: internally, the right joystick is considered "first", but
