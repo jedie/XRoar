@@ -31,6 +31,7 @@
 
 #include "types.h"
 #include "cart.h"
+#include "crc32.h"
 #include "fs.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -59,6 +60,8 @@ static uint8_t rom1[0x4000];
 MC6821_PIA PIA0, PIA1;
 struct cart *machine_cart = NULL;
 static struct cart running_cart;
+int has_bas, has_extbas, has_altbas;
+uint32_t crc_bas, crc_extbas, crc_altbas;
 
 static struct {
 	const char *bas;
@@ -353,26 +356,51 @@ void machine_configure(struct machine_config *mc) {
 	memset(rom0, 0, sizeof(rom0));
 	memset(rom1, 0, sizeof(rom1));
 	/* ... BASIC */
+	has_bas = 0;
+	crc_bas = 0;
 	if (!mc->nobas && mc->bas_rom) {
 		char *tmp = romlist_find(mc->bas_rom);
 		if (tmp) {
-			machine_load_rom(tmp, rom0 + 0x2000, sizeof(rom0) - 0x2000);
+			int size = machine_load_rom(tmp, rom0 + 0x2000, sizeof(rom0) - 0x2000);
+			if (size > 0) {
+				has_bas = 1;
+				crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, size);
+				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_bas);
+			}
 			g_free(tmp);
 		}
 	}
 	/* ... Extended BASIC */
+	has_extbas = 0;
+	crc_extbas = 0;
 	if (!mc->noextbas && mc->extbas_rom) {
 		char *tmp = romlist_find(mc->extbas_rom);
 		if (tmp) {
-			machine_load_rom(tmp, rom0, sizeof(rom0));
+			int size = machine_load_rom(tmp, rom0, sizeof(rom0));
+			if (size > 0) {
+				has_extbas = 1;
+				crc_extbas = crc32_block(CRC32_RESET, rom0, size);
+				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_extbas);
+			}
+			if (size > 0x2000) {
+				has_bas = 1;
+				crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, size - 0x2000);
+			}
 			g_free(tmp);
 		}
 	}
 	/* ... Alternate BASIC ROM */
+	has_altbas = 0;
+	crc_altbas = 0;
 	if (!mc->noaltbas && mc->altbas_rom) {
 		char *tmp = romlist_find(mc->altbas_rom);
 		if (tmp) {
-			machine_load_rom(tmp, rom1, sizeof(rom1));
+			int size = machine_load_rom(tmp, rom1, sizeof(rom1));
+			if (size > 0) {
+				has_altbas = 1;
+				crc_altbas = crc32_block(CRC32_RESET, rom1, size);
+				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_altbas);
+			}
 			g_free(tmp);
 		}
 	}

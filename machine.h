@@ -44,7 +44,7 @@ struct cart;
 #define TV_NTSC (1)
 
 /* These are now purely for backwards-compatibility with old snapshots.
- * Cartridge types are more now more generic: see cart.h.  */
+ * Cartridge types are now more generic: see cart.h.  */
 #define DOS_NONE      (0)
 #define DOS_DRAGONDOS (1)
 #define DOS_RSDOS     (2)
@@ -81,6 +81,8 @@ extern uint8_t machine_ram[0x10000];
 extern uint8_t *machine_rom;
 extern MC6821_PIA PIA0, PIA1;
 extern struct cart *machine_cart;
+extern int has_bas, has_extbas, has_altbas;
+extern uint32_t crc_bas, crc_extbas, crc_altbas;
 
 /* Add a new machine config: */
 struct machine_config *machine_config_new(void);
