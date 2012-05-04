@@ -25,7 +25,7 @@
 
 #include "types.h"
 #include "breakpoint.h"
-#include "crc16.h"
+#include "crclist.h"
 #include "m6809.h"
 #include "machine.h"
 #include "sam.h"
@@ -38,15 +38,14 @@ static void bp_instruction_hook(M6809State *cpu_state);
 /**************************************************************************/
 
 void bp_add(struct breakpoint *bp) {
-	unsigned int flags = IS_DRAGON ? BP_DRAGON : BP_COCO;
-	if ((bp->flags & flags) != flags)
+	if ((bp->flags & BP_MACHINE_ARCH) && xroar_machine_config->architecture != bp->cond_machine_arch)
 		return;
-	if (bp->crc_nbytes > 0) {
-		uint16_t crc = crc16_block(CRC16_RESET, &machine_rom[bp->crc_address & 0x3fff], bp->crc_nbytes);
-		if (crc != bp->crc) {
-			return;
-		}
-	}
+	if ((bp->flags & BP_CRC_BAS) && (!has_bas || !crclist_match(bp->cond_crc_bas, crc_bas)))
+		return;
+	if ((bp->flags & BP_CRC_EXTBAS) && (!has_extbas || !crclist_match(bp->cond_crc_extbas, crc_extbas)))
+		return;
+	if ((bp->flags & BP_CRC_ALTBAS) && (!has_altbas || !crclist_match(bp->cond_crc_altbas, crc_altbas)))
+		return;
 	switch (bp->type) {
 	case BP_INSTRUCTION:
 		bp_instruction_list = g_slist_prepend(bp_instruction_list, bp);
@@ -87,23 +86,27 @@ void bp_remove_n(struct breakpoint *bp, int n) {
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
 static void bp_instruction_hook(M6809State *cpu_state) {
-	GSList *iter;
+	GSList *iter = bp_instruction_list;
 	uint16_t pc = cpu_state->reg_pc;
 	unsigned int sam_register = sam_get_register();
-	unsigned int flags = (sam_register & 0x0400) ? BP_PAGE_1 : BP_PAGE_0;
-	flags |= (sam_register & 0x8000) ? BP_MAP_TYPE_1 : BP_MAP_TYPE_0;
-	iter = bp_instruction_list;
+	int page = (sam_register & 0x0400) ? 1 : 0;
+	int map_type = (sam_register & 0x8000) ? 1 : 0;
 	while (iter) {
 		struct breakpoint *bp = iter->data;
-		GSList *next = iter->next;
-		if ((bp->flags & flags) == flags && pc == bp->address) {
-			bp->handler(cpu_state);
-			if (pc != cpu_state->reg_pc) {
-				/* pc changed, start again */
-				next = bp_instruction_list;
-				pc = cpu_state->reg_pc;
-			}
+		iter = iter->next;
+		if (bp->type != BP_INSTRUCTION)
+			continue;
+		if ((bp->flags & BP_PAGE) && page != bp->cond_page)
+			continue;
+		if ((bp->flags & BP_MAP_TYPE) && map_type != bp->cond_map_type)
+			continue;
+		if (pc != bp->address)
+			continue;
+		bp->handler(cpu_state);
+		if (pc != cpu_state->reg_pc) {
+			/* pc changed, start again */
+			iter = bp_instruction_list;
+			pc = cpu_state->reg_pc;
 		}
-		iter = next;
 	}
 }

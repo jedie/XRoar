@@ -256,22 +256,11 @@ static const char *basic_command = NULL;
 static void type_command(M6809State *cpu_state);
 
 static struct breakpoint basic_command_breakpoint[] = {
-	/* Joyously, *all* of these differ... */
-	/* Dragon 32 */
-	{ .flags = BP_DRAGON_ROM, .address = 0xbbe5, .handler = type_command,
-	  .crc_address = 0xbbe5, .crc_nbytes = 69, .crc = 0x5215 },
-	/* Dragon 64 */
-	{ .flags = BP_DRAGON_ROM, .address = 0xbbe5, .handler = type_command,
-	  .crc_address = 0xbbe5, .crc_nbytes = 69, .crc = 0x1307 },
-	/* COLOR BASIC 1.0 */
-	{ .flags = BP_COCO_ROM, .address = 0xa1c1, .handler = type_command,
-	  .crc_address = 0xa1c1, .crc_nbytes = 44, .crc = 0xf05c },
-	/* COLOR BASIC 1.1 */
-	{ .flags = BP_COCO_ROM, .address = 0xa1c1, .handler = type_command,
-	  .crc_address = 0xa1c1, .crc_nbytes = 109, .crc = 0x8b79 },
-	/* COLOR BASIC 1.2, 1.3 */
-	{ .flags = BP_COCO_ROM, .address = 0xa1cb, .handler = type_command,
-	  .crc_address = 0xa1cb, .crc_nbytes = 99, .crc = 0x53a4 },
+	BP_DRAGON_ROM(.address = 0xbbe5, .handler = type_command),
+	BP_COCO_BAS10_ROM(.address = 0xa1c1, .handler = type_command),
+	BP_COCO_BAS11_ROM(.address = 0xa1c1, .handler = type_command),
+	BP_COCO_BAS12_ROM(.address = 0xa1cb, .handler = type_command),
+	BP_COCO_BAS13_ROM(.address = 0xa1cb, .handler = type_command),
 };
 
 static void type_command(M6809State *cpu_state) {
