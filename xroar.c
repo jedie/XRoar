@@ -27,6 +27,7 @@
 
 #include "types.h"
 #include "cart.h"
+#include "crclist.h"
 #include "events.h"
 #include "fs.h"
 #include "hexs19.h"
@@ -210,6 +211,8 @@ static struct xconfig_option xroar_options[] = {
 	/* Attach files */
 	XC_OPT_CALL_1( "romlist", &romlist_assign ),
 	XC_OPT_CALL_0( "romlist-print", &romlist_print ),
+	XC_OPT_CALL_1( "crclist", &crclist_assign ),
+	XC_OPT_CALL_0( "crclist-print", &crclist_print ),
 	XC_OPT_STRING( "load",    &opt_load ),
 	XC_OPT_STRING( "cartna",  &opt_load ),
 	XC_OPT_STRING( "snap",    &opt_load ),
@@ -504,6 +507,8 @@ static void helptext(void) {
 "\n Attach files:\n"
 "  -romlist NAME=LIST    define a ROM list\n"
 "  -romlist-print        print defined ROM lists\n"
+"  -crclist NAME=LIST    define a ROM CRC list\n"
+"  -crclist-print        print defined ROM CRC lists\n"
 "  -load FILENAME        load or attach FILENAME\n"
 "  -run FILENAME         load or attach FILENAME and attempt autorun\n"
 "  -tape-write FILENAME  open FILENAME for tape writing\n"
