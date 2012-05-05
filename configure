@@ -14,6 +14,7 @@ unset EXEEXT
 unset target_pkg_config build_pkg_config
 unset target_sdl_config build_sdl_config
 unset _have_video_driver
+unset _have_audio_driver
 
 all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
 unset $all_opt
@@ -701,47 +702,12 @@ fi
 
 ########
 
-if test -z "$target_sdl_config"; then
-	if ( "$target-sdl-config" --version ) > /dev/null 2>&1; then
-		target_sdl_config="$target-sdl-config"
-	elif ( sdl-config --version ) > /dev/null 2>&1; then
-		target_sdl_config="sdl-config"
-	else
-		target_sdl_config="false"
-	fi
-fi
 if test -z "$build_sdl_config"; then
 	if ( sdl-config --version ) > /dev/null 2>&1; then
 		build_sdl_config="sdl-config"
 	else
 		build_sdl_config="false"
 	fi
-fi
-
-if test "$_sdl" \!= "no"; then
-	echocheck SDL
-	test -n "$sdl_includes" && sdl_cflags="-I$sdl_includes"
-	test -z "$sdl_cflags" && sdl_cflags=`$target_sdl_config --cflags 2> /dev/null`
-	test -z "$sdl_cflags" && sdl_cflags=`$target_pkg_config --cflags sdl 2> /dev/null`
-	test -n "$sdl_libs" && sdl_ldflags="-L$sdl_libs -lSDL"
-	test -z "$sdl_ldflags" && sdl_ldflags=`$target_sdl_config --libs 2> /dev/null`
-	test -z "$sdl_ldflags" && sdl_ldflags=`$target_pkg_config --libs sdl 2> /dev/null`
-	cat > $TMPC <<EOF
-#include <SDL.h>
-int main(int argc, char **argv) { SDL_Init(0); return 0; }
-EOF
-	_sdl=no
-	target_cc_check "$sdl_cflags" "$sdl_ldflags" && _sdl=yes
-	# Save this temp .c file for build host test
-	rm -f $TMPC
-	echo "$_sdl"
-fi
-if test "$_sdl" = "yes"; then
-	_sdl_def="#define HAVE_SDL"
-	_have_video_driver=yes
-else
-	_sdl_def="#undef HAVE_SDL"
-	_sdlgl=no
 fi
 
 if test "$_build_sdl" \!= "no"; then
@@ -774,34 +740,6 @@ EOF
 	build_cc_check "$build_sdl_cflags" "$build_sdl_ldflags $build_sdl_image_ldflags" && _build_sdl_image=yes
 	rm -f $TMPC
 	echo "$_build_sdl_image"
-fi
-
-########
-
-if test "$_sdlgl" \!= "no"; then
-	echocheck SDL OpenGL support
-	cat > $TMPC <<EOF
-#include <SDL.h>
-#include <SDL_opengl.h>
-int main(int argc, char **argv) { GLuint t; SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5); glGenTextures(1, &t); return 0; }
-EOF
-	_sdlgl=no
-	sdlgl_ldflags="-lGL"
-	target_cc_check "$sdl_cflags" "$sdl_ldflags $sdlgl_ldflags" && _sdlgl=yes
-	if test "$_sdlgl" = "no"; then
-		sdlgl_ldflags="-framework OpenGL"
-		target_cc_check "$sdl_cflags" "$sdl_ldflags $sdlgl_ldflags" && _sdlgl=yes
-	fi
-	if test "$_sdlgl" = "no"; then
-		sdlgl_ldflags="-lopengl32"
-		target_cc_check "$sdl_cflags" "$sdl_ldflags $sdlgl_ldflags" && _sdlgl=yes
-	fi
-	echo "$_sdlgl"
-fi
-if test "$_sdlgl" = "yes"; then
-	_sdlgl_def="#define HAVE_SDLGL"
-else
-	_sdlgl_def="#undef HAVE_SDLGL"
 fi
 
 ########
@@ -863,6 +801,7 @@ EOF
 fi
 if test "$_alsa" = "yes"; then
 	_alsa_def="#define HAVE_ALSA_AUDIO"
+	_have_audio_driver=yes
 else
 	_alsa_def="#undef HAVE_ALSA_AUDIO"
 fi
@@ -882,6 +821,7 @@ EOF
 fi
 if test "$_oss" = "yes"; then
 	_oss_def="#define HAVE_OSS_AUDIO"
+	_have_audio_driver=yes
 else
 	_oss_def="#undef HAVE_OSS_AUDIO"
 fi
@@ -903,6 +843,7 @@ EOF
 fi
 if test "$_pulse" = "yes"; then
 	_pulse_def="#define HAVE_PULSE_AUDIO"
+	_have_audio_driver=yes
 else
 	_pulse_def="#undef HAVE_PULSE_AUDIO"
 fi
@@ -926,6 +867,7 @@ EOF
 fi
 if test "$_sunaudio" = "yes"; then
 	_sunaudio_def="#define HAVE_SUN_AUDIO"
+	_have_audio_driver=yes
 else
 	_sunaudio_def="#undef HAVE_SUN_AUDIO"
 fi
@@ -947,6 +889,7 @@ EOF
 fi
 if test "$_coreaudio" = "yes"; then
 	_coreaudio_def="#define HAVE_MACOSX_AUDIO"
+	_have_audio_driver=yes
 else
 	_coreaudio_def="#undef HAVE_MACOSX_AUDIO"
 fi
@@ -968,6 +911,7 @@ EOF
 fi
 if test "$_jack" = "yes"; then
 	_jack_def="#define HAVE_JACK_AUDIO"
+	_have_audio_driver=yes
 else
 	_jack_def="#undef HAVE_JACK_AUDIO"
 fi
@@ -999,6 +943,81 @@ if test "$_linux_joystick" = "yes"; then
 	_linux_joystick_def="#define HAVE_LINUX_JOYSTICK"
 else
 	_linux_joystick_def="#undef HAVE_LINUX_JOYSTICK"
+fi
+
+########
+
+# If GtkGLExt, Linux joysticks and some non-null sound module are all
+# available, we can disable SDL.
+
+if test "$_sdl" \!= "yes" -a "$_gtkgl" = "yes" -a "$_linux_joystick" = "yes" -a "$_have_audio_driver" = "yes"; then
+	_sdl=no
+fi
+
+########
+
+if test -z "$target_sdl_config"; then
+	if ( "$target-sdl-config" --version ) > /dev/null 2>&1; then
+		target_sdl_config="$target-sdl-config"
+	elif ( sdl-config --version ) > /dev/null 2>&1; then
+		target_sdl_config="sdl-config"
+	else
+		target_sdl_config="false"
+	fi
+fi
+
+if test "$_sdl" \!= "no"; then
+	echocheck SDL
+	test -n "$sdl_includes" && sdl_cflags="-I$sdl_includes"
+	test -z "$sdl_cflags" && sdl_cflags=`$target_sdl_config --cflags 2> /dev/null`
+	test -z "$sdl_cflags" && sdl_cflags=`$target_pkg_config --cflags sdl 2> /dev/null`
+	test -n "$sdl_libs" && sdl_ldflags="-L$sdl_libs -lSDL"
+	test -z "$sdl_ldflags" && sdl_ldflags=`$target_sdl_config --libs 2> /dev/null`
+	test -z "$sdl_ldflags" && sdl_ldflags=`$target_pkg_config --libs sdl 2> /dev/null`
+	cat > $TMPC <<EOF
+#include <SDL.h>
+int main(int argc, char **argv) { SDL_Init(0); return 0; }
+EOF
+	_sdl=no
+	target_cc_check "$sdl_cflags" "$sdl_ldflags" && _sdl=yes
+	# Save this temp .c file for build host test
+	rm -f $TMPC
+	echo "$_sdl"
+fi
+if test "$_sdl" = "yes"; then
+	_sdl_def="#define HAVE_SDL"
+	_have_video_driver=yes
+else
+	_sdl_def="#undef HAVE_SDL"
+	_sdlgl=no
+fi
+
+########
+
+if test "$_sdlgl" \!= "no"; then
+	echocheck SDL OpenGL support
+	cat > $TMPC <<EOF
+#include <SDL.h>
+#include <SDL_opengl.h>
+int main(int argc, char **argv) { GLuint t; SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5); glGenTextures(1, &t); return 0; }
+EOF
+	_sdlgl=no
+	sdlgl_ldflags="-lGL"
+	target_cc_check "$sdl_cflags" "$sdl_ldflags $sdlgl_ldflags" && _sdlgl=yes
+	if test "$_sdlgl" = "no"; then
+		sdlgl_ldflags="-framework OpenGL"
+		target_cc_check "$sdl_cflags" "$sdl_ldflags $sdlgl_ldflags" && _sdlgl=yes
+	fi
+	if test "$_sdlgl" = "no"; then
+		sdlgl_ldflags="-lopengl32"
+		target_cc_check "$sdl_cflags" "$sdl_ldflags $sdlgl_ldflags" && _sdlgl=yes
+	fi
+	echo "$_sdlgl"
+fi
+if test "$_sdlgl" = "yes"; then
+	_sdlgl_def="#define HAVE_SDLGL"
+else
+	_sdlgl_def="#undef HAVE_SDLGL"
 fi
 
 ########
