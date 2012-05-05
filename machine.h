@@ -102,6 +102,10 @@ void machine_configure(struct machine_config *mc);  /* apply config */
 void machine_reset(int hard);
 void machine_run(int ncycles);
 
+/* simplified read & write byte for convenience functions */
+uint8_t machine_read_byte(uint16_t A);
+void machine_write_byte(uint16_t A, uint8_t D);
+
 void machine_set_fast_sound(int fast);
 void machine_select_fast_sound(int fast);
 void machine_update_sound(void);

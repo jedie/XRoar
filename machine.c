@@ -598,6 +598,36 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
 	}
 }
 
+/* simplified read byte for use by convenience functions - ROM and RAM only */
+uint8_t machine_read_byte(uint16_t A) {
+	int S, ncycles;
+	uint16_t Z;
+	int is_ram_access = sam_run(A, 1, &S, &Z, &ncycles);
+	if (is_ram_access) {
+		Z = decode_Z(Z);
+		if (Z < machine_ram_size)
+			return machine_ram[Z];
+		return 0;
+	}
+	if (S == 1 || S == 2)
+		return machine_rom[A & 0x3fff];
+	if (S == 3 && machine_cart)
+		return machine_cart->mem_data[A & 0x3fff];
+	return 0;
+}
+
+/* simplified write byte for use by convenience functions - RAM only */
+void machine_write_byte(uint16_t A, uint8_t D) {
+	int S, ncycles;
+	uint16_t Z;
+	int is_ram_access = sam_run(A, 0, &S, &Z, &ncycles);
+	if (!is_ram_access)
+		return;
+	Z = decode_Z(Z);
+	if (Z < machine_ram_size)
+		machine_ram[Z] = D;
+}
+
 #ifndef FAST_SOUND
 void machine_set_fast_sound(int fast) {
 	xroar_fast_sound = fast;
