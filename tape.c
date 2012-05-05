@@ -753,29 +753,26 @@ static void cbin(M6809State *cpu_state) {
 
 static void fast_motor_on(M6809State *cpu_state) {
 	motor_on(cpu_state);
-	pskip -= 5;  /* remove last RTS */
-	cpu_state->reg_pc = IS_DRAGON ? 0xbbcc : 0xa7d7;
+	machine_op_rts(cpu_state);
 	pulse_skip();
 }
 
 static void fast_sync_leader(M6809State *cpu_state) {
 	sync_leader(cpu_state);
-	pskip -= 5;  /* remove last RTS */
-	cpu_state->reg_pc = IS_DRAGON ? 0xbe11 : 0xa796;
+	machine_op_rts(cpu_state);
 	pulse_skip();
 }
 
 static void fast_bitin(M6809State *cpu_state) {
 	bitin(cpu_state);
-	pskip -= 5;  /* remove last RTS */
-	cpu_state->reg_pc = IS_DRAGON ? 0xbdac : 0xa75c;
+	machine_op_rts(cpu_state);
 	pulse_skip();
+	if (tape_rewrite) rewrite_bitin(cpu_state);
 }
 
 static void fast_cbin(M6809State *cpu_state) {
 	cbin(cpu_state);
-	pskip -= 5;  /* remove last RTS */
-	cpu_state->reg_pc = IS_DRAGON ? 0xbdb8 : 0xa754;
+	machine_op_rts(cpu_state);
 	pulse_skip();
 }
 
@@ -823,7 +820,7 @@ static void rewrite_tape_on(M6809State *cpu_state) {
 	/* for audio files, when padding leaders, assume a phase */
 	if (tape_pad && input_skip_sync) {
 		machine_ram[0x84] = 0;  /* phase */
-		cpu_state->reg_pc = IS_DRAGON ? 0xbe11 : 0xa796;
+		machine_op_rts(cpu_state);
 	}
 }
 
