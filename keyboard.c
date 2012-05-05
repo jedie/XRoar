@@ -295,8 +295,7 @@ static void type_command(M6809State *cpu_state) {
 		}
 	}
 	/* Use CPU read routine to pull return address back off stack */
-	cpu_state->reg_pc = (m6809_read_cycle(cpu_state->reg_s) << 8) | m6809_read_cycle(cpu_state->reg_s+1);
-	cpu_state->reg_s += 2;
+	machine_op_rts(cpu_state);
 }
 
 void keyboard_queue_basic(const char *s) {
