@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "mc6821.h"
+#include "m6809.h"
 
 struct cart_config;
 struct cart;
@@ -105,6 +106,8 @@ void machine_run(int ncycles);
 /* simplified read & write byte for convenience functions */
 uint8_t machine_read_byte(uint16_t A);
 void machine_write_byte(uint16_t A, uint8_t D);
+/* simulate an RTS without otherwise affecting machine state */
+void machine_op_rts(M6809State *cpu);
 
 void machine_set_fast_sound(int fast);
 void machine_select_fast_sound(int fast);

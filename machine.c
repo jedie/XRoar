@@ -628,6 +628,14 @@ void machine_write_byte(uint16_t A, uint8_t D) {
 		machine_ram[Z] = D;
 }
 
+/* simulate an RTS without otherwise affecting machine state */
+void machine_op_rts(M6809State *cpu) {
+	unsigned int new_pc = machine_read_byte(cpu->reg_s) << 8;
+	new_pc |= machine_read_byte(cpu->reg_s + 1);
+	cpu->reg_s += 2;
+	cpu->reg_pc = new_pc;
+}
+
 #ifndef FAST_SOUND
 void machine_set_fast_sound(int fast) {
 	xroar_fast_sound = fast;
