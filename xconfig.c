@@ -57,14 +57,14 @@ static int lookup_enum(const char *name, struct xconfig_enum *list) {
 
 static void set_option(struct xconfig_option *option, const char *arg) {
 	switch (option->type) {
-		case XCONFIG_BOOL:
-			*(int *)option->dest = 1;
-			break;
-		case XCONFIG_BOOL0:
-			*(int *)option->dest = 0;
-			break;
 		case XCONFIG_INT:
 			*(int *)option->dest = strtol(arg, NULL, 0);
+			break;
+		case XCONFIG_INT0:
+			*(int *)option->dest = 0;
+			break;
+		case XCONFIG_INT1:
+			*(int *)option->dest = 1;
 			break;
 		case XCONFIG_DOUBLE:
 			*(double *)option->dest = strtod(arg, NULL);
@@ -89,11 +89,11 @@ static void set_option(struct xconfig_option *option, const char *arg) {
 /* returns 0 if it's a value option to unset */
 static int unset_option(struct xconfig_option *option) {
 	switch (option->type) {
-	case XCONFIG_BOOL:
-		*(int *)option->dest = 0;
-		return 0;
-	case XCONFIG_BOOL0:
+	case XCONFIG_INT0:
 		*(int *)option->dest = 1;
+		return 0;
+	case XCONFIG_INT1:
+		*(int *)option->dest = 0;
 		return 0;
 	case XCONFIG_STRING:
 		if (*(char **)option->dest) {
@@ -159,8 +159,8 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 				}
 			}
 		}
-		if (option->type == XCONFIG_BOOL ||
-		    option->type == XCONFIG_BOOL0 ||
+		if (option->type == XCONFIG_INT0 ||
+		    option->type == XCONFIG_INT1 ||
 		    option->type == XCONFIG_CALL_0) {
 			set_option(option, NULL);
 			continue;
@@ -206,8 +206,8 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 			LOG_ERROR("Unrecognised option `%s'\n", opt);
 			return XCONFIG_BAD_OPTION;
 		}
-		if (option->type == XCONFIG_BOOL ||
-		    option->type == XCONFIG_BOOL0 ||
+		if (option->type == XCONFIG_INT0 ||
+		    option->type == XCONFIG_INT1 ||
 		    option->type == XCONFIG_CALL_0) {
 			set_option(option, NULL);
 			_argn++;
