@@ -12,7 +12,7 @@ typedef struct {
 	const char *name;
 	const char *description;
 	int (*init)(void);
-	int initialised;
+	_Bool initialised;
 	void (*shutdown)(void);
 } Module_Common;
 
