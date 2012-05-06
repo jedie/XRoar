@@ -67,7 +67,7 @@ void mc6821_reset(MC6821_PIA *pia) {
 
 void mc6821_set_cx1(struct MC6821_PIA_side *side) {
 	if (PIA_ACTIVE_TRANSITION(side)) {
-		side->interrupt_received = 0x80;
+		side->interrupt_received = 1;
 		if (PIA_INTERRUPT_ENABLED(side)) {
 			side->irq = 1;
 		} else {
@@ -78,7 +78,7 @@ void mc6821_set_cx1(struct MC6821_PIA_side *side) {
 
 void mc6821_reset_cx1(struct MC6821_PIA_side *side) {
 	if (!PIA_ACTIVE_TRANSITION(side)) {
-		side->interrupt_received = 0x80;
+		side->interrupt_received = 1;
 		if (PIA_INTERRUPT_ENABLED(side)) {
 			side->irq = 1;
 		} else {
@@ -110,11 +110,11 @@ void mc6821_update_state(MC6821_PIA *pia) {
 
 #define READ_CR(p) do { \
 		if (p.control_preread) p.control_preread(); \
-		return (p.control_register | p.interrupt_received); \
+		return (p.control_register | (p.interrupt_received ? 0x80 : 0)); \
 	} while (0)
 
-uint8_t mc6821_read(MC6821_PIA *pia, unsigned int addr) {
-	switch (addr & 3) {
+uint8_t mc6821_read(MC6821_PIA *pia, uint16_t A) {
+	switch (A & 3) {
 		default:
 		case 0:
 			READ_DR(pia->a);
@@ -154,20 +154,20 @@ uint8_t mc6821_read(MC6821_PIA *pia, unsigned int addr) {
 		if (p.control_postwrite) p.control_postwrite(); \
 	} while (0)
 
-void mc6821_write(MC6821_PIA *pia, unsigned int addr, uint8_t val) {
-	switch (addr & 3) {
+void mc6821_write(MC6821_PIA *pia, uint16_t A, uint8_t D) {
+	switch (A & 3) {
 		default:
 		case 0:
-			WRITE_DR(pia->a, val);
+			WRITE_DR(pia->a, D);
 			break;
 		case 1:
-			WRITE_CR(pia->a, val);
+			WRITE_CR(pia->a, D);
 			break;
 		case 2:
-			WRITE_DR(pia->b, val);
+			WRITE_DR(pia->b, D);
 			break;
 		case 3:
-			WRITE_CR(pia->b, val);
+			WRITE_CR(pia->b, D);
 			break;
 	}
 }

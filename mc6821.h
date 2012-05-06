@@ -26,8 +26,8 @@ struct MC6821_PIA_side {
 	uint8_t port_output;
 	uint8_t port_input;
 	uint8_t tied_low;
-	int interrupt_received;
-	int irq;
+	_Bool interrupt_received;
+	_Bool irq;
 	void (*control_preread)(void);
 	void (*control_postwrite)(void);
 	void (*data_preread)(void);
@@ -49,7 +49,7 @@ void mc6821_reset(MC6821_PIA *pia);
 void mc6821_set_cx1(struct MC6821_PIA_side *side);
 void mc6821_reset_cx1(struct MC6821_PIA_side *side);
 void mc6821_update_state(MC6821_PIA *pia);
-uint8_t mc6821_read(MC6821_PIA *pia, unsigned int addr);
-void mc6821_write(MC6821_PIA *pia, unsigned int addr, uint8_t val);
+uint8_t mc6821_read(MC6821_PIA *pia, uint16_t A);
+void mc6821_write(MC6821_PIA *pia, uint16_t A, uint8_t D);
 
 #endif  /* XROAR_MC6821_H_ */
