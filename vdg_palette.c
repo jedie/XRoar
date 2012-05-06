@@ -108,7 +108,7 @@ struct vdg_palette *vdg_palette_by_name(const char *name) {
 /* ---------------------------------------------------------------------- */
 
 /* Map Y'U'V' from palette to pixel value */
-void vdg_palette_RGB(struct vdg_palette *vp, int is_pal, int colour,
+void vdg_palette_RGB(struct vdg_palette *vp, _Bool is_pal, int colour,
                      float *Rout, float *Gout, float *Bout) {
 	float blank_y = vp->blank_y;
 	float white_y = vp->white_y;
