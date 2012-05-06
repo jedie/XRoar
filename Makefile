@@ -486,17 +486,29 @@ dist:
 	git archive --format=tar --output=../$(DISTNAME).tar --prefix=$(DISTNAME)/ HEAD
 	gzip -f9 ../$(DISTNAME).tar
 
-.PHONY: dist-windows32
-dist-windows32: all doc/xroar.pdf
-	mkdir $(DISTNAME)-windows32
-	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf xroar.exe /usr/local/$(TARGET_ARCH)/bin/SDL.dll /usr/local/$(TARGET_ARCH)/bin/libsndfile-1.dll $(DISTNAME)-windows32/
-	cp $(SRCROOT)/COPYING.LGPL-2.1 $(DISTNAME)-windows32/COPYING.LGPL-2.1
-	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/xroar.exe
-	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/SDL.dll
-	$(TOOL_PREFIX)strip $(DISTNAME)-windows32/libsndfile-1.dll
-	rm -f ../$(DISTNAME)-windows32.zip
-	zip -r ../$(DISTNAME)-windows32.zip $(DISTNAME)-windows32
-	rm -rf $(DISTNAME)-windows32/
+.PHONY: dist-w64
+dist-w64: all doc/xroar.pdf
+	mkdir $(DISTNAME)-w64
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w64/
+	cp $(SRCROOT)/COPYING.LGPL-2.1 $(DISTNAME)-w64/COPYING.LGPL-2.1
+	$(TOOL_PREFIX)strip $(DISTNAME)-w64/xroar.exe
+	$(TOOL_PREFIX)strip $(DISTNAME)-w64/SDL.dll
+	$(TOOL_PREFIX)strip $(DISTNAME)-w64/libsndfile-1.dll
+	rm -f ../$(DISTNAME)-w64.zip
+	zip -r ../$(DISTNAME)-w64.zip $(DISTNAME)-w64
+	rm -rf $(DISTNAME)-w64/
+
+.PHONY: dist-w32
+dist-w32: all doc/xroar.pdf
+	mkdir $(DISTNAME)-w32
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w32/
+	cp $(SRCROOT)/COPYING.LGPL-2.1 $(DISTNAME)-w32/COPYING.LGPL-2.1
+	$(TOOL_PREFIX)strip $(DISTNAME)-w32/xroar.exe
+	$(TOOL_PREFIX)strip $(DISTNAME)-w32/SDL.dll
+	$(TOOL_PREFIX)strip $(DISTNAME)-w32/libsndfile-1.dll
+	rm -f ../$(DISTNAME)-w32.zip
+	zip -r ../$(DISTNAME)-w32.zip $(DISTNAME)-w32
+	rm -rf $(DISTNAME)-w32/
 
 .PHONY: dist-macosx dist-macos
 dist-macosx dist-macos: all doc/xroar.pdf
