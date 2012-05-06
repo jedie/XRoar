@@ -40,12 +40,12 @@
 void (*vdg_fetch_bytes)(int, uint8_t *);
 
 static cycle_t scanline_start;
-static int is_32byte;
+static _Bool is_32byte;
 static void render_scanline(void);
 
 #ifndef FAST_VDG
 static int beam_pos;
-static int inhibit_mode_change;
+static _Bool inhibit_mode_change;
 # define SET_BEAM_POS(v) do { beam_pos = (v); } while (0)
 #else
 # define SET_BEAM_POS(v)
