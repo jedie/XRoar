@@ -13,7 +13,7 @@ typedef struct event_t event_t;
 struct event_t {
 	cycle_t at_cycle;
 	void (*dispatch)(void);
-	int queued;
+	_Bool queued;
 	event_t **list;
 	event_t *next;
 };
