@@ -1,5 +1,5 @@
 XRoar - a Dragon/Tandy Coco emulator
-Copyright (C) 2003-2012 Ciaran Anscomb <xroar@6809.org.uk>
+Copyright 2003-2012 Ciaran Anscomb <xroar@6809.org.uk>
 
 
 XRoar is a Dragon emulator that runs on a wide variety of platforms.
@@ -7,43 +7,23 @@ Due to hardware similarities, XRoar also emulates the Tandy Colour
 Computer (CoCo) models 1 & 2.
 
 
-This document just contains extracts from the manual covering
-installation of XRoar from source.  If you downloaded a binary package,
-the full manual should have been supplied with it as a PDF, which you
-can consult for more details.  Binary packages and an online copy of
-the documentation are available from the XRoar home page
-(http://www.6809.org.uk/dragon/xroar.shtml).
+XRoar is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+XRoar is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
 
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2 of the License, or (at your
-option) any later version.
-
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-See the file 'COPYING.GPL' for the full terms.
-
-Binary distributions only:
-
-Binary distributions of this software may be linked, statically or
-otherwise, against the SDL and/or libsndfile libraries.  Both packages
-are distributed under the GNU Lesser General Public License, Version
-2.1.  Source code for these libraries is made available from their
-respective home pages, but also from the XRoar home page (see above for
-URL).
-
-See the file 'COPYING.LGPL-2.1' for the full terms.
-
-http://www.mega-nerd.com/libsndfile/    - libsndfile home page.
-http://www.libsdl.org/                  - SDL home page.
+This README contains extracts from the manual.  Binary packages
+contain the full manual as a PDF, which is also available from the
+XRoar home page (http://www.6809.org.uk/dragon/xroar.shtml).
 
 
 Getting started
@@ -67,13 +47,15 @@ If there is no binary package for your system, you will have to build
 from source.  Before doing so, you should ensure you have the
 dependencies required to build:
 
-   * *GTK+*, the GIMP tookit, is used to provide a file requester on
-     Linux and Unix builds.  It is available from the GTK+ home page
-     (http://www.gtk.org/).
+   * *GTK+*, the GIMP tookit, is used to provide (at least) a file
+     requester on Linux and Unix builds.  It is available from the GTK+
+     home page (http://www.gtk.org/).
 
    * *GtkGLExt*, an OpenGL extension to GTK+.  This is optional, but if
-     present, a full GTK+ interface can be presented.  Under Linux,
-     this obviates the need for SDL entirely.
+     present, a full GTK+ user interface can be presented.  Under
+     Linux, this obviates the need for SDL entirely.  It is available
+     from the GTK+ OpenGL Extension project page
+     (http://projects.gnome.org/gtkglext/).
 
    * *SDL*, Simple Directmedia Layer, is used for video and audio
      output on most supported platforms.  It can be obtained from the
@@ -93,21 +75,20 @@ follows the same steps as many other software packages.  Unpack the
 source code, change into the created source directory, run `configure'
 and then if everything looks good, run `make'.  Example:
 
-     $ gzip -dc xroar-VERSION.tar.gz | tar xvf -
-     $ cd xroar-VERSION
+     $ gzip -dc xroar-0.28.tar.gz | tar xvf -
+     $ cd xroar-0.28
      $ ./configure
      $ make
-
-   By default, `configure' will set things up to install to
-`/usr/local', but this can be changed by using the
-`--prefix=/path/to/destination' option.
 
    `configure' will detect any optionally supported drivers like Sun
 audio, OpenGL video, etc.
 
+   By default, `configure' will set up an install _PREFIX_ of
+`/usr/local', but this can be changed by using the `--prefix=PATH'
+option.
+
    Once built, run `make install' to install the binary and info
-documentation on your system.  Firmware ROM images should be placed
-either in your home directory under `.xroar/roms/', or in
-`_PREFIX_/share/xroar/roms/', where _PREFIX_ is the install prefix as
-above.
+documentation on your system.  ROM images should be placed either in
+your home directory under `.xroar/roms/', or under the installation
+directory at `_PREFIX_/share/xroar/roms/'.
 
