@@ -125,7 +125,7 @@ static void ff48_write(int octet) {
 	vdrive_set_drive(ic1_drive_select);
 	ic1_motor_enable = octet & 0x04;
 	ic1_density = octet & 0x08;
-	wd279x_set_density(ic1_density);
+	wd279x_set_dden(!ic1_density);
 	ic1_precomp_enable = octet & 0x10;
 	ic1_nmi_enable = octet & 0x20;
 }

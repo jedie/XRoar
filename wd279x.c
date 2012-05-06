@@ -77,11 +77,8 @@
 	} while (0)
 #define GOTO_STATE(f) state = f; continue
 
-#define SINGLE_DENSITY (0)
-#define DOUBLE_DENSITY (1)
-
-#define IS_DOUBLE_DENSITY (density == DOUBLE_DENSITY)
-#define IS_SINGLE_DENSITY (density == SINGLE_DENSITY)
+#define IS_DOUBLE_DENSITY (density)
+#define IS_SINGLE_DENSITY (!density)
 
 #define SET_DIRECTION do { direction = 1; vdrive_set_direction(1); } while (0)
 #define RESET_DIRECTION do { \
@@ -147,7 +144,7 @@ static uint8_t data_register;
 
 /* WD279X internal state */
 static uint8_t command_register;
-static int is_step_cmd;
+static _Bool is_step_cmd;
 static int direction;
 static int side;
 static int step_delay;
@@ -163,7 +160,7 @@ static int sector_size[2][4] = {
 	{ 128, 256, 512, 1024 }
 };
 
-static int density;
+static _Bool density;
 
 static uint8_t _vdrive_read(void) {
 	uint8_t b = vdrive_read();
@@ -203,10 +200,9 @@ void wd279x_reset(void) {
 	SET_SIDE(0);
 }
 
-void wd279x_set_density(int d) {
-	/* DDEN# is active-low */
-	density = d ? SINGLE_DENSITY : DOUBLE_DENSITY;
-	vdrive_set_density(d ? VDISK_SINGLE_DENSITY : VDISK_DOUBLE_DENSITY);
+void wd279x_set_dden(_Bool dden) {
+	density = dden;
+	vdrive_set_density(dden ? VDISK_DOUBLE_DENSITY : VDISK_SINGLE_DENSITY);
 }
 
 void wd279x_track_register_write(uint8_t octet) {

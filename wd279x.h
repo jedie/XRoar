@@ -20,7 +20,7 @@ extern void (*wd279x_reset_intrq_handler)(void);
 
 void wd279x_init(void);
 void wd279x_reset(void);
-void wd279x_set_density(int d);  /* 0 = Double, else Single */
+void wd279x_set_dden(_Bool dden);  /* 1 = Double density, 0 = Single */
 void wd279x_command_write(uint8_t octet);
 void wd279x_track_register_write(uint8_t octet);
 void wd279x_sector_register_write(uint8_t octet);

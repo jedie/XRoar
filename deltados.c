@@ -106,5 +106,5 @@ static void ff44_write(uint8_t octet) {
 	ic1_side_select = octet & 0x04;
 	vdrive_set_side(ic1_side_select ? 1 : 0);
 	ic1_density = !(octet & 0x08);
-	wd279x_set_density(ic1_density);
+	wd279x_set_dden(!ic1_density);
 }

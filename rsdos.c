@@ -135,7 +135,7 @@ static void ff40_write(int octet) {
 	ic1_drive_select = new_drive_select;
 	vdrive_set_drive(ic1_drive_select);
 	ic1_density = octet & 0x20;
-	wd279x_set_density(ic1_density);
+	wd279x_set_dden(!ic1_density);
 	if (ic1_density && intrq_flag) {
 		m6809_nmi_set();
 	}
