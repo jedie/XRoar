@@ -1039,7 +1039,7 @@ void m6809_trace_byte(uint8_t byte, uint16_t pc) {
 			break;
 
 		case STACKS: {
-			int not_first = 0;
+			_Bool not_first = 0;
 			if (byte_val & 0x01) { STACK_PRINT("CC"); }
 			if (byte_val & 0x02) { STACK_PRINT("A"); }
 			if (byte_val & 0x04) { STACK_PRINT("B"); }
@@ -1051,7 +1051,7 @@ void m6809_trace_byte(uint8_t byte, uint16_t pc) {
 		} break;
 
 		case STACKU: {
-			int not_first = 0;
+			_Bool not_first = 0;
 			if (byte_val & 0x01) { STACK_PRINT("CC"); }
 			if (byte_val & 0x02) { STACK_PRINT("A"); }
 			if (byte_val & 0x04) { STACK_PRINT("B"); }
