@@ -69,9 +69,9 @@ struct machine_config {
 	int tv_standard;
 	int cross_colour_phase;
 	int ram;
-	int nobas;
-	int noextbas;
-	int noaltbas;
+	_Bool nobas;
+	_Bool noextbas;
+	_Bool noaltbas;
 	char *bas_rom;
 	char *extbas_rom;
 	char *altbas_rom;
@@ -82,7 +82,7 @@ extern uint8_t machine_ram[0x10000];
 extern uint8_t *machine_rom;
 extern MC6821_PIA PIA0, PIA1;
 extern struct cart *machine_cart;
-extern int has_bas, has_extbas, has_altbas;
+extern _Bool has_bas, has_extbas, has_altbas;
 extern uint32_t crc_bas, crc_extbas, crc_altbas;
 
 /* Add a new machine config: */
@@ -100,7 +100,7 @@ void machine_config_complete(struct machine_config *mc);
 void machine_init(void);
 void machine_shutdown(void);
 void machine_configure(struct machine_config *mc);  /* apply config */
-void machine_reset(int hard);
+void machine_reset(_Bool hard);
 void machine_run(int ncycles);
 
 /* simplified read & write byte for convenience functions */

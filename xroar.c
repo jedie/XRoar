@@ -68,9 +68,9 @@ static char *opt_machine_palette = NULL;
 static char *opt_bas = NULL;
 static char *opt_extbas = NULL;
 static char *opt_altbas = NULL;
-static int opt_nobas = 0;
-static int opt_noextbas = 0;
-static int opt_noaltbas = 0;
+static _Bool opt_nobas = 0;
+static _Bool opt_noextbas = 0;
+static _Bool opt_noaltbas = 0;
 static int opt_tv = ANY_AUTO;
 static void set_pal(void);
 static void set_ntsc(void);
@@ -186,9 +186,9 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "bas",      &opt_bas ),
 	XC_OPT_STRING( "extbas",   &opt_extbas ),
 	XC_OPT_STRING( "altbas",   &opt_altbas ),
-	XC_OPT_INT1  ( "nobas",    &opt_nobas ),
-	XC_OPT_INT1  ( "noextbas", &opt_noextbas ),
-	XC_OPT_INT1  ( "noaltbas", &opt_noaltbas ),
+	XC_OPT_BOOL  ( "nobas",    &opt_nobas ),
+	XC_OPT_BOOL  ( "noextbas", &opt_noextbas ),
+	XC_OPT_BOOL  ( "noaltbas", &opt_noaltbas ),
 	XC_OPT_ENUM  ( "tv-type",  &opt_tv, tv_type_list ),
 	XC_OPT_INT   ( "ram",      &opt_ram ),
 	/* Backwards-compatibility options: */

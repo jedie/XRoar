@@ -59,7 +59,7 @@ static uint8_t rom1[0x4000];
 MC6821_PIA PIA0, PIA1;
 struct cart *machine_cart = NULL;
 static struct cart running_cart;
-int has_bas, has_extbas, has_altbas;
+_Bool has_bas, has_extbas, has_altbas;
 uint32_t crc_bas, crc_extbas, crc_altbas;
 
 static struct {
@@ -426,7 +426,7 @@ void machine_configure(struct machine_config *mc) {
 	}
 }
 
-void machine_reset(int hard) {
+void machine_reset(_Bool hard) {
 	if (hard) {
 		initialise_ram();
 	}
