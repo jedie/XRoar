@@ -33,25 +33,11 @@ extern unsigned int keyboard_row[9];
 		keyboard_row[keymap[s].row] |= 1<<keymap[s].col; \
 	} while (0)
 
-#define KEYBOARD_QUEUE(c) do { \
-		keyboard_buffer[keyboard_buffer_next] = c; \
-		keyboard_buffer_next = (keyboard_buffer_next + 1) % sizeof(keyboard_buffer); \
-	} while (0)
-#define KEYBOARD_HASQUEUE (keyboard_buffer_next != keyboard_buffer_cursor)
-#define KEYBOARD_DEQUEUE() do { \
-		keyboard_buffer_cursor = (keyboard_buffer_cursor + 1) % sizeof(keyboard_buffer); \
-	} while (0)
-
-extern unsigned int keyboard_buffer[256];
-extern int keyboard_buffer_next, keyboard_buffer_cursor;
-
 void keyboard_init(void);
 void keyboard_set_keymap(int map);
 
 void keyboard_column_update(void);
 void keyboard_row_update(void);
-void keyboard_queue_string(const char *s);
-void keyboard_queue(unsigned int c);
 void keyboard_unicode_press(unsigned int unicode);
 void keyboard_unicode_release(unsigned int unicode);
 void keyboard_queue_basic(const char *s);

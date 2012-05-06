@@ -95,17 +95,8 @@ static unsigned int unicode_to_dragon[128] = {
 unsigned int keyboard_column[9];
 unsigned int keyboard_row[9];
 
-unsigned int keyboard_buffer[256];
-int keyboard_buffer_next, keyboard_buffer_cursor;
-
-static void keyboard_press_queued(void);
-static void keyboard_release_queued(void);
-static event_t queue_event;
-
 void keyboard_init(void) {
 	unsigned int i;
-	event_init(&queue_event);
-	keyboard_buffer_next = keyboard_buffer_cursor = 0;
 	for (i = 0; i < 8; i++) {
 		keyboard_column[i] = ~0;
 		keyboard_row[i] = ~0;
@@ -146,27 +137,6 @@ void keyboard_row_update(void) {
 		}
 	}
 	PIA0.b.port_input = col;
-}
-
-void keyboard_queue_string(const char *s) {
-	unsigned int c;
-	while ( (c = *(s++)) ) {
-		KEYBOARD_QUEUE(c);
-	}
-	if (!queue_event.queued) {
-		queue_event.dispatch = keyboard_press_queued;
-		queue_event.at_cycle = current_cycle + OSCILLATOR_RATE / 20;
-		event_queue(&MACHINE_EVENT_LIST, &queue_event);
-	}
-}
-
-void keyboard_queue(unsigned int c) {
-	KEYBOARD_QUEUE(c);
-	if (!queue_event.queued) {
-		queue_event.dispatch = keyboard_press_queued;
-		queue_event.at_cycle = current_cycle + OSCILLATOR_RATE / 20;
-		event_queue(&MACHINE_EVENT_LIST, &queue_event);
-	}
 }
 
 void keyboard_unicode_press(unsigned int unicode) {
@@ -221,32 +191,6 @@ void keyboard_unicode_release(unsigned int unicode) {
 	}
 	keyboard_column_update();
 	keyboard_row_update();
-}
-
-static unsigned int key_pressed;
-
-static void keyboard_press_queued(void) {
-	if (KEYBOARD_HASQUEUE) {
-		key_pressed = keyboard_buffer[keyboard_buffer_cursor];
-		if (key_pressed) {
-			keyboard_unicode_press(key_pressed);
-			/* Schedule key release event */
-			queue_event.dispatch = keyboard_release_queued;
-			queue_event.at_cycle += OSCILLATOR_RATE / 20;
-			event_queue(&MACHINE_EVENT_LIST, &queue_event);
-		}
-	}
-}
-
-static void keyboard_release_queued(void) {
-	keyboard_unicode_release(key_pressed);
-	KEYBOARD_DEQUEUE();
-	/* Schedule another key press event only if queue not empty */
-	if (KEYBOARD_HASQUEUE) {
-		queue_event.dispatch = keyboard_press_queued;
-		queue_event.at_cycle += OSCILLATOR_RATE / 20;
-		event_queue(&MACHINE_EVENT_LIST, &queue_event);
-	}
 }
 
 static GSList *basic_command_list = NULL;
