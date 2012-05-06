@@ -464,10 +464,10 @@ static uint16_t decode_Z(uint16_t Z) {
 }
 
 /* Interface to SAM to decode and translate address */
-static int do_cpu_cycle(uint16_t A, int RnW, int *S, uint16_t *Z) {
+static _Bool do_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 	uint16_t tmp_Z;
 	int ncycles;
-	int is_ram_access = sam_run(A, RnW, S, &tmp_Z, &ncycles);
+	_Bool is_ram_access = sam_run(A, RnW, S, &tmp_Z, &ncycles);
 	if (is_ram_access) {
 		*Z = decode_Z(tmp_Z);
 	}
@@ -533,7 +533,7 @@ static uint8_t read_cycle(uint16_t A) {
 static void write_cycle(uint16_t A, uint8_t D) {
 	int S;
 	uint16_t Z;
-	int is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
+	_Bool is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
 	if ((S & 4) || IS_DRAGON32) {
 		switch (S) {
 			case 1:
@@ -584,7 +584,7 @@ static void nvma_cycles(int ncycles) {
 static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
 	while (nbytes > 0) {
 		uint16_t V = 0;
-		int valid;
+		_Bool valid;
 		int n = sam_vdg_bytes(nbytes, &V, &valid);
 		if (dest) {
 			if (valid) {
@@ -601,7 +601,7 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
 uint8_t machine_read_byte(uint16_t A) {
 	int S, ncycles;
 	uint16_t Z;
-	int is_ram_access = sam_run(A, 1, &S, &Z, &ncycles);
+	_Bool is_ram_access = sam_run(A, 1, &S, &Z, &ncycles);
 	if (is_ram_access) {
 		Z = decode_Z(Z);
 		if (Z < machine_ram_size)

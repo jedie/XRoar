@@ -59,7 +59,7 @@ static uint16_t ram_ras1;
 static uint16_t ram_page_bit;
 
 /* Address decode */
-static int map_type_1;
+static _Bool map_type_1;
 
 /* SAM control register */
 static uint_fast16_t sam_register;
@@ -89,8 +89,8 @@ void sam_reset(void) {
  * clock would be use for this access is written to ncycles.  Returns 1 when
  * the access is to a RAM area, 0 otherwise. */
 
-int sam_run(uint16_t A, int RnW, int *S, uint16_t *Z, int *ncycles) {
-	int is_ram_access;
+_Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
+	_Bool is_ram_access;
 	if (A < 0x8000 || (map_type_1 && A < 0xff00)) {
 		*Z = RAM_TRANSLATE(A);
 		*ncycles = sam_ram_cycles;
@@ -178,9 +178,9 @@ void sam_vdg_fsync(void) {
  * bytes available.  As the next byte may not be sequential, continue calling
  * until all required data is fetched. */
 
-int sam_vdg_bytes(int nbytes, uint16_t *V, int *valid) {
+int sam_vdg_bytes(int nbytes, uint16_t *V, _Bool *valid) {
 	uint16_t b3_0 = vdg_address & 0xf;
-	int is_valid = (sam_ram_cycles != SAM_CPU_FAST_DIVISOR);
+	_Bool is_valid = (sam_ram_cycles != SAM_CPU_FAST_DIVISOR);
 	if (valid) *valid = is_valid;
 	if (is_valid && V)
 		*V = VRAM_TRANSLATE(vdg_address);
@@ -230,7 +230,7 @@ static void update_from_register(void) {
 	}
 
 	int mpu_rate = (sam_register >> 11) & 3;
-	map_type_1 = (0 != (sam_register & 0x8000));
+	map_type_1 = ((sam_register & 0x8000) != 0);
 	if (map_type_1 && mpu_rate == 1) {
 		/* Disallow address-dependent MPU rate in map type 1 */
 		mpu_rate = 0;
