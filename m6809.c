@@ -180,10 +180,10 @@ static uint16_t reg_pc = 0;
 #define set_reg_d(v) do { reg_a = (v)>>8; reg_b = (v); } while (0)
 
 /* MPU state variables */
-int m6809_running = 0;
-int m6809_halt = 0, m6809_nmi = 0;
-int m6809_firq = 0, m6809_irq = 0;
-static int nmi_armed = 0;
+_Bool m6809_running = 0;
+_Bool m6809_halt = 0, m6809_nmi = 0;
+_Bool m6809_firq = 0, m6809_irq = 0;
+static _Bool nmi_armed = 0;
 static unsigned int cycle = 0;
 static unsigned int halt_cycle = 0, nmi_cycle = 0;
 static unsigned int firq_cycle = 0, irq_cycle = 0;
@@ -368,11 +368,11 @@ void m6809_run(void) {
 	while (m6809_running) {
 
 		if (!m6809_nmi) nmi_cycle = cycle;
-		int nmi_active = (cycle - nmi_cycle) >= 3;
+		_Bool nmi_active = (cycle - nmi_cycle) >= 3;
 		if (!m6809_firq) firq_cycle = cycle;
-		int firq_active = (cycle - firq_cycle) >= 3;
+		_Bool firq_active = (cycle - firq_cycle) >= 3;
 		if (!m6809_irq) irq_cycle = cycle;
-		int irq_active = (cycle - irq_cycle) >= 3;
+		_Bool irq_active = (cycle - irq_cycle) >= 3;
 
 		switch (cpu_state) {
 

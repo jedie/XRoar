@@ -38,9 +38,9 @@ typedef struct {
 	enum m6809_cpu_state cpu_state;
 } M6809State;
 
-extern int m6809_running;
-extern int m6809_halt, m6809_nmi;
-extern int m6809_firq, m6809_irq;
+extern _Bool m6809_running;
+extern _Bool m6809_halt, m6809_nmi;
+extern _Bool m6809_firq, m6809_irq;
 
 #define m6809_init()
 void m6809_reset(void);
