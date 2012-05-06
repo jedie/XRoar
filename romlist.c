@@ -31,7 +31,7 @@
 /* User defined rom lists */
 struct romlist {
 	GSList *list;
-	int flag;
+	_Bool flag;
 };
 
 /* Hash containing all defined rom lists */

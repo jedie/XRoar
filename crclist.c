@@ -30,7 +30,7 @@
 /* User defined CRC lists */
 struct crclist {
 	GSList *list;
-	int flag;
+	_Bool flag;
 };
 
 /* Hash containing all defined CRC lists */
