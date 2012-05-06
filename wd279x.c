@@ -202,7 +202,7 @@ void wd279x_reset(void) {
 
 void wd279x_set_dden(_Bool dden) {
 	density = dden;
-	vdrive_set_density(dden ? VDISK_DOUBLE_DENSITY : VDISK_SINGLE_DENSITY);
+	vdrive_set_dden(dden);
 }
 
 void wd279x_track_register_write(uint8_t octet) {

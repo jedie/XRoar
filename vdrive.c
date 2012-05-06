@@ -71,7 +71,7 @@ void vdrive_init(void) {
 		drives[i].disk = NULL;
 		drives[i].current_track = 0;
 	}
-	vdrive_set_density(VDISK_DOUBLE_DENSITY);
+	vdrive_set_dden(1);
 	vdrive_set_drive(0);
 	event_init(&index_pulse_event);
 	index_pulse_event.dispatch = do_index_pulse;
@@ -163,12 +163,9 @@ void vdrive_set_side(int side) {
 	update_signals();
 }
 
-void vdrive_set_density(int density) {
-	if (density != VDISK_SINGLE_DENSITY
-			&& density != VDISK_DOUBLE_DENSITY)
-		return;
-	cur_density = density;
-	head_incr = (density == VDISK_SINGLE_DENSITY) ? 2 : 1;
+void vdrive_set_dden(_Bool dden) {
+	cur_density = dden ? VDISK_DOUBLE_DENSITY : VDISK_SINGLE_DENSITY;
+	head_incr = dden ? 1 : 2;
 }
 
 static void update_signals(void) {
