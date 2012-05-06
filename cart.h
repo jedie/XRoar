@@ -6,6 +6,8 @@
 #ifndef XROAR_CART_H_
 #define XROAR_CART_H_
 
+#include "types.h"
+
 struct machine_config;
 
 enum cart_type {
@@ -29,8 +31,8 @@ struct cart {
 	uint8_t mem_data[0x4000];
 	int mem_writable;
 	int mem_size;
-	uint8_t (*io_read)(unsigned int addr);
-	void (*io_write)(unsigned int addr, uint8_t value);
+	uint8_t (*io_read)(uint16_t A);
+	void (*io_write)(uint16_t A, uint8_t D);
 	void (*reset)(void);
 	void (*attach)(void);
 	void (*detach)(void);

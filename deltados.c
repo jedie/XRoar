@@ -35,8 +35,8 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-static uint8_t io_read(unsigned int addr);
-static void io_write(unsigned int addr, uint8_t val);
+static uint8_t io_read(uint16_t A);
+static void io_write(uint16_t A, uint8_t D);
 static void reset(void);
 
 /* Latch that's part of the Delta cart: */
@@ -69,20 +69,20 @@ static void reset(void) {
 	ff44_write(0);
 }
 
-static uint8_t io_read(unsigned int addr) {
-	if ((addr & 7) == 0) return wd279x_status_read();
-	if ((addr & 7) == 1) return wd279x_track_register_read();
-	if ((addr & 7) == 2) return wd279x_sector_register_read();
-	if ((addr & 7) == 3) return wd279x_data_register_read();
+static uint8_t io_read(uint16_t A) {
+	if ((A & 7) == 0) return wd279x_status_read();
+	if ((A & 7) == 1) return wd279x_track_register_read();
+	if ((A & 7) == 2) return wd279x_sector_register_read();
+	if ((A & 7) == 3) return wd279x_data_register_read();
 	return 0x7e;
 }
 
-static void io_write(unsigned int addr, uint8_t val) {
-	if ((addr & 7) == 0) wd279x_command_write(val);
-	if ((addr & 7) == 1) wd279x_track_register_write(val);
-	if ((addr & 7) == 2) wd279x_sector_register_write(val);
-	if ((addr & 7) == 3) wd279x_data_register_write(val);
-	if (addr & 4) ff44_write(val);
+static void io_write(uint16_t A, uint8_t D) {
+	if ((A & 7) == 0) wd279x_command_write(D);
+	if ((A & 7) == 1) wd279x_track_register_write(D);
+	if ((A & 7) == 2) wd279x_sector_register_write(D);
+	if ((A & 7) == 3) wd279x_data_register_write(D);
+	if (A & 4) ff44_write(D);
 }
 
 /* Delta cartridge circuitry */

@@ -34,8 +34,8 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-static uint8_t io_read(unsigned int addr);
-static void io_write(unsigned int addr, uint8_t val);
+static uint8_t io_read(uint16_t A);
+static void io_write(uint16_t A, uint8_t D);
 static void reset(void);
 static void detach(void);
 
@@ -81,20 +81,20 @@ static void reset(void) {
 static void detach(void) {
 }
 
-static uint8_t io_read(unsigned int addr) {
-	if ((addr & 15) == 8) return wd279x_status_read();
-	if ((addr & 15) == 9) return wd279x_track_register_read();
-	if ((addr & 15) == 10) return wd279x_sector_register_read();
-	if ((addr & 15) == 11) return wd279x_data_register_read();
+static uint8_t io_read(uint16_t A) {
+	if ((A & 15) == 8) return wd279x_status_read();
+	if ((A & 15) == 9) return wd279x_track_register_read();
+	if ((A & 15) == 10) return wd279x_sector_register_read();
+	if ((A & 15) == 11) return wd279x_data_register_read();
 	return 0x7e;
 }
 
-static void io_write(unsigned int addr, uint8_t val) {
-	if ((addr & 15) == 8) wd279x_command_write(val);
-	if ((addr & 15) == 9) wd279x_track_register_write(val);
-	if ((addr & 15) == 10) wd279x_sector_register_write(val);
-	if ((addr & 15) == 11) wd279x_data_register_write(val);
-	if (!(addr & 8)) ff40_write(val);
+static void io_write(uint16_t A, uint8_t D) {
+	if ((A & 15) == 8) wd279x_command_write(D);
+	if ((A & 15) == 9) wd279x_track_register_write(D);
+	if ((A & 15) == 10) wd279x_sector_register_write(D);
+	if ((A & 15) == 11) wd279x_data_register_write(D);
+	if (!(A & 8)) ff40_write(D);
 }
 
 /* RSDOS cartridge circuitry */
