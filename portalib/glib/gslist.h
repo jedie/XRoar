@@ -18,6 +18,7 @@ GSList *g_slist_insert_before(GSList *list, GSList *before, void *data);
 GSList *g_slist_prepend(GSList *list, void *data);
 GSList *g_slist_append(GSList *list, void *data);
 GSList *g_slist_concat(GSList *list1, GSList *list2);
+GSList *g_slist_insert_sorted(GSList *list, gpointer data, GCompareFunc func);
 GSList *g_slist_remove(GSList *list, void *data);
 GSList *g_slist_to_head(GSList *list, void *data);
 GSList *g_slist_to_tail(GSList *list, void *data);

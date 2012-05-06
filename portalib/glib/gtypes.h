@@ -21,6 +21,7 @@ typedef const void *gconstpointer;
 
 typedef unsigned long gsize;
 
+typedef gint (*GCompareFunc)(gconstpointer a, gconstpointer b);
 typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
 typedef guint (*GHashFunc)(gconstpointer key);
 typedef void (*GHFunc)(gpointer key, gpointer value, gpointer user_data);

@@ -51,6 +51,18 @@ GSList *g_slist_concat(GSList *list1, GSList *list2) {
 	return list1;
 }
 
+/* Using compare function, insert item at appropriate place in list */
+GSList *g_slist_insert_sorted(GSList *list, gpointer data, GCompareFunc func) {
+	GSList *elem;
+	if (!func)
+		return g_slist_prepend(list, data);
+	for (elem = list; elem; elem = elem->next) {
+		if (func(data, elem->data) <= 0)
+			break;
+	}
+	return g_slist_insert_before(list, elem, data);
+}
+
 /* Delete list element containing data */
 GSList *g_slist_remove(GSList *list, void *data) {
 	GSList **elemp;
