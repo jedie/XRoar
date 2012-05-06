@@ -34,7 +34,7 @@ struct tape_cas {
 	int bit_index;  /* 0-7, next bit to be read */
 	int pulse_index;  /* 0-1, next pulse within bit */
 	/* ascii input specific: */
-	int is_ascii;
+	_Bool is_ascii;
 	int ascii_blocks;
 	int ascii_last_block_size;
 	int ascii_sum;
@@ -83,7 +83,7 @@ static uint8_t ascii_eof_block[EOFBLOCK_LENGTH] = {
 };
 
 static struct tape *do_tape_cas_open(const char *filename, const char *mode,
-                                     int is_ascii) {
+                                     _Bool is_ascii) {
 	struct tape *t;
 	struct tape_cas *cas;
 	FILE *fd;

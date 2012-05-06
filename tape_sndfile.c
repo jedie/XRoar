@@ -33,7 +33,7 @@
 struct tape_sndfile {
 	SF_INFO info;
 	SNDFILE *fd;
-	int writing;
+	_Bool writing;
 	int cycles_per_frame;
 	short *block;
 	sf_count_t block_length;

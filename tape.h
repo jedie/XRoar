@@ -62,11 +62,11 @@ struct tape_file {
 	long offset;
 	char name[9];
 	int type;
-	int ascii_flag;
-	int gap_flag;
+	_Bool ascii_flag;
+	_Bool gap_flag;
 	int start_address;
 	int load_address;
-	int checksum_error;
+	_Bool checksum_error;
 };
 
 /* find next tape file */

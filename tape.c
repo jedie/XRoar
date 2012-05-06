@@ -44,12 +44,12 @@ struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
 
 /* input file: */
-int fake_leader;  /* number of fake leader bytes */
-int fake_sync;  /* flag that fake leader should end with $3c (sync) */
-int fake_byte;
-int fake_bit;
-int fake_bit_index;  /* 0-7 */
-int fake_pulse_index;
+static int fake_leader;  /* number of fake leader bytes */
+static _Bool fake_sync;  /* flag that fake leader should end with $3c (sync) */
+static int fake_byte;
+static int fake_bit;
+static int fake_bit_index;  /* 0-7 */
+static int fake_pulse_index;
 
 static void waggle_bit(void);
 static event_t waggle_event;
@@ -234,11 +234,11 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 			f->name[i--] = 0;
 		} while (i >= 0 && f->name[i] == ' ');
 		f->type = block[10];
-		f->ascii_flag = block[11];
-		f->gap_flag = block[12];
+		f->ascii_flag = block[11] ? 1 : 0;
+		f->gap_flag = block[12] ? 1 : 0;
 		f->start_address = (block[13] << 8) | block[14];
 		f->load_address = (block[15] << 8) | block[16];
-		f->checksum_error = sum;
+		f->checksum_error = sum ? 1 : 0;
 		return f;
 	}
 }
