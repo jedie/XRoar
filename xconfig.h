@@ -17,9 +17,6 @@
 #define XC_OPT_ENUM(o,d,e,...) { .type = XCONFIG_ENUM, .name = (o), .dest = (d), .ref = (e), __VA_ARGS__ }
 
 #define XC_OPT_CALL(typemac,...) typemac(__VA_ARGS__, .call = 1)
-/* compatibility: */
-#define XC_OPT_CALL_0(o,d,...) XC_OPT_CALL(XC_OPT_NULL, o, .dest = (d))
-#define XC_OPT_CALL_1(o,d,...) XC_OPT_CALL(XC_OPT_STRING, o, d)
 
 #define XC_OPT_END() { .type = XCONFIG_END }
 

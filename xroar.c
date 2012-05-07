@@ -179,7 +179,7 @@ struct xconfig_enum xroar_cross_colour_list[] = {
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
 	/* Emulated machine */
-	XC_OPT_CALL_1( "machine",  &set_machine ),
+	XC_OPT_CALL(XC_OPT_STRING, "machine", &set_machine ),
 	XC_OPT_STRING( "machine-desc", &opt_machine_desc ),
 	XC_OPT_ENUM  ( "machine-arch", &opt_machine_arch, arch_list ),
 	XC_OPT_STRING( "machine-palette", &opt_machine_palette ),
@@ -192,11 +192,11 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_ENUM  ( "tv-type",  &opt_tv, tv_type_list ),
 	XC_OPT_INT   ( "ram",      &opt_ram ),
 	/* Backwards-compatibility options: */
-	XC_OPT_CALL_0( "pal",      &set_pal ),
-	XC_OPT_CALL_0( "ntsc",     &set_ntsc ),
+	XC_OPT_CALL(XC_OPT_NULL, "pal", &set_pal ),
+	XC_OPT_CALL(XC_OPT_NULL, "ntsc",&set_ntsc ),
 
 	/* Emulated cartridge */
-	XC_OPT_CALL_1( "cart",         &set_cart ),
+	XC_OPT_CALL(XC_OPT_STRING, "cart", &set_cart ),
 	XC_OPT_STRING( "cart-desc",    &opt_cart_desc ),
 	XC_OPT_ENUM  ( "cart-type",    &opt_cart_type, cart_type_list ),
 	XC_OPT_STRING( "cart-rom",     &opt_cart_rom ),
@@ -208,10 +208,10 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "dos",          &opt_cart_rom ),
 
 	/* Attach files */
-	XC_OPT_CALL_1( "romlist", &romlist_assign ),
-	XC_OPT_CALL_0( "romlist-print", &romlist_print ),
-	XC_OPT_CALL_1( "crclist", &crclist_assign ),
-	XC_OPT_CALL_0( "crclist-print", &crclist_print ),
+	XC_OPT_CALL(XC_OPT_STRING, "romlist", &romlist_assign ),
+	XC_OPT_CALL(XC_OPT_NULL, "romlist-print", &romlist_print ),
+	XC_OPT_CALL(XC_OPT_STRING, "crclist", &crclist_assign ),
+	XC_OPT_CALL(XC_OPT_NULL, "crclist-print", &crclist_print ),
 	XC_OPT_STRING( "load",    &opt_load ),
 	XC_OPT_STRING( "cartna",  &opt_load ),
 	XC_OPT_STRING( "snap",    &opt_load ),
@@ -222,7 +222,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_STRING( "lp-pipe", &opt_lp_pipe ),
 
 	/* Automatic actions */
-	XC_OPT_CALL_1( "type",    &type_command ),
+	XC_OPT_CALL(XC_OPT_STRING, "type", &type_command ),
 
 	/* Emulator interface */
 	XC_OPT_STRING( "ui",            &opt_ui ),
@@ -256,9 +256,9 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_INT1  ( "trace",         &xroar_trace_enabled ),
 #endif
 
-	XC_OPT_CALL_0( "help",    &helptext),
-	XC_OPT_CALL_0( "h",       &helptext),
-	XC_OPT_CALL_0( "version", &versiontext),
+	XC_OPT_CALL(XC_OPT_NULL, "help", &helptext),
+	XC_OPT_CALL(XC_OPT_NULL, "h", &helptext),
+	XC_OPT_CALL(XC_OPT_NULL, "version", &versiontext),
 	XC_OPT_END()
 };
 
