@@ -365,6 +365,10 @@ void machine_configure(struct machine_config *mc) {
 				has_bas = 1;
 				crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, size);
 				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_bas);
+				if (IS_COCO && xroar_opt_force_crc_match) {
+					/* force Color BASIC 1.3 */
+					crc_bas = 0xd8f4d15e;
+				}
 			}
 			g_free(tmp);
 		}
@@ -380,6 +384,15 @@ void machine_configure(struct machine_config *mc) {
 				has_extbas = 1;
 				crc_extbas = crc32_block(CRC32_RESET, rom0, size);
 				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_extbas);
+				if (xroar_opt_force_crc_match) {
+					if (IS_DRAGON64) {
+						/* force Dragon 64 BASIC */
+						crc_extbas = 0x84f68bf9;
+					} else if (IS_DRAGON32) {
+						/* force Dragon 32 BASIC */
+						crc_extbas = 0xe3879310;
+					}
+				}
 			}
 			if (size > 0x2000) {
 				has_bas = 1;

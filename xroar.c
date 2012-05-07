@@ -86,6 +86,7 @@ static int opt_cart_autorun = ANY_AUTO;
 static int opt_nodos = 0;
 
 /* Attach files */
+_Bool xroar_opt_force_crc_match = 0;
 static char *opt_load = NULL;
 static char *opt_run = NULL;
 static char *opt_tape_write = NULL;
@@ -212,6 +213,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_OPT_CALL(XC_OPT_NULL, "romlist-print", &romlist_print ),
 	XC_OPT_CALL(XC_OPT_STRING, "crclist", &crclist_assign ),
 	XC_OPT_CALL(XC_OPT_NULL, "crclist-print", &crclist_print ),
+	XC_OPT_BOOL  ( "force-crc-match", &xroar_opt_force_crc_match ),
 	XC_OPT_STRING( "load",    &opt_load ),
 	XC_OPT_STRING( "cartna",  &opt_load ),
 	XC_OPT_STRING( "snap",    &opt_load ),
@@ -508,6 +510,7 @@ static void helptext(void) {
 "  -romlist-print        print defined ROM lists\n"
 "  -crclist NAME=LIST    define a ROM CRC list\n"
 "  -crclist-print        print defined ROM CRC lists\n"
+"  -force-crc-match      force per-architecture CRC matches\n"
 "  -load FILENAME        load or attach FILENAME\n"
 "  -run FILENAME         load or attach FILENAME and attempt autorun\n"
 "  -tape-write FILENAME  open FILENAME for tape writing\n"
