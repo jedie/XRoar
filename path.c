@@ -49,7 +49,11 @@ char *find_in_path(const char *path, const char *filename) {
 	if (filename == NULL)
 		return NULL;
 	/* If no path or filename contains a directory, just test file */
-	if (path == NULL || *path == 0 || strchr(filename, '/')) {
+	if (path == NULL || *path == 0 || strchr(filename, '/')
+#ifdef WINDOWS32
+			|| strchr(filename, '\\')
+#endif
+			) {
 		if (stat(filename, &statbuf) == 0) {
 			if (statbuf.st_mode & S_IFREG) {
 				/* Only consider a file if user has read
