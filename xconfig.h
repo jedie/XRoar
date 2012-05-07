@@ -6,16 +6,21 @@
 #ifndef XROAR_XCONFIG_H_
 #define XROAR_XCONFIG_H_
 
-#define XC_OPT_BOOL(o,d) { .type = XCONFIG_BOOL, .name = (o), .dest = (d) }
-#define XC_OPT_BOOL0(o,d) { .type = XCONFIG_BOOL0, .name = (o), .dest = (d) }
-#define XC_OPT_INT(o,d) { .type = XCONFIG_INT, .name = (o), .dest = (d) }
-#define XC_OPT_INT0(o,d) { .type = XCONFIG_INT0, .name = (o), .dest = (d) }
-#define XC_OPT_INT1(o,d) { .type = XCONFIG_INT1, .name = (o), .dest = (d) }
-#define XC_OPT_DOUBLE(o,d) { .type = XCONFIG_DOUBLE, .name = (o), .dest = (d) }
-#define XC_OPT_STRING(o,d) { .type = XCONFIG_STRING, .name = (o), .dest = (d) }
-#define XC_OPT_CALL_0(o,d) { .type = XCONFIG_CALL_0, .name = (o), .dest = (d) }
-#define XC_OPT_CALL_1(o,d) { .type = XCONFIG_CALL_1, .name = (o), .dest = (d) }
-#define XC_OPT_ENUM(o,d,e) { .type = XCONFIG_ENUM, .name = (o), .dest = (d), .ref = (e) }
+#define XC_OPT_BOOL(o,d,...) { .type = XCONFIG_BOOL, .name = (o), .dest = (d), __VA_ARGS__ }
+#define XC_OPT_BOOL0(o,d,...) { .type = XCONFIG_BOOL0, .name = (o), .dest = (d), __VA_ARGS__ }
+#define XC_OPT_INT(o,d,...) { .type = XCONFIG_INT, .name = (o), .dest = (d), __VA_ARGS__ }
+#define XC_OPT_INT0(o,d,...) { .type = XCONFIG_INT0, .name = (o), .dest = (d), __VA_ARGS__ }
+#define XC_OPT_INT1(o,d,...) { .type = XCONFIG_INT1, .name = (o), .dest = (d), __VA_ARGS__ }
+#define XC_OPT_DOUBLE(o,d,...) { .type = XCONFIG_DOUBLE, .name = (o), .dest = (d), __VA_ARGS__ }
+#define XC_OPT_STRING(o,d,...) { .type = XCONFIG_STRING, .name = (o), .dest = (d), __VA_ARGS__ }
+#define XC_OPT_NULL(o,...) { .type = XCONFIG_NULL, .name = (o), __VA_ARGS__ }
+#define XC_OPT_ENUM(o,d,e,...) { .type = XCONFIG_ENUM, .name = (o), .dest = (d), .ref = (e), __VA_ARGS__ }
+
+#define XC_OPT_CALL(typemac,...) typemac(__VA_ARGS__, .call = 1)
+/* compatibility: */
+#define XC_OPT_CALL_0(o,d,...) XC_OPT_CALL(XC_OPT_NULL, o, .dest = (d))
+#define XC_OPT_CALL_1(o,d,...) XC_OPT_CALL(XC_OPT_STRING, o, d)
+
 #define XC_OPT_END() { .type = XCONFIG_END }
 
 #define XC_ENUM_END() { .name = NULL }
@@ -35,8 +40,7 @@ enum xconfig_option_type {
 	XCONFIG_INT1,  /* sets an int to 1 */
 	XCONFIG_DOUBLE,
 	XCONFIG_STRING,
-	XCONFIG_CALL_0,
-	XCONFIG_CALL_1,
+	XCONFIG_NULL,
 	XCONFIG_ENUM,
 	XCONFIG_END
 };
@@ -46,6 +50,7 @@ struct xconfig_option {
 	const char *name;
 	void *dest;
 	void *ref;
+	_Bool call;
 };
 
 struct xconfig_enum {
