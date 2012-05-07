@@ -93,8 +93,9 @@ static void free_romlist(struct romlist *romlist) {
 	if (!romlist) return;
 	GSList *list = romlist->list;
 	while (list) {
-		g_free(list->data);
-		list = g_slist_remove(list, list);
+		gpointer data = list->data;
+		list = g_slist_remove(list, data);
+		g_free(data);
 	}
 	g_free(romlist);
 }
@@ -106,7 +107,10 @@ void romlist_assign(const char *astring) {
 	if (!astring) return;
 	char *tmp = g_strdup(astring);
 	char *name = strtok(tmp, "=");
-	if (!name) return;
+	if (!name) {
+		g_free(tmp);
+		return;
+	}
 	struct romlist *new_list = new_romlist();
 	/* find if there's an old list with this name */
 	struct romlist *old_list = g_hash_table_lookup(romlist_hash, name);

@@ -74,8 +74,9 @@ static void free_crclist(struct crclist *crclist) {
 	if (!crclist) return;
 	GSList *list = crclist->list;
 	while (list) {
-		g_free(list->data);
-		list = g_slist_remove(list, list);
+		gpointer data = list->data;
+		list = g_slist_remove(list, data);
+		g_free(data);
 	}
 	g_free(crclist);
 }
