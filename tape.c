@@ -295,7 +295,9 @@ int tape_open_reading(const char *filename) {
 		}
 		if (tape_pad_auto) {
 			int flags = tape_get_state() & ~TAPE_PAD;
-			if (tape_input->leader_count < 120)
+			if (IS_DRAGON && tape_input->leader_count < 114)
+				flags |= TAPE_PAD;
+			if (IS_COCO && tape_input->leader_count < 130)
 				flags |= TAPE_PAD;
 			tape_select_state(flags);
 		}
