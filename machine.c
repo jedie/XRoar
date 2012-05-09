@@ -494,30 +494,31 @@ static _Bool do_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 	return is_ram_access;
 }
 
+static uint8_t read_D = 0;
+
 static uint8_t read_cycle(uint16_t A) {
-	static uint8_t D = 0;
 	int S;
 	uint16_t Z;
 	(void)do_cpu_cycle(A, 1, &S, &Z);
 	switch (S) {
 		case 0:
 			if (Z < machine_ram_size)
-				D = machine_ram[Z];
+				read_D = machine_ram[Z];
 			break;
 		case 1:
 		case 2:
-			D = machine_rom[A & 0x3fff];
+			read_D = machine_rom[A & 0x3fff];
 			break;
 		case 3:
 			if (machine_cart)
-				D = machine_cart->mem_data[A & 0x3fff];
+				read_D = machine_cart->mem_data[A & 0x3fff];
 			break;
 		case 4:
 			if (IS_COCO) {
-				D = mc6821_read(&PIA0, A & 3);
+				read_D = mc6821_read(&PIA0, A & 3);
 			} else {
 				if ((A & 4) == 0) {
-					D = mc6821_read(&PIA0, A & 3);
+					read_D = mc6821_read(&PIA0, A & 3);
 				}
 				/* Not yet implemented:
 				if ((addr & 7) == 4) return serial_stuff;
@@ -527,20 +528,20 @@ static uint8_t read_cycle(uint16_t A) {
 			}
 			break;
 		case 5:
-			D = mc6821_read(&PIA1, A & 3);
+			read_D = mc6821_read(&PIA1, A & 3);
 			break;
 		case 6:
 			if (machine_cart && machine_cart->io_read) {
-				D = machine_cart->io_read(A);
+				read_D = machine_cart->io_read(A);
 			}
 			break;
 		default:
 			break;
 	}
 #ifdef TRACE
-	if (xroar_trace_enabled) m6809_trace_byte(D, A);
+	if (xroar_trace_enabled) m6809_trace_byte(read_D, A);
 #endif
-	return D;
+	return read_D;
 }
 
 static void write_cycle(uint16_t A, uint8_t D) {
@@ -592,6 +593,7 @@ static void nvma_cycles(int ncycles) {
 		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
 	m6809_irq = PIA0.a.irq | PIA0.b.irq;
 	m6809_firq = PIA1.a.irq | PIA1.b.irq;
+	read_D = machine_rom[0x3fff];
 }
 
 static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
