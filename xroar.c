@@ -110,7 +110,7 @@ static int xroar_opt_volume = 100;
 #ifndef FAST_SOUND
 int xroar_fast_sound = 0;
 #endif
-int xroar_opt_fullscreen = 0;
+_Bool xroar_opt_fullscreen = 0;
 int xroar_opt_ccr = DEFAULT_CCR;
 int xroar_opt_frameskip = 0;
 char *xroar_opt_keymap = NULL;
@@ -241,7 +241,7 @@ static struct xconfig_option xroar_options[] = {
 #ifndef FAST_SOUND
 	XC_OPT_INT1  ( "fast-sound",    &xroar_fast_sound ),
 #endif
-	XC_OPT_INT1  ( "fs",            &xroar_opt_fullscreen ),
+	XC_OPT_BOOL  ( "fs",            &xroar_opt_fullscreen ),
 	XC_OPT_ENUM  ( "ccr",           &xroar_opt_ccr, ccr_list ),
 	XC_OPT_INT   ( "fskip",         &xroar_opt_frameskip ),
 	XC_OPT_STRING( "keymap",        &xroar_opt_keymap ),

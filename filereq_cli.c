@@ -39,7 +39,7 @@ static char fnbuf[256];
 
 static char *get_filename(const char **extensions) {
 	char *in, *cr;
-	int was_fullscreen;
+	_Bool was_fullscreen;
 	(void)extensions;  /* unused */
 
 	was_fullscreen = video_module->is_fullscreen;

@@ -63,7 +63,7 @@ extern int xroar_opt_ao_buffer_samples;
 #ifndef FAST_SOUND
 extern int xroar_fast_sound;
 #endif
-extern int xroar_opt_fullscreen;
+extern _Bool xroar_opt_fullscreen;
 extern int xroar_opt_frameskip;
 extern char *xroar_opt_keymap;
 extern int xroar_kbd_translate;

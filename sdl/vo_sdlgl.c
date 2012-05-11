@@ -43,7 +43,7 @@ static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
 static void resize(unsigned int w, unsigned int h);
-static int set_fullscreen(int fullscreen);
+static int set_fullscreen(_Bool fullscreen);
 
 VideoModule video_sdlgl_module = {
 	.common = { .name = "sdlgl", .description = "SDL OpenGL video",
@@ -163,7 +163,7 @@ static void resize(unsigned int w, unsigned int h) {
 	set_fullscreen(video_sdlgl_module.is_fullscreen);
 }
 
-static int set_fullscreen(int fullscreen) {
+static int set_fullscreen(_Bool fullscreen) {
 	unsigned int want_width, want_height;
 	unsigned int width, height;
 

@@ -45,7 +45,7 @@ static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
 static void resize(unsigned int w, unsigned int h);
-static int set_fullscreen(int fullscreen);
+static int set_fullscreen(_Bool fullscreen);
 
 VideoModule video_gtkgl_module = {
 	.common = { .name = "gtkgl", .description = "GtkGLExt video",
@@ -174,7 +174,7 @@ static void resize(unsigned int w, unsigned int h) {
 	gtk_window_resize(GTK_WINDOW(gtk2_top_window), w, h);
 }
 
-static int set_fullscreen(int fullscreen) {
+static int set_fullscreen(_Bool fullscreen) {
 	(void)fullscreen;
 	if (fullscreen) {
 		gtk_widget_hide(gtk2_menubar);

@@ -41,7 +41,7 @@ static void vsync(void);
 static void hsync(void);
 static void set_mode(unsigned int mode);
 static void render_border(void);
-static int set_fullscreen(int fullscreen);
+static int set_fullscreen(_Bool fullscreen);
 
 VideoModule video_sdl_module = {
 	.common = { .name = "sdl", .description = "Minimal SDL video",
@@ -122,7 +122,7 @@ static void shutdown(void) {
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-static int set_fullscreen(int fullscreen) {
+static int set_fullscreen(_Bool fullscreen) {
 	screen = SDL_SetVideoMode(320, 240, 8, SDL_HWSURFACE|(fullscreen?SDL_FULLSCREEN:0));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
