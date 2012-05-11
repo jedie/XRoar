@@ -92,7 +92,6 @@ static GtkActionGroup *main_action_group;
 static GtkActionGroup *machine_action_group;
 static GtkActionGroup *cart_action_group;
 static guint merge_machines, merge_carts;
-static void create_view_menu(void);
 static void update_machine_menu(void);
 static void update_cartridge_menu(void);
 
@@ -106,7 +105,7 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 static void fullscreen_changed_cb(int fullscreen);
 static void kbd_translate_changed_cb(int kbd_translate);
 
-static int run_cpu(void *data);
+static gboolean run_cpu(gpointer data);
 
 /* Helpers */
 static char *escape_underscores(const char *str);
@@ -151,9 +150,9 @@ static void insert_disk3(void) { gtk2_insert_disk(2); }
 static void insert_disk4(void) { gtk2_insert_disk(3); }
 
 static void save_snapshot(void) {
-	g_idle_remove_by_data(run_cpu);
+	g_idle_remove_by_data(gtk2_top_window);
 	xroar_save_snapshot();
-	g_idle_add(run_cpu, run_cpu);
+	g_idle_add(run_cpu, gtk2_top_window);
 }
 
 static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
@@ -281,7 +280,11 @@ static const gchar *ui =
 	      "<menuitem name='Quit' action='QuitAction'/>"
 	    "</menu>"
 	    "<menu name='ViewMenu' action='ViewMenuAction'>"
-	      "<menu name='CrossColourMenu' action='CrossColourMenuAction'/>"
+	      "<menu name='CrossColourMenu' action='CrossColourMenuAction'>"
+	        "<menuitem action='cc-none'/>"
+	        "<menuitem action='cc-blue-red'/>"
+	        "<menuitem action='cc-red-blue'/>"
+	      "</menu>"
 	      "<separator/>"
 	      "<menu name='ZoomMenu' action='ZoomMenuAction'>"
 	        "<menuitem action='zoom_in'/>"
@@ -405,6 +408,12 @@ static GtkToggleActionEntry ui_toggles[] = {
 };
 static guint ui_n_toggles = G_N_ELEMENTS(ui_toggles);
 
+static GtkRadioActionEntry cross_colour_radio_entries[] = {
+	{ .name = "cc-none", .label = "None", .value = CROSS_COLOUR_OFF },
+	{ .name = "cc-blue-red", .label = "Blue-red", .value = CROSS_COLOUR_KBRW },
+	{ .name = "cc-red-blue", .label = "Red-blue", .value = CROSS_COLOUR_KRBW },
+};
+
 static GtkRadioActionEntry keymap_radio_entries[] = {
 	{ .name = "keymap_dragon", .label = "Dragon Layout", .value = KEYMAP_DRAGON },
 	{ .name = "keymap_coco", .label = "CoCo Layout", .value = KEYMAP_COCO },
@@ -452,13 +461,13 @@ static int init(void) {
 	gtk_action_group_add_actions(main_action_group, ui_entries, ui_n_entries, NULL);
 	gtk_action_group_add_toggle_actions(main_action_group, ui_toggles, ui_n_toggles, NULL);
 	gtk_action_group_add_radio_actions(main_action_group, keymap_radio_entries, 2, 0, (GCallback)set_keymap, NULL);
+	gtk_action_group_add_radio_actions(main_action_group, cross_colour_radio_entries, 3, 0, (GCallback)set_cc, NULL);
 
 	/* Menu merge points */
 	merge_machines = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
 	merge_carts = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
 
 	/* Update all dynamic menus */
-	create_view_menu();
 	update_machine_menu();
 	update_cartridge_menu();
 
@@ -508,7 +517,7 @@ static int init(void) {
 static void shutdown(void) {
 }
 
-static int run_cpu(void *data) {
+static gboolean run_cpu(gpointer data) {
 	(void)data;
 	machine_run(VDG_LINE_DURATION * 8);
 	while (EVENT_PENDING(UI_EVENT_LIST))
@@ -517,7 +526,7 @@ static int run_cpu(void *data) {
 }
 
 static void run(void) {
-	g_idle_add(run_cpu, run_cpu);
+	g_idle_add(run_cpu, gtk2_top_window);
 	gtk_main();
 }
 
@@ -531,33 +540,6 @@ static void free_action_group(GtkActionGroup *action_group) {
 	GList *list = gtk_action_group_list_actions(action_group);
 	g_list_foreach(list, remove_action_from_group, action_group);
 	g_list_free(list);
-}
-
-/* Dynamic elements of View menu */
-static void create_view_menu(void) {
-	/* Cross-colour */
-	static guint merge_cc;
-	int i;
-	GtkActionGroup *cc_action_group;
-	merge_cc = gtk_ui_manager_new_merge_id(gtk2_menu_manager);
-	cc_action_group = gtk_action_group_new("View");
-	gtk_ui_manager_insert_action_group(gtk2_menu_manager, cc_action_group, 0);
-
-	GtkRadioActionEntry *radio_entries = g_malloc0(NUM_CROSS_COLOUR_PHASES * sizeof(GtkRadioActionEntry));
-	/* add these to the ui in reverse order, as each will be
-	 * inserted before the previous */
-	for (i = NUM_CROSS_COLOUR_PHASES-1; i >= 0; i--) {
-		radio_entries[i].name = g_strconcat("cc-", xroar_cross_colour_list[i].name, NULL);
-		radio_entries[i].label = escape_underscores(xroar_cross_colour_list[i].description);
-		radio_entries[i].value = i;
-		gtk_ui_manager_add_ui(gtk2_menu_manager, merge_cc, "/MainMenu/ViewMenu/CrossColourMenu", radio_entries[i].name, radio_entries[i].name, GTK_UI_MANAGER_MENUITEM, TRUE);
-	}
-	gtk_action_group_add_radio_actions(cc_action_group, radio_entries, NUM_CROSS_COLOUR_PHASES, 0, (GCallback)set_cc, NULL);
-	for (i = 0; i < NUM_CROSS_COLOUR_PHASES; i++) {
-		g_free((gchar *)radio_entries[i].name);
-		g_free((gchar *)radio_entries[i].label);
-	}
-	g_free(radio_entries);
 }
 
 /* Dynamic machine menu */
@@ -580,8 +562,8 @@ static void update_machine_menu(void) {
 	}
 	gtk_action_group_add_radio_actions(machine_action_group, radio_entries, num_machines, selected, (GCallback)set_machine, NULL);
 	for (i = 0; i < num_machines; i++) {
-		g_free((gchar *)radio_entries[i].name);
-		g_free((gchar *)radio_entries[i].label);
+		g_free((gpointer)radio_entries[i].name);
+		g_free((gpointer)radio_entries[i].label);
 	}
 	g_free(radio_entries);
 }
@@ -611,8 +593,8 @@ static void update_cartridge_menu(void) {
 	gtk_action_group_add_radio_actions(cart_action_group, radio_entries, num_carts+1, selected, (GCallback)set_cart, NULL);
 	/* don't need to free last label */
 	for (i = 0; i < num_carts; i++) {
-		g_free((gchar *)radio_entries[i].name);
-		g_free((gchar *)radio_entries[i].label);
+		g_free((gpointer)radio_entries[i].name);
+		g_free((gpointer)radio_entries[i].label);
 	}
 	g_free(radio_entries);
 }
