@@ -29,9 +29,9 @@ struct breakpoint {
 	uint16_t address;
 	/* add conditions */
 	int cond_machine_arch;
-	char *cond_crc_bas;
-	char *cond_crc_extbas;
-	char *cond_crc_altbas;
+	const char *cond_crc_bas;
+	const char *cond_crc_extbas;
+	const char *cond_crc_altbas;
 	/* active conditions */
 	int cond_page;
 	int cond_map_type;
