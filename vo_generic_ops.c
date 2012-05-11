@@ -296,7 +296,7 @@ static void render_sg6(RENDER_ARGS) {
 			if (octet & 0x40)
 				tmp = ~tmp;
 			*pixel = (tmp & 0x80) ? fg_colour : bg_colour;
-			//*(pixel+1*XSTEP) = (tmp & 0x40) ? fg_colour : bg_colour;
+			/* *(pixel+1*XSTEP) = (tmp & 0x40) ? fg_colour : bg_colour; */
 			*(pixel+1*XSTEP) = bg_colour;
 			*(pixel+2*XSTEP) = (tmp & 0x20) ? fg_colour : bg_colour;
 			*(pixel+3*XSTEP) = (tmp & 0x10) ? fg_colour : bg_colour;

@@ -57,11 +57,11 @@ static void shutdown(void) {
 }
 
 static void do_poll(void) {
-	//char keyval[24];
+	/* char keyval[24]; */
 	int key;
 	while ((key = getch()) != ERR) {
-		//snprintf(keyval, sizeof(keyval), "%d   ", key);
-		//mvaddstr(0,34, keyval);
+		/* snprintf(keyval, sizeof(keyval), "%d   ", key); */
+		/* mvaddstr(0,34, keyval); */
 		switch (key) {
 			case 3:   /* Ctrl+C */
 			case 17:  /* Ctrl+Q */

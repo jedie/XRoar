@@ -10,11 +10,11 @@
 
 #define VDG_CYCLES(c) ((c) * 4)
 
-#define VDG_tFP   VDG_CYCLES(8.5)   // 7.0
-#define VDG_tWHS  VDG_CYCLES(16.0)  // 17.5
+#define VDG_tFP   VDG_CYCLES(8.5)   /* 7.0 */
+#define VDG_tWHS  VDG_CYCLES(16.0)  /* 17.5 */
 #define VDG_tBP   VDG_CYCLES(17.5)
 #define VDG_tHBNK (VDG_tFP + VDG_tWHS + VDG_tBP)
-#define VDG_tLB   VDG_CYCLES(30.0)  // 29.5
+#define VDG_tLB   VDG_CYCLES(30.0)  /* 29.5 */
 #define VDG_tAV   VDG_CYCLES(128)
 #define VDG_tRB   VDG_CYCLES(28.0)
 #define VDG_tAVB  (VDG_tLB + VDG_tAV + VDG_tRB)

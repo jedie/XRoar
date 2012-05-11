@@ -603,7 +603,7 @@ static void state_machine(void) {
 			LOG_DEBUG(5, " read_sector_state_2()\n");
 			if (status_register & STATUS_DRQ) {
 				status_register |= STATUS_LOST_DATA;
-				//RESET_DRQ;  // XXX
+				/* RESET_DRQ;  XXX */
 			}
 			if (bytes_left > 0) {
 				data_register = _vdrive_read();
@@ -647,7 +647,7 @@ static void state_machine(void) {
 			LOG_DEBUG(5, " write_sector_state_2()\n");
 			if (status_register & STATUS_DRQ) {
 				status_register &= ~(STATUS_BUSY);
-				RESET_DRQ;  // XXX
+				RESET_DRQ;  /* XXX */
 				status_register |= STATUS_LOST_DATA;
 				SET_INTRQ;
 				return;
@@ -695,7 +695,7 @@ static void state_machine(void) {
 			if (status_register & STATUS_DRQ) {
 				data = 0;
 				status_register |= STATUS_LOST_DATA;
-				RESET_DRQ;  // XXX
+				RESET_DRQ;  /* XXX */
 			}
 			_vdrive_write(data);
 			bytes_left--;
@@ -813,7 +813,7 @@ static void state_machine(void) {
 		case write_track_state_2:
 			LOG_DEBUG(5, " write_track_state_2()\n");
 			if (status_register & STATUS_DRQ) {
-				RESET_DRQ;  // XXX
+				RESET_DRQ;  /* XXX */
 				status_register |= STATUS_LOST_DATA;
 				status_register &= ~(STATUS_BUSY);
 				SET_INTRQ;
@@ -840,7 +840,7 @@ static void state_machine(void) {
 			LOG_DEBUG(5, " write_track_state_3()\n");
 			if (vdrive_new_index_pulse()) {
 				LOG_DEBUG(4,"Finished writing track at head_pos=%04x\n", vdrive_head_pos());
-				RESET_DRQ;  // XXX
+				RESET_DRQ;  /* XXX */
 				status_register &= ~(STATUS_BUSY);
 				SET_INTRQ;
 				return;

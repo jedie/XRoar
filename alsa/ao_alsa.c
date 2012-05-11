@@ -113,7 +113,7 @@ static int init(void) {
 	sound_init(sample_rate, 1, request_fmt, frame_size);
 	LOG_DEBUG(2, "\t%ldms (%ld samples) buffer\n", (buffer_size * 1000) / sample_rate, buffer_size);
 
-	//snd_pcm_writei(pcm_handle, buffer, frame_size);
+	/* snd_pcm_writei(pcm_handle, buffer, frame_size); */
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialise ALSA: %s\n", snd_strerror(err));

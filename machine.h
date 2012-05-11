@@ -15,7 +15,7 @@ struct cart;
 
 /* Dragon 64s and later Dragon 32s used a 14.218MHz crystal
  * (ref: "Dragon 64 differences", Graham E. Kinns and then a motherboard) */
-//#define OSCILLATOR_RATE 14218000
+/* #define OSCILLATOR_RATE 14218000 */
 #define OSCILLATOR_RATE 14318180
 
 #define RESET_SOFT 0

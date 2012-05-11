@@ -180,7 +180,7 @@ static void emulator_command(SDLKey sym) {
 		xroar_set_trace(XROAR_TOGGLE);
 		break;
 #endif
-	case SDLK_z: // running out of letters...
+	case SDLK_z: /* running out of letters... */
 		xroar_set_kbd_translate(XROAR_TOGGLE);
 		break;
 	default:
