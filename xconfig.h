@@ -6,17 +6,24 @@
 #ifndef XROAR_XCONFIG_H_
 #define XROAR_XCONFIG_H_
 
-#define XC_OPT_BOOL(o,d,...) { .type = XCONFIG_BOOL, .name = (o), .dest = (d), __VA_ARGS__ }
-#define XC_OPT_BOOL0(o,d,...) { .type = XCONFIG_BOOL0, .name = (o), .dest = (d), __VA_ARGS__ }
-#define XC_OPT_INT(o,d,...) { .type = XCONFIG_INT, .name = (o), .dest = (d), __VA_ARGS__ }
-#define XC_OPT_INT0(o,d,...) { .type = XCONFIG_INT0, .name = (o), .dest = (d), __VA_ARGS__ }
-#define XC_OPT_INT1(o,d,...) { .type = XCONFIG_INT1, .name = (o), .dest = (d), __VA_ARGS__ }
-#define XC_OPT_DOUBLE(o,d,...) { .type = XCONFIG_DOUBLE, .name = (o), .dest = (d), __VA_ARGS__ }
-#define XC_OPT_STRING(o,d,...) { .type = XCONFIG_STRING, .name = (o), .dest = (d), __VA_ARGS__ }
-#define XC_OPT_NULL(o,...) { .type = XCONFIG_NULL, .name = (o), __VA_ARGS__ }
-#define XC_OPT_ENUM(o,d,e,...) { .type = XCONFIG_ENUM, .name = (o), .dest = (d), .ref = (e), __VA_ARGS__ }
+#define XC_SET_BOOL(o,d) { .type = XCONFIG_BOOL, .name = (o), .dest.object = (d) }
+#define XC_SET_BOOL0(o,d) { .type = XCONFIG_BOOL0, .name = (o), .dest.object = (d) }
+#define XC_SET_INT(o,d) { .type = XCONFIG_INT, .name = (o), .dest.object = (d) }
+#define XC_SET_INT0(o,d) { .type = XCONFIG_INT0, .name = (o), .dest.object = (d) }
+#define XC_SET_INT1(o,d) { .type = XCONFIG_INT1, .name = (o), .dest.object = (d) }
+#define XC_SET_DOUBLE(o,d) { .type = XCONFIG_DOUBLE, .name = (o), .dest.object = (d) }
+#define XC_SET_STRING(o,d) { .type = XCONFIG_STRING, .name = (o), .dest.object = (d) }
+#define XC_SET_ENUM(o,d,e) { .type = XCONFIG_ENUM, .name = (o), .ref = (e), .dest.object = (d) }
 
-#define XC_OPT_CALL(typemac,...) typemac(__VA_ARGS__, .call = 1)
+#define XC_CALL_BOOL(o,d) { .type = XCONFIG_BOOL, .name = (o), .dest.func_bool = (d), .call = 1 }
+#define XC_CALL_BOOL0(o,d) { .type = XCONFIG_BOOL0, .name = (o), .dest.func_bool = (d), .call = 1 }
+#define XC_CALL_INT(o,d) { .type = XCONFIG_INT, .name = (o), .dest.func_int = (d), .call = 1 }
+#define XC_CALL_INT0(o,d) { .type = XCONFIG_INT0, .name = (o), .dest.func_int = (d), .call = 1 }
+#define XC_CALL_INT1(o,d) { .type = XCONFIG_INT1, .name = (o), .dest.func_int = (d), .call = 1 }
+#define XC_CALL_DOUBLE(o) { .type = XCONFIG_DOUBLE, .name = (o), .dest.func_double = (d), .call = 1 }
+#define XC_CALL_STRING(o,d) { .type = XCONFIG_STRING, .name = (o), .dest.func_string = (xconfig_func_string)(d), .call = 1 }
+#define XC_CALL_NULL(o,d) { .type = XCONFIG_NULL, .name = (o), .dest.func_null = (d), .call = 1 }
+#define XC_CALL_ENUM(o,d,e) { .type = XCONFIG_ENUM, .name = (o), .ref = (e), .dest.func_int = (d), .call = 1 }
 
 #define XC_OPT_END() { .type = XCONFIG_END }
 
@@ -42,10 +49,23 @@ enum xconfig_option_type {
 	XCONFIG_END
 };
 
+typedef void (*xconfig_func_bool)(_Bool);
+typedef void (*xconfig_func_int)(int);
+typedef void (*xconfig_func_double)(double);
+typedef void (*xconfig_func_string)(char *);
+typedef void (*xconfig_func_null)(void);
+
 struct xconfig_option {
 	enum xconfig_option_type type;
 	const char *name;
-	void *dest;
+	union {
+		void *object;
+		xconfig_func_bool func_bool;
+		xconfig_func_int func_int;
+		xconfig_func_double func_double;
+		xconfig_func_string func_string;
+		xconfig_func_null func_null;
+	} dest;
 	void *ref;
 	_Bool call;
 };

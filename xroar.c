@@ -61,7 +61,7 @@
 /* Command line arguments */
 
 /* Emulated machine */
-static void set_machine(char *name);
+static void set_machine(const char *name);
 static char *opt_machine_desc = NULL;
 static int opt_machine_arch = ANY_AUTO;
 static char *opt_machine_palette = NULL;
@@ -77,7 +77,7 @@ static void set_ntsc(void);
 static int opt_ram = 0;
 
 /* Emulated cartridge */
-static void set_cart(char *name);
+static void set_cart(const char *name);
 static char *opt_cart_desc = NULL;
 static int opt_cart_type = ANY_AUTO;
 static char *opt_cart_rom = NULL;
@@ -180,87 +180,87 @@ struct xconfig_enum xroar_cross_colour_list[] = {
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
 	/* Emulated machine */
-	XC_OPT_CALL(XC_OPT_STRING, "machine", &set_machine ),
-	XC_OPT_STRING( "machine-desc", &opt_machine_desc ),
-	XC_OPT_ENUM  ( "machine-arch", &opt_machine_arch, arch_list ),
-	XC_OPT_STRING( "machine-palette", &opt_machine_palette ),
-	XC_OPT_STRING( "bas",      &opt_bas ),
-	XC_OPT_STRING( "extbas",   &opt_extbas ),
-	XC_OPT_STRING( "altbas",   &opt_altbas ),
-	XC_OPT_BOOL  ( "nobas",    &opt_nobas ),
-	XC_OPT_BOOL  ( "noextbas", &opt_noextbas ),
-	XC_OPT_BOOL  ( "noaltbas", &opt_noaltbas ),
-	XC_OPT_ENUM  ( "tv-type",  &opt_tv, tv_type_list ),
-	XC_OPT_INT   ( "ram",      &opt_ram ),
+	XC_CALL_STRING("machine", &set_machine),
+	XC_SET_STRING("machine-desc", &opt_machine_desc),
+	XC_SET_ENUM("machine-arch", &opt_machine_arch, arch_list),
+	XC_SET_STRING("machine-palette", &opt_machine_palette),
+	XC_SET_STRING("bas", &opt_bas),
+	XC_SET_STRING("extbas", &opt_extbas),
+	XC_SET_STRING("altbas", &opt_altbas),
+	XC_SET_BOOL("nobas", &opt_nobas),
+	XC_SET_BOOL("noextbas", &opt_noextbas),
+	XC_SET_BOOL("noaltbas", &opt_noaltbas),
+	XC_SET_ENUM("tv-type", &opt_tv, tv_type_list),
+	XC_SET_INT("ram", &opt_ram),
 	/* Backwards-compatibility options: */
-	XC_OPT_CALL(XC_OPT_NULL, "pal", &set_pal ),
-	XC_OPT_CALL(XC_OPT_NULL, "ntsc",&set_ntsc ),
+	XC_CALL_NULL("pal", &set_pal),
+	XC_CALL_NULL("ntsc", &set_ntsc),
 
 	/* Emulated cartridge */
-	XC_OPT_CALL(XC_OPT_STRING, "cart", &set_cart ),
-	XC_OPT_STRING( "cart-desc",    &opt_cart_desc ),
-	XC_OPT_ENUM  ( "cart-type",    &opt_cart_type, cart_type_list ),
-	XC_OPT_STRING( "cart-rom",     &opt_cart_rom ),
-	XC_OPT_STRING( "cart-rom2",    &opt_cart_rom2 ),
-	XC_OPT_INT1  ( "cart-autorun", &opt_cart_autorun ),
-	XC_OPT_INT1  ( "nodos",        &opt_nodos ),
+	XC_CALL_STRING("cart", &set_cart),
+	XC_SET_STRING("cart-desc", &opt_cart_desc),
+	XC_SET_ENUM("cart-type", &opt_cart_type, cart_type_list),
+	XC_SET_STRING("cart-rom", &opt_cart_rom),
+	XC_SET_STRING("cart-rom2", &opt_cart_rom2),
+	XC_SET_INT1("cart-autorun", &opt_cart_autorun),
+	XC_SET_INT1("nodos", &opt_nodos),
 	/* Backwards-compatibility options: */
-	XC_OPT_ENUM  ( "dostype",      &opt_cart_type, cart_type_list ),
-	XC_OPT_STRING( "dos",          &opt_cart_rom ),
+	XC_SET_ENUM("dostype", &opt_cart_type, cart_type_list),
+	XC_SET_STRING("dos", &opt_cart_rom),
 
 	/* Attach files */
-	XC_OPT_CALL(XC_OPT_STRING, "romlist", &romlist_assign ),
-	XC_OPT_CALL(XC_OPT_NULL, "romlist-print", &romlist_print ),
-	XC_OPT_CALL(XC_OPT_STRING, "crclist", &crclist_assign ),
-	XC_OPT_CALL(XC_OPT_NULL, "crclist-print", &crclist_print ),
-	XC_OPT_BOOL  ( "force-crc-match", &xroar_opt_force_crc_match ),
-	XC_OPT_STRING( "load",    &opt_load ),
-	XC_OPT_STRING( "cartna",  &opt_load ),
-	XC_OPT_STRING( "snap",    &opt_load ),
-	XC_OPT_STRING( "run",     &opt_run ),
-	XC_OPT_STRING( "tape-write", &opt_tape_write ),
-	XC_OPT_STRING( "cart",    &opt_run ),
-	XC_OPT_STRING( "lp-file", &opt_lp_file ),
-	XC_OPT_STRING( "lp-pipe", &opt_lp_pipe ),
+	XC_CALL_STRING("romlist", &romlist_assign),
+	XC_CALL_NULL("romlist-print", &romlist_print),
+	XC_CALL_STRING("crclist", &crclist_assign),
+	XC_CALL_NULL("crclist-print", &crclist_print),
+	XC_SET_BOOL("force-crc-match", &xroar_opt_force_crc_match),
+	XC_SET_STRING("load", &opt_load),
+	XC_SET_STRING("cartna", &opt_load),
+	XC_SET_STRING("snap", &opt_load),
+	XC_SET_STRING("run", &opt_run),
+	XC_SET_STRING("tape-write", &opt_tape_write),
+	XC_SET_STRING("cart", &opt_run),
+	XC_SET_STRING("lp-file", &opt_lp_file),
+	XC_SET_STRING("lp-pipe", &opt_lp_pipe),
 
 	/* Automatic actions */
-	XC_OPT_CALL(XC_OPT_STRING, "type", &type_command ),
+	XC_CALL_STRING("type", &type_command),
 
 	/* Emulator interface */
-	XC_OPT_STRING( "ui",            &opt_ui ),
-	XC_OPT_STRING( "filereq",       &opt_filereq ),
-	XC_OPT_STRING( "vo",            &opt_vo ),
-	XC_OPT_STRING( "geometry",      &xroar_opt_geometry ),
-	XC_OPT_STRING( "g",             &xroar_opt_geometry ),
-	XC_OPT_ENUM  ( "gl-filter",     &xroar_opt_gl_filter, gl_filter_list ),
-	XC_OPT_STRING( "ao",            &opt_ao ),
-	XC_OPT_INT   ( "ao-rate",       &xroar_opt_ao_rate ),
-	XC_OPT_INT   ( "ao-buffer-ms",  &xroar_opt_ao_buffer_ms ),
-	XC_OPT_INT   ( "ao-buffer-samples", &xroar_opt_ao_buffer_samples ),
-	XC_OPT_INT   ( "volume",        &xroar_opt_volume ),
+	XC_SET_STRING("ui", &opt_ui),
+	XC_SET_STRING("filereq", &opt_filereq),
+	XC_SET_STRING("vo", &opt_vo),
+	XC_SET_STRING("geometry", &xroar_opt_geometry),
+	XC_SET_STRING("g", &xroar_opt_geometry),
+	XC_SET_ENUM("gl-filter", &xroar_opt_gl_filter, gl_filter_list),
+	XC_SET_STRING("ao", &opt_ao),
+	XC_SET_INT("ao-rate", &xroar_opt_ao_rate),
+	XC_SET_INT("ao-buffer-ms", &xroar_opt_ao_buffer_ms),
+	XC_SET_INT("ao-buffer-samples", &xroar_opt_ao_buffer_samples),
+	XC_SET_INT("volume", &xroar_opt_volume),
 #ifndef FAST_SOUND
-	XC_OPT_INT1  ( "fast-sound",    &xroar_fast_sound ),
+	XC_SET_INT1("fast-sound", &xroar_fast_sound),
 #endif
-	XC_OPT_BOOL  ( "fs",            &xroar_opt_fullscreen ),
-	XC_OPT_ENUM  ( "ccr",           &xroar_opt_ccr, ccr_list ),
-	XC_OPT_INT   ( "fskip",         &xroar_opt_frameskip ),
-	XC_OPT_STRING( "keymap",        &xroar_opt_keymap ),
-	XC_OPT_INT1  ( "kbd-translate", &xroar_kbd_translate ),
-	XC_OPT_STRING( "joy-left",      &xroar_opt_joy_left ),
-	XC_OPT_STRING( "joy-right",     &xroar_opt_joy_right ),
-	XC_OPT_INT1  ( "tape-fast",     &xroar_opt_tape_fast ),
-	XC_OPT_INT1  ( "tape-pad",      &xroar_opt_tape_pad ),
-	XC_OPT_INT1  ( "tape-pad-auto", &xroar_opt_tape_pad_auto ),
-	XC_OPT_INT1  ( "tape-rewrite",  &xroar_opt_tape_rewrite ),
-	XC_OPT_INT1  ( "tapehack",      &xroar_opt_tape_rewrite ),
-	XC_OPT_INT1  ( "disk-write-back", &xroar_opt_disk_write_back ),
+	XC_SET_BOOL("fs", &xroar_opt_fullscreen),
+	XC_SET_ENUM("ccr", &xroar_opt_ccr, ccr_list),
+	XC_SET_INT("fskip", &xroar_opt_frameskip),
+	XC_SET_STRING("keymap", &xroar_opt_keymap),
+	XC_SET_INT1("kbd-translate", &xroar_kbd_translate),
+	XC_SET_STRING("joy-left", &xroar_opt_joy_left),
+	XC_SET_STRING("joy-right", &xroar_opt_joy_right),
+	XC_SET_INT1("tape-fast", &xroar_opt_tape_fast),
+	XC_SET_INT1("tape-pad", &xroar_opt_tape_pad),
+	XC_SET_INT1("tape-pad-auto", &xroar_opt_tape_pad_auto),
+	XC_SET_INT1("tape-rewrite", &xroar_opt_tape_rewrite),
+	XC_SET_INT1("tapehack", &xroar_opt_tape_rewrite),
+	XC_SET_INT1("disk-write-back", &xroar_opt_disk_write_back),
 #ifdef TRACE
-	XC_OPT_INT1  ( "trace",         &xroar_trace_enabled ),
+	XC_SET_INT1("trace", &xroar_trace_enabled),
 #endif
 
-	XC_OPT_CALL(XC_OPT_NULL, "help", &helptext),
-	XC_OPT_CALL(XC_OPT_NULL, "h", &helptext),
-	XC_OPT_CALL(XC_OPT_NULL, "version", &versiontext),
+	XC_CALL_NULL("help", &helptext),
+	XC_CALL_NULL("h", &helptext),
+	XC_CALL_NULL("version", &versiontext),
 	XC_OPT_END()
 };
 
@@ -342,7 +342,7 @@ static void set_ntsc(void) {
 /* Called when a "-machine" option is encountered.  If an existing machine
  * config was in progress, copies any machine-related options into it and
  * clears those options.  Starts a new config. */
-static void set_machine(char *name) {
+static void set_machine(const char *name) {
 #ifdef LOGGING
 	if (name && 0 == strcmp(name, "help")) {
 		int count = machine_config_count();
@@ -417,7 +417,7 @@ static void set_machine(char *name) {
 /* Called when a "-cart" option is encountered.  If an existing cart config was
 * in progress, copies any cart-related options into it and clears those
 * options.  Starts a new config.  */
-static void set_cart(char *name) {
+static void set_cart(const char *name) {
 #ifdef LOGGING
 	if (name && 0 == strcmp(name, "help")) {
 		int count = cart_config_count();
@@ -848,7 +848,7 @@ static struct vdg_palette *get_machine_palette(void) {
 		}
 	}
 	return vp;
-};
+}
 
 void xroar_run(void) {
 	m6809_interrupt_hook = NULL;

@@ -27,12 +27,6 @@
 #include "logging.h"
 #include "xconfig.h"
 
-typedef void (*xconfig_func_bool)(_Bool);
-typedef void (*xconfig_func_int)(int);
-typedef void (*xconfig_func_double)(double);
-typedef void (*xconfig_func_string)(const char *);
-typedef void (*xconfig_func_null)(void);
-
 static struct xconfig_option *find_option(struct xconfig_option *options,
 		const char *opt) {
 	int i;
@@ -61,62 +55,67 @@ static int lookup_enum(const char *name, struct xconfig_enum *list) {
 	return -1;
 }
 
-static void set_option(struct xconfig_option *option, const char *arg) {
+static void set_option(struct xconfig_option *option, char *arg) {
 	switch (option->type) {
 		case XCONFIG_BOOL:
 			if (option->call)
-				((xconfig_func_bool)option->dest)(1);
+				option->dest.func_bool(1);
 			else
-				*(_Bool *)option->dest = 1;
+				*(_Bool *)option->dest.object = 1;
 			break;
 		case XCONFIG_BOOL0:
 			if (option->call)
-				((xconfig_func_bool)option->dest)(0);
+				option->dest.func_bool(0);
 			else
-				*(_Bool *)option->dest = 0;
+				*(_Bool *)option->dest.object = 0;
 			break;
 		case XCONFIG_INT:
 			{
 				int val = strtol(arg, NULL, 0);
 				if (option->call)
-					((xconfig_func_int)option->dest)(val);
+					option->dest.func_int(val);
 				else
-					*(int *)option->dest = val;
+					*(int *)option->dest.object = val;
 			}
 			break;
 		case XCONFIG_INT0:
 			if (option->call)
-				((xconfig_func_int)option->dest)(0);
+				option->dest.func_int(0);
 			else
-				*(int *)option->dest = 0;
+				*(int *)option->dest.object = 0;
 			break;
 		case XCONFIG_INT1:
 			if (option->call)
-				((xconfig_func_int)option->dest)(1);
+				option->dest.func_int(1);
 			else
-				*(int *)option->dest = 1;
+				*(int *)option->dest.object = 1;
 			break;
 		case XCONFIG_DOUBLE:
 			{
 				double val = strtod(arg, NULL);
 				if (option->call)
-					((xconfig_func_double)option->dest)(val);
+					option->dest.func_double(val);
 				else
-					*(double *)option->dest = val;
+					*(double *)option->dest.object = val;
 			}
 			break;
 		case XCONFIG_STRING:
 			if (option->call)
-				((xconfig_func_string)option->dest)(arg);
+				option->dest.func_string(arg);
 			else
-				*(char **)option->dest = g_strdup(arg);
+				*(char **)option->dest.object = g_strdup(arg);
 			break;
 		case XCONFIG_NULL:
 			if (option->call)
-				((xconfig_func_null)option->dest)();
+				option->dest.func_null();
 			break;
-		case XCONFIG_ENUM:
-			*(int *)option->dest = lookup_enum(arg, (struct xconfig_enum *)option->ref);
+		case XCONFIG_ENUM: {
+			int val = lookup_enum(arg, (struct xconfig_enum *)option->ref);
+			if (option->call)
+				option->dest.func_int(val);
+			else
+				*(int *)option->dest.object = val;
+			}
 			break;
 		default:
 			break;
@@ -128,34 +127,34 @@ static int unset_option(struct xconfig_option *option) {
 	switch (option->type) {
 	case XCONFIG_BOOL:
 		if (option->call)
-			((xconfig_func_bool)option->dest)(0);
+			option->dest.func_bool(0);
 		else
-			*(_Bool *)option->dest = 0;
+			*(_Bool *)option->dest.object = 0;
 		return 0;
 	case XCONFIG_BOOL0:
 		if (option->call)
-			((xconfig_func_bool)option->dest)(1);
+			option->dest.func_bool(1);
 		else
-			*(_Bool *)option->dest = 1;
+			*(_Bool *)option->dest.object = 1;
 		return 0;
 	case XCONFIG_INT0:
 		if (option->call)
-			((xconfig_func_int)option->dest)(1);
+			option->dest.func_int(1);
 		else
-			*(int *)option->dest = 1;
+			*(int *)option->dest.object = 1;
 		return 0;
 	case XCONFIG_INT1:
 		if (option->call)
-			((xconfig_func_int)option->dest)(0);
+			option->dest.func_int(0);
 		else
-			*(int *)option->dest = 0;
+			*(int *)option->dest.object = 0;
 		return 0;
 	case XCONFIG_STRING:
 		if (option->call) {
-			((xconfig_func_string)option->dest)(NULL);
-		} else if (*(char **)option->dest) {
-			g_free(*(char **)option->dest);
-			*(char **)option->dest = NULL;
+			option->dest.func_string(NULL);
+		} else if (*(char **)option->dest.object) {
+			g_free(*(char **)option->dest.object);
+			*(char **)option->dest.object = NULL;
 		}
 		return 0;
 	default:
