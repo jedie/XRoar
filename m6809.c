@@ -231,6 +231,7 @@ void (*m6809_interrupt_hook)(uint16_t vector) = NULL;
 
 #define OP_NEG(fb) { unsigned int a, d, tmp; fb(a,d); tmp = ~(d) + 1; CLR_NZVC; SET_NZVC8(0, d, tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
 #define OP_COM(fb) { unsigned int a, d; fb(a,d); d = ~(d); CLR_NZV; SET_NZ8(d); reg_cc |= CC_C; TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_NEGCOM(fb) { unsigned int a, d, tmp; fb(a,d); tmp = ~(d) + (~reg_cc & 1); CLR_NZVC; SET_NZVC8(0, d, tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
 #define OP_LSR(fb) { unsigned int a, d; fb(a,d); CLR_NZC; reg_cc |= (d & CC_C); d &= 0xff; d >>= 1; SET_Z(d); TAKEN_CYCLES(1); store_byte(a,d); }
 #define OP_ROR(fb) { unsigned int a, d, tmp; fb(a,d); tmp = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= d & CC_C; tmp |= (d & 0xff) >> 1; SET_NZ8(tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
 #define OP_ASR(fb) { unsigned int a, d; CLR_NZC; fb(a,d); reg_cc |= (d & CC_C); d = (d & 0x80) | ((d & 0xff) >> 1); SET_NZ8(d); TAKEN_CYCLES(1); store_byte(a,d); }
@@ -244,6 +245,7 @@ void (*m6809_interrupt_hook)(uint16_t vector) = NULL;
 
 #define OP_NEGR(r) { unsigned int tmp = ~(r) + 1; CLR_NZVC; SET_NZVC8(0, r, tmp); r = tmp; peek_byte(reg_pc); }
 #define OP_COMR(r) { r = ~(r); CLR_NZV; SET_NZ8(r); reg_cc |= CC_C; peek_byte(reg_pc); }
+#define OP_NEGCOMR(r) { unsigned int tmp = ~(r) + (~reg_cc & 1); CLR_NZVC; SET_NZVC8(0, r, tmp); r = tmp; peek_byte(reg_pc); }
 #define OP_LSRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r >>= 1; SET_Z(r); peek_byte(reg_pc); }
 #define OP_RORR(r) { unsigned int tmp = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= r & CC_C; tmp |= r >> 1; SET_NZ8(tmp); r = tmp; peek_byte(reg_pc); }
 #define OP_ASRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r = (r & 0x80) | (r >> 1); SET_NZ8(r); peek_byte(reg_pc); }
@@ -515,13 +517,7 @@ void m6809_run(void) {
 			case 0x01: /* (illegal) */
 				OP_NEG(BYTE_DIRECT); break;
 			/* 0x02 NEG/COM direct (illegal) */
-			case 0x02:
-				if (reg_cc & CC_C) {
-					OP_COM(BYTE_DIRECT);
-				} else {
-					OP_NEG(BYTE_DIRECT);
-				}
-				break;
+			case 0x02: OP_NEGCOM(BYTE_DIRECT); break;
 			/* 0x03 COM direct */
 			case 0x03: OP_COM(BYTE_DIRECT); break;
 			/* 0x04 LSR direct */
@@ -840,13 +836,7 @@ void m6809_run(void) {
 			case 0x40:
 			case 0x41: OP_NEGR(reg_a); break;
 			/* 0x42 NEG/COM inherent (illegal) */
-			case 0x42:
-				if (reg_cc & CC_C) {
-					OP_COMR(reg_a);
-				} else {
-					OP_NEGR(reg_a);
-				}
-				break;
+			case 0x42: OP_NEGCOMR(reg_a); break;
 			/* 0x43 COMA inherent */
 			case 0x43: OP_COMR(reg_a); break;
 			/* 0x44 LSRA inherent */
@@ -877,13 +867,7 @@ void m6809_run(void) {
 			case 0x50:
 			case 0x51: OP_NEGR(reg_b); break;
 			/* 0x52 NEG/COM inherent (illegal) */
-			case 0x52:
-				if (reg_cc & CC_C) {
-					OP_COMR(reg_b);
-				} else {
-					OP_NEGR(reg_b);
-				}
-				break;
+			case 0x52: OP_NEGCOMR(reg_b); break;
 			/* 0x53 COMB inherent */
 			case 0x53: OP_COMR(reg_b); break;
 			/* 0x54 LSRB inherent */
@@ -914,13 +898,7 @@ void m6809_run(void) {
 			case 0x60:
 			case 0x61: OP_NEG(BYTE_INDEXED); break;
 			/* 0x62 NEG/COM indexed (illegal) */
-			case 0x62:
-				if (reg_cc & CC_C) {
-					OP_COM(BYTE_INDEXED);
-				} else {
-					OP_NEG(BYTE_INDEXED);
-				}
-				break;
+			case 0x62: OP_NEGCOM(BYTE_INDEXED); break;
 			/* 0x63 COM indexed */
 			case 0x63: OP_COM(BYTE_INDEXED); break;
 			/* 0x64 LSR indexed */
@@ -951,13 +929,7 @@ void m6809_run(void) {
 			case 0x70:
 			case 0x71: OP_NEG(BYTE_EXTENDED); break;
 			/* 0x72 NEG/COM extended (illegal) */
-			case 0x72:
-				if (reg_cc & CC_C) {
-					OP_COM(BYTE_EXTENDED);
-				} else {
-					OP_NEG(BYTE_EXTENDED);
-				}
-				break;
+			case 0x72: OP_NEGCOM(BYTE_EXTENDED); break;
 			/* 0x73 COM extended */
 			case 0x73: OP_COM(BYTE_EXTENDED); break;
 			/* 0x74 LSR extended */
