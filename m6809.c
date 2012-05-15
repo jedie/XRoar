@@ -533,17 +533,17 @@ void m6809_run(void) {
 			/* 0x09 ROL direct */
 			case 0x09: OP_ROL(BYTE_DIRECT); break;
 			/* 0x0A DEC direct */
-			case 0x0A:
-			case 0x0B: /* (illegal) */
+			case 0x0a:
+			case 0x0b: /* (illegal) */
 				OP_DEC(BYTE_DIRECT); break;
 			/* 0x0C INC direct */
-			case 0x0C: OP_INC(BYTE_DIRECT); break;
+			case 0x0c: OP_INC(BYTE_DIRECT); break;
 			/* 0x0D TST direct */
-			case 0x0D: OP_TST(BYTE_DIRECT); break;
+			case 0x0d: OP_TST(BYTE_DIRECT); break;
 			/* 0x0E JMP direct */
-			case 0x0E: OP_JMP(EA_DIRECT); break;
+			case 0x0e: OP_JMP(EA_DIRECT); break;
 			/* 0x0F CLR direct */
-			case 0x0F: OP_CLR(BYTE_DIRECT); break;
+			case 0x0f: OP_CLR(BYTE_DIRECT); break;
 			/* 0x10 Page 2 */
 			case 0x10:
 				cpu_state = m6809_flow_instruction_page_2;
@@ -820,7 +820,7 @@ void m6809_run(void) {
 				peek_byte(reg_pc);
 				TAKEN_CYCLES(9);
 			} break;
-			/* 0x3e RESET (illegal) */
+			/* 0x3E RESET (illegal) */
 			case 0x3e:
 				peek_byte(reg_pc);
 				PUSH_IRQ_REGISTERS_NO_E();
@@ -945,8 +945,8 @@ void m6809_run(void) {
 			/* 0x79 ROL extended */
 			case 0x79: OP_ROL(BYTE_EXTENDED); break;
 			/* 0x7A DEC extended */
-			case 0x7a: /* (illegal) */
-			case 0x7b:
+			case 0x7a:
+			case 0x7b: /* (illegal) */
 				OP_DEC(BYTE_EXTENDED); break;
 			/* 0x7C INC extended */
 			case 0x7c: OP_INC(BYTE_EXTENDED); break;
@@ -993,7 +993,7 @@ void m6809_run(void) {
 			} break;
 			/* 0x8E LDX immediate */
 			case 0x8e: OP_LD16(reg_x, WORD_IMMEDIATE); break;
-			/* 0x8f STX immediate (illegal) */
+			/* 0x8F STX immediate (illegal) */
 			case 0x8f: OP_ST16_IMM(reg_x); break;
 			/* 0x90 SUBA direct */
 			case 0x90: OP_SUB(reg_a, BYTE_DIRECT); break;
@@ -1105,7 +1105,7 @@ void m6809_run(void) {
 			case 0xc5: OP_BIT(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xC6 LDB immediate */
 			case 0xc6: OP_LD(reg_b, BYTE_IMMEDIATE); break;
-			/* 0xc7 Discard immediate (illegal) */
+			/* 0xC7 Discard immediate (illegal) */
 			case 0xc7: OP_DISCARD(BYTE_IMMEDIATE); break;
 			/* 0xC8 EORB immediate */
 			case 0xc8: OP_EOR(reg_b, BYTE_IMMEDIATE); break;
@@ -1117,13 +1117,13 @@ void m6809_run(void) {
 			case 0xcb: OP_ADD(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xCC LDD immediate */
 			case 0xcc: OP_LDD_IMM(); break;
-			/* 0xcd HCF? (illegal) */
+			/* 0xCD HCF? (illegal) */
 			case 0xcd:
 				cpu_state = m6809_flow_hcf;
 				goto done_instruction;
 			/* 0xCE LDU immediate */
 			case 0xce: OP_LD16(reg_u, WORD_IMMEDIATE); break;
-			/* 0xcf STU immediate (illegal) */
+			/* 0xCF STU immediate (illegal) */
 			case 0xcf: OP_ST16_IMM(reg_u); break;
 			/* 0xD0 SUBB direct */
 			case 0xd0: OP_SUB(reg_b, BYTE_DIRECT); break;
