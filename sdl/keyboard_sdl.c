@@ -234,6 +234,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 		keyboard_unicode_press(unicode);
 		return;
 	}
+	if (sym == SDLK_WORLD_18) sym = 12;
 	if (sym < 256) {
 		unsigned int mapped = sdl_to_keymap[sym];
 		KEYBOARD_PRESS(mapped);
@@ -282,6 +283,7 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 			KEYBOARD_PRESS(0);
 		return;
 	}
+	if (sym == SDLK_WORLD_18) sym = 12;
 	if (sym < 256) {
 		unsigned int mapped = sdl_to_keymap[sym];
 		KEYBOARD_RELEASE(mapped);
