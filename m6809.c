@@ -71,9 +71,9 @@
 
 /* CPU fetch/store goes via SAM */
 #define fetch_byte(a) (cycle++, m6809_read_cycle(a))
-#define store_byte(a,v) do { m6809_write_cycle(a,v); cycle++; } while (0)
+#define store_byte(a,v) do { cycle++; m6809_write_cycle(a,v); } while (0)
 /* This one only used to try and get correct timing: */
-#define peek_byte(a) do { (void)m6809_read_cycle(a); } while (0)
+#define peek_byte(a) do { cycle++; (void)m6809_read_cycle(a); } while (0)
 
 #define EA_DIRECT(a)    do { a = ea_direct(); } while (0)
 #define EA_EXTENDED(a)  do { a = ea_extended(); } while (0)
