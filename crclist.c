@@ -29,20 +29,25 @@
 
 /* User defined CRC lists */
 struct crclist {
+	char *name;
 	GSList *list;
 	_Bool flag;
 };
 
-/* Hash containing all defined CRC lists */
-static GHashTable *crclist_hash = NULL;
+/* List containing all defined CRC lists */
+static _Bool crclist_initialised = 0;
+static GSList *crclist_list = NULL;
+
+static int compare_entry(struct crclist *a, char *b) {
+	return strcmp(a->name, b);
+}
 
 /**************************************************************************/
 
-static void init_crclist_hash(void) {
-	if (crclist_hash)
+static void init_crclist_list(void) {
+	if (crclist_initialised)
 		return;
-
-	crclist_hash = g_hash_table_new(g_str_hash, g_str_equal);
+	crclist_initialised = 1;
 
 	/* Dragon BASIC */
 	crclist_assign("d64_1=0x84f68bf9,0x60a4634c,@woolham_d64_1");
@@ -63,8 +68,9 @@ static void init_crclist_hash(void) {
 	crclist_assign("cocoext=@extbas11,@extbas10");
 }
 
-static struct crclist *new_crclist(void) {
+static struct crclist *new_crclist(const char *name) {
 	struct crclist *new = g_malloc(sizeof(struct crclist));
+	new->name = g_strdup(name);
 	new->list = NULL;
 	new->flag = 0;
 	return new;
@@ -78,23 +84,30 @@ static void free_crclist(struct crclist *crclist) {
 		list = g_slist_remove(list, data);
 		g_free(data);
 	}
+	g_free(crclist->name);
 	g_free(crclist);
+}
+
+static struct crclist *find_crclist(const char *name) {
+	GSList *entry = g_slist_find_custom(crclist_list, name, (GCompareFunc)compare_entry);
+	if (!entry) return NULL;
+	return entry->data;
 }
 
 /* Parse an assignment string of the form "LIST=ROMNAME[,ROMNAME]...".
  * Overwrites any existing list with name LIST. */
 void crclist_assign(const char *astring) {
-	init_crclist_hash();
+	init_crclist_list();
 	if (!astring) return;
 	char *tmp = g_strdup(astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;
-	struct crclist *new_list = new_crclist();
+	struct crclist *new_list = new_crclist(name);
 	/* find if there's an old list with this name */
-	struct crclist *old_list = g_hash_table_lookup(crclist_hash, name);
+	struct crclist *old_list = find_crclist(name);
 	if (old_list) {
-		/* if so, remove its reference in crclist_hash */
-		g_hash_table_remove(crclist_hash, name);
+		/* if so, remove its reference in crclist_list */
+		crclist_list = g_slist_remove(crclist_list, old_list);
 	}
 	char *value;
 	while ((value = strtok(NULL, "\n\v\f\r,"))) {
@@ -113,7 +126,7 @@ void crclist_assign(const char *astring) {
 		free_crclist(old_list);
 	}
 	/* add new list to crclist_list */
-	g_hash_table_insert(crclist_hash, g_strdup(name), new_list);
+	crclist_list = g_slist_append(crclist_list, new_list);
 	g_free(tmp);
 }
 
@@ -125,13 +138,13 @@ static int crc_match(const char *crc_string, uint32_t crc) {
 
 /* Match a provided CRC with values in a list.  Returns 1 if found. */
 int crclist_match(const char *name, uint32_t crc) {
-	init_crclist_hash();
+	init_crclist_list();
 	if (!name) return 0;
 	/* not prefixed with an '@'?  then it's not a list! */
 	if (name[0] != '@') {
 		return crc_match(name, crc);
 	}
-	struct crclist *crclist = g_hash_table_lookup(crclist_hash, name+1);
+	struct crclist *crclist = find_crclist(name+1);
 	/* found an appropriate list?  flag it and start scanning it */
 	if (!crclist)
 		return 0;
@@ -155,13 +168,13 @@ int crclist_match(const char *name, uint32_t crc) {
 	return match;
 }
 
-static void print_crclist_entry(char *key, struct crclist *list, void *user_data) {
+static void print_crclist_entry(struct crclist *list, void *user_data) {
 	GSList *jter;
 	(void)user_data;
-	if (strlen(key) > 15) {
-		printf("\t%s\n\t%16s", key, "");
+	if (strlen(list->name) > 15) {
+		printf("\t%s\n\t%16s", list->name, "");
 	} else {
-		printf("\t%-15s ", key);
+		printf("\t%-15s ", list->name);
 	}
 	for (jter = list->list; jter; jter = jter->next) {
 		printf("%s", (char *)jter->data);
@@ -174,8 +187,8 @@ static void print_crclist_entry(char *key, struct crclist *list, void *user_data
 
 /* Print a list of defined ROM lists to stdout */
 void crclist_print(void) {
-	init_crclist_hash();
+	init_crclist_list();
 	printf("CRC lists:\n");
-	g_hash_table_foreach(crclist_hash, (GHFunc)print_crclist_entry, NULL);
+	g_slist_foreach(crclist_list, (GFunc)print_crclist_entry, NULL);
 	exit(0);
 }
