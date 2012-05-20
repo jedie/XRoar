@@ -43,14 +43,6 @@ static unsigned int motor;
 struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
 
-/* input file: */
-static int fake_leader;  /* number of fake leader bytes */
-static _Bool fake_sync;  /* flag that fake leader should end with $3c (sync) */
-static int fake_byte;
-static int fake_bit;
-static int fake_bit_index;  /* 0-7 */
-static int fake_pulse_index;
-
 static void waggle_bit(void);
 static event_t waggle_event;
 static void flush_output(void);
@@ -90,32 +82,6 @@ int tape_seek(struct tape *t, long offset, int whence) {
 
 int tape_pulse_in(struct tape *t, int *pulse_width) {
 	if (!t) return -1;
-	if (fake_leader > 0) {
-		if (fake_pulse_index == 0) {
-			if (fake_bit_index == 0) {
-				if (fake_leader == 1 && fake_sync) {
-					fake_byte = 0x3c;
-					fake_sync = 0;
-				} else {
-					fake_byte = 0x55;
-				}
-			}
-			fake_bit = (fake_byte & (1 << fake_bit_index)) ? 1 : 0;
-		}
-		if (fake_bit == 0) {
-			*pulse_width = TAPE_BIT0_LENGTH / 2;
-		} else {
-			*pulse_width = TAPE_BIT1_LENGTH / 2;
-		}
-		int val = fake_pulse_index;
-		fake_pulse_index = (fake_pulse_index + 1) & 1;
-		if (fake_pulse_index == 0) {
-			fake_bit_index = (fake_bit_index + 1) & 7;
-			if (fake_bit_index == 0)
-				fake_leader--;
-		}
-		return val;
-	}
 	return t->module->pulse_in(t, pulse_width);
 }
 
@@ -246,10 +212,6 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 void tape_seek_to_file(struct tape *t, struct tape_file *f) {
 	if (!t || !f) return;
 	tape_seek(t, f->offset, SEEK_SET);
-	fake_leader = 256;
-	fake_sync = 1;
-	fake_bit_index = 0;
-	fake_pulse_index = 0;
 }
 
 /**************************************************************************/
@@ -753,13 +715,19 @@ static void cbin(M6809State *cpu_state) {
 }
 
 static void fast_motor_on(M6809State *cpu_state) {
-	motor_on(cpu_state);
+	if (!tape_pad) {
+		motor_on(cpu_state);
+	}
 	machine_op_rts(cpu_state);
 	pulse_skip();
 }
 
 static void fast_sync_leader(M6809State *cpu_state) {
-	sync_leader(cpu_state);
+	if (tape_pad) {
+		machine_ram[0x84] = 0;
+	} else {
+		sync_leader(cpu_state);
+	}
 	machine_op_rts(cpu_state);
 	pulse_skip();
 }
@@ -789,7 +757,6 @@ static void tape_desync(int leader) {
 		rewrite_have_sync = 0;
 		rewrite_leader_count = leader;
 	}
-	if (tape_pad && tape_input) fake_leader = leader;
 }
 
 static void rewrite_sync(M6809State *cpu_state) {
@@ -886,8 +853,6 @@ void tape_set_state(int flags) {
 	tape_pad_auto = flags & TAPE_PAD_AUTO;
 	tape_rewrite = flags & TAPE_REWRITE;
 	set_breakpoints();
-	if (!tape_pad)
-		fake_leader = 0;
 }
 
 /* sets state and updates UI */
