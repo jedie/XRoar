@@ -51,6 +51,13 @@ GSList *g_slist_concat(GSList *list1, GSList *list2) {
 	return list1;
 }
 
+void g_slist_foreach(GSList *list, GFunc func, gpointer user_data) {
+	GSList *iter;
+	for (iter = list; iter; iter = iter->next) {
+		func(iter->data, user_data);
+	}
+}
+
 /* Using compare function, insert item at appropriate place in list */
 GSList *g_slist_insert_sorted(GSList *list, gpointer data, GCompareFunc func) {
 	GSList *elem;
@@ -93,10 +100,20 @@ GSList *g_slist_to_tail(GSList *list, void *data) {
 }
 
 /* Find list element containing data */
-GSList *g_slist_find(GSList *list, void *data) {
+GSList *g_slist_find(GSList *list, gconstpointer data) {
 	GSList *elem;
 	for (elem = list; elem; elem = elem->next) {
 		if (elem->data == data)
+			return elem;
+	}
+	return NULL;
+}
+
+/* Find list element containing data */
+GSList *g_slist_find_custom(GSList *list, gconstpointer data, GCompareFunc func) {
+	GSList *elem;
+	for (elem = list; elem; elem = elem->next) {
+		if (func(elem->data, data) == 0)
 			return elem;
 	}
 	return NULL;
