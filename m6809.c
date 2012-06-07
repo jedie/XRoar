@@ -391,10 +391,8 @@ void m6809_run(void) {
 				TAKEN_CYCLES(1);
 				continue;
 			}
-			{
-				uint16_t tmp_pc = fetch_byte(0xfffe) << 8;
-				reg_pc = tmp_pc | fetch_byte(0xffff);
-			}
+			reg_pc = fetch_byte(0xfffe) << 8;
+			reg_pc |= fetch_byte(0xffff);
 			TAKEN_CYCLES(1);
 			cpu_state = m6809_flow_label_a;
 			continue;
