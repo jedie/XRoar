@@ -44,8 +44,6 @@
 #define VDG_VRETRACE_END       (VDG_BOTTOM_BORDER_END + 6)
 #define VDG_FRAME_DURATION     (262)
 
-extern const unsigned int vdg_alpha[768];
-
 /* External handler to fetch data for display.  First arg is number of bytes,
  * second a pointer to a buffer to receive them. */
 extern void (*vdg_fetch_bytes)(int, uint8_t *);
