@@ -28,7 +28,7 @@
 
 #include "logging.h"
 #include "module.h"
-#include "vdg_bitmaps.h"
+#include "vdg.h"
 #include "xroar.h"
 
 #ifdef WINDOWS32
@@ -39,11 +39,8 @@
 static int init(void);
 static void _shutdown(void);
 static void alloc_colours(void);
-static void reset(void);
 static void vsync(void);
-static void hsync(void);
-static void set_mode(unsigned int mode);
-static void render_border(void);
+static void render_scanline(uint8_t *scanline_data);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(_Bool fullscreen);
 
@@ -51,8 +48,8 @@ VideoModule video_gtkgl_module = {
 	.common = { .name = "gtkgl", .description = "GtkGLExt video",
 	            .init = init, .shutdown = _shutdown },
 	.update_palette = alloc_colours,
-	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
-	.render_border = render_border,
+	.vsync = vsync,
+	.render_scanline = render_scanline,
 	.resize = resize, .set_fullscreen = set_fullscreen
 };
 
@@ -139,8 +136,7 @@ static int init(void) {
 	}
 
 	alloc_colours();
-	reset();
-	set_mode(0);
+	vsync();
 
 	return 0;
 }
@@ -255,12 +251,6 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer data
 	return 0;
 }
 
-static void reset(void) {
-	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
-	subline = 0;
-	beam_pos = 0;
-}
-
 static void vsync(void) {
 	GdkGLContext *glcontext = gtk_widget_get_gl_context(gtk2_drawing_area);
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(gtk2_drawing_area);
@@ -287,5 +277,5 @@ static void vsync(void) {
 	gdk_gl_drawable_swap_buffers(gldrawable);
 	gdk_gl_drawable_gl_end(gldrawable);
 
-	reset();
+	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 }

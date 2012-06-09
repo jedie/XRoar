@@ -25,20 +25,12 @@ typedef struct {
 typedef struct {
 	Module_Common common;
 	void (*update_palette)(void);
-	void (*reset)(void);
-	void (*vsync)(void);
-	void (*hsync)(void);
-	void (*set_mode)(unsigned int mode);
-	void (*render_border)(void);
 	void (*resize)(unsigned int w, unsigned int h);
 	int (*set_fullscreen)(_Bool fullscreen);
-#ifndef FAST_VDG
-	void (*render_scanline)(uint8_t *vram_ptr, int beam_to);
-#else
-	void (*render_scanline)(uint8_t *vram_ptr);
-#endif
 	_Bool is_fullscreen;
 	float scale;
+	void (*render_scanline)(uint8_t *scanline_data);
+	void (*vsync)(void);
 } VideoModule;
 
 typedef struct {

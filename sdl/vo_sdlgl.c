@@ -28,7 +28,7 @@
 
 #include "logging.h"
 #include "module.h"
-#include "vdg_bitmaps.h"
+#include "vdg.h"
 #include "xroar.h"
 #ifdef WINDOWS32
 #include "windows32/common_windows32.h"
@@ -37,11 +37,8 @@
 static int init(void);
 static void shutdown(void);
 static void alloc_colours(void);
-static void reset(void);
 static void vsync(void);
-static void hsync(void);
-static void set_mode(unsigned int mode);
-static void render_border(void);
+static void render_scanline(uint8_t *scanline_data);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(_Bool fullscreen);
 
@@ -49,8 +46,8 @@ VideoModule video_sdlgl_module = {
 	.common = { .name = "sdlgl", .description = "SDL OpenGL video",
 	            .init = init, .shutdown = shutdown },
 	.update_palette = alloc_colours,
-	.reset = reset, .vsync = vsync, .hsync = hsync, .set_mode = set_mode,
-	.render_border = render_border,
+	.vsync = vsync,
+	.render_scanline = render_scanline,
 	.resize = resize, .set_fullscreen = set_fullscreen
 };
 
@@ -144,8 +141,7 @@ static int init(void) {
 		windows32_main_hwnd = sdlinfo.window;
 	}
 #endif
-	reset();
-	set_mode(0);
+	vsync();
 	return 0;
 }
 
@@ -240,12 +236,6 @@ static int set_fullscreen(_Bool fullscreen) {
 	return 0;
 }
 
-static void reset(void) {
-	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
-	subline = 0;
-	beam_pos = 0;
-}
-
 static void vsync(void) {
 	/* Draw main window */
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
@@ -262,5 +252,5 @@ static void vsync(void) {
 	glVertex3i(screen->w - xoffset, yoffset, 0);
 	glEnd();
 	SDL_GL_SwapBuffers();
-	reset();
+	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 }

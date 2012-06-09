@@ -44,6 +44,18 @@
 #define VDG_VRETRACE_END       (VDG_BOTTOM_BORDER_END + 6)
 #define VDG_FRAME_DURATION     (262)
 
+/* Basic colours the VDG can generate */
+
+enum vdg_colour {
+	VDG_GREEN, VDG_YELLOW, VDG_BLUE, VDG_RED,
+	VDG_WHITE, VDG_CYAN, VDG_MAGENTA, VDG_ORANGE,
+	VDG_BLACK, VDG_DARK_GREEN, VDG_DARK_ORANGE, VDG_BRIGHT_ORANGE
+};
+
+/* Flags */
+
+#define VDG_COLOURBURST (1 << 0)
+
 /* External handler to fetch data for display.  First arg is number of bytes,
  * second a pointer to a buffer to receive them. */
 extern void (*vdg_fetch_bytes)(int, uint8_t *);

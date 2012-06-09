@@ -16,7 +16,7 @@ unset target_sdl_config build_sdl_config
 unset _have_video_driver
 unset _have_audio_driver
 
-all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_vdg fast_sound logging"
+all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -1116,17 +1116,6 @@ if test "$_trace" = "yes"; then
 else
 	echo "Trace mode not included"
 	_trace_def="#undef TRACE"
-fi
-
-########
-
-test -z "$_fast_vdg" && _fast_vdg=no
-if test "$_fast_vdg" = "yes"; then
-	echo "Fast video enabled"
-	_fast_vdg_def="#define FAST_VDG"
-else
-	echo "Accurate video enabled"
-	_fast_vdg_def="#undef FAST_VDG"
 fi
 
 ########

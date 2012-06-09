@@ -51,12 +51,6 @@
 #include "xconfig.h"
 #include "xroar.h"
 
-#ifdef FAST_VDG
-# define DEFAULT_CCR CROSS_COLOUR_SIMPLE
-#else
-# define DEFAULT_CCR CROSS_COLOUR_5BIT
-#endif
-
 /**************************************************************************/
 /* Command line arguments */
 
@@ -111,7 +105,7 @@ static int xroar_opt_volume = 100;
 int xroar_fast_sound = 0;
 #endif
 _Bool xroar_opt_fullscreen = 0;
-int xroar_opt_ccr = DEFAULT_CCR;
+int xroar_opt_ccr = CROSS_COLOUR_5BIT;
 int xroar_opt_frameskip = 0;
 char *xroar_opt_keymap = NULL;
 int xroar_kbd_translate = 0;
@@ -164,9 +158,7 @@ static struct xconfig_enum gl_filter_list[] = {
 
 static struct xconfig_enum ccr_list[] = {
 	{ .value = CROSS_COLOUR_SIMPLE, .name = "simple", .description = "four colour palette" },
-#ifndef FAST_VDG
 	{ .value = CROSS_COLOUR_5BIT, .name = "5bit", .description = "5-bit lookup table" },
-#endif
 	XC_ENUM_END()
 };
 

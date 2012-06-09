@@ -22,31 +22,18 @@
 
 #include "module.h"
 
-#ifndef FAST_VDG
-# define RENDER_ARGS uint8_t *vram_ptr, int beam_to
-#else
-# define RENDER_ARGS uint8_t *vram_ptr
-# define beam_to (320)
-#endif
-
 static void no_op(void);
-static void no_op_unsigned(unsigned int mode);
-static void no_op_render(RENDER_ARGS);
+static void no_op_render(uint8_t *);
 
 VideoModule video_null_module = {
 	.common = { .name = "null", .description = "No video" },
-	.vsync = no_op, .hsync = no_op, .set_mode = no_op_unsigned,
-	.render_border = no_op, .render_scanline = no_op_render,
+	.vsync = no_op,
+	.render_scanline = no_op_render,
 };
 
 static void no_op(void) {
 }
 
-static void no_op_unsigned(unsigned int mode) {
-	(void)mode;
-}
-
-static void no_op_render(RENDER_ARGS) {
-	(void)vram_ptr;
-	(void)beam_to;
+static void no_op_render(uint8_t *scanline_data) {
+	(void)scanline_data;
 }
