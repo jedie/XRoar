@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "portalib/strings.h"
 #include "portalib/glib.h"
 
 #include "types.h"
