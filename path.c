@@ -55,7 +55,7 @@ char *find_in_path(const char *path, const char *filename) {
 #endif
 			) {
 		if (stat(filename, &statbuf) == 0) {
-			if (statbuf.st_mode & S_IFREG) {
+			if (S_ISREG(statbuf.st_mode)) {
 				/* Only consider a file if user has read
 				 * access.  This is NOT a security check, it's
 				 * purely for usability. */
@@ -99,7 +99,7 @@ char *find_in_path(const char *path, const char *filename) {
 		strcat(buf, filename);
 		/* Return this one if file is valid */
 		if (stat(buf, &statbuf) == 0)
-			if (statbuf.st_mode & S_IFREG)
+			if (S_ISREG(statbuf.st_mode))
 				if (access(buf, R_OK) == 0) {
 					return buf;
 				}
