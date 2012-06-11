@@ -62,6 +62,15 @@ static struct cart running_cart;
 _Bool has_bas, has_extbas, has_altbas;
 uint32_t crc_bas, crc_extbas, crc_altbas;
 
+/* Useful configuration side-effect tracking */
+static _Bool unexpanded_dragon32 = 0;
+static enum {
+	RAM_ORGANISATION_4K,
+	RAM_ORGANISATION_16K,
+	RAM_ORGANISATION_64K
+} ram_organisation = RAM_ORGANISATION_64K;
+static uint16_t ram_mask = 0xffff;
+
 static struct {
 	const char *bas;
 	const char *extbas;
@@ -437,6 +446,19 @@ void machine_configure(struct machine_config *mc) {
 		 * Deal with this through a postwrite. */
 		PIA0.b.data_postwrite = pia0b_data_postwrite_coco64k;
 	}
+	if (IS_COCO && machine_ram_size <= 0x2000)
+		ram_organisation = RAM_ORGANISATION_4K;
+	else if (IS_COCO && machine_ram_size <= 0x4000)
+		ram_organisation = RAM_ORGANISATION_16K;
+	else
+		ram_organisation = RAM_ORGANISATION_64K;
+	if (IS_DRAGON32 && machine_ram_size <= 0x8000) {
+		unexpanded_dragon32 = 1;
+		ram_mask = 0x7fff;
+	} else {
+		unexpanded_dragon32 = 0;
+		ram_mask = 0xffff;
+	}
 }
 
 void machine_reset(_Bool hard) {
@@ -464,16 +486,14 @@ void machine_run(int ncycles) {
 }
 
 static uint16_t decode_Z(uint16_t Z) {
-	if (IS_COCO) {
-		if (machine_ram_size <= 0x2000) {
-			return (Z & 0x3f) | ((Z & 0x3f00) >> 2) | ((~Z & 0x8000) >> 3);
-		} else if (machine_ram_size <= 0x4000) {
-			return (Z & 0x7f) | ((Z & 0x7f00) >> 1) | ((~Z & 0x8000) >> 1);
-		}
-	} else if (IS_DRAGON32) {
-		return Z & 0x7fff;
+	switch (ram_organisation) {
+	case RAM_ORGANISATION_4K:
+		return (Z & 0x3f) | ((Z & 0x3f00) >> 2) | ((~Z & 0x8000) >> 3);
+	case RAM_ORGANISATION_16K:
+		return (Z & 0x7f) | ((Z & 0x7f00) >> 1) | ((~Z & 0x8000) >> 1);
+	case RAM_ORGANISATION_64K: default:
+		return Z & ram_mask;
 	}
-	return Z;
 }
 
 /* Interface to SAM to decode and translate address */
@@ -548,7 +568,7 @@ static void write_cycle(uint16_t A, uint8_t D) {
 	int S;
 	uint16_t Z;
 	_Bool is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
-	if ((S & 4) || IS_DRAGON32) {
+	if ((S & 4) || unexpanded_dragon32) {
 		switch (S) {
 			case 1:
 			case 2:
