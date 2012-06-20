@@ -52,7 +52,7 @@ void printer_init(void) {
 }
 
 void printer_reset(void) {
-	strobe_state = PIA1.a.port_output & 0x02;
+	strobe_state = PIA_VALUE_A(PIA1) & 0x02;
 }
 
 /* "Open" routines don't directly open the stream.  This way, a file or pipe
@@ -98,7 +98,7 @@ void printer_flush(void) {
 /* Called when the PIA bus containing STROBE is changed */
 void printer_strobe(void) {
 	int new_strobe, byte;
-	new_strobe = PIA1.a.port_output & 0x02;
+	new_strobe = PIA_VALUE_A(PIA1) & 0x02;
 	/* Ignore if this is not a transition to high */
 	if (new_strobe == strobe_state) return;
 	strobe_state = new_strobe;
@@ -107,7 +107,7 @@ void printer_strobe(void) {
 	if (!stream_dest) return;
 	if (!stream) open_stream();
 	/* Print byte */
-	byte = PIA0.b.port_output;
+	byte = PIA_VALUE_B(PIA0);
 	if (stream) {
 		fputc(byte, stream);
 	}
@@ -138,8 +138,8 @@ static void do_ack_clear(void) {
 static void set_busy(int state) {
 	busy = state;
 	if (state) {
-		PIA1.b.port_input |= 0x01;
+		PIA1.b.in_sink |= 0x01;
 	} else {
-		PIA1.b.port_input &= ~0x01;
+		PIA1.b.in_sink &= ~0x01;
 	}
 }

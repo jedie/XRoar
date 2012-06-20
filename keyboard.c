@@ -118,32 +118,32 @@ void keyboard_set_keymap(int map) {
 }
 
 void keyboard_column_update(void) {
-	unsigned int mask = PIA0.b.port_output;
+	unsigned int mask = PIA0.b.out_source & PIA0.b.out_sink;
 	unsigned int i, row = 0x7f;
 	for (i = 0; i < 8; i++) {
 		if (!(mask & (1 << i))) {
 			row &= keyboard_column[i];
 		}
 	}
-	PIA0.a.port_input = (PIA0.a.port_input & 0x80) | row;
+	PIA0.a.in_sink = (PIA0.a.in_sink & 0x80) | row;
 }
 
 void keyboard_row_update(void) {
-	unsigned int mask = PIA0.a.port_output;
+	unsigned int mask = PIA0.a.out_sink;
 	unsigned int i, col = 0xff;
 	for (i = 0; i < 7; i++) {
 		if (!(mask & (1 << i))) {
 			col &= keyboard_row[i];
 		}
 	}
-	PIA0.b.port_input = col;
+	PIA0.b.in_sink = col;
 }
 
 void keyboard_unicode_press(unsigned int unicode) {
 	if (unicode == '\\') {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
-		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))) {
+		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_VALUE_B(PIA1) & 0x04))) {
 			KEYBOARD_PRESS(0);
 			KEYBOARD_PRESS(12);
 		} else {
@@ -171,7 +171,7 @@ void keyboard_unicode_release(unsigned int unicode) {
 	if (unicode == '\\') {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
-		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA1.b.port_output & 0x04))) {
+		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_VALUE_B(PIA1) & 0x04))) {
 			KEYBOARD_RELEASE(0);
 			KEYBOARD_RELEASE(12);
 		} else {

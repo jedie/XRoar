@@ -76,13 +76,9 @@ void sdl_run(void) {
 				exit(0); break;
 			case SDL_KEYDOWN:
 				sdl_keypress(&event.key.keysym);
-				keyboard_column_update();
-				keyboard_row_update();
 				break;
 			case SDL_KEYUP:
 				sdl_keyrelease(&event.key.keysym);
-				keyboard_column_update();
-				keyboard_row_update();
 				break;
 			default:
 				break;

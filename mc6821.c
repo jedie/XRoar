@@ -30,9 +30,8 @@ MC6821_PIA *mc6821_new(void) {
 
 void mc6821_init(MC6821_PIA *pia) {
 	memset(pia, 0, sizeof(MC6821_PIA));
-	pia->a.tied_low = 0xff;
-	pia->b.tied_low = 0xff;
-	pia->a.port_input = 0xff;
+	pia->a.in_sink = 0xff;
+	pia->b.in_sink = 0xff;
 }
 
 void mc6821_destroy(MC6821_PIA *pia) {
@@ -87,47 +86,51 @@ void mc6821_reset_cx1(struct MC6821_PIA_side *side) {
 	}
 }
 
-#define UPDATE_OUTPUT(p) do { \
-		p.port_output = ((p.output_register & p.direction_register) | (p.port_input & ~(p.direction_register))) & p.tied_low; \
+#define UPDATE_OUTPUT_A(p) do { \
+		p.out_sink = ~(~p.output_register & p.direction_register); \
+		if (p.data_postwrite) p.data_postwrite(); \
+	} while (0)
+
+#define UPDATE_OUTPUT_B(p) do { \
+		p.out_source = p.output_register & p.direction_register; \
+		p.out_sink = p.output_register | ~p.direction_register; \
 		if (p.data_postwrite) p.data_postwrite(); \
 	} while (0)
 
 void mc6821_update_state(MC6821_PIA *pia) {
-	UPDATE_OUTPUT(pia->a);
-	UPDATE_OUTPUT(pia->b);
+	UPDATE_OUTPUT_A(pia->a);
+	UPDATE_OUTPUT_B(pia->b);
 }
 
 #define READ_DR(p) do { \
-		if (PDR_SELECTED(p)) { \
-			if (p.data_preread) p.data_preread(); \
-			p.interrupt_received = 0; \
-			p.irq = 0; \
-			return ((p.port_input & p.tied_low) & ~p.direction_register) | (p.output_register & p.direction_register); \
-		} else { \
-			return p.direction_register; \
-		} \
+		if (p.data_preread) p.data_preread(); \
+		p.interrupt_received = 0; \
+		p.irq = 0; \
 	} while (0)
 
 #define READ_CR(p) do { \
 		if (p.control_preread) p.control_preread(); \
-		return (p.control_register | (p.interrupt_received ? 0x80 : 0)); \
 	} while (0)
 
 uint8_t mc6821_read(MC6821_PIA *pia, uint16_t A) {
 	switch (A & 3) {
 		default:
 		case 0:
+			if (DDR_SELECTED(pia->a))
+				return pia->a.direction_register;
 			READ_DR(pia->a);
-			break;
+			return pia->a.out_sink & pia->a.in_sink;
 		case 1:
 			READ_CR(pia->a);
-			break;
+			return (pia->a.control_register | (pia->a.interrupt_received ? 0x80 : 0));
 		case 2:
+			if (DDR_SELECTED(pia->b))
+				return pia->b.direction_register;
 			READ_DR(pia->b);
-			break;
+			return (pia->b.output_register & pia->b.direction_register) | ((pia->b.out_source | pia->b.in_source) & pia->b.out_sink & pia->b.in_sink & ~pia->b.direction_register);
 		case 3:
 			READ_CR(pia->b);
-			break;
+			return (pia->b.control_register | (pia->b.interrupt_received ? 0x80 : 0));
 	}
 }
 
@@ -139,8 +142,6 @@ uint8_t mc6821_read(MC6821_PIA *pia, uint16_t A) {
 			p.direction_register = v; \
 			v &= p.output_register; \
 		} \
-		p.port_output = (v | (p.port_input & ~(p.direction_register))) & p.tied_low; \
-		if (p.data_postwrite) p.data_postwrite(); \
 	} while (0)
 
 #define WRITE_CR(p,v) do { \
@@ -159,12 +160,14 @@ void mc6821_write(MC6821_PIA *pia, uint16_t A, uint8_t D) {
 		default:
 		case 0:
 			WRITE_DR(pia->a, D);
+			UPDATE_OUTPUT_A(pia->a);
 			break;
 		case 1:
 			WRITE_CR(pia->a, D);
 			break;
 		case 2:
 			WRITE_DR(pia->b, D);
+			UPDATE_OUTPUT_B(pia->b);
 			break;
 		case 3:
 			WRITE_CR(pia->b, D);

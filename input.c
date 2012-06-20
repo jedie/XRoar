@@ -25,6 +25,7 @@
 
 static int input_joysticks_swapped = 0;
 static int pia_firebutton_swap = 0;
+unsigned int input_firebutton_mask = ~0;
 
 void input_control_press(int command, unsigned int arg) {
 	switch (command) {
@@ -36,15 +37,13 @@ void input_control_press(int command, unsigned int arg) {
 			joystick_axis[command] = arg;
 			break;
 		case INPUT_JOY_RIGHT_FIRE:
-			PIA0.a.tied_low &= (0xfe ^ pia_firebutton_swap);
+			input_firebutton_mask &= (0xfe ^ pia_firebutton_swap);
 			break;
 		case INPUT_JOY_LEFT_FIRE:
-			PIA0.a.tied_low &= (0xfd ^ pia_firebutton_swap);
+			input_firebutton_mask &= (0xfd ^ pia_firebutton_swap);
 			break;
 		case INPUT_KEY:
 			KEYBOARD_PRESS(arg);
-			keyboard_column_update();
-			keyboard_row_update();
 			break;
 		case INPUT_UNICODE_KEY:
 			keyboard_unicode_press(arg);
@@ -69,15 +68,13 @@ void input_control_release(int command, unsigned int arg) {
 				joystick_axis[command] = 128;
 			break;
 		case INPUT_JOY_RIGHT_FIRE:
-			PIA0.a.tied_low |= (0x01 ^ pia_firebutton_swap);
+			input_firebutton_mask |= (0x01 ^ pia_firebutton_swap);
 			break;
 		case INPUT_JOY_LEFT_FIRE:
-			PIA0.a.tied_low |= (0x02 ^ pia_firebutton_swap);
+			input_firebutton_mask |= (0x02 ^ pia_firebutton_swap);
 			break;
 		case INPUT_KEY:
 			KEYBOARD_RELEASE(arg);
-			keyboard_column_update();
-			keyboard_row_update();
 			break;
 		case INPUT_UNICODE_KEY:
 			keyboard_unicode_release(arg);

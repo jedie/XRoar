@@ -32,6 +32,7 @@
 #include "cart.h"
 #include "crc32.h"
 #include "fs.h"
+#include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
@@ -278,22 +279,43 @@ void machine_config_complete(struct machine_config *mc) {
 
 /* ---------------------------------------------------------------------- */
 
-#define pia0a_data_postwrite keyboard_row_update
-#define pia0a_control_postwrite sound_update
-
-#define pia0b_data_postwrite keyboard_column_update
-#define pia0b_control_postwrite sound_update
-
-static void pia0b_data_postwrite_coco64k(void) {
+static void pia0a_data_preread(void) {
 	keyboard_column_update();
-	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
-	if (PIA0.b.port_output & 0x40)
-		PIA1.b.port_input |= (1<<2);
-	else
-		PIA1.b.port_input &= ~(1<<2);
+	PIA0.a.in_sink &= input_firebutton_mask;
 }
 
-# define pia1a_data_preread NULL
+#define pia0a_data_postwrite NULL
+#define pia0a_control_postwrite sound_update
+
+#define pia0b_data_preread keyboard_row_update
+#define pia0b_data_postwrite NULL
+#define pia0b_control_postwrite sound_update
+
+static void pia0b_data_preread_coco64k(void) {
+	keyboard_row_update();
+	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
+	if (PIA_VALUE_B(PIA1) & (1<<2)) {
+		PIA0.b.in_source |= (1<<6);
+		PIA0.b.in_sink |= (1<<6);
+	} else {
+		PIA0.b.in_source &= ~(1<<6);
+		PIA0.b.in_sink &= ~(1<<6);
+	}
+}
+
+static void pia1b_data_preread_coco64k(void) {
+	keyboard_column_update();
+	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
+	if (PIA_VALUE_B(PIA0) & (1<<6)) {
+		PIA1.b.in_source |= (1<<2);
+		PIA1.b.in_sink |= (1<<2);
+	} else {
+		PIA1.b.in_source &= ~(1<<2);
+		PIA1.b.in_sink &= ~(1<<2);
+	}
+}
+
+#define pia1a_data_preread NULL
 
 static void pia1a_data_postwrite(void) {
 	sound_update();
@@ -307,7 +329,7 @@ static void pia1a_data_postwrite(void) {
 
 static void pia1b_data_postwrite(void) {
 	if (IS_DRAGON64) {
-		machine_rom = (PIA1.b.port_output & 0x04) ? rom0 : rom1;
+		machine_rom = PIA_VALUE_B(PIA1) & 0x04 ? rom0 : rom1;
 	}
 	sound_update();
 	vdg_set_mode();
@@ -317,7 +339,9 @@ static void pia1b_data_postwrite(void) {
 void machine_init(void) {
 	sam_init();
 	mc6821_init(&PIA0);
+	PIA0.a.data_preread = pia0a_data_preread;
 	PIA0.a.data_postwrite = pia0a_data_postwrite;
+	PIA0.b.data_preread = pia0b_data_preread;
 	PIA0.b.data_postwrite = pia0b_data_postwrite;
 	mc6821_init(&PIA1);
 	PIA1.a.data_preread = pia1a_data_preread;
@@ -428,24 +452,34 @@ void machine_configure(struct machine_config *mc) {
 	machine_ram_size = mc->ram * 1024;
 	/* This will be under PIA control on a Dragon 64 */
 	machine_rom = rom0;
+
+	/* Default all PIA connections to unconnected (no source, no sink) */
+	PIA0.b.in_source = 0;
+	PIA1.b.in_source = 0;
+	PIA0.a.in_sink = PIA0.b.in_sink = 0xff;
+	PIA1.a.in_sink = PIA1.b.in_sink = 0xff;
 	/* Machine-specific PIA connections */
-	PIA1.b.tied_low |= (1<<2);
-	PIA1.b.port_input &= ~(1<<2);
+	if (IS_DRAGON) {
+		/* Centronics printer port - !BUSY */
+		PIA1.b.in_source |= (1<<0);
+	}
 	if (IS_DRAGON64) {
-		PIA1.b.port_input |= (1<<2);
+		PIA1.b.in_source |= (1<<2);
 	} else if (IS_COCO && machine_ram_size <= 0x1000) {
 		/* 4K CoCo ties PB2 of PIA1 low */
-		PIA1.b.tied_low &= ~(1<<2);
+		PIA1.b.in_sink &= ~(1<<2);
 	} else if (IS_COCO && machine_ram_size <= 0x4000) {
 		/* 16K CoCo pulls PB2 of PIA1 high */
-		PIA1.b.port_input |= (1<<2);
+		PIA1.b.in_source |= (1<<2);
 	}
 	PIA0.b.data_postwrite = pia0b_data_postwrite;
 	if (IS_COCO && machine_ram_size > 0x4000) {
 		/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1.
 		 * Deal with this through a postwrite. */
-		PIA0.b.data_postwrite = pia0b_data_postwrite_coco64k;
+		PIA0.b.data_preread = pia0b_data_preread_coco64k;
+		PIA1.b.data_preread = pia1b_data_preread_coco64k;
 	}
+
 	if (IS_COCO && machine_ram_size <= 0x2000)
 		ram_organisation = RAM_ORGANISATION_4K;
 	else if (IS_COCO && machine_ram_size <= 0x4000)

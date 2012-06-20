@@ -228,7 +228,7 @@ void vdg_set_mode(void) {
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
 		render_scanline();
 	}
-	mode = PIA1.b.port_output;
+	mode = PIA1.b.out_source & PIA1.b.out_sink;
 
 	colourburst_enabled = VDG_COLOURBURST;
 

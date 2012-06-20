@@ -39,10 +39,10 @@ void joystick_shutdown(void) {
 void joystick_update(void) {
 	int axis = ((PIA0.b.control_register & 0x08) >> 2)
 		| ((PIA0.a.control_register & 0x08) >> 3);
-	int dac_value = PIA1.a.port_output & 0xfc;
+	int dac_value = PIA1.a.out_sink & 0xfc;
 	if (joystick_axis[axis] >= dac_value) {
-		PIA0.a.port_input |= 0x80;
+		PIA0.a.in_sink |= 0x80;
 	} else {
-		PIA0.a.port_input &= 0x7f;
+		PIA0.a.in_sink &= 0x7f;
 	}
 }

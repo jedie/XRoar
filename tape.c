@@ -408,7 +408,7 @@ void tape_update_motor(void) {
 void tape_update_output(void) {
 	if (!motor || !tape_output || tape_rewrite)
 		return;
-	uint8_t sample = PIA1.a.port_output & 0xfc;
+	uint8_t sample = PIA1.a.out_sink & 0xfc;
 	int length = current_cycle - tape_output->last_write_cycle;
 	tape_output->module->sample_out(tape_output, sample, length);
 	tape_output->last_write_cycle = current_cycle;
@@ -425,11 +425,11 @@ static void waggle_bit(void) {
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
-		PIA1.a.port_input |= 0x01;
+		PIA1.a.in_sink |= (1<<0);
 		tape_audio = 0;
 		break;
 	case 1:
-		PIA1.a.port_input &= 0xfe;
+		PIA1.a.in_sink &= ~(1<<0);
 		tape_audio = 0x0f;
 		break;
 	}
@@ -461,9 +461,9 @@ static int pulse_skip(void) {
 			waggle_event.at_cycle = current_cycle + in_pulse_width;
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 			if (in_pulse) {
-				PIA1.a.port_input &= 0xfe;
+				PIA1.a.in_sink &= ~(1<<0);
 			} else {
-				PIA1.a.port_input |= 0x01;
+				PIA1.a.in_sink |= (1<<0);
 			}
 			return in_pulse;
 		}

@@ -196,14 +196,14 @@ void sound_update(void) {
 	int value;
 	if (!(PIA1.b.control_register & 0x08)) {
 		/* Single-bit sound */
-		value = (PIA1.b.port_output & 0x02) ? 0x3f : 0;
+		value = (PIA_VALUE_B(PIA1) & (1<<1)) ? 0x3f : 0;
 	} else {
-		int source = ((PIA0.b.control_register & 0x08) >> 2)
-		             | ((PIA0.a.control_register & 0x08) >> 3);
+		int source = ((PIA0.b.control_register & (1<<3)) >> 2)
+		             | ((PIA0.a.control_register & (1<<3)) >> 3);
 		switch (source) {
 			case 0:
 				/* DAC output */
-				value = (PIA1.a.port_output & 0xfc) >> 1;
+				value = (PIA_VALUE_A(PIA1) & 0xfc) >> 1;
 				break;
 			case 1:
 				/* Tape input */
@@ -216,10 +216,13 @@ void sound_update(void) {
 		}
 	}
 #ifndef FAST_SOUND
-	if (value >= 0x4c)
-		PIA1.b.port_input |= 0x02;
-	else
-		PIA1.b.port_input &= 0xfd;
+	if (value >= 0x4c) {
+		PIA1.b.in_source |= (1<<1);
+		PIA1.b.in_sink |= (1<<1);
+	} else {
+		PIA1.b.in_source &= ~(1<<1);
+		PIA1.b.in_sink &= ~(1<<1);
+	}
 #endif
 
 

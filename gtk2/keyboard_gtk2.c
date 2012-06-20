@@ -253,8 +253,6 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		KEYBOARD_PRESS(keyval);
 	}
 press_update:
-	keyboard_column_update();
-	keyboard_row_update();
 	return FALSE;
 }
 
@@ -308,7 +306,5 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		KEYBOARD_RELEASE(keyval);
 	}
 release_update:
-	keyboard_column_update();
-	keyboard_row_update();
 	return FALSE;
 }

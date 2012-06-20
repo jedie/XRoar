@@ -23,6 +23,8 @@
 /* Input config commands */
 #define INPUT_SWAP_JOYSTICKS (10)
 
+extern unsigned int input_firebutton_mask;
+
 void input_control_press(int command, unsigned int arg);
 void input_control_release(int command, unsigned int arg);
 
