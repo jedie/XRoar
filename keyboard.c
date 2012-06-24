@@ -121,7 +121,8 @@ void keyboard_update(void) {
 	unsigned int row_out = PIA0.a.out_sink;
 	unsigned int col_out = PIA0.b.out_source & PIA0.b.out_sink;
 	unsigned int row_in = ~0, col_in = ~0;
-	unsigned int i;
+	unsigned int old, i;
+
 	/* Pull low any directly connected rows & columns */
 	for (i = 0; i < 8; i++) {
 		if (!(col_out & (1 << i))) {
@@ -133,6 +134,30 @@ void keyboard_update(void) {
 			col_in &= keyboard_row[i];
 		}
 	}
+	/* Ghosting: pull low column inputs that share any pulled low rows, and
+	 * merge that column's direct row connections.  Repeat until no change
+	 * in the row mask. */
+	do {
+		old = row_in;
+		for (i = 0; i < 8; i++) {
+			if (~row_in & ~keyboard_column[i]) {
+				col_in &= ~(1 << i);
+				row_in &= keyboard_column[i];
+			}
+		}
+	} while (old != row_in);
+	/* Likewise the other way around. */
+	do {
+		old = col_in;
+		for (i = 0; i < 7; i++) {
+			if (~col_in & ~keyboard_row[i]) {
+				row_in &= ~(1 << i);
+				col_in &= keyboard_row[i];
+			}
+		}
+	} while (old != col_in);
+
+	/* Update inputs */
 	PIA0.a.in_sink = (PIA0.a.in_sink & 0x80) | (row_in & 0x7f);
 	PIA0.b.in_sink = col_in;
 }
@@ -147,7 +172,7 @@ void keyboard_unicode_press(unsigned int unicode) {
 		} else {
 			KEYBOARD_PRESS(0);
 			KEYBOARD_PRESS(12);
-			KEYBOARD_PRESS('/');
+			KEYBOARD_PRESS(',');
 		}
 	} else if (unicode == 163) {
 		/* Pound sign */
@@ -174,7 +199,7 @@ void keyboard_unicode_release(unsigned int unicode) {
 		} else {
 			KEYBOARD_RELEASE(0);
 			KEYBOARD_RELEASE(12);
-			KEYBOARD_RELEASE('/');
+			KEYBOARD_RELEASE(',');
 		}
 	} else if (unicode == 163) {
 		/* Pound sign */
