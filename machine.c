@@ -280,19 +280,19 @@ void machine_config_complete(struct machine_config *mc) {
 /* ---------------------------------------------------------------------- */
 
 static void pia0a_data_preread(void) {
-	keyboard_column_update();
+	keyboard_update();
 	PIA0.a.in_sink &= input_firebutton_mask;
 }
 
 #define pia0a_data_postwrite NULL
 #define pia0a_control_postwrite sound_update
 
-#define pia0b_data_preread keyboard_row_update
+#define pia0b_data_preread keyboard_update
 #define pia0b_data_postwrite NULL
 #define pia0b_control_postwrite sound_update
 
 static void pia0b_data_preread_coco64k(void) {
-	keyboard_row_update();
+	keyboard_update();
 	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
 	if (PIA_VALUE_B(PIA1) & (1<<2)) {
 		PIA0.b.in_source |= (1<<6);
@@ -304,7 +304,7 @@ static void pia0b_data_preread_coco64k(void) {
 }
 
 static void pia1b_data_preread_coco64k(void) {
-	keyboard_column_update();
+	keyboard_update();
 	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
 	if (PIA_VALUE_B(PIA0) & (1<<6)) {
 		PIA1.b.in_source |= (1<<2);

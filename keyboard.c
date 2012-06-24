@@ -117,26 +117,24 @@ void keyboard_set_keymap(int map) {
 	}
 }
 
-void keyboard_column_update(void) {
-	unsigned int mask = PIA0.b.out_source & PIA0.b.out_sink;
-	unsigned int i, row = 0x7f;
+void keyboard_update(void) {
+	unsigned int row_out = PIA0.a.out_sink;
+	unsigned int col_out = PIA0.b.out_source & PIA0.b.out_sink;
+	unsigned int row_in = ~0, col_in = ~0;
+	unsigned int i;
+	/* Pull low any directly connected rows & columns */
 	for (i = 0; i < 8; i++) {
-		if (!(mask & (1 << i))) {
-			row &= keyboard_column[i];
+		if (!(col_out & (1 << i))) {
+			row_in &= keyboard_column[i];
 		}
 	}
-	PIA0.a.in_sink = (PIA0.a.in_sink & 0x80) | row;
-}
-
-void keyboard_row_update(void) {
-	unsigned int mask = PIA0.a.out_sink;
-	unsigned int i, col = 0xff;
 	for (i = 0; i < 7; i++) {
-		if (!(mask & (1 << i))) {
-			col &= keyboard_row[i];
+		if (!(row_out & (1 << i))) {
+			col_in &= keyboard_row[i];
 		}
 	}
-	PIA0.b.in_sink = col;
+	PIA0.a.in_sink = (PIA0.a.in_sink & 0x80) | (row_in & 0x7f);
+	PIA0.b.in_sink = col_in;
 }
 
 void keyboard_unicode_press(unsigned int unicode) {
@@ -163,8 +161,7 @@ void keyboard_unicode_press(unsigned int unicode) {
 			KEYBOARD_RELEASE(0);
 		KEYBOARD_PRESS(code & 0x7f);
 	}
-	keyboard_column_update();
-	keyboard_row_update();
+	keyboard_update();
 }
 
 void keyboard_unicode_release(unsigned int unicode) {
@@ -189,8 +186,7 @@ void keyboard_unicode_release(unsigned int unicode) {
 			KEYBOARD_RELEASE(0);
 		KEYBOARD_RELEASE(code & 0x7f);
 	}
-	keyboard_column_update();
-	keyboard_row_update();
+	keyboard_update();
 }
 
 static GSList *basic_command_list = NULL;

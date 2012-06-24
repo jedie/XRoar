@@ -36,8 +36,7 @@ extern unsigned int keyboard_row[9];
 void keyboard_init(void);
 void keyboard_set_keymap(int map);
 
-void keyboard_column_update(void);
-void keyboard_row_update(void);
+void keyboard_update(void);
 void keyboard_unicode_press(unsigned int unicode);
 void keyboard_unicode_release(unsigned int unicode);
 void keyboard_queue_basic(const char *s);
