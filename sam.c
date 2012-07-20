@@ -65,8 +65,8 @@ static _Bool map_type_1;
 static uint_fast16_t sam_register;
 
 /* MPU rate */
-static int sam_ram_cycles;
-static int sam_rom_cycles;
+static _Bool mpu_rate_fast;
+static _Bool mpu_rate_ad;
 
 static void update_from_register(void);
 
@@ -91,12 +91,13 @@ void sam_reset(void) {
 
 _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 	_Bool is_ram_access;
+	_Bool fast_cycle;
 	if (A < 0x8000 || (map_type_1 && A < 0xff00)) {
 		*Z = RAM_TRANSLATE(A);
-		*ncycles = sam_ram_cycles;
 		is_ram_access = 1;
+		fast_cycle = mpu_rate_fast;
 	} else {
-		*ncycles = sam_rom_cycles;
+		fast_cycle = mpu_rate_fast || mpu_rate_ad;
 		is_ram_access = 0;
 	}
 	if (A < 0x8000) {
@@ -111,7 +112,7 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 		*S = 3;
 	} else if (A < 0xff20) {
 		*S = 4;
-		*ncycles = sam_ram_cycles;
+		fast_cycle = mpu_rate_fast;
 	} else if (A < 0xff40) {
 		*S = 5;
 	} else if (A < 0xff60) {
@@ -130,6 +131,7 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 	} else {
 		*S = 2;
 	}
+	*ncycles = fast_cycle ? SAM_CPU_FAST_DIVISOR : SAM_CPU_SLOW_DIVISOR;
 	return is_ram_access;
 }
 
@@ -137,7 +139,9 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
  * busy cycles. */
 
 int sam_nvma_cycles(int c) {
-	return c * sam_ram_cycles;
+	_Bool fast_cycle = mpu_rate_fast || mpu_rate_ad;
+	int n = c * (fast_cycle ? SAM_CPU_FAST_DIVISOR : SAM_CPU_SLOW_DIVISOR);
+	return n;
 }
 
 static void vdg_address_add(int n) {
@@ -180,7 +184,7 @@ void sam_vdg_fsync(void) {
 
 int sam_vdg_bytes(int nbytes, uint16_t *V, _Bool *valid) {
 	uint16_t b3_0 = vdg_address & 0xf;
-	_Bool is_valid = (sam_ram_cycles != SAM_CPU_FAST_DIVISOR);
+	_Bool is_valid = !mpu_rate_fast;
 	if (valid) *valid = is_valid;
 	if (is_valid && V)
 		*V = VRAM_TRANSLATE(vdg_address);
@@ -229,26 +233,7 @@ static void update_from_register(void) {
 			break;
 	}
 
-	int mpu_rate = (sam_register >> 11) & 3;
 	map_type_1 = ((sam_register & 0x8000) != 0);
-	if (map_type_1 && mpu_rate == 1) {
-		/* Disallow address-dependent MPU rate in map type 1 */
-		mpu_rate = 0;
-	}
-	switch (mpu_rate) {
-		default:
-		case 0: /* SLOW */
-			sam_ram_cycles = SAM_CPU_SLOW_DIVISOR;
-			sam_rom_cycles = SAM_CPU_SLOW_DIVISOR;
-			break;
-		case 1: /* ADDRESS DEPENDENT */
-			sam_ram_cycles = SAM_CPU_SLOW_DIVISOR;
-			sam_rom_cycles = SAM_CPU_FAST_DIVISOR;
-			break;
-		case 2:
-		case 3: /* FAST */
-			sam_ram_cycles = SAM_CPU_FAST_DIVISOR;
-			sam_rom_cycles = SAM_CPU_FAST_DIVISOR;
-			break;
-	}
+	mpu_rate_fast = sam_register & 0x1000;
+	mpu_rate_ad = !map_type_1 && (sam_register & 0x800);
 }
