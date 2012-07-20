@@ -67,6 +67,7 @@ static uint_fast16_t sam_register;
 /* MPU rate */
 static _Bool mpu_rate_fast;
 static _Bool mpu_rate_ad;
+static _Bool running_fast = 0;
 
 static void update_from_register(void);
 
@@ -132,6 +133,13 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 		*S = 2;
 	}
 	*ncycles = fast_cycle ? SAM_CPU_FAST_DIVISOR : SAM_CPU_SLOW_DIVISOR;
+	if (fast_cycle != running_fast) {
+		if (fast_cycle)
+			*ncycles += 2 * (SAM_CPU_FAST_DIVISOR >> 1);
+		else
+			*ncycles += (SAM_CPU_FAST_DIVISOR >> 1);
+		running_fast = fast_cycle;
+	}
 	return is_ram_access;
 }
 
@@ -141,6 +149,13 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 int sam_nvma_cycles(int c) {
 	_Bool fast_cycle = mpu_rate_fast || mpu_rate_ad;
 	int n = c * (fast_cycle ? SAM_CPU_FAST_DIVISOR : SAM_CPU_SLOW_DIVISOR);
+	if (fast_cycle != running_fast) {
+		if (fast_cycle)
+			n += 2 * (SAM_CPU_FAST_DIVISOR >> 1);
+		else
+			n += (SAM_CPU_FAST_DIVISOR >> 1);
+		running_fast = fast_cycle;
+	}
 	return n;
 }
 
