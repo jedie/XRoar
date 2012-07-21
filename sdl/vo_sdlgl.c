@@ -29,6 +29,7 @@
 #include "logging.h"
 #include "module.h"
 #include "vdg.h"
+#include "vo_opengl.h"
 #include "xroar.h"
 #ifdef WINDOWS32
 #include "windows32/common_windows32.h"
@@ -36,48 +37,22 @@
 
 static int init(void);
 static void shutdown(void);
-static void alloc_colours(void);
 static void vsync(void);
-static void render_scanline(uint8_t *scanline_data);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(_Bool fullscreen);
 
 VideoModule video_sdlgl_module = {
 	.common = { .name = "sdlgl", .description = "SDL OpenGL video",
 	            .init = init, .shutdown = shutdown },
-	.update_palette = alloc_colours,
+	.update_palette = vo_opengl_alloc_colours,
 	.vsync = vsync,
-	.render_scanline = render_scanline,
+	.render_scanline = vo_opengl_render_scanline,
 	.resize = resize, .set_fullscreen = set_fullscreen
 };
 
-typedef uint16_t Pixel;
-#define MAP_565(r,g,b) ( (((r) & 0xf8) << 8) | (((g) & 0xfc) << 3) | (((b) & 0xf8) >> 3) )
-#define MAP_332(r,g,b) ( ((r) & 0xe0) | (((g) & 0xe0) >> 3) | (((b) & 0xc0) >> 6) )
-#define MAPCOLOUR(r,g,b) MAP_565(r,g,b)
-#define VIDEO_SCREENBASE (screen_tex)
-#define XSTEP 1
-#define NEXTLINE 0
-#define VIDEO_TOPLEFT VIDEO_SCREENBASE
-#define VIDEO_VIEWPORT_YOFFSET (0)
-#define LOCK_SURFACE
-#define UNLOCK_SURFACE
-#define VIDEO_MODULE_NAME video_sdlgl_module
-
 static SDL_Surface *screen;
-static Pixel *screen_tex;
 static unsigned int screen_width, screen_height;
 static unsigned int window_width, window_height;
-static GLuint texnum = 0;
-static GLint xoffset, yoffset;
-
-static enum {
-	FILTER_AUTO,
-	FILTER_NEAREST,
-	FILTER_LINEAR,
-} filter;
-
-#include "vo_generic_ops.c"
 
 static int init(void) {
 	const SDL_VideoInfo *video_info;
@@ -97,40 +72,22 @@ static int init(void) {
 		return 1;
 	}
 
-	switch (xroar_opt_gl_filter) {
-	case XROAR_GL_FILTER_NEAREST:
-		filter = FILTER_NEAREST;
-		break;
-	case XROAR_GL_FILTER_LINEAR:
-		filter = FILTER_LINEAR;
-		break;
-	default:
-		filter = FILTER_AUTO;
-		break;
-	}
-
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE,   5);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,  5);
 	SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 16);
 
-	screen_tex = malloc(320 * 240 * sizeof(Pixel));
-	if (screen_tex == NULL) {
-		LOG_ERROR("Failed to allocate memory for screen texture\n");
-		return 1;
-	}
+	vo_opengl_init();
 
 	video_info = SDL_GetVideoInfo();
 	screen_width = video_info->current_w;
 	screen_height = video_info->current_h;
 	window_width = 640;
 	window_height = 480;
-	xoffset = yoffset = 0;
 
 	if (set_fullscreen(xroar_opt_fullscreen))
 		return 1;
 
-	alloc_colours();
 #ifdef WINDOWS32
 	{
 		SDL_version sdlver;
@@ -147,8 +104,7 @@ static int init(void) {
 
 static void shutdown(void) {
 	set_fullscreen(0);
-	glDeleteTextures(1, &texnum);
-	free(screen_tex);
+	vo_opengl_shutdown();
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
@@ -161,7 +117,6 @@ static void resize(unsigned int w, unsigned int h) {
 
 static int set_fullscreen(_Bool fullscreen) {
 	unsigned int want_width, want_height;
-	unsigned int width, height;
 
 	if (fullscreen) {
 		want_width = screen_width;
@@ -184,73 +139,12 @@ static int set_fullscreen(_Bool fullscreen) {
 		SDL_ShowCursor(SDL_ENABLE);
 	video_sdlgl_module.is_fullscreen = fullscreen;
 
-	if (((float)screen->w/(float)screen->h)>(4.0/3.0)) {
-		height = screen->h;
-		width = ((float)height/3.0)*4;
-		xoffset = (screen->w - width) / 2;
-		yoffset = 0;
-	} else {
-		width = screen->w;
-		height = ((float)width/4.0)*3;
-		xoffset = 0;
-		yoffset = (screen->h - height)/2;
-	}
-
-	/* Configure OpenGL */
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_TEXTURE_2D);
-
-	glViewport(0, 0, screen->w, screen->h);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, screen->w, screen->h , 0, -1.0, 1.0);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClearDepth(1.0f);
-
-	glDeleteTextures(1, &texnum);
-	glGenTextures(1, &texnum);
-	glBindTexture(GL_TEXTURE_2D, texnum);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 512, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	if (filter == FILTER_NEAREST || (filter == FILTER_AUTO && (width % 320) == 0 && (height % 240) == 0)) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	} else {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	}
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	/* There must be a better way of just clearing the texture? */
-	memset(screen_tex, 0, 512 * sizeof(Pixel));
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 320,   0,   1, 256,
-			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
-	glTexSubImage2D(GL_TEXTURE_2D, 0,   0, 240, 512,   1,
-			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glColor4f(1.0, 1.0, 1.0, 1.0);
+	vo_opengl_set_window_size(want_width, want_height);
 
 	return 0;
 }
 
 static void vsync(void) {
-	/* Draw main window */
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-			320, 240, GL_RGB,
-			GL_UNSIGNED_SHORT_5_6_5, screen_tex);
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 0.0);
-	glVertex3i(xoffset, yoffset, 0);
-	glTexCoord2f(0.0, 0.9375);
-	glVertex3i(xoffset, screen->h - yoffset, 0);
-	glTexCoord2f(0.625, 0.9375);
-	glVertex3i(screen->w - xoffset, screen->h - yoffset, 0);
-	glTexCoord2f(0.625, 0.0);
-	glVertex3i(screen->w - xoffset, yoffset, 0);
-	glEnd();
+	vo_opengl_vsync();
 	SDL_GL_SwapBuffers();
-	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 }

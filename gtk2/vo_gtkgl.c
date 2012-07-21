@@ -22,67 +22,35 @@
 #include <string.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
-#include <GL/gl.h>
 
 #include "types.h"
 
 #include "logging.h"
 #include "module.h"
 #include "vdg.h"
+#include "vo_opengl.h"
 #include "xroar.h"
-
-#ifdef WINDOWS32
-#include "windows32/common_windows32.h"
-#include <GL/glext.h>
-#endif
 
 static int init(void);
 static void _shutdown(void);
-static void alloc_colours(void);
 static void vsync(void);
-static void render_scanline(uint8_t *scanline_data);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(_Bool fullscreen);
 
 VideoModule video_gtkgl_module = {
 	.common = { .name = "gtkgl", .description = "GtkGLExt video",
 	            .init = init, .shutdown = _shutdown },
-	.update_palette = alloc_colours,
+	.update_palette = vo_opengl_alloc_colours,
 	.vsync = vsync,
-	.render_scanline = render_scanline,
+	.render_scanline = vo_opengl_render_scanline,
 	.resize = resize, .set_fullscreen = set_fullscreen
 };
 
-
-typedef uint16_t Pixel;
-#define MAP_565(r,g,b) ( (((r) & 0xf8) << 8) | (((g) & 0xfc) << 3) | (((b) & 0xf8) >> 3) )
-#define MAP_332(r,g,b) ( ((r) & 0xe0) | (((g) & 0xe0) >> 3) | (((b) & 0xc0) >> 6) )
-#define MAPCOLOUR(r,g,b) MAP_565(r,g,b)
-#define VIDEO_SCREENBASE (screen_tex)
-#define XSTEP 1
-#define NEXTLINE 0
-#define VIDEO_TOPLEFT VIDEO_SCREENBASE
-#define VIDEO_VIEWPORT_YOFFSET (0)
-#define LOCK_SURFACE
-#define UNLOCK_SURFACE
-#define VIDEO_MODULE_NAME video_gtkgl_module
 
 extern GtkWidget *gtk2_top_window;
 extern GtkWidget *gtk2_menubar;
 extern GtkWidget *gtk2_drawing_area;
 static gboolean configure(GtkWidget *, GdkEventConfigure *, gpointer);
-
-static Pixel *screen_tex;
-static GLuint texnum = 0;
-static GLint xoffset, yoffset;
-
-enum {
-	FILTER_AUTO,
-	FILTER_NEAREST,
-	FILTER_LINEAR,
-} filter;
-
-#include "vo_generic_ops.c"
 
 static int init(void) {
 	gtk_gl_init(NULL, NULL);
@@ -91,26 +59,7 @@ static int init(void) {
 		LOG_ERROR("OpenGL not available\n");
 		return 1;
 	}
-
-	switch (xroar_opt_gl_filter) {
-	case XROAR_GL_FILTER_NEAREST:
-		filter = FILTER_NEAREST;
-		break;
-	case XROAR_GL_FILTER_LINEAR:
-		filter = FILTER_LINEAR;
-		break;
-	default:
-		filter = FILTER_AUTO;
-		break;
-	}
-
-	screen_tex = malloc(320 * 240 * sizeof(Pixel));
-	if (screen_tex == NULL) {
-		LOG_ERROR("Failed to allocate memory for screen texture\n");
-		return 1;
-	}
-
-	xoffset = yoffset = 0;
+	vo_opengl_init();
 
 	/* Configure drawing_area widget */
 	gtk_widget_set_size_request(gtk2_drawing_area, 640, 480);
@@ -135,7 +84,6 @@ static int init(void) {
 		xroar_fullscreen_changed_cb(xroar_opt_fullscreen);
 	}
 
-	alloc_colours();
 	vsync();
 
 	return 0;
@@ -143,8 +91,7 @@ static int init(void) {
 
 static void _shutdown(void) {
 	set_fullscreen(0);
-	glDeleteTextures(1, &texnum);
-	free(screen_tex);
+	vo_opengl_shutdown();
 }
 
 static void resize(unsigned int w, unsigned int h) {
@@ -186,7 +133,6 @@ static int set_fullscreen(_Bool fullscreen) {
 static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer data) {
 	(void)event;
 	(void)data;
-	unsigned int width, height;
 
 	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
@@ -195,56 +141,7 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer data
 		g_assert_not_reached();
 	}
 
-	if (((float)da->allocation.width/(float)da->allocation.height)>(4.0/3.0)) {
-		height = da->allocation.height;
-		video_gtkgl_module.scale = (float)height / 240.;
-		width = ((float)height/3.0)*4;
-		xoffset = (da->allocation.width - width) / 2;
-		yoffset = 0;
-	} else {
-		width = da->allocation.width;
-		video_gtkgl_module.scale = (float)width / 320.;
-		height = ((float)width/4.0)*3;
-		xoffset = 0;
-		yoffset = (da->allocation.height - height)/2;
-	}
-
-	/* Configure OpenGL */
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_TEXTURE_2D);
-
-	glViewport(0, 0, da->allocation.width, da->allocation.height);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, da->allocation.width, da->allocation.height , 0, -1.0, 1.0);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClearDepth(1.0f);
-
-	glDeleteTextures(1, &texnum);
-	glGenTextures(1, &texnum);
-	glBindTexture(GL_TEXTURE_2D, texnum);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 512, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	if (filter == FILTER_NEAREST || (filter == FILTER_AUTO && (width % 320) == 0 && (height % 240) == 0)) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	} else {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	}
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	/* There must be a better way of just clearing the texture? */
-	memset(screen_tex, 0, 512 * sizeof(Pixel));
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 320,   0,   1, 256,
-			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
-	glTexSubImage2D(GL_TEXTURE_2D, 0,   0, 240, 512,   1,
-			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glColor4f(1.0, 1.0, 1.0, 1.0);
+	vo_opengl_set_window_size(da->allocation.width, da->allocation.height);
 
 	gdk_gl_drawable_gl_end(gldrawable);
 
@@ -259,23 +156,8 @@ static void vsync(void) {
 		g_assert_not_reached ();
 	}
 
-	/* Draw main window */
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-			320, 240, GL_RGB,
-			GL_UNSIGNED_SHORT_5_6_5, screen_tex);
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 0.0);
-	glVertex3i(xoffset, yoffset, 0);
-	glTexCoord2f(0.0, 0.9375);
-	glVertex3i(xoffset, gtk2_drawing_area->allocation.height - yoffset, 0);
-	glTexCoord2f(0.625, 0.9375);
-	glVertex3i(gtk2_drawing_area->allocation.width - xoffset, gtk2_drawing_area->allocation.height - yoffset, 0);
-	glTexCoord2f(0.625, 0.0);
-	glVertex3i(gtk2_drawing_area->allocation.width - xoffset, yoffset, 0);
-	glEnd();
+	vo_opengl_vsync();
 
 	gdk_gl_drawable_swap_buffers(gldrawable);
 	gdk_gl_drawable_gl_end(gldrawable);
-
-	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 }

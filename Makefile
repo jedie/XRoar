@@ -138,6 +138,14 @@ vo_gtkgl.o: vdg_bitmaps.h
 $(opt_gtkgl_OBJS): | gtk2
 endif
 
+opt_opengl_OBJS = vo_opengl.o
+CLEAN += $(opt_opengl_OBJS)
+ifeq ($(opt_opengl),yes)
+	xroar_opt_OBJS += $(opt_opengl_OBJS)
+	xroar_opt_CFLAGS += $(opt_opengl_CFLAGS)
+	xroar_opt_LDFLAGS += $(opt_opengl_LDFLAGS)
+endif
+
 opt_sdl_OBJS = sdl/ui_sdl.o sdl/vo_sdl.o sdl/vo_sdlyuv.o sdl/ao_sdl.o \
 		sdl/keyboard_sdl.o sdl/joystick_sdl.o
 CLEAN += $(opt_sdl_OBJS)

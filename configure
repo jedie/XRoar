@@ -16,7 +16,7 @@ unset target_sdl_config build_sdl_config
 unset _have_video_driver
 unset _have_audio_driver
 
-all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
+all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 opengl gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
 unset $all_opt
 
 _curses=no
@@ -696,6 +696,7 @@ fi
 if test "$_gtkgl" = "yes"; then
 	_gtkgl_def="#define HAVE_GTKGL"
 	_have_video_driver=yes
+	_opengl=yes
 else
 	_gtkgl_def="#undef HAVE_GTKGL"
 fi
@@ -1016,6 +1017,7 @@ EOF
 fi
 if test "$_sdlgl" = "yes"; then
 	_sdlgl_def="#define HAVE_SDLGL"
+	_opengl=yes
 else
 	_sdlgl_def="#undef HAVE_SDLGL"
 fi
