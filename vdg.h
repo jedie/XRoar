@@ -8,7 +8,7 @@
 
 #include "types.h"
 
-#define VDG_CYCLES(c) ((c) * 4)
+#define VDG_CYCLES(c) ((int)((c) * 4))
 
 #define VDG_tFP   VDG_CYCLES(8.5)   /* 7.0 */
 #define VDG_tWHS  VDG_CYCLES(16.0)  /* 17.5 */
@@ -51,10 +51,6 @@ enum vdg_colour {
 	VDG_WHITE, VDG_CYAN, VDG_MAGENTA, VDG_ORANGE,
 	VDG_BLACK, VDG_DARK_GREEN, VDG_DARK_ORANGE, VDG_BRIGHT_ORANGE
 };
-
-/* Flags */
-
-#define VDG_COLOURBURST (1 << 0)
 
 /* External handler to fetch data for display.  First arg is number of bytes,
  * second a pointer to a buffer to receive them. */
