@@ -71,6 +71,7 @@ static enum {
 	RAM_ORGANISATION_64K
 } ram_organisation = RAM_ORGANISATION_64K;
 static uint16_t ram_mask = 0xffff;
+static _Bool have_acia = 0;
 
 static struct {
 	const char *bas;
@@ -464,6 +465,7 @@ void machine_configure(struct machine_config *mc) {
 		PIA1.b.in_source |= (1<<0);
 	}
 	if (IS_DRAGON64) {
+		have_acia = 1;
 		PIA1.b.in_source |= (1<<2);
 	} else if (IS_COCO && machine_ram_size <= 0x1000) {
 		/* 4K CoCo ties PB2 of PIA1 low */
@@ -573,12 +575,24 @@ static uint8_t read_cycle(uint16_t A) {
 			} else {
 				if ((A & 4) == 0) {
 					read_D = mc6821_read(&PIA0, A & 3);
+				} else {
+					if (have_acia) {
+						/* XXX Dummy ACIA reads */
+						switch (A & 3) {
+						default:
+						case 0:  /* Receive Data */
+						case 3:  /* Control */
+							read_D = 0x00;
+							break;
+						case 2:  /* Command */
+							read_D = 0x02;
+							break;
+						case 1:  /* Status */
+							read_D = 0x10;
+							break;
+						}
+					}
 				}
-				/* Not yet implemented:
-				if ((addr & 7) == 4) return serial_stuff;
-				if ((addr & 7) == 5) return serial_stuff;
-				if ((addr & 7) == 6) return serial_stuff;
-				if ((addr & 7) == 7) return serial_stuff; */
 			}
 			break;
 		case 5:
