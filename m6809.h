@@ -47,7 +47,7 @@ void m6809_reset(void);
 void m6809_run(void);
 void m6809_get_state(M6809State *state);
 void m6809_set_state(M6809State *state);
-void m6809_jump(unsigned int pc);
+void m6809_jump(uint16_t pc);
 
 #define m6809_halt_set() do { m6809_halt = 1; } while (0)
 #define m6809_halt_clear() do { m6809_halt = 0; } while (0)

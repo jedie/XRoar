@@ -229,59 +229,234 @@ void (*m6809_interrupt_hook)(uint16_t vector) = NULL;
  *   tmp - temporary result
  */
 
-#define OP_NEG(fb) { unsigned int a, d, tmp; fb(a,d); tmp = ~(d) + 1; CLR_NZVC; SET_NZVC8(0, d, tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
-#define OP_COM(fb) { unsigned int a, d; fb(a,d); d = ~(d); CLR_NZV; SET_NZ8(d); reg_cc |= CC_C; TAKEN_CYCLES(1); store_byte(a,d); }
-#define OP_NEGCOM(fb) { unsigned int a, d, tmp; fb(a,d); tmp = ~(d) + (~reg_cc & 1); CLR_NZVC; SET_NZVC8(0, d, tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
-#define OP_LSR(fb) { unsigned int a, d; fb(a,d); CLR_NZC; reg_cc |= (d & CC_C); d &= 0xff; d >>= 1; SET_Z(d); TAKEN_CYCLES(1); store_byte(a,d); }
-#define OP_ROR(fb) { unsigned int a, d, tmp; fb(a,d); tmp = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= d & CC_C; tmp |= (d & 0xff) >> 1; SET_NZ8(tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
-#define OP_ASR(fb) { unsigned int a, d; CLR_NZC; fb(a,d); reg_cc |= (d & CC_C); d = (d & 0x80) | ((d & 0xff) >> 1); SET_NZ8(d); TAKEN_CYCLES(1); store_byte(a,d); }
-#define OP_ASL(fb) { unsigned int a, d, tmp; fb(a,d); tmp = d << 1; CLR_NZVC; SET_NZVC8(d, d, tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
-#define OP_ROL(fb) { unsigned int a, d, tmp; fb(a,d); tmp = (d<<1)|(reg_cc & 1); CLR_NZVC; SET_NZVC8(d, d, tmp); TAKEN_CYCLES(1); store_byte(a,tmp); }
-#define OP_DEC(fb) { unsigned int a, d; fb(a,d); d--; d &= 0xff; CLR_NZV; SET_NZ8(d); if (d == 0x7f) reg_cc |= CC_V; TAKEN_CYCLES(1); store_byte(a,d); }
-#define OP_INC(fb) { unsigned int a, d; fb(a,d); d++; d &= 0xff; CLR_NZV; SET_NZ8(d); if (d == 0x80) reg_cc |= CC_V; TAKEN_CYCLES(1); store_byte(a,d); }
-#define OP_TST(fb) { unsigned int a, d; fb(a,d); CLR_NZV; SET_NZ8(d); TAKEN_CYCLES(2); }
+static inline uint8_t op_neg(uint8_t in) {
+	unsigned int out = ~in + 1;
+	CLR_NZVC;
+	SET_NZVC8(0, in, out);
+	return out;
+}
+
+static inline uint8_t op_com(uint8_t in) {
+	unsigned int out = ~in;
+	CLR_NZV;
+	SET_NZ8(out);
+	reg_cc |= CC_C;
+	return out;
+}
+
+static inline uint8_t op_negcom(uint8_t in) {
+	unsigned int out = ~in + (~reg_cc & 1);
+	CLR_NZVC;
+	SET_NZVC8(0, in, out);
+	return out;
+}
+
+static inline uint8_t op_lsr(uint8_t in) {
+	unsigned int out = in >> 1;
+	CLR_NZC;
+	reg_cc |= (in & 1);
+	SET_Z(out);
+	return out;
+}
+
+static inline uint8_t op_ror(uint8_t in) {
+	unsigned int out = (in >> 1) | ((reg_cc & 1) << 7);
+	CLR_NZC;
+	reg_cc |= (in & 1);
+	SET_NZ8(out);
+	return out;
+}
+
+static inline uint8_t op_asr(uint8_t in) {
+	unsigned int out = (in >> 1) | (in & 0x80);
+	CLR_NZC;
+	reg_cc |= (in & 1);
+	SET_NZ8(out);
+	return out;
+}
+
+static inline uint8_t op_asl(uint8_t in) {
+	unsigned int out = in << 1;
+	CLR_NZVC;
+	SET_NZVC8(in, in, out);
+	return out;
+}
+
+static inline uint8_t op_rol(uint8_t in) {
+	unsigned int out = (in << 1) | (reg_cc & 1);
+	CLR_NZVC;
+	SET_NZVC8(in, in, out);
+	return out;
+}
+
+static inline uint8_t op_dec(uint8_t in) {
+	unsigned int out = in - 1;
+	CLR_NZV;
+	SET_NZ8(out);
+	if (out == 0x7f) reg_cc |= CC_V;
+	return out;
+}
+
+static inline uint8_t op_inc(uint8_t in) {
+	unsigned int out = in + 1;
+	CLR_NZV;
+	SET_NZ8(out);
+	if (out == 0x80) reg_cc |= CC_V;
+	return out;
+}
+
+static inline uint8_t op_tst(uint8_t in) {
+	CLR_NZV;
+	SET_NZ8(in);
+	return in;
+}
+
+static inline uint8_t op_clr(uint8_t in) {
+	(void)in;
+	CLR_NVC;
+	reg_cc |= CC_Z;
+	return 0;
+}
+
+#define OP_NEG(fb) { unsigned int a, d; fb(a,d); d = op_neg(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_COM(fb) { unsigned int a, d; fb(a,d); d = op_com(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_NEGCOM(fb) { unsigned int a, d; fb(a,d); d = op_negcom(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_LSR(fb) { unsigned int a, d; fb(a,d); d = op_lsr(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_ROR(fb) { unsigned int a, d; fb(a,d); d = op_ror(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_ASR(fb) { unsigned int a, d; fb(a,d); d = op_asr(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_ASL(fb) { unsigned int a, d; fb(a,d); d = op_asl(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_ROL(fb) { unsigned int a, d; fb(a,d); d = op_rol(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_DEC(fb) { unsigned int a, d; fb(a,d); d = op_dec(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_INC(fb) { unsigned int a, d; fb(a,d); d = op_inc(d); TAKEN_CYCLES(1); store_byte(a,d); }
+#define OP_TST(fb) { unsigned int a, d; fb(a,d); d = op_tst(d); TAKEN_CYCLES(2); }
 #define OP_JMP(ea) { unsigned int a; ea(a); reg_pc = a; }
-#define OP_CLR(fb) { unsigned int a, d; fb(a,d); (void)d; TAKEN_CYCLES(1); store_byte(a,0); CLR_NVC; reg_cc |= CC_Z; }
+#define OP_CLR(fb) { unsigned int a, d; fb(a,d); d = op_clr(d); TAKEN_CYCLES(1); store_byte(a,d); }
 
-#define OP_NEGR(r) { unsigned int tmp = ~(r) + 1; CLR_NZVC; SET_NZVC8(0, r, tmp); r = tmp; peek_byte(reg_pc); }
-#define OP_COMR(r) { r = ~(r); CLR_NZV; SET_NZ8(r); reg_cc |= CC_C; peek_byte(reg_pc); }
-#define OP_NEGCOMR(r) { unsigned int tmp = ~(r) + (~reg_cc & 1); CLR_NZVC; SET_NZVC8(0, r, tmp); r = tmp; peek_byte(reg_pc); }
-#define OP_LSRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r >>= 1; SET_Z(r); peek_byte(reg_pc); }
-#define OP_RORR(r) { unsigned int tmp = (reg_cc & CC_C) << 7; CLR_NZC; reg_cc |= r & CC_C; tmp |= r >> 1; SET_NZ8(tmp); r = tmp; peek_byte(reg_pc); }
-#define OP_ASRR(r) { CLR_NZC; reg_cc |= (r & CC_C); r = (r & 0x80) | (r >> 1); SET_NZ8(r); peek_byte(reg_pc); }
-#define OP_ASLR(r) { unsigned int tmp = r << 1; CLR_NZVC; SET_NZVC8(r, r, tmp); r = tmp; peek_byte(reg_pc); }
-#define OP_ROLR(r) { unsigned int tmp = (reg_cc & CC_C) | (r << 1); CLR_NZVC; SET_NZVC8(r, r, tmp); r = tmp; peek_byte(reg_pc); }
-#define OP_DECR(r) { r = r - 1; CLR_NZV; SET_NZ8(r); if (r == 0x7f) reg_cc |= CC_V; peek_byte(reg_pc); }
-#define OP_INCR(r) { r = r + 1; CLR_NZV; SET_NZ8(r); if (r == 0x80) reg_cc |= CC_V; peek_byte(reg_pc); }
-#define OP_TSTR(r) { CLR_NZV; SET_NZ8(r); peek_byte(reg_pc); }
-#define OP_CLRR(r) { r = 0; CLR_NVC; reg_cc |= CC_Z; peek_byte(reg_pc); }
+#define OP_NEGR(r) { r = op_neg(r); peek_byte(reg_pc); }
+#define OP_COMR(r) { r = op_com(r); peek_byte(reg_pc); }
+#define OP_NEGCOMR(r) { r = op_negcom(r); peek_byte(reg_pc); }
+#define OP_LSRR(r) { r = op_lsr(r); peek_byte(reg_pc); }
+#define OP_RORR(r) { r = op_ror(r); peek_byte(reg_pc); }
+#define OP_ASRR(r) { r = op_asr(r); peek_byte(reg_pc); }
+#define OP_ASLR(r) { r = op_asl(r); peek_byte(reg_pc); }
+#define OP_ROLR(r) { r = op_rol(r); peek_byte(reg_pc); }
+#define OP_DECR(r) { r = op_dec(r); peek_byte(reg_pc); }
+#define OP_INCR(r) { r = op_inc(r); peek_byte(reg_pc); }
+#define OP_TSTR(r) { r = op_tst(r); peek_byte(reg_pc); }
+#define OP_CLRR(r) { r = op_clr(r); peek_byte(reg_pc); }
 
-#define OP_SUBD(fw) { unsigned int a, d, tmp, dreg = reg_d; fw(a,d); tmp = dreg - d; CLR_NZVC; SET_NZVC16(dreg, d, tmp); set_reg_d(tmp); TAKEN_CYCLES(1); }
-#define OP_ADDD(fw) { unsigned int a, d, tmp, dreg = reg_d; fw(a,d); tmp = dreg + d; CLR_NZVC; SET_NZVC16(dreg, d, tmp); set_reg_d(tmp); TAKEN_CYCLES(1); }
-#define OP_CMPD(fw) { unsigned int a, d, tmp, dreg = reg_d; fw(a,d); tmp = dreg - d; CLR_NZVC; SET_NZVC16(dreg, d, tmp); TAKEN_CYCLES(1); }
+static inline uint16_t op_sub16(uint16_t a, uint16_t b) {
+	unsigned int out = a - b;
+	CLR_NZVC;
+	SET_NZVC16(a, b, out);
+	return out;
+}
+
+static inline uint16_t op_add16(uint16_t a, uint16_t b) {
+	unsigned int out = a + b;
+	CLR_NZVC;
+	SET_NZVC16(a, b, out);
+	return out;
+}
+
+static inline uint16_t op_ld16(uint16_t a, uint16_t b) {
+	(void)a;
+	CLR_NZV;
+	SET_NZ16(b);
+	return b;
+}
+
+#define OP_SUBD(fw) { unsigned int a, d, dreg = reg_d; fw(a,d); d = op_sub16(dreg, d); set_reg_d(d); TAKEN_CYCLES(1); }
+#define OP_ADDD(fw) { unsigned int a, d, dreg = reg_d; fw(a,d); d = op_add16(dreg, d); set_reg_d(d); TAKEN_CYCLES(1); }
+#define OP_CMPD(fw) { unsigned int a, d, dreg = reg_d; fw(a,d); (void)op_sub16(dreg, d); TAKEN_CYCLES(1); }
 #define OP_LDD(ea) { unsigned int a; ea(a); reg_a = fetch_byte(a); reg_b = fetch_byte(a+1); CLR_NZV; SET_NZ_D(); }
 #define OP_LDD_IMM() { BYTE_IMMEDIATE(0,reg_a); BYTE_IMMEDIATE(0,reg_b); CLR_NZV; SET_NZ_D(); }
 #define OP_STD(ea) { unsigned int a; ea(a); store_byte(a, reg_a); store_byte(a+1, reg_b); CLR_NZV; SET_NZ_D(); }
 
-#define OP_CMP16(r,fw) { unsigned int a, d, tmp; fw(a,d); tmp = r - d; CLR_NZVC; SET_NZVC16(r, d, tmp); TAKEN_CYCLES(1); }
-#define OP_LD16(r,fw) { unsigned int a; fw(a,r); CLR_NZV; SET_NZ16(r); }
+#define OP_CMP16(r,fw) { unsigned int a, d; fw(a,d); (void)op_sub16(r, d); TAKEN_CYCLES(1); }
+#define OP_LD16(r,fw) { unsigned int a, d; fw(a,d); r = op_ld16(r, d); }
 #define OP_ST16(r,ea) { unsigned int a; ea(a); store_byte(a, r >> 8); store_byte(a+1, r); CLR_NZV; SET_NZ16(r); }
 /* Illegal instruction, only part-working: */
 #define OP_ST16_IMM(r) { (void)fetch_byte(reg_pc); reg_pc++; store_byte(reg_pc, r); reg_pc++; CLR_NZV; reg_cc |= CC_N; }
 #define OP_JSR(ea) { unsigned int a; ea(a); peek_byte(a); TAKEN_CYCLES(1); PUSHWORD(reg_s, reg_pc); reg_pc = a; }
 
-#define OP_SUB(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r - d; CLR_NZVC; SET_NZVC8(r, d, tmp); r = tmp; }
-#define OP_CMP(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r - d; CLR_NZVC; SET_NZVC8(r, d, tmp); }
-#define OP_SBC(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r - d - (reg_cc & CC_C); CLR_NZVC; SET_NZVC8(r, d, tmp); r = tmp; }
-#define OP_AND(r,fb) { unsigned int a, d; fb(a,d); r &= d; CLR_NZV; SET_NZ8(r); }
-#define OP_BIT(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r & d; CLR_NZV; SET_NZ8(tmp); }
-#define OP_LD(r,fb) { unsigned int a; fb(a,r); CLR_NZV; SET_NZ8(r); }
-#define OP_DISCARD(fb) { unsigned int a, tmp; fb(a,tmp); (void)tmp; CLR_NZV; reg_cc |= CC_N; }
+static inline uint8_t op_sub(uint8_t a, uint8_t b) {
+	unsigned int out = a - b;
+	CLR_NZVC;
+	SET_NZVC8(a, b, out);
+	return out;
+}
+
+static inline uint8_t op_sbc(uint8_t a, uint8_t b) {
+	unsigned int out = a - b - (reg_cc & CC_C);
+	CLR_NZVC;
+	SET_NZVC8(a, b, out);
+	return out;
+}
+
+static inline uint8_t op_and(uint8_t a, uint8_t b) {
+	unsigned int out = a & b;
+	CLR_NZV;
+	SET_NZ8(out);
+	return out;
+}
+
+static inline uint8_t op_ld(uint8_t a, uint8_t b) {
+	(void)a;
+	CLR_NZV;
+	SET_NZ8(b);
+	return b;
+}
+
+static inline uint8_t op_discard(uint8_t a, uint8_t b) {
+	(void)b;
+	CLR_NZV;
+	reg_cc |= CC_N;
+	return a;
+}
+
+static inline uint8_t op_eor(uint8_t a, uint8_t b) {
+	unsigned int out = a ^ b;
+	CLR_NZV;
+	SET_NZ8(out);
+	return out;
+}
+
+static inline uint8_t op_adc(uint8_t a, uint8_t b) {
+	unsigned int out = a + b + (reg_cc & CC_C);
+	CLR_HNZVC;
+	SET_NZVC8(a, b, out);
+	SET_H(a, b, out);
+	return out;
+}
+
+static inline uint8_t op_or(uint8_t a, uint8_t b) {
+	unsigned int out = a | b;
+	CLR_NZV;
+	SET_NZ8(out);
+	return out;
+}
+
+static inline uint8_t op_add(uint8_t a, uint8_t b) {
+	unsigned int out = a + b;
+	CLR_HNZVC;
+	SET_NZVC8(a, b, out);
+	SET_H(a, b, out);
+	return out;
+}
+
+#define OP_SUB(r,fb) { unsigned int a, d; fb(a,d); r = op_sub(r, d); }
+#define OP_CMP(r,fb) { unsigned int a, d; fb(a,d); (void)op_sub(r, d); }
+#define OP_SBC(r,fb) { unsigned int a, d; fb(a,d); r = op_sbc(r, d); }
+#define OP_AND(r,fb) { unsigned int a, d; fb(a,d); r = op_and(r, d); }
+#define OP_BIT(r,fb) { unsigned int a, d; fb(a,d); (void)op_and(r, d); }
+#define OP_LD(r,fb) { unsigned int a, d; fb(a,d); r = op_ld(r, d); }
+#define OP_DISCARD(r,fb) { unsigned int a, d; fb(a,d); r = op_discard(r, d); }
 #define OP_ST(r,ea) { unsigned int a; ea(a); store_byte(a, r); CLR_NZV; SET_NZ8(r); }
-#define OP_EOR(r,fb) { unsigned int a, d; fb(a,d); r ^= d; CLR_NZV; SET_NZ8(r); }
-#define OP_ADC(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r + d + (reg_cc & CC_C); CLR_HNZVC; SET_NZVC8(r, d, tmp); SET_H(r, d, tmp); r = tmp; }
-#define OP_OR(r,fb) { unsigned int a, d; fb(a,d); r |= d; CLR_NZV; SET_NZ8(r); }
-#define OP_ADD(r,fb) { unsigned int a, d, tmp; fb(a,d); tmp = r + d; CLR_HNZVC; SET_NZVC8(r, d, tmp); SET_H(r, d, tmp); r = tmp; }
+#define OP_EOR(r,fb) { unsigned int a, d; fb(a,d); r = op_eor(r, d); }
+#define OP_ADC(r,fb) { unsigned int a, d; fb(a,d); r = op_adc(r, d); }
+#define OP_OR(r,fb) { unsigned int a, d; fb(a,d); r = op_or(r, d); }
+#define OP_ADD(r,fb) { unsigned int a, d; fb(a,d); r = op_add(r, d); }
 
 #define BRANCHS(cond) do { \
 		unsigned int offset; \
@@ -298,13 +473,13 @@ void (*m6809_interrupt_hook)(uint16_t vector) = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static unsigned int ea_direct(void) {
+static uint16_t ea_direct(void) {
 	unsigned int ea = reg_dp << 8 | fetch_byte(reg_pc++);
 	TAKEN_CYCLES(1);
 	return ea;
 }
 
-static unsigned int ea_extended(void) {
+static uint16_t ea_extended(void) {
 	unsigned int ea = fetch_byte(reg_pc) << 8;
 	ea |= fetch_byte(reg_pc+1);
 	reg_pc += 2;
@@ -312,7 +487,7 @@ static unsigned int ea_extended(void) {
 	return ea;
 }
 
-static unsigned int ea_indexed(void) {
+static uint16_t ea_indexed(void) {
 	unsigned int ea;
 	unsigned int postbyte;
 	uint16_t *reg;
@@ -348,7 +523,7 @@ static unsigned int ea_indexed(void) {
 		default: ea = 0; break;
 	}
 	if (postbyte & 0x10) {
-		uint16_t tmp_ea = fetch_byte(ea) << 8;
+		unsigned int tmp_ea = fetch_byte(ea) << 8;
 		ea = tmp_ea | fetch_byte(ea + 1);
 		TAKEN_CYCLES(1);
 	}
@@ -969,7 +1144,7 @@ void m6809_run(void) {
 			/* 0x86 LDA immediate */
 			case 0x86: OP_LD(reg_a, BYTE_IMMEDIATE); break;
 			/* 0x87 Discard immediate (illegal) */
-			case 0x87: OP_DISCARD(BYTE_IMMEDIATE); break;
+			case 0x87: OP_DISCARD(reg_a, BYTE_IMMEDIATE); break;
 			/* 0x88 EORA immediate */
 			case 0x88: OP_EOR(reg_a, BYTE_IMMEDIATE); break;
 			/* 0x89 ADCA immediate */
@@ -1104,7 +1279,7 @@ void m6809_run(void) {
 			/* 0xC6 LDB immediate */
 			case 0xc6: OP_LD(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xC7 Discard immediate (illegal) */
-			case 0xc7: OP_DISCARD(BYTE_IMMEDIATE); break;
+			case 0xc7: OP_DISCARD(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xC8 EORB immediate */
 			case 0xc8: OP_EOR(reg_b, BYTE_IMMEDIATE); break;
 			/* 0xC9 ADCB immediate */
@@ -1427,6 +1602,6 @@ void m6809_set_state(M6809State *state) {
 	nmi_armed = state->nmi_armed;
 }
 
-void m6809_jump(unsigned int pc) {
+void m6809_jump(uint16_t pc) {
 	reg_pc = pc;
 }
