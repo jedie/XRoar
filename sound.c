@@ -38,19 +38,19 @@ union sample_t {
 	float as_float;
 };
 
-int format;
-int num_channels;
-void *buffer[2] = { NULL, NULL };
-int num_buffers;
-int buffer_num;
-int buffer_size;
-int sample_num;
+static int format;
+static int num_channels;
+static void *buffer[2] = { NULL, NULL };
+static int num_buffers;
+static int buffer_num;
+static int buffer_size;
+static int sample_num;
 
 static union sample_t last_sample;
 static cycle_t last_cycle;
 static int cycles_per_sample;
 static int cycles_per_frame;
-int volume;
+static int volume;
 
 static void flush_frame(void);
 static event_t flush_event;
@@ -136,14 +136,6 @@ void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 	flush_event.at_cycle = current_cycle + cycles_per_frame;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
 
-	return buffer[0];
-}
-
-void *sound_init_2(int sample_rate, int channels, int fmt, int frame_size) {
-	sound_init(sample_rate, channels, fmt, frame_size * 2);
-	buffer_size = frame_size * channels;
-	num_buffers = 2;
-	buffer[1] = (uint8_t *)buffer[0] + buffer_size;
 	return buffer[0];
 }
 
