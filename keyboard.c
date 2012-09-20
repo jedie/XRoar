@@ -33,44 +33,29 @@
 
 /* These map virtual scancodes to keyboard matrix points */
 static Keymap dragon_keymap = {
-	{7,6}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0 - 7 */
-	{5,5}, {6,5}, {4,5}, {8,8}, {1,6}, {0,6}, {8,8}, {8,8}, /* 8 - 15 */
-	{8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 16 - 23 */
-	{8,8}, {8,8}, {8,8}, {2,6}, {8,8}, {8,8}, {8,8}, {8,8}, /* 24 - 31 */
-	{7,5}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 32 - 39 */
-	{8,8}, {8,8}, {8,8}, {8,8}, {4,1}, {5,1}, {6,1}, {7,1}, /* 40 - 47 */
-	{0,0}, {1,0}, {2,0}, {3,0}, {4,0}, {5,0}, {6,0}, {7,0}, /* 48 - 55 */
-	{0,1}, {1,1}, {2,1}, {3,1}, {8,8}, {8,8}, {8,8}, {8,8}, /* 56 - 63 */
-	{0,2}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 64 - 71 */
-	{0,3}, {1,3}, {2,3}, {3,3}, {4,3}, {5,3}, {6,3}, {7,3}, /* 72 - 79 */
-	{0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, /* 80 - 87 */
-	{0,5}, {1,5}, {2,5}, {8,8}, {8,8}, {8,8}, {3,5}, {8,8}, /* 88 - 95 */
-	{1,6}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 96 - 103 */
-	{0,3}, {1,3}, {2,3}, {3,3}, {4,3}, {5,3}, {6,3}, {7,3}, /* 104 - 111 */
-	{0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, /* 112 - 119 */
-	{0,5}, {1,5}, {2,5}, {8,8}, {8,8}, {8,8}, {8,8}, {5,5}, /* 120 - 127 */
+	{7,6}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x00 - 0x07 */
+	{5,5}, {6,5}, {4,5}, {8,8}, {1,6}, {0,6}, {8,8}, {8,8}, /* 0x08 - 0x0f */
+	{8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x10 - 0x17 */
+	{8,8}, {8,8}, {8,8}, {2,6}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x18 - 0x1f */
+	{7,5}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x20 - 0x27 */
+	{8,8}, {8,8}, {8,8}, {8,8}, {4,1}, {5,1}, {6,1}, {7,1}, /* 0x28 - 0x2f */
+	{0,0}, {1,0}, {2,0}, {3,0}, {4,0}, {5,0}, {6,0}, {7,0}, /* 0x30 - 0x37 */
+	{0,1}, {1,1}, {2,1}, {3,1}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x38 - 0x3f */
+	{0,2}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 0x40 - 0x47 */
+	{0,3}, {1,3}, {2,3}, {3,3}, {4,3}, {5,3}, {6,3}, {7,3}, /* 0x48 - 0x4f */
+	{0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, /* 0x50 - 0x57 */
+	{0,5}, {1,5}, {2,5}, {8,8}, {8,8}, {8,8}, {3,5}, {8,8}, /* 0x58 - 0x5f */
+	{1,6}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 0x60 - 0x67 */
+	{0,3}, {1,3}, {2,3}, {3,3}, {4,3}, {5,3}, {6,3}, {7,3}, /* 0x68 - 0x6f */
+	{0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, /* 0x70 - 0x77 */
+	{0,5}, {1,5}, {2,5}, {8,8}, {8,8}, {8,8}, {8,8}, {5,5}, /* 0x78 - 0x7f */
 };
-static Keymap coco_keymap = {
-	{7,6}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0 - 7 */
-	{5,3}, {6,3}, {4,3}, {8,8}, {1,6}, {0,6}, {8,8}, {8,8}, /* 8 - 15 */
-	{8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 16 - 23 */
-	{8,8}, {8,8}, {8,8}, {2,6}, {8,8}, {8,8}, {8,8}, {8,8}, /* 24 - 31 */
-	{7,3}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 32 - 39 */
-	{8,8}, {8,8}, {8,8}, {8,8}, {4,5}, {5,5}, {6,5}, {7,5}, /* 40 - 47 */
-	{0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, /* 48 - 55 */
-	{0,5}, {1,5}, {2,5}, {3,5}, {8,8}, {5,5}, {8,8}, {8,8}, /* 56 - 63 */
-	{0,0}, {1,0}, {2,0}, {3,0}, {4,0}, {5,0}, {6,0}, {7,0}, /* 64 - 71 */
-	{0,1}, {1,1}, {2,1}, {3,1}, {4,1}, {5,1}, {6,1}, {7,1}, /* 72 - 79 */
-	{0,2}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 80 - 87 */
-	{0,3}, {1,3}, {2,3}, {0,0}, {8,8}, {8,8}, {3,3}, {8,8}, /* 88 - 95 */
-	{1,6}, {1,0}, {2,0}, {3,0}, {4,0}, {5,0}, {6,0}, {7,0}, /* 96 - 103 */
-	{0,1}, {1,1}, {2,1}, {3,1}, {4,1}, {5,1}, {6,1}, {7,1}, /* 104 - 111 */
-	{0,2}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 112 - 119 */
-	{0,3}, {1,3}, {2,3}, {8,8}, {8,8}, {8,8}, {8,8}, {5,3}, /* 120 - 127 */
-};
-Keymap keymap;  /* active keymap */
+/* CoCo keymap populated in keyboard_init() */
+static Keymap coco_keymap;
+/* Active keymap */
+Keymap keymap;
 
-static unsigned int unicode_to_dragon[128] = {
+static unsigned unicode_to_dragon[128] = {
 	0,       0,       0,       0,       0,       0,       0,       0,
 	8,       9,       10,      0,       12,      13,      0,       0,
 	0,       0,       0,       0,       0,       128+8,   0,       0,
@@ -92,14 +77,22 @@ static unsigned int unicode_to_dragon[128] = {
 /* These contain masks to be applied when the corresponding row/column is
  * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
  * be applied on column reads */
-unsigned int keyboard_column[9];
-unsigned int keyboard_row[9];
+unsigned keyboard_column[9];
+unsigned keyboard_row[9];
 
 void keyboard_init(void) {
-	unsigned int i;
+	int i;
 	for (i = 0; i < 8; i++) {
 		keyboard_column[i] = ~0;
 		keyboard_row[i] = ~0;
+	}
+	for (i = 0; i < 128; i++) {
+		coco_keymap[i].col = dragon_keymap[i].col;
+		if (dragon_keymap[i].row == 6) {
+			coco_keymap[i].row = 6;
+		} else {
+			coco_keymap[i].row = (dragon_keymap[i].row + 4) % 6;
+		}
 	}
 }
 
@@ -118,10 +111,10 @@ void keyboard_set_keymap(int map) {
 }
 
 void keyboard_update(void) {
-	unsigned int row_out = PIA0.a.out_sink;
-	unsigned int col_out = PIA0.b.out_source & PIA0.b.out_sink;
-	unsigned int row_in = ~0, col_in = ~0;
-	unsigned int old, i;
+	unsigned row_out = PIA0.a.out_sink;
+	unsigned col_out = PIA0.b.out_source & PIA0.b.out_sink;
+	unsigned row_in = ~0, col_in = ~0;
+	unsigned old, i;
 
 	/* Pull low any directly connected rows & columns */
 	for (i = 0; i < 8; i++) {
@@ -162,7 +155,7 @@ void keyboard_update(void) {
 	PIA0.b.in_sink = col_in;
 }
 
-void keyboard_unicode_press(unsigned int unicode) {
+void keyboard_unicode_press(unsigned unicode) {
 	if (unicode == '\\') {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
@@ -179,7 +172,7 @@ void keyboard_unicode_press(unsigned int unicode) {
 		KEYBOARD_PRESS(0);
 		KEYBOARD_PRESS('3');
 	} else if (unicode < 128) {
-		unsigned int code = unicode_to_dragon[unicode];
+		unsigned code = unicode_to_dragon[unicode];
 		if (code & 128)
 			KEYBOARD_PRESS(0);
 		else
@@ -189,7 +182,7 @@ void keyboard_unicode_press(unsigned int unicode) {
 	keyboard_update();
 }
 
-void keyboard_unicode_release(unsigned int unicode) {
+void keyboard_unicode_release(unsigned unicode) {
 	if (unicode == '\\') {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
@@ -206,7 +199,7 @@ void keyboard_unicode_release(unsigned int unicode) {
 		KEYBOARD_RELEASE(0);
 		KEYBOARD_RELEASE('3');
 	} else if (unicode < 128) {
-		unsigned int code = unicode_to_dragon[unicode];
+		unsigned code = unicode_to_dragon[unicode];
 		if (code & 128)
 			KEYBOARD_RELEASE(0);
 		KEYBOARD_RELEASE(code & 0x7f);
