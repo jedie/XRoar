@@ -200,7 +200,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 1;
-		KEYBOARD_PRESS(0);
+		KEYBOARD_PRESS_SHIFT();
 		return;
 	}
 	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 1; return; }
@@ -216,11 +216,11 @@ void sdl_keypress(SDL_keysym *keysym) {
 		emulator_command(sym);
 		return;
 	}
-	if (sym == SDLK_UP) { KEYBOARD_PRESS(94); return; }
-	if (sym == SDLK_DOWN) { KEYBOARD_PRESS(10); return; }
-	if (sym == SDLK_LEFT) { KEYBOARD_PRESS(8); return; }
-	if (sym == SDLK_RIGHT) { KEYBOARD_PRESS(9); return; }
-	if (sym == SDLK_HOME) { KEYBOARD_PRESS(12); return; }
+	if (sym == SDLK_UP) { KEYBOARD_PRESS(KEYMAP_UP); return; }
+	if (sym == SDLK_DOWN) { KEYBOARD_PRESS(KEYMAP_DOWN); return; }
+	if (sym == SDLK_LEFT) { KEYBOARD_PRESS(KEYMAP_LEFT); return; }
+	if (sym == SDLK_RIGHT) { KEYBOARD_PRESS(KEYMAP_RIGHT); return; }
+	if (sym == SDLK_HOME) { KEYBOARD_PRESS(KEYMAP_CLEAR); return; }
 	if (xroar_kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)
@@ -234,7 +234,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 		keyboard_unicode_press(unicode);
 		return;
 	}
-	if (sym == SDLK_WORLD_18) sym = 12;
+	if (sym == SDLK_WORLD_18) sym = KEYMAP_CLEAR;
 	if (sym < 256) {
 		unsigned int mapped = sdl_to_keymap[sym];
 		KEYBOARD_PRESS(mapped);
@@ -255,7 +255,7 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 	}
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 0;
-		KEYBOARD_RELEASE(0);
+		KEYBOARD_RELEASE_SHIFT();
 		return;
 	}
 	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 0; return; }
@@ -263,11 +263,11 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 		xroar_noratelimit = 0;
 		xroar_frameskip = xroar_opt_frameskip;
 	}
-	if (sym == SDLK_UP) { KEYBOARD_RELEASE(94); return; }
-	if (sym == SDLK_DOWN) { KEYBOARD_RELEASE(10); return; }
-	if (sym == SDLK_LEFT) { KEYBOARD_RELEASE(8); return; }
-	if (sym == SDLK_RIGHT) { KEYBOARD_RELEASE(9); return; }
-	if (sym == SDLK_HOME) { KEYBOARD_RELEASE(12); return; }
+	if (sym == SDLK_UP) { KEYBOARD_RELEASE(KEYMAP_UP); return; }
+	if (sym == SDLK_DOWN) { KEYBOARD_RELEASE(KEYMAP_DOWN); return; }
+	if (sym == SDLK_LEFT) { KEYBOARD_RELEASE(KEYMAP_LEFT); return; }
+	if (sym == SDLK_RIGHT) { KEYBOARD_RELEASE(KEYMAP_RIGHT); return; }
+	if (sym == SDLK_HOME) { KEYBOARD_RELEASE(KEYMAP_CLEAR); return; }
 	if (xroar_kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)
@@ -280,10 +280,10 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 		keyboard_unicode_release(unicode);
 		/* Might have unpressed shift prematurely */
 		if (shift)
-			KEYBOARD_PRESS(0);
+			KEYBOARD_PRESS_SHIFT();
 		return;
 	}
-	if (sym == SDLK_WORLD_18) sym = 12;
+	if (sym == SDLK_WORLD_18) sym = KEYMAP_CLEAR;
 	if (sym < 256) {
 		unsigned int mapped = sdl_to_keymap[sym];
 		KEYBOARD_RELEASE(mapped);
