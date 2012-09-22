@@ -482,18 +482,27 @@ void machine_configure(struct machine_config *mc) {
 		PIA1.b.data_preread = pia1b_data_preread_coco64k;
 	}
 
-	if (IS_COCO && machine_ram_size <= 0x2000)
-		ram_organisation = RAM_ORGANISATION_4K;
-	else if (IS_COCO && machine_ram_size <= 0x4000)
-		ram_organisation = RAM_ORGANISATION_16K;
-	else
-		ram_organisation = RAM_ORGANISATION_64K;
-	if (IS_DRAGON32 && machine_ram_size <= 0x8000) {
-		unexpanded_dragon32 = 1;
-		ram_mask = 0x7fff;
-	} else {
-		unexpanded_dragon32 = 0;
-		ram_mask = 0xffff;
+	unexpanded_dragon32 = 0;
+	ram_mask = 0xffff;
+
+	if (IS_COCO) {
+		if (machine_ram_size <= 0x2000) {
+			ram_organisation = RAM_ORGANISATION_4K;
+			ram_mask = 0x3f3f;
+		} else if (machine_ram_size <= 0x4000) {
+			ram_organisation = RAM_ORGANISATION_16K;
+		} else {
+			ram_organisation = RAM_ORGANISATION_64K;
+			if (machine_ram_size <= 0x8000)
+				ram_mask = 0x7fff;
+		}
+	}
+
+	if (IS_DRAGON) {
+		if (IS_DRAGON32 && machine_ram_size <= 0x8000) {
+			unexpanded_dragon32 = 1;
+			ram_mask = 0x7fff;
+		}
 	}
 }
 
