@@ -38,6 +38,7 @@ doc/xroar.txt
 gtk2/top_window_glade.h
 gtk2/tapecontrol_glade.h
 gtk2/drivecontrol_glade.h
+windows32/xroar.res
 ## software images that might be left around
 *.cas
 *.vdk

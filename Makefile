@@ -6,7 +6,25 @@
 -include config.mak
 
 #VERBOSE = 1
-VERSION := 0.28
+VERSION_MAJOR = 0
+VERSION_MINOR = 28
+VERSION_PATCH = 0
+VERSION_SUBPATCH = 0
+
+VERSION = $(VERSION_MAJOR).$(VERSION_MINOR)
+
+# VERSION_SUBPATCH only non-zero for snapshot builds, in which case it is the
+# month and day parts of the snapshot date, and VERSION_PATCH will be set to
+# the year part.
+
+ifneq ($(VERSION_PATCH),0)
+ifeq ($(VERSION_SUBPATCH),0)
+VERSION := $(VERSION).$(VERSION_PATCH)
+else
+VERSION := snap-$(VERSION_PATCH)$(VERSION_SUBPATCH)
+endif
+endif
+
 DISTNAME = xroar-$(VERSION)
 
 .PHONY: all
@@ -36,6 +54,7 @@ do_objc = @echo OBJC $(1); $(OBJC) -o $(1) $(2)
 do_build_cc = @echo BUILD_CC $(1); $(BUILD_CC) -o $(1) $(2)
 do_build_cxx = @echo BUILD_CXX $(1); $(BUILD_CXX) -o $(1) $(2)
 do_build_objc = @echo BUILD_OBJC $(1); $(BUILD_OBJC) -o $(1) $(2)
+do_windres = @echo WINDRES $(1); $(WINDRES) -o $(1) $(2)
 do_makeinfo = @echo MAKEINFO $(1); $(MAKEINFO) -o $(1) $(2)
 do_texi2pdf = @echo TEXI2PDF $(1); $(TEXI2PDF) -o $(1) $(2)
 
@@ -51,6 +70,7 @@ do_objc = $(OBJC) -o $(1) $(2)
 do_build_cc = $(BUILD_CC) -o $(1) $(2)
 do_build_cxx = $(BUILD_CXX) -o $(1) $(2)
 do_build_objc = $(BUILD_OBJC) -o $(1) $(2)
+do_windres = $(WINDRES) -o $(1) $(2)
 do_makeinfo = $(MAKEINFO) -o $(1) $(2)
 do_texi2pdf = $(TEXI2PDF) -o $(1) $(2)
 
@@ -85,6 +105,7 @@ xroar_opt_OBJS =
 xroar_opt_cxx_OBJS =
 xroar_opt_objc_OBJS =
 xroar_opt_INT_OBJS =
+xroar_opt_RES =
 
 portalib_opt_OBJS =
 
@@ -294,9 +315,11 @@ linux:
 endif
 
 opt_mingw_OBJS = windows32/common_windows32.o windows32/filereq_windows32.o windows32/ao_windows32.o
-CLEAN += $(opt_mingw_OBJS)
+opt_mingw_RES = windows32/xroar.res
+CLEAN += $(opt_mingw_OBJS) $(opt_mingw_RES)
 ifeq ($(opt_mingw),yes)
 	xroar_opt_OBJS += $(opt_mingw_OBJS)
+	xroar_opt_RES += $(opt_mingw_RES)
 	xroar_opt_CFLAGS += $(opt_mingw_CFLAGS)
 	xroar_opt_LDFLAGS += $(opt_mingw_LDFLAGS)
 $(opt_mingw_OBJS): | windows32
@@ -354,6 +377,7 @@ portalib_ALL_OBJS = $(portalib_common_OBJS) \
 xroar_unix_ALL_OBJS = $(xroar_common_OBJS) $(xroar_common_INT_OBJS) \
 	$(xroar_unix_OBJS) $(xroar_unix_INT_OBJS) \
 	$(xroar_opt_OBJS) $(xroar_opt_INT_OBJS) \
+	$(xroar_opt_RES) \
 	$(xroar_common_cxx_OBJS) $(xroar_unix_cxx_OBJS) \
 	$(xroar_opt_cxx_OBJS) \
 	$(xroar_common_objc_OBJS) $(xroar_unix_objc_OBJS) \
@@ -386,6 +410,9 @@ xroar$(EXEEXT): $(xroar_unix_ALL_OBJS) $(portalib_ALL_OBJS)
 
 .PHONY: build-bin
 build-bin: xroar$(EXEEXT)
+
+windows32/xroar.res: $(SRCROOT)/windows32/xroar.rc | windows32
+	$(call do_windres,$@,-O coff -DVERSION=$(VERSION) -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR) -DVERSION_PATCH=$(VERSION_PATCH) -DVERSION_SUBPATCH=$(VERSION_SUBPATCH) $<)
 
 endif
 

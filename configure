@@ -272,6 +272,15 @@ if test -z "$TARGET_OBJCOPY"; then
 	fi
 fi
 
+test -z "$BUILD_WINDRES" && BUILD_WINDRES="windres"
+if test -z "$TARGET_WINDRES"; then
+	if ( "$target-windres" --version ) > /dev/null 2>&1; then
+		TARGET_WINDRES="$target-windres"
+	else
+		TARGET_WINDRES="$BUILD_WINDRES"
+	fi
+fi
+
 ########
 
 __build_cc_machine=
@@ -1168,6 +1177,7 @@ CC = $TARGET_CC
 CXX = $TARGET_CXX
 OBJC = $TARGET_OBJC
 OBJCOPY = $TARGET_OBJCOPY
+WINDRES = $TARGET_WINDRES
 
 CFLAGS = $TARGET_C_OPT $TARGET_CFLAGS
 CXXFLAGS = $TARGET_CXX_OPT $TARGET_CFLAGS $TARGET_CXXFLAGS
