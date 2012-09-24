@@ -16,10 +16,9 @@ unset target_sdl_config build_sdl_config
 unset _have_video_driver
 unset _have_audio_driver
 
-all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 opengl gtkgl sdl sdlgl build_sdl build_sdl_image curses cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
+all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 opengl gtkgl sdl sdlgl build_sdl build_sdl_image cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
 unset $all_opt
 
-_curses=no
 _jack=no
 
 case `echo -n` in
@@ -51,7 +50,6 @@ Optional Features:
   --disable-gtkgl       don't test for GtkGLExt
   --disable-sdl         don't test for SDL
   --disable-sdlgl       don't test for SDL OpenGL support
-  --enable-curses       build Curses user-interface
   --disable-cocoa       don't test for Mac OS X Cocoa
   --disable-alsa        don't test for ALSA audio
   --disable-oss         don't test for OSS audio
@@ -750,28 +748,6 @@ EOF
 	build_cc_check "$build_sdl_cflags" "$build_sdl_ldflags $build_sdl_image_ldflags" && _build_sdl_image=yes
 	rm -f $TMPC
 	echo "$_build_sdl_image"
-fi
-
-########
-
-if test "$_curses" \!= "no"; then
-	echocheck Curses
-	curses_ldflags="-lcurses"
-	cat > $TMPC <<EOF
-#include <curses.h>
-int main(int argc, char **argv) { initscr(); endwin(); return 0; }
-EOF
-	_curses=no
-	target_cc_check "" "$curses_ldflags" && _curses=yes
-	rm -f $TMPC
-	echo "$_curses"
-fi
-if test "$_curses" = "yes"; then
-	_curses_def="#define HAVE_CURSES"
-	_have_video_driver=yes
-	test -z "$_cli" && _cli=yes
-else
-	_curses_def="#undef HAVE_CURSES"
 fi
 
 ########

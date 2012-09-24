@@ -32,7 +32,6 @@
 extern UIModule ui_gtk2_module;
 extern UIModule ui_macosx_module;
 extern UIModule ui_sdl_module;
-extern UIModule ui_curses_module;
 extern UIModule ui_null_module;
 static UIModule *default_ui_module_list[] = {
 #ifdef HAVE_GTK2
@@ -46,9 +45,6 @@ static UIModule *default_ui_module_list[] = {
 #else
 	&ui_sdl_module,
 #endif
-#endif
-#ifdef HAVE_CURSES
-	&ui_curses_module,
 #endif
 	&ui_null_module,
 	NULL

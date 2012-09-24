@@ -192,17 +192,6 @@ vo_sdlgl.o: vdg_bitmaps.h
 $(opt_sdlgl_OBJS): | sdl
 endif
 
-opt_curses_OBJS = curses/ui_curses.o curses/vo_curses.o curses/keyboard_curses.o
-CLEAN += $(opt_curses_OBJS)
-ifeq ($(opt_curses),yes)
-	xroar_opt_OBJS += $(opt_curses_OBJS)
-	xroar_opt_CFLAGS += $(opt_curses_CFLAGS)
-	xroar_opt_LDFLAGS += $(opt_curses_LDFLAGS)
-$(opt_curses_OBJS): | curses
-curses:
-	mkdir -p curses
-endif
-
 opt_cli_OBJS = filereq_cli.o
 CLEAN += $(opt_cli_OBJS)
 ifeq ($(opt_cli),yes)
