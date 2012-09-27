@@ -70,18 +70,12 @@ static void reset(void) {
 }
 
 static uint8_t io_read(uint16_t A) {
-	if ((A & 7) == 0) return wd279x_status_read();
-	if ((A & 7) == 1) return wd279x_track_register_read();
-	if ((A & 7) == 2) return wd279x_sector_register_read();
-	if ((A & 7) == 3) return wd279x_data_register_read();
+	if ((A & 4) == 0) return wd279x_read(A);
 	return 0x7e;
 }
 
 static void io_write(uint16_t A, uint8_t D) {
-	if ((A & 7) == 0) wd279x_command_write(D);
-	if ((A & 7) == 1) wd279x_track_register_write(D);
-	if ((A & 7) == 2) wd279x_sector_register_write(D);
-	if ((A & 7) == 3) wd279x_data_register_write(D);
+	if ((A & 4) == 0) wd279x_write(A, D);
 	if (A & 4) ff44_write(D);
 }
 

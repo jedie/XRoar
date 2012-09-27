@@ -84,18 +84,12 @@ static void detach(void) {
 }
 
 static uint8_t io_read(uint16_t A) {
-	if ((A & 15) == 0) return wd279x_status_read();
-	if ((A & 15) == 1) return wd279x_track_register_read();
-	if ((A & 15) == 2) return wd279x_sector_register_read();
-	if ((A & 15) == 3) return wd279x_data_register_read();
+	if ((A & 0xc) == 0) return wd279x_read(A);
 	return 0x7e;
 }
 
 static void io_write(uint16_t A, uint8_t D) {
-	if ((A & 15) == 0) wd279x_command_write(D);
-	if ((A & 15) == 1) wd279x_track_register_write(D);
-	if ((A & 15) == 2) wd279x_sector_register_write(D);
-	if ((A & 15) == 3) wd279x_data_register_write(D);
+	if ((A & 0xc) == 0) wd279x_write(A, D);
 	if (A & 8) ff48_write(D);
 }
 

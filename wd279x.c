@@ -205,94 +205,87 @@ void wd279x_set_dden(_Bool dden) {
 	vdrive_set_dden(dden);
 }
 
-void wd279x_track_register_write(uint8_t octet) {
-	if (INVERTED_DATA)
-		octet = ~octet;
-	track_register = octet;
-}
-
-uint8_t wd279x_track_register_read(void) {
-	if (INVERTED_DATA)
-		return ~track_register;
-	return track_register;
-}
-
-void wd279x_sector_register_write(uint8_t octet) {
-	if (INVERTED_DATA)
-		octet = ~octet;
-	sector_register = octet;
-}
-
-uint8_t wd279x_sector_register_read(void) {
-	if (INVERTED_DATA)
-		return ~sector_register;
-	return sector_register;
-}
-
-void wd279x_data_register_write(uint8_t octet) {
-	RESET_DRQ;
-	if (INVERTED_DATA)
-		octet = ~octet;
-	data_register = octet;
-}
-
-uint8_t wd279x_data_register_read(void) {
-	RESET_DRQ;
-	if (INVERTED_DATA)
-		return ~data_register;
-	return data_register;
-}
-
-uint8_t wd279x_status_read(void) {
-	RESET_INTRQ;
-	if (vdrive_ready)
-		status_register &= ~STATUS_NOT_READY;
-	else
-		status_register |= STATUS_NOT_READY;
-	if ((command_register & 0xf0) == 0xd0 || (command_register & 0x80) == 0x00) {
-		if (vdrive_tr00)
-			status_register |= STATUS_TRACK_0;
-		else
-			status_register &= ~STATUS_TRACK_0;
-		if (vdrive_index_pulse)
-			status_register |= STATUS_INDEX_PULSE;
-		else
-			status_register &= ~STATUS_INDEX_PULSE;
+uint8_t wd279x_read(uint16_t A) {
+	uint8_t D;
+	switch (A & 3) {
+		default:
+		case 0:
+			RESET_INTRQ;
+			if (vdrive_ready)
+				status_register &= ~STATUS_NOT_READY;
+			else
+				status_register |= STATUS_NOT_READY;
+			if ((command_register & 0xf0) == 0xd0 || (command_register & 0x80) == 0x00) {
+				if (vdrive_tr00)
+					status_register |= STATUS_TRACK_0;
+				else
+					status_register &= ~STATUS_TRACK_0;
+				if (vdrive_index_pulse)
+					status_register |= STATUS_INDEX_PULSE;
+				else
+					status_register &= ~STATUS_INDEX_PULSE;
+			}
+			D = status_register;
+			break;
+		case 1:
+			D = track_register;
+			break;
+		case 2:
+			D = sector_register;
+			break;
+		case 3:
+			RESET_DRQ;
+			D = data_register;
+			break;
 	}
 	if (INVERTED_DATA)
-		return ~status_register;
-	return status_register;
+		return ~D;
+	return D;
 }
 
-void wd279x_command_write(uint8_t cmd) {
-	RESET_INTRQ;
+void wd279x_write(uint16_t A, uint8_t D) {
 	if (INVERTED_DATA)
-		command_register = ~cmd;
-	else
-		command_register = cmd;
-	/* FORCE INTERRUPT */
-	if ((command_register & 0xf0) == 0xd0) {
-		LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",command_register&0x0f);
-		if ((command_register & 0x0f) == 0) {
-			event_dequeue(&state_event);
-			status_register &= ~(STATUS_BUSY);
-			return;
-		}
-		if (command_register & 0x08) {
-			event_dequeue(&state_event);
-			status_register &= ~(STATUS_BUSY);
-			SET_INTRQ;
-			return;
-		}
-		return;
+		D = ~D;
+	switch (A & 3) {
+		default:
+		case 0:
+			RESET_INTRQ;
+			command_register = D;
+			/* FORCE INTERRUPT */
+			if ((command_register & 0xf0) == 0xd0) {
+				LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",command_register&0x0f);
+				if ((command_register & 0x0f) == 0) {
+					event_dequeue(&state_event);
+					status_register &= ~(STATUS_BUSY);
+					return;
+				}
+				if (command_register & 0x08) {
+					event_dequeue(&state_event);
+					status_register &= ~(STATUS_BUSY);
+					SET_INTRQ;
+					return;
+				}
+				return;
+			}
+			/* Ignore any other command if busy */
+			if (status_register & STATUS_BUSY) {
+				LOG_DEBUG(4,"WD279X: Command received while busy!\n");
+				return;
+			}
+			state = accept_command;
+			state_machine();
+			break;
+		case 1:
+			track_register = D;
+			break;
+		case 2:
+			sector_register = D;
+			break;
+		case 3:
+			RESET_DRQ;
+			data_register = D;
+			break;
 	}
-	/* Ignore any other command if busy */
-	if (status_register & STATUS_BUSY) {
-		LOG_DEBUG(4,"WD279X: Command received while busy!\n");
-		return;
-	}
-	state = accept_command;
-	state_machine();
 }
 
 /* One big state machine.  This is called from an event dispatch and from the
