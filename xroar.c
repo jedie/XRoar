@@ -443,6 +443,7 @@ static void set_cart(const char *name) {
 			xroar_cart_config->autorun = opt_cart_autorun;
 			opt_cart_autorun = ANY_AUTO;
 		}
+		cart_config_complete(xroar_cart_config);
 	}
 	if (name) {
 		xroar_cart_config = cart_config_by_name(name);
