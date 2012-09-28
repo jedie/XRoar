@@ -85,7 +85,6 @@ void sdl_run(void) {
 			}
 		}
 		/* XXX will this ever be needed? */
-		while (EVENT_PENDING(UI_EVENT_LIST))
-			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+		event_run_queue(UI_EVENT_LIST);
 	}
 }

@@ -72,7 +72,7 @@
 
 #define NEXT_STATE(f,t) do { \
 		state = f; \
-		state_event.at_cycle = current_cycle + t; \
+		state_event.at_tick = event_current_tick + t; \
 		event_queue(&MACHINE_EVENT_LIST, &state_event); \
 	} while (0)
 #define GOTO_STATE(f) state = f; continue

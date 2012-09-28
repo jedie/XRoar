@@ -556,9 +556,8 @@ static _Bool do_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 	}
 	cycles -= ncycles;
 	if (cycles <= 0) m6809_running = 0;
-	current_cycle += ncycles;
-	while (EVENT_PENDING(MACHINE_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+	event_current_tick += ncycles;
+	event_run_queue(MACHINE_EVENT_LIST);
 	m6809_irq = PIA0.a.irq | PIA0.b.irq;
 	m6809_firq = PIA1.a.irq | PIA1.b.irq;
 	return is_ram_access;
@@ -670,9 +669,8 @@ static void nvma_cycles(int ncycles) {
 	int c = sam_nvma_cycles(ncycles);
 	cycles -= c;
 	if (cycles <= 0) m6809_running = 0;
-	current_cycle += c;
-	while (EVENT_PENDING(MACHINE_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(MACHINE_EVENT_LIST);
+	event_current_tick += c;
+	event_run_queue(MACHINE_EVENT_LIST);
 	m6809_irq = PIA0.a.irq | PIA0.b.irq;
 	m6809_firq = PIA1.a.irq | PIA1.b.irq;
 	read_D = machine_rom[0x3fff];

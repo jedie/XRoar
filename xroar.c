@@ -698,7 +698,7 @@ int xroar_init(int argc, char **argv) {
 	xroar_vdg_palette = get_machine_palette();
 
 	/* Initialise everything */
-	current_cycle = 0;
+	event_current_tick = 0;
 	/* ... modules */
 	module_init((Module *)ui_module);
 	filereq_module = (FileReqModule *)module_init_from_list((Module **)filereq_module_list, (Module *)filereq_module);
@@ -756,7 +756,7 @@ int xroar_init(int argc, char **argv) {
 		default:
 			/* For everything else, defer loading the file */
 			event_init(&load_file_event, do_load_file, NULL);
-			load_file_event.at_cycle = current_cycle + OSCILLATOR_RATE * 2;
+			load_file_event.at_tick = event_current_tick + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 			break;
 		}
@@ -859,8 +859,7 @@ void xroar_run(void) {
 
 	while (1) {
 		machine_run(VDG_LINE_DURATION * 8);
-		while (EVENT_PENDING(UI_EVENT_LIST))
-			DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+		event_run_queue(UI_EVENT_LIST);
 	}
 }
 

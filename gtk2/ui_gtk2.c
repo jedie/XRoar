@@ -520,8 +520,7 @@ static void shutdown(void) {
 static gboolean run_cpu(gpointer data) {
 	(void)data;
 	machine_run(VDG_LINE_DURATION * 8);
-	while (EVENT_PENDING(UI_EVENT_LIST))
-		DISPATCH_NEXT_EVENT(UI_EVENT_LIST);
+	event_run_queue(UI_EVENT_LIST);
 	return 1;
 }
 

@@ -243,7 +243,7 @@ void cart_configure(struct cart *c, struct cart_config *cc) {
 
 static void attach_rom(void) {
 	firq_event = event_new(do_firq, NULL);
-	firq_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
+	firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
 	event_queue(&MACHINE_EVENT_LIST, firq_event);
 }
 
@@ -265,6 +265,6 @@ static void rom_configure(struct cart *c, struct cart_config *cc) {
 static void do_firq(void *data) {
 	(void)data;
 	PIA_SET_Cx1(PIA1.b);
-	firq_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
+	firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
 	event_queue(&MACHINE_EVENT_LIST, firq_event);
 }

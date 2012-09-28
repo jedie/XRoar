@@ -6,14 +6,19 @@
 #ifndef XROAR_EVENT_H_
 #define XROAR_EVENT_H_
 
-typedef void (*event_delegate)(void *);
+/* Maintains queues of events.  Each event has a tick number at which its
+ * delegate is scheduled to run.  */
 
-typedef unsigned int cycle_t;
-extern cycle_t current_cycle;
+typedef unsigned int event_ticks;
+
+/* Current "time". */
+extern event_ticks event_current_tick;
+
+typedef void (*event_delegate)(void *);
 
 typedef struct event_t event_t;
 struct event_t {
-	cycle_t at_cycle;
+	event_ticks at_tick;
 	event_delegate delegate;
 	void *delegate_data;
 	_Bool queued;
@@ -21,14 +26,21 @@ struct event_t {
 	event_t *next;
 };
 
-#define EVENT_EXISTS(list) (list)
-#define EVENT_PENDING(list) (list && \
-		(int)(current_cycle - list->at_cycle) >= 0)
-#define DISPATCH_NEXT_EVENT(list) do { \
+#define event_exists(list) (list)
+
+#define event_pending(list) (list && \
+		(int)(event_current_tick - list->at_tick) >= 0)
+
+#define event_dispatch_next(list) do { \
 		event_t *e = list; \
 		list = list->next; \
 		e->queued = 0; \
 		e->delegate(e->delegate_data); \
+	} while (0)
+
+#define event_run_queue(list) do { \
+		while (event_pending(list)) \
+			event_dispatch_next(list); \
 	} while (0)
 
 event_t *event_new(event_delegate delegate, void *delegate_data);

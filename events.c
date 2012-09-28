@@ -25,7 +25,7 @@
 #include "events.h"
 #include "logging.h"
 
-cycle_t current_cycle = 0;
+event_ticks event_current_tick = 0;
 
 event_t *event_new(event_delegate delegate, void *delegate_data) {
 	event_t *new = g_malloc(sizeof(event_t));
@@ -35,7 +35,7 @@ event_t *event_new(event_delegate delegate, void *delegate_data) {
 
 void event_init(event_t *event, event_delegate delegate, void *delegate_data) {
 	if (event == NULL) return;
-	event->at_cycle = current_cycle;
+	event->at_tick = event_current_tick;
 	event->delegate = delegate;
 	event->delegate_data = delegate_data;
 	event->queued = 0;
@@ -55,7 +55,7 @@ void event_queue(event_t **list, event_t *event) {
 	event->list = list;
 	event->queued = 1;
 	for (entry = list; *entry; entry = &((*entry)->next)) {
-		if ((int)((*entry)->at_cycle - event->at_cycle) > 0) {
+		if ((int)((*entry)->at_tick - event->at_tick) > 0) {
 			event->next = *entry;
 			*entry = event;
 			return;

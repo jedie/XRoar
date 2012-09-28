@@ -50,7 +50,7 @@ SoundModule sound_null_module = {
 
 #define CYCLES_PER_MS (OSCILLATOR_RATE / 1000)
 
-static cycle_t last_pause_cycle;
+static event_ticks last_pause_cycle;
 static unsigned int last_pause_ms;
 
 static unsigned int current_time(void);
@@ -58,7 +58,7 @@ static void sleep_ms(unsigned int ms);
 
 static int init(void) {
 	sound_init(44100, 1, SOUND_FMT_NULL, 1024);
-	last_pause_cycle = current_cycle;
+	last_pause_cycle = event_current_tick;
 	last_pause_ms = current_time();
 	return 0;
 }
@@ -90,7 +90,7 @@ static void sleep_ms(unsigned int ms) {
 
 static void flush_frame(void *buffer) {
 	(void)buffer;
-	cycle_t elapsed_cycles = current_cycle - last_pause_cycle;
+	event_ticks elapsed_cycles = event_current_tick - last_pause_cycle;
 	unsigned int expected_elapsed_ms = elapsed_cycles / CYCLES_PER_MS;
 	unsigned int actual_elapsed_ms, difference_ms;
 	actual_elapsed_ms = current_time() - last_pause_ms;
@@ -98,7 +98,7 @@ static void flush_frame(void *buffer) {
 	if (difference_ms >= 10) {
 		if (xroar_noratelimit || difference_ms > 1000) {
 			last_pause_ms = current_time();
-			last_pause_cycle = current_cycle;
+			last_pause_cycle = event_current_tick;
 		} else {
 			sleep_ms(difference_ms);
 			difference_ms = current_time() - last_pause_ms;

@@ -24,7 +24,7 @@ struct tape {
 	long offset;  /* current tape position */
 	long size;  /* current tape size */
 	int leader_count;  /* CAS files will report initial leader bytes */
-	cycle_t last_write_cycle;
+	event_ticks last_write_cycle;
 };
 
 struct tape_module {

@@ -47,7 +47,7 @@ static int buffer_size;
 static int sample_num;
 
 static union sample_t last_sample;
-static cycle_t last_cycle;
+static event_ticks last_cycle;
 static int cycles_per_sample;
 static int cycles_per_frame;
 static int volume;
@@ -127,12 +127,12 @@ void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 	num_channels = channels;
 	cycles_per_sample = OSCILLATOR_RATE / sample_rate;
 	cycles_per_frame = cycles_per_sample * frame_size;
-	last_cycle = current_cycle;
+	last_cycle = event_current_tick;
 
 	sound_silence();
 
 	event_init(&flush_event, flush_frame, NULL);
-	flush_event.at_cycle = current_cycle + cycles_per_frame;
+	flush_event.at_tick = event_current_tick + cycles_per_frame;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
 
 	return buffer[0];
@@ -146,7 +146,7 @@ void sound_set_volume(int v) {
 
 /* within sound_update(), this loop is included for each sample format */
 #define fill_buffer(type,member) do { \
-		while ((int)(current_cycle - last_cycle) > 0) { \
+		while ((int)(event_current_tick - last_cycle) > 0) { \
 			for (i = num_channels; i; i--) \
 				((type *)buffer[buffer_num])[sample_num++] = last_sample.member; \
 			last_cycle += cycles_per_sample; \
@@ -175,7 +175,7 @@ void sound_update(void) {
 			fill_buffer(float,as_float);
 			break;
 		case SOUND_FMT_NULL:
-			while ((int)(current_cycle - last_cycle) <= 0) {
+			while ((int)(event_current_tick - last_cycle) <= 0) {
 				last_cycle += cycles_per_frame;
 				sound_module->flush_frame(buffer[buffer_num]);
 			}
@@ -269,6 +269,6 @@ void sound_render_silence(void *buf, int samples) {
 static void flush_frame(void *data) {
 	(void)data;
 	sound_update();
-	flush_event.at_cycle += cycles_per_frame;
+	flush_event.at_tick += cycles_per_frame;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
 }

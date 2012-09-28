@@ -112,7 +112,7 @@ void printer_strobe(void) {
 	}
 	/* ACK, and schedule !ACK */
 	PIA_RESET_Cx1(PIA1.a);
-	ack_clear_event.at_cycle = current_cycle + (OSCILLATOR_RATE / 150000);
+	ack_clear_event.at_tick = event_current_tick + (OSCILLATOR_RATE / 150000);
 	event_queue(&MACHINE_EVENT_LIST, &ack_clear_event);
 }
 

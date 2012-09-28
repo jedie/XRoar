@@ -234,7 +234,7 @@ static int init(void) {
 
 	/* No point scheduling joystick reads if we don't have any */
 	if (valid) {
-		poll_event->at_cycle = current_cycle + (OSCILLATOR_RATE / 100);
+		poll_event->at_tick = event_current_tick + (OSCILLATOR_RATE / 100);
 		event_queue(&UI_EVENT_LIST, poll_event);
 	} else {
 		LOG_WARN("No valid joystick mappings made.\n");
@@ -292,6 +292,6 @@ static void do_poll(void *data) {
 		}
 	}
 	joystick_update();
-	poll_event->at_cycle += OSCILLATOR_RATE / 100;
+	poll_event->at_tick += OSCILLATOR_RATE / 100;
 	event_queue(&UI_EVENT_LIST, poll_event);
 }

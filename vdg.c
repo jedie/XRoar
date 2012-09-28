@@ -40,7 +40,7 @@
  * second a pointer to a buffer to receive them. */
 void (*vdg_fetch_bytes)(int, uint8_t *);
 
-static cycle_t scanline_start;
+static event_ticks scanline_start;
 static _Bool is_32byte;
 static void render_scanline(void);
 
@@ -97,8 +97,8 @@ void vdg_reset(void) {
 	frame = 0;
 	scanline = 0;
 	subline = 0;
-	scanline_start = current_cycle;
-	hs_fall_event.at_cycle = current_cycle + VDG_LINE_DURATION;
+	scanline_start = event_current_tick;
+	hs_fall_event.at_tick = event_current_tick + VDG_LINE_DURATION;
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
 	vdg_set_mode();
 	beam_pos = 0;
@@ -127,18 +127,18 @@ static void do_hs_fall(void *data) {
 	/* HS falling edge */
 	PIA_RESET_Cx1(PIA0.a);
 
-	scanline_start = hs_fall_event.at_cycle;
+	scanline_start = hs_fall_event.at_tick;
 	/* Next HS rise and fall */
-	hs_rise_event.at_cycle = scanline_start + VDG_HS_RISING_EDGE;
-	hs_fall_event.at_cycle = scanline_start + VDG_LINE_DURATION;
+	hs_rise_event.at_tick = scanline_start + VDG_HS_RISING_EDGE;
+	hs_fall_event.at_tick = scanline_start + VDG_LINE_DURATION;
 
 	/* Two delays of 25 scanlines each occur 24 lines after FS falling edge
 	 * and at FS rising edge in PAL systems */
 	if (IS_PAL) {
 		if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 24)
 		    || scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
-			hs_rise_event.at_cycle += 25 * VDG_PAL_PADDING_LINE;
-			hs_fall_event.at_cycle += 25 * VDG_PAL_PADDING_LINE;
+			hs_rise_event.at_tick += 25 * VDG_PAL_PADDING_LINE;
+			hs_fall_event.at_tick += 25 * VDG_PAL_PADDING_LINE;
 		}
 	}
 
@@ -181,7 +181,7 @@ static void do_hs_rise(void *data) {
 }
 
 static void render_scanline(void) {
-	int beam_to = ((int)(current_cycle - scanline_start) - SCAN_OFFSET) / 2;
+	int beam_to = ((int)(event_current_tick - scanline_start) - SCAN_OFFSET) / 2;
 	if (beam_pos >= beam_to)
 		return;
 

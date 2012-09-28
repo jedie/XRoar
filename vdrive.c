@@ -57,8 +57,8 @@ static unsigned int head_pos;  /* index into current track for read/write */
 
 static void update_signals(void);
 
-static cycle_t last_update_cycle;
-static cycle_t track_start_cycle;
+static event_ticks last_update_cycle;
+static event_ticks track_start_cycle;
 static event_t index_pulse_event;
 static event_t reset_index_pulse_event;
 static void do_index_pulse(void *);
@@ -188,8 +188,8 @@ static void update_signals(void) {
 	track_base = (uint8_t *)idamptr;
 	if (!index_pulse_event.queued) {
 		head_pos = 128;
-		track_start_cycle = current_cycle;
-		index_pulse_event.at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
+		track_start_cycle = event_current_tick;
+		index_pulse_event.at_tick = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
 		event_queue(&MACHINE_EVENT_LIST, &index_pulse_event);
 	}
 }
@@ -293,8 +293,8 @@ void vdrive_write_idam(void) {
 }
 
 unsigned int vdrive_time_to_next_byte(void) {
-	cycle_t next_cycle = track_start_cycle + (head_pos - 128) * BYTE_TIME;
-	int to_time = next_cycle - current_cycle;
+	event_ticks next_cycle = track_start_cycle + (head_pos - 128) * BYTE_TIME;
+	int to_time = next_cycle - event_current_tick;
 	if (to_time < 0) {
 		LOG_DEBUG(4,"Negative time to next byte!\n");
 		return 1;
@@ -308,11 +308,11 @@ unsigned int vdrive_time_to_next_byte(void) {
 unsigned int vdrive_time_to_next_idam(void) {
 	unsigned int next_head_pos;
 	unsigned int i, tmp;
-	cycle_t next_cycle;
+	event_ticks next_cycle;
 	int to_time;
 	if (!vdrive_ready) return OSCILLATOR_RATE / 5;
 	/* Update head_pos based on time elapsed since track start */
-	head_pos = 128 + ((current_cycle - track_start_cycle) / BYTE_TIME);
+	head_pos = 128 + ((event_current_tick - track_start_cycle) / BYTE_TIME);
 	(void)vdrive_new_index_pulse();
 	next_head_pos = current_drive->disk->track_length;
 	if (idamptr) {
@@ -325,9 +325,9 @@ unsigned int vdrive_time_to_next_idam(void) {
 		}
 	}
 	if (next_head_pos >= current_drive->disk->track_length)
-		return (index_pulse_event.at_cycle - current_cycle) + 1;
+		return (index_pulse_event.at_tick - event_current_tick) + 1;
 	next_cycle = track_start_cycle + (next_head_pos - 128) * BYTE_TIME;
-	to_time = next_cycle - current_cycle;
+	to_time = next_cycle - event_current_tick;
 	if (to_time < 0) {
 		LOG_DEBUG(4,"Negative time to next IDAM!\n");
 		return 1;
@@ -379,11 +379,11 @@ static void do_index_pulse(void *data) {
 	}
 	vdrive_index_pulse = 1;
 	head_pos = 128;
-	last_update_cycle = index_pulse_event.at_cycle;
-	track_start_cycle = index_pulse_event.at_cycle;
-	index_pulse_event.at_cycle = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
+	last_update_cycle = index_pulse_event.at_tick;
+	track_start_cycle = index_pulse_event.at_tick;
+	index_pulse_event.at_tick = track_start_cycle + (current_drive->disk->track_length - 128) * BYTE_TIME;
 	event_queue(&MACHINE_EVENT_LIST, &index_pulse_event);
-	reset_index_pulse_event.at_cycle = track_start_cycle + ((current_drive->disk->track_length - 128)/100) * BYTE_TIME;
+	reset_index_pulse_event.at_tick = track_start_cycle + ((current_drive->disk->track_length - 128)/100) * BYTE_TIME;
 	event_queue(&MACHINE_EVENT_LIST, &reset_index_pulse_event);
 }
 

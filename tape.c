@@ -379,13 +379,13 @@ void tape_update_motor(void) {
 		if (tape_input && !waggle_event.queued) {
 			/* If motor turned on and tape file attached,
 			 * enable the tape input bit waggler */
-			waggle_event.at_cycle = current_cycle;
+			waggle_event.at_tick = event_current_tick;
 			waggle_bit(NULL);
 		}
 		if (tape_output && !flush_event.queued) {
-			flush_event.at_cycle = current_cycle + OSCILLATOR_RATE / 2;
+			flush_event.at_tick = event_current_tick + OSCILLATOR_RATE / 2;
 			event_queue(&MACHINE_EVENT_LIST, &flush_event);
-			tape_output->last_write_cycle = current_cycle;
+			tape_output->last_write_cycle = event_current_tick;
 		}
 	} else {
 		event_dequeue(&waggle_event);
@@ -407,9 +407,9 @@ void tape_update_output(void) {
 	if (!motor || !tape_output || tape_rewrite)
 		return;
 	uint8_t sample = PIA1.a.out_sink & 0xfc;
-	int length = current_cycle - tape_output->last_write_cycle;
+	int length = event_current_tick - tape_output->last_write_cycle;
 	tape_output->module->sample_out(tape_output, sample, length);
-	tape_output->last_write_cycle = current_cycle;
+	tape_output->last_write_cycle = event_current_tick;
 }
 
 /* Read pulse & duration, schedule next read */
@@ -433,7 +433,7 @@ static void waggle_bit(void *data) {
 		break;
 	}
 	sound_update();
-	waggle_event.at_cycle += in_pulse_width;
+	waggle_event.at_tick += in_pulse_width;
 	event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 }
 
@@ -443,7 +443,7 @@ static void flush_output(void *data) {
 	(void)data;
 	tape_update_output();
 	if (motor) {
-		flush_event.at_cycle += OSCILLATOR_RATE / 2;
+		flush_event.at_tick += OSCILLATOR_RATE / 2;
 		event_queue(&MACHINE_EVENT_LIST, &flush_event);
 	}
 }
@@ -458,7 +458,7 @@ static int pulse_skip(void) {
 		if (pskip < in_pulse_width) {
 			in_pulse_width -= pskip;
 			pskip = 0;
-			waggle_event.at_cycle = current_cycle + in_pulse_width;
+			waggle_event.at_tick = event_current_tick + in_pulse_width;
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 			if (in_pulse) {
 				PIA1.a.in_sink &= ~(1<<0);
