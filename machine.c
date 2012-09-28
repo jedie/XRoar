@@ -328,6 +328,8 @@ static void pia1a_data_postwrite(void) {
 
 #define pia1a_control_postwrite tape_update_motor
 
+#define pia1b_data_preread NULL
+
 static void pia1b_data_postwrite(void) {
 	if (IS_DRAGON64) {
 		machine_rom = PIA_VALUE_B(PIA1) & 0x04 ? rom0 : rom1;
@@ -348,6 +350,7 @@ void machine_init(void) {
 	PIA1.a.data_preread = pia1a_data_preread;
 	PIA1.a.data_postwrite = pia1a_data_postwrite;
 	PIA1.a.control_postwrite = pia1a_control_postwrite;
+	PIA1.b.data_preread = pia1b_data_preread;
 	PIA1.b.data_postwrite = pia1b_data_postwrite;
 #ifndef FAST_SOUND
 	machine_select_fast_sound(xroar_fast_sound);
@@ -475,6 +478,8 @@ void machine_configure(struct machine_config *mc) {
 		PIA1.b.in_source |= (1<<2);
 	}
 	PIA0.b.data_postwrite = pia0b_data_postwrite;
+	PIA0.b.data_preread = pia0b_data_preread;
+	PIA1.b.data_preread = pia1b_data_preread;
 	if (IS_COCO && machine_ram_size > 0x4000) {
 		/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1.
 		 * Deal with this through a postwrite. */
