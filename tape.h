@@ -51,12 +51,7 @@ int tape_seek(struct tape *t, long offset, int whence);
 #define tape_to_ms(t,...) (t)->module->to_ms((t), __VA_ARGS__)
 #define tape_ms_to(t,...) (t)->module->ms_to((t), __VA_ARGS__)
 #define tape_rewind(t) tape_seek(t, 0, SEEK_SET)
-int tape_pulse_in(struct tape *t, int *pulse_width);
-int tape_bit_in(struct tape *t);
-int tape_byte_in(struct tape *t);
 #define tape_sample_out(t,...) (t)->module->sample_out((t), __VA_ARGS__)
-void tape_bit_out(struct tape *t, int bit);
-void tape_byte_out(struct tape *t, int byte);
 
 struct tape_file {
 	long offset;

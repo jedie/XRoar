@@ -80,12 +80,12 @@ int tape_seek(struct tape *t, long offset, int whence) {
 	return r;
 }
 
-int tape_pulse_in(struct tape *t, int *pulse_width) {
+static int tape_pulse_in(struct tape *t, int *pulse_width) {
 	if (!t) return -1;
 	return t->module->pulse_in(t, pulse_width);
 }
 
-int tape_bit_in(struct tape *t) {
+static int tape_bit_in(struct tape *t) {
 	if (!t) return -1;
 	int phase, pulse0_width, pulse1_width, cycle_width;
 	if (tape_pulse_in(t, &pulse1_width) == -1)
@@ -103,7 +103,7 @@ int tape_bit_in(struct tape *t) {
 	return 0;
 }
 
-int tape_byte_in(struct tape *t) {
+static int tape_byte_in(struct tape *t) {
 	int byte = 0, i;
 	for (i = 8; i; i--) {
 		int bit = tape_bit_in(t);
@@ -113,7 +113,7 @@ int tape_byte_in(struct tape *t) {
 	return byte;
 }
 
-void tape_bit_out(struct tape *t, int bit) {
+static void tape_bit_out(struct tape *t, int bit) {
 	if (!t) return;
 	if (bit) {
 		tape_sample_out(t, 0xf8, TAPE_BIT1_LENGTH / 2);
@@ -125,7 +125,7 @@ void tape_bit_out(struct tape *t, int bit) {
 	rewrite_bit_count = (rewrite_bit_count + 1) & 7;
 }
 
-void tape_byte_out(struct tape *t, int byte) {
+static void tape_byte_out(struct tape *t, int byte) {
 	int i;
 	if (!t) return;
 	for (i = 8; i; i--) {
