@@ -36,7 +36,7 @@
 #include "gtk2/tapecontrol_glade.h"
 
 /* UI events */
-static void update_tape_counters(void);
+static void update_tape_counters(void *);
 static event_t update_tape_counters_event;
 
 /* Tape control widgets */
@@ -148,8 +148,7 @@ void gtk2_create_tc_window(void) {
 	gtk_builder_connect_signals(builder, NULL);
 	g_object_unref(builder);
 
-	event_init(&update_tape_counters_event);
-	update_tape_counters_event.dispatch = update_tape_counters;
+	event_init(&update_tape_counters_event, update_tape_counters, NULL);
 	update_tape_counters_event.at_cycle = current_cycle + OSCILLATOR_RATE / 2;
 	event_queue(&UI_EVENT_LIST, &update_tape_counters_event);
 }
@@ -219,7 +218,8 @@ static void tc_seek(struct tape *tape, GtkScrollType scroll, gdouble value) {
 
 /* Tape Control - scheduled event handlers */
 
-static void update_tape_counters(void) {
+static void update_tape_counters(void *data) {
+	(void)data;
 	static long omax = -1, opos = -1;
 	static long imax = -1, ipos = -1;
 	long new_omax = 0, new_opos = 0;

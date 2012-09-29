@@ -27,16 +27,17 @@
 
 cycle_t current_cycle = 0;
 
-event_t *event_new(void) {
+event_t *event_new(event_delegate delegate, void *delegate_data) {
 	event_t *new = g_malloc(sizeof(event_t));
-	event_init(new);
+	event_init(new, delegate, delegate_data);
 	return new;
 }
 
-void event_init(event_t *event) {
+void event_init(event_t *event, event_delegate delegate, void *delegate_data) {
 	if (event == NULL) return;
 	event->at_cycle = current_cycle;
-	event->dispatch = NULL;
+	event->delegate = delegate;
+	event->delegate_data = delegate_data;
 	event->queued = 0;
 	event->list = NULL;
 	event->next = NULL;

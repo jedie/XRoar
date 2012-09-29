@@ -6,13 +6,16 @@
 #ifndef XROAR_EVENT_H_
 #define XROAR_EVENT_H_
 
+typedef void (*event_delegate)(void *);
+
 typedef unsigned int cycle_t;
 extern cycle_t current_cycle;
 
 typedef struct event_t event_t;
 struct event_t {
 	cycle_t at_cycle;
-	void (*dispatch)(void);
+	event_delegate delegate;
+	void *delegate_data;
 	_Bool queued;
 	event_t **list;
 	event_t *next;
@@ -25,11 +28,11 @@ struct event_t {
 		event_t *e = list; \
 		list = list->next; \
 		e->queued = 0; \
-		e->dispatch(); \
+		e->delegate(e->delegate_data); \
 	} while (0)
 
-event_t *event_new(void);
-void event_init(event_t *event);  /* for static declarations */
+event_t *event_new(event_delegate delegate, void *delegate_data);
+void event_init(event_t *event, event_delegate delegate, void *delegate_data);
 
 void event_free(event_t *event);
 void event_queue(event_t **list, event_t *event);

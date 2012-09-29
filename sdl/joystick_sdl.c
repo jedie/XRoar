@@ -83,7 +83,7 @@ static struct {
 };
 
 static event_t *poll_event;
-static void do_poll(void);
+static void do_poll(void *);
 
 static struct joy *find_joy(int joy_num) {
 	SDL_Joystick *j;
@@ -156,12 +156,11 @@ static int init(void) {
 		return 1;
 	}
 
-	poll_event = event_new();
+	poll_event = event_new(do_poll, NULL);
 	if (poll_event == NULL) {
 		LOG_WARN("Couldn't create joystick polling event.\n");
 		return 1;
 	}
-	poll_event->dispatch = do_poll;
 
 	/* If only one joystick attached, change the right joystick defaults */
 	if (num_sdl_joysticks == 1) {
@@ -223,7 +222,8 @@ static void shutdown(void) {
 	event_free(poll_event);
 }
 
-static void do_poll(void) {
+static void do_poll(void *data) {
+	(void)data;
 	int i;
 	SDL_JoystickUpdate();
 	/* Scan axes */

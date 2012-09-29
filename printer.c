@@ -38,7 +38,7 @@ static int busy;
 static event_t ack_clear_event;
 static int strobe_state;
 
-static void do_ack_clear(void);
+static void do_ack_clear(void *);
 static void set_busy(int state);
 static void open_stream(void);
 
@@ -46,8 +46,7 @@ void printer_init(void) {
 	stream = NULL;
 	stream_dest = NULL;
 	is_pipe = 0;
-	event_init(&ack_clear_event);
-	ack_clear_event.dispatch = do_ack_clear;
+	event_init(&ack_clear_event, do_ack_clear, NULL);
 	strobe_state = 0;
 }
 
@@ -131,7 +130,8 @@ static void open_stream(void) {
 	}
 }
 
-static void do_ack_clear(void) {
+static void do_ack_clear(void *data) {
+	(void)data;
 	PIA_SET_Cx1(PIA1.a);
 }
 

@@ -81,16 +81,14 @@ static uint8_t vram_g_data;
 static uint8_t vram_sg_data;
 
 static event_t hs_fall_event, hs_rise_event;
-static void do_hs_fall(void);
-static void do_hs_rise(void);
+static void do_hs_fall(void *);
+static void do_hs_rise(void *);
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
 void vdg_init(void) {
-	event_init(&hs_fall_event);
-	hs_fall_event.dispatch = do_hs_fall;
-	event_init(&hs_rise_event);
-	hs_rise_event.dispatch = do_hs_rise;
+	event_init(&hs_fall_event, do_hs_fall, NULL);
+	event_init(&hs_rise_event, do_hs_rise, NULL);
 }
 
 void vdg_reset(void) {
@@ -109,7 +107,8 @@ void vdg_reset(void) {
 	vram_remaining = is_32byte ? 32 : 16;
 }
 
-static void do_hs_fall(void) {
+static void do_hs_fall(void *data) {
+	(void)data;
 	/* Finish rendering previous scanline */
 	if (frame == 0 && (scanline == VDG_TOP_BORDER_START || scanline == VDG_ACTIVE_AREA_END))
 		memset(pixel_data, border_colour, 372);
@@ -175,7 +174,8 @@ static void do_hs_fall(void) {
 
 }
 
-static void do_hs_rise(void) {
+static void do_hs_rise(void *data) {
+	(void)data;
 	/* HS rising edge */
 	PIA_SET_Cx1(PIA0.a);
 }

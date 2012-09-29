@@ -62,7 +62,7 @@ static struct cart_config *rom_cart_config = NULL;
 static void rom_configure(struct cart *c, struct cart_config *cc);
 
 static event_t *firq_event;
-static void do_firq(void);
+static void do_firq(void *);
 
 /**************************************************************************/
 
@@ -242,8 +242,7 @@ void cart_configure(struct cart *c, struct cart_config *cc) {
 /* Routines specific to ROM carts */
 
 static void attach_rom(void) {
-	firq_event = event_new();
-	firq_event->dispatch = do_firq;
+	firq_event = event_new(do_firq, NULL);
 	firq_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
 	event_queue(&MACHINE_EVENT_LIST, firq_event);
 }
@@ -263,7 +262,8 @@ static void rom_configure(struct cart *c, struct cart_config *cc) {
 	}
 }
 
-static void do_firq(void) {
+static void do_firq(void *data) {
+	(void)data;
 	PIA_SET_Cx1(PIA1.b);
 	firq_event->at_cycle = current_cycle + (OSCILLATOR_RATE/10);
 	event_queue(&MACHINE_EVENT_LIST, firq_event);

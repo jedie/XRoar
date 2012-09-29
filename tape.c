@@ -43,9 +43,9 @@ static unsigned int motor;
 struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
 
-static void waggle_bit(void);
+static void waggle_bit(void *);
 static event_t waggle_event;
-static void flush_output(void);
+static void flush_output(void *);
 static event_t flush_event;
 
 static int tape_fast = 0;
@@ -229,10 +229,8 @@ void tape_free(struct tape *t) {
 
 void tape_init(void) {
 	tape_audio = 0;
-	event_init(&waggle_event);
-	waggle_event.dispatch = waggle_bit;
-	event_init(&flush_event);
-	flush_event.dispatch = flush_output;
+	event_init(&waggle_event, waggle_bit, NULL);
+	event_init(&flush_event, flush_output, NULL);
 }
 
 void tape_reset(void) {
@@ -382,7 +380,7 @@ void tape_update_motor(void) {
 			/* If motor turned on and tape file attached,
 			 * enable the tape input bit waggler */
 			waggle_event.at_cycle = current_cycle;
-			waggle_bit();
+			waggle_bit(NULL);
 		}
 		if (tape_output && !flush_event.queued) {
 			flush_event.at_cycle = current_cycle + OSCILLATOR_RATE / 2;
@@ -415,7 +413,8 @@ void tape_update_output(void) {
 }
 
 /* Read pulse & duration, schedule next read */
-static void waggle_bit(void) {
+static void waggle_bit(void *data) {
+	(void)data;
 	in_pulse = tape_pulse_in(tape_input, &in_pulse_width);
 	switch (in_pulse) {
 	default:
@@ -440,7 +439,8 @@ static void waggle_bit(void) {
 
 /* ensure any "pulse" over 1/2 second long is flushed to output, so it doesn't
  * overflow any counters */
-static void flush_output(void) {
+static void flush_output(void *data) {
+	(void)data;
 	tape_update_output();
 	if (motor) {
 		flush_event.at_cycle += OSCILLATOR_RATE / 2;

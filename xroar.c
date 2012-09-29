@@ -276,7 +276,7 @@ event_t *xroar_ui_events = NULL;
 event_t *xroar_machine_events = NULL;
 
 static event_t load_file_event;
-static void do_load_file(void);
+static void do_load_file(void *);
 static char *load_file = NULL;
 static int load_file_type = FILETYPE_UNKNOWN;
 static int autorun_loaded_file = 0;
@@ -755,8 +755,7 @@ int xroar_init(int argc, char **argv) {
 		/* delay loading everything else by 2s */
 		default:
 			/* For everything else, defer loading the file */
-			event_init(&load_file_event);
-			load_file_event.dispatch = do_load_file;
+			event_init(&load_file_event, do_load_file, NULL);
 			load_file_event.at_cycle = current_cycle + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 			break;
@@ -935,7 +934,8 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 	return ret;
 }
 
-static void do_load_file(void) {
+static void do_load_file(void *data) {
+	(void)data;
 	xroar_load_file_by_type(load_file, autorun_loaded_file);
 }
 

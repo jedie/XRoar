@@ -91,7 +91,7 @@ static struct {
 };
 
 static event_t *poll_event = NULL;
-static void do_poll(void);
+static void do_poll(void *);
 
 static int open_joystick(int device_num) {
 	char buf[33];
@@ -186,12 +186,11 @@ static int init(void) {
 		return 1;
 	}
 
-	poll_event = event_new();
+	poll_event = event_new(do_poll, NULL);
 	if (poll_event == NULL) {
 		LOG_WARN("Couldn't create joystick polling event.\n");
 		return 1;
 	}
-	poll_event->dispatch = do_poll;
 
 	/* If only one joystick attached, change the right joystick defaults */
 	if (num_joystick_devices == 1) {
@@ -255,10 +254,11 @@ static void shutdown(void) {
 	}
 }
 
-static void do_poll(void) {
+static void do_poll(void *data) {
 	struct js_event e;
 	int i, j;
 
+	(void)data;
 	/* Scan joysticks */
 	for (j = 0; j < num_joys; j++) {
 		while (read(joy[j].fd, &e, sizeof(struct js_event)) == sizeof(struct js_event)) {

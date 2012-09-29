@@ -52,7 +52,7 @@ static int cycles_per_sample;
 static int cycles_per_frame;
 static int volume;
 
-static void flush_frame(void);
+static void flush_frame(void *);
 static event_t flush_event;
 
 void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
@@ -131,8 +131,7 @@ void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 
 	sound_silence();
 
-	event_init(&flush_event);
-	flush_event.dispatch = flush_frame;
+	event_init(&flush_event, flush_frame, NULL);
 	flush_event.at_cycle = current_cycle + cycles_per_frame;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
 
@@ -267,7 +266,8 @@ void sound_render_silence(void *buf, int samples) {
 	}
 }
 
-static void flush_frame(void) {
+static void flush_frame(void *data) {
+	(void)data;
 	sound_update();
 	flush_event.at_cycle += cycles_per_frame;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);

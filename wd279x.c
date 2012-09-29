@@ -132,7 +132,7 @@ enum WD279X_state {
 	write_track_state_3
 };
 
-static void state_machine(void);
+static void state_machine(void *fdc);
 static event_t state_event;
 static enum WD279X_state state;
 
@@ -185,8 +185,7 @@ void wd279x_init(void) {
 	wd279x_reset_drq_handler = NULL;
 	wd279x_set_intrq_handler = NULL;
 	wd279x_reset_intrq_handler = NULL;
-	event_init(&state_event);
-	state_event.dispatch = state_machine;
+	event_init(&state_event, state_machine, NULL);
 }
 
 void wd279x_reset(void) {
@@ -273,7 +272,7 @@ void wd279x_write(uint16_t A, uint8_t D) {
 				return;
 			}
 			state = accept_command;
-			state_machine();
+			state_machine(NULL);
 			break;
 		case 1:
 			track_register = D;
@@ -291,7 +290,8 @@ void wd279x_write(uint16_t A, uint8_t D) {
 /* One big state machine.  This is called from an event dispatch and from the
  * write command function. */
 
-static void state_machine(void) {
+static void state_machine(void *fdc) {
+	(void)fdc;
 	uint8_t *idam;
 	uint8_t data;
 	int i;
