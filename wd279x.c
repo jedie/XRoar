@@ -104,7 +104,7 @@ void (*wd279x_set_intrq_handler)(void);
 void (*wd279x_reset_intrq_handler)(void);
 
 /* FDC states: */
-enum wd279x_state {
+enum WD279X_state {
 	accept_command,
 	type_1_state_1,
 	type_1_state_2,
@@ -134,7 +134,7 @@ enum wd279x_state {
 
 static void state_machine(void);
 static event_t state_event;
-static enum wd279x_state state;
+static enum WD279X_state state;
 
 /* WD279X registers */
 static uint8_t status_register;
