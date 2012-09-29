@@ -8,22 +8,22 @@
 
 struct vdisk;
 
-typedef struct {
+struct module {
 	const char *name;
 	const char *description;
 	int (*init)(void);
 	_Bool initialised;
 	void (*shutdown)(void);
-} Module_Common;
+};
 
 typedef struct {
-	Module_Common common;
+	struct module common;
 	char *(*load_filename)(const char **extensions);
 	char *(*save_filename)(const char **extensions);
 } FileReqModule;
 
 typedef struct {
-	Module_Common common;
+	struct module common;
 	void (*update_palette)(void);
 	void (*resize)(unsigned int w, unsigned int h);
 	int (*set_fullscreen)(_Bool fullscreen);
@@ -34,21 +34,21 @@ typedef struct {
 } VideoModule;
 
 typedef struct {
-	Module_Common common;
+	struct module common;
 	void (*flush_frame)(void *buffer);
 } SoundModule;
 
 typedef struct {
-	Module_Common common;
+	struct module common;
 	void (*update_kbd_translate)(void);
 } KeyboardModule;
 
 typedef struct {
-	Module_Common common;
+	struct module common;
 } JoystickModule;
 
 typedef struct {
-	Module_Common common;
+	struct module common;
 	FileReqModule **filereq_module_list;
 	VideoModule **video_module_list;
 	SoundModule **sound_module_list;
@@ -68,16 +68,6 @@ typedef struct {
 	void (*update_drive_write_back)(int drive, int write_back);
 } UIModule;
 
-typedef union {
-	Module_Common common;
-	UIModule ui;
-	FileReqModule filereq;
-	VideoModule video;
-	SoundModule sound;
-	KeyboardModule keyboard;
-	JoystickModule joystick;
-} Module;
-
 extern UIModule **ui_module_list;
 extern UIModule *ui_module;
 extern FileReqModule **filereq_module_list;
@@ -91,11 +81,11 @@ extern KeyboardModule *keyboard_module;
 extern JoystickModule **joystick_module_list;
 extern JoystickModule *joystick_module;
 
-void module_print_list(Module **list);
-Module *module_select(Module **list, const char *name);
-Module *module_select_by_arg(Module **list, const char *name);
-Module *module_init(Module *module);
-Module *module_init_from_list(Module **list, Module *module);
-void module_shutdown(Module *module);
+void module_print_list(struct module **list);
+struct module *module_select(struct module **list, const char *name);
+struct module *module_select_by_arg(struct module **list, const char *name);
+struct module *module_init(struct module *module);
+struct module *module_init_from_list(struct module **list, struct module *module);
+void module_shutdown(struct module *module);
 
 #endif  /* XROAR_MODULE_H_ */

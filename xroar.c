@@ -609,7 +609,7 @@ int xroar_init(int argc, char **argv) {
 
 	/* Select a UI module then, possibly using lists specified in that
 	 * module, select all other modules */
-	ui_module = (UIModule *)module_select_by_arg((Module **)ui_module_list, opt_ui);
+	ui_module = (UIModule *)module_select_by_arg((struct module **)ui_module_list, opt_ui);
 	if (ui_module == NULL) {
 		LOG_DEBUG(0, "%s: ui module `%s' not found\n", argv[0], opt_ui);
 		exit(1);
@@ -617,15 +617,15 @@ int xroar_init(int argc, char **argv) {
 	/* Select file requester module */
 	if (ui_module->filereq_module_list != NULL)
 		filereq_module_list = ui_module->filereq_module_list;
-	filereq_module = (FileReqModule *)module_select_by_arg((Module **)filereq_module_list, opt_filereq);
+	filereq_module = (FileReqModule *)module_select_by_arg((struct module **)filereq_module_list, opt_filereq);
 	/* Select video module */
 	if (ui_module->video_module_list != NULL)
 		video_module_list = ui_module->video_module_list;
-	video_module = (VideoModule *)module_select_by_arg((Module **)video_module_list, opt_vo);
+	video_module = (VideoModule *)module_select_by_arg((struct module **)video_module_list, opt_vo);
 	/* Select sound module */
 	if (ui_module->sound_module_list != NULL)
 		sound_module_list = ui_module->sound_module_list;
-	sound_module = (SoundModule *)module_select_by_arg((Module **)sound_module_list, opt_ao);
+	sound_module = (SoundModule *)module_select_by_arg((struct module **)sound_module_list, opt_ao);
 	/* Select keyboard module */
 	if (ui_module->keyboard_module_list != NULL)
 		keyboard_module_list = ui_module->keyboard_module_list;
@@ -700,26 +700,26 @@ int xroar_init(int argc, char **argv) {
 	/* Initialise everything */
 	event_current_tick = 0;
 	/* ... modules */
-	module_init((Module *)ui_module);
-	filereq_module = (FileReqModule *)module_init_from_list((Module **)filereq_module_list, (Module *)filereq_module);
+	module_init((struct module *)ui_module);
+	filereq_module = (FileReqModule *)module_init_from_list((struct module **)filereq_module_list, (struct module *)filereq_module);
 	if (filereq_module == NULL && filereq_module_list != NULL) {
 		LOG_WARN("No file requester module initialised.\n");
 	}
-	video_module = (VideoModule *)module_init_from_list((Module **)video_module_list, (Module *)video_module);
+	video_module = (VideoModule *)module_init_from_list((struct module **)video_module_list, (struct module *)video_module);
 	if (video_module == NULL && video_module_list != NULL) {
 		LOG_ERROR("No video module initialised.\n");
 		return 1;
 	}
-	sound_module = (SoundModule *)module_init_from_list((Module **)sound_module_list, (Module *)sound_module);
+	sound_module = (SoundModule *)module_init_from_list((struct module **)sound_module_list, (struct module *)sound_module);
 	if (sound_module == NULL && sound_module_list != NULL) {
 		LOG_ERROR("No sound module initialised.\n");
 		return 1;
 	}
-	keyboard_module = (KeyboardModule *)module_init_from_list((Module **)keyboard_module_list, (Module *)keyboard_module);
+	keyboard_module = (KeyboardModule *)module_init_from_list((struct module **)keyboard_module_list, (struct module *)keyboard_module);
 	if (keyboard_module == NULL && keyboard_module_list != NULL) {
 		LOG_WARN("No keyboard module initialised.\n");
 	}
-	joystick_module = (JoystickModule *)module_init_from_list((Module **)joystick_module_list, (Module *)joystick_module);
+	joystick_module = (JoystickModule *)module_init_from_list((struct module **)joystick_module_list, (struct module *)joystick_module);
 	if (joystick_module == NULL && joystick_module_list != NULL) {
 		LOG_WARN("No joystick module initialised.\n");
 	}
@@ -791,12 +791,12 @@ int xroar_init(int argc, char **argv) {
 
 void xroar_shutdown(void) {
 	machine_shutdown();
-	module_shutdown((Module *)joystick_module);
-	module_shutdown((Module *)keyboard_module);
-	module_shutdown((Module *)sound_module);
-	module_shutdown((Module *)video_module);
-	module_shutdown((Module *)filereq_module);
-	module_shutdown((Module *)ui_module);
+	module_shutdown((struct module *)joystick_module);
+	module_shutdown((struct module *)keyboard_module);
+	module_shutdown((struct module *)sound_module);
+	module_shutdown((struct module *)video_module);
+	module_shutdown((struct module *)filereq_module);
+	module_shutdown((struct module *)ui_module);
 }
 
 static void alloc_cart_status(void) {

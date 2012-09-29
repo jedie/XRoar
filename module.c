@@ -149,29 +149,29 @@ KeyboardModule *keyboard_module = NULL;
 JoystickModule **joystick_module_list = default_joystick_module_list;
 JoystickModule *joystick_module = NULL;
 
-void module_print_list(Module **list) {
+void module_print_list(struct module **list) {
 	int i;
-	if (list == NULL || list[0]->common.name == NULL) {
+	if (list == NULL || list[0]->name == NULL) {
 		puts("\tNone found.");
 		return;
 	}
 	for (i = 0; list[i]; i++) {
-		printf("\t%-10s %s\n", list[i]->common.name, list[i]->common.description);
+		printf("\t%-10s %s\n", list[i]->name, list[i]->description);
 	}
 }
 
-Module *module_select(Module **list, const char *name) {
+struct module *module_select(struct module **list, const char *name) {
 	int i;
 	if (list == NULL)
 		return NULL;
 	for (i = 0; list[i]; i++) {
-		if (!strcmp(list[i]->common.name, name))
+		if (!strcmp(list[i]->name, name))
 			return list[i];
 	}
 	return NULL;
 }
 
-Module *module_select_by_arg(Module **list, const char *name) {
+struct module *module_select_by_arg(struct module **list, const char *name) {
 	if (name == NULL)
 		return list[0];
 	if (0 == strcmp(name, "help")) {
@@ -181,24 +181,24 @@ Module *module_select_by_arg(Module **list, const char *name) {
 	return module_select(list, name);
 }
 
-Module *module_init(Module *module) {
+struct module *module_init(struct module *module) {
 	if (!module)
 		return NULL;
-	int have_description = (module->common.description != NULL);
+	int have_description = (module->description != NULL);
 	if (have_description) {
-		LOG_DEBUG(2, "Module init: %s\n", module->common.description);
+		LOG_DEBUG(2, "Module init: %s\n", module->description);
 	}
-	if (!module->common.init || module->common.init() == 0) {
-		module->common.initialised = 1;
+	if (!module->init || module->init() == 0) {
+		module->initialised = 1;
 		return module;
 	}
 	if (have_description) {
-		LOG_DEBUG(2, "Module init failed: %s\n", module->common.description);
+		LOG_DEBUG(2, "Module init failed: %s\n", module->description);
 	}
 	return NULL;
 }
 
-Module *module_init_from_list(Module **list, Module *module) {
+struct module *module_init_from_list(struct module **list, struct module *module) {
 	int i;
 	/* First attempt to initialise selected module (if given) */
 	if (module_init(module))
@@ -213,12 +213,12 @@ Module *module_init_from_list(Module **list, Module *module) {
 	return NULL;
 }
 
-void module_shutdown(Module *module) {
-	if (!module || !module->common.initialised)
+void module_shutdown(struct module *module) {
+	if (!module || !module->initialised)
 		return;
-	if (module->common.description) {
-		LOG_DEBUG(2, "Module shutdown: %s\n", module->common.description);
+	if (module->description) {
+		LOG_DEBUG(2, "Module shutdown: %s\n", module->description);
 	}
-	if (module->common.shutdown)
-		module->common.shutdown();
+	if (module->shutdown)
+		module->shutdown();
 }
