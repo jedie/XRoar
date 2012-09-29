@@ -21,10 +21,7 @@
 #include <stdlib.h>
 
 #include "types.h"
-
-#include "machine.h"
 #include "sam.h"
-#include "xroar.h"
 
 /* Constants for tracking VDG address counter */
 static int vdg_mod_xdivs[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
