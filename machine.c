@@ -355,7 +355,6 @@ void machine_init(void) {
 #ifndef FAST_SOUND
 	machine_select_fast_sound(xroar_fast_sound);
 #endif
-	wd279x_init();
 	vdrive_init();
 	m6809_init();
 	vdg_init();

@@ -38,12 +38,15 @@
 static uint8_t io_read(uint16_t A);
 static void io_write(uint16_t A, uint8_t D);
 static void reset(void);
+static void detach(void);
 
 /* Latch that's part of the Delta cart: */
 static int ic1_old;
 static int ic1_drive_select;
 static int ic1_side_select;
 static int ic1_density;
+
+static WD279X *fdc;
 
 static void ff44_write(uint8_t octet);
 
@@ -52,16 +55,12 @@ void deltados_configure(struct cart *c, struct cart_config *cc) {
 	c->io_read = io_read;
 	c->io_write = io_write;
 	c->reset = reset;
-	c->detach = NULL;
-	wd279x_type = WD2791;
-	wd279x_set_drq_handler     = NULL;
-	wd279x_reset_drq_handler   = NULL;
-	wd279x_set_intrq_handler   = NULL;
-	wd279x_reset_intrq_handler = NULL;
+	c->detach = detach;
+	fdc = wd279x_new(WD2791);
 }
 
 static void reset(void) {
-	wd279x_reset();
+	wd279x_reset(fdc);
 	ic1_old = 0xff;
 	ic1_drive_select = 0xff;
 	ic1_side_select  = 0xff;
@@ -69,13 +68,18 @@ static void reset(void) {
 	ff44_write(0);
 }
 
+static void detach(void) {
+	wd279x_free(fdc);
+	fdc = NULL;
+}
+
 static uint8_t io_read(uint16_t A) {
-	if ((A & 4) == 0) return wd279x_read(A);
+	if ((A & 4) == 0) return wd279x_read(fdc, A);
 	return 0x7e;
 }
 
 static void io_write(uint16_t A, uint8_t D) {
-	if ((A & 4) == 0) wd279x_write(A, D);
+	if ((A & 4) == 0) wd279x_write(fdc, A, D);
 	if (A & 4) ff44_write(D);
 }
 
@@ -100,5 +104,5 @@ static void ff44_write(uint8_t octet) {
 	ic1_side_select = octet & 0x04;
 	vdrive_set_side(ic1_side_select ? 1 : 0);
 	ic1_density = !(octet & 0x08);
-	wd279x_set_dden(!ic1_density);
+	wd279x_set_dden(fdc, !ic1_density);
 }

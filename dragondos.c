@@ -54,6 +54,8 @@ static int ic1_precomp_enable;
 static int ic1_density;
 static int ic1_nmi_enable;
 
+static WD279X *fdc;
+
 static void ff48_write(int octet);
 
 void dragondos_configure(struct cart *c, struct cart_config *cc) {
@@ -62,15 +64,15 @@ void dragondos_configure(struct cart *c, struct cart_config *cc) {
 	c->io_write = io_write;
 	c->reset = reset;
 	c->detach = detach;
-	wd279x_type = WD2797;
-	wd279x_set_drq_handler     = set_drq_handler;
-	wd279x_reset_drq_handler   = reset_drq_handler;
-	wd279x_set_intrq_handler   = set_intrq_handler;
-	wd279x_reset_intrq_handler = reset_intrq_handler;
+	fdc = wd279x_new(WD2797);
+	fdc->set_drq_handler     = set_drq_handler;
+	fdc->reset_drq_handler   = reset_drq_handler;
+	fdc->set_intrq_handler   = set_intrq_handler;
+	fdc->reset_intrq_handler = reset_intrq_handler;
 }
 
 static void reset(void) {
-	wd279x_reset();
+	wd279x_reset(fdc);
 	ic1_old = 0xff;
 	ic1_drive_select = 0xff;
 	ic1_motor_enable = 0xff;
@@ -81,15 +83,17 @@ static void reset(void) {
 }
 
 static void detach(void) {
+	wd279x_free(fdc);
+	fdc = NULL;
 }
 
 static uint8_t io_read(uint16_t A) {
-	if ((A & 0xc) == 0) return wd279x_read(A);
+	if ((A & 0xc) == 0) return wd279x_read(fdc, A);
 	return 0x7e;
 }
 
 static void io_write(uint16_t A, uint8_t D) {
-	if ((A & 0xc) == 0) wd279x_write(A, D);
+	if ((A & 0xc) == 0) wd279x_write(fdc, A, D);
 	if (A & 8) ff48_write(D);
 }
 
@@ -119,7 +123,7 @@ static void ff48_write(int octet) {
 	vdrive_set_drive(ic1_drive_select);
 	ic1_motor_enable = octet & 0x04;
 	ic1_density = octet & 0x08;
-	wd279x_set_dden(!ic1_density);
+	wd279x_set_dden(fdc, !ic1_density);
 	ic1_precomp_enable = octet & 0x10;
 	ic1_nmi_enable = octet & 0x20;
 }
