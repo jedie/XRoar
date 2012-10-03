@@ -726,6 +726,7 @@ if test "$_build_sdl" \!= "no"; then
 	test -z "$build_sdl_ldflags" && build_sdl_ldflags=`$build_pkg_config --libs sdl 2> /dev/null`
 	cat > $TMPC <<EOF
 #include <SDL.h>
+#include <SDL_syswm.h>
 int main(int argc, char **argv) { SDL_Init(0); return 0; }
 EOF
 	_build_sdl=no
@@ -962,6 +963,7 @@ if test "$_sdl" \!= "no"; then
 	test -z "$sdl_ldflags" && sdl_ldflags=`$target_pkg_config --libs sdl 2> /dev/null`
 	cat > $TMPC <<EOF
 #include <SDL.h>
+#include <SDL_syswm.h>
 int main(int argc, char **argv) { SDL_Init(0); return 0; }
 EOF
 	_sdl=no
