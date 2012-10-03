@@ -9,12 +9,10 @@
 #define XROAR_VDRIVE_H_
 
 #include "types.h"
-#include "vdisk.h"
+
+struct vdisk;
 
 #define VDRIVE_MAX_DRIVES (4)
-
-#define VDRIVE_MOTOR_OFF (0)
-#define VDRIVE_MOTOR_ON  (1)
 
 extern int vdrive_ready;
 extern int vdrive_tr00;

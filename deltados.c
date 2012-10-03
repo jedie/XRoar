@@ -43,8 +43,8 @@ static void detach(void);
 /* Latch that's part of the Delta cart: */
 static int ic1_old;
 static int ic1_drive_select;
-static int ic1_side_select;
-static int ic1_density;
+static _Bool ic1_side_select;
+static _Bool ic1_density;
 
 static WD279X *fdc;
 
@@ -61,10 +61,8 @@ void deltados_configure(struct cart *c, struct cart_config *cc) {
 
 static void reset(void) {
 	wd279x_reset(fdc);
-	ic1_old = 0xff;
-	ic1_drive_select = 0xff;
-	ic1_side_select  = 0xff;
-	ic1_density      = 0xff;
+	ic1_old = -1;
+	ic1_drive_select = -1;
 	ff44_write(0);
 }
 

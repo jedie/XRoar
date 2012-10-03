@@ -49,10 +49,10 @@ static void reset_intrq_handler(void);
 /* Latch that's part of the DragonDOS cart: */
 static int ic1_old;
 static int ic1_drive_select;
-static int ic1_motor_enable;
-static int ic1_precomp_enable;
-static int ic1_density;
-static int ic1_nmi_enable;
+static _Bool ic1_motor_enable;
+static _Bool ic1_precomp_enable;
+static _Bool ic1_density;
+static _Bool ic1_nmi_enable;
 
 static WD279X *fdc;
 
@@ -74,11 +74,6 @@ void dragondos_configure(struct cart *c, struct cart_config *cc) {
 static void reset(void) {
 	wd279x_reset(fdc);
 	ic1_old = 0xff;
-	ic1_drive_select = 0xff;
-	ic1_motor_enable = 0xff;
-	ic1_precomp_enable = 0xff;
-	ic1_density = 0xff;
-	ic1_nmi_enable = 0xff;
 	ff48_write(0);
 }
 

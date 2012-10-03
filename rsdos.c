@@ -48,10 +48,10 @@ static void reset_intrq_handler(void);
 /* Latch that's part of the RSDOS cart: */
 static int ic1_old;
 static int ic1_drive_select;
-static int ic1_density;
-static int drq_flag;
-static int intrq_flag;
-static int halt_enable;
+static _Bool ic1_density;
+static _Bool drq_flag;
+static _Bool intrq_flag;
+static _Bool halt_enable;
 
 static WD279X *fdc;
 
@@ -72,10 +72,8 @@ void rsdos_configure(struct cart *c, struct cart_config *cc) {
 
 static void reset(void) {
 	wd279x_reset(fdc);
-	ic1_old = 0xff;
-	ic1_drive_select = 0xff;
-	ic1_density = 0xff;
-	halt_enable = 0xff;
+	ic1_old = -1;
+	ic1_drive_select = -1;
 	drq_flag = intrq_flag = 0;
 	ff40_write(0);
 }
