@@ -35,7 +35,7 @@ static FILE *stream;
 static char *stream_dest;
 static int is_pipe;
 static int busy;
-static event_t ack_clear_event;
+static struct event ack_clear_event;
 static int strobe_state;
 
 static void do_ack_clear(void *);

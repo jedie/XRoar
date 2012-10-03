@@ -53,7 +53,7 @@ static int cycles_per_frame;
 static int volume;
 
 static void flush_frame(void *);
-static event_t flush_event;
+static struct event flush_event;
 
 void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 	uint16_t test = 0x0123;

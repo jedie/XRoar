@@ -80,7 +80,7 @@ static int vram_idx = 0;
 static uint8_t vram_g_data;
 static uint8_t vram_sg_data;
 
-static event_t hs_fall_event, hs_rise_event;
+static struct event hs_fall_event, hs_rise_event;
 static void do_hs_fall(void *);
 static void do_hs_rise(void *);
 

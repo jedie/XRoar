@@ -27,13 +27,13 @@
 
 event_ticks event_current_tick = 0;
 
-event_t *event_new(event_delegate delegate, void *delegate_data) {
-	event_t *new = g_malloc(sizeof(event_t));
+struct event *event_new(event_delegate delegate, void *delegate_data) {
+	struct event *new = g_malloc(sizeof(struct event));
 	event_init(new, delegate, delegate_data);
 	return new;
 }
 
-void event_init(event_t *event, event_delegate delegate, void *delegate_data) {
+void event_init(struct event *event, event_delegate delegate, void *delegate_data) {
 	if (event == NULL) return;
 	event->at_tick = event_current_tick;
 	event->delegate = delegate;
@@ -43,13 +43,13 @@ void event_init(event_t *event, event_delegate delegate, void *delegate_data) {
 	event->next = NULL;
 }
 
-void event_free(event_t *event) {
+void event_free(struct event *event) {
 	event_dequeue(event);
 	g_free(event);
 }
 
-void event_queue(event_t **list, event_t *event) {
-	event_t **entry;
+void event_queue(struct event **list, struct event *event) {
+	struct event **entry;
 	if (event->queued)
 		event_dequeue(event);
 	event->list = list;
@@ -65,9 +65,9 @@ void event_queue(event_t **list, event_t *event) {
 	event->next = NULL;
 }
 
-void event_dequeue(event_t *event) {
-	event_t **list = event->list;
-	event_t **entry;
+void event_dequeue(struct event *event) {
+	struct event **list = event->list;
+	struct event **entry;
 	event->queued = 0;
 	if (list == NULL)
 		return;

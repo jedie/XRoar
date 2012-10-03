@@ -32,7 +32,7 @@ struct WD279X {
 
 	/* WD279X internal state */
 	int state;  /* from enum WD279X_state */
-	event_t state_event;
+	struct event state_event;
 	int direction;
 	int side;
 	int step_delay;

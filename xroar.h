@@ -7,9 +7,9 @@
 #define XROAR_XROAR_H_
 
 #include "types.h"
-#include "events.h"
 #include "xconfig.h"
 
+struct event;
 struct machine_config;
 struct cart_config;
 struct vdg_palette;
@@ -89,8 +89,8 @@ extern const char *xroar_rom_path;
 
 #define UI_EVENT_LIST xroar_ui_events
 #define MACHINE_EVENT_LIST xroar_machine_events
-extern event_t *xroar_ui_events;
-extern event_t *xroar_machine_events;
+extern struct event *xroar_ui_events;
+extern struct event *xroar_machine_events;
 
 extern struct machine_config *xroar_machine_config;
 extern struct cart_config *xroar_cart_config;

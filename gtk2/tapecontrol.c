@@ -37,7 +37,7 @@
 
 /* UI events */
 static void update_tape_counters(void *);
-static event_t update_tape_counters_event;
+static struct event update_tape_counters_event;
 
 /* Tape control widgets */
 static GtkWidget *tc_window = NULL;

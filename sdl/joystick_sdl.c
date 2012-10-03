@@ -82,7 +82,7 @@ static struct {
 	{ 0, 0, 0 }  /* Left firebutton */
 };
 
-static event_t *poll_event;
+static struct event *poll_event;
 static void do_poll(void *);
 
 static struct joy *find_joy(int joy_num) {

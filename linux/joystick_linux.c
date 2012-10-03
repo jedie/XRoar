@@ -90,7 +90,7 @@ static struct {
 	{ 0, 0, 0 }  /* Left firebutton */
 };
 
-static event_t *poll_event = NULL;
+static struct event *poll_event = NULL;
 static void do_poll(void *);
 
 static int open_joystick(int device_num) {

@@ -22,6 +22,7 @@
 #include <SDL.h>
 
 #include "types.h"
+#include "events.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"

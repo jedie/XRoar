@@ -272,10 +272,10 @@ struct vdg_palette *xroar_vdg_palette;
 const char *xroar_rom_path;
 const char *xroar_conf_path;
 
-event_t *xroar_ui_events = NULL;
-event_t *xroar_machine_events = NULL;
+struct event *xroar_ui_events = NULL;
+struct event *xroar_machine_events = NULL;
 
-static event_t load_file_event;
+static struct event load_file_event;
 static void do_load_file(void *);
 static char *load_file = NULL;
 static int load_file_type = FILETYPE_UNKNOWN;

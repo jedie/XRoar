@@ -59,8 +59,8 @@ static void update_signals(void);
 
 static event_ticks last_update_cycle;
 static event_ticks track_start_cycle;
-static event_t index_pulse_event;
-static event_t reset_index_pulse_event;
+static struct event index_pulse_event;
+static struct event reset_index_pulse_event;
 static void do_index_pulse(void *);
 static void do_reset_index_pulse(void *);
 

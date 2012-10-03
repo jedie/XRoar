@@ -44,9 +44,9 @@ struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
 
 static void waggle_bit(void *);
-static event_t waggle_event;
+static struct event waggle_event;
 static void flush_output(void *);
-static event_t flush_event;
+static struct event flush_event;
 
 static int tape_fast = 0;
 static int tape_pad = 0;

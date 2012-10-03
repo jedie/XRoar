@@ -16,14 +16,13 @@ extern event_ticks event_current_tick;
 
 typedef void (*event_delegate)(void *);
 
-typedef struct event_t event_t;
-struct event_t {
+struct event {
 	event_ticks at_tick;
 	event_delegate delegate;
 	void *delegate_data;
 	_Bool queued;
-	event_t **list;
-	event_t *next;
+	struct event **list;
+	struct event *next;
 };
 
 #define event_exists(list) (list)
@@ -32,7 +31,7 @@ struct event_t {
 		(int)(event_current_tick - list->at_tick) >= 0)
 
 #define event_dispatch_next(list) do { \
-		event_t *e = list; \
+		struct event *e = list; \
 		list = list->next; \
 		e->queued = 0; \
 		e->delegate(e->delegate_data); \
@@ -43,11 +42,11 @@ struct event_t {
 			event_dispatch_next(list); \
 	} while (0)
 
-event_t *event_new(event_delegate delegate, void *delegate_data);
-void event_init(event_t *event, event_delegate delegate, void *delegate_data);
+struct event *event_new(event_delegate delegate, void *delegate_data);
+void event_init(struct event *event, event_delegate delegate, void *delegate_data);
 
-void event_free(event_t *event);
-void event_queue(event_t **list, event_t *event);
-void event_dequeue(event_t *event);
+void event_free(struct event *event);
+void event_queue(struct event **list, struct event *event);
+void event_dequeue(struct event *event);
 
 #endif  /* XROAR_EVENT_H_ */

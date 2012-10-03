@@ -61,7 +61,7 @@ static struct cart_config *rom_cart_config = NULL;
 
 static void rom_configure(struct cart *c, struct cart_config *cc);
 
-static event_t *firq_event;
+static struct event *firq_event;
 static void do_firq(void *);
 
 /**************************************************************************/
