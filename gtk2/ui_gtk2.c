@@ -61,7 +61,7 @@ static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void cart_changed_cb(int cart_index);
 static void keymap_changed_cb(int map);
-static void fast_sound_changed_cb(int fast);
+static void fast_sound_changed_cb(_Bool fast);
 
 UIModule ui_gtk2_module = {
 	.common = { .name = "gtk2", .description = "GTK+-2 UI",
@@ -103,8 +103,8 @@ static gboolean hide_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data);
 
 /* UI-specific callbacks */
-static void fullscreen_changed_cb(int fullscreen);
-static void kbd_translate_changed_cb(int kbd_translate);
+static void fullscreen_changed_cb(_Bool fullscreen);
+static void kbd_translate_changed_cb(_Bool kbd_translate);
 
 static gboolean run_cpu(gpointer data);
 
@@ -632,9 +632,9 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 
 /* View callbacks */
 
-static void fullscreen_changed_cb(int fullscreen) {
+static void fullscreen_changed_cb(_Bool fullscreen) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/FullScreen");
-	gtk_toggle_action_set_active(toggle, fullscreen);
+	gtk_toggle_action_set_active(toggle, fullscreen ? TRUE : FALSE);
 }
 
 static void cross_colour_changed_cb(int cc) {
@@ -661,14 +661,14 @@ static void keymap_changed_cb(int map) {
 
 /* Tool callbacks */
 
-static void kbd_translate_changed_cb(int kbd_translate) {
+static void kbd_translate_changed_cb(_Bool kbd_translate) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ToolMenu/TranslateKeyboard");
-	gtk_toggle_action_set_active(toggle, kbd_translate);
+	gtk_toggle_action_set_active(toggle, kbd_translate ? TRUE : FALSE);
 }
 
-static void fast_sound_changed_cb(int fast) {
+static void fast_sound_changed_cb(_Bool fast) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ToolMenu/FastSound");
-	gtk_toggle_action_set_active(toggle, fast);
+	gtk_toggle_action_set_active(toggle, fast ? TRUE : FALSE);
 }
 
 static char *escape_underscores(const char *str) {

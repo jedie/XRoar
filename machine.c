@@ -730,7 +730,7 @@ void machine_op_rts(M6809State *cpu) {
 }
 
 #ifndef FAST_SOUND
-void machine_set_fast_sound(int fast) {
+void machine_set_fast_sound(_Bool fast) {
 	xroar_fast_sound = fast;
 	if (fast) {
 		PIA0.a.control_postwrite = NULL;
@@ -743,7 +743,7 @@ void machine_set_fast_sound(int fast) {
 	}
 }
 
-void machine_select_fast_sound(int fast) {
+void machine_select_fast_sound(_Bool fast) {
 	if (ui_module->fast_sound_changed_cb) {
 		ui_module->fast_sound_changed_cb(fast);
 	}

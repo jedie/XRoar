@@ -85,7 +85,7 @@ static int current_cartridge = 0;
 static int current_keymap = 0;
 static int is_fullscreen = 0;
 static int is_kbd_translate = 0;
-static int is_fast_sound = 0;
+static _Bool is_fast_sound = 0;
 
 /* Setting this to true is a massive hack so that cocoa file dialogues receive
  * keypresses.  Ideally, need to sort SDL out or turn this into a regular
@@ -600,9 +600,9 @@ static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void keymap_changed_cb(int map);
 static void cart_changed_cb(int cart_index);
-static void fullscreen_changed_cb(int fullscreen);
-static void kbd_translate_changed_cb(int kbd_translate);
-static void fast_sound_changed_cb(int fast_sound);
+static void fullscreen_changed_cb(_Bool fullscreen);
+static void kbd_translate_changed_cb(_Bool kbd_translate);
+static void fast_sound_changed_cb(_Bool fast_sound);
 
 static void update_machine_menu(void);
 static void update_cartridge_menu(void);
@@ -705,14 +705,14 @@ static void cart_changed_cb(int cart_index) {
 	current_cartridge = TAG_CARTRIDGE | (cart_index & TAG_VALUE_MASK);
 }
 
-static void fullscreen_changed_cb(int fullscreen) {
+static void fullscreen_changed_cb(_Bool fullscreen) {
 	is_fullscreen = fullscreen;
 }
 
-static void kbd_translate_changed_cb(int kbd_translate) {
+static void kbd_translate_changed_cb(_Bool kbd_translate) {
 	is_kbd_translate = kbd_translate;
 }
 
-static void fast_sound_changed_cb(int fast_sound) {
+static void fast_sound_changed_cb(_Bool fast_sound) {
 	is_fast_sound = fast_sound;
 }

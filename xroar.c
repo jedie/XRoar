@@ -103,13 +103,13 @@ int xroar_opt_ao_buffer_ms = 0;
 int xroar_opt_ao_buffer_samples = 0;
 static int xroar_opt_volume = 100;
 #ifndef FAST_SOUND
-int xroar_fast_sound = 0;
+_Bool xroar_fast_sound = 0;
 #endif
 _Bool xroar_opt_fullscreen = 0;
 int xroar_opt_ccr = CROSS_COLOUR_5BIT;
 int xroar_opt_frameskip = 0;
 char *xroar_opt_keymap = NULL;
-int xroar_kbd_translate = 0;
+_Bool xroar_kbd_translate = 0;
 char *xroar_opt_joy_left = NULL;
 char *xroar_opt_joy_right = NULL;
 static int xroar_opt_tape_fast = 1;
@@ -232,13 +232,13 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT("ao-buffer-samples", &xroar_opt_ao_buffer_samples),
 	XC_SET_INT("volume", &xroar_opt_volume),
 #ifndef FAST_SOUND
-	XC_SET_INT1("fast-sound", &xroar_fast_sound),
+	XC_SET_BOOL("fast-sound", &xroar_fast_sound),
 #endif
 	XC_SET_BOOL("fs", &xroar_opt_fullscreen),
 	XC_SET_ENUM("ccr", &xroar_opt_ccr, ccr_list),
 	XC_SET_INT("fskip", &xroar_opt_frameskip),
 	XC_SET_STRING("keymap", &xroar_opt_keymap),
-	XC_SET_INT1("kbd-translate", &xroar_kbd_translate),
+	XC_SET_BOOL("kbd-translate", &xroar_kbd_translate),
 	XC_SET_STRING("joy-left", &xroar_opt_joy_left),
 	XC_SET_STRING("joy-right", &xroar_opt_joy_right),
 	XC_SET_INT1("tape-fast", &xroar_opt_tape_fast),
@@ -260,7 +260,7 @@ static struct xconfig_option xroar_options[] = {
 /**************************************************************************/
 /* Global flags */
 
-int xroar_noratelimit = 0;
+_Bool xroar_noratelimit = 0;
 int xroar_frameskip = 0;
 
 struct machine_config *xroar_machine_config;
@@ -313,8 +313,8 @@ static struct {
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
-void (*xroar_fullscreen_changed_cb)(int fullscreen) = NULL;
-void (*xroar_kbd_translate_changed_cb)(int kbd_translate) = NULL;
+void (*xroar_fullscreen_changed_cb)(_Bool fullscreen) = NULL;
+void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate) = NULL;
 static void alloc_cart_status(void);
 static struct cart_config *get_machine_cart(void);
 static struct vdg_palette *get_machine_palette(void);
@@ -1088,7 +1088,7 @@ void xroar_fullscreen(int action) {
 	static int lock = 0;
 	if (lock) return;
 	lock = 1;
-	int set_to;
+	_Bool set_to;
 	switch (action) {
 		case XROAR_OFF:
 			set_to = 0;

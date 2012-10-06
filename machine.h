@@ -109,8 +109,8 @@ void machine_write_byte(uint16_t A, uint8_t D);
 /* simulate an RTS without otherwise affecting machine state */
 void machine_op_rts(M6809State *cpu);
 
-void machine_set_fast_sound(int fast);
-void machine_select_fast_sound(int fast);
+void machine_set_fast_sound(_Bool fast);
+void machine_select_fast_sound(_Bool fast);
 void machine_update_sound(void);
 
 void machine_insert_cart(struct cart_config *cc);

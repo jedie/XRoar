@@ -42,8 +42,8 @@ extern const char *xroar_tape_exts[];
 extern const char *xroar_snap_exts[];
 extern const char *xroar_cart_exts[];
 
-extern void (*xroar_fullscreen_changed_cb)(int fullscreen);
-extern void (*xroar_kbd_translate_changed_cb)(int kbd_translate);
+extern void (*xroar_fullscreen_changed_cb)(_Bool fullscreen);
+extern void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate);
 
 /**************************************************************************/
 /* Command line arguments */
@@ -61,12 +61,12 @@ extern int xroar_opt_ao_rate;
 extern int xroar_opt_ao_buffer_ms;
 extern int xroar_opt_ao_buffer_samples;
 #ifndef FAST_SOUND
-extern int xroar_fast_sound;
+extern _Bool xroar_fast_sound;
 #endif
 extern _Bool xroar_opt_fullscreen;
 extern int xroar_opt_frameskip;
 extern char *xroar_opt_keymap;
-extern int xroar_kbd_translate;
+extern _Bool xroar_kbd_translate;
 extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
 extern int xroar_trace_enabled;
@@ -82,7 +82,7 @@ extern struct xconfig_enum xroar_cross_colour_list[];
 #define CROSS_COLOUR_SIMPLE (0)
 #define CROSS_COLOUR_5BIT   (1)
 extern int xroar_opt_ccr;
-extern int xroar_noratelimit;
+extern _Bool xroar_noratelimit;
 extern int xroar_frameskip;
 
 extern const char *xroar_rom_path;
