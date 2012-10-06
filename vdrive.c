@@ -34,15 +34,15 @@
 #define MAX_TRACKS (256)
 
 struct drive_data {
-	int disk_present;
+	_Bool disk_present;
 	struct vdisk *disk;
 	unsigned int current_track;
 };
 
-int vdrive_ready;
-int vdrive_tr00;
-int vdrive_index_pulse;
-int vdrive_write_protect;
+_Bool vdrive_ready;
+_Bool vdrive_tr00;
+_Bool vdrive_index_pulse;
+_Bool vdrive_write_protect;
 void (*vdrive_update_drive_cyl_head)(int drive, int cyl, int head) = NULL;
 
 static struct drive_data drives[MAX_DRIVES], *current_drive;
@@ -120,29 +120,29 @@ struct vdisk *vdrive_disk_in_drive(int drive) {
 	return drives[drive].disk;
 }
 
-int vdrive_set_write_enable(int drive, int action) {
+_Bool vdrive_set_write_enable(int drive, int action) {
 	struct vdisk *disk = vdrive_disk_in_drive(drive);
 	if (!disk) return -1;
-	int new_we = (disk->write_protect == VDISK_WRITE_ENABLE);
+	_Bool new_we = !disk->write_protect;
 	if (action < 0) {
 		new_we = !new_we;
 	} else {
 		new_we = action ? 1 : 0;
 	}
-	disk->write_protect = new_we ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
+	disk->write_protect = !new_we;
 	return new_we;
 }
 
-int vdrive_set_write_back(int drive, int action) {
+_Bool vdrive_set_write_back(int drive, int action) {
 	struct vdisk *disk = vdrive_disk_in_drive(drive);
 	if (!disk) return -1;
-	int new_wb = (disk->file_write_protect == VDISK_WRITE_ENABLE);
+	_Bool new_wb = !disk->file_write_protect;
 	if (action < 0) {
 		new_wb = !new_wb;
 	} else {
 		new_wb = action ? 1 : 0;
 	}
-	disk->file_write_protect = new_wb ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
+	disk->file_write_protect = !new_wb;
 	return new_wb;
 }
 
@@ -169,12 +169,12 @@ void vdrive_set_dden(_Bool dden) {
 static void update_signals(void) {
 	assert(current_drive);
 	vdrive_ready = current_drive->disk_present;
-	vdrive_tr00 = (current_drive->current_track == 0) ? 1 : 0;
+	vdrive_tr00 = (current_drive->current_track == 0);
 	if (vdrive_update_drive_cyl_head) {
 		vdrive_update_drive_cyl_head(cur_drive_number, current_drive->current_track, cur_side);
 	}
 	if (!vdrive_ready) {
-		vdrive_write_protect = VDISK_WRITE_ENABLE;
+		vdrive_write_protect = 0;
 		track_base = NULL;
 		idamptr = NULL;
 		return;
@@ -363,8 +363,8 @@ uint8_t *vdrive_next_idam(void) {
 
 /* Returns 1 on active transition of index pulse */
 int vdrive_new_index_pulse(void) {
-	static int last_index_pulse = 0;
-	int last = last_index_pulse;
+	static _Bool last_index_pulse = 0;
+	_Bool last = last_index_pulse;
 	last_index_pulse = vdrive_index_pulse;
 	if (!last && vdrive_index_pulse)
 		return 1;

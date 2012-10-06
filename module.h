@@ -64,8 +64,8 @@ typedef struct {
 	void (*output_tape_filename_cb)(const char *filename);
 	void (*update_tape_state)(int flags);  /* flag bits from tape.h */
 	void (*update_drive_disk)(int drive, struct vdisk *disk);
-	void (*update_drive_write_enable)(int drive, int write_enable);
-	void (*update_drive_write_back)(int drive, int write_back);
+	void (*update_drive_write_enable)(int drive, _Bool write_enable);
+	void (*update_drive_write_back)(int drive, _Bool write_back);
 } UIModule;
 
 extern UIModule **ui_module_list;

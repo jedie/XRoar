@@ -70,7 +70,7 @@ extern int xroar_kbd_translate;
 extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
 extern int xroar_trace_enabled;
-extern int xroar_opt_disk_write_back;
+extern _Bool xroar_opt_disk_write_back;
 
 extern struct xconfig_enum xroar_cross_colour_list[];
 
@@ -111,9 +111,9 @@ void xroar_new_disk(int drive);
 void xroar_insert_disk_file(int drive, const char *filename);
 void xroar_insert_disk(int drive);
 void xroar_eject_disk(int drive);
-int xroar_set_write_enable(int drive, int action);
+_Bool xroar_set_write_enable(int drive, int action);
 void xroar_select_write_enable(int drive, int action);
-int xroar_set_write_back(int drive, int action);
+_Bool xroar_set_write_back(int drive, int action);
 void xroar_select_write_back(int drive, int action);
 void xroar_set_cross_colour(int action);
 void xroar_select_cross_colour(int action);

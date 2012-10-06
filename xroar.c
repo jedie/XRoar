@@ -121,7 +121,7 @@ int xroar_trace_enabled = 0;
 #else
 # define xroar_trace_enabled (0)
 #endif
-int xroar_opt_disk_write_back = 0;
+_Bool xroar_opt_disk_write_back = 1;
 
 static GSList *type_command_list = NULL;
 
@@ -246,7 +246,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("tape-pad-auto", &xroar_opt_tape_pad_auto),
 	XC_SET_INT1("tape-rewrite", &xroar_opt_tape_rewrite),
 	XC_SET_INT1("tapehack", &xroar_opt_tape_rewrite),
-	XC_SET_INT1("disk-write-back", &xroar_opt_disk_write_back),
+	XC_SET_BOOL0("disk-write-back", &xroar_opt_disk_write_back),
 #ifdef TRACE
 	XC_SET_INT1("trace", &xroar_trace_enabled),
 #endif
@@ -657,7 +657,6 @@ int xroar_init(int argc, char **argv) {
 	xroar_opt_tape_pad = (xroar_opt_tape_pad > 0) ? TAPE_PAD : 0;
 	xroar_opt_tape_pad_auto = xroar_opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
 	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
-	xroar_opt_disk_write_back = xroar_opt_disk_write_back ? VDISK_WRITE_ENABLE : VDISK_WRITE_PROTECT;
 
 	alloc_cart_status();
 
@@ -999,7 +998,7 @@ void xroar_new_disk(int drive) {
 	}
 	new_disk->filetype = filetype;
 	new_disk->filename = g_strdup(filename);
-	new_disk->file_write_protect = VDISK_WRITE_ENABLE;
+	new_disk->file_write_protect = 0;
 	vdrive_insert_disk(drive, new_disk);
 	if (ui_module && ui_module->update_drive_disk) {
 		ui_module->update_drive_disk(drive, new_disk);
@@ -1027,36 +1026,36 @@ void xroar_eject_disk(int drive) {
 	}
 }
 
-int xroar_set_write_enable(int drive, int action) {
-	int we = vdrive_set_write_enable(drive, action);
-	if (we > 0) {
+_Bool xroar_set_write_enable(int drive, int action) {
+	_Bool we = vdrive_set_write_enable(drive, action);
+	if (we) {
 		LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
-	} else if (we == 0) {
+	} else {
 		LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
 	}
 	return we;
 }
 
 void xroar_select_write_enable(int drive, int action) {
-	int we = xroar_set_write_enable(drive, action);
+	_Bool we = xroar_set_write_enable(drive, action);
 	if (ui_module && ui_module->update_drive_write_enable) {
 		ui_module->update_drive_write_enable(drive, we);
 	}
 }
 
-int xroar_set_write_back(int drive, int action) {
-	int wb = vdrive_set_write_back(drive, action);
-	if (wb > 0) {
+_Bool xroar_set_write_back(int drive, int action) {
+	_Bool wb = vdrive_set_write_back(drive, action);
+	if (wb) {
 		LOG_DEBUG(2, "Write back enabled for disk in drive %d.\n", drive);
-	} else if (wb == 0) {
+	} else {
 		LOG_DEBUG(2, "Write back disabled for disk in drive %d.\n", drive);
 	}
 	return wb;
 }
 
 void xroar_select_write_back(int drive, int action) {
-	int wb = xroar_set_write_back(drive, action);
-	if (wb >= 0 && ui_module && ui_module->update_drive_write_back) {
+	_Bool wb = xroar_set_write_back(drive, action);
+	if (ui_module && ui_module->update_drive_write_back) {
 		ui_module->update_drive_write_back(drive, wb);
 	}
 }

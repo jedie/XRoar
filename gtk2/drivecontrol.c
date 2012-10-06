@@ -183,19 +183,15 @@ static void dc_toggled_wb(GtkToggleButton *togglebutton, gpointer user_data) {
 
 /* Drive Control - UI callbacks */
 
-void gtk2_update_drive_write_enable(int drive, int write_enable) {
+void gtk2_update_drive_write_enable(int drive, _Bool write_enable) {
 	if (drive >= 0 && drive <= 3) {
-		if (write_enable >= 0) {
-			gtk_toggle_button_set_active(dc_we_drive[drive], write_enable ? TRUE : FALSE);
-		}
+		gtk_toggle_button_set_active(dc_we_drive[drive], write_enable ? TRUE : FALSE);
 	}
 }
 
-void gtk2_update_drive_write_back(int drive, int write_back) {
+void gtk2_update_drive_write_back(int drive, _Bool write_back) {
 	if (drive >= 0 && drive <= 3) {
-		if (write_back >= 0) {
-			gtk_toggle_button_set_active(dc_wb_drive[drive], write_back ? TRUE : FALSE);
-		}
+		gtk_toggle_button_set_active(dc_wb_drive[drive], write_back ? TRUE : FALSE);
 	}
 }
 
@@ -203,11 +199,11 @@ void gtk2_update_drive_disk(int drive, struct vdisk *disk) {
 	if (drive < 0 || drive > 3)
 		return;
 	char *filename = NULL;
-	int we = 1, wb = 0;
+	_Bool we = 1, wb = 0;
 	if (disk) {
 		filename = disk->filename;
-		we = (disk->write_protect == VDISK_WRITE_ENABLE);
-		wb = (disk->file_write_protect == VDISK_WRITE_ENABLE);
+		we = !disk->write_protect;
+		wb = !disk->file_write_protect;
 	}
 	gtk_label_set_text(GTK_LABEL(dc_filename_drive[drive]), filename);
 	gtk2_update_drive_write_enable(drive, we);

@@ -80,7 +80,7 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 	memset(new_track_data, 0, data_size);
 	new->filetype = FILETYPE_DMK;
 	new->filename = NULL;
-	new->file_write_protect = xroar_opt_disk_write_back;
+	new->file_write_protect = !xroar_opt_disk_write_back;
 	new->write_protect = 0;
 	new->num_sides = num_sides;
 	new->num_tracks = num_tracks;
@@ -116,8 +116,8 @@ int vdisk_save(struct vdisk *disk, int force) {
 	char *backup_filename;
 	int i;
 	if (disk == NULL) return 1;
-	if (!force && disk->file_write_protect != VDISK_WRITE_ENABLE) {
-		LOG_DEBUG(2, "Not saving disk file: file is write protected.\n");
+	if (!force && disk->file_write_protect) {
+		LOG_DEBUG(2, "Not saving disk file: write-back is disabled.\n");
 		return 0;
 	}
 	if (disk->filename == NULL) {
@@ -380,10 +380,10 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	LOG_DEBUG(2,"Loading DMK virtual disk: %dT %dH (%d-byte)\n", num_tracks, num_sides, track_length);
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = g_strdup(filename);
-	disk->file_write_protect = header[0] ? VDISK_WRITE_PROTECT : VDISK_WRITE_ENABLE;
-	if (header[11] == VDISK_WRITE_ENABLE
-			|| header[11] == VDISK_WRITE_PROTECT) {
-		disk->write_protect = header[11];
+	disk->file_write_protect = header[0] ? 1 : 0;
+	if (header[11] == 0
+			|| header[11] == 0xff) {
+		disk->write_protect = header[11] ? 1 : 0;
 	} else {
 		disk->write_protect = disk->file_write_protect;
 	}
@@ -413,14 +413,14 @@ static int vdisk_save_dmk(struct vdisk *disk) {
 		return -1;
 	LOG_DEBUG(2,"Writing DMK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
 	memset(header, 0, sizeof(header));
-	if (disk->file_write_protect != VDISK_WRITE_ENABLE)
+	if (disk->file_write_protect)
 		header[0] = 0xff;
 	header[1] = disk->num_tracks;
 	header[2] = disk->track_length & 0xff;
 	header[3] = (disk->track_length >> 8) & 0xff;
 	if (disk->num_sides == 1)
 		header[4] |= 0x10;
-	header[11] = disk->write_protect;
+	header[11] = disk->write_protect ? 0xff : 0;
 	fwrite(header, 16, 1, fd);
 	for (track = 0; track < disk->num_tracks; track++) {
 		for (side = 0; side < disk->num_sides; side++) {
