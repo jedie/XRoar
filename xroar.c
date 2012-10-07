@@ -1212,6 +1212,7 @@ void xroar_set_cart(int cart_index) {
 	int count = cart_config_count();
 
 	assert(xroar_machine_config != NULL);
+	alloc_cart_status();
 	mindex = xroar_machine_config->index;
 	assert(cart_status_list != NULL);
 	assert(mindex < cart_status_count);
