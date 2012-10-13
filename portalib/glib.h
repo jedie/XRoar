@@ -10,6 +10,7 @@
 #ifndef HAVE_GLIB2
 #include "portalib/glib/gmacros.h"
 #include "portalib/glib/gtypes.h"
+#include "portalib/glib/galloca.h"
 #include "portalib/glib/gmem.h"
 #include "portalib/glib/gstrfuncs.h"
 #include "portalib/glib/ghash.h"
