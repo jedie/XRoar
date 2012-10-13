@@ -135,7 +135,7 @@ int vdisk_save(struct vdisk *disk, int force) {
 	}
 	{
 		int bf_len = strlen(disk->filename) + 5;
-		backup_filename = g_try_malloc(bf_len);
+		backup_filename = g_alloca(bf_len);
 		/* Rename old file to filename.bak if that .bak file does not
 		 * already exist */
 		if (backup_filename != NULL) {
@@ -144,7 +144,6 @@ int vdisk_save(struct vdisk *disk, int force) {
 			if (stat(backup_filename, &statbuf) != 0) {
 				rename(disk->filename, backup_filename);
 			}
-			g_free(backup_filename);
 		}
 	}
 	return dispatch[i].save_func(disk);

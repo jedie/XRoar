@@ -99,7 +99,8 @@ static struct crclist *find_crclist(const char *name) {
 void crclist_assign(const char *astring) {
 	init_crclist_list();
 	if (!astring) return;
-	char *tmp = g_strdup(astring);
+	char *tmp = g_alloca(strlen(astring) + 1);
+	strcpy(tmp, astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;
 	struct crclist *new_list = new_crclist(name);
@@ -127,7 +128,6 @@ void crclist_assign(const char *astring) {
 	}
 	/* add new list to crclist_list */
 	crclist_list = g_slist_append(crclist_list, new_list);
-	g_free(tmp);
 }
 
 /* convert a string to integer and compare against CRC */

@@ -5,10 +5,9 @@
 #ifndef PORTALIB_GLIB_GALLOCA_H_
 #define PORTALIB_GLIB_GALLOCA_H_
 
-#ifdef _MSC_VER
+#ifdef WINDOWS32
 
 # include <malloc.h>
-# define alloca _alloca
 
 #else
 

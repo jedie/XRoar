@@ -146,7 +146,8 @@ struct cart_config *cart_config_by_name(const char *name) {
 			g_free(rom_cart_config->description);
 		}
 		/* Make up a description from filename */
-		char *tmp_name = g_strdup(name);
+		char *tmp_name = g_alloca(strlen(name) + 1);
+		strcpy(tmp_name, name);
 		char *bname = basename(tmp_name);
 		if (bname && *bname) {
 			char *sep;
@@ -164,7 +165,6 @@ struct cart_config *cart_config_by_name(const char *name) {
 		} else {
 			rom_cart_config->description = g_strdup("ROM cartridge");
 		}
-		g_free(tmp_name);
 		rom_cart_config->type = CART_ROM;
 		if (rom_cart_config->rom) g_free(rom_cart_config->rom);
 		rom_cart_config->rom = g_strdup(name);

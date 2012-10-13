@@ -118,12 +118,10 @@ static struct romlist *find_romlist(const char *name) {
 void romlist_assign(const char *astring) {
 	init_romlist_list();
 	if (!astring) return;
-	char *tmp = g_strdup(astring);
+	char *tmp = g_alloca(strlen(astring) + 1);
+	strcpy(tmp, astring);
 	char *name = strtok(tmp, "=");
-	if (!name) {
-		g_free(tmp);
-		return;
-	}
+	if (!name) return;
 	struct romlist *new_list = new_romlist(name);
 	/* find if there's an old list with this name */
 	struct romlist *old_list = find_romlist(name);
@@ -149,7 +147,6 @@ void romlist_assign(const char *astring) {
 	}
 	/* add new list to romlist_list */
 	romlist_list = g_slist_append(romlist_list, new_list);
-	g_free(tmp);
 }
 
 /* Find a ROM within ROMPATH */
@@ -158,14 +155,13 @@ static char *find_rom(const char *romname) {
 	char *path = NULL;
 	int i;
 	if (!romname) return NULL;
-	filename = g_malloc(strlen(romname) + 5);
+	filename = g_alloca(strlen(romname) + 5);
 	for (i = 0; i < NUM_ROM_EXTENSIONS; i++) {
 		strcpy(filename, romname);
 		strcat(filename, rom_extensions[i]);
 		path = find_in_path(xroar_rom_path, filename);
 		if (path) break;
 	}
-	g_free(filename);
 	return path;
 }
 
