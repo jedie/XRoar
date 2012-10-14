@@ -192,15 +192,14 @@ static unsigned int firq_cycle = 0, irq_cycle = 0;
  * from the data sheet (figure 14). */
 static enum m6809_cpu_state cpu_state;
 
-/* In theory, detect if this compiler will generate arithmetic shifts for
- * signed shifts right and use faster code if so. */
-#if ((-1>>1) == (-1))
-# define sex5(v) (((signed int)(v)<<((8*sizeof(signed int))-5)) >> ((8*sizeof(signed int))-5))
-# define sex(v) (((signed int)(v)<<((8*sizeof(signed int))-8)) >> ((8*sizeof(signed int))-8))
-#else
-# define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
-# define sex(v) ((int8_t)(v))
-#endif
+/* If right shifts of signed values are arithmetic, faster code can be used.
+ * These macros depend on the compiler optimising away the unused version. */
+#define sex5(v) ( ((-1>>1)==-1) ? \
+        (((signed int)(v)<<((8*sizeof(signed int))-5)) >> ((8*sizeof(signed int))-5)) : \
+        ((int)(((v) & 0x0f) - ((v) & 0x10))) )
+#define sex(v) ( ((-1>>1)==-1) ? \
+        (((signed int)(v)<<((8*sizeof(signed int))-8)) >> ((8*sizeof(signed int))-8)) : \
+        ((int8_t)(v)) )
 
 /* Dummy handlers */
 static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
