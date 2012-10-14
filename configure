@@ -46,6 +46,7 @@ System types:
   --target=TARGET   cross-compile to build programs to run on TARGET [BUILD]
 
 Optional Features:
+  --disable-glib2       don't test for GLib 2
   --disable-gtk2        don't test for GTK+-2
   --disable-gtkgl       don't test for GtkGLExt
   --disable-sdl         don't test for SDL
@@ -60,7 +61,6 @@ Optional Features:
   --disable-nullaudio   don't include null audio driver
   --disable-mingw       don't test for MinGW
   --disable-trace       disable trace mode
-  --enable-fast-vdg     enable faster but less accurate VDG code
   --enable-fast-sound   enable faster but less accurate sound code
 
   --with-sdl-config=PATH   set path to sdl-config script
@@ -661,6 +661,7 @@ if test "$_glib2" = "yes"; then
 	_glib2_def="#define HAVE_GLIB2"
 else
 	_glib2_def="#undef HAVE_GLIB2"
+	test -z "$_gtk2" && _gtk2=no
 fi
 
 ########
