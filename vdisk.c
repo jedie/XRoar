@@ -72,12 +72,11 @@ struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
 	if (new == NULL)
 		return NULL;
 	data_size = num_tracks * num_sides * track_length;
-	new_track_data = g_try_malloc(data_size);
+	new_track_data = g_try_malloc0(data_size);
 	if (new_track_data == NULL) {
 		g_free(new);
 		return NULL;
 	}
-	memset(new_track_data, 0, data_size);
 	new->filetype = FILETYPE_DMK;
 	new->filename = NULL;
 	new->file_write_protect = !xroar_opt_disk_write_back;
