@@ -67,20 +67,22 @@ static unsigned int screen_width, screen_height;
 static unsigned int window_width, window_height;
 static SDL_Rect dstrect;
 
-static Uint32 map_colour(int r, int g, int b) {
-	Uint32 colour;
-	uint8_t *d = (uint8_t *)&colour;
-	/* From SDL example code */
-	d[0] = d[2] = 0.299*r + 0.587*g + 0.114*b;
-	d[1] = (b-d[0])*0.565 + 128;
-	d[3] = (r-d[0])*0.713 + 128;
-	return colour;
-}
+static Uint32 map_colour(int r, int g, int b);
 
 #include "vo_generic_ops.c"
 
+/* The packed modes supported by SDL: */
+static Uint32 try_overlay_format[] = {
+	SDL_YUY2_OVERLAY,
+	SDL_UYVY_OVERLAY,
+	SDL_YVYU_OVERLAY,
+};
+#define NUM_OVERLAY_FORMATS ((int)(sizeof(try_overlay_format)/sizeof(Uint32)))
+static Uint32 overlay_format;
+
 static int init(void) {
 	const SDL_VideoInfo *video_info;
+	int i;
 
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
@@ -105,8 +107,28 @@ static int init(void) {
 
 	if (set_fullscreen(xroar_opt_fullscreen))
 		return 1;
-	overlay = SDL_CreateYUVOverlay(640, 240, SDL_YUY2_OVERLAY, screen);
-	if (overlay == NULL) {
+	Uint32 first_successful_format = 0;
+	for (i = 0; i < NUM_OVERLAY_FORMATS; i++) {
+		overlay_format = try_overlay_format[i];
+		overlay = SDL_CreateYUVOverlay(640, 240, overlay_format, screen);
+		if (!overlay) {
+			continue;
+		}
+		if (first_successful_format == 0) {
+			first_successful_format = overlay_format;
+		}
+		if (overlay->hw_overlay == 1) {
+			break;
+		}
+		SDL_FreeYUVOverlay(overlay);
+		overlay = NULL;
+	}
+	if (!overlay && first_successful_format != 0) {
+		/* Fall back to the first successful one, unaccelerated */
+		overlay_format = first_successful_format;
+		overlay = SDL_CreateYUVOverlay(640, 240, overlay_format, screen);
+	}
+	if (!overlay) {
 		LOG_ERROR("Failed to create SDL overlay for display: %s\n", SDL_GetError());
 		return 1;
 	}
@@ -133,6 +155,33 @@ static void shutdown(void) {
 	SDL_FreeYUVOverlay(overlay);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
+static Uint32 map_colour(int r, int g, int b) {
+	Uint32 colour;
+	uint8_t *d = (uint8_t *)&colour;
+	uint8_t y = 0.299*r + 0.587*g + 0.114*b;
+	uint8_t u = (b-y)*0.565 + 128;
+	uint8_t v = (r-y)*0.713 + 128;
+	switch (overlay_format) {
+	default:
+	case SDL_YUY2_OVERLAY:
+		d[0] = d[2] = y;
+		d[1] = u;
+		d[3] = v;
+		break;
+	case SDL_UYVY_OVERLAY:
+		d[1] = d[3] = y;
+		d[0] = u;
+		d[2] = v;
+		break;
+	case SDL_YVYU_OVERLAY:
+		d[0] = d[2] = y;
+		d[3] = u;
+		d[1] = v;
+		break;
+	}
+	return colour;
 }
 
 static void resize(unsigned int w, unsigned int h) {
