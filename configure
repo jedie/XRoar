@@ -426,6 +426,36 @@ echocheck () {
 
 ########
 
+# Figure out how to get C99 mode in target compiler
+
+__c99=no
+echocheck C99
+cat > $TMPC <<EOF
+#if __STDC_VERSION__ < 199901L
+#error No C99
+#endif
+// Throw a few C99 features around...
+static struct { int a; float b[]; } t = { .a = 1 };
+int main(int argc, char **argv) {
+	char tmp[argc]; (void)tmp;
+	for (int i = 0; i < 10; i++) ;
+	return 0;
+}
+EOF
+__std=""
+target_cc_check "" "" && __c99=yes
+if test "$__c99" = "no"; then
+	test -z "$__std" && target_cc_check "-std=c99" "" && __std=" -std=c99"
+	test -n "$__std" && __c99="$__std"
+fi
+rm -f $TMPC
+echo "$__c99"
+if test "$__c99" \!= "no"; then
+	TARGET_CC="$TARGET_CC$__std"
+fi
+
+########
+
 # Try and determine best optimisation if user has not specified any flags.
 
 unset TARGET_C_OPT
