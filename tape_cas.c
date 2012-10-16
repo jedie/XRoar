@@ -16,10 +16,13 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _POSIX_C_SOURCE 200112L
+
 #include "config.h"
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include "portalib/glib.h"
 
 #include "fs.h"
@@ -87,8 +90,22 @@ static struct tape *do_tape_cas_open(const char *filename, const char *mode,
 	struct tape *t;
 	struct tape_cas *cas;
 	FILE *fd;
+	int rfd;
+
 	if (!(fd = fopen(filename, mode)))
 		return NULL;
+
+	/* find file size, the safe way */
+	if ((rfd = fileno(fd)) == -1) {
+		fclose(fd);
+		return NULL;
+	}
+	struct stat stat_buf;
+	long size = 0;
+	if (fstat(rfd, &stat_buf) != -1) {
+		size = stat_buf.st_size;
+	}
+
 	t = tape_new();
 	t->module = &tape_cas_module;
 	cas = g_malloc(sizeof(struct tape_cas));
@@ -114,10 +131,9 @@ static struct tape *do_tape_cas_open(const char *filename, const char *mode,
 				nb = fs_read_uint8(cas->fd);
 			} while (nb == lb);
 		}
+		/* rewind to start */
+		fseek(cas->fd, 0, SEEK_SET);
 	}
-	/* find size */
-	fseek(cas->fd, 0, SEEK_END);
-	long size = ftell(cas->fd);
 	if (is_ascii) {
 		cas->ascii_blocks = size / 255;
 		cas->ascii_last_block_size = size % 255;
@@ -131,8 +147,6 @@ static struct tape *do_tape_cas_open(const char *filename, const char *mode,
 		/* 3 bits offset into byte, 1 bit pulse index */
 		t->size = size << 4;
 	}
-	/* rewind to start */
-	fseek(cas->fd, 0, SEEK_SET);
 	t->offset = 0;
 	return t;
 }
