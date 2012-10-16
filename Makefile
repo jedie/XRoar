@@ -571,8 +571,8 @@ clean:
 
 .PHONY: profile-clean
 profile-clean:
-	rm -f $(xroar_unix_ALL_OBJS:.o=.gcda)
-	rm -f $(xroar_unix_ALL_OBJS:.o=.gcno)
+	rm -f $(xroar_unix_ALL_OBJS:.o=.gcda) $(portalib_ALL_OBJS:.o=.gcda)
+	rm -f $(xroar_unix_ALL_OBJS:.o=.gcno) $(portalib_ALL_OBJS:.o=.gcno)
 
 .PHONY: distclean
 distclean: clean profile-clean
