@@ -74,7 +74,8 @@ void sdl_run(void) {
 				}
 				break;
 			case SDL_QUIT:
-				exit(0); break;
+				exit(EXIT_SUCCESS);
+				break;
 			case SDL_KEYDOWN:
 				sdl_keypress(&event.key.keysym);
 				break;

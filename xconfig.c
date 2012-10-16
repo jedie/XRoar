@@ -50,7 +50,7 @@ static int lookup_enum(const char *name, struct xconfig_enum *list) {
 		for (i = 0; list[i].name; i++) {
 			printf("\t%-10s %s\n", list[i].name, list[i].description);
 		}
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	return -1;
 }

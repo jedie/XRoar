@@ -176,7 +176,7 @@ struct module *module_select_by_arg(struct module **list, const char *name) {
 		return list[0];
 	if (0 == strcmp(name, "help")) {
 		module_print_list(list);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	return module_select(list, name);
 }

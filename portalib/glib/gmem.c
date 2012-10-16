@@ -33,7 +33,7 @@ gpointer g_malloc(gsize n_bytes) {
 	void *mem = g_try_malloc(n_bytes);
 	if (!mem) {
 		perror(NULL);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	return mem;
 }
@@ -48,7 +48,7 @@ gpointer g_realloc(gpointer mem, gsize n_bytes) {
 	void *new_mem = g_try_realloc(mem, n_bytes);
 	if (!new_mem && n_bytes != 0) {
 		perror(NULL);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	return new_mem;
 }

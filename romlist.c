@@ -221,5 +221,5 @@ void romlist_print(void) {
 	init_romlist_list();
 	printf("ROM lists:\n");
 	g_slist_foreach(romlist_list, (GFunc)print_romlist_entry, NULL);
-	exit(0);
+	exit(EXIT_SUCCESS);
 }

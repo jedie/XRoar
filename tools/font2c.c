@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
 			break;
 		if (0 == strcmp(argv[i], "-h") || 0 == strcmp(argv[i], "--help")) {
 			print_usage(stdout);
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 		if (0 == strcmp(argv[i], "--vdg")) {
 			output_mode = VDG;
@@ -59,23 +59,23 @@ int main(int argc, char **argv) {
 			header_only = 1;
 		} else {
 			fprintf(stderr, "%s: unrecognised option '%s'\nTry '%s --help' for more information.\n", argv0, argv[i], argv0);
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 
 	if (i >= argc) {
 		print_usage(stderr);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	in = IMG_Load(argv[i]);
 	if (in == NULL) {
 		fprintf(stderr, "%s: %s: %s\n", argv0, argv[i], IMG_GetError());
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	if (in->w != 128 || in->h != 48) {
 		fprintf(stderr, "%s: %s: Wrong resolution for a font image file\n", argv0, argv[i]);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	if (in->format->BytesPerPixel == 4) {
 		pmask = in->format->Rmask | in->format->Gmask | in->format->Bmask;
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 	}
 	printf("};\n");
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 Uint32 getpixel(SDL_Surface *surface, int x, int y) {

@@ -30,7 +30,7 @@
 int main(int argc, char **argv) {
 	atexit(xroar_shutdown);
 	if (xroar_init(argc, argv) != 0)
-		exit(1);
+		exit(EXIT_FAILURE);
 	xroar_run();
-	return 0;
+	return EXIT_SUCCESS;
 }

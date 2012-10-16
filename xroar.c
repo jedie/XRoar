@@ -344,7 +344,7 @@ static void set_machine(const char *name) {
 			struct machine_config *mc = machine_config_index(i);
 			printf("\t%-10s %s\n", mc->name, mc->description);
 		}
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 #endif
 
@@ -365,7 +365,7 @@ static void set_machine(const char *name) {
 				struct vdg_palette *vp = vdg_palette_index(i);
 				printf("\t%-10s %s\n", vp->name, vp->description);
 			}
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 #endif
 		if (opt_machine_palette) {
@@ -419,7 +419,7 @@ static void set_cart(const char *name) {
 			struct cart_config *cc = cart_config_index(i);
 			printf("\t%-10s %s\n", cc->name, cc->description);
 		}
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 #endif
 	if (xroar_cart_config) {
@@ -468,7 +468,7 @@ static void versiontext(void) {
 "There is NO WARRANTY, to the extent permitted by law."
 	    );
 #endif
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 static void helptext(void) {
@@ -555,7 +555,7 @@ static void helptext(void) {
 "joystick respectively."
 	);
 #endif
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 #ifndef ROMPATH
@@ -594,7 +594,7 @@ int xroar_init(int argc, char **argv) {
 	/* Parse command line options */
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
 	if (ret != XCONFIG_OK) {
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	/* Determine initial machine configuration */
 	if (!xroar_machine_config) {
@@ -612,7 +612,7 @@ int xroar_init(int argc, char **argv) {
 	ui_module = (UIModule *)module_select_by_arg((struct module **)ui_module_list, opt_ui);
 	if (ui_module == NULL) {
 		LOG_DEBUG(0, "%s: ui module `%s' not found\n", argv[0], opt_ui);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	/* Select file requester module */
 	if (ui_module->filereq_module_list != NULL)
@@ -1081,7 +1081,7 @@ void xroar_select_cross_colour(int action) {
 }
 
 void xroar_quit(void) {
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 void xroar_fullscreen(int action) {

@@ -190,5 +190,5 @@ void crclist_print(void) {
 	init_crclist_list();
 	printf("CRC lists:\n");
 	g_slist_foreach(crclist_list, (GFunc)print_crclist_entry, NULL);
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
