@@ -635,6 +635,7 @@ fi
 if test "$_strsep" \!= "no"; then
 	echocheck "strsep()"
 	cat > $TMPC <<EOF
+#define _BSD_SOURCE
 #include <string.h>
 int main(int argc, char **argv) { (void)strsep(0,0); }
 EOF

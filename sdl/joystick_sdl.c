@@ -16,6 +16,8 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _BSD_SOURCE
+
 #include "config.h"
 
 #include <string.h>
