@@ -9,7 +9,7 @@
 
 #define CRC16_RESET (0xffff)
 
-uint16_t crc16_byte(uint16_t crc, uint8_t value) __attribute__ ((pure));
+uint16_t crc16_byte(uint16_t crc, uint8_t value);
 uint16_t crc16_block(uint16_t crc, uint8_t *block, unsigned int length);
 
 #endif  /* XROAR_CRC16_H_ */

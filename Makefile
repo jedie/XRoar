@@ -31,10 +31,10 @@ DISTNAME = xroar-$(VERSION)
 all: build-bin build-doc
 
 .PHONY: profile-generate profile-use
-profile-generate: CFLAGS += -fprofile-generate
-profile-generate: CXXFLAGS += -fprofile-generate
-profile-generate: OBJCFLAGS += -fprofile-generate
-profile-generate: LDFLAGS += -fprofile-generate
+profile-generate: CFLAGS += -fprofile-generate -ftest-coverage
+profile-generate: CXXFLAGS += -fprofile-generate -ftest-coverage
+profile-generate: OBJCFLAGS += -fprofile-generate -ftest-coverage
+profile-generate: LDFLAGS += -fprofile-generate -ftest-coverage
 profile-use: CFLAGS += -fprofile-use
 profile-use: CXXFLAGS += -fprofile-use
 profile-use: OBJCFLAGS += -fprofile-use
