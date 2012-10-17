@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 	}
 	printf("};\n");
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 Uint32 getpixel(SDL_Surface *surface, int x, int y) {

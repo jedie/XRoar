@@ -32,5 +32,5 @@ int main(int argc, char **argv) {
 	if (xroar_init(argc, argv) != 0)
 		exit(EXIT_FAILURE);
 	xroar_run();
-	return EXIT_SUCCESS;
+	return 0;
 }
