@@ -803,8 +803,9 @@ void m6809_run(void) {
 					case 0x5: tmp1 = reg_pc; break;
 					case 0x8: tmp1 = reg_a | 0xff00; break;
 					case 0x9: tmp1 = reg_b | 0xff00; break;
-					case 0xa: tmp1 = reg_cc | 0xff00; break;
-					case 0xb: tmp1 = reg_dp | 0xff00; break;
+					/* TODO: verify this behaviour */
+					case 0xa: tmp1 = (reg_cc << 8) | reg_cc; break;
+					case 0xb: tmp1 = (reg_dp << 8) | reg_dp; break;
 					default:  tmp1 = 0xffff; break;
 				}
 				switch (postbyte & 0xf) {
@@ -816,8 +817,9 @@ void m6809_run(void) {
 					case 0x5: tmp2 = reg_pc; reg_pc = tmp1; break;
 					case 0x8: tmp2 = reg_a | 0xff00; reg_a = tmp1; break;
 					case 0x9: tmp2 = reg_b | 0xff00; reg_b = tmp1; break;
-					case 0xa: tmp2 = reg_cc | 0xff00; reg_cc = tmp1; break;
-					case 0xb: tmp2 = reg_dp | 0xff00; reg_dp = tmp1; break;
+					/* TODO: verify this behaviour */
+					case 0xa: tmp2 = (reg_cc << 8) | reg_cc; reg_cc = tmp1; break;
+					case 0xb: tmp2 = (reg_dp << 8) | reg_dp; reg_dp = tmp1; break;
 					default:  tmp2 = 0xffff; break;
 				}
 				switch (postbyte >> 4) {
@@ -849,8 +851,9 @@ void m6809_run(void) {
 					case 0x5: tmp1 = reg_pc; break;
 					case 0x8: tmp1 = reg_a | 0xff00; break;
 					case 0x9: tmp1 = reg_b | 0xff00; break;
-					case 0xa: tmp1 = reg_cc | 0xff00; break;
-					case 0xb: tmp1 = reg_dp | 0xff00; break;
+					/* TODO: verify this behaviour */
+					case 0xa: tmp1 = (reg_cc << 8) | reg_cc; break;
+					case 0xb: tmp1 = (reg_dp << 8) | reg_dp; break;
 					default: tmp1 = 0xffff; break;
 				}
 				switch (postbyte & 0xf) {
