@@ -121,7 +121,7 @@ int xroar_trace_enabled = 0;
 #else
 # define xroar_trace_enabled (0)
 #endif
-_Bool xroar_opt_disk_write_back = 1;
+_Bool xroar_opt_disk_write_back = 0;
 
 static GSList *type_command_list = NULL;
 
