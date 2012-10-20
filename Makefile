@@ -366,7 +366,7 @@ windows32:
 	mkdir -p windows32
 endif
 
-opt_trace_OBJS = mc6809_trace.o
+opt_trace_OBJS = mc6809_trace.o hd6309_trace.o
 CLEAN += $(opt_trace_OBJS)
 ifeq ($(opt_trace),yes)
 	xroar_opt_OBJS += $(opt_trace_OBJS)
