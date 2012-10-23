@@ -32,6 +32,8 @@
 #include "cart.h"
 #include "crc32.h"
 #include "fs.h"
+#include "hd6309.h"
+#include "hd6309_trace.h"
 #include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -135,6 +137,7 @@ static int populate_config_index(int i) {
 	configs[i]->name = g_strdup(config_templates[i].name);
 	configs[i]->description = g_strdup(config_templates[i].description);
 	configs[i]->architecture = config_templates[i].architecture;
+	configs[i]->cpu = CPU_MC6809;
 	configs[i]->keymap = ANY_AUTO;
 	configs[i]->tv_standard = config_templates[i].tv_standard;
 	configs[i]->ram = config_templates[i].ram;
@@ -149,6 +152,7 @@ struct machine_config *machine_config_new(void) {
 	new = g_malloc0(sizeof(struct machine_config));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
+	new->cpu = CPU_MC6809;
 	new->keymap = ANY_AUTO;
 	new->tv_standard = ANY_AUTO;
 	new->ram = ANY_AUTO;
@@ -379,7 +383,14 @@ void machine_configure(struct machine_config *mc) {
 		CPU0->free(CPU0);
 		CPU0 = NULL;
 	}
-	CPU0 = mc6809_new();
+	switch (mc->cpu) {
+	case CPU_MC6809: default:
+		CPU0 = mc6809_new();
+		break;
+	case CPU_HD6309:
+		CPU0 = hd6309_new();
+		break;
+	}
 	CPU0->read_cycle = read_cycle;
 	CPU0->write_cycle = write_cycle;
 	CPU0->nvma_cycles = nvma_cycles;
@@ -625,7 +636,14 @@ static uint8_t read_cycle(uint16_t A) {
 	}
 #ifdef TRACE
 	if (xroar_trace_enabled) {
-		mc6809_trace_byte(read_D, A);
+		switch (xroar_machine_config->cpu) {
+		case CPU_MC6809: default:
+			mc6809_trace_byte(read_D, A);
+			break;
+		case CPU_HD6309:
+			hd6309_trace_byte(read_D, A);
+			break;
+		}
 	}
 #endif
 	return read_D;

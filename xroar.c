@@ -30,6 +30,7 @@
 #include "crclist.h"
 #include "events.h"
 #include "fs.h"
+#include "hd6309_trace.h"
 #include "hexs19.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -58,6 +59,7 @@
 static void set_machine(const char *name);
 static char *opt_machine_desc = NULL;
 static int opt_machine_arch = ANY_AUTO;
+static int opt_machine_cpu = CPU_MC6809;
 static char *opt_machine_palette = NULL;
 static char *opt_bas = NULL;
 static char *opt_extbas = NULL;
@@ -135,6 +137,12 @@ static struct xconfig_enum arch_list[] = {
 	XC_ENUM_END()
 };
 
+static struct xconfig_enum cpu_list[] = {
+	{ .value = CPU_MC6809, .name = "6809", .description = "Motorola 6809" },
+	{ .value = CPU_HD6309, .name = "6309", .description = "Hitachi 6309 - UNTESTED" },
+	XC_ENUM_END()
+};
+
 static struct xconfig_enum tv_type_list[] = {
 	{ .value = TV_PAL,  .name = "pal",  .description = "PAL (50Hz)" },
 	{ .value = TV_NTSC, .name = "ntsc", .description = "NTSC (60Hz)" },
@@ -175,6 +183,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_STRING("machine", &set_machine),
 	XC_SET_STRING("machine-desc", &opt_machine_desc),
 	XC_SET_ENUM("machine-arch", &opt_machine_arch, arch_list),
+	XC_SET_ENUM("machine-cpu", &opt_machine_cpu, cpu_list),
 	XC_SET_STRING("machine-palette", &opt_machine_palette),
 	XC_SET_STRING("bas", &opt_bas),
 	XC_SET_STRING("extbas", &opt_extbas),
@@ -349,6 +358,10 @@ static void set_machine(const char *name) {
 			xroar_machine_config->architecture = opt_machine_arch;
 			opt_machine_arch = ANY_AUTO;
 		}
+		xroar_machine_config->cpu = opt_machine_cpu;
+		if (opt_machine_cpu == CPU_HD6309) {
+			LOG_WARN("Hitachi HD6309 support is UNTESTED!\n");
+		}
 		if (opt_machine_desc) {
 			xroar_machine_config->description = opt_machine_desc;
 			opt_machine_desc = NULL;
@@ -478,6 +491,7 @@ static void helptext(void) {
 "  -machine NAME           select/configure machine (-machine help for list)\n"
 "  -machine-desc TEXT      machine description\n"
 "  -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
+"  -machine-cpu CPU        machine CPU (-machine-cpu help for list)\n"
 "  -machine-palette NAME   VDG palette (-machine-palette help for list)\n"
 "  -bas NAME               BASIC ROM to use (CoCo only)\n"
 "  -extbas NAME            Extended BASIC ROM to use\n"
@@ -952,8 +966,16 @@ void xroar_set_trace(int mode) {
 	}
 	xroar_trace_enabled = set_to;
 	if (xroar_trace_enabled) {
-		CPU0->interrupt_hook = mc6809_trace_irq;
-		CPU0->instruction_posthook = mc6809_trace_print;
+		switch (xroar_machine_config->cpu) {
+		case CPU_MC6809: default:
+			CPU0->interrupt_hook = mc6809_trace_irq;
+			CPU0->instruction_posthook = mc6809_trace_print;
+			break;
+		case CPU_HD6309:
+			CPU0->interrupt_hook = hd6309_trace_irq;
+			CPU0->instruction_posthook = hd6309_trace_print;
+			break;
+		}
 	} else {
 		CPU0->interrupt_hook = NULL;
 		CPU0->instruction_posthook = NULL;

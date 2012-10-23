@@ -38,6 +38,8 @@ struct cart;
 #define ARCH_DRAGON32 (0)
 #define ARCH_DRAGON64 (1)
 #define ARCH_COCO     (2)
+#define CPU_MC6809 (0)
+#define CPU_HD6309 (1)
 #define ROMSET_DRAGON32 (0)
 #define ROMSET_DRAGON64 (1)
 #define ROMSET_COCO     (2)
@@ -64,6 +66,7 @@ struct machine_config {
 	char *description;
 	int index;
 	int architecture;
+	int cpu;
 	char *vdg_palette;
 	int keymap;
 	int tv_standard;
