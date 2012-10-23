@@ -24,7 +24,7 @@
 #include "types.h"
 #include "events.h"
 #include "logging.h"
-#include "m6809.h"
+#include "mc6809.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "module.h"

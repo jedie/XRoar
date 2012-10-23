@@ -26,7 +26,7 @@
 #include "fs.h"
 #include "hexs19.h"
 #include "logging.h"
-#include "m6809.h"
+#include "mc6809.h"
 #include "machine.h"
 
 static int dragon_bin_load(FILE *fd, int autorun);
@@ -137,7 +137,7 @@ static int dragon_bin_load(FILE *fd, int autorun) {
 	fread(&machine_ram[load], length, 1, fd);
 	if (autorun) {
 		LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
-		m6809_jump(exec);
+		CPU0->jump(CPU0, exec);
 	} else {
 		machine_ram[0x9d] = exec >> 8;
 		machine_ram[0x9e] = exec & 0xff;
@@ -163,7 +163,7 @@ static int coco_bin_load(FILE *fd, int autorun) {
 			exec = fs_read_uint16(fd);
 			if (autorun) {
 				LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
-				m6809_jump(exec);
+				CPU0->jump(CPU0, exec);
 			} else {
 				machine_ram[0x9d] = exec >> 8;
 				machine_ram[0x9e] = exec & 0xff;

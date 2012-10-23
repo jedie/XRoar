@@ -27,7 +27,7 @@
 #include "fs.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "m6809.h"
+#include "mc6809.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "sam.h"
@@ -49,7 +49,7 @@
 #define ID_RAM_PAGE0     (1)
 #define ID_PIA_REGISTERS (2)
 #define ID_SAM_REGISTERS (3)
-#define ID_M6809_STATE   (4)
+#define ID_MC6809_STATE   (4)
 #define ID_KEYBOARD_MAP  (5)
 #define ID_ARCHITECTURE  (6)
 #define ID_RAM_PAGE1     (7)
@@ -62,7 +62,6 @@
 
 int write_snapshot(const char *filename) {
 	FILE *fd;
-	M6809State cpu_state;
 	if (!(fd = fopen(filename, "wb")))
 		return -1;
 	fwrite("XRoar snapshot.\012\000", 17, 1, fd);
@@ -114,24 +113,23 @@ int write_snapshot(const char *filename) {
 	fs_write_uint8(fd, PIA1.b.direction_register);
 	fs_write_uint8(fd, PIA1.b.output_register);
 	fs_write_uint8(fd, PIA1.b.control_register);
-	/* M6809 state */
-	fs_write_uint8(fd, ID_M6809_STATE); fs_write_uint16(fd, 20);
-	m6809_get_state(&cpu_state);
-	fs_write_uint8(fd, cpu_state.reg_cc);
-	fs_write_uint8(fd, cpu_state.reg_a);
-	fs_write_uint8(fd, cpu_state.reg_b);
-	fs_write_uint8(fd, cpu_state.reg_dp);
-	fs_write_uint16(fd, cpu_state.reg_x);
-	fs_write_uint16(fd, cpu_state.reg_y);
-	fs_write_uint16(fd, cpu_state.reg_u);
-	fs_write_uint16(fd, cpu_state.reg_s);
-	fs_write_uint16(fd, cpu_state.reg_pc);
-	fs_write_uint8(fd, cpu_state.halt);
-	fs_write_uint8(fd, cpu_state.nmi);
-	fs_write_uint8(fd, cpu_state.firq);
-	fs_write_uint8(fd, cpu_state.irq);
-	fs_write_uint8(fd, cpu_state.cpu_state);
-	fs_write_uint8(fd, cpu_state.nmi_armed);
+	/* MC6809 state */
+	fs_write_uint8(fd, ID_MC6809_STATE); fs_write_uint16(fd, 20);
+	fs_write_uint8(fd, CPU0->reg_cc);
+	fs_write_uint8(fd, MC6809_REG_A(CPU0));
+	fs_write_uint8(fd, MC6809_REG_B(CPU0));
+	fs_write_uint8(fd, CPU0->reg_dp);
+	fs_write_uint16(fd, CPU0->reg_x);
+	fs_write_uint16(fd, CPU0->reg_y);
+	fs_write_uint16(fd, CPU0->reg_u);
+	fs_write_uint16(fd, CPU0->reg_s);
+	fs_write_uint16(fd, CPU0->reg_pc);
+	fs_write_uint8(fd, CPU0->halt);
+	fs_write_uint8(fd, CPU0->nmi);
+	fs_write_uint8(fd, CPU0->firq);
+	fs_write_uint8(fd, CPU0->irq);
+	fs_write_uint8(fd, CPU0->state);
+	fs_write_uint8(fd, CPU0->nmi_armed);
 	/* SAM */
 	fs_write_uint8(fd, ID_SAM_REGISTERS); fs_write_uint16(fd, 2);
 	fs_write_uint16(fd, sam_get_register());
@@ -163,30 +161,27 @@ static int old_arch_mapping[4] = {
 };
 
 static void old_set_registers(uint8_t *regs) {
-	M6809State state;
-	state.reg_cc = regs[0];
-	state.reg_a = regs[1];
-	state.reg_b = regs[2];
-	state.reg_dp = regs[3];
-	state.reg_x = regs[4] << 8 | regs[5];
-	state.reg_y = regs[6] << 8 | regs[7];
-	state.reg_u = regs[8] << 8 | regs[9];
-	state.reg_s = regs[10] << 8 | regs[11];
-	state.reg_pc = regs[12] << 8 | regs[13];
-	state.halt = 0;
-	state.nmi = 0;
-	state.firq = 0;
-	state.irq = 0;
-	state.cpu_state = M6809_COMPAT_STATE_NORMAL;
-	state.nmi_armed = 0;
-	m6809_set_state(&state);
+	CPU0->reg_cc = regs[0];
+	MC6809_REG_A(CPU0) = regs[1];
+	MC6809_REG_B(CPU0) = regs[2];
+	CPU0->reg_dp = regs[3];
+	CPU0->reg_x = regs[4] << 8 | regs[5];
+	CPU0->reg_y = regs[6] << 8 | regs[7];
+	CPU0->reg_u = regs[8] << 8 | regs[9];
+	CPU0->reg_s = regs[10] << 8 | regs[11];
+	CPU0->reg_pc = regs[12] << 8 | regs[13];
+	CPU0->halt = 0;
+	CPU0->nmi = 0;
+	CPU0->firq = 0;
+	CPU0->irq = 0;
+	CPU0->state = MC6809_COMPAT_STATE_NORMAL;
+	CPU0->nmi_armed = 0;
 }
 
 int read_snapshot(const char *filename) {
 	FILE *fd;
 	uint8_t buffer[17];
 	int section, size, tmp;
-	M6809State cpu_state;
 	if (filename == NULL)
 		return -1;
 	if (!(fd = fopen(filename, "rb")))
@@ -235,22 +230,22 @@ int read_snapshot(const char *filename) {
 				size -= fread(buffer, 1, 14, fd);
 				old_set_registers(buffer);
 				break;
-			case ID_M6809_STATE:
-				/* M6809 state */
+			case ID_MC6809_STATE:
+				/* MC6809 state */
 				if (size < 20) break;
-				cpu_state.reg_cc = fs_read_uint8(fd);
-				cpu_state.reg_a = fs_read_uint8(fd);
-				cpu_state.reg_b = fs_read_uint8(fd);
-				cpu_state.reg_dp = fs_read_uint8(fd);
-				cpu_state.reg_x = fs_read_uint16(fd);
-				cpu_state.reg_y = fs_read_uint16(fd);
-				cpu_state.reg_u = fs_read_uint16(fd);
-				cpu_state.reg_s = fs_read_uint16(fd);
-				cpu_state.reg_pc = fs_read_uint16(fd);
-				cpu_state.halt = fs_read_uint8(fd);
-				cpu_state.nmi = fs_read_uint8(fd);
-				cpu_state.firq = fs_read_uint8(fd);
-				cpu_state.irq = fs_read_uint8(fd);
+				CPU0->reg_cc = fs_read_uint8(fd);
+				MC6809_REG_A(CPU0) = fs_read_uint8(fd);
+				MC6809_REG_B(CPU0) = fs_read_uint8(fd);
+				CPU0->reg_dp = fs_read_uint8(fd);
+				CPU0->reg_x = fs_read_uint16(fd);
+				CPU0->reg_y = fs_read_uint16(fd);
+				CPU0->reg_u = fs_read_uint16(fd);
+				CPU0->reg_s = fs_read_uint16(fd);
+				CPU0->reg_pc = fs_read_uint16(fd);
+				CPU0->halt = fs_read_uint8(fd);
+				CPU0->nmi = fs_read_uint8(fd);
+				CPU0->firq = fs_read_uint8(fd);
+				CPU0->irq = fs_read_uint8(fd);
 				if (size == 21) {
 					/* Old style */
 					int wait_for_interrupt;
@@ -258,20 +253,19 @@ int read_snapshot(const char *filename) {
 					wait_for_interrupt = fs_read_uint8(fd);
 					skip_register_push = fs_read_uint8(fd);
 					if (wait_for_interrupt && skip_register_push) {
-						cpu_state.cpu_state = M6809_COMPAT_STATE_CWAI;
+						CPU0->state = MC6809_COMPAT_STATE_CWAI;
 					} else if (wait_for_interrupt) {
-						cpu_state.cpu_state = M6809_COMPAT_STATE_SYNC;
+						CPU0->state = MC6809_COMPAT_STATE_SYNC;
 					} else {
-						cpu_state.cpu_state = M6809_COMPAT_STATE_NORMAL;
+						CPU0->state = MC6809_COMPAT_STATE_NORMAL;
 					}
 					size--;
 				} else {
-					cpu_state.cpu_state = fs_read_uint8(fd);
+					CPU0->state = fs_read_uint8(fd);
 				}
-				cpu_state.nmi_armed = fs_read_uint8(fd);
-				cpu_state.firq &= 3;
-				cpu_state.irq &= 3;
-				m6809_set_state(&cpu_state);
+				CPU0->nmi_armed = fs_read_uint8(fd);
+				CPU0->firq &= 3;
+				CPU0->irq &= 3;
 				size -= 20;
 				if (size > 0) {
 					/* Skip 'halted' */

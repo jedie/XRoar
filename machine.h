@@ -8,7 +8,7 @@
 
 #include "types.h"
 #include "mc6821.h"
-#include "m6809.h"
+#include "mc6809.h"
 
 struct cart_config;
 struct cart;
@@ -80,6 +80,7 @@ struct machine_config {
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
 extern uint8_t machine_ram[0x10000];
 extern uint8_t *machine_rom;
+extern struct MC6809 *CPU0;
 extern MC6821_PIA PIA0, PIA1;
 extern struct cart *machine_cart;
 extern _Bool has_bas, has_extbas, has_altbas;
@@ -107,7 +108,7 @@ void machine_run(int ncycles);
 uint8_t machine_read_byte(uint16_t A);
 void machine_write_byte(uint16_t A, uint8_t D);
 /* simulate an RTS without otherwise affecting machine state */
-void machine_op_rts(M6809State *cpu);
+void machine_op_rts(struct MC6809 *cpu);
 
 void machine_set_fast_sound(_Bool fast);
 void machine_select_fast_sound(_Bool fast);

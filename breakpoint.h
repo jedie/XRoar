@@ -6,7 +6,7 @@
 #ifndef XROAR_BREAKPOINT_H_
 #define XROAR_BREAKPOINT_H_
 
-#include "m6809.h"
+#include "mc6809.h"
 
 enum bp_type {
 	BP_INSTRUCTION = 0,  /* specifically 0 to be the C99 default */
@@ -25,7 +25,7 @@ enum bp_type {
 struct breakpoint {
 	enum bp_type type;
 	unsigned int flags;
-	void (*handler)(M6809State *);
+	void (*handler)(struct MC6809 *);
 	uint16_t address;
 	/* add conditions */
 	int cond_machine_arch;

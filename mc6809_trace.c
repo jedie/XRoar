@@ -24,7 +24,8 @@
 
 #include "types.h"
 
-#include "m6809_trace.h"
+#include "mc6809.h"
+#include "mc6809_trace.h"
 
 enum {
 	PAGE0 = 0, PAGE2 = 1, PAGE3 = 2, ILLEGAL,
@@ -861,7 +862,7 @@ static struct {
 #define INDEXED_WANT_BYTE  (1<<1)
 #define INDEXED_WANT_WORD  (1<<2)
 
-struct {
+static struct {
 	const char *fmt;
 	int flags;
 } indexed_modes[] = {
@@ -920,9 +921,9 @@ static void reset_state(void) {
 	operand_text[1] = '\0';
 }
 
-void m6809_trace_reset(void) {
+void mc6809_trace_reset(void) {
 	reset_state();
-	m6809_trace_irq(0xfffe);
+	mc6809_trace_irq(NULL, 0xfffe);
 }
 
 #define STACK_PRINT(r) do { \
@@ -932,7 +933,7 @@ void m6809_trace_reset(void) {
 
 #define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
 
-void m6809_trace_byte(uint8_t byte, uint16_t pc) {
+void mc6809_trace_byte(uint8_t byte, uint16_t pc) {
 	static int ins_type = PAGE0;
 	static uint8_t byte_val = 0;
 	static uint16_t word_val = 0;
@@ -1009,7 +1010,7 @@ void m6809_trace_byte(uint8_t byte, uint16_t pc) {
 			state = WANT_PRINT;
 			break;
 		case WANT_PRINT:
-			/* Now waiting for a call to m6809_trace_print() */
+			/* Now waiting for a call to mc6809_trace_print() */
 			return;
 	}
 
@@ -1122,7 +1123,8 @@ void m6809_trace_byte(uint8_t byte, uint16_t pc) {
 	byte_val = word_val = 0;
 }
 
-void m6809_trace_irq(uint16_t vector) {
+void mc6809_trace_irq(struct MC6809 *cpu, uint16_t vector) {
+	(void)cpu;
 	reset_state();
 	state = WANT_IRQVEC1;
 	irq_vector = (vector & 15) >> 1;
@@ -1145,9 +1147,7 @@ static void trace_print_short(void) {
 	reset_state();
 }
 
-void m6809_trace_print(uint8_t reg_cc, uint8_t reg_a,
-		uint8_t reg_b, uint8_t reg_dp, uint16_t reg_x,
-		uint16_t reg_y, uint16_t reg_u, uint16_t reg_s) {
+void mc6809_trace_print(struct MC6809 *cpu) {
 	char bytes_string[(BYTES_BUF_SIZE*2)+1];
 	int i;
 
@@ -1160,7 +1160,7 @@ void m6809_trace_print(uint8_t reg_cc, uint8_t reg_a,
 	}
 
 	printf("%04x| %-12s%-8s%-20s", instr_pc, bytes_string, mnemonic, operand_text);
-	printf("cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", reg_cc, reg_a, reg_b, reg_dp, reg_x, reg_y, reg_u, reg_s);
+	printf("cc=%02x a=%02x b=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x\n", cpu->reg_cc, MC6809_REG_A(cpu), MC6809_REG_B(cpu), cpu->reg_dp, cpu->reg_x, cpu->reg_y, cpu->reg_u, cpu->reg_s);
 	fflush(stdout);
 
 	reset_state();

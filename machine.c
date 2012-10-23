@@ -36,8 +36,8 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "m6809.h"
-#include "m6809_trace.h"
+#include "mc6809.h"
+#include "mc6809_trace.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "module.h"
@@ -57,6 +57,7 @@ uint8_t machine_ram[0x10000];
 uint8_t *machine_rom;
 static uint8_t rom0[0x4000];
 static uint8_t rom1[0x4000];
+struct MC6809 *CPU0 = NULL;
 MC6821_PIA PIA0, PIA1;
 struct cart *machine_cart = NULL;
 static struct cart running_cart;
@@ -356,13 +357,9 @@ void machine_init(void) {
 	machine_select_fast_sound(xroar_fast_sound);
 #endif
 	vdrive_init();
-	m6809_init();
 	vdg_init();
 	tape_init();
 
-	m6809_read_cycle = read_cycle;
-	m6809_write_cycle = write_cycle;
-	m6809_nvma_cycles = nvma_cycles;
 	vdg_fetch_bytes = vdg_fetch_handler;
 }
 
@@ -378,6 +375,14 @@ void machine_configure(struct machine_config *mc) {
 		LOG_DEBUG(2, "Machine: %s\n", mc->description);
 	}
 	/* */
+	if (CPU0) {
+		CPU0->free(CPU0);
+		CPU0 = NULL;
+	}
+	CPU0 = mc6809_new();
+	CPU0->read_cycle = read_cycle;
+	CPU0->write_cycle = write_cycle;
+	CPU0->nvma_cycles = nvma_cycles;
 	xroar_set_keymap(mc->keymap);
 	switch (mc->tv_standard) {
 	case TV_PAL: default:
@@ -520,9 +525,9 @@ void machine_reset(_Bool hard) {
 		machine_cart->reset();
 	}
 	sam_reset();
-	m6809_reset();
+	CPU0->reset(CPU0);
 #ifdef TRACE
-	m6809_trace_reset();
+	mc6809_trace_reset();
 #endif
 	vdg_reset();
 	tape_reset();
@@ -530,8 +535,8 @@ void machine_reset(_Bool hard) {
 
 void machine_run(int ncycles) {
 	cycles += ncycles;
-	m6809_running = 1;
-	m6809_run();
+	CPU0->running = 1;
+	CPU0->run(CPU0);
 }
 
 static uint16_t decode_Z(uint16_t Z) {
@@ -554,11 +559,11 @@ static _Bool do_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 		*Z = decode_Z(tmp_Z);
 	}
 	cycles -= ncycles;
-	if (cycles <= 0) m6809_running = 0;
+	if (cycles <= 0) CPU0->running = 0;
 	event_current_tick += ncycles;
 	event_run_queue(MACHINE_EVENT_LIST);
-	m6809_irq = PIA0.a.irq | PIA0.b.irq;
-	m6809_firq = PIA1.a.irq | PIA1.b.irq;
+	MC6809_IRQ_SET(CPU0, PIA0.a.irq | PIA0.b.irq);
+	MC6809_FIRQ_SET(CPU0, PIA1.a.irq | PIA1.b.irq);
 	return is_ram_access;
 }
 
@@ -619,7 +624,9 @@ static uint8_t read_cycle(uint16_t A) {
 			break;
 	}
 #ifdef TRACE
-	if (xroar_trace_enabled) m6809_trace_byte(read_D, A);
+	if (xroar_trace_enabled) {
+		mc6809_trace_byte(read_D, A);
+	}
 #endif
 	return read_D;
 }
@@ -667,11 +674,11 @@ static void write_cycle(uint16_t A, uint8_t D) {
 static void nvma_cycles(int ncycles) {
 	int c = sam_nvma_cycles(ncycles);
 	cycles -= c;
-	if (cycles <= 0) m6809_running = 0;
+	if (cycles <= 0) CPU0->running = 0;
 	event_current_tick += c;
 	event_run_queue(MACHINE_EVENT_LIST);
-	m6809_irq = PIA0.a.irq | PIA0.b.irq;
-	m6809_firq = PIA1.a.irq | PIA1.b.irq;
+	MC6809_IRQ_SET(CPU0, PIA0.a.irq | PIA0.b.irq);
+	MC6809_FIRQ_SET(CPU0, PIA1.a.irq | PIA1.b.irq);
 	read_D = machine_rom[0x3fff];
 }
 
@@ -722,7 +729,7 @@ void machine_write_byte(uint16_t A, uint8_t D) {
 }
 
 /* simulate an RTS without otherwise affecting machine state */
-void machine_op_rts(M6809State *cpu) {
+void machine_op_rts(struct MC6809 *cpu) {
 	unsigned int new_pc = machine_read_byte(cpu->reg_s) << 8;
 	new_pc |= machine_read_byte(cpu->reg_s + 1);
 	cpu->reg_s += 2;

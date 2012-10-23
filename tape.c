@@ -60,10 +60,10 @@ static int rewrite_have_sync = 0;
 static int rewrite_leader_count = 256;
 static int rewrite_bit_count = 0;
 static void tape_desync(int leader);
-static void rewrite_sync(M6809State *cpu_state);
-static void rewrite_bitin(M6809State *cpu_state);
-static void rewrite_tape_on(M6809State *cpu_state);
-static void rewrite_end_of_block(M6809State *cpu_state);
+static void rewrite_sync(struct MC6809 *cpu);
+static void rewrite_bitin(struct MC6809 *cpu);
+static void rewrite_tape_on(struct MC6809 *cpu);
+static void rewrite_end_of_block(struct MC6809 *cpu);
 
 static void set_breakpoints(void);
 
@@ -477,28 +477,28 @@ static int pulse_skip(void) {
 	}
 }
 
-static uint8_t op_add(M6809State *cpu_state, uint8_t v1, uint8_t v2) {
+static uint8_t op_add(struct MC6809 *cpu, uint8_t v1, uint8_t v2) {
 	unsigned int v = v1 + v2;
-	cpu_state->reg_cc &= ~0x2f;  /* clear HNZVC */
-	if (v & 0x80) cpu_state->reg_cc |= 0x08;  /* set N */
-	if ((v & 0xff) == 0) cpu_state->reg_cc |= 0x04;  /* set Z */
-	if ((v1^v2^v^(v>>1)) & 0x80) cpu_state->reg_cc |= 0x02;  /* set V */
-	if (v & 0x100) cpu_state->reg_cc |= 0x01;  /* set C */
-	if ((v1^v2^v) & 0x10) cpu_state->reg_cc |= 0x20;  /* set H */
+	cpu->reg_cc &= ~0x2f;  /* clear HNZVC */
+	if (v & 0x80) cpu->reg_cc |= 0x08;  /* set N */
+	if ((v & 0xff) == 0) cpu->reg_cc |= 0x04;  /* set Z */
+	if ((v1^v2^v^(v>>1)) & 0x80) cpu->reg_cc |= 0x02;  /* set V */
+	if (v & 0x100) cpu->reg_cc |= 0x01;  /* set C */
+	if ((v1^v2^v) & 0x10) cpu->reg_cc |= 0x20;  /* set H */
 	return v;
 }
 
-static uint8_t op_sub(M6809State *cpu_state, uint8_t v1, uint8_t v2) {
+static uint8_t op_sub(struct MC6809 *cpu, uint8_t v1, uint8_t v2) {
 	unsigned int v = v1 - v2;
-	cpu_state->reg_cc &= ~0x0f;  /* clear NZVC */
-	if (v & 0x80) cpu_state->reg_cc |= 0x08;  /* set N */
-	if ((v & 0xff) == 0) cpu_state->reg_cc |= 0x04;  /* set Z */
-	if ((v1^v2^v^(v>>1)) & 0x80) cpu_state->reg_cc |= 0x02;  /* set V */
-	if (v & 0x100) cpu_state->reg_cc |= 0x01;  /* set C */
+	cpu->reg_cc &= ~0x0f;  /* clear NZVC */
+	if (v & 0x80) cpu->reg_cc |= 0x08;  /* set N */
+	if ((v & 0xff) == 0) cpu->reg_cc |= 0x04;  /* set Z */
+	if ((v1^v2^v^(v>>1)) & 0x80) cpu->reg_cc |= 0x02;  /* set V */
+	if (v & 0x100) cpu->reg_cc |= 0x01;  /* set C */
 	return v;
 }
 
-static void motor_on(M6809State *cpu_state) {
+static void motor_on(struct MC6809 *cpu) {
 	int delay = IS_DRAGON ? 0x95 : 0x8a;
 	pskip += 5;  /* LDX <$95 */
 	int i = (machine_read_byte(delay) << 8) | machine_read_byte(delay+1);
@@ -511,18 +511,18 @@ static void motor_on(M6809State *cpu_state) {
 		if ((i & 63) == 0)
 			pulse_skip();
 	}
-	cpu_state->reg_x = 0;
-	cpu_state->reg_cc |= 0x04;
+	cpu->reg_x = 0;
+	cpu->reg_cc |= 0x04;
 	pskip += 5;  /* RTS */
 }
 
-static uint8_t op_clr(M6809State *cpu_state) {
-	cpu_state->reg_cc &= ~0x0b;  /* clear NVC */
-	cpu_state->reg_cc |= 0x04;  /* set Z */
+static uint8_t op_clr(struct MC6809 *cpu) {
+	cpu->reg_cc &= ~0x0b;  /* clear NVC */
+	cpu->reg_cc |= 0x04;  /* set Z */
 	return 0;
 }
 
-static void sample_cas(M6809State *cpu_state) {
+static void sample_cas(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
 	pskip += 6;  /* INC <$82 */
 	machine_write_byte(pwcount, machine_read_byte(pwcount) + 1);
@@ -530,218 +530,218 @@ static void sample_cas(M6809State *cpu_state) {
 	pulse_skip();
 	pskip += 2;  /* RORB */
 	if (in_pulse) {
-		cpu_state->reg_cc &= ~1;
+		cpu->reg_cc &= ~1;
 	} else {
-		cpu_state->reg_cc |= 1;
+		cpu->reg_cc |= 1;
 	}
 	pskip += 5;  /* RTS */
 }
 
-static void tape_wait_p0(M6809State *cpu_state) {
+static void tape_wait_p0(struct MC6809 *cpu) {
 	do {
 		pskip += 7;  /* BSR sample_cas */
-		sample_cas(cpu_state);
+		sample_cas(cpu);
 		if (in_pulse < 0) return;
 		pskip += 3;  /* BCS tape_wait_p0 */
-	} while (cpu_state->reg_cc & 0x01);
+	} while (cpu->reg_cc & 0x01);
 	pskip += 5;  /* RTS */
 }
 
-static void tape_wait_p1(M6809State *cpu_state) {
+static void tape_wait_p1(struct MC6809 *cpu) {
 	do {
 		pskip += 7;  /* BSR sample_cas */
-		sample_cas(cpu_state);
+		sample_cas(cpu);
 		if (in_pulse < 0) return;
 		pskip += 3;  /* BCC tape_wait_p1 */
-	} while (!(cpu_state->reg_cc & 0x01));
+	} while (!(cpu->reg_cc & 0x01));
 	pskip += 5;  /* RTS */
 }
 
-static void tape_wait_p0_p1(M6809State *cpu_state) {
+static void tape_wait_p0_p1(struct MC6809 *cpu) {
 	pskip += 7;  /* BSR tape_wait_p0 */
-	tape_wait_p0(cpu_state);
+	tape_wait_p0(cpu);
 	if (in_pulse < 0) return;
-	tape_wait_p1(cpu_state);
+	tape_wait_p1(cpu);
 }
 
-static void tape_wait_p1_p0(M6809State *cpu_state) {
+static void tape_wait_p1_p0(struct MC6809 *cpu) {
 	pskip += 7;  /* BSR tape_wait_p1 */
-	tape_wait_p1(cpu_state);
+	tape_wait_p1(cpu);
 	if (in_pulse < 0) return;
-	tape_wait_p0(cpu_state);
+	tape_wait_p0(cpu);
 }
 
-static void L_BDC3(M6809State *cpu_state) {
+static void L_BDC3(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
 	int bcount = IS_DRAGON ? 0x83 : 0x82;
 	int minpw1200 = IS_DRAGON ? 0x93 : 0x91;
 	int maxpw1200 = IS_DRAGON ? 0x94 : 0x90;
 	pskip += 4;  /* LDB <$82 */
 	pskip += 4;  /* CMPB <$94 */
-	op_sub(cpu_state, machine_read_byte(pwcount), machine_read_byte(maxpw1200));
+	op_sub(cpu, machine_read_byte(pwcount), machine_read_byte(maxpw1200));
 	pskip += 3;  /* BHI L_BDCC */
-	if (!(cpu_state->reg_cc & 0x05)) {
+	if (!(cpu->reg_cc & 0x05)) {
 		pskip += 6;  /* CLR <$83 */
 		machine_write_byte(bcount, 0);
-		op_clr(cpu_state);
+		op_clr(cpu);
 		pskip += 5;  /* RTS */
 		return;
 	}
 	pskip += 4;  /* CMPB <$93 */
-	op_sub(cpu_state, machine_read_byte(pwcount), machine_read_byte(minpw1200));
+	op_sub(cpu, machine_read_byte(pwcount), machine_read_byte(minpw1200));
 	pskip += 5;  /* RTS */
 }
 
-static void tape_cmp_p1_1200(M6809State *cpu_state) {
+static void tape_cmp_p1_1200(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
 	pskip += 6;  /* CLR <$82 */
 	machine_write_byte(pwcount, 0);
 	pskip += 7;  /* BSR tape_wait_p0 */
-	tape_wait_p0(cpu_state);
+	tape_wait_p0(cpu);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BRA L_BDC3 */
-	L_BDC3(cpu_state);
+	L_BDC3(cpu);
 }
 
-static void tape_cmp_p0_1200(M6809State *cpu_state) {
+static void tape_cmp_p0_1200(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
 	pskip += 6;  /* CLR <$82 */
 	machine_write_byte(pwcount, 0);
 	pskip += 7;  /* BSR tape_wait_p1 */
-	tape_wait_p1(cpu_state);
+	tape_wait_p1(cpu);
 	if (in_pulse < 0) return;
-	L_BDC3(cpu_state);
+	L_BDC3(cpu);
 }
 
-static void sync_leader(M6809State *cpu_state) {
+static void sync_leader(struct MC6809 *cpu) {
 	int bcount = IS_DRAGON ? 0x83 : 0x82;
 	int store;
 L_BDED:
 	pskip += 7;  /* BSR tape_wait_p0_p1 */
-	tape_wait_p0_p1(cpu_state);
+	tape_wait_p0_p1(cpu);
 	if (in_pulse < 0) return;
 L_BDEF:
 	pskip += 7;  /* BSR tape_cmp_p1_1200 */
-	tape_cmp_p1_1200(cpu_state);
+	tape_cmp_p1_1200(cpu);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BHI L_BDFF */
-	if (!(cpu_state->reg_cc & 0x05))
+	if (!(cpu->reg_cc & 0x05))
 		goto L_BDFF;
 L_BDF3:
 	pskip += 7;  /* BSR tape_cmp_p0_1200 */
-	tape_cmp_p0_1200(cpu_state);
+	tape_cmp_p0_1200(cpu);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BCS L_BE03 */
-	if (cpu_state->reg_cc & 0x01)
+	if (cpu->reg_cc & 0x01)
 		goto L_BE03;
 	pskip += 6;  /* INC <$83 */
 	machine_write_byte(bcount, machine_read_byte(bcount) + 1);
 	pskip += 4;  /* LDA <$83 */
 	pskip += 4;  /* CMPA #$60 */
 	store = machine_read_byte(bcount);
-	op_sub(cpu_state, store, 0x60);
+	op_sub(cpu, store, 0x60);
 	pskip += 3;  /* BRA L_BE0D */
 	goto L_BE0D;
 L_BDFF:
 	pskip += 7;  /* BSR tape_cmp_p0_1200 */
-	tape_cmp_p0_1200(cpu_state);
+	tape_cmp_p0_1200(cpu);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BHI L_BDEF */
-	if (!(cpu_state->reg_cc & 0x05))
+	if (!(cpu->reg_cc & 0x05))
 		goto L_BDEF;
 L_BE03:
 	pskip += 7;  /* BSR tape_cmp_p1_1200 */
-	tape_cmp_p1_1200(cpu_state);
+	tape_cmp_p1_1200(cpu);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BCS L_BDF3 */
-	if (cpu_state->reg_cc & 0x01)
+	if (cpu->reg_cc & 0x01)
 		goto L_BDF3;
 	pskip += 6;  /* DEC <$83 */
 	machine_write_byte(bcount, machine_read_byte(bcount) - 1);
 	pskip += 4;  /* LDA <$83 */
 	pskip += 4;  /* ADDA #$60 */
-	store = op_add(cpu_state, machine_read_byte(bcount), 0x60);
+	store = op_add(cpu, machine_read_byte(bcount), 0x60);
 L_BE0D:
 	pskip += 3;  /* BNE L_BDED */
-	if (!(cpu_state->reg_cc & 0x04))
+	if (!(cpu->reg_cc & 0x04))
 		goto L_BDED;
 	pskip += 4;  /* STA <$84 */
 	machine_write_byte(0x84, store);
 	pskip += 5;  /* RTS */
 }
 
-static void tape_wait_2p(M6809State *cpu_state) {
+static void tape_wait_2p(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
 	pskip += 6;  /* CLR <$82 */
 	machine_write_byte(pwcount, 0);
 	pskip += 6;  /* TST <$84 */
 	pskip += 3;  /* BNE tape_wait_p1_p0 */
 	if (machine_read_byte(0x84)) {
-		tape_wait_p1_p0(cpu_state);
+		tape_wait_p1_p0(cpu);
 	} else {
-		tape_wait_p0_p1(cpu_state);
+		tape_wait_p0_p1(cpu);
 	}
 }
 
-static void bitin(M6809State *cpu_state) {
+static void bitin(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
 	int mincw1200 = IS_DRAGON ? 0x92 : 0x8f;
 	pskip += 7;  /* BSR tape_wait_2p */
-	tape_wait_2p(cpu_state);
+	tape_wait_2p(cpu);
 	pskip += 4;  /* LDB <$82 */
 	pskip += 2;  /* DECB */
 	pskip += 4;  /* CMPB <$92 */
-	op_sub(cpu_state, machine_read_byte(pwcount) - 1, machine_read_byte(mincw1200));
+	op_sub(cpu, machine_read_byte(pwcount) - 1, machine_read_byte(mincw1200));
 	pskip += 5;  /* RTS */
 }
 
-static void cbin(M6809State *cpu_state) {
+static void cbin(struct MC6809 *cpu) {
 	int bcount = IS_DRAGON ? 0x83 : 0x82;
 	int bin = 0, i;
 	pskip += 2;  /* LDA #$08 */
 	pskip += 4;  /* STA <$83 */
 	for (i = 0; i < 8; i++) {
 		pskip += 7;  /* BSR BITIN */
-		bitin(cpu_state);
+		bitin(cpu);
 		pskip += 2;  /* RORA */
 		bin >>= 1;
-		bin |= (cpu_state->reg_cc & 0x01) ? 0x80 : 0;
+		bin |= (cpu->reg_cc & 0x01) ? 0x80 : 0;
 		pskip += 6;  /* DEC <$83 */
 		pskip += 3;  /* BNE $BDB1 */
 	}
 	pskip += 5;  /* RTS */
-	cpu_state->reg_a = bin;
+	MC6809_REG_A(cpu) = bin;
 	machine_write_byte(bcount, 0);
 }
 
-static void fast_motor_on(M6809State *cpu_state) {
+static void fast_motor_on(struct MC6809 *cpu) {
 	if (!tape_pad) {
-		motor_on(cpu_state);
+		motor_on(cpu);
 	}
-	machine_op_rts(cpu_state);
+	machine_op_rts(cpu);
 	pulse_skip();
 }
 
-static void fast_sync_leader(M6809State *cpu_state) {
+static void fast_sync_leader(struct MC6809 *cpu) {
 	if (tape_pad) {
 		machine_write_byte(0x84, 0);
 	} else {
-		sync_leader(cpu_state);
+		sync_leader(cpu);
 	}
-	machine_op_rts(cpu_state);
+	machine_op_rts(cpu);
 	pulse_skip();
 }
 
-static void fast_bitin(M6809State *cpu_state) {
-	bitin(cpu_state);
-	machine_op_rts(cpu_state);
+static void fast_bitin(struct MC6809 *cpu) {
+	bitin(cpu);
+	machine_op_rts(cpu);
 	pulse_skip();
-	if (tape_rewrite) rewrite_bitin(cpu_state);
+	if (tape_rewrite) rewrite_bitin(cpu);
 }
 
-static void fast_cbin(M6809State *cpu_state) {
-	cbin(cpu_state);
-	machine_op_rts(cpu_state);
+static void fast_cbin(struct MC6809 *cpu) {
+	cbin(cpu);
+	machine_op_rts(cpu);
 	pulse_skip();
 }
 
@@ -759,9 +759,9 @@ static void tape_desync(int leader) {
 	}
 }
 
-static void rewrite_sync(M6809State *cpu_state) {
+static void rewrite_sync(struct MC6809 *cpu) {
 	/* BLKIN, having read sync byte $3C */
-	(void)cpu_state;
+	(void)cpu;
 	int i;
 	if (rewrite_have_sync) return;
 	if (tape_rewrite) {
@@ -772,29 +772,29 @@ static void rewrite_sync(M6809State *cpu_state) {
 	}
 }
 
-static void rewrite_bitin(M6809State *cpu_state) {
+static void rewrite_bitin(struct MC6809 *cpu) {
 	/* RTS from BITIN */
-	(void)cpu_state;
+	(void)cpu;
 	if (tape_rewrite && rewrite_have_sync) {
-		tape_bit_out(tape_output, cpu_state->reg_cc & 0x01);
+		tape_bit_out(tape_output, cpu->reg_cc & 0x01);
 	}
 }
 
-static void rewrite_tape_on(M6809State *cpu_state) {
+static void rewrite_tape_on(struct MC6809 *cpu) {
 	/* CSRDON */
-	(void)cpu_state;
+	(void)cpu;
 	/* desync with long leader */
 	tape_desync(256);
 	/* for audio files, when padding leaders, assume a phase */
 	if (tape_pad && input_skip_sync) {
 		machine_write_byte(0x84, 0);  /* phase */
-		machine_op_rts(cpu_state);
+		machine_op_rts(cpu);
 	}
 }
 
-static void rewrite_end_of_block(M6809State *cpu_state) {
+static void rewrite_end_of_block(struct MC6809 *cpu) {
 	/* BLKIN, having confirmed checksum */
-	(void)cpu_state;
+	(void)cpu;
 	/* desync with short inter-block leader */
 	tape_desync(2);
 }

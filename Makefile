@@ -93,7 +93,7 @@ xroar_common_OBJS = \
 	input.o \
 	joystick.o \
 	keyboard.o \
-	m6809.o \
+	mc6809.o \
 	machine.o \
 	mc6821.o \
 	module.o \
@@ -365,7 +365,7 @@ windows32:
 	mkdir -p windows32
 endif
 
-opt_trace_OBJS = m6809_trace.o
+opt_trace_OBJS = mc6809_trace.o
 CLEAN += $(opt_trace_OBJS)
 ifeq ($(opt_trace),yes)
 	xroar_opt_OBJS += $(opt_trace_OBJS)

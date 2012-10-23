@@ -210,7 +210,7 @@ void keyboard_unicode_release(unsigned unicode) {
 static GSList *basic_command_list = NULL;
 static const char *basic_command = NULL;
 
-static void type_command(M6809State *cpu_state);
+static void type_command(struct MC6809 *cpu);
 
 static struct breakpoint basic_command_breakpoint[] = {
 	BP_DRAGON_ROM(.address = 0xbbe5, .handler = type_command),
@@ -220,7 +220,7 @@ static struct breakpoint basic_command_breakpoint[] = {
 	BP_COCO_BAS13_ROM(.address = 0xa1cb, .handler = type_command),
 };
 
-static void type_command(M6809State *cpu_state) {
+static void type_command(struct MC6809 *cpu) {
 	if (basic_command) {
 		int chr = *(basic_command++);
 		if (chr == '\\') {
@@ -234,8 +234,8 @@ static void type_command(M6809State *cpu_state) {
 				default: break;
 			}
 		}
-		cpu_state->reg_a = chr;
-		cpu_state->reg_cc &= ~4;
+		MC6809_REG_A(cpu) = chr;
+		cpu->reg_cc &= ~4;
 		if (*basic_command == 0)
 			basic_command = NULL;
 	}
@@ -252,7 +252,7 @@ static void type_command(M6809State *cpu_state) {
 		}
 	}
 	/* Use CPU read routine to pull return address back off stack */
-	machine_op_rts(cpu_state);
+	machine_op_rts(cpu);
 }
 
 void keyboard_queue_basic(const char *s) {

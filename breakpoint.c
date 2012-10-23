@@ -25,14 +25,14 @@
 #include "types.h"
 #include "breakpoint.h"
 #include "crclist.h"
-#include "m6809.h"
+#include "mc6809.h"
 #include "machine.h"
 #include "sam.h"
 #include "xroar.h"
 
 static GSList *bp_instruction_list = NULL;
 
-static void bp_instruction_hook(M6809State *cpu_state);
+static void bp_instruction_hook(struct MC6809 *cpu);
 
 /**************************************************************************/
 
@@ -48,7 +48,7 @@ void bp_add(struct breakpoint *bp) {
 	switch (bp->type) {
 	case BP_INSTRUCTION:
 		bp_instruction_list = g_slist_prepend(bp_instruction_list, bp);
-		m6809_instruction_hook = bp_instruction_hook;
+		CPU0->instruction_hook = bp_instruction_hook;
 		break;
 	default:
 		break;
@@ -67,7 +67,7 @@ void bp_remove(struct breakpoint *bp) {
 	case BP_INSTRUCTION:
 		bp_instruction_list = g_slist_remove(bp_instruction_list, bp);
 		if (!bp_instruction_list) {
-			m6809_instruction_hook = NULL;
+			CPU0->instruction_hook = NULL;
 		}
 		break;
 	default:
@@ -84,9 +84,9 @@ void bp_remove_n(struct breakpoint *bp, int n) {
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-static void bp_instruction_hook(M6809State *cpu_state) {
+static void bp_instruction_hook(struct MC6809 *cpu) {
 	GSList *iter = bp_instruction_list;
-	uint16_t pc = cpu_state->reg_pc;
+	uint16_t pc = CPU0->reg_pc;
 	unsigned int sam_register = sam_get_register();
 	int page = (sam_register & 0x0400) ? 1 : 0;
 	int map_type = (sam_register & 0x8000) ? 1 : 0;
@@ -101,11 +101,11 @@ static void bp_instruction_hook(M6809State *cpu_state) {
 			continue;
 		if (pc != bp->address)
 			continue;
-		bp->handler(cpu_state);
-		if (pc != cpu_state->reg_pc) {
+		bp->handler(cpu);
+		if (pc != CPU0->reg_pc) {
 			/* pc changed, start again */
 			iter = bp_instruction_list;
-			pc = cpu_state->reg_pc;
+			pc = CPU0->reg_pc;
 		}
 	}
 }

@@ -28,7 +28,7 @@
 #include "cart.h"
 #include "dragondos.h"
 #include "logging.h"
-#include "m6809.h"
+#include "mc6809.h"
 #include "machine.h"
 #include "mc6821.h"
 #include "vdrive.h"
@@ -133,10 +133,10 @@ static void reset_drq_handler(void) {
 
 static void set_intrq_handler(void) {
 	if (ic1_nmi_enable) {
-		m6809_nmi_set();
+		MC6809_NMI_SET(CPU0, 1);
 	}
 }
 
 static void reset_intrq_handler(void) {
-	m6809_nmi_clear();
+	MC6809_NMI_SET(CPU0, 0);
 }

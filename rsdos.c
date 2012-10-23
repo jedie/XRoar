@@ -27,7 +27,7 @@
 #include "types.h"
 #include "cart.h"
 #include "logging.h"
-#include "m6809.h"
+#include "mc6809.h"
 #include "machine.h"
 #include "rsdos.h"
 #include "vdrive.h"
@@ -133,39 +133,39 @@ static void ff40_write(int octet) {
 	ic1_density = octet & 0x20;
 	wd279x_set_dden(fdc, !ic1_density);
 	if (ic1_density && intrq_flag) {
-		m6809_nmi_set();
+		MC6809_NMI_SET(CPU0, 1);
 	}
 	halt_enable = octet & 0x80;
 	if (intrq_flag) halt_enable = 0;
 	if (halt_enable && !drq_flag) {
-		m6809_halt_set();
+		MC6809_HALT_SET(CPU0, 1);
 	} else {
-		m6809_halt_clear();
+		MC6809_HALT_SET(CPU0, 0);
 	}
 }
 
 static void set_drq_handler(void) {
 	drq_flag = 1;
-	m6809_halt_clear();
+	MC6809_HALT_SET(CPU0, 0);
 }
 
 static void reset_drq_handler(void) {
 	drq_flag = 0;
 	if (halt_enable) {
-		m6809_halt_set();
+		MC6809_HALT_SET(CPU0, 1);
 	}
 }
 
 static void set_intrq_handler(void) {
 	intrq_flag = 1;
 	halt_enable = 0;
-	m6809_halt_clear();
+	MC6809_HALT_SET(CPU0, 0);
 	if (!ic1_density && intrq_flag) {
-		m6809_nmi_set();
+		MC6809_NMI_SET(CPU0, 1);
 	}
 }
 
 static void reset_intrq_handler(void) {
 	intrq_flag = 0;
-	m6809_nmi_clear();
+	MC6809_NMI_SET(CPU0, 0);
 }

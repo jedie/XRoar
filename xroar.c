@@ -34,8 +34,7 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "m6809.h"
-#include "m6809_trace.h"
+#include "mc6809_trace.h"
 #include "machine.h"
 #include "module.h"
 #include "path.h"
@@ -318,9 +317,6 @@ void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate) = NULL;
 static void alloc_cart_status(void);
 static struct cart_config *get_machine_cart(void);
 static struct vdg_palette *get_machine_palette(void);
-#ifdef TRACE
-static void trace_done_instruction(M6809State *state);
-#endif
 
 /**************************************************************************/
 
@@ -843,8 +839,8 @@ static struct vdg_palette *get_machine_palette(void) {
 }
 
 void xroar_run(void) {
-	m6809_interrupt_hook = NULL;
-	m6809_instruction_posthook = NULL;
+	CPU0->interrupt_hook = NULL;
+	CPU0->instruction_posthook = NULL;
 
 #ifdef TRACE
 	xroar_set_trace(xroar_trace_enabled);
@@ -937,15 +933,6 @@ static void do_load_file(void *data) {
 	xroar_load_file_by_type(load_file, autorun_loaded_file);
 }
 
-#ifdef TRACE
-static void trace_done_instruction(M6809State *state) {
-	m6809_trace_print(state->reg_cc, state->reg_a,
-			state->reg_b, state->reg_dp,
-			state->reg_x, state->reg_y,
-			state->reg_u, state->reg_s);
-}
-#endif
-
 /* Helper functions */
 
 #ifdef TRACE
@@ -965,11 +952,11 @@ void xroar_set_trace(int mode) {
 	}
 	xroar_trace_enabled = set_to;
 	if (xroar_trace_enabled) {
-		m6809_interrupt_hook = m6809_trace_irq;
-		m6809_instruction_posthook = trace_done_instruction;
+		CPU0->interrupt_hook = mc6809_trace_irq;
+		CPU0->instruction_posthook = mc6809_trace_print;
 	} else {
-		m6809_interrupt_hook = NULL;
-		m6809_instruction_posthook = NULL;
+		CPU0->interrupt_hook = NULL;
+		CPU0->instruction_posthook = NULL;
 	}
 #endif
 }
