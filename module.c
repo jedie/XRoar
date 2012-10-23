@@ -56,6 +56,7 @@ extern FileReqModule filereq_cocoa_module;
 extern FileReqModule filereq_windows32_module;
 extern FileReqModule filereq_gtk2_module;
 extern FileReqModule filereq_cli_module;
+extern FileReqModule filereq_null_module;
 static FileReqModule *default_filereq_module_list[] = {
 #ifdef HAVE_COCOA
 	&filereq_cocoa_module,
@@ -69,6 +70,7 @@ static FileReqModule *default_filereq_module_list[] = {
 #ifdef HAVE_CLI
 	&filereq_cli_module,
 #endif
+	&filereq_null_module,
 	NULL
 };
 
