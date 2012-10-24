@@ -16,12 +16,14 @@ unset target_sdl_config build_sdl_config
 unset _have_video_driver
 unset _have_audio_driver
 
-all_opt="strings_h strcasecmp strsep zlib glib2 gtk2 opengl gtkgl sdl sdlgl build_sdl build_sdl_image cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
+all_opt="endian strings_h strcasecmp strsep zlib glib2 gtk2 opengl gtkgl sdl sdlgl build_sdl build_sdl_image cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
 for opt in $all_opt; do
 	eval "unset _$opt"
 done
 
 _jack=no
+unset _cross
+unset __keep_cc_output
 
 case `echo -n` in
 -n) _echo_n=""; _echo_c='\c'; ;;	# SysV echo
@@ -46,6 +48,8 @@ Installation directories:
 System types:
   --build=BUILD     configure for building on BUILD [guessed]
   --target=TARGET   cross-compile to build programs to run on TARGET [BUILD]
+  --target-le       specify that target is little-endian
+  --target-be       specify that target is big-endian
 
 Optional Features:
   --disable-glib2       don't test for GLib 2
@@ -97,11 +101,11 @@ CPPFLAGS=
 LDFLAGS=
 LDLIBS=
 
-TMPC=conftemp.c
-TMPCXX=conftemp.cc
-TMPM=conftemp.m
-TMPO=conftemp.o
-TMPX=conftemp
+TMPC=./conftemp.c
+TMPCXX=./conftemp.cc
+TMPM=./conftemp.m
+TMPO=./conftemp.o
+TMPX=./conftemp
 
 while test -n "$1"; do
 	opt="$1"
@@ -153,8 +157,10 @@ while test -n "$1"; do
 	--docdir=*) docdir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--pdfdir=*) pdfdir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--build=*) build=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--host=*) target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--target=*) target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--host=*) _cross=yes; target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--target=*) _cross=yes; target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--target-le) _endian=little; ;;
+	--target-be) _endian=big; ;;
 	--enable-[a-z-]*) eval _`echo "$opt"|sed 's/^--enable-//;s/-/_/g'`=yes; ;;
 	--disable-[a-z-]*) eval _`echo "$opt"|sed 's/^--disable-//;s/-/_/g'`=no; ;;
 	--with-sdl-config=*) target_sdl_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
@@ -317,7 +323,7 @@ cc_check () {
 	else
 		echo "# Compile failed: exit code = $?" >&$config_log
 	fi
-	rm -f $TMPO $TMPX
+	test -z "$__keep_cc_output" && rm -f $TMPO $TMPX
 	return $ret
 }
 
@@ -524,6 +530,51 @@ fi
 
 test -z "$TARGET_CPPFLAGS" && TARGET_CPPFLAGS="$CPPFLAGS"
 test -z "$TARGET_LDFLAGS" && TARGET_LDFLAGS="$LDFLAGS"
+
+########
+
+# Test endianness if not specified and not cross-compiling.
+
+echocheck Endianness
+if test -z "$_endian" -a -z "$_cross"; then
+	# I only care about 16-bit values at the moment.  There's a whole host
+	# of potential wrongness for larger types...
+	cat > $TMPC <<EOF
+#include <stdint.h>
+#include <stdlib.h>
+int main(int argc, char **argv) {
+	uint16_t i16 = 0;
+	*(((uint8_t *)&i16)+0) = 0x12;
+	*(((uint8_t *)&i16)+1) = 0x34;
+	if (i16 == 0x1234) return EXIT_SUCCESS;
+	return EXIT_FAILURE;
+}
+EOF
+	__keep_cc_output=1
+	if target_cc_check "" ""; then
+		_endian=big
+		$TMPX || _endian=little
+	fi
+	unset __keep_cc_output
+	rm -f $TMPC $TMPO $TMPX
+fi
+if test -z "$_endian"; then
+	# Unfortunately, most architectures are wrong-endian
+	case "$__target_cc_machine" in
+	m68k-*) _endian=big; ;;
+	microblaze-*) _endian=big; ;;
+	powerpc-*) _endian=big; ;;
+	s390-*) _endian=big; ;;
+	sparc-*) _endian=big; ;;
+	*) _endian=little; ;;
+	esac
+fi
+echo "$_endian"
+if test "$_endian" = "big"; then
+	_endian_def="#define HAVE_BIG_ENDIAN"
+else
+	_endian_def="#undef HAVE_BIG_ENDIAN"
+fi
 
 ########
 
