@@ -37,7 +37,10 @@ static VideoModule *null_video_module_list[] = {
 	NULL
 };
 
-static KeyboardModule keyboard_null_module;
+KeyboardModule keyboard_null_module = {
+	.common = { .name = "null", .description = "No keyboard" },
+};
+
 static KeyboardModule *null_keyboard_module_list[] = {
 	&keyboard_null_module,
 	NULL
@@ -48,10 +51,6 @@ UIModule ui_null_module = {
 	.filereq_module_list = null_filereq_module_list,
 	.video_module_list = null_video_module_list,
 	.keyboard_module_list = null_keyboard_module_list,
-};
-
-static KeyboardModule keyboard_null_module = {
-	.common = { .name = "null", .description = "No keyboard" },
 };
 
 /* */
