@@ -79,7 +79,8 @@ static int init(void) {
 	if ((err = snd_pcm_hw_params_set_channels(pcm_handle, hw_params, channels)) < 0)
 		goto failed;
 
-	snd_pcm_hw_params_get_period_size(hw_params, &frame_size, NULL);
+	if ((err = snd_pcm_hw_params_get_period_size(hw_params, &frame_size, NULL)) < 0)
+		goto failed;
 
 	snd_pcm_uframes_t buffer_size;
 	if (xroar_opt_ao_buffer_ms > 0) {
