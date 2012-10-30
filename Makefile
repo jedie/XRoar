@@ -80,17 +80,48 @@ CONFIG_FILES = config.h config.mak
 
 # Objects common to all builds:
 xroar_common_OBJS = \
-	crc16.o crc32.o crclist.o fs.o path.o xconfig.o \
-	breakpoint.o cart.o deltados.o dragondos.o events.o hexs19.o input.o \
-	joystick.o keyboard.o m6809.o machine.o mc6821.o module.o printer.o \
+	breakpoint.o \
+	cart.o \
+	crc16.o \
+	crc32.o \
+	crclist.o \
+	deltados.o \
+	dragondos.o \
+	events.o \
+	fs.o \
+	hexs19.o \
+	input.o \
+	joystick.o \
+	keyboard.o \
+	m6809.o \
+	machine.o \
+	mc6821.o \
+	module.o \
+	path.o \
+	printer.o \
 	romlist.o \
-	rsdos.o sam.o snapshot.o sound.o tape.o tape_cas.o ui_null.o vdg.o \
-	vdg_palette.o vdisk.o vdrive.o vo_null.o wd279x.o xroar.o
+	rsdos.o \
+	sam.o \
+	snapshot.o \
+	sound.o \
+	tape.o \
+	tape_cas.o \
+	ui_null.o \
+	vdg.o \
+	vdg_palette.o \
+	vdisk.o \
+	vdrive.o \
+	vo_null.o \
+	wd279x.o \
+	xconfig.o \
+	xroar.o
 xroar_common_INT_OBJS = vdg_bitmaps.o
 CLEAN = $(xroar_common_OBJS) $(xroar_common_INT_OBJS)
 
 # Portalib objects:
-portalib_common_OBJS = portalib/strcasecmp.o portalib/strsep.o
+portalib_common_OBJS = \
+	portalib/strcasecmp.o \
+	portalib/strsep.o
 CLEAN += $(portalib_common_OBJS)
 
 # Objects for all Unix-style builds (the default):
@@ -125,7 +156,11 @@ ifeq ($(opt_glib2),yes)
 	xroar_opt_LDFLAGS += $(opt_glib2_LDFLAGS)
 endif
 
-portalib_opt_glib2_OBJS = portalib/glib/ghash.o portalib/glib/gmem.o portalib/glib/gstrfuncs.o portalib/glib/gslist.o
+portalib_opt_glib2_OBJS = \
+	portalib/glib/ghash.o \
+	portalib/glib/gmem.o \
+	portalib/glib/gslist.o \
+	portalib/glib/gstrfuncs.o
 CLEAN += $(portalib_opt_glib2_OBJS)
 ifneq ($(opt_glib2),yes)
 	portalib_opt_OBJS += $(portalib_opt_glib2_OBJS)
@@ -134,8 +169,12 @@ $(portalib_opt_glib2_OBJS): | portalib/glib
 portalib/glib: | portalib
 	mkdir -p portalib/glib
 
-opt_gtk2_OBJS = gtk2/ui_gtk2.o gtk2/tapecontrol.o gtk2/drivecontrol.o \
-	gtk2/filereq_gtk2.o gtk2/keyboard_gtk2.o
+opt_gtk2_OBJS = \
+	gtk2/drivecontrol.o \
+	gtk2/filereq_gtk2.o \
+	gtk2/keyboard_gtk2.o \
+	gtk2/tapecontrol.o \
+	gtk2/ui_gtk2.o
 CLEAN += $(opt_gtk2_OBJS)
 ifeq ($(opt_gtk2),yes)
 	xroar_opt_OBJS += $(opt_gtk2_OBJS)
@@ -167,8 +206,13 @@ ifeq ($(opt_opengl),yes)
 	xroar_opt_LDFLAGS += $(opt_opengl_LDFLAGS)
 endif
 
-opt_sdl_OBJS = sdl/ui_sdl.o sdl/vo_sdl.o sdl/vo_sdlyuv.o sdl/ao_sdl.o \
-		sdl/keyboard_sdl.o sdl/joystick_sdl.o
+opt_sdl_OBJS = \
+	sdl/ao_sdl.o \
+	sdl/joystick_sdl.o \
+	sdl/keyboard_sdl.o \
+	sdl/ui_sdl.o \
+	sdl/vo_sdl.o \
+	sdl/vo_sdlyuv.o
 CLEAN += $(opt_sdl_OBJS)
 ifeq ($(opt_sdl),yes)
 	xroar_opt_OBJS += $(opt_sdl_OBJS)
@@ -200,7 +244,9 @@ ifeq ($(opt_cli),yes)
 	xroar_opt_LDFLAGS += $(opt_cli_LDFLAGS)
 endif
 
-opt_cocoa_objc_OBJS = macosx/ui_macosx.o macosx/filereq_cocoa.o
+opt_cocoa_objc_OBJS = \
+	macosx/filereq_cocoa.o \
+	macosx/ui_macosx.o
 CLEAN += $(opt_cocoa_OBJS) $(opt_cocoa_objc_OBJS)
 ifeq ($(opt_cocoa),yes)
 	xroar_opt_objc_OBJS += $(opt_cocoa_objc_OBJS)
@@ -303,7 +349,10 @@ linux:
 	mkdir -p linux
 endif
 
-opt_mingw_OBJS = windows32/common_windows32.o windows32/filereq_windows32.o windows32/ao_windows32.o
+opt_mingw_OBJS = \
+	windows32/ao_windows32.o \
+	windows32/common_windows32.o \
+	windows32/filereq_windows32.o
 opt_mingw_RES = windows32/xroar.res
 CLEAN += $(opt_mingw_OBJS) $(opt_mingw_RES)
 ifeq ($(opt_mingw),yes)

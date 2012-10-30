@@ -16,7 +16,36 @@ unset target_sdl_config build_sdl_config
 unset _have_video_driver
 unset _have_audio_driver
 
-all_opt="endian strings_h strcasecmp strsep zlib glib2 gtk2 opengl gtkgl sdl sdlgl build_sdl build_sdl_image cli cocoa alsa oss pulse sunaudio coreaudio jack nullaudio linux_joystick sndfile mingw trace fast_sound logging"
+all_opt="
+endian
+strings_h
+strcasecmp
+strsep
+zlib
+glib2
+gtk2
+opengl
+gtkgl
+sdl
+sdlgl
+build_sdl
+build_sdl_image
+cli
+cocoa
+alsa
+oss
+pulse
+sunaudio
+coreaudio
+jack
+nullaudio
+linux_joystick
+sndfile
+mingw
+trace
+fast_sound
+logging
+"
 for opt in $all_opt; do
 	eval "unset _$opt"
 done
