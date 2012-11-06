@@ -89,6 +89,7 @@ xroar_common_OBJS = \
 	dragondos.o \
 	events.o \
 	fs.o \
+	hd6309.o \
 	hexs19.o \
 	input.o \
 	joystick.o \
