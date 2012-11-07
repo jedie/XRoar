@@ -267,6 +267,9 @@ Select existing or configure new machine (@option{-machine help} for list).
 Machine description (showed in @option{-machine help}).
 @item -machine-arch ARCH
 Machine architecture.  One of ``dragon64'', ``dragon32'' or ``coco''.
+@item -machine-cpu CPU
+Machine CPU.  Either ``6809'' or ``6309''.  Hitachi 6309 support has received
+very little testing.
 @item -bas FILENAME
 Specify BASIC ROM to use (usually CoCo only).
 @item -extbas FILENAME
@@ -1047,5 +1050,9 @@ condition code register was handled.
 Thanks to all the people on the
 @myuref{http://archive.worldofdragon.org/phpBB3/, Dragon Archive Forums} for
 helpful feedback and insight.
+
+Darren Atkinson's ``Motorola 6809 and Hitachi 6309 Programmers Reference'' has
+been very useful for 6309 support and fleshing out the illegal instructions on
+the 6809.
 
 @bye
