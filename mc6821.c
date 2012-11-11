@@ -22,19 +22,19 @@
 
 #include "mc6821.h"
 
-MC6821_PIA *mc6821_new(void) {
-	MC6821_PIA *new = g_malloc(sizeof(MC6821_PIA));
+struct MC6821 *mc6821_new(void) {
+	struct MC6821 *new = g_malloc(sizeof(struct MC6821));
 	mc6821_init(new);
 	return new;
 }
 
-void mc6821_init(MC6821_PIA *pia) {
-	memset(pia, 0, sizeof(MC6821_PIA));
+void mc6821_init(struct MC6821 *pia) {
+	memset(pia, 0, sizeof(struct MC6821));
 	pia->a.in_sink = 0xff;
 	pia->b.in_sink = 0xff;
 }
 
-void mc6821_destroy(MC6821_PIA *pia) {
+void mc6821_destroy(struct MC6821 *pia) {
 	if (pia == NULL) return;
 	g_free(pia);
 }
@@ -44,7 +44,7 @@ void mc6821_destroy(MC6821_PIA *pia) {
 #define DDR_SELECTED(p)      (!(p.control_register & 0x04))
 #define PDR_SELECTED(p)      (p.control_register & 0x04)
 
-void mc6821_reset(MC6821_PIA *pia) {
+void mc6821_reset(struct MC6821 *pia) {
 	if (pia == NULL) return;
 	pia->a.control_register = 0;
 	pia->a.direction_register = 0;
@@ -64,7 +64,7 @@ void mc6821_reset(MC6821_PIA *pia) {
 #define PIA_DDR_SELECTED(s)      (!(s->control_register & 0x04))
 #define PIA_PDR_SELECTED(s)      (s->control_register & 0x04)
 
-void mc6821_set_cx1(struct MC6821_PIA_side *side) {
+void mc6821_set_cx1(struct MC6821_side *side) {
 	if (PIA_ACTIVE_TRANSITION(side)) {
 		side->interrupt_received = 1;
 		if (PIA_INTERRUPT_ENABLED(side)) {
@@ -75,7 +75,7 @@ void mc6821_set_cx1(struct MC6821_PIA_side *side) {
 	}
 }
 
-void mc6821_reset_cx1(struct MC6821_PIA_side *side) {
+void mc6821_reset_cx1(struct MC6821_side *side) {
 	if (!PIA_ACTIVE_TRANSITION(side)) {
 		side->interrupt_received = 1;
 		if (PIA_INTERRUPT_ENABLED(side)) {
@@ -97,7 +97,7 @@ void mc6821_reset_cx1(struct MC6821_PIA_side *side) {
 		if (p.data_postwrite) p.data_postwrite(); \
 	} while (0)
 
-void mc6821_update_state(MC6821_PIA *pia) {
+void mc6821_update_state(struct MC6821 *pia) {
 	UPDATE_OUTPUT_A(pia->a);
 	UPDATE_OUTPUT_B(pia->b);
 }
@@ -112,7 +112,7 @@ void mc6821_update_state(MC6821_PIA *pia) {
 		if (p.control_preread) p.control_preread(); \
 	} while (0)
 
-uint8_t mc6821_read(MC6821_PIA *pia, uint16_t A) {
+uint8_t mc6821_read(struct MC6821 *pia, uint16_t A) {
 	switch (A & 3) {
 		default:
 		case 0:
@@ -155,7 +155,7 @@ uint8_t mc6821_read(MC6821_PIA *pia, uint16_t A) {
 		if (p.control_postwrite) p.control_postwrite(); \
 	} while (0)
 
-void mc6821_write(MC6821_PIA *pia, uint16_t A, uint8_t D) {
+void mc6821_write(struct MC6821 *pia, uint16_t A, uint8_t D) {
 	switch (A & 3) {
 		default:
 		case 0:

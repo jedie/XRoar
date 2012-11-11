@@ -60,7 +60,7 @@ static uint8_t *machine_rom;
 static uint8_t rom0[0x4000];
 static uint8_t rom1[0x4000];
 struct MC6809 *CPU0 = NULL;
-MC6821_PIA PIA0, PIA1;
+struct MC6821 PIA0, PIA1;
 struct cart *machine_cart = NULL;
 static struct cart running_cart;
 _Bool has_bas, has_extbas, has_altbas;

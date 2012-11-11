@@ -19,7 +19,7 @@
  * Not implemented: Cx2/IRQx2 behaviour.
  */
 
-struct MC6821_PIA_side {
+struct MC6821_side {
 	/* Internal state */
 	uint8_t control_register;
 	uint8_t direction_register;
@@ -39,9 +39,9 @@ struct MC6821_PIA_side {
 	void (*data_postwrite)(void);
 };
 
-typedef struct {
-	struct MC6821_PIA_side a, b;
-} MC6821_PIA;
+struct MC6821 {
+	struct MC6821_side a, b;
+};
 
 #define PIA_SET_Cx1(s) mc6821_set_cx1(&s)
 #define PIA_RESET_Cx1(s) mc6821_reset_cx1(&s)
@@ -52,15 +52,15 @@ typedef struct {
 #define PIA_VALUE_A(p) ((p).a.out_sink & (p).a.in_sink)
 #define PIA_VALUE_B(p) (((p).b.out_source | (p).b.in_source) & (p).b.out_sink & (p).b.in_sink)
 
-MC6821_PIA *mc6821_new(void);
-void mc6821_init(MC6821_PIA *pia);
-void mc6821_destroy(MC6821_PIA *pia);
+struct MC6821 *mc6821_new(void);
+void mc6821_init(struct MC6821 *pia);
+void mc6821_destroy(struct MC6821 *pia);
 
-void mc6821_reset(MC6821_PIA *pia);
-void mc6821_set_cx1(struct MC6821_PIA_side *side);
-void mc6821_reset_cx1(struct MC6821_PIA_side *side);
-void mc6821_update_state(MC6821_PIA *pia);
-uint8_t mc6821_read(MC6821_PIA *pia, uint16_t A);
-void mc6821_write(MC6821_PIA *pia, uint16_t A, uint8_t D);
+void mc6821_reset(struct MC6821 *pia);
+void mc6821_set_cx1(struct MC6821_side *side);
+void mc6821_reset_cx1(struct MC6821_side *side);
+void mc6821_update_state(struct MC6821 *pia);
+uint8_t mc6821_read(struct MC6821 *pia, uint16_t A);
+void mc6821_write(struct MC6821 *pia, uint16_t A, uint8_t D);
 
 #endif  /* XROAR_MC6821_H_ */
