@@ -180,7 +180,7 @@ static void render_ccr_5bit(uint8_t *scanline_data) {
 
 /* Renders a line */
 static void render_scanline(uint8_t *scanline_data) {
-	scanline_data += 28;
+	scanline_data += ((VDG_tLB / 2) - 32);
 	LOCK_SURFACE;
 	if (!xroar_machine_config->cross_colour_phase) {
 		render_colour(scanline_data);
