@@ -56,7 +56,7 @@
 
 unsigned int machine_ram_size = 0x10000;  /* RAM in bytes, up to 64K */
 uint8_t machine_ram[0x10000];
-uint8_t *machine_rom;
+static uint8_t *machine_rom;
 static uint8_t rom0[0x4000];
 static uint8_t rom1[0x4000];
 struct MC6809 *CPU0 = NULL;

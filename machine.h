@@ -82,7 +82,6 @@ struct machine_config {
 
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
 extern uint8_t machine_ram[0x10000];
-extern uint8_t *machine_rom;
 extern struct MC6809 *CPU0;
 extern MC6821_PIA PIA0, PIA1;
 extern struct cart *machine_cart;
