@@ -51,7 +51,7 @@ static _Bool nA_G;
 static _Bool nINT_EXT, nINT_EXT_, nINT_EXT__;
 static _Bool GM0;
 static _Bool CSS, CSS_, CSS__;
-static uint8_t pixel_data[628];
+static uint8_t pixel_data[456];
 
 static uint8_t *pixel;
 static uint8_t s_fg_colour;
@@ -74,7 +74,9 @@ enum vdg_render_mode {
 static enum vdg_render_mode render_mode;
 
 static uint8_t vram[32];
+static int lborder_remaining;
 static int vram_remaining;
+static int rborder_remaining;
 static int vram_bit = 0;
 static int vram_idx = 0;
 static uint8_t vram_g_data;
@@ -104,7 +106,9 @@ void vdg_reset(void) {
 	beam_pos = 0;
 	vram_idx = 0;
 	vram_bit = 0;
+	lborder_remaining = VDG_tLB / 2;
 	vram_remaining = is_32byte ? 32 : 16;
+	rborder_remaining = VDG_tRB / 2;
 }
 
 static void do_hs_fall(void *data) {
@@ -150,7 +154,9 @@ static void do_hs_fall(void *data) {
 	beam_pos = 0;
 	vram_idx = 0;
 	vram_bit = 0;
+	lborder_remaining = VDG_tLB / 2;
 	vram_remaining = is_32byte ? 32 : 16;
+	rborder_remaining = VDG_tRB / 2;
 
 	if (scanline == VDG_ACTIVE_AREA_START) {
 		subline = 0;
@@ -182,138 +188,136 @@ static void do_hs_rise(void *data) {
 
 static void render_scanline(void) {
 	int beam_to = ((int)(event_current_tick - scanline_start) - SCAN_OFFSET) / 2;
+	if (beam_to > 372)
+		beam_to = 372;
 	if (beam_pos >= beam_to)
 		return;
 
-	while (beam_pos < 60) {
+	while (lborder_remaining > 0) {
 		if ((beam_pos & 7) == 4) {
 			CSS_ = CSS__;
 			nINT_EXT_ = nINT_EXT__;
 		}
-		*(pixel) = *(pixel + 1) = border_colour;
-		pixel += 2;
-		beam_pos += 2;
+		*(pixel++) = border_colour;
+		beam_pos++;
+		lborder_remaining--;
 		if (beam_pos >= beam_to)
 			return;
 	}
 
-	if (beam_pos >= 60) {
-		while (beam_pos < beam_to && vram_remaining > 0) {
-			if (vram_bit == 0) {
-				if (vram_idx == 0)
-					vdg_fetch_bytes(16, vram);
-				vram_g_data = vram[vram_idx];
-				vram_idx = (vram_idx + 1) & 15;
-				vram_bit = 8;
-				nA_S = vram_g_data & 0x80;
+	while (vram_remaining > 0) {
+		if (vram_bit == 0) {
+			if (vram_idx == 0)
+				vdg_fetch_bytes(16, vram);
+			vram_g_data = vram[vram_idx];
+			vram_idx = (vram_idx + 1) & 15;
+			vram_bit = 8;
+			nA_S = vram_g_data & 0x80;
 
-				CSS = CSS_;
-				CSS_ = CSS__;
-				nINT_EXT = nINT_EXT_;
-				nINT_EXT_ = nINT_EXT__;
-				cg_colours = !CSS ? VDG_GREEN : VDG_WHITE;
+			CSS = CSS_;
+			CSS_ = CSS__;
+			nINT_EXT = nINT_EXT_;
+			nINT_EXT_ = nINT_EXT__;
+			cg_colours = !CSS ? VDG_GREEN : VDG_WHITE;
 
-				if (!nA_G && !nA_S) {
-					_Bool INV = vram_g_data & 0x40;
-					if (!nINT_EXT)
-						vram_g_data = vdg_alpha[(vram_g_data&0x3f)*12 + subline];
-					if (INV)
-						vram_g_data = ~vram_g_data;
-				}
+			if (!nA_G && !nA_S) {
+				_Bool INV = vram_g_data & 0x40;
+				if (!nINT_EXT)
+					vram_g_data = vdg_alpha[(vram_g_data&0x3f)*12 + subline];
+				if (INV)
+					vram_g_data = ~vram_g_data;
+			}
 
-				if (!nA_G && nA_S) {
-					vram_sg_data = vram_g_data;
-					if (!nINT_EXT) {
-						if (subline < 6)
-							vram_sg_data >>= 2;
-						s_fg_colour = (vram_g_data >> 4) & 7;
-					} else {
-						if (subline < 4)
-							vram_sg_data >>= 4;
-						else if (subline < 8)
-							vram_sg_data >>= 2;
-						s_fg_colour = cg_colours + ((vram_g_data >> 6) & 3);
-					}
-					s_bg_colour = !nA_G ? VDG_BLACK : VDG_GREEN;
-					vram_sg_data = ((vram_sg_data & 2) ? 0xf0 : 0) | ((vram_sg_data & 1) ? 0x0f : 0);
-				}
-
-				if (!nA_G) {
-					render_mode = !nA_S ? VDG_RENDER_RG : VDG_RENDER_SG;
-					fg_colour = !CSS ? VDG_GREEN : VDG_BRIGHT_ORANGE;
-					bg_colour = !CSS ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
+			if (!nA_G && nA_S) {
+				vram_sg_data = vram_g_data;
+				if (!nINT_EXT) {
+					if (subline < 6)
+						vram_sg_data >>= 2;
+					s_fg_colour = (vram_g_data >> 4) & 7;
 				} else {
-					render_mode = GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
-					fg_colour = !CSS ? VDG_GREEN : VDG_WHITE;
-					bg_colour = !CSS ? VDG_DARK_GREEN : VDG_BLACK;
+					if (subline < 4)
+						vram_sg_data >>= 4;
+					else if (subline < 8)
+						vram_sg_data >>= 2;
+					s_fg_colour = cg_colours + ((vram_g_data >> 6) & 3);
 				}
+				s_bg_colour = !nA_G ? VDG_BLACK : VDG_GREEN;
+				vram_sg_data = ((vram_sg_data & 2) ? 0xf0 : 0) | ((vram_sg_data & 1) ? 0x0f : 0);
 			}
 
-			if (is_32byte) {
-				switch (render_mode) {
-				case VDG_RENDER_SG:
-					*(pixel) = (vram_sg_data&0x80) ? s_fg_colour : s_bg_colour;
-					*(pixel+1) = (vram_sg_data&0x40) ? s_fg_colour : s_bg_colour;
-					break;
-				case VDG_RENDER_CG:
-					*(pixel) = *(pixel+1) = cg_colours + ((vram_g_data & 0xc0) >> 6);
-					break;
-				case VDG_RENDER_RG:
-					*(pixel) = (vram_g_data&0x80) ? fg_colour : bg_colour;
-					*(pixel+1) = (vram_g_data&0x40) ? fg_colour : bg_colour;
-					break;
-				}
-				pixel += 2;
-				beam_pos += 2;
+			if (!nA_G) {
+				render_mode = !nA_S ? VDG_RENDER_RG : VDG_RENDER_SG;
+				fg_colour = !CSS ? VDG_GREEN : VDG_BRIGHT_ORANGE;
+				bg_colour = !CSS ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
 			} else {
-				switch (render_mode) {
-				case VDG_RENDER_SG:
-					*(pixel) = *(pixel+1) = (vram_sg_data&0x80) ? s_fg_colour : s_bg_colour;
-					*(pixel+2) = *(pixel+3) = (vram_sg_data&0x40) ? s_fg_colour : s_bg_colour;
-					break;
-				case VDG_RENDER_CG:
-					*(pixel) = *(pixel+1) = *(pixel+2) = *(pixel+3) = cg_colours + ((vram_g_data & 0xc0) >> 6);
-					break;
-				case VDG_RENDER_RG:
-					*(pixel) = *(pixel+1) = (vram_g_data&0x80) ? fg_colour : bg_colour;
-					*(pixel+2) = *(pixel+3) = (vram_g_data&0x40) ? fg_colour : bg_colour;
-					break;
-				}
-				pixel += 4;
-				beam_pos += 4;
+				render_mode = GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
+				fg_colour = !CSS ? VDG_GREEN : VDG_WHITE;
+				bg_colour = !CSS ? VDG_DARK_GREEN : VDG_BLACK;
 			}
-
-			vram_bit -= 2;
-			if (vram_bit == 0) {
-				vram_remaining--;
-				if (vram_remaining == 0) {
-					vdg_fetch_bytes(is_32byte ? 10 : 6, NULL);
-				}
-			}
-			vram_g_data <<= 2;
-			vram_sg_data <<= 2;
-			if (beam_pos >= beam_to)
-				return;
 		}
-	}
 
-	if (beam_pos >= 316) {
-		while (beam_pos < 372) {
-			if ((beam_pos & 7) == 4) {
-				CSS_ = CSS__;
-				nINT_EXT_ = nINT_EXT__;
+		if (is_32byte) {
+			switch (render_mode) {
+			case VDG_RENDER_SG:
+				*(pixel) = (vram_sg_data&0x80) ? s_fg_colour : s_bg_colour;
+				*(pixel+1) = (vram_sg_data&0x40) ? s_fg_colour : s_bg_colour;
+				break;
+			case VDG_RENDER_CG:
+				*(pixel) = *(pixel+1) = cg_colours + ((vram_g_data & 0xc0) >> 6);
+				break;
+			case VDG_RENDER_RG:
+				*(pixel) = (vram_g_data&0x80) ? fg_colour : bg_colour;
+				*(pixel+1) = (vram_g_data&0x40) ? fg_colour : bg_colour;
+				break;
 			}
-			if (beam_pos == 316) {
-				CSS = CSS_;
-				nINT_EXT = nINT_EXT_;
-			}
-			border_colour = nA_G ? cg_colours : VDG_BLACK;
-			*(pixel) = *(pixel + 1) = border_colour;
 			pixel += 2;
 			beam_pos += 2;
-			if (beam_pos >= beam_to)
-				return;
+		} else {
+			switch (render_mode) {
+			case VDG_RENDER_SG:
+				*(pixel) = *(pixel+1) = (vram_sg_data&0x80) ? s_fg_colour : s_bg_colour;
+				*(pixel+2) = *(pixel+3) = (vram_sg_data&0x40) ? s_fg_colour : s_bg_colour;
+				break;
+			case VDG_RENDER_CG:
+				*(pixel) = *(pixel+1) = *(pixel+2) = *(pixel+3) = cg_colours + ((vram_g_data & 0xc0) >> 6);
+				break;
+			case VDG_RENDER_RG:
+				*(pixel) = *(pixel+1) = (vram_g_data&0x80) ? fg_colour : bg_colour;
+				*(pixel+2) = *(pixel+3) = (vram_g_data&0x40) ? fg_colour : bg_colour;
+				break;
+			}
+			pixel += 4;
+			beam_pos += 4;
 		}
+
+		vram_bit -= 2;
+		if (vram_bit == 0) {
+			vram_remaining--;
+			if (vram_remaining == 0) {
+				vdg_fetch_bytes(is_32byte ? 10 : 6, NULL);
+			}
+		}
+		vram_g_data <<= 2;
+		vram_sg_data <<= 2;
+		if (beam_pos >= beam_to)
+			return;
+	}
+
+	while (rborder_remaining > 0) {
+		if ((beam_pos & 7) == 4) {
+			CSS_ = CSS__;
+			nINT_EXT_ = nINT_EXT__;
+		}
+		if (beam_pos == 316) {
+			CSS = CSS_;
+			nINT_EXT = nINT_EXT_;
+		}
+		border_colour = nA_G ? cg_colours : VDG_BLACK;
+		*(pixel++) = border_colour;
+		beam_pos++;
+		rborder_remaining--;
+		if (beam_pos >= beam_to)
+			return;
 	}
 }
 
