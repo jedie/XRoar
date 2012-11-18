@@ -58,6 +58,10 @@ extern void (*vdg_fetch_bytes)(int, uint8_t *);
 
 void vdg_init(void);
 void vdg_reset(void);
-void vdg_set_mode(void);
+/* Mode bits:
+ * 7..5  GM2..GM0
+ * 4    ¬INT/EXT
+ * 3    CSS */
+void vdg_set_mode(unsigned mode);
 
 #endif  /* XROAR_VDG_H_ */

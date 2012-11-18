@@ -1079,7 +1079,6 @@ void xroar_set_cross_colour(int action) {
 		xroar_machine_config->cross_colour_phase = action;
 		break;
 	}
-	vdg_set_mode();
 }
 
 void xroar_select_cross_colour(int action) {

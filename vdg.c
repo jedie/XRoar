@@ -102,7 +102,7 @@ void vdg_reset(void) {
 	scanline_start = event_current_tick;
 	hs_fall_event.at_tick = event_current_tick + VDG_LINE_DURATION;
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
-	vdg_set_mode();
+	vdg_set_mode(0);
 	beam_pos = 0;
 	vram_idx = 0;
 	vram_bit = 0;
@@ -321,14 +321,13 @@ static void render_scanline(void) {
 	}
 }
 
-void vdg_set_mode(void) {
+void vdg_set_mode(unsigned mode) {
 	/* Render scanline so far before changing modes */
 	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
 		render_scanline();
 	}
 
-	int mode = PIA1.b.out_source & PIA1.b.out_sink;
-	int GM = (mode >> 4) & 7;
+	unsigned GM = (mode >> 4) & 7;
 	GM0 = mode & 0x10;
 	CSS__ = mode & 0x08;
 	nINT_EXT__ = mode & 0x10;

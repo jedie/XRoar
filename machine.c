@@ -340,7 +340,7 @@ static void pia1b_data_postwrite(void) {
 		machine_rom = PIA_VALUE_B(PIA1) & 0x04 ? rom0 : rom1;
 	}
 	sound_update();
-	vdg_set_mode();
+	vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
 }
 #define pia1b_control_postwrite sound_update
 
