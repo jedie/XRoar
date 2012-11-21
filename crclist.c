@@ -49,7 +49,7 @@ static void init_crclist_list(void) {
 		return;
 	crclist_initialised = 1;
 
-	/* Dragon BASIC */
+	// Dragon BASIC
 	crclist_assign("d64_1=0x84f68bf9,0x60a4634c,@woolham_d64_1");
 	crclist_assign("d64_2=0x17893a42,@woolham_d64_2");
 	crclist_assign("d32=0xe3879310,@woolham_d32");
@@ -57,13 +57,14 @@ static void init_crclist_list(void) {
 	crclist_assign("woolham_d64_1=0xee33ae92");
 	crclist_assign("woolham_d64_2=0x1660ae35");
 	crclist_assign("woolham_d32=0xff7bf41e,0x9c7eed69");
-	/* CoCo BASIC */
+	// CoCo BASIC
 	crclist_assign("bas10=0x00b50aaa");
 	crclist_assign("bas11=0x6270955a");
 	crclist_assign("bas12=0x54368805");
 	crclist_assign("bas13=0xd8f4d15e");
 	crclist_assign("coco=@bas13,@bas12,@bas11,@bas10");
-	crclist_assign("extbas10=0x6111a086");
+	// Latter of these is the corrupt extbas10 found in the Dragon Archive
+	crclist_assign("extbas10=0xe031d076,0x6111a086");
 	crclist_assign("extbas11=0xa82a6254");
 	crclist_assign("cocoext=@extbas11,@extbas10");
 }
