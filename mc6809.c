@@ -466,9 +466,9 @@ static uint16_t ea_indexed(struct MC6809 *cpu) {
 		case 0x01: ea = *reg; *reg += 2; peek_byte(REG_PC); TAKEN_CYCLES(3); break;
 		case 0x02: *reg -= 1; ea = *reg; peek_byte(REG_PC); TAKEN_CYCLES(2); break;
 		case 0x03: *reg -= 2; ea = *reg; peek_byte(REG_PC); TAKEN_CYCLES(3); break;
-		case 0x07: // illegal
 		case 0x04: ea = *reg; peek_byte(REG_PC); break;
 		case 0x05: ea = *reg + sex8(RREG_B); peek_byte(REG_PC); TAKEN_CYCLES(1); break;
+		case 0x07: // illegal
 		case 0x06: ea = *reg + sex8(RREG_A); peek_byte(REG_PC); TAKEN_CYCLES(1); break;
 		case 0x08: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + *reg; TAKEN_CYCLES(1); break;
 		case 0x09: WORD_IMMEDIATE(0, ea); ea = ea + *reg; TAKEN_CYCLES(3); break;
@@ -476,8 +476,8 @@ static uint16_t ea_indexed(struct MC6809 *cpu) {
 		case 0x0b: ea = *reg + REG_D; peek_byte(REG_PC); peek_byte(REG_PC + 1); TAKEN_CYCLES(3); break;
 		case 0x0c: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + REG_PC; TAKEN_CYCLES(1); break;
 		case 0x0d: WORD_IMMEDIATE(0, ea); ea = ea + REG_PC; peek_byte(REG_PC); TAKEN_CYCLES(3); break;
+		case 0x0e: ea = 0xffff; break; // illegal
 		case 0x0f: WORD_IMMEDIATE(0, ea); TAKEN_CYCLES(1); break;
-		case 0x0e: // illegal - TODO needs checking
 		default: ea = 0; break;
 	}
 	if (postbyte & 0x10) {
