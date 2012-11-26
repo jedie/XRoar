@@ -232,6 +232,12 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 		TAKEN_CYCLES(1); \
 	} while (0)
 
+#define INSTRUCTION_POSTHOOK() do { \
+		if (cpu->instruction_posthook) { \
+			cpu->instruction_posthook(cpu); \
+		} \
+	} while (0)
+
 /* If right shifts of signed values are arithmetic, faster code can be used.
  * These macros depend on the compiler optimising away the unused version. */
 #define sex5(v) ( ((-1>>1)==-1) ? \
@@ -1261,8 +1267,10 @@ static void hd6309_run(struct MC6809 *cpu) {
 			case 0x3f:
 				peek_byte(REG_PC);
 				PUSH_IRQ_REGISTERS(1);
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(swi, CC_F|CC_I, MC6809_INT_VEC_SWI);
-				break;
+				cpu->state = hd6309_flow_label_a;
+				continue;
 
 			// 0x80 - 0xbf A register arithmetic ops
 			// 0xc0 - 0xff B register arithmetic ops
@@ -1446,8 +1454,10 @@ static void hd6309_run(struct MC6809 *cpu) {
 			// Illegal instruction
 			default:
 				PUSH_IRQ_REGISTERS(1);
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-				break;
+				cpu->state = hd6309_flow_label_a;
+				continue;
 			}
 			cpu->state = hd6309_flow_label_a;
 			goto done_instruction;
@@ -1629,8 +1639,10 @@ static void hd6309_run(struct MC6809 *cpu) {
 			case 0x3f:
 				peek_byte(REG_PC);
 				PUSH_IRQ_REGISTERS(1);
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(swi2, 0, MC6809_INT_VEC_SWI2);
-				break;
+				cpu->state = hd6309_flow_label_a;
+				continue;
 
 			// XXX to test: is there really no NEGW, ASRW or ASLW?
 
@@ -1862,8 +1874,10 @@ static void hd6309_run(struct MC6809 *cpu) {
 			// Illegal instruction
 			default:
 				PUSH_IRQ_REGISTERS(1);
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-				break;
+				cpu->state = hd6309_flow_label_a;
+				continue;
 			}
 			cpu->state = hd6309_flow_label_a;
 			goto done_instruction;
@@ -1901,10 +1915,11 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 2: reg_val = RREG_B; break;
 				default:
 					// XXX does this really happen?
+					INSTRUCTION_POSTHOOK();
 					PUSH_IRQ_REGISTERS(1);
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
 					cpu->state = hd6309_flow_label_a;
-					goto done_instruction;
+					continue;
 				}
 				unsigned out;
 				switch (op & 7) {
@@ -2024,8 +2039,10 @@ static void hd6309_run(struct MC6809 *cpu) {
 			case 0x3f:
 				peek_byte(REG_PC);
 				PUSH_IRQ_REGISTERS(1);
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(swi3, 0, MC6809_INT_VEC_SWI3);
-				break;
+				cpu->state = hd6309_flow_label_a;
+				continue;
 
 			// 0x1140 - 0x114f E register inherent ops
 			// 0x1150 - 0x115f F register inherent ops
@@ -2233,21 +2250,21 @@ static void hd6309_run(struct MC6809 *cpu) {
 			// Illegal instruction
 			default:
 				PUSH_IRQ_REGISTERS(1);
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-				break;
+				cpu->state = hd6309_flow_label_a;
+				continue;
 			}
 			cpu->state = hd6309_flow_label_a;
 			goto done_instruction;
 			}
 
-done_instruction:
-			// Instruction post-hook
-			if (cpu->instruction_posthook) {
-				cpu->instruction_posthook(cpu);
-			}
-			continue;
-
 		}
+
+done_instruction:
+		INSTRUCTION_POSTHOOK();
+		continue;
+
 	}
 
 }

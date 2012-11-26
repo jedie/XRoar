@@ -205,6 +205,12 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 		TAKEN_CYCLES(1); \
 	} while (0)
 
+#define INSTRUCTION_POSTHOOK() do { \
+		if (cpu->instruction_posthook) { \
+			cpu->instruction_posthook(cpu); \
+		} \
+	} while (0)
+
 /* If right shifts of signed values are arithmetic, faster code can be used.
  * These macros depend on the compiler optimising away the unused version. */
 #define sex5(v) ( ((-1>>1)==-1) ? \
@@ -1006,14 +1012,18 @@ static void mc6809_run(struct MC6809 *cpu) {
 			case 0x3e:
 				peek_byte(REG_PC);
 				PUSH_IRQ_REGISTERS_NO_E();
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(swi, CC_F|CC_I, MC6809_INT_VEC_RESET);
-				break;
+				cpu->state = mc6809_flow_label_a;
+				continue;
 			// 0x3f SWI inherent
 			case 0x3f:
 				peek_byte(REG_PC);
 				PUSH_IRQ_REGISTERS();
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(swi, CC_F|CC_I, MC6809_INT_VEC_SWI);
-				break;
+				cpu->state = mc6809_flow_label_a;
+				continue;
 
 			// 0x80 - 0xbf A register arithmetic ops
 			// 0xc0 - 0xff B register arithmetic ops
@@ -1243,8 +1253,10 @@ static void mc6809_run(struct MC6809 *cpu) {
 			case 0x3f:
 				peek_byte(REG_PC);
 				PUSH_IRQ_REGISTERS();
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(swi2, 0, MC6809_INT_VEC_SWI2);
-				break;
+				cpu->state = mc6809_flow_label_a;
+				continue;
 
 			// 0x1083, 0x1093, 0x10a3, 0x10b3 CMPD
 			// 0x108c, 0x109c, 0x10ac, 0x10bc CMPY
@@ -1327,8 +1339,10 @@ static void mc6809_run(struct MC6809 *cpu) {
 			case 0x3f:
 				peek_byte(REG_PC);
 				PUSH_IRQ_REGISTERS();
+				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(swi3, 0, MC6809_INT_VEC_SWI3);
-				break;
+				cpu->state = mc6809_flow_label_a;
+				continue;
 
 			// 0x1183, 0x1193, 0x11a3, 0x11b3 CMPU
 			// 0x118c, 0x119c, 0x11ac, 0x11bc CMPS
@@ -1361,14 +1375,12 @@ static void mc6809_run(struct MC6809 *cpu) {
 			TAKEN_CYCLES(1);
 			continue;
 
-done_instruction:
-			// Instruction post-hook
-			if (cpu->instruction_posthook) {
-				cpu->instruction_posthook(cpu);
-			}
-			continue;
-
 		}
+
+done_instruction:
+		INSTRUCTION_POSTHOOK();
+		continue;
+
 	}
 
 }
