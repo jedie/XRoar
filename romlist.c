@@ -85,6 +85,8 @@ static void init_romlist_list(void) {
 	romlist_assign("rsdos=disk11,disk10");
 	/* Delta */
 	romlist_assign("delta=delta,deltados,Premier Micros - DeltaDOS");
+	/* RSDOS with becker port */
+	romlist_assign("rsdos_becker=hdbdw3bck");
 }
 
 static struct romlist *new_romlist(const char *name) {

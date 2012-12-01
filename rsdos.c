@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "becker.h"
 #include "cart.h"
 #include "logging.h"
 #include "mc6809.h"
@@ -53,12 +54,15 @@ static _Bool drq_flag;
 static _Bool intrq_flag;
 static _Bool halt_enable;
 
+/* Optional becker port */
+static _Bool have_becker = 0;
+
 static WD279X *fdc;
 
 static void ff40_write(int octet);
 
 void rsdos_configure(struct cart *c, struct cart_config *cc) {
-	(void)cc;
+	have_becker = (cc->becker_port && becker_open());
 	c->io_read = io_read;
 	c->io_write = io_write;
 	c->reset = reset;
@@ -81,16 +85,48 @@ static void reset(void) {
 static void detach(void) {
 	wd279x_free(fdc);
 	fdc = NULL;
+	if (have_becker)
+		becker_close();
 }
 
 static uint8_t io_read(uint16_t A) {
-	if ((A & 0xc) == 8) return wd279x_read(fdc, A);
+	if (A & 0x8)
+		return wd279x_read(fdc, A);
+	if (have_becker) {
+		switch (A & 3) {
+		case 0x1:
+			return becker_read_status();
+		case 0x2:
+			return becker_read_data();
+		default:
+			break;
+		}
+	}
 	return 0x7e;
 }
 
 static void io_write(uint16_t A, uint8_t D) {
-	if ((A & 0xc) == 8) wd279x_write(fdc, A, D);
-	if (!(A & 8)) ff40_write(D);
+	if (A & 0x8) {
+		wd279x_write(fdc, A, D);
+		return;
+	}
+	if (have_becker) {
+		/* XXX not exactly sure in what way anyone has tightened up the
+		 * address decoding for the becker port */
+		switch (A & 3) {
+		case 0x0:
+			ff40_write(D);
+			break;
+		case 0x2:
+			becker_write_data(D);
+			break;
+		default:
+			break;
+		}
+	} else {
+		if (!(A & 8))
+			ff40_write(D);
+	}
 }
 
 /* RSDOS cartridge circuitry */

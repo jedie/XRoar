@@ -21,10 +21,14 @@
  *         http://www.dragon-archive.co.uk/
  */
 
+/* TODO: I've hacked in an optional "becker port" at $FF49/$FF4A.  Is this the
+ * best place for it? */
+
 #include <stdlib.h>
 #include <string.h>
 
 #include "types.h"
+#include "becker.h"
 #include "cart.h"
 #include "dragondos.h"
 #include "logging.h"
@@ -54,12 +58,15 @@ static _Bool ic1_precomp_enable;
 static _Bool ic1_density;
 static _Bool ic1_nmi_enable;
 
+/* Optional becker port */
+static _Bool have_becker;
+
 static WD279X *fdc;
 
 static void ff48_write(int octet);
 
 void dragondos_configure(struct cart *c, struct cart_config *cc) {
-	(void)cc;
+	have_becker = (cc->becker_port && becker_open());
 	c->io_read = io_read;
 	c->io_write = io_write;
 	c->reset = reset;
@@ -80,16 +87,48 @@ static void reset(void) {
 static void detach(void) {
 	wd279x_free(fdc);
 	fdc = NULL;
+	if (have_becker)
+		becker_close();
 }
 
 static uint8_t io_read(uint16_t A) {
 	if ((A & 0xc) == 0) return wd279x_read(fdc, A);
+	if (!(A & 8))
+		return 0x7e;
+	if (have_becker) {
+		switch (A & 3) {
+		case 0x1:
+			return becker_read_status();
+		case 0x2:
+			return becker_read_data();
+		default:
+			break;
+		}
+	}
 	return 0x7e;
 }
 
 static void io_write(uint16_t A, uint8_t D) {
-	if ((A & 0xc) == 0) wd279x_write(fdc, A, D);
-	if (A & 8) ff48_write(D);
+	if ((A & 0xc) == 0) {
+		wd279x_write(fdc, A, D);
+		return;
+	}
+	if (!(A & 8))
+		return;
+	if (have_becker) {
+		switch (A & 3) {
+		case 0x0:
+			ff48_write(D);
+			break;
+		case 0x2:
+			becker_write_data(D);
+			break;
+		default:
+			break;
+		}
+	} else {
+		ff48_write(D);
+	}
 }
 
 /* DragonDOS cartridge circuitry */

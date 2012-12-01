@@ -53,6 +53,8 @@ extern void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate);
 
 /* Attach files */
 extern _Bool xroar_opt_force_crc_match;
+extern char *xroar_opt_becker_ip;
+extern char *xroar_opt_becker_port;
 
 /* Emulator interface */
 extern char *xroar_opt_geometry;  /* initial emulator geometry string */
@@ -70,6 +72,7 @@ extern _Bool xroar_kbd_translate;
 extern char *xroar_opt_joy_left;
 extern char *xroar_opt_joy_right;
 extern int xroar_trace_enabled;
+extern _Bool xroar_opt_becker;
 extern _Bool xroar_opt_disk_write_back;
 
 extern struct xconfig_enum xroar_cross_colour_list[];

@@ -80,6 +80,7 @@ CONFIG_FILES = config.h config.mak
 
 # Objects common to all builds:
 xroar_common_OBJS = \
+	becker.o \
 	breakpoint.o \
 	cart.o \
 	crc16.o \

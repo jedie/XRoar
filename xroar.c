@@ -78,6 +78,7 @@ static char *opt_cart_desc = NULL;
 static int opt_cart_type = ANY_AUTO;
 static char *opt_cart_rom = NULL;
 static char *opt_cart_rom2 = NULL;
+static _Bool opt_cart_becker = 0;
 static int opt_cart_autorun = ANY_AUTO;
 static int opt_nodos = 0;
 
@@ -88,6 +89,8 @@ static char *opt_run = NULL;
 static char *opt_tape_write = NULL;
 static char *opt_lp_file = NULL;
 static char *opt_lp_pipe = NULL;
+char *xroar_opt_becker_ip = NULL;
+char *xroar_opt_becker_port = NULL;
 
 /* Automatic actions */
 static void type_command(char *string);
@@ -122,6 +125,7 @@ int xroar_trace_enabled = 0;
 #else
 # define xroar_trace_enabled (0)
 #endif
+_Bool xroar_opt_becker = 0;
 _Bool xroar_opt_disk_write_back = 0;
 
 static GSList *type_command_list = NULL;
@@ -203,6 +207,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_ENUM("cart-type", &opt_cart_type, cart_type_list),
 	XC_SET_STRING("cart-rom", &opt_cart_rom),
 	XC_SET_STRING("cart-rom2", &opt_cart_rom2),
+	XC_SET_BOOL("cart-becker", &opt_cart_becker),
 	XC_SET_INT1("cart-autorun", &opt_cart_autorun),
 	XC_SET_INT1("nodos", &opt_nodos),
 	/* Backwards-compatibility options: */
@@ -223,6 +228,10 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("cart", &opt_run),
 	XC_SET_STRING("lp-file", &opt_lp_file),
 	XC_SET_STRING("lp-pipe", &opt_lp_pipe),
+	XC_SET_STRING("becker-ip", &xroar_opt_becker_ip),
+	XC_SET_STRING("becker-port", &xroar_opt_becker_port),
+	XC_SET_STRING("dw4-ip", &xroar_opt_becker_ip),
+	XC_SET_STRING("dw4-port", &xroar_opt_becker_port),
 
 	/* Automatic actions */
 	XC_CALL_STRING("type", &type_command),
@@ -254,6 +263,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("tape-pad-auto", &xroar_opt_tape_pad_auto),
 	XC_SET_INT1("tape-rewrite", &xroar_opt_tape_rewrite),
 	XC_SET_INT1("tapehack", &xroar_opt_tape_rewrite),
+	XC_SET_BOOL("becker", &xroar_opt_becker),
 	XC_SET_BOOL0("disk-write-back", &xroar_opt_disk_write_back),
 #ifdef TRACE
 	XC_SET_INT1("trace", &xroar_trace_enabled),
@@ -506,6 +516,7 @@ static void helptext(void) {
 "  -cart-type TYPE       set cartridge type (-cart-type help for list)\n"
 "  -cart-rom NAME        ROM image to load ($C000-)\n"
 "  -cart-rom2 NAME       second ROM image to load ($E000-)\n"
+"  -cart-becker          enable becker port where supported\n"
 "  -cart-autorun         autorun cartridge\n"
 "  -nodos                don't automatically pick a DOS cartridge\n"
 
@@ -520,6 +531,8 @@ static void helptext(void) {
 "  -tape-write FILENAME  open FILENAME for tape writing\n"
 "  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
 "  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
+"  -becker-ip            IP address of DriveWire server [127.0.0.1]\n"
+"  -becker-port          port of DriveWire server [65504]\n"
 
 "\n Automatic actions:\n"
 "  -type STRING          intercept ROM calls to type STRING into BASIC\n"
@@ -550,6 +563,7 @@ static void helptext(void) {
 "  -tape-pad             enable tape leader padding\n"
 "  -tape-pad-auto        detect need for leader padding automatically\n"
 "  -tape-rewrite         enable tape rewriting\n"
+"  -becker               default to becker-enabled DOS\n"
 "  -disk-write-back      default to enabling write-back for disk images\n"
 #ifdef TRACE
 "  -trace                start with trace mode on\n"

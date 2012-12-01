@@ -24,6 +24,7 @@ struct cart_config {
 	enum cart_type type;
 	char *rom;
 	char *rom2;
+	_Bool becker_port;
 	int autorun;
 };
 

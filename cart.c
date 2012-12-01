@@ -26,6 +26,7 @@
 #include "portalib/glib.h"
 
 #include "types.h"
+#include "becker.h"
 #include "cart.h"
 #include "deltados.h"
 #include "dragondos.h"
@@ -42,12 +43,14 @@ struct cart_config_template {
 	const char *description;
 	int type;
 	const char *rom;
+	_Bool becker_port;
 };
 
 static struct cart_config_template config_templates[] = {
-	{ "dragondos", "DragonDOS", CART_DRAGONDOS, "@dragondos_compat" },
-	{ "rsdos", "RS-DOS", CART_RSDOS, "@rsdos" },
-	{ "delta", "Delta System", CART_DELTADOS, "@delta" },
+	{ .name = "dragondos", .description = "DragonDOS", .type = CART_DRAGONDOS, .rom = "@dragondos_compat" },
+	{ .name = "rsdos", .description = "RS-DOS", .type = CART_RSDOS, .rom = "@rsdos" },
+	{ .name = "delta", .description = "Delta System", .type = CART_DELTADOS, .rom = "@delta" },
+	{ .name = "becker", .description = "RS-DOS with becker port", .type = CART_RSDOS, .rom = "@rsdos_becker", .becker_port = 1 },
 };
 #define NUM_CONFIG_TEMPLATES (int)(sizeof(config_templates)/sizeof(struct cart_config_template))
 
@@ -88,6 +91,7 @@ static int populate_config_index(int i) {
 	configs[i]->description = g_strdup(config_templates[i].description);
 	configs[i]->type = config_templates[i].type;
 	configs[i]->rom = g_strdup(config_templates[i].rom);
+	configs[i]->becker_port = config_templates[i].becker_port;
 	configs[i]->index = i;
 	return 0;
 }
@@ -184,8 +188,12 @@ struct cart_config *cart_find_working_dos(struct machine_config *mc) {
 			cc = cart_config_by_name("delta");
 		}
 	} else {
-		if ((tmp = romlist_find("@rsdos"))) {
+		if (xroar_opt_becker && (tmp = romlist_find("@rsdos_becker"))) {
+			cc = cart_config_by_name("becker");
+		} else if ((tmp = romlist_find("@rsdos"))) {
 			cc = cart_config_by_name("rsdos");
+		} else if (!xroar_opt_becker && (tmp = romlist_find("@rsdos_becker"))) {
+			cc = cart_config_by_name("becker");
 		}
 	}
 	if (tmp)

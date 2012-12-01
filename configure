@@ -1148,7 +1148,7 @@ fi
 
 if test "$_mingw" \!= "no"; then
 	echocheck MinGW
-	mingw_ldflags="-lmingw32 -lwinmm -mwindows"
+	mingw_ldflags="-lmingw32 -lwinmm -mwindows -lws2_32"
 	cat > $TMPC <<EOF
 #include <windows.h>
 #include <commdlg.h>
