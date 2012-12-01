@@ -201,10 +201,13 @@ void vo_opengl_vsync(void) {
 			GL_UNSIGNED_SHORT_5_6_5, screen_tex);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
-	/* Most toolkits seem to have their own way of calling
-	 * glXSwapBuffers() */
+	/* Video module should now do whatever's required to swap buffers */
 }
 
 void vo_opengl_render_scanline(uint8_t *scanline_data) {
 	render_scanline(scanline_data);
+}
+
+void vo_opengl_update_cross_colour_phase(void) {
+	update_cross_colour_phase();
 }

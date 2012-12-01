@@ -33,6 +33,7 @@ typedef struct {
 	float scale;
 	void (*render_scanline)(uint8_t *scanline_data);
 	void (*vsync)(void);
+	void (*update_cross_colour_phase)(void);
 } VideoModule;
 
 typedef struct {

@@ -40,6 +40,7 @@ static void vsync(void);
 static void render_scanline(uint8_t *scanline_data);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(_Bool fullscreen);
+static void update_cross_colour_phase(void);
 
 VideoModule video_sdlyuv_module = {
 	.common = { .name = "sdlyuv", .description = "SDL YUV overlay video",
@@ -47,7 +48,8 @@ VideoModule video_sdlyuv_module = {
 	.update_palette = alloc_colours,
 	.vsync = vsync,
 	.render_scanline = render_scanline,
-	.resize = resize, .set_fullscreen = set_fullscreen
+	.resize = resize, .set_fullscreen = set_fullscreen,
+	.update_cross_colour_phase = update_cross_colour_phase,
 };
 
 typedef Uint32 Pixel;

@@ -1092,6 +1092,9 @@ void xroar_set_cross_colour(int action) {
 		xroar_machine_config->cross_colour_phase = action;
 		break;
 	}
+	if (video_module->update_cross_colour_phase) {
+		video_module->update_cross_colour_phase();
+	}
 }
 
 void xroar_select_cross_colour(int action) {

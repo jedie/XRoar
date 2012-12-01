@@ -23,12 +23,14 @@
 #include "config.h"
 
 #include "machine.h"
+#include "module.h"
 #include "vdg_palette.h"
 
 static Pixel *pixel;
 static Pixel vdg_colour[12];
 static Pixel artifact_5bit[2][32];
 static Pixel artifact_simple[2][4];
+static int phase = 0;
 
 /* Map VDG palette entry */
 static Pixel map_palette_entry(int i) {
@@ -128,19 +130,23 @@ static void alloc_colours(void) {
 }
 
 /* Render colour line using palette */
-static void render_colour(uint8_t *scanline_data) {
-	int i;
-	for (i = 320; i; i--) {
+static void render_scanline(uint8_t *scanline_data) {
+	scanline_data += ((VDG_tLB / 2) - 32);
+	LOCK_SURFACE;
+	for (int i = 320; i; i--) {
 		*pixel = vdg_colour[*(scanline_data++)];
 		pixel += XSTEP;
 	}
+	UNLOCK_SURFACE;
+	pixel += NEXTLINE;
 }
 
 /* Render artifacted colours - simple 4-colour lookup */
 static void render_ccr_simple(uint8_t *scanline_data) {
 	int phase = xroar_machine_config->cross_colour_phase - 1;
-	int i;
-	for (i = 160; i; i--) {
+	scanline_data += ((VDG_tLB / 2) - 32);
+	LOCK_SURFACE;
+	for (int i = 160; i; i--) {
 		uint8_t c0 = *(scanline_data++);
 		uint8_t c1 = *(scanline_data++);
 		if (c0 == VDG_BLACK || c0 == VDG_WHITE) {
@@ -153,19 +159,21 @@ static void render_ccr_simple(uint8_t *scanline_data) {
 		}
 		pixel += 2 * XSTEP;
 	}
+	UNLOCK_SURFACE;
+	pixel += NEXTLINE;
 }
 
 /* Render artifacted colours - 5-bit lookup table */
 static void render_ccr_5bit(uint8_t *scanline_data) {
+	scanline_data += ((VDG_tLB / 2) - 32);
+	LOCK_SURFACE;
 	int aindex = 0;
-	int phase = xroar_machine_config->cross_colour_phase - 1;
-	int i;
-	for (i = -2; i < 2; i++) {
+	for (int i = -2; i < 2; i++) {
 		aindex = (aindex << 1) & 31;
 		if (*(scanline_data + i) != VDG_BLACK)
 			aindex |= 1;
 	}
-	for (i = 320; i; i--) {
+	for (int i = 320; i; i--) {
 		aindex = (aindex << 1) & 31;
 		if (*(scanline_data + 2) != VDG_BLACK)
 			aindex |= 1;
@@ -178,19 +186,20 @@ static void render_ccr_5bit(uint8_t *scanline_data) {
 		pixel += XSTEP;
 		phase ^= 1;
 	}
-}
-
-/* Renders a line */
-static void render_scanline(uint8_t *scanline_data) {
-	scanline_data += ((VDG_tLB / 2) - 32);
-	LOCK_SURFACE;
-	if (!xroar_machine_config->cross_colour_phase) {
-		render_colour(scanline_data);
-	} else if (xroar_opt_ccr == CROSS_COLOUR_SIMPLE) {
-		render_ccr_simple(scanline_data);
-	} else {
-		render_ccr_5bit(scanline_data);
-	}
 	UNLOCK_SURFACE;
 	pixel += NEXTLINE;
+}
+
+static void update_cross_colour_phase(void) {
+	if (xroar_machine_config->cross_colour_phase == CROSS_COLOUR_OFF) {
+		phase = 0;
+		video_module->render_scanline = render_scanline;
+	} else {
+		phase = xroar_machine_config->cross_colour_phase - 1;
+		if (xroar_opt_ccr == CROSS_COLOUR_SIMPLE) {
+			video_module->render_scanline = render_ccr_simple;
+		} else {
+			video_module->render_scanline = render_ccr_5bit;
+		}
+	}
 }

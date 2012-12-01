@@ -46,7 +46,8 @@ VideoModule video_sdlgl_module = {
 	.update_palette = vo_opengl_alloc_colours,
 	.vsync = vsync,
 	.render_scanline = vo_opengl_render_scanline,
-	.resize = resize, .set_fullscreen = set_fullscreen
+	.resize = resize, .set_fullscreen = set_fullscreen,
+	.update_cross_colour_phase = vo_opengl_update_cross_colour_phase,
 };
 
 static SDL_Surface *screen;
