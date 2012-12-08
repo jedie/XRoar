@@ -20,8 +20,6 @@
 
 #include <windows.h>
 
-#include "types.h"
-
 #include "logging.h"
 #include "module.h"
 #include "sound.h"

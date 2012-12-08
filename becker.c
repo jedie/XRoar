@@ -23,22 +23,23 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #ifndef WINDOWS32
-#include <netdb.h>
-#include <fcntl.h>
 #include <arpa/inet.h>
-#include <sys/types.h>
+#include <fcntl.h>
+#include <netdb.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #else
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
 #endif
 
-#include "types.h"
 #include "becker.h"
 #include "logging.h"
 #include "xroar.h"

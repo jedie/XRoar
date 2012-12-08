@@ -26,7 +26,6 @@
 #include <commdlg.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "fs.h"
 #include "logging.h"
 #include "module.h"

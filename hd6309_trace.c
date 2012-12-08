@@ -18,11 +18,10 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-#include "types.h"
 
 #include "hd6309.h"
 #include "hd6309_trace.h"

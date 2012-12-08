@@ -20,18 +20,16 @@
 
 #include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <linux/joystick.h>
-
 #include "portalib/string.h"
 
-#include "types.h"
 #include "events.h"
 #include "input.h"
 #include "joystick.h"

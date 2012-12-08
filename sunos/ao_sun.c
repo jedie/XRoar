@@ -20,15 +20,14 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <sys/audioio.h>
 #include <sys/stropts.h>
-
-#include "types.h"
 
 #include "logging.h"
 #include "machine.h"

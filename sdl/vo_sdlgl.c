@@ -24,13 +24,12 @@
 #include <SDL_opengl.h>
 #include <SDL_syswm.h>
 
-#include "types.h"
-
 #include "logging.h"
 #include "module.h"
 #include "vdg.h"
 #include "vo_opengl.h"
 #include "xroar.h"
+
 #ifdef WINDOWS32
 #include "windows32/common_windows32.h"
 #endif

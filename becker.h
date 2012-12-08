@@ -9,6 +9,8 @@
 /* Support the so-called "becker port", an IP version of the usually-serial
  * DriveWire protocol. */
 
+#include <inttypes.h>
+
 _Bool becker_open(void);
 void becker_close(void);
 uint8_t becker_read_status(void);

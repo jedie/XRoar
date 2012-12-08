@@ -18,17 +18,15 @@
 
 #include "config.h"
 
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 #include <SDL.h>
 #include <SDL_thread.h>
 
 #ifdef WINDOWS32
 #include <windows.h>
 #endif
-
-#include "types.h"
 
 #include "logging.h"
 #include "machine.h"
@@ -47,7 +45,7 @@ SoundModule sound_sdl_module = {
 };
 
 static int buffer_bytes;
-static uint8_t *sound_buf;
+static Uint8 *sound_buf;
 
 static SDL_AudioSpec audiospec;
 #ifndef WINDOWS32

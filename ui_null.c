@@ -18,7 +18,6 @@
 
 #include <stdlib.h>
 
-#include "types.h"
 #include "module.h"
 
 static char *filereq_noop(const char **extensions);

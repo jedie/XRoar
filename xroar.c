@@ -22,10 +22,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "portalib/strings.h"
 #include "portalib/glib.h"
+#include "portalib/strings.h"
 
-#include "types.h"
 #include "cart.h"
 #include "crclist.h"
 #include "events.h"
@@ -35,8 +34,8 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "mc6809_trace.h"
 #include "machine.h"
+#include "mc6809_trace.h"
 #include "module.h"
 #include "path.h"
 #include "printer.h"

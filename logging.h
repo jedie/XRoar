@@ -6,6 +6,8 @@
 #ifndef XROAR_LOGGING_H_
 #define XROAR_LOGGING_H_
 
+#include "config.h"
+
 #ifndef LOGGING
 
 #define LOG_DEBUG(...) do {} while (0)

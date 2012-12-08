@@ -16,21 +16,22 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 
-#include "types.h"
 #include "events.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
 #include "sam.h"
+#include "sdl/ui_sdl.h"
 #include "vdg.h"
 #include "xroar.h"
-#include "sdl/ui_sdl.h"
 
 static VideoModule *sdl_video_module_list[] = {
 #ifdef HAVE_SDLGL

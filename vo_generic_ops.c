@@ -20,6 +20,8 @@
  * into various video module source files and makes use of macros defined in
  * those files (eg, LOCK_SURFACE and XSTEP) */
 
+#include "config.h"
+
 #include "machine.h"
 #include "vdg_palette.h"
 

@@ -18,9 +18,9 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 
-#include "types.h"
 #include "fs.h"
 
 int fs_write_uint8(FILE *stream, int value) {

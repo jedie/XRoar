@@ -21,8 +21,6 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "types.h"
-
 #include "module.h"
 
 static char *load_filename(const char **extensions);

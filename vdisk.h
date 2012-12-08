@@ -6,6 +6,8 @@
 #ifndef XROAR_VDISK_H_
 #define XROAR_VDISK_H_
 
+#include <inttypes.h>
+
 #define VDISK_LENGTH_5_25 (0x1900)
 #define VDISK_LENGTH_8    (0x2940)
 

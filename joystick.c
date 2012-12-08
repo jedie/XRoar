@@ -16,11 +16,10 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "types.h"
+#include "joystick.h"
 #include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
-#include "joystick.h"
 
 /* Some dissonance: internally, the right joystick is considered "first", but
  * any interface presented to the user should probably consider the left

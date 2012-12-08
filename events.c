@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "events.h"
 #include "logging.h"
 

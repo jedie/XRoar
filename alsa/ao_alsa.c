@@ -18,16 +18,14 @@
 
 #include "config.h"
 
+#include <alsa/asoundlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
-#include <alsa/asoundlib.h>
-
-#include "types.h"
+#include <unistd.h>
 
 #include "events.h"
 #include "logging.h"

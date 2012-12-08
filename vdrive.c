@@ -17,10 +17,10 @@
  */
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
 #include "events.h"
 #include "logging.h"
 #include "machine.h"

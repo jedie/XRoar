@@ -6,7 +6,8 @@
 #ifndef XROAR_WD279X_H_
 #define XROAR_WD279X_H_
 
-#include "types.h"
+#include <inttypes.h>
+
 #include "events.h"
 
 enum WD279X_type {

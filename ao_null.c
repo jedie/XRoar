@@ -20,6 +20,7 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -31,8 +32,6 @@
 #include <time.h>
 #include <sys/time.h>
 #endif
-
-#include "types.h"
 
 #include "events.h"
 #include "logging.h"

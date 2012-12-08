@@ -25,7 +25,6 @@
 
 #include "portalib/string.h"
 
-#include "types.h"
 #include "events.h"
 #include "input.h"
 #include "joystick.h"

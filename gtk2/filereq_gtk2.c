@@ -22,8 +22,6 @@
 #include <string.h>
 #include <gtk/gtk.h>
 
-#include "types.h"
-
 #include "fs.h"
 #include "logging.h"
 #include "module.h"

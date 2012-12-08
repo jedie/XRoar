@@ -3,11 +3,12 @@
 
 #include "config.h"
 
+#include <inttypes.h>
+
 #ifdef HAVE_ZLIB
 #include <zlib.h>
 #endif
 
-#include "types.h"
 #include "crc32.h"
 
 #ifdef HAVE_ZLIB

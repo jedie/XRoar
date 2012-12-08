@@ -18,7 +18,7 @@
 
 #include "config.h"
 
-#include "types.h"
+#include <inttypes.h>
 
 #include "module.h"
 

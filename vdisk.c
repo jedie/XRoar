@@ -19,13 +19,13 @@
 #include "config.h"
 
 #include <ctype.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include "portalib/glib.h"
-
-#include "types.h"
 
 #include "crc16.h"
 #include "fs.h"

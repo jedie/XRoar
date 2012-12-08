@@ -21,11 +21,11 @@
  *         http://www.swtpc.com/mholley/DC_5/TMS279X_DataSheet.pdf
  */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "crc16.h"
 #include "events.h"
 #include "logging.h"

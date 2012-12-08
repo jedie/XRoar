@@ -18,13 +18,11 @@
 
 #include "config.h"
 
+#include <pthread.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 #include <CoreAudio/AudioHardware.h>
-#include <pthread.h>
-
-#include "types.h"
 
 #include "logging.h"
 #include "machine.h"

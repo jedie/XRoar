@@ -6,7 +6,8 @@
 #ifndef XROAR_HD6309_H_
 #define XROAR_HD6309_H_
 
-#include "types.h"
+#include <inttypes.h>
+
 #include "mc6809.h"
 
 #define HD6309_INT_VEC_ILLEGAL (0xfff0)

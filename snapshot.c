@@ -18,17 +18,17 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "cart.h"
 #include "fs.h"
 #include "keyboard.h"
 #include "logging.h"
-#include "mc6809.h"
 #include "machine.h"
+#include "mc6809.h"
 #include "mc6821.h"
 #include "sam.h"
 #include "snapshot.h"
@@ -45,7 +45,7 @@
 /* Note: Setting up the correct ROM select for Dragon 64 depends on SAM
  * register update following PIA configuration. */
 
-#define ID_REGISTER_DUMP (0)	/* deprecated */
+#define ID_REGISTER_DUMP (0)   /* deprecated */
 #define ID_RAM_PAGE0     (1)
 #define ID_PIA_REGISTERS (2)
 #define ID_SAM_REGISTERS (3)

@@ -24,16 +24,16 @@
 /* TODO: I've hacked in an optional "becker port" at $FF49/$FF4A.  Is this the
  * best place for it? */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
 #include "becker.h"
 #include "cart.h"
 #include "dragondos.h"
 #include "logging.h"
-#include "mc6809.h"
 #include "machine.h"
+#include "mc6809.h"
 #include "mc6821.h"
 #include "vdrive.h"
 #include "wd279x.h"

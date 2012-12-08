@@ -19,16 +19,16 @@
 #include "config.h"
 
 #include <assert.h>
+#include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include "portalib/strings.h"
+#include <sys/types.h>
 #include "portalib/glib.h"
+#include "portalib/strings.h"
 
-#include "types.h"
 #include "cart.h"
 #include "crc32.h"
 #include "fs.h"
@@ -38,9 +38,9 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
+#include "machine.h"
 #include "mc6809.h"
 #include "mc6809_trace.h"
-#include "machine.h"
 #include "mc6821.h"
 #include "module.h"
 #include "path.h"

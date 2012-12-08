@@ -6,6 +6,8 @@
 #ifndef XROAR_GTK2_DRIVECONTROL_H_
 #define XROAR_GTK2_DRIVECONTROL_H_
 
+struct vdisk;
+
 void gtk2_insert_disk(int drive);
 void gtk2_create_dc_window(void);
 void gtk2_toggle_dc_window(GtkToggleAction *current, gpointer user_data);

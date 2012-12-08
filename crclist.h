@@ -6,7 +6,7 @@
 #ifndef XROAR_CRCLIST_H_
 #define XROAR_CRCLIST_H_
 
-#include "types.h"
+#include <inttypes.h>
 
 /* Parse an assignment string of the form "LIST=CRC[,CRC]..." */
 void crclist_assign(const char *astring);

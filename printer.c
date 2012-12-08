@@ -25,7 +25,6 @@
 #include <string.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "printer.h"
 #include "events.h"
 #include "machine.h"

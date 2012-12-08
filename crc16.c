@@ -8,7 +8,8 @@
  * Scott Dattalo - www.dattalo.com
  */
 
-#include "types.h"
+#include <inttypes.h>
+
 #include "crc16.h"
 
 uint16_t crc16_byte(uint16_t crc, uint8_t value) {

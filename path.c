@@ -27,7 +27,6 @@
 #include <sys/stat.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "path.h"
 
 static char *strcattoc_esc(char *dst, const char *src, char c);

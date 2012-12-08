@@ -6,7 +6,7 @@
 #ifndef XROAR_MC6821_H_
 #define XROAR_MC6821_H_
 
-#include "types.h"
+#include <inttypes.h>
 
 /* Two "sides" per PIA (A & B), with slightly different characteristics.  A
  * side represented as output and input sink (the struct used is common to both

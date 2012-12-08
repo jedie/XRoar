@@ -6,7 +6,10 @@
 #ifndef XROAR_XROAR_H_
 #define XROAR_XROAR_H_
 
-#include "types.h"
+#include "config.h"
+
+#include <inttypes.h>
+
 #include "xconfig.h"
 
 struct event;

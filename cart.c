@@ -25,7 +25,6 @@
 #include <ctype.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "becker.h"
 #include "cart.h"
 #include "deltados.h"

@@ -18,15 +18,15 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "breakpoint.h"
 #include "crclist.h"
-#include "mc6809.h"
 #include "machine.h"
+#include "mc6809.h"
 #include "sam.h"
 #include "xroar.h"
 

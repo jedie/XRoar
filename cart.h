@@ -6,7 +6,7 @@
 #ifndef XROAR_CART_H_
 #define XROAR_CART_H_
 
-#include "types.h"
+#include <inttypes.h>
 
 struct machine_config;
 

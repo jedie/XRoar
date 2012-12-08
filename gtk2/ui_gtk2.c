@@ -16,23 +16,24 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
 
-#include "types.h"
-#include "events.h"
-#include "logging.h"
 #include "cart.h"
+#include "events.h"
+#include "gtk2/drivecontrol.h"
+#include "gtk2/tapecontrol.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "machine.h"
 #include "module.h"
 #include "vdg.h"
 #include "vdrive.h"
 #include "xroar.h"
-#include "gtk2/tapecontrol.h"
-#include "gtk2/drivecontrol.h"
 
 #include "gtk2/top_window_glade.h"
 

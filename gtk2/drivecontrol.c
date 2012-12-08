@@ -23,12 +23,11 @@
 #include <string.h>
 #include <gtk/gtk.h>
 
-#include "types.h"
+#include "gtk2/drivecontrol.h"
+#include "gtk2/ui_gtk2.h"
 #include "vdisk.h"
 #include "vdrive.h"
 #include "xroar.h"
-#include "gtk2/ui_gtk2.h"
-#include "gtk2/drivecontrol.h"
 
 #include "gtk2/drivecontrol_glade.h"
 

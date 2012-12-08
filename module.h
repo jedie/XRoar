@@ -6,6 +6,8 @@
 #ifndef XROAR_MODULE_H_
 #define XROAR_MODULE_H_
 
+#include <inttypes.h>
+
 struct vdisk;
 
 struct module {

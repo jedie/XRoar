@@ -8,7 +8,7 @@
 #ifndef XROAR_VDRIVE_H_
 #define XROAR_VDRIVE_H_
 
-#include "types.h"
+#include <inttypes.h>
 
 struct vdisk;
 

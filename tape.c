@@ -18,12 +18,12 @@
 
 #include "config.h"
 
-#include <stdlib.h>
 #include <assert.h>
+#include <inttypes.h>
+#include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "breakpoint.h"
 #include "events.h"
 #include "fs.h"

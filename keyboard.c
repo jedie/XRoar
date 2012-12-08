@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "breakpoint.h"
 #include "events.h"
 #include "keyboard.h"

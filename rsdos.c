@@ -21,15 +21,15 @@
  *         http://www.coco3.com/unravalled/disk-basic-unravelled.pdf
  */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
 #include "becker.h"
 #include "cart.h"
 #include "logging.h"
-#include "mc6809.h"
 #include "machine.h"
+#include "mc6809.h"
 #include "rsdos.h"
 #include "vdrive.h"
 #include "wd279x.h"

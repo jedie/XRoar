@@ -5,7 +5,7 @@
 #ifndef XROAR_CRC16_H_
 #define XROAR_CRC16_H_
 
-#include "types.h"
+#include <inttypes.h>
 
 #define CRC16_RESET (0xffff)
 

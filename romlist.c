@@ -18,12 +18,11 @@
 
 #include "config.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "path.h"
 #include "romlist.h"
 #include "xroar.h"

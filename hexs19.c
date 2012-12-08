@@ -18,16 +18,15 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#include "types.h"
 
 #include "fs.h"
 #include "hexs19.h"
 #include "logging.h"
-#include "mc6809.h"
 #include "machine.h"
+#include "mc6809.h"
 
 static int dragon_bin_load(FILE *fd, int autorun);
 static int coco_bin_load(FILE *fd, int autorun);

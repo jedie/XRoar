@@ -21,11 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pulse/simple.h>
 #include <pulse/error.h>
 #include <pulse/gccmacro.h>
-
-#include "types.h"
+#include <pulse/simple.h>
 
 #include "logging.h"
 #include "machine.h"

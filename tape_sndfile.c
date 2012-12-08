@@ -18,11 +18,11 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <sndfile.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "fs.h"
 #include "logging.h"
 #include "machine.h"

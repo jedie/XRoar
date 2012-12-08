@@ -6,7 +6,8 @@
 #ifndef XROAR_TAPE_H_
 #define XROAR_TAPE_H_
 
-#include "types.h"
+#include <inttypes.h>
+
 #include "events.h"
 #include "sam.h"
 

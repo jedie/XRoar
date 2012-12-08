@@ -27,11 +27,11 @@
  *         2009 Darren Atkinson
  */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
 
-#include "types.h"
 #include "mc6809.h"
 
 /* MPU state.  Represents current position in the high-level flow chart from

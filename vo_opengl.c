@@ -24,11 +24,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
+#include <sys/types.h>
+
 #if defined(__APPLE_CC__)
 # include <OpenGL/gl.h>
 #else
 # include <GL/gl.h>
 #endif
+
 #include "portalib/glib.h"
 
 #ifdef WINDOWS32
@@ -36,7 +40,6 @@
 #include <GL/glext.h>
 #endif
 
-#include "types.h"
 #include "vdg.h"
 #include "vo_opengl.h"
 #include "xroar.h"

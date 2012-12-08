@@ -23,16 +23,14 @@
 #include <string.h>
 #include <SDL.h>
 
-#include "types.h"
-
 #include "input.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
 #include "printer.h"
-#include "xroar.h"
 #include "sdl/ui_sdl.h"
+#include "xroar.h"
 
 static int init(void);
 static void update_kbd_translate(void);

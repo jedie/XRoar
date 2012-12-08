@@ -7,7 +7,8 @@
 #define XROAR_MC6809_H_
 
 #include "config.h"
-#include "types.h"
+
+#include <inttypes.h>
 
 #define MC6809_INT_VEC_RESET (0xfffe)
 #define MC6809_INT_VEC_NMI (0xfffc)

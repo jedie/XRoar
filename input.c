@@ -16,7 +16,6 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "types.h"
 #include "input.h"
 #include "joystick.h"
 #include "keyboard.h"

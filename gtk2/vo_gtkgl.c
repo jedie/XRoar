@@ -23,8 +23,6 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 
-#include "types.h"
-
 #include "logging.h"
 #include "module.h"
 #include "vdg.h"

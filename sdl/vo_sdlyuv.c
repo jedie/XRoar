@@ -18,17 +18,17 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 #include <SDL_syswm.h>
 
-#include "types.h"
-
 #include "logging.h"
 #include "module.h"
 #include "vdg.h"
 #include "xroar.h"
+
 #ifdef WINDOWS32
 #include "windows32/common_windows32.h"
 #endif

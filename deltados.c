@@ -23,10 +23,10 @@
  *         www.dragon-archive.co.uk.
  */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
 #include "cart.h"
 #include "deltados.h"
 #include "logging.h"

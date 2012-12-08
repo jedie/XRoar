@@ -18,9 +18,9 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <stdlib.h>
 
-#include "types.h"
 #include "sam.h"
 
 /* Constants for tracking VDG address counter */
