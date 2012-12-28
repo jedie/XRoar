@@ -140,22 +140,6 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 	return is_ram_access;
 }
 
-/* Convenience function returns number of cycles for specified number of 6809
- * busy cycles. */
-
-int sam_nvma_cycles(int c) {
-	_Bool fast_cycle = mpu_rate_fast || mpu_rate_ad;
-	int n = c * (fast_cycle ? SAM_CPU_FAST_DIVISOR : SAM_CPU_SLOW_DIVISOR);
-	if (fast_cycle != running_fast) {
-		if (fast_cycle)
-			n += 2 * (SAM_CPU_FAST_DIVISOR >> 1);
-		else
-			n += (SAM_CPU_FAST_DIVISOR >> 1);
-		running_fast = fast_cycle;
-	}
-	return n;
-}
-
 static void vdg_address_add(int n) {
 	uint16_t new_B = vdg_address + n;
 	if ((vdg_address ^ new_B) & 0x10) {

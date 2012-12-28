@@ -116,6 +116,8 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 /* This one only used to try and get correct timing: */
 #define peek_byte(a) do { cpu->cycle++; (void)cpu->read_cycle(a); } while (0)
 
+#define NVMA_CYCLE() peek_byte(0xffff)
+
 #define EA_DIRECT(a)    do { a = ea_direct(cpu); } while (0)
 #define EA_EXTENDED(a)  do { a = ea_extended(cpu); } while (0)
 #define EA_INDEXED(a)   do { a = ea_indexed(cpu); } while (0)
@@ -133,8 +135,6 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 #define SHORT_RELATIVE(r)       { BYTE_IMMEDIATE(0, r); r = sex8(r); }
 #define LONG_RELATIVE(r)        WORD_IMMEDIATE(0, r)
 
-#define TAKEN_CYCLES(c) do { cpu->nvma_cycles(c); cpu->cycle += c; } while (0)
-
 #define PUSHWORD(s,r)   { s -= 2; store_byte(s+1, r); store_byte(s, r >> 8); }
 #define PUSHBYTE(s,r)   { s--; store_byte(s, r); }
 #define PULLBYTE(s,r)   { r = fetch_byte(s); s++; }
@@ -143,7 +143,8 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 #define PUSHR(s,a) { \
 		unsigned postbyte; \
 		BYTE_IMMEDIATE(0, postbyte); \
-		TAKEN_CYCLES(2); \
+		NVMA_CYCLE(); \
+		NVMA_CYCLE(); \
 		peek_byte(s); \
 		if (postbyte & 0x80) { PUSHWORD(s, REG_PC); } \
 		if (postbyte & 0x40) { PUSHWORD(s, a); } \
@@ -158,7 +159,8 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 #define PULLR(s,a) { \
 		unsigned postbyte; \
 		BYTE_IMMEDIATE(0, postbyte); \
-		TAKEN_CYCLES(2); \
+		NVMA_CYCLE(); \
+		NVMA_CYCLE(); \
 		if (postbyte & 0x01) { PULLBYTE(s, REG_CC); } \
 		if (postbyte & 0x02) { PULLBYTE(s, WREG_A); } \
 		if (postbyte & 0x04) { PULLBYTE(s, WREG_B); } \
@@ -171,7 +173,7 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 	}
 
 #define PUSH_IRQ_REGISTERS_NO_E() do { \
-		TAKEN_CYCLES(1); \
+		NVMA_CYCLE(); \
 		PUSHWORD(REG_S, REG_PC); \
 		PUSHWORD(REG_S, REG_U); \
 		PUSHWORD(REG_S, REG_Y); \
@@ -189,20 +191,20 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 
 #define PUSH_FIRQ_REGISTERS() do { \
 		REG_CC &= ~CC_E; \
-		TAKEN_CYCLES(1); \
+		NVMA_CYCLE(); \
 		PUSHWORD(REG_S, REG_PC); \
 		PUSHBYTE(REG_S, REG_CC); \
 	} while (0)
 
 #define TAKE_INTERRUPT(i,cm,v) do { \
 		REG_CC |= (cm); \
-		TAKEN_CYCLES(1); \
+		NVMA_CYCLE(); \
 		if (cpu->interrupt_hook) { \
 			cpu->interrupt_hook(cpu, v); \
 		} \
 		REG_PC = fetch_byte(v) << 8; \
 		REG_PC |= fetch_byte((v)+1); \
-		TAKEN_CYCLES(1); \
+		NVMA_CYCLE(); \
 	} while (0)
 
 #define INSTRUCTION_POSTHOOK() do { \
@@ -223,7 +225,6 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 /* Dummy handlers */
 static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
 static void dummy_write_cycle(uint16_t a, uint8_t v) { (void)a; (void)v; }
-static void dummy_nvma_cycles(int c) { (void)c; }
 
 /* ------------------------------------------------------------------------- */
 
@@ -438,7 +439,7 @@ static _Bool branch_cond(struct MC6809 *cpu, unsigned op) {
 
 static uint16_t ea_direct(struct MC6809 *cpu) {
 	unsigned ea = REG_DP << 8 | fetch_byte(REG_PC++);
-	TAKEN_CYCLES(1);
+	NVMA_CYCLE();
 	return ea;
 }
 
@@ -446,7 +447,7 @@ static uint16_t ea_extended(struct MC6809 *cpu) {
 	unsigned ea = fetch_byte(REG_PC) << 8;
 	ea |= fetch_byte(REG_PC+1);
 	REG_PC += 2;
-	TAKEN_CYCLES(1);
+	NVMA_CYCLE();
 	return ea;
 }
 
@@ -464,32 +465,32 @@ static uint16_t ea_indexed(struct MC6809 *cpu) {
 	}
 	if ((postbyte & 0x80) == 0) {
 		peek_byte(REG_PC);
-		TAKEN_CYCLES(1);
+		NVMA_CYCLE();
 		return *reg + sex5(postbyte);
 	}
 	switch (postbyte & 0x0f) {
-		case 0x00: ea = *reg; *reg += 1; peek_byte(REG_PC); TAKEN_CYCLES(2); break;
-		case 0x01: ea = *reg; *reg += 2; peek_byte(REG_PC); TAKEN_CYCLES(3); break;
-		case 0x02: *reg -= 1; ea = *reg; peek_byte(REG_PC); TAKEN_CYCLES(2); break;
-		case 0x03: *reg -= 2; ea = *reg; peek_byte(REG_PC); TAKEN_CYCLES(3); break;
+		case 0x00: ea = *reg; *reg += 1; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); break;
+		case 0x01: ea = *reg; *reg += 2; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); NVMA_CYCLE(); break;
+		case 0x02: *reg -= 1; ea = *reg; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); break;
+		case 0x03: *reg -= 2; ea = *reg; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); NVMA_CYCLE(); break;
 		case 0x04: ea = *reg; peek_byte(REG_PC); break;
-		case 0x05: ea = *reg + sex8(RREG_B); peek_byte(REG_PC); TAKEN_CYCLES(1); break;
+		case 0x05: ea = *reg + sex8(RREG_B); peek_byte(REG_PC); NVMA_CYCLE(); break;
 		case 0x07: // illegal
-		case 0x06: ea = *reg + sex8(RREG_A); peek_byte(REG_PC); TAKEN_CYCLES(1); break;
-		case 0x08: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + *reg; TAKEN_CYCLES(1); break;
-		case 0x09: WORD_IMMEDIATE(0, ea); ea = ea + *reg; TAKEN_CYCLES(3); break;
+		case 0x06: ea = *reg + sex8(RREG_A); peek_byte(REG_PC); NVMA_CYCLE(); break;
+		case 0x08: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + *reg; NVMA_CYCLE(); break;
+		case 0x09: WORD_IMMEDIATE(0, ea); ea = ea + *reg; NVMA_CYCLE(); NVMA_CYCLE(); NVMA_CYCLE(); break;
 		case 0x0a: ea = REG_PC | 0xff; break;
-		case 0x0b: ea = *reg + REG_D; peek_byte(REG_PC); peek_byte(REG_PC + 1); TAKEN_CYCLES(3); break;
-		case 0x0c: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + REG_PC; TAKEN_CYCLES(1); break;
-		case 0x0d: WORD_IMMEDIATE(0, ea); ea = ea + REG_PC; peek_byte(REG_PC); TAKEN_CYCLES(3); break;
+		case 0x0b: ea = *reg + REG_D; peek_byte(REG_PC); peek_byte(REG_PC + 1); NVMA_CYCLE(); NVMA_CYCLE(); NVMA_CYCLE(); break;
+		case 0x0c: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + REG_PC; NVMA_CYCLE(); break;
+		case 0x0d: WORD_IMMEDIATE(0, ea); ea = ea + REG_PC; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); NVMA_CYCLE(); break;
 		case 0x0e: ea = 0xffff; break; // illegal
-		case 0x0f: WORD_IMMEDIATE(0, ea); TAKEN_CYCLES(1); break;
+		case 0x0f: WORD_IMMEDIATE(0, ea); NVMA_CYCLE(); break;
 		default: ea = 0; break;
 	}
 	if (postbyte & 0x10) {
 		unsigned tmp_ea = fetch_byte(ea) << 8;
 		ea = tmp_ea | fetch_byte(ea + 1);
-		TAKEN_CYCLES(1);
+		NVMA_CYCLE();
 	}
 	return ea;
 }
@@ -511,7 +512,6 @@ void mc6809_init(struct MC6809 *cpu) {
 	// External handlers
 	cpu->read_cycle = dummy_read_cycle;
 	cpu->write_cycle = dummy_write_cycle;
-	cpu->nvma_cycles = dummy_nvma_cycles;
 	mc6809_reset(cpu);
 }
 
@@ -533,9 +533,9 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 	while (cpu->running) {
 
-		_Bool nmi_active = cpu->nmi && ((int)(cpu->cycle - cpu->nmi_cycle) >= 3);
-		_Bool firq_active = cpu->firq && ((int)(cpu->cycle - cpu->firq_cycle) >= 3);
-		_Bool irq_active = cpu->irq && ((int)(cpu->cycle - cpu->irq_cycle) >= 3);
+		_Bool nmi_active = cpu->nmi && ((int)(cpu->cycle - cpu->nmi_cycle) >= 2);
+		_Bool firq_active = cpu->firq && ((int)(cpu->cycle - cpu->firq_cycle) >= 2);
+		_Bool irq_active = cpu->irq && ((int)(cpu->cycle - cpu->irq_cycle) >= 2);
 
 		switch (cpu->state) {
 
@@ -549,12 +549,12 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 		case mc6809_flow_reset_check_halt:
 			if (cpu->halt) {
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				continue;
 			}
 			REG_PC = fetch_byte(MC6809_INT_VEC_RESET) << 8;
 			REG_PC |= fetch_byte(MC6809_INT_VEC_RESET + 1);
-			TAKEN_CYCLES(1);
+			NVMA_CYCLE();
 			cpu->state = mc6809_flow_label_a;
 			continue;
 
@@ -562,7 +562,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 		case mc6809_flow_done_instruction:
 		case mc6809_flow_label_a:
 			if (cpu->halt) {
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				continue;
 			}
 			cpu->state = mc6809_flow_label_b;
@@ -617,7 +617,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 			continue;
 
 		case mc6809_flow_cwai_check_halt:
-			TAKEN_CYCLES(1);
+			NVMA_CYCLE();
 			if (cpu->halt) {
 				continue;
 			}
@@ -626,17 +626,18 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 		case mc6809_flow_sync:
 			if (nmi_active || firq_active || irq_active) {
-				TAKEN_CYCLES(2);
+				NVMA_CYCLE();
+				NVMA_CYCLE();
 				cpu->state = mc6809_flow_label_b;
 				continue;
 			}
-			TAKEN_CYCLES(1);
+			NVMA_CYCLE();
 			if (cpu->halt)
 				cpu->state = mc6809_flow_sync_check_halt;
 			continue;
 
 		case mc6809_flow_sync_check_halt:
-			TAKEN_CYCLES(1);
+			NVMA_CYCLE();
 			if (!cpu->halt) {
 				cpu->state = mc6809_flow_sync;
 			}
@@ -707,13 +708,14 @@ static void mc6809_run(struct MC6809 *cpu) {
 				}
 				switch (op & 0xf) {
 				case 0xd: // TST
-					TAKEN_CYCLES(2);
+					NVMA_CYCLE();
+					NVMA_CYCLE();
 					break;
 				default: // the rest need storing
 					switch ((op >> 4) & 0xf) {
 					default:
 					case 0x0: case 0x6: case 0x7:
-						TAKEN_CYCLES(1);
+						NVMA_CYCLE();
 						store_byte(ea, tmp1);
 						break;
 					case 0x4:
@@ -767,21 +769,25 @@ static void mc6809_run(struct MC6809 *cpu) {
 				unsigned ea;
 				LONG_RELATIVE(ea);
 				REG_PC += ea;
-				TAKEN_CYCLES(2);
+				NVMA_CYCLE();
+				NVMA_CYCLE();
 			} break;
 			// 0x17 LBSR relative
 			case 0x17: {
 				unsigned ea;
 				LONG_RELATIVE(ea);
 				ea += REG_PC;
-				TAKEN_CYCLES(4);
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
 				PUSHWORD(REG_S, REG_PC);
 				REG_PC = ea;
 			} break;
 			// 0x18 Shift CC with mask inherent (illegal)
 			case 0x18:
 				REG_CC = (REG_CC << 1) & (CC_H | CC_Z);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				peek_byte(REG_PC);
 				break;
 			// 0x19 DAA inherent
@@ -866,7 +872,12 @@ static void mc6809_run(struct MC6809 *cpu) {
 					case 0xb: REG_DP = tmp2; break;
 					default: break;
 				}
-				TAKEN_CYCLES(6);
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
 			} break;
 			// 0x1f TFR immediate
 			case 0x1f: {
@@ -900,7 +911,10 @@ static void mc6809_run(struct MC6809 *cpu) {
 					case 0xb: REG_DP = tmp1; break;
 					default: break;
 				}
-				TAKEN_CYCLES(4);
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
 			} break;
 
 			// 0x20 - 0x2f short branches
@@ -911,7 +925,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 				unsigned tmp;
 				BYTE_IMMEDIATE(0, tmp);
 				tmp = sex8(tmp);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				if (branch_cond(cpu, op))
 					REG_PC += tmp;
 			} break;
@@ -920,22 +934,22 @@ static void mc6809_run(struct MC6809 *cpu) {
 			case 0x30: EA_INDEXED(REG_X);
 				CLR_Z;
 				SET_Z(REG_X);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			// 0x31 LEAY indexed
 			case 0x31: EA_INDEXED(REG_Y);
 				CLR_Z;
 				SET_Z(REG_Y);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			// 0x32 LEAS indexed
 			case 0x32: EA_INDEXED(REG_S);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				cpu->nmi_armed = 1;  // XXX: Really?
 				break;
 			// 0x33 LEAU indexed
 			case 0x33: EA_INDEXED(REG_U);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			// 0x34 PSHS immediate
 			case 0x34: PUSHR(REG_S, REG_U); break;
@@ -953,19 +967,19 @@ static void mc6809_run(struct MC6809 *cpu) {
 				peek_byte(REG_PC);
 				/* Differs from legal 0x1c version by
 				 * taking one more cycle: */
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 			} break;
 			// 0x39 RTS inherent
 			case 0x39:
 				peek_byte(REG_PC);
 				PULLWORD(REG_S, REG_PC);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			// 0x3a ABX inherent
 			case 0x3a:
 				REG_X += RREG_B;
 				peek_byte(REG_PC);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			// 0x3b RTI inherent
 			case 0x3b:
@@ -991,9 +1005,9 @@ static void mc6809_run(struct MC6809 *cpu) {
 				BYTE_IMMEDIATE(0, data);
 				REG_CC &= data;
 				peek_byte(REG_PC);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				PUSH_IRQ_REGISTERS();
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				cpu->state = mc6809_flow_dispatch_irq;
 				goto done_instruction;
 			} break;
@@ -1006,7 +1020,15 @@ static void mc6809_run(struct MC6809 *cpu) {
 				if (tmp & 0x80)
 					REG_CC |= CC_C;
 				peek_byte(REG_PC);
-				TAKEN_CYCLES(9);
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
+				NVMA_CYCLE();
 			} break;
 			// 0x3e RESET (illegal)
 			case 0x3e:
@@ -1102,7 +1124,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 				case 0x43: tmp1 = op_add16(cpu, tmp1, tmp2); break; // ADDD
 				default: break;
 				}
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				if (!(op & 0x08)) {
 					REG_D = tmp1;
 				}
@@ -1113,10 +1135,10 @@ static void mc6809_run(struct MC6809 *cpu) {
 			case 0x8d: case 0x9d: case 0xad: case 0xbd: {
 				unsigned ea;
 				switch ((op >> 4) & 3) {
-				case 0: SHORT_RELATIVE(ea); ea += REG_PC; TAKEN_CYCLES(3); break;
-				case 1: EA_DIRECT(ea); peek_byte(ea); TAKEN_CYCLES(1); break;
-				case 2: EA_INDEXED(ea); peek_byte(ea); TAKEN_CYCLES(1); break;
-				case 3: EA_EXTENDED(ea); peek_byte(ea); TAKEN_CYCLES(1); break;
+				case 0: SHORT_RELATIVE(ea); ea += REG_PC; NVMA_CYCLE(); NVMA_CYCLE(); NVMA_CYCLE(); break;
+				case 1: EA_DIRECT(ea); peek_byte(ea); NVMA_CYCLE(); break;
+				case 2: EA_INDEXED(ea); peek_byte(ea); NVMA_CYCLE(); break;
+				case 3: EA_EXTENDED(ea); peek_byte(ea); NVMA_CYCLE(); break;
 				default: ea = 0; break;
 				}
 				PUSHWORD(REG_S, REG_PC);
@@ -1215,7 +1237,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 			// Illegal instruction
 			default:
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			}
 			cpu->state = mc6809_flow_label_a;
@@ -1243,10 +1265,9 @@ static void mc6809_run(struct MC6809 *cpu) {
 				WORD_IMMEDIATE(0, tmp);
 				if (branch_cond(cpu, op)) {
 					REG_PC += tmp;
-					TAKEN_CYCLES(2);
-				} else {
-					TAKEN_CYCLES(1);
+					NVMA_CYCLE();
 				}
+				NVMA_CYCLE();
 			} break;
 
 			// 0x103f SWI2 inherent
@@ -1272,7 +1293,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 				default: tmp2 = 0; break;
 				}
 				(void)op_sub16(cpu, tmp1, tmp2);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 			} break;
 
 			// 0x108e, 0x109e, 0x10ae, 0x10be LDY
@@ -1316,7 +1337,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 			// Illegal instruction
 			default:
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			}
 			cpu->state = mc6809_flow_label_a;
@@ -1358,12 +1379,12 @@ static void mc6809_run(struct MC6809 *cpu) {
 				default: tmp2 = 0; break;
 				}
 				(void)op_sub16(cpu, tmp1, tmp2);
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 			} break;
 
 			// Illegal instruction
 			default:
-				TAKEN_CYCLES(1);
+				NVMA_CYCLE();
 				break;
 			}
 			cpu->state = mc6809_flow_label_a;
@@ -1372,7 +1393,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 		// Certain illegal instructions cause the CPU to lock up:
 		case mc6809_flow_hcf:
-			TAKEN_CYCLES(1);
+			NVMA_CYCLE();
 			continue;
 
 		}

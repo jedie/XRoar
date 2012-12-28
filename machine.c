@@ -111,7 +111,6 @@ static void initialise_ram(void);
 static int cycles;
 static uint8_t read_cycle(uint16_t A);
 static void write_cycle(uint16_t A, uint8_t D);
-static void nvma_cycles(int ncycles);
 static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
 /**************************************************************************/
@@ -393,7 +392,6 @@ void machine_configure(struct machine_config *mc) {
 	}
 	CPU0->read_cycle = read_cycle;
 	CPU0->write_cycle = write_cycle;
-	CPU0->nvma_cycles = nvma_cycles;
 	xroar_set_keymap(mc->keymap);
 	switch (mc->tv_standard) {
 	case TV_PAL: default:
@@ -687,17 +685,6 @@ static void write_cycle(uint16_t A, uint8_t D) {
 	if (is_ram_access) {
 		machine_ram[Z] = D;
 	}
-}
-
-static void nvma_cycles(int ncycles) {
-	int c = sam_nvma_cycles(ncycles);
-	cycles -= c;
-	if (cycles <= 0) CPU0->running = 0;
-	event_current_tick += c;
-	event_run_queue(MACHINE_EVENT_LIST);
-	MC6809_IRQ_SET(CPU0, PIA0.a.irq | PIA0.b.irq);
-	MC6809_FIRQ_SET(CPU0, PIA1.a.irq | PIA1.b.irq);
-	read_D = machine_rom[0x3fff];
 }
 
 static void vdg_fetch_handler(int nbytes, uint8_t *dest) {

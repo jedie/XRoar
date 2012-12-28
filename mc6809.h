@@ -42,8 +42,6 @@ struct MC6809 {
 	uint8_t (*read_cycle)(uint16_t addr);
 	/* Perform a byte write cycle */
 	void (*write_cycle)(uint16_t addr, uint8_t value);
-	/* Non valid memory access ("busy") cycles */
-	void (*nvma_cycles)(int cycles);
 	/* Called just before instruction fetch if non-NULL */
 	void (*instruction_hook)(struct MC6809 *cpu);
 	/* Called after instruction is executed */
