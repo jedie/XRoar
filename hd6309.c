@@ -787,6 +787,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			if (nmi_active || firq_active || irq_active) {
 				NVMA_CYCLE();
 				NVMA_CYCLE();
+				INSTRUCTION_POSTHOOK();
 				cpu->state = hd6309_flow_label_b;
 				continue;
 			}
@@ -994,7 +995,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				if (!hcpu->native_mode)
 					peek_byte(REG_PC);
 				cpu->state = hd6309_flow_sync;
-				goto done_instruction;
+				continue;
 			// 0x14 SEXW inherent
 			case 0x14:
 				REG_D = (REG_W & 0x8000) ? 0xffff : 0;
