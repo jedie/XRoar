@@ -173,6 +173,8 @@ void wd279x_free(WD279X *fdc) {
 }
 
 void wd279x_reset(WD279X *fdc) {
+	if (!fdc)
+		return;
 	event_dequeue(&fdc->state_event);
 	fdc->status_register = 0;
 	fdc->track_register = 0;
