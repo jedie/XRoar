@@ -628,6 +628,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 			if (nmi_active || firq_active || irq_active) {
 				NVMA_CYCLE();
 				NVMA_CYCLE();
+				INSTRUCTION_POSTHOOK();
 				cpu->state = mc6809_flow_label_b;
 				continue;
 			}
@@ -758,7 +759,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 			case 0x13:
 				peek_byte(REG_PC);
 				cpu->state = mc6809_flow_sync;
-				goto done_instruction;
+				continue;
 			// 0x14, 0x15 HCF? (illegal)
 			case 0x14:
 			case 0x15:
