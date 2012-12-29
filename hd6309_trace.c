@@ -26,14 +26,19 @@
 #include "hd6309.h"
 #include "hd6309_trace.h"
 
+/* Instruction types.  PAGE0, PAGE2 and PAGE3 switch which page is selected. */
+
 enum {
 	PAGE0 = 0, PAGE2 = 1, PAGE3 = 2, ILLEGAL,
-	INHERENT, WORD_IMMEDIATE, QUAD_IMMEDIATE, IMMEDIATE, EXTENDED,
+	INHERENT, WORD_IMMEDIATE, IMMEDIATE, EXTENDED,
 	DIRECT, INDEXED, RELATIVE, LONG_RELATIVE,
-	STACKS, STACKU, REGISTER, IRQVECTOR, MEMBIT,
+	STACKS, STACKU, REGISTER, IRQVECTOR,
+	QUAD_IMMEDIATE, MEMBIT,
 	INMEM_DIRECT, INMEM_INDEXED, INMEM_EXTENDED,
 	TFMPP, TFMMM, TFMP0, TFM0P
 };
+
+/* Three arrays of instructions, one for each of PAGE0, PAGE2 and PAGE3 */
 
 static struct {
 	const char *mnemonic;
@@ -41,7 +46,7 @@ static struct {
 } instructions[3][256] = {
 
 	{
-		/* 0x00 - 0x0F */
+		// 0x00 - 0x0F
 		{ "NEG", DIRECT },
 		{ "OIM", INMEM_DIRECT },
 		{ "AIM", INMEM_DIRECT },
@@ -58,7 +63,7 @@ static struct {
 		{ "TST", DIRECT },
 		{ "JMP", DIRECT },
 		{ "CLR", DIRECT },
-		/* 0x10 - 0x1F */
+		// 0x10 - 0x1F
 		{ "*", PAGE2 },
 		{ "*", PAGE3 },
 		{ "NOP", INHERENT },
@@ -75,7 +80,7 @@ static struct {
 		{ "SEX", INHERENT },
 		{ "EXG", REGISTER },
 		{ "TFR", REGISTER },
-		/* 0x20 - 0x2F */
+		// 0x20 - 0x2F
 		{ "BRA", RELATIVE },
 		{ "BRN", RELATIVE },
 		{ "BHI", RELATIVE },
@@ -92,7 +97,7 @@ static struct {
 		{ "BLT", RELATIVE },
 		{ "BGT", RELATIVE },
 		{ "BLE", RELATIVE },
-		/* 0x30 - 0x3F */
+		// 0x30 - 0x3F
 		{ "LEAX", INDEXED },
 		{ "LEAY", INDEXED },
 		{ "LEAS", INDEXED },
@@ -109,7 +114,7 @@ static struct {
 		{ "MUL", INHERENT },
 		{ "*", ILLEGAL },
 		{ "SWI", INHERENT },
-		/* 0x40 - 0x4F */
+		// 0x40 - 0x4F
 		{ "NEGA", INHERENT },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -126,7 +131,7 @@ static struct {
 		{ "TSTA", INHERENT },
 		{ "*", ILLEGAL },
 		{ "CLRA", INHERENT },
-		/* 0x50 - 0x5F */
+		// 0x50 - 0x5F
 		{ "NEGB", INHERENT },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -143,7 +148,7 @@ static struct {
 		{ "TSTB", INHERENT },
 		{ "*", ILLEGAL },
 		{ "CLRB", INHERENT },
-		/* 0x60 - 0x6F */
+		// 0x60 - 0x6F
 		{ "NEG", INDEXED },
 		{ "OIM", INMEM_INDEXED },
 		{ "AIM", INMEM_INDEXED },
@@ -160,7 +165,7 @@ static struct {
 		{ "TST", INDEXED },
 		{ "JMP", INDEXED },
 		{ "CLR", INDEXED },
-		/* 0x70 - 0x7F */
+		// 0x70 - 0x7F
 		{ "NEG", EXTENDED },
 		{ "OIM", INMEM_EXTENDED },
 		{ "AIM", INMEM_EXTENDED },
@@ -177,7 +182,7 @@ static struct {
 		{ "TST", EXTENDED },
 		{ "JMP", EXTENDED },
 		{ "CLR", EXTENDED },
-		/* 0x80 - 0x8F */
+		// 0x80 - 0x8F
 		{ "SUBA", IMMEDIATE },
 		{ "CMPA", IMMEDIATE },
 		{ "SBCA", IMMEDIATE },
@@ -194,7 +199,7 @@ static struct {
 		{ "BSR", RELATIVE },
 		{ "LDX", WORD_IMMEDIATE },
 		{ "*", ILLEGAL },
-		/* 0x90 - 0x9F */
+		// 0x90 - 0x9F
 		{ "SUBA", DIRECT },
 		{ "CMPA", DIRECT },
 		{ "SBCA", DIRECT },
@@ -211,7 +216,7 @@ static struct {
 		{ "JSR", DIRECT },
 		{ "LDX", DIRECT },
 		{ "STX", DIRECT },
-		/* 0xA0 - 0xAF */
+		// 0xA0 - 0xAF
 		{ "SUBA", INDEXED },
 		{ "CMPA", INDEXED },
 		{ "SBCA", INDEXED },
@@ -228,7 +233,7 @@ static struct {
 		{ "JSR", INDEXED },
 		{ "LDX", INDEXED },
 		{ "STX", INDEXED },
-		/* 0xB0 - 0xBF */
+		// 0xB0 - 0xBF
 		{ "SUBA", EXTENDED },
 		{ "CMPA", EXTENDED },
 		{ "SBCA", EXTENDED },
@@ -245,7 +250,7 @@ static struct {
 		{ "JSR", EXTENDED },
 		{ "LDX", EXTENDED },
 		{ "STX", EXTENDED },
-		/* 0xC0 - 0xCF */
+		// 0xC0 - 0xCF
 		{ "SUBB", IMMEDIATE },
 		{ "CMPB", IMMEDIATE },
 		{ "SBCB", IMMEDIATE },
@@ -262,7 +267,7 @@ static struct {
 		{ "LDQ", QUAD_IMMEDIATE },
 		{ "LDU", WORD_IMMEDIATE },
 		{ "*", ILLEGAL },
-		/* 0xD0 - 0xDF */
+		// 0xD0 - 0xDF
 		{ "SUBB", DIRECT },
 		{ "CMPB", DIRECT },
 		{ "SBCB", DIRECT },
@@ -279,7 +284,7 @@ static struct {
 		{ "STD", DIRECT },
 		{ "LDU", DIRECT },
 		{ "STU", DIRECT },
-		/* 0xE0 - 0xEF */
+		// 0xE0 - 0xEF
 		{ "SUBB", INDEXED },
 		{ "CMPB", INDEXED },
 		{ "SBCB", INDEXED },
@@ -296,7 +301,7 @@ static struct {
 		{ "STD", INDEXED },
 		{ "LDU", INDEXED },
 		{ "STU", INDEXED },
-		/* 0xF0 - 0xFF */
+		// 0xF0 - 0xFF
 		{ "SUBB", EXTENDED },
 		{ "CMPB", EXTENDED },
 		{ "SBCB", EXTENDED },
@@ -315,7 +320,7 @@ static struct {
 		{ "STU", EXTENDED }
 	}, {
 
-		/* 0x1000 - 0x100F */
+		// 0x1000 - 0x100F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -332,7 +337,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1010 - 0x101F */
+		// 0x1010 - 0x101F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -349,7 +354,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1020 - 0x102F */
+		// 0x1020 - 0x102F
 		{ "*", ILLEGAL },
 		{ "LBRN", LONG_RELATIVE },
 		{ "LBHI", LONG_RELATIVE },
@@ -366,7 +371,7 @@ static struct {
 		{ "LBLT", LONG_RELATIVE },
 		{ "LBGT", LONG_RELATIVE },
 		{ "LBLE", LONG_RELATIVE },
-		/* 0x1030 - 0x103F */
+		// 0x1030 - 0x103F
 		{ "ADDR", REGISTER },
 		{ "ADCR", REGISTER },
 		{ "SUBR", REGISTER },
@@ -383,7 +388,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "SWI2", INHERENT },
-		/* 0x1040 - 0x104F */
+		// 0x1040 - 0x104F
 		{ "NEGD", INHERENT },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -400,7 +405,7 @@ static struct {
 		{ "TSTD", INHERENT },
 		{ "*", ILLEGAL },
 		{ "CLRD", INHERENT },
-		/* 0x1050 - 0x105F */
+		// 0x1050 - 0x105F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -417,7 +422,7 @@ static struct {
 		{ "TSTW", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "CLRW", ILLEGAL },
-		/* 0x1060 - 0x106F */
+		// 0x1060 - 0x106F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -434,7 +439,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1070 - 0x107F */
+		// 0x1070 - 0x107F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -451,7 +456,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1080 - 0x108F */
+		// 0x1080 - 0x108F
 		{ "SUBW", WORD_IMMEDIATE },
 		{ "CMPW", WORD_IMMEDIATE },
 		{ "SBCD", WORD_IMMEDIATE },
@@ -468,7 +473,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "LDY", WORD_IMMEDIATE },
 		{ "*", ILLEGAL },
-		/* 0x1090 - 0x109F */
+		// 0x1090 - 0x109F
 		{ "SUBW", DIRECT },
 		{ "CMPW", DIRECT },
 		{ "SBCD", DIRECT },
@@ -485,7 +490,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "LDY", DIRECT },
 		{ "STY", DIRECT },
-		/* 0x10A0 - 0x10AF */
+		// 0x10A0 - 0x10AF
 		{ "SUBW", INDEXED },
 		{ "CMPW", INDEXED },
 		{ "SBCD", INDEXED },
@@ -502,7 +507,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "LDY", INDEXED },
 		{ "STY", INDEXED },
-		/* 0x10B0 - 0x10BF */
+		// 0x10B0 - 0x10BF
 		{ "SUBW", EXTENDED },
 		{ "CMPW", EXTENDED },
 		{ "SBCD", EXTENDED },
@@ -519,7 +524,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "LDY", EXTENDED },
 		{ "STY", EXTENDED },
-		/* 0x10C0 - 0x10CF */
+		// 0x10C0 - 0x10CF
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -536,7 +541,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "LDS", WORD_IMMEDIATE },
 		{ "*", ILLEGAL },
-		/* 0x10D0 - 0x10DF */
+		// 0x10D0 - 0x10DF
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -553,7 +558,7 @@ static struct {
 		{ "STQ", DIRECT },
 		{ "LDS", DIRECT },
 		{ "STS", DIRECT },
-		/* 0x10E0 - 0x10EF */
+		// 0x10E0 - 0x10EF
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -570,7 +575,7 @@ static struct {
 		{ "STQ", INDEXED },
 		{ "LDS", INDEXED },
 		{ "STS", INDEXED },
-		/* 0x10F0 - 0x10FF */
+		// 0x10F0 - 0x10FF
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -589,7 +594,7 @@ static struct {
 		{ "STS", EXTENDED }
 	}, {
 
-		/* 0x1100 - 0x110F */
+		// 0x1100 - 0x110F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -606,7 +611,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1110 - 0x111F */
+		// 0x1110 - 0x111F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -623,7 +628,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1120 - 0x112F */
+		// 0x1120 - 0x112F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -640,7 +645,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1130 - 0x113F */
+		// 0x1130 - 0x113F
 		{ "BAND", MEMBIT },
 		{ "BIAND", MEMBIT },
 		{ "BOR", MEMBIT },
@@ -657,7 +662,7 @@ static struct {
 		{ "LDMD", IMMEDIATE },
 		{ "*", ILLEGAL },
 		{ "SWI3", INHERENT },
-		/* 0x1140 - 0x114F */
+		// 0x1140 - 0x114F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -674,7 +679,7 @@ static struct {
 		{ "TSTE", INHERENT },
 		{ "*", ILLEGAL },
 		{ "CLRE", INHERENT },
-		/* 0x1150 - 0x115F */
+		// 0x1150 - 0x115F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -691,7 +696,7 @@ static struct {
 		{ "TSTF", INHERENT },
 		{ "*", ILLEGAL },
 		{ "CLRF", INHERENT },
-		/* 0x1160 - 0x116F */
+		// 0x1160 - 0x116F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -708,7 +713,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1170 - 0x117F */
+		// 0x1170 - 0x117F
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
@@ -725,7 +730,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x1180 - 0x118F */
+		// 0x1180 - 0x118F
 		{ "SUBE", IMMEDIATE },
 		{ "CMPE", IMMEDIATE },
 		{ "*", ILLEGAL },
@@ -742,7 +747,7 @@ static struct {
 		{ "DIVD", IMMEDIATE },
 		{ "DIVQ", WORD_IMMEDIATE },
 		{ "MULD", WORD_IMMEDIATE },
-		/* 0x1190 - 0x119F */
+		// 0x1190 - 0x119F
 		{ "SUBE", DIRECT },
 		{ "CMPE", DIRECT },
 		{ "*", ILLEGAL },
@@ -759,7 +764,7 @@ static struct {
 		{ "DIVD", DIRECT },
 		{ "DIVQ", DIRECT },
 		{ "MULD", DIRECT },
-		/* 0x11A0 - 0x11AF */
+		// 0x11A0 - 0x11AF
 		{ "SUBE", INDEXED },
 		{ "CMPE", INDEXED },
 		{ "*", ILLEGAL },
@@ -776,7 +781,7 @@ static struct {
 		{ "DIVD", INDEXED },
 		{ "DIVQ", INDEXED },
 		{ "MULD", INDEXED },
-		/* 0x11B0 - 0x11BF */
+		// 0x11B0 - 0x11BF
 		{ "SUBE", EXTENDED },
 		{ "CMPE", EXTENDED },
 		{ "*", ILLEGAL },
@@ -793,7 +798,7 @@ static struct {
 		{ "DIVD", EXTENDED },
 		{ "DIVQ", EXTENDED },
 		{ "MULD", EXTENDED },
-		/* 0x11C0 - 0x11CF */
+		// 0x11C0 - 0x11CF
 		{ "SUBF", IMMEDIATE },
 		{ "CMPF", IMMEDIATE },
 		{ "*", ILLEGAL },
@@ -810,7 +815,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x11D0 - 0x11DF */
+		// 0x11D0 - 0x11DF
 		{ "SUBF", DIRECT },
 		{ "CMPF", DIRECT },
 		{ "*", ILLEGAL },
@@ -827,7 +832,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x11E0 - 0x11EF */
+		// 0x11E0 - 0x11EF
 		{ "SUBF", INDEXED },
 		{ "CMPF", INDEXED },
 		{ "*", ILLEGAL },
@@ -844,7 +849,7 @@ static struct {
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
 		{ "*", ILLEGAL },
-		/* 0x11F0 - 0x11FF */
+		// 0x11F0 - 0x11FF
 		{ "SUBF", EXTENDED },
 		{ "CMPF", EXTENDED },
 		{ "*", ILLEGAL },
@@ -864,61 +869,147 @@ static struct {
 	}
 };
 
-#define INDEXED_WANT_REG   (1<<0)
-#define INDEXED_WANT_BYTE  (1<<1)
-#define INDEXED_WANT_WORD  (1<<2)
-
-static struct {
-	const char *fmt;
-	int flags;
-} indexed_modes[] = {
-	{ "%s,%s+%s",      INDEXED_WANT_REG },
-	{ "%s,%s++%s",     INDEXED_WANT_REG },
-	{ "%s,-%s%s",      INDEXED_WANT_REG },
-	{ "%s,--%s%s",     INDEXED_WANT_REG },
-	{ "%s,%s%s",       INDEXED_WANT_REG },
-	{ "%sB,%s%s",      INDEXED_WANT_REG },
-	{ "%sA,%s%s",      INDEXED_WANT_REG },
-	{ "%sE,%s%s",      INDEXED_WANT_REG },
-	{ "%s$%02x,%s%s",  INDEXED_WANT_BYTE | INDEXED_WANT_REG },
-	{ "%s$%04x,%s%s",  INDEXED_WANT_WORD | INDEXED_WANT_REG },
-	{ "%sF,%s%s",      INDEXED_WANT_REG },
-	{ "%sD,%s%s",      INDEXED_WANT_REG },
-	{ "%s$%02x,PCR%s", INDEXED_WANT_BYTE },
-	{ "%s$%04x,PCR%s", INDEXED_WANT_WORD },
-	{ "%sW,%s%s",      INDEXED_WANT_REG },
-	{ "%s$%04X%s",     INDEXED_WANT_WORD }
-};
+/* The next byte is expected to be one of these, with special exceptions:
+ * WANT_PRINT - expecting trace_print to be called
+ * WANT_NOTHING - expecting a byte that is to be ignored */
 
 enum {
-	WANT_INSTRUCTION, WANT_BYTE, WANT_BYTE2,
-	WANT_WORD1, WANT_WORD2,
-	WANT_IRQVEC1, WANT_IRQVEC2, WANT_PRINT
+	WANT_INSTRUCTION,
+	WANT_IRQ_VECTOR,
+	WANT_IDX_POSTBYTE,
+	WANT_MEMBIT_POSTBYTE,
+	WANT_VALUE,
+	WANT_IM_VALUE,
+	WANT_PRINT,
+	WANT_NOTHING
 };
 
+/* Sequences of expected bytes */
+
+static const int state_list_irq[] = { WANT_VALUE, WANT_NOTHING, WANT_PRINT };
+static const int state_list_inherent[] = { WANT_PRINT };
+static const int state_list_idx[] = { WANT_IDX_POSTBYTE };
+static const int state_list_imm8[] = { WANT_VALUE, WANT_PRINT };
+static const int state_list_imm16[] = { WANT_VALUE, WANT_VALUE, WANT_PRINT };
+static const int state_list_imm32[] = { WANT_VALUE, WANT_VALUE, WANT_VALUE, WANT_VALUE, WANT_PRINT };
+static const int state_list_mb[] = { WANT_MEMBIT_POSTBYTE, WANT_VALUE, WANT_PRINT };
+static const int state_list_inmem_idx[] = { WANT_IM_VALUE, WANT_IDX_POSTBYTE };
+static const int state_list_inmem8[] = { WANT_IM_VALUE, WANT_VALUE, WANT_PRINT };
+static const int state_list_inmem16[] = { WANT_IM_VALUE, WANT_VALUE, WANT_VALUE, WANT_PRINT };
+
+/* Indexed addressing modes */
+
+enum {
+	IDX_PI1, IDX_PI2, IDX_PD1, IDX_PD2,
+	IDX_OFF0, IDX_OFFB, IDX_OFFA, IDX_OFFE,
+	IDX_OFF8, IDX_OFF16, IDX_OFFF, IDX_OFFD,
+	IDX_PCR8, IDX_PCR16, IDX_OFFW, IDX_EXT16,
+	IDX_OFF5
+};
+
+/* Indexed mode format strings.  The leading and trailing %s account for the
+ * optional brackets in indirect modes.  8-bit offsets include an extra %s to
+ * indicate sign.  5-bit offsets are printed in decimal. */
+
+static const char *idx_fmts[17] = {
+	"%s,%s+%s",
+	"%s,%s++%s",
+	"%s,-%s%s",
+	"%s,--%s%s",
+	"%s,%s%s",
+	"%sB,%s%s",
+	"%sA,%s%s",
+	"%sE,%s%s",
+	"%s%s$%02x,%s%s",
+	"%s$%04x,%s%s",
+	"%sF,%s%s",
+	"%sD,%s%s",
+	"%s%s$%02x,PCR%s",
+	"%s$%04x,PCR%s",
+	"%sW,%s%s",
+	"%s$%04X%s",
+	"%s%d,%s%s",
+};
+
+/* Indexed mode may well fetch more data after initial postbyte */
+
+static const int *idx_state_lists[17] = {
+	state_list_inherent,
+	state_list_inherent,
+	state_list_inherent,
+	state_list_inherent,
+	state_list_inherent,
+	state_list_inherent,
+	state_list_inherent,
+	state_list_inherent,
+	state_list_imm8,
+	state_list_imm16,
+	state_list_inherent,
+	state_list_inherent,
+	state_list_imm8,
+	state_list_imm16,
+	state_list_inherent,
+	state_list_imm16,
+	state_list_inherent,
+};
+
+/* TFM instruction format strings */
+
+static const char *tfm_fmts[4] = {
+	"%s+,%s+",
+	"%s-,%s-",
+	"%s+,%s",
+	"%s,%s+"
+};
+
+/* Names */
+
+// Inter-register operation postbyte
 static const char *tfr_regs[16] = {
 	"D", "X", "Y", "U", "S", "PC", "W", "V",
 	"A", "B", "CC", "DP", "0", "0", "E", "F"
 };
-static const char *indexed_regs[4] = { "X", "Y", "U", "S" };
+
+// Indexed addressing postbyte
+static const char *idx_regs[4] = { "X", "Y", "U", "S" };
+
+// Memory with bit postbyte
 static const char *membit_regs[4] = { "CC", "A", "B", "*" };
 
+// Interrupt vector names
 static const char *irq_names[8] = {
 	"[ILLEGAL]", "[SWI3]", "[SWI2]", "[FIRQ]",
 	"[IRQ]", "[SWI]", "[NMI]", "[RESET]"
 };
+
+/* Current state */
 
 static int state, page;
 static uint16_t instr_pc;
 #define BYTES_BUF_SIZE 5
 static int bytes_count;
 static uint8_t bytes_buf[BYTES_BUF_SIZE];
-static int irq_vector;
 
 static const char *mnemonic;
 static char operand_text[19];
 
 static void trace_print_short(void);
+
+#define STACK_PRINT(r) do { \
+		if (not_first) { strcat(operand_text, "," r); } \
+		else { strcat(operand_text, r); not_first = 1; } \
+	} while (0)
+
+/* If right shifts of signed values are arithmetic, faster code can be used.
+ * These macros depend on the compiler optimising away the unused version. */
+#define sex5(v) ( ((-1>>1)==-1) ? \
+	(((signed int)(v)<<((8*sizeof(signed int))-5)) >> ((8*sizeof(signed int))-5)) : \
+	((int)(((v) & 0x0f) - ((v) & 0x10))) )
+#define sex8(v) ( ((-1>>1)==-1) ? \
+	(((signed int)(v)<<((8*sizeof(signed int))-8)) >> ((8*sizeof(signed int))-8)) : \
+	((int8_t)(v)) )
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static void reset_state(void) {
 	state = WANT_INSTRUCTION;
@@ -934,144 +1025,152 @@ void hd6309_trace_reset(void) {
 	hd6309_trace_irq(NULL, 0xfffe);
 }
 
-#define STACK_PRINT(r) do { \
-		if (not_first) { strcat(operand_text, "," r); } \
-		else { strcat(operand_text, r); not_first = 1; } \
-	} while (0)
-
-#define sex5(v) ((int)(((v) & 0x0f) - ((v) & 0x10)))
+/* Called for each memory read */
 
 void hd6309_trace_byte(uint8_t byte, uint16_t pc) {
 	static int ins_type = PAGE0;
-	static uint8_t byte_val = 0;
-	static uint16_t word_val = 0;
-	static int indexed_mode = 0;
-	static char indexed_fmt[20] = "";
-	static int indexed_flags;
-	static uint8_t membit_postbyte = 0;
-	static _Bool inmem_instr = 0;
+	static const int *state_list = NULL;
+	static uint32_t value;
+	static int idx_mode = 0;
+	static const char *idx_reg = "";
+	static _Bool idx_indirect = 0;
+	static uint32_t im_value;
+	static const char *membit_reg = "";
+	static int membit_sbit = 0, membit_dbit = 0;
+	static const char *tfm_fmt = "";
 
+	// Record PC of instruction
 	if (bytes_count == 0) {
 		instr_pc = pc;
 	}
 
-	if (bytes_count < BYTES_BUF_SIZE && state != WANT_PRINT) {
+	// Record byte if considered part of instruction
+	if (bytes_count < BYTES_BUF_SIZE && state != WANT_PRINT && state != WANT_NOTHING) {
 		bytes_buf[bytes_count++] = byte;
 	}
 
 	switch (state) {
+
+		// Instruction fetch
 		default:
 		case WANT_INSTRUCTION:
+			value = 0;
+			im_value = 0;
+			state_list = NULL;
 			mnemonic = instructions[page][byte].mnemonic;
 			ins_type = instructions[page][byte].type;
-			inmem_instr = 0;
-			indexed_fmt[0] = 0;
 			switch (ins_type) {
+				// Change page, stay in WANT_INSTRUCTION state
 				case PAGE2: case PAGE3:
 					page = ins_type;
 					break;
+				// Otherwise use an appropriate state list:
 				default: case ILLEGAL: case INHERENT:
-					state = WANT_PRINT;
+					state_list = state_list_inherent;
 					break;
 				case IMMEDIATE: case DIRECT: case RELATIVE:
 				case STACKS: case STACKU: case REGISTER:
-				case INDEXED: case MEMBIT:
-					state = WANT_BYTE;
+					state_list = state_list_imm8;
+					break;
+				case INDEXED:
+					state_list = state_list_idx;
 					break;
 				case WORD_IMMEDIATE: case EXTENDED:
 				case LONG_RELATIVE:
-					state = WANT_WORD1;
+					state_list = state_list_imm16;
 					break;
-				case INMEM_DIRECT: case INMEM_INDEXED:
+				case TFMPP: case TFMMM: case TFMP0: case TFM0P:
+					tfm_fmt = tfm_fmts[byte & 3];
+					state_list = state_list_imm8;
+					break;
+				case MEMBIT:
+					state_list = state_list_mb;
+					break;
+				case QUAD_IMMEDIATE:
+					state_list = state_list_imm32;
+					break;
+				case INMEM_DIRECT:
+					state_list = state_list_inmem8;
+					break;
+				case INMEM_INDEXED:
+					state_list = state_list_inmem_idx;
+					break;
 				case INMEM_EXTENDED:
-					state = WANT_BYTE;
+					state_list = state_list_inmem16;
 					break;
 			}
 			break;
-		case WANT_IRQVEC1:
-			mnemonic = irq_names[irq_vector];
+
+		// First byte of an IRQ vector
+		case WANT_IRQ_VECTOR:
+			value = byte;
 			ins_type = IRQVECTOR;
-			state = WANT_IRQVEC2;
+			state_list = state_list_irq;
 			break;
-		case WANT_IRQVEC2:
-			state = WANT_PRINT;
+
+		// Building a value byte by byte
+		case WANT_VALUE:
+			value = (value << 8) | byte;
 			break;
-		case WANT_BYTE:
-			if (ins_type == INDEXED && indexed_mode == 0) {
-				indexed_mode = byte;
-				if ((indexed_mode & 0x80) == 0) {
-					state = WANT_PRINT;
-					break;
-				}
-				if (byte == 0x8f || byte == 0x90) {
-					strcat(indexed_fmt, "%s,W%s");
-					indexed_flags = 0;
-				} else if (byte == 0xaf || byte == 0xb0) {
-					strcat(indexed_fmt, "%s%s,W%s");
-					indexed_flags = INDEXED_WANT_WORD;
-				} else if (byte == 0xcf || byte == 0xd0) {
-					strcat(indexed_fmt, "%s,W++%s");
-					indexed_flags = 0;
-				} else if (byte == 0xef || byte == 0xf0) {
-					strcat(indexed_fmt, "%s,--W%s");
-					indexed_flags = 0;
-				} else {
-					strcat(indexed_fmt, indexed_modes[byte & 0x0f].fmt);
-					indexed_flags = indexed_modes[byte & 0x0f].flags;
-				}
-				if (indexed_flags & INDEXED_WANT_WORD) {
-					state = WANT_WORD1;
-				} else if (indexed_flags & INDEXED_WANT_BYTE) {
-					state = WANT_BYTE;
-				} else {
-					state = WANT_PRINT;
-				}
-			} else switch (ins_type) {
-			case MEMBIT:
-				membit_postbyte = byte;
-				state = WANT_BYTE2;
-				break;
-			case INMEM_DIRECT:
-				snprintf(indexed_fmt, sizeof(indexed_fmt), "%02x;", byte_val);
-				inmem_instr = DIRECT;
-				state = WANT_BYTE;
-				break;
-			case INMEM_INDEXED:
-				snprintf(indexed_fmt, sizeof(indexed_fmt), "%02x;", byte_val);
-				inmem_instr = INDEXED;
-				state = WANT_BYTE;
-				break;
-			case INMEM_EXTENDED:
-				snprintf(indexed_fmt, sizeof(indexed_fmt), "%02x;", byte_val);
-				inmem_instr = EXTENDED;
-				state = WANT_WORD1;
-				break;
-			default:
-				byte_val = byte;
-				state = WANT_PRINT;
-				break;
+
+		// Indexed postbyte - record relevant details
+		case WANT_IDX_POSTBYTE:
+			idx_reg = idx_regs[(byte>>5)&3];
+			idx_indirect = byte & 0x10;
+			idx_mode = byte & 0x0f;
+			if ((byte & 0x80) == 0) {
+				idx_indirect = 0;
+				idx_mode = IDX_OFF5;
+				value = byte & 0x1f;
+			} else if (byte == 0x8f || byte == 0x90) {
+				idx_reg = "W";
+				idx_mode = IDX_OFF0;
+			} else if (byte == 0xaf || byte == 0xb0) {
+				idx_reg = "W";
+				idx_mode = IDX_OFF16;
+			} else if (byte == 0xcf || byte == 0xd0) {
+				idx_reg = "W";
+				idx_mode = IDX_PI2;
+			} else if (byte == 0xef || byte == 0xf0) {
+				idx_reg = "W";
+				idx_mode = IDX_PD2;
 			}
+			state_list = idx_state_lists[idx_mode];
 			break;
-		case WANT_BYTE2:
-			byte_val = byte;
-			state = WANT_PRINT;
+
+		// Postbyte for "memory with bit" instructions
+		case WANT_MEMBIT_POSTBYTE:
+			membit_reg = membit_regs[(byte>>6) & 3];
+			membit_sbit = (byte>>3) & 7;
+			membit_dbit = byte & 7;
 			break;
-		case WANT_WORD1:
-			word_val = byte;
-			state = WANT_WORD2;
+
+		// Separate immediate value for "in memory" instructions
+		case WANT_IM_VALUE:
+			im_value = (im_value << 8) | byte;
 			break;
-		case WANT_WORD2:
-			word_val = (word_val << 8) | byte;
-			state = WANT_PRINT;
-			break;
+
+		// Expecting CPU code to call trace_print
 		case WANT_PRINT:
-			/* Now waiting for a call to hd6309_trace_print() */
+			state_list = NULL;
 			return;
+
+		// This byte is to be ignored (used following IRQ vector fetch)
+		case WANT_NOTHING:
+			break;
 	}
 
-	/* If state got set to WANT_PRINT, create the operand text */
+	// Get next state from state list
+	if (state_list)
+		state = *(state_list++);
+
 	if (state != WANT_PRINT)
 		return;
+
+	// If the next state is WANT_PRINT, we're done with the instruction, so
+	// prep the operand text for printing.
+
+	state_list = NULL;
 
 	operand_text[0] = '\0';
 	switch (ins_type) {
@@ -1079,152 +1178,175 @@ void hd6309_trace_byte(uint8_t byte, uint16_t pc) {
 			break;
 
 		case IMMEDIATE:
-			snprintf(operand_text, sizeof(operand_text), "#$%02x", byte_val);
+			snprintf(operand_text, sizeof(operand_text), "#$%02x", value);
 			break;
 
 		case DIRECT:
-			snprintf(operand_text, sizeof(operand_text), "<$%02x", byte_val);
+			snprintf(operand_text, sizeof(operand_text), "<$%02x", value);
 			break;
 
 		case WORD_IMMEDIATE:
-			snprintf(operand_text, sizeof(operand_text), "#$%04x", word_val);
+			snprintf(operand_text, sizeof(operand_text), "#$%04x", value);
 			break;
 
 		case EXTENDED:
-			snprintf(operand_text, sizeof(operand_text), "$%04x", word_val);
+			snprintf(operand_text, sizeof(operand_text), "$%04x", value);
 			break;
 
 		case STACKS: {
 			_Bool not_first = 0;
-			if (byte_val & 0x01) { STACK_PRINT("CC"); }
-			if (byte_val & 0x02) { STACK_PRINT("A"); }
-			if (byte_val & 0x04) { STACK_PRINT("B"); }
-			if (byte_val & 0x08) { STACK_PRINT("DP"); }
-			if (byte_val & 0x10) { STACK_PRINT("X"); }
-			if (byte_val & 0x20) { STACK_PRINT("Y"); }
-			if (byte_val & 0x40) { STACK_PRINT("U"); }
-			if (byte_val & 0x80) { STACK_PRINT("PC"); }
+			if (value & 0x01) { STACK_PRINT("CC"); }
+			if (value & 0x02) { STACK_PRINT("A"); }
+			if (value & 0x04) { STACK_PRINT("B"); }
+			if (value & 0x08) { STACK_PRINT("DP"); }
+			if (value & 0x10) { STACK_PRINT("X"); }
+			if (value & 0x20) { STACK_PRINT("Y"); }
+			if (value & 0x40) { STACK_PRINT("U"); }
+			if (value & 0x80) { STACK_PRINT("PC"); }
 		} break;
 
 		case STACKU: {
 			_Bool not_first = 0;
-			if (byte_val & 0x01) { STACK_PRINT("CC"); }
-			if (byte_val & 0x02) { STACK_PRINT("A"); }
-			if (byte_val & 0x04) { STACK_PRINT("B"); }
-			if (byte_val & 0x08) { STACK_PRINT("DP"); }
-			if (byte_val & 0x10) { STACK_PRINT("X"); }
-			if (byte_val & 0x20) { STACK_PRINT("Y"); }
-			if (byte_val & 0x40) { STACK_PRINT("S"); }
-			if (byte_val & 0x80) { STACK_PRINT("PC"); }
+			if (value & 0x01) { STACK_PRINT("CC"); }
+			if (value & 0x02) { STACK_PRINT("A"); }
+			if (value & 0x04) { STACK_PRINT("B"); }
+			if (value & 0x08) { STACK_PRINT("DP"); }
+			if (value & 0x10) { STACK_PRINT("X"); }
+			if (value & 0x20) { STACK_PRINT("Y"); }
+			if (value & 0x40) { STACK_PRINT("S"); }
+			if (value & 0x80) { STACK_PRINT("PC"); }
 		} break;
 
 		case REGISTER:
 			snprintf(operand_text, sizeof(operand_text), "%s,%s",
-					tfr_regs[(byte_val&0xf0)>>4],
-					tfr_regs[byte_val&0x0f]);
+					tfr_regs[(value>>4)&15],
+					tfr_regs[value&15]);
 			break;
 
-		case MEMBIT:
-			snprintf(operand_text, sizeof(operand_text), "%s,%d,%d,<$%02x",
-					membit_regs[(membit_postbyte&0xc0)>>6],
-					(membit_postbyte&0x38)>>3,
-					(membit_postbyte&0x07), byte_val);
-			break;
+		case INDEXED:
+		case INMEM_INDEXED:
+			{
+			char tmp_text[19];
+			const char *pre = idx_indirect ? "[" : "";
+			const char *post = idx_indirect ? "]" : "";
+			int value8 = sex8(value);
+			int value5 = sex5(value);
 
-		case INDEXED: {
-			const char *reg = indexed_regs[(indexed_mode>>5)&3];
-			const char *pre = "";
-			const char *post = "";
-			int value = word_val;
-			if (indexed_flags & INDEXED_WANT_BYTE) value = byte_val;
-			if ((indexed_mode & 0x80) == 0) {
-				value = sex5(indexed_mode & 0x1f);
-				snprintf(operand_text, sizeof(operand_text), "%d,%s", value, reg);
+			switch (idx_mode) {
+			default:
+			case IDX_PI1: case IDX_PI2: case IDX_PD1: case IDX_PD2:
+			case IDX_OFF0: case IDX_OFFB: case IDX_OFFA: case IDX_OFFE:
+			case IDX_OFFF: case IDX_OFFD: case IDX_OFFW:
+				snprintf(tmp_text, sizeof(tmp_text), idx_fmts[idx_mode], pre, idx_reg, post);
+				break;
+			case IDX_OFF5:
+				snprintf(tmp_text, sizeof(tmp_text), idx_fmts[idx_mode], pre, value5, idx_reg, post);
+				break;
+			case IDX_OFF8:
+				snprintf(tmp_text, sizeof(tmp_text), idx_fmts[idx_mode], pre, (value8<0)?"-":"", (value8<0)?-value8:value8, idx_reg, post);
+				break;
+			case IDX_OFF16:
+				snprintf(tmp_text, sizeof(tmp_text), idx_fmts[idx_mode], pre, value, idx_reg, post);
+				break;
+			case IDX_PCR8:
+				snprintf(tmp_text, sizeof(tmp_text), idx_fmts[idx_mode], pre, (value8<0)?"-":"", (value8<0)?-value8:value8, post);
+				break;
+			case IDX_PCR16: case IDX_EXT16:
+				snprintf(tmp_text, sizeof(tmp_text), idx_fmts[idx_mode], pre, value, post);
 				break;
 			}
-			if (indexed_mode & 0x10) {
-				pre = "[";
-				post = "]";
-			}
-			if (indexed_flags & (INDEXED_WANT_WORD | INDEXED_WANT_BYTE)) {
-				if (indexed_flags & INDEXED_WANT_REG) {
-					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, reg, post);
-				} else {
-					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, value, post);
-				}
+
+			if (ins_type == INDEXED) {
+				strncpy(operand_text, tmp_text, sizeof(operand_text));
 			} else {
-				if (indexed_flags & INDEXED_WANT_REG) {
-					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, reg, post);
-				} else {
-					snprintf(operand_text, sizeof(operand_text), indexed_fmt, pre, post);
-				}
+				snprintf(operand_text, sizeof(operand_text), "#$%02x,%s", im_value, tmp_text);
 			}
+
 			} break;
 
 		case RELATIVE:
-			pc += (byte_val & 0x80) ? 0xff00 : 0;
-			pc += 1 + byte_val;
-			pc &= 0xffff;
+			pc = (pc + 1 + sex8(value)) & 0xffff;
 			snprintf(operand_text, sizeof(operand_text), "$%04x", pc);
 			break;
 
 		case LONG_RELATIVE:
-			pc += 1 + word_val;
-			pc &= 0xffff;
+			pc = (pc + 1 + value) & 0xffff;
 			snprintf(operand_text, sizeof(operand_text), "$%04x", pc);
 			break;
 
+		// CPU code will not call trace_print after IRQ vector fetch
+		// and before the next instruction, therefore the state list
+		// for IRQ vectors skips an expected dummy byte, and this
+		// prints the trace line early.
+
 		case IRQVECTOR:
 			trace_print_short();
+			printf("\n");
+			fflush(stdout);
+			break;
+
+		case QUAD_IMMEDIATE:
+			snprintf(operand_text, sizeof(operand_text), "#$%08x", value);
+			break;
+
+		case INMEM_DIRECT:
+			snprintf(operand_text, sizeof(operand_text), "#$%02x,<$%02x", im_value, value);
+			break;
+
+		case INMEM_EXTENDED:
+			snprintf(operand_text, sizeof(operand_text), "#$%02x,$%04x", im_value, value);
+			break;
+
+		case TFMPP: case TFMMM: case TFMP0: case TFM0P:
+			if ((value >> 4) > 4 || (value & 15) > 4)
+				mnemonic = "TFM*";
+			snprintf(operand_text, sizeof(operand_text), tfm_fmt,
+				 tfr_regs[(value>>4)&15],
+				 tfr_regs[value&15]);
+			break;
+
+		case MEMBIT:
+			snprintf(operand_text, sizeof(operand_text), "%s,%d,%d,<$%02x",
+					membit_reg, membit_sbit, membit_dbit, value);
 			break;
 
 		default:
 			break;
 	}
-	indexed_mode = 0;
-	byte_val = word_val = 0;
 }
+
+/* Called just before an IRQ vector fetch */
 
 void hd6309_trace_irq(struct MC6809 *cpu, uint16_t vector) {
 	(void)cpu;
 	reset_state();
-	state = WANT_IRQVEC1;
-	irq_vector = (vector & 15) >> 1;
+	state = WANT_IRQ_VECTOR;
+	bytes_count = 0;
+	mnemonic = irq_names[(vector & 15) >> 1];
+}
+
+/* Called after each instruction */
+
+void hd6309_trace_print(struct MC6809 *cpu) {
+	struct HD6309 *hcpu = (struct HD6309 *)cpu;
+	if (state != WANT_PRINT) return;
+	trace_print_short();
+	printf("cc=%02x a=%02x b=%02x e=%02x "
+	       "f=%02x dp=%02x x=%04x y=%04x "
+	       "u=%04x s=%04x v=%04x\n",
+	       cpu->reg_cc, MC6809_REG_A(cpu), MC6809_REG_B(cpu), HD6309_REG_E(hcpu),
+	       HD6309_REG_F(hcpu), cpu->reg_dp, cpu->reg_x, cpu->reg_y,
+	       cpu->reg_u, cpu->reg_s, hcpu->reg_v);
+	fflush(stdout);
+	reset_state();
 }
 
 static void trace_print_short(void) {
 	char bytes_string[(BYTES_BUF_SIZE*2)+1];
-	int i;
-
 	if (bytes_count == 0) return;
-	if (state != WANT_PRINT) return;
-
-	bytes_string[0] = '\0';
-	for (i = 0; i < bytes_count; i++) {
+	for (int i = 0; i < bytes_count; i++) {
 		snprintf(bytes_string + i*2, 3, "%02x", bytes_buf[i]);
 	}
-
-	printf("%04x| %-12s%-8s%-20s\n", instr_pc, bytes_string, mnemonic, operand_text);
-
-	reset_state();
-}
-
-void hd6309_trace_print(struct MC6809 *cpu) {
-	struct HD6309 *hcpu = (struct HD6309 *)cpu;
-	char bytes_string[(BYTES_BUF_SIZE*2)+1];
-	int i;
-
-	if (bytes_count == 0) return;
-	if (state != WANT_PRINT) return;
-
-	bytes_string[0] = '\0';
-	for (i = 0; i < bytes_count; i++) {
-		snprintf(bytes_string + i*2, 3, "%02x", bytes_buf[i]);
-	}
-
 	printf("%04x| %-12s%-8s%-20s", instr_pc, bytes_string, mnemonic, operand_text);
-	printf("cc=%02x a=%02x b=%02x e=%02x f=%02x dp=%02x x=%04x y=%04x u=%04x s=%04x v=%04x\n", cpu->reg_cc, MC6809_REG_A(cpu), MC6809_REG_B(cpu), HD6309_REG_E(hcpu), HD6309_REG_F(hcpu), cpu->reg_dp, cpu->reg_x, cpu->reg_y, cpu->reg_u, cpu->reg_s, hcpu->reg_v);
-	fflush(stdout);
-
 	reset_state();
 }
