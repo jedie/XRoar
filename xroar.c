@@ -142,7 +142,7 @@ static struct xconfig_enum arch_list[] = {
 
 static struct xconfig_enum cpu_list[] = {
 	{ .value = CPU_MC6809, .name = "6809", .description = "Motorola 6809" },
-	{ .value = CPU_HD6309, .name = "6309", .description = "Hitachi 6309 - UNTESTED" },
+	{ .value = CPU_HD6309, .name = "6309", .description = "Hitachi 6309 - UNVERIFIED" },
 	XC_ENUM_END()
 };
 
@@ -369,7 +369,7 @@ static void set_machine(const char *name) {
 		}
 		xroar_machine_config->cpu = opt_machine_cpu;
 		if (opt_machine_cpu == CPU_HD6309) {
-			LOG_WARN("Hitachi HD6309 support is UNTESTED!\n");
+			LOG_WARN("Hitachi HD6309 support is UNVERIFIED!\n");
 		}
 		if (opt_machine_desc) {
 			xroar_machine_config->description = opt_machine_desc;
