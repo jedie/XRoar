@@ -237,6 +237,10 @@ void cart_configure(struct cart *c, struct cart_config *cc) {
 			g_free(tmp);
 		}
 	}
+	c->io_read = NULL;
+	c->io_write = NULL;
+	c->reset = NULL;
+	c->detach = NULL;
 	switch (cc->type) {
 		default:
 		case CART_ROM:       rom_configure(c, cc); break;
