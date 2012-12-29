@@ -77,7 +77,7 @@ static char *opt_cart_desc = NULL;
 static int opt_cart_type = ANY_AUTO;
 static char *opt_cart_rom = NULL;
 static char *opt_cart_rom2 = NULL;
-static _Bool opt_cart_becker = 0;
+static int opt_cart_becker = ANY_AUTO;
 static int opt_cart_autorun = ANY_AUTO;
 static int opt_nodos = 0;
 
@@ -206,7 +206,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_ENUM("cart-type", &opt_cart_type, cart_type_list),
 	XC_SET_STRING("cart-rom", &opt_cart_rom),
 	XC_SET_STRING("cart-rom2", &opt_cart_rom2),
-	XC_SET_BOOL("cart-becker", &opt_cart_becker),
+	XC_SET_INT1("cart-becker", &opt_cart_becker),
 	XC_SET_INT1("cart-autorun", &opt_cart_autorun),
 	XC_SET_INT1("nodos", &opt_nodos),
 	/* Backwards-compatibility options: */
@@ -456,6 +456,10 @@ static void set_cart(const char *name) {
 		if (opt_cart_rom2) {
 			xroar_cart_config->rom2 = opt_cart_rom2;
 			opt_cart_rom2 = NULL;
+		}
+		if (opt_cart_becker != ANY_AUTO) {
+			xroar_cart_config->becker_port = opt_cart_becker;
+			opt_cart_becker = ANY_AUTO;
 		}
 		if (opt_cart_autorun != ANY_AUTO) {
 			xroar_cart_config->autorun = opt_cart_autorun;
