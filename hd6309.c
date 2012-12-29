@@ -2015,6 +2015,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 4: hcpu->tfm_src = &REG_S; break;
 				default:
 					PUSH_IRQ_REGISTERS(1);
+					INSTRUCTION_POSTHOOK();
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
 					break;
 				}
@@ -2026,6 +2027,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 4: hcpu->tfm_dest = &REG_S; break;
 				default:
 					PUSH_IRQ_REGISTERS(1);
+					INSTRUCTION_POSTHOOK();
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
 					break;
 				}
