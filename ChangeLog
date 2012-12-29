@@ -1,3 +1,18 @@
+Version 0.29, Sat Dec 29 2012
+
+  * New PIA & keyboard code supports matrix ghosting.
+  * Fixed emulation of Dragon 32 with 64K.
+  * Underlying video module rewrite.
+  * VDG sub-scanline mode switching more accurate (CSS & !INT/EXT delayed).
+  * Use vertex and texture coord arrays in OpenGL code.
+  * Alias '²' to Clear for French keyboards.  TODO: generic key bind ability.
+  * Fake ACIA responses to fix 32K mode autorepeat.  TODO: real ACIA support.
+  * Curses video module removed - incompatible with new VDG/video code.
+  * SDL YUV video module tries harder to find accelerated overlay.
+  * "Becker" port supported in RS-DOS.
+  * Various CPU timing fixes.
+  * Hitachi 6309 support (unverified) with "-machine-cpu 6309".
+
 Version 0.28, Sat May 12 2012
 
   * New keyboard map: Canadian French [Pierre Sarrazin]

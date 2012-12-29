@@ -75,8 +75,8 @@ follows the same steps as many other software packages.  Unpack the
 source code, change into the created source directory, run `configure'
 and then if everything looks good, run `make'.  Example:
 
-     $ gzip -dc xroar-0.28.tar.gz | tar xvf -
-     $ cd xroar-0.28
+     $ gzip -dc xroar-0.29.tar.gz | tar xvf -
+     $ cd xroar-0.29
      $ ./configure
      $ make
 
