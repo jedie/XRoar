@@ -582,7 +582,11 @@ static uint8_t read_D = 0;
 static uint8_t read_cycle(uint16_t A) {
 	int S;
 	uint16_t Z;
-	(void)do_cpu_cycle(A, 1, &S, &Z);
+	_Bool is_ram_access = do_cpu_cycle(A, 1, &S, &Z);
+	/* Thanks to CrAlt on #coco_chat for verifying that RAM accesses
+	 * produce a different "null" result on his 16K CoCo */
+	if (is_ram_access)
+		read_D = 0xff;
 	switch (S) {
 		case 0:
 			if (Z < machine_ram_size)
