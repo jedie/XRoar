@@ -537,6 +537,7 @@ void machine_reset(_Bool hard) {
 	CPU0->reset(CPU0);
 #ifdef TRACE
 	mc6809_trace_reset();
+	hd6309_trace_reset();
 #endif
 	vdg_reset();
 	tape_reset();
