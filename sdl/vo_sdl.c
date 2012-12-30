@@ -127,6 +127,7 @@ static int set_fullscreen(_Bool fullscreen) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
 		return 1;
 	}
+	SDL_WM_SetCaption("XRoar", "XRoar");
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	alloc_colours();
 	if (fullscreen)

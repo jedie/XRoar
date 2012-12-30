@@ -210,6 +210,7 @@ static int set_fullscreen(_Bool fullscreen) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");
 		return 1;
 	}
+	SDL_WM_SetCaption("XRoar", "XRoar");
 	if (fullscreen)
 		SDL_ShowCursor(SDL_DISABLE);
 	else
