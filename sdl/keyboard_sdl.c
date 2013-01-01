@@ -218,7 +218,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 	if (sym == SDLK_DOWN) { KEYBOARD_PRESS(KEYMAP_DOWN); return; }
 	if (sym == SDLK_LEFT) { KEYBOARD_PRESS(KEYMAP_LEFT); return; }
 	if (sym == SDLK_RIGHT) { KEYBOARD_PRESS(KEYMAP_RIGHT); return; }
-	if (sym == SDLK_HOME) { KEYBOARD_PRESS(KEYMAP_CLEAR); return; }
+	if (sym == SDLK_HOME) { KEYBOARD_PRESS_CLEAR(); return; }
 	if (xroar_kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)
@@ -265,7 +265,7 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 	if (sym == SDLK_DOWN) { KEYBOARD_RELEASE(KEYMAP_DOWN); return; }
 	if (sym == SDLK_LEFT) { KEYBOARD_RELEASE(KEYMAP_LEFT); return; }
 	if (sym == SDLK_RIGHT) { KEYBOARD_RELEASE(KEYMAP_RIGHT); return; }
-	if (sym == SDLK_HOME) { KEYBOARD_RELEASE(KEYMAP_CLEAR); return; }
+	if (sym == SDLK_HOME) { KEYBOARD_RELEASE_CLEAR(); return; }
 	if (xroar_kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)

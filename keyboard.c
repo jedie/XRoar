@@ -159,23 +159,23 @@ void keyboard_unicode_press(unsigned unicode) {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
 		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_VALUE_B(PIA1) & 0x04))) {
-			KEYBOARD_PRESS(0);
-			KEYBOARD_PRESS(12);
+			KEYBOARD_PRESS_SHIFT();
+			KEYBOARD_PRESS_CLEAR();
 		} else {
-			KEYBOARD_PRESS(0);
-			KEYBOARD_PRESS(12);
+			KEYBOARD_PRESS_SHIFT();
+			KEYBOARD_PRESS_CLEAR();
 			KEYBOARD_PRESS(',');
 		}
 	} else if (unicode == 163) {
 		/* Pound sign */
-		KEYBOARD_PRESS(0);
+		KEYBOARD_PRESS_SHIFT();
 		KEYBOARD_PRESS('3');
 	} else if (unicode < 128) {
 		unsigned code = unicode_to_dragon[unicode];
 		if (code & 128)
-			KEYBOARD_PRESS(0);
+			KEYBOARD_PRESS_SHIFT();
 		else
-			KEYBOARD_RELEASE(0);
+			KEYBOARD_RELEASE_SHIFT();
 		KEYBOARD_PRESS(code & 0x7f);
 	}
 	keyboard_update();
@@ -186,21 +186,21 @@ void keyboard_unicode_release(unsigned unicode) {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
 		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_VALUE_B(PIA1) & 0x04))) {
-			KEYBOARD_RELEASE(0);
-			KEYBOARD_RELEASE(12);
+			KEYBOARD_RELEASE_SHIFT();
+			KEYBOARD_RELEASE_CLEAR();
 		} else {
-			KEYBOARD_RELEASE(0);
-			KEYBOARD_RELEASE(12);
+			KEYBOARD_RELEASE_SHIFT();
+			KEYBOARD_RELEASE_CLEAR();
 			KEYBOARD_RELEASE(',');
 		}
 	} else if (unicode == 163) {
 		/* Pound sign */
-		KEYBOARD_RELEASE(0);
+		KEYBOARD_RELEASE_SHIFT();
 		KEYBOARD_RELEASE('3');
 	} else if (unicode < 128) {
 		unsigned code = unicode_to_dragon[unicode];
 		if (code & 128)
-			KEYBOARD_RELEASE(0);
+			KEYBOARD_RELEASE_SHIFT();
 		KEYBOARD_RELEASE(code & 0x7f);
 	}
 	keyboard_update();

@@ -60,9 +60,11 @@ extern unsigned keyboard_row[9];
 #define KEYBOARD_PRESS(s) KEYBOARD_PRESS_MATRIX(keymap[s].col, keymap[s].row)
 #define KEYBOARD_RELEASE(s) KEYBOARD_RELEASE_MATRIX(keymap[s].col, keymap[s].row)
 
-/* Shift key is at the same matrix point in both Dragon & CoCo keymaps,
- * looking up in keymap can be bypassed. */
+/* Shift and clear keys are at the same matrix point in both Dragon & CoCo
+ * keymaps, looking them up in keymap can be bypassed. */
 
+#define KEYBOARD_PRESS_CLEAR() KEYBOARD_PRESS_MATRIX(1,6)
+#define KEYBOARD_RELEASE_CLEAR() KEYBOARD_RELEASE_MATRIX(1,6)
 #define KEYBOARD_PRESS_SHIFT() KEYBOARD_PRESS_MATRIX(7,6)
 #define KEYBOARD_RELEASE_SHIFT() KEYBOARD_RELEASE_MATRIX(7,6)
 
