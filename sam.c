@@ -23,6 +23,11 @@
 
 #include "sam.h"
 
+/* Internal cycle flag, for determining when a slow CPU cycle needs to be
+ * extended to interleave with VDG properly. */
+
+static _Bool odd_cycle;
+
 /* Constants for tracking VDG address counter */
 static int vdg_mod_xdivs[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
 static int vdg_mod_ydivs[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
@@ -71,6 +76,7 @@ static void update_from_register(void);
 void sam_reset(void) {
 	sam_set_register(0);
 	sam_vdg_fsync();
+	odd_cycle = 0;
 }
 
 #define VRAM_TRANSLATE(a) ( \
@@ -129,14 +135,34 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 	} else {
 		*S = 2;
 	}
-	*ncycles = fast_cycle ? SAM_CPU_FAST_DIVISOR : SAM_CPU_SLOW_DIVISOR;
-	if (fast_cycle != running_fast) {
-		if (fast_cycle)
-			*ncycles += 2 * (SAM_CPU_FAST_DIVISOR >> 1);
-		else
-			*ncycles += (SAM_CPU_FAST_DIVISOR >> 1);
-		running_fast = fast_cycle;
+
+	if (running_fast) {
+		if (fast_cycle) {
+			// Fast cycle, may become un-interleaved
+			*ncycles = SAM_CPU_FAST_DIVISOR;
+			odd_cycle = !odd_cycle;
+		} else {
+			// Transition fast to slow
+			if (odd_cycle) {
+				// Re-interleave
+				*ncycles = SAM_CPU_SLOW_DIVISOR + SAM_CPU_FAST_DIVISOR;
+				odd_cycle = 0;
+			} else {
+				*ncycles = SAM_CPU_SLOW_DIVISOR;
+			}
+			running_fast = 0;
+		}
+	} else {
+		if (fast_cycle) {
+			// Transition slow to fast
+			*ncycles = SAM_CPU_SLOW_DIVISOR;
+			running_fast = 1;
+		} else {
+			// Slow cycle
+			*ncycles = SAM_CPU_SLOW_DIVISOR;
+		}
 	}
+
 	return is_ram_access;
 }
 
