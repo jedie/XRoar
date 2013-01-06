@@ -517,6 +517,7 @@ void machine_configure(struct machine_config *mc) {
 	}
 
 	if (IS_DRAGON) {
+		ram_organisation = RAM_ORGANISATION_64K;
 		if (IS_DRAGON32 && machine_ram_size <= 0x8000) {
 			unexpanded_dragon32 = 1;
 			ram_mask = 0x7fff;
