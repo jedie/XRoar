@@ -1,4 +1,4 @@
-/*  Copyright 2003-2012 Ciaran Anscomb
+/*  Copyright 2003-2013 Ciaran Anscomb
  *
  *  This file is part of XRoar.
  *
@@ -243,7 +243,7 @@ static void about(GtkMenuItem *item, gpointer data) {
 	(void)data;
 	GtkAboutDialog *dialog = (GtkAboutDialog *)gtk_about_dialog_new();
 	gtk_about_dialog_set_version(dialog, VERSION);
-	gtk_about_dialog_set_copyright(dialog, "Copyright © 2003–2012 Ciaran Anscomb <xroar@6809.org.uk>");
+	gtk_about_dialog_set_copyright(dialog, "Copyright © 2003–2013 Ciaran Anscomb <xroar@6809.org.uk>");
 	gtk_about_dialog_set_license(dialog,
 "XRoar is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"
