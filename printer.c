@@ -25,6 +25,7 @@
 #include <string.h>
 #include "portalib/glib.h"
 
+#include "breakpoint.h"
 #include "printer.h"
 #include "events.h"
 #include "machine.h"
@@ -42,6 +43,12 @@ static int strobe_state;
 static void do_ack_clear(void *);
 static void set_busy(int state);
 static void open_stream(void);
+
+static void coco_print_byte(struct MC6809 *cpu);
+
+static struct breakpoint coco_print_breakpoint[] = {
+	BP_COCO_ROM(.address = 0xa2c1, .handler = coco_print_byte),
+};
 
 void printer_init(void) {
 	stream = NULL;
@@ -65,6 +72,7 @@ void printer_open_file(const char *filename) {
 	stream_dest = g_strdup(filename);
 	is_pipe = 0;
 	set_busy(0);
+	bp_add_list(coco_print_breakpoint);
 }
 
 void printer_open_pipe(const char *command) {
@@ -73,6 +81,7 @@ void printer_open_pipe(const char *command) {
 	stream_dest = g_strdup(command);
 	is_pipe = 1;
 	set_busy(0);
+	bp_add_list(coco_print_breakpoint);
 }
 
 void printer_close(void) {
@@ -82,6 +91,7 @@ void printer_close(void) {
 	stream_dest = NULL;
 	is_pipe = 0;
 	set_busy(1);
+	bp_remove_list(coco_print_breakpoint);
 }
 
 /* close stream but leave stream_dest intact so it will be reopened */
@@ -115,6 +125,18 @@ void printer_strobe(void) {
 	PIA_RESET_Cx1(PIA1.a);
 	ack_clear_event.at_tick = event_current_tick + (OSCILLATOR_RATE / 150000);
 	event_queue(&MACHINE_EVENT_LIST, &ack_clear_event);
+}
+
+static void coco_print_byte(struct MC6809 *cpu) {
+	int byte;
+	/* Open stream for output if it's not already */
+	if (!stream_dest) return;
+	if (!stream) open_stream();
+	/* Print byte */
+	byte = MC6809_REG_A(cpu);
+	if (stream) {
+		fputc(byte, stream);
+	}
 }
 
 static void open_stream(void) {
