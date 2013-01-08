@@ -30,7 +30,6 @@ static Pixel *pixel;
 static Pixel vdg_colour[12];
 static Pixel artifact_5bit[2][32];
 static Pixel artifact_simple[2][4];
-static int phase = 0;
 
 /* Map VDG palette entry */
 static Pixel map_palette_entry(int i) {
@@ -165,6 +164,7 @@ static void render_ccr_simple(uint8_t *scanline_data) {
 
 /* Render artifacted colours - 5-bit lookup table */
 static void render_ccr_5bit(uint8_t *scanline_data) {
+	int phase = xroar_machine_config->cross_colour_phase - 1;
 	scanline_data += ((VDG_tLB / 2) - 32);
 	LOCK_SURFACE;
 	int aindex = 0;
@@ -192,10 +192,8 @@ static void render_ccr_5bit(uint8_t *scanline_data) {
 
 static void update_cross_colour_phase(void) {
 	if (xroar_machine_config->cross_colour_phase == CROSS_COLOUR_OFF) {
-		phase = 0;
 		video_module->render_scanline = render_scanline;
 	} else {
-		phase = xroar_machine_config->cross_colour_phase - 1;
 		if (xroar_opt_ccr == CROSS_COLOUR_SIMPLE) {
 			video_module->render_scanline = render_ccr_simple;
 		} else {
