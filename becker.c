@@ -71,8 +71,8 @@ _Bool becker_open(void) {
 #endif
 
 	struct addrinfo hints, *info;
-	char *hostname = xroar_opt_becker_ip ? xroar_opt_becker_ip : "localhost";
-	char *portname = xroar_opt_becker_port ? xroar_opt_becker_port : "65504";
+	const char *hostname = xroar_opt_becker_ip ? xroar_opt_becker_ip : "localhost";
+	const char *portname = xroar_opt_becker_port ? xroar_opt_becker_port : "65504";
 
 	// Find the server
 	memset(&hints, 0, sizeof(hints));
