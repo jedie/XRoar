@@ -22,7 +22,7 @@
 #include "xroar.h"
 #include "sdl/ui_sdl.h"
 
-#define TAG_TYPE_MASK (0xff << 24)
+#define TAG_TYPE_MASK (0x7f << 24)
 #define TAG_VALUE_MASK (0xffffff)
 #define TAG_MACHINE (1 << 24)
 #define TAG_CARTRIDGE (2 << 24)
@@ -160,7 +160,7 @@ int cocoa_super_all_keys = 0;
 	current_cartridge = [sender tag];
 	int set_to = current_cartridge & TAG_VALUE_MASK;
 	if (set_to & (1 << 23)) {
-		set_to |= (0xff << 24);
+		set_to = -1;
 	}
 	xroar_set_cart(set_to);
 }
