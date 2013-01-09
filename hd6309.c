@@ -236,20 +236,10 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 		} \
 	} while (0)
 
-/* If right shifts of signed values are arithmetic, faster code can be used.
- * These macros depend on the compiler optimising away the unused version. */
-#define sex5(v) ( ((-1>>1)==-1) ? \
-        (((signed int)(v)<<((8*sizeof(signed int))-5)) >> ((8*sizeof(signed int))-5)) : \
-        ((int)(((v) & 0x0f) - ((v) & 0x10))) )
-#define sex8(v) ( ((-1>>1)==-1) ? \
-        (((signed int)(v)<<((8*sizeof(signed int))-8)) >> ((8*sizeof(signed int))-8)) : \
-        ((int8_t)(v)) )
-#define sex16(v) ( ((-1>>1)==-1) ? \
-        (((signed int)(v)<<((8*sizeof(signed int))-16)) >> ((8*sizeof(signed int))-16)) : \
-        ((int16_t)(v)) )
-#define sex32(v) ( ((-1>>1)==-1) ? \
-        (((signed int)(v)<<((8*sizeof(signed int))-32)) >> ((8*sizeof(signed int))-32)) : \
-        ((int32_t)(v)) )
+#define sex5(v) ((int)((v) & 0x0f) - (int)((v) & 0x10))
+#define sex8(v) ((int8_t)(v))
+#define sex16(v) ((int16_t)(v))
+#define sex32(v) ((int32_t)(v))
 
 /* Dummy handlers */
 static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
