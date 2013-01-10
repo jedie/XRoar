@@ -27,7 +27,8 @@
  *         2009 Darren Atkinson
  */
 
-#include <inttypes.h>
+#include <stdint.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
@@ -527,9 +528,9 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 	while (cpu->running) {
 
-		_Bool nmi_active = cpu->nmi && ((int)(cpu->cycle - cpu->nmi_cycle) >= 2);
-		_Bool firq_active = cpu->firq && ((int)(cpu->cycle - cpu->firq_cycle) >= 2);
-		_Bool irq_active = cpu->irq && ((int)(cpu->cycle - cpu->irq_cycle) >= 2);
+		_Bool nmi_active = cpu->nmi && ((cpu->cycle - cpu->nmi_cycle - 2) <= (UINT_MAX/2));
+		_Bool firq_active = cpu->firq && ((cpu->cycle - cpu->firq_cycle - 2) <= (UINT_MAX/2));
+		_Bool irq_active = cpu->irq && ((cpu->cycle - cpu->irq_cycle - 2) <= (UINT_MAX/2));
 
 		switch (cpu->state) {
 
