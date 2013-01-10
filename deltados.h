@@ -9,6 +9,6 @@
 struct cart_config;
 struct cart;
 
-void deltados_configure(struct cart *c, struct cart_config *cc);
+struct cart *deltados_new(struct cart_config *cc);
 
 #endif  /* XROAR_DELTADOS_H_ */

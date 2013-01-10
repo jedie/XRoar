@@ -11,4 +11,6 @@ struct cart;
 
 void dragondos_configure(struct cart *c, struct cart_config *cc);
 
+struct cart *dragondos_new(struct cart_config *cc);
+
 #endif  /* XROAR_DRAGONDOS_H_ */

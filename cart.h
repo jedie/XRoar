@@ -9,6 +9,7 @@
 #include <inttypes.h>
 
 struct machine_config;
+struct event;
 
 enum cart_type {
 	CART_ROM = 0,
@@ -29,14 +30,14 @@ struct cart_config {
 };
 
 struct cart {
-	uint8_t mem_data[0x4000];
-	int mem_writable;
-	int mem_size;
-	uint8_t (*io_read)(uint16_t A);
-	void (*io_write)(uint16_t A, uint8_t D);
-	void (*reset)(void);
-	void (*attach)(void);
-	void (*detach)(void);
+	struct cart_config *config;
+	void (*read)(struct cart *c, uint16_t A, _Bool P2, uint8_t *D);
+	void (*write)(struct cart *c, uint16_t A, _Bool P2, uint8_t D);
+	void (*reset)(struct cart *c);
+	void (*attach)(struct cart *c);
+	void (*detach)(struct cart *c);
+	uint8_t *rom_data;
+	struct event *firq_event;
 };
 
 struct cart_config *cart_config_new(void);
@@ -46,6 +47,14 @@ struct cart_config *cart_config_by_name(const char *name);
 struct cart_config *cart_find_working_dos(struct machine_config *mc);
 void cart_config_complete(struct cart_config *cc);
 
-void cart_configure(struct cart *c, struct cart_config *cc);
+// c->config MUST point to a complete cart config before calling cart_init()
+void cart_init(struct cart *c);
+struct cart *cart_new(struct cart_config *cc);
+void cart_free(struct cart *c);
+
+void cart_rom_init(struct cart *c);
+struct cart *cart_rom_new(struct cart_config *cc);
+void cart_rom_attach(struct cart *c);
+void cart_rom_detach(struct cart *c);
 
 #endif  /* XROAR_CART_H_ */

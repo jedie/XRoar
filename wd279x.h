@@ -26,10 +26,12 @@ struct WD279X {
 	uint8_t command_register;
 
 	/* External handlers */
-	void (*set_drq_handler)(void);
-	void (*reset_drq_handler)(void);
-	void (*set_intrq_handler)(void);
-	void (*reset_intrq_handler)(void);
+	void (*set_drq_handler)(void *);
+	void (*reset_drq_handler)(void *);
+	void *drq_data;
+	void (*set_intrq_handler)(void *);
+	void (*reset_intrq_handler)(void *);
+	void *intrq_data;
 
 	/* WD279X internal state */
 	int state;  /* from enum WD279X_state */

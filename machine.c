@@ -20,7 +20,7 @@
 
 #include <assert.h>
 #include <fcntl.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,7 +62,6 @@ static uint8_t rom1[0x4000];
 struct MC6809 *CPU0 = NULL;
 struct MC6821 PIA0, PIA1;
 struct cart *machine_cart = NULL;
-static struct cart running_cart;
 _Bool has_bas, has_extbas, has_altbas;
 uint32_t crc_bas, crc_extbas, crc_altbas;
 
@@ -116,14 +115,13 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 /**************************************************************************/
 
 /* Create config array */
-static int alloc_config_array(int size) {
+static void alloc_config_array(int size) {
 	struct machine_config **new_list;
 	int clear_from = num_configs;
 	if (!configs) clear_from = 0;
 	new_list = g_realloc(configs, size * sizeof(struct machine_config *));
 	configs = new_list;
 	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct machine_config *));
-	return 0;
 }
 
 /* Populate config from template */
@@ -146,8 +144,7 @@ static int populate_config_index(int i) {
 
 struct machine_config *machine_config_new(void) {
 	struct machine_config *new;
-	if (alloc_config_array(num_configs+1) != 0)
-		return NULL;
+	alloc_config_array(num_configs+1);
 	new = g_malloc0(sizeof(struct machine_config));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
@@ -168,8 +165,7 @@ struct machine_config *machine_config_index(int i) {
 		return NULL;
 	}
 	if (!configs) {
-		if (alloc_config_array(num_configs) != 0)
-			return NULL;
+		alloc_config_array(num_configs);
 	}
 	if (i < NUM_CONFIG_TEMPLATES && !configs[i]) {
 		if (populate_config_index(i) != 0)
@@ -532,7 +528,7 @@ void machine_reset(_Bool hard) {
 	mc6821_reset(&PIA0);
 	mc6821_reset(&PIA1);
 	if (machine_cart && machine_cart->reset) {
-		machine_cart->reset();
+		machine_cart->reset(machine_cart);
 	}
 	sam_reset();
 	CPU0->reset(CPU0);
@@ -582,7 +578,7 @@ static uint8_t read_D = 0;
 
 static uint8_t read_cycle(uint16_t A) {
 	int S;
-	uint16_t Z;
+	uint16_t Z = 0;
 	_Bool is_ram_access = do_cpu_cycle(A, 1, &S, &Z);
 	/* Thanks to CrAlt on #coco_chat for verifying that RAM accesses
 	 * produce a different "null" result on his 16K CoCo */
@@ -599,7 +595,7 @@ static uint8_t read_cycle(uint16_t A) {
 			break;
 		case 3:
 			if (machine_cart)
-				read_D = machine_cart->mem_data[A & 0x3fff];
+				machine_cart->read(machine_cart, A, 0, &read_D);
 			break;
 		case 4:
 			if (IS_COCO) {
@@ -631,9 +627,8 @@ static uint8_t read_cycle(uint16_t A) {
 			read_D = mc6821_read(&PIA1, A & 3);
 			break;
 		case 6:
-			if (machine_cart && machine_cart->io_read) {
-				read_D = machine_cart->io_read(A);
-			}
+			if (machine_cart)
+				machine_cart->read(machine_cart, A, 1, &read_D);
 			break;
 		default:
 			break;
@@ -655,7 +650,7 @@ static uint8_t read_cycle(uint16_t A) {
 
 static void write_cycle(uint16_t A, uint8_t D) {
 	int S;
-	uint16_t Z;
+	uint16_t Z = 0;
 	_Bool is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
 	if ((S & 4) || unexpanded_dragon32) {
 		switch (S) {
@@ -665,7 +660,7 @@ static void write_cycle(uint16_t A, uint8_t D) {
 				break;
 			case 3:
 				if (machine_cart)
-					D = machine_cart->mem_data[A & 0x3fff];
+					machine_cart->write(machine_cart, A, 0, D);
 				break;
 			case 4:
 				if (IS_COCO) {
@@ -680,9 +675,8 @@ static void write_cycle(uint16_t A, uint8_t D) {
 				mc6821_write(&PIA1, A & 3, D);
 				break;
 			case 6:
-				if (machine_cart && machine_cart->io_write) {
-					machine_cart->io_write(A, D);
-				}
+				if (machine_cart)
+					machine_cart->write(machine_cart, A, 1, D);
 				break;
 			default:
 				break;
@@ -723,7 +717,7 @@ uint8_t machine_read_byte(uint16_t A) {
 	if (S == 1 || S == 2)
 		return machine_rom[A & 0x3fff];
 	if (S == 3 && machine_cart)
-		return machine_cart->mem_data[A & 0x3fff];
+		return machine_cart->rom_data[A & 0x3fff];
 	return 0;
 }
 
@@ -772,18 +766,16 @@ void machine_select_fast_sound(_Bool fast) {
 void machine_insert_cart(struct cart_config *cc) {
 	machine_remove_cart();
 	if (cc) {
-		cart_configure(&running_cart, cc);
-		machine_cart = &running_cart;
-		if (machine_cart->attach) {
-			machine_cart->attach();
-		}
+		machine_cart = cart_new(cc);
+		if (!machine_cart)
+			return;
+		assert(machine_cart->read != NULL);
+		assert(machine_cart->write != NULL);
 	}
 }
 
 void machine_remove_cart(void) {
-	if (machine_cart && machine_cart->detach) {
-		machine_cart->detach();
-	}
+	cart_free(machine_cart);
 	machine_cart = NULL;
 }
 

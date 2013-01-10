@@ -61,9 +61,8 @@ static struct cart_config *rom_cart_config = NULL;
 
 /* ---------------------------------------------------------------------- */
 
-static void rom_configure(struct cart *c, struct cart_config *cc);
-
-static struct event *firq_event;
+static void cart_rom_read(struct cart *c, uint16_t A, _Bool P2, uint8_t *D);
+static void cart_rom_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D);
 static void do_firq(void *);
 
 /**************************************************************************/
@@ -215,67 +214,108 @@ void cart_config_complete(struct cart_config *cc) {
 
 /* ---------------------------------------------------------------------- */
 
-void cart_configure(struct cart *c, struct cart_config *cc) {
-	if (!c || !cc) return;
+struct cart *cart_new(struct cart_config *cc) {
+	if (!cc) return NULL;
 	if (cc->description) {
 		LOG_DEBUG(2, "Cartridge: %s\n", cc->description);
 	}
 	cart_config_complete(cc);
-	/* */
-	memset(c->mem_data, 0, sizeof(c->mem_data));
+	struct cart *c;
+	switch (cc->type) {
+	default:
+	case CART_ROM: c = cart_rom_new(cc); break;
+	case CART_DRAGONDOS: c = dragondos_new(cc); break;
+	case CART_RSDOS: c = rsdos_new(cc); break;
+	case CART_DELTADOS: c = deltados_new(cc); break;
+	}
+	if (c->attach)
+		c->attach(c);
+	return c;
+}
+
+void cart_free(struct cart *c) {
+	if (!c) return;
+	if (c->detach)
+		c->detach(c);
+	free(c);
+}
+
+/* ROM cart routines */
+
+static void dummy_cart(struct cart *c) { (void)c; }
+
+void cart_rom_init(struct cart *c) {
+	struct cart_config *cc = c->config;
+	assert(cc != NULL);
+	c->read = cart_rom_read;
+	c->write = cart_rom_write;
+	c->reset = dummy_cart;
+	c->attach = dummy_cart;
+	c->detach = cart_rom_detach;
+	c->attach = cart_rom_attach;
+	c->rom_data = g_malloc(0x4000);
 	if (cc->rom) {
 		char *tmp = romlist_find(cc->rom);
 		if (tmp) {
-			machine_load_rom(tmp, c->mem_data, sizeof(c->mem_data));
+			machine_load_rom(tmp, c->rom_data, 0x4000);
 			g_free(tmp);
 		}
 	}
 	if (cc->rom2) {
 		char *tmp = romlist_find(cc->rom2);
 		if (tmp) {
-			machine_load_rom(tmp, c->mem_data + 0x2000, sizeof(c->mem_data) - 0x2000);
+			machine_load_rom(tmp, c->rom_data + 0x2000, 0x2000);
 			g_free(tmp);
 		}
 	}
-	c->io_read = NULL;
-	c->io_write = NULL;
-	c->reset = NULL;
-	c->detach = NULL;
-	switch (cc->type) {
-		default:
-		case CART_ROM:       rom_configure(c, cc); break;
-		case CART_DRAGONDOS: dragondos_configure(c, cc); break;
-		case CART_RSDOS:     rsdos_configure(c, cc); break;
-		case CART_DELTADOS:  deltados_configure(c, cc); break;
-	}
 }
 
-/* Routines specific to ROM carts */
-
-static void attach_rom(void) {
-	firq_event = event_new(do_firq, NULL);
-	firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
-	event_queue(&MACHINE_EVENT_LIST, firq_event);
+struct cart *cart_rom_new(struct cart_config *cc) {
+	if (!cc) return NULL;
+	struct cart *c = g_malloc(sizeof(struct cart));
+	c->config = cc;
+	cart_rom_init(c);
+	return c;
 }
 
-static void detach_rom(void) {
-	if (firq_event) {
-		event_dequeue(firq_event);
-		event_free(firq_event);
-		firq_event = NULL;
-	}
+static void cart_rom_read(struct cart *c, uint16_t A, _Bool P2, uint8_t *D) {
+	if (!P2)
+		*D = c->rom_data[A & 0x3fff];
 }
 
-static void rom_configure(struct cart *c, struct cart_config *cc) {
+static void cart_rom_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D) {
+	(void)c;
+	(void)A;
+	(void)P2;
+	(void)D;
+}
+
+void cart_rom_attach(struct cart *c) {
+	struct cart_config *cc = c->config;
 	if (cc->autorun) {
-		c->attach = attach_rom;
-		c->detach = detach_rom;
+		c->firq_event = event_new(do_firq, c);
+		c->firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
+		event_queue(&MACHINE_EVENT_LIST, c->firq_event);
+	} else {
+		c->firq_event = NULL;
+	}
+}
+
+void cart_rom_detach(struct cart *c) {
+	if (c->firq_event) {
+		event_dequeue(c->firq_event);
+		event_free(c->firq_event);
+		c->firq_event = NULL;
+	}
+	if (c->rom_data) {
+		free(c->rom_data);
+		c->rom_data = NULL;
 	}
 }
 
 static void do_firq(void *data) {
-	(void)data;
+	struct cart *c = data;
 	PIA_SET_Cx1(PIA1.b);
-	firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
-	event_queue(&MACHINE_EVENT_LIST, firq_event);
+	c->firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
+	event_queue(&MACHINE_EVENT_LIST, c->firq_event);
 }

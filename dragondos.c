@@ -24,9 +24,12 @@
 /* TODO: I've hacked in an optional "becker port" at $FF49/$FF4A.  Is this the
  * best place for it? */
 
-#include <inttypes.h>
+#include "config.h"
+
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "portalib/glib.h"
 
 #include "becker.h"
 #include "cart.h"
@@ -39,86 +42,111 @@
 #include "wd279x.h"
 #include "xroar.h"
 
-static uint8_t io_read(uint16_t A);
-static void io_write(uint16_t A, uint8_t D);
-static void reset(void);
-static void detach(void);
+struct dragondos {
+	struct cart cart;
+	int ic1_old;
+	int ic1_drive_select;
+	_Bool ic1_motor_enable;
+	_Bool ic1_precomp_enable;
+	_Bool ic1_density;
+	_Bool ic1_nmi_enable;
+	_Bool have_becker;
+	WD279X *fdc;
+};
 
 /* Handle signals from WD2797 */
-static void set_drq_handler(void);
-static void reset_drq_handler(void);
-static void set_intrq_handler(void);
-static void reset_intrq_handler(void);
+static void set_drq_handler(void *c);
+static void reset_drq_handler(void *c);
+static void set_intrq_handler(void *c);
+static void reset_intrq_handler(void *c);
 
-/* Latch that's part of the DragonDOS cart: */
-static int ic1_old;
-static int ic1_drive_select;
-static _Bool ic1_motor_enable;
-static _Bool ic1_precomp_enable;
-static _Bool ic1_density;
-static _Bool ic1_nmi_enable;
+static void dragondos_read(struct cart *c, uint16_t A, _Bool P2, uint8_t *D);
+static void dragondos_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D);
+static void dragondos_reset(struct cart *c);
+static void dragondos_detach(struct cart *c);
+static void ff48_write(struct dragondos *d, int octet);
 
-/* Optional becker port */
-static _Bool have_becker;
-
-static WD279X *fdc;
-
-static void ff48_write(int octet);
-
-void dragondos_configure(struct cart *c, struct cart_config *cc) {
-	have_becker = (cc->becker_port && becker_open());
-	c->io_read = io_read;
-	c->io_write = io_write;
-	c->reset = reset;
-	c->detach = detach;
-	fdc = wd279x_new(WD2797);
-	fdc->set_drq_handler     = set_drq_handler;
-	fdc->reset_drq_handler   = reset_drq_handler;
-	fdc->set_intrq_handler   = set_intrq_handler;
-	fdc->reset_intrq_handler = reset_intrq_handler;
+static void dragondos_init(struct dragondos *d) {
+	struct cart *c = (struct cart *)d;
+	struct cart_config *cc = c->config;
+	cart_rom_init(c);
+	c->read = dragondos_read;
+	c->write = dragondos_write;
+	c->reset = dragondos_reset;
+	c->detach = dragondos_detach;
+	d->have_becker = (cc->becker_port && becker_open());
+	d->fdc = wd279x_new(WD2797);
+	d->fdc->set_drq_handler = set_drq_handler;
+	d->fdc->reset_drq_handler = reset_drq_handler;
+	d->fdc->drq_data = c;
+	d->fdc->set_intrq_handler = set_intrq_handler;
+	d->fdc->reset_intrq_handler = reset_intrq_handler;
+	d->fdc->intrq_data = c;
 }
 
-static void reset(void) {
-	wd279x_reset(fdc);
-	ic1_old = 0xff;
-	ff48_write(0);
+struct cart *dragondos_new(struct cart_config *cc) {
+	struct dragondos *d = g_malloc(sizeof(struct dragondos));
+	d->cart.config = cc;
+	dragondos_init(d);
+	return (struct cart *)d;
 }
 
-static void detach(void) {
-	wd279x_free(fdc);
-	fdc = NULL;
-	if (have_becker)
+static void dragondos_reset(struct cart *c) {
+	struct dragondos *d = (struct dragondos *)c;
+	wd279x_reset(d->fdc);
+	d->ic1_old = 0xff;
+	ff48_write(d, 0);
+}
+
+static void dragondos_detach(struct cart *c) {
+	struct dragondos *d = (struct dragondos *)c;
+	wd279x_free(d->fdc);
+	d->fdc = NULL;
+	if (d->have_becker)
 		becker_close();
+	cart_rom_detach(c);
 }
 
-static uint8_t io_read(uint16_t A) {
-	if ((A & 0xc) == 0) return wd279x_read(fdc, A);
+static void dragondos_read(struct cart *c, uint16_t A, _Bool P2, uint8_t *D) {
+	struct dragondos *d = (struct dragondos *)c;
+	if (!P2) {
+		*D = c->rom_data[A & 0x3fff];
+		return;
+	}
+	if ((A & 0xc) == 0) {
+		*D = wd279x_read(d->fdc, A);
+		return;
+	}
 	if (!(A & 8))
-		return 0x7e;
-	if (have_becker) {
+		return;
+	if (d->have_becker) {
 		switch (A & 3) {
 		case 0x1:
-			return becker_read_status();
+			*D = becker_read_status();
+			break;
 		case 0x2:
-			return becker_read_data();
+			*D = becker_read_data();
+			break;
 		default:
 			break;
 		}
 	}
-	return 0x7e;
 }
 
-static void io_write(uint16_t A, uint8_t D) {
+static void dragondos_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D) {
+	struct dragondos *d = (struct dragondos *)c;
+	if (!P2)
+		return;
 	if ((A & 0xc) == 0) {
-		wd279x_write(fdc, A, D);
+		wd279x_write(d->fdc, A, D);
 		return;
 	}
 	if (!(A & 8))
 		return;
-	if (have_becker) {
+	if (d->have_becker) {
 		switch (A & 3) {
 		case 0x0:
-			ff48_write(D);
+			ff48_write(d, D);
 			break;
 		case 0x2:
 			becker_write_data(D);
@@ -127,55 +155,59 @@ static void io_write(uint16_t A, uint8_t D) {
 			break;
 		}
 	} else {
-		ff48_write(D);
+		ff48_write(d, D);
 	}
 }
 
 /* DragonDOS cartridge circuitry */
-static void ff48_write(int octet) {
-	if (octet != ic1_old) {
+static void ff48_write(struct dragondos *d, int octet) {
+	if (octet != d->ic1_old) {
 		LOG_DEBUG(4, "DragonDOS: Write to FF48: ");
-		if ((octet ^ ic1_old) & 0x03) {
+		if ((octet ^ d->ic1_old) & 0x03) {
 			LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
 		}
-		if ((octet ^ ic1_old) & 0x04) {
+		if ((octet ^ d->ic1_old) & 0x04) {
 			LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x04)?"ON":"OFF");
 		}
-		if ((octet ^ ic1_old) & 0x08) {
+		if ((octet ^ d->ic1_old) & 0x08) {
 			LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x08)?"SINGLE":"DOUBLE");
-	}
-		if ((octet ^ ic1_old) & 0x10) {
+		}
+		if ((octet ^ d->ic1_old) & 0x10) {
 			LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
 		}
-		if ((octet ^ ic1_old) & 0x20) {
+		if ((octet ^ d->ic1_old) & 0x20) {
 			LOG_DEBUG(4, "NMI %s, ", (octet & 0x20)?"ENABLED":"DISABLED");
 		}
 		LOG_DEBUG(4, "\n");
-		ic1_old = octet;
+		d->ic1_old = octet;
 	}
-	ic1_drive_select = octet & 0x03;
-	vdrive_set_drive(ic1_drive_select);
-	ic1_motor_enable = octet & 0x04;
-	ic1_density = octet & 0x08;
-	wd279x_set_dden(fdc, !ic1_density);
-	ic1_precomp_enable = octet & 0x10;
-	ic1_nmi_enable = octet & 0x20;
+	d->ic1_drive_select = octet & 0x03;
+	vdrive_set_drive(d->ic1_drive_select);
+	d->ic1_motor_enable = octet & 0x04;
+	d->ic1_density = octet & 0x08;
+	wd279x_set_dden(d->fdc, !d->ic1_density);
+	d->ic1_precomp_enable = octet & 0x10;
+	d->ic1_nmi_enable = octet & 0x20;
 }
 
-static void set_drq_handler(void) {
+static void set_drq_handler(void *v) {
+	(void)v;
 	PIA_SET_Cx1(PIA1.b);
 }
 
-static void reset_drq_handler(void) {
+static void reset_drq_handler(void *v) {
+	(void)v;
 	PIA_RESET_Cx1(PIA1.b);
 }
 
-static void set_intrq_handler(void) {
-	if (ic1_nmi_enable) {
+static void set_intrq_handler(void *v) {
+	struct dragondos *d = v;
+	if (d->ic1_nmi_enable) {
 		MC6809_NMI_SET(CPU0, 1);
 	}
 }
 
-static void reset_intrq_handler(void) {
+static void reset_intrq_handler(void *v) {
+	(void)v;
 	MC6809_NMI_SET(CPU0, 0);
 }

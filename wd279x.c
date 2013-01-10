@@ -21,7 +21,9 @@
  *         http://www.swtpc.com/mholley/DC_5/TMS279X_DataSheet.pdf
  */
 
-#include <inttypes.h>
+#include "config.h"
+
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
@@ -55,20 +57,20 @@
 #define SET_DRQ do { \
 		fdc->status_register |= STATUS_DRQ; \
 		if (fdc->set_drq_handler) \
-			fdc->set_drq_handler(); \
+			fdc->set_drq_handler(fdc->drq_data); \
 	} while (0)
 #define RESET_DRQ do { \
 		fdc->status_register &= ~(STATUS_DRQ); \
 		if (fdc->reset_drq_handler) \
-			fdc->reset_drq_handler(); \
+			fdc->reset_drq_handler(fdc->drq_data); \
 	} while (0)
 #define SET_INTRQ do { \
 		if (fdc->set_intrq_handler) \
-			fdc->set_intrq_handler(); \
+			fdc->set_intrq_handler(fdc->intrq_data); \
 	} while (0)
 #define RESET_INTRQ do { \
 		if (fdc->reset_intrq_handler) \
-			fdc->reset_intrq_handler(); \
+			fdc->reset_intrq_handler(fdc->intrq_data); \
 	} while (0)
 
 #define NEXT_STATE(f,t) do { \
