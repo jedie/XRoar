@@ -1000,14 +1000,8 @@ static void trace_print_short(void);
 		else { strcat(operand_text, r); not_first = 1; } \
 	} while (0)
 
-/* If right shifts of signed values are arithmetic, faster code can be used.
- * These macros depend on the compiler optimising away the unused version. */
-#define sex5(v) ( ((-1>>1)==-1) ? \
-	(((signed int)(v)<<((8*sizeof(signed int))-5)) >> ((8*sizeof(signed int))-5)) : \
-	((int)(((v) & 0x0f) - ((v) & 0x10))) )
-#define sex8(v) ( ((-1>>1)==-1) ? \
-	(((signed int)(v)<<((8*sizeof(signed int))-8)) >> ((8*sizeof(signed int))-8)) : \
-	((int8_t)(v)) )
+#define sex5(v) ((int)((v) & 0x0f) - (int)((v) & 0x10))
+#define sex8(v) ((int8_t)(v))
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
