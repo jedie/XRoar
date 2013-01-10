@@ -6,10 +6,12 @@
 #ifndef XROAR_EVENT_H_
 #define XROAR_EVENT_H_
 
+#include <limits.h>
+
 /* Maintains queues of events.  Each event has a tick number at which its
  * delegate is scheduled to run.  */
 
-typedef unsigned int event_ticks;
+typedef unsigned event_ticks;
 
 /* Current "time". */
 extern event_ticks event_current_tick;
@@ -28,7 +30,7 @@ struct event {
 #define event_exists(list) (list)
 
 #define event_pending(list) (list && \
-		(int)(event_current_tick - list->at_tick) >= 0)
+		(event_current_tick - list->at_tick) <= (UINT_MAX/2))
 
 #define event_dispatch_next(list) do { \
 		struct event *e = list; \
