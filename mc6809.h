@@ -8,7 +8,7 @@
 
 #include "config.h"
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #define MC6809_INT_VEC_RESET (0xfffe)
 #define MC6809_INT_VEC_NMI (0xfffc)
@@ -23,6 +23,24 @@
 #define MC6809_COMPAT_STATE_CWAI (2)
 #define MC6809_COMPAT_STATE_DONE_INSTRUCTION (11)
 #define MC6809_COMPAT_STATE_HCF (12)
+
+/* MPU state.  Represents current position in the high-level flow chart from
+ * the data sheet (figure 14). */
+enum mc6809_state {
+	mc6809_state_label_a      = MC6809_COMPAT_STATE_NORMAL,
+	mc6809_state_sync         = MC6809_COMPAT_STATE_SYNC,
+	mc6809_state_dispatch_irq = MC6809_COMPAT_STATE_CWAI,
+	mc6809_state_label_b,
+	mc6809_state_reset,
+	mc6809_state_reset_check_halt,
+	mc6809_state_next_instruction,
+	mc6809_state_instruction_page_2,
+	mc6809_state_instruction_page_3,
+	mc6809_state_cwai_check_halt,
+	mc6809_state_sync_check_halt,
+	mc6809_state_done_instruction = MC6809_COMPAT_STATE_DONE_INSTRUCTION,
+	mc6809_state_hcf          = MC6809_COMPAT_STATE_HCF
+};
 
 /* Interface shared with all 6809-compatible CPUs */
 struct MC6809 {
@@ -51,7 +69,7 @@ struct MC6809 {
 
 	/* Internal state */
 
-	int state;
+	enum mc6809_state state;
 	_Bool running;
 
 	/* Registers */

@@ -6,22 +6,43 @@
 #ifndef XROAR_HD6309_H_
 #define XROAR_HD6309_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #include "mc6809.h"
 
 #define HD6309_INT_VEC_ILLEGAL (0xfff0)
 
+/* MPU state.  Represents current position in the high-level flow chart from
+ * the data sheet (figure 14). */
+enum hd6309_state {
+	hd6309_state_label_a,
+	hd6309_state_sync,
+	hd6309_state_dispatch_irq,
+	hd6309_state_label_b,
+	hd6309_state_reset,
+	hd6309_state_reset_check_halt,
+	hd6309_state_next_instruction,
+	hd6309_state_instruction_page_2,
+	hd6309_state_instruction_page_3,
+	hd6309_state_cwai_check_halt,
+	hd6309_state_sync_check_halt,
+	hd6309_state_done_instruction,
+	hd6309_state_tfm,
+	hd6309_state_tfm_write
+};
+
 struct HD6309 {
 	struct MC6809 mc6809;
-	/* Extra registers */
+	// Separate state variable for the sake of debugging
+	enum hd6309_state state;
+	// Extra registers
 	uint16_t reg_w;
 	uint8_t reg_md;
 	uint16_t reg_v;
-	/* Extra state (derived from reg_md) */
+	// Extra state (derived from reg_md)
 	_Bool native_mode;
 	_Bool firq_stack_all;
-	/* TFM state */
+	// TFM state
 	uint16_t *tfm_src;
 	uint16_t *tfm_dest;
 	uint8_t tfm_data;
