@@ -653,7 +653,7 @@ static void hd6309_reset(struct MC6809 *cpu) {
 	struct HD6309 *hcpu = (struct HD6309 *)cpu;
 	cpu->halt = cpu->nmi = 0;
 	cpu->firq = cpu->irq = 0;
-	cpu->halt_cycle = cpu->nmi_cycle = cpu->firq_cycle = cpu->irq_cycle = cpu->cycle = 0;
+	cpu->nmi_cycle = cpu->firq_cycle = cpu->irq_cycle = cpu->cycle = 0;
 	cpu->nmi_armed = 0;
 	hcpu->state = hd6309_state_reset;
 }

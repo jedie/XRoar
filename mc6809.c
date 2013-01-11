@@ -499,7 +499,7 @@ static void mc6809_free(struct MC6809 *cpu) {
 static void mc6809_reset(struct MC6809 *cpu) {
 	cpu->halt = cpu->nmi = 0;
 	cpu->firq = cpu->irq = 0;
-	cpu->halt_cycle = cpu->nmi_cycle = cpu->firq_cycle = cpu->irq_cycle = cpu->cycle = 0;
+	cpu->nmi_cycle = cpu->firq_cycle = cpu->irq_cycle = cpu->cycle = 0;
 	cpu->nmi_armed = 0;
 	cpu->state = mc6809_state_reset;
 }

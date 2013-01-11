@@ -82,7 +82,7 @@ struct MC6809 {
 	 * cycles, so maintain an internal cycle count, and record when an
 	 * interrupt is first seen. */
 	unsigned cycle;
-	unsigned halt_cycle, nmi_cycle, firq_cycle, irq_cycle;
+	unsigned nmi_cycle, firq_cycle, irq_cycle;
 };
 
 #ifdef HAVE_BIG_ENDIAN
@@ -96,7 +96,7 @@ struct MC6809 {
 #define MC6809_REG_A(cpu) (*((uint8_t *)&cpu->reg_d + MC6809_REG_HI))
 #define MC6809_REG_B(cpu) (*((uint8_t *)&cpu->reg_d + MC6809_REG_LO))
 
-#define MC6809_HALT_SET(cpu,val) do { if (!(cpu)->halt) { (cpu)->halt_cycle = (cpu)->cycle; } (cpu)->halt = (val); } while (0)
+#define MC6809_HALT_SET(cpu,val) do { (cpu)->halt = (val); } while (0)
 #define MC6809_NMI_SET(cpu,val) do { if (!(cpu)->nmi) { (cpu)->nmi_cycle = (cpu)->cycle; } (cpu)->nmi = (val); } while (0)
 #define MC6809_FIRQ_SET(cpu,val) do { if (!(cpu)->firq) { (cpu)->firq_cycle = (cpu)->cycle; } (cpu)->firq = (val); } while (0)
 #define MC6809_IRQ_SET(cpu,val) do { if (!(cpu)->irq) { (cpu)->irq_cycle = (cpu)->cycle; } (cpu)->irq = (val); } while (0)
