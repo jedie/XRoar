@@ -218,8 +218,10 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 		} \
 	} while (0)
 
-#define sex5(v) ((int)((v) & 0x0f) - (int)((v) & 0x10))
-#define sex8(v) ((int8_t)(v))
+#define sex5(v) (((uint16_t)(v) & 0x0f) - ((uint16_t)(v) & 0x10))
+static inline uint16_t sex8(uint8_t v) {
+	return (int16_t)(*((int8_t *)&v));
+}
 
 /* Dummy handlers */
 static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
@@ -1036,7 +1038,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			// 0x1e EXG immediate
 			case 0x1e: {
 				unsigned postbyte;
-				unsigned tmp1, tmp2;
+				uint16_t tmp1, tmp2;
 				BYTE_IMMEDIATE(0, postbyte);
 				switch (postbyte >> 4) {
 					case 0x0: tmp1 = REG_D; break;
@@ -1101,7 +1103,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			// 0x1f TFR immediate
 			case 0x1f: {
 				unsigned postbyte;
-				unsigned tmp1;
+				uint16_t tmp1;
 				BYTE_IMMEDIATE(0, postbyte);
 				switch (postbyte >> 4) {
 					case 0x0: tmp1 = REG_D; break;
