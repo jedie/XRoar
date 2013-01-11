@@ -220,8 +220,6 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 
 #define sex5(v) ((int)((v) & 0x0f) - (int)((v) & 0x10))
 #define sex8(v) ((int8_t)(v))
-#define sex16(v) ((int16_t)(v))
-#define sex32(v) ((int32_t)(v))
 
 /* Dummy handlers */
 static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
@@ -2133,7 +2131,9 @@ static void hd6309_run(struct MC6809 *cpu) {
 
 			// 0x118d, 0x119d, 0x11ad, 0x11bd DIVD
 			case 0x8d: case 0x9d: case 0xad: case 0xbd: {
-				unsigned ea, tmp1, tmp2;
+				unsigned ea;
+				uint16_t tmp1;
+				uint8_t tmp2;
 				tmp1 = REG_D;
 				switch ((op >> 4) & 3) {
 				case 0: BYTE_IMMEDIATE(0, tmp2); break;
@@ -2148,8 +2148,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
 					break;
 				}
-				int stmp1 = sex16(tmp1);
-				int stmp2 = sex8(tmp2);
+				int16_t stmp1 = *((int16_t *)&tmp1);
+				int8_t stmp2 = *((int8_t *)&tmp2);
 				int quotient = stmp1 / stmp2;
 				NVMA_CYCLE();
 				NVMA_CYCLE();
@@ -2180,7 +2180,9 @@ static void hd6309_run(struct MC6809 *cpu) {
 
 			// 0x118e, 0x119e, 0x11ae, 0x11be DIVQ
 			case 0x8e: case 0x9e: case 0xae: case 0xbe: {
-				unsigned ea, tmp1, tmp2;
+				unsigned ea;
+				uint32_t tmp1;
+				uint16_t tmp2;
 				tmp1 = RREG_Q;
 				switch ((op >> 4) & 3) {
 				case 0: WORD_IMMEDIATE(0, tmp2); break;
@@ -2195,8 +2197,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
 					break;
 				}
-				int stmp1 = sex32(tmp1);
-				int stmp2 = sex16(tmp2);
+				int32_t stmp1 = *((int32_t *)&tmp1);
+				int16_t stmp2 = *((int16_t *)&tmp2);
 				int quotient = stmp1 / stmp2;
 				NVMA_CYCLE();
 				NVMA_CYCLE();
@@ -2226,7 +2228,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 
 			// 0x118f, 0x119f, 0x11af, 0x11bf MULD
 			case 0x8f: case 0x9f: case 0xaf: case 0xbf: {
-				unsigned ea, tmp1, tmp2;
+				unsigned ea;
+				uint16_t tmp1, tmp2;
 				tmp1 = REG_D;
 				switch ((op >> 4) & 3) {
 				case 0: WORD_IMMEDIATE(0, tmp2); break;
@@ -2235,13 +2238,14 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 3: WORD_EXTENDED(ea, tmp2); break;
 				default: ea = tmp2 = 0; break;
 				}
-				int stmp1 = sex8(tmp1);
-				int stmp2 = sex8(tmp2);
-				stmp1 *= stmp2;
+				int16_t stmp1 = *((int16_t *)&tmp1);
+				int16_t stmp2 = *((int16_t *)&tmp2);
+				int32_t result = stmp1 * stmp2;
+				uint32_t uresult = *((uint32_t *)&result);
 				for (int i = 24; i; i--)
 					NVMA_CYCLE();
-				REG_D = (unsigned)stmp1 >> 16;
-				REG_W = stmp1 & 0xffff;
+				REG_D = uresult >> 16;
+				REG_W = uresult & 0xffff;
 				CLR_NZ;
 				SET_N16(REG_D);
 				if (REG_D == 0 && REG_W == 0)
