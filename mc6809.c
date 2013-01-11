@@ -512,9 +512,9 @@ static void mc6809_run(struct MC6809 *cpu) {
 
 	while (cpu->running) {
 
-		_Bool nmi_active = cpu->nmi && ((cpu->cycle - cpu->nmi_cycle - 2) <= (UINT_MAX/2));
-		_Bool firq_active = cpu->firq && ((cpu->cycle - cpu->firq_cycle - 2) <= (UINT_MAX/2));
-		_Bool irq_active = cpu->irq && ((cpu->cycle - cpu->irq_cycle - 2) <= (UINT_MAX/2));
+		_Bool nmi_active = cpu->nmi && ((cpu->cycle - cpu->nmi_cycle) <= (UINT_MAX/2));
+		_Bool firq_active = cpu->firq && ((cpu->cycle - cpu->firq_cycle) <= (UINT_MAX/2));
+		_Bool irq_active = cpu->irq && ((cpu->cycle - cpu->irq_cycle) <= (UINT_MAX/2));
 
 		switch (cpu->state) {
 
