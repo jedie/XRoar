@@ -6,7 +6,7 @@
 #ifndef XROAR_SAM_H_
 #define XROAR_SAM_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #define SAM_CPU_SLOW_DIVISOR 16
 #define SAM_CPU_FAST_DIVISOR 8

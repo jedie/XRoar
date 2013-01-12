@@ -16,16 +16,13 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <assert.h>
+#include <ctype.h>
 #include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include "portalib/glib.h"
 
-#include "becker.h"
 #include "cart.h"
 #include "deltados.h"
 #include "dragondos.h"

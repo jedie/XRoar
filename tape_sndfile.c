@@ -16,11 +16,9 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
-#include <inttypes.h>
-#include <stdlib.h>
 #include <sndfile.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include "portalib/glib.h"
 
 #include "fs.h"

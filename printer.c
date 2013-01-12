@@ -18,20 +18,18 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include "config.h"
-
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
 
 #include "breakpoint.h"
-#include "printer.h"
 #include "events.h"
+#include "logging.h"
 #include "machine.h"
 #include "mc6821.h"
+#include "printer.h"
 #include "xroar.h"
-#include "logging.h"
 
 static FILE *stream;
 static char *stream_dest;

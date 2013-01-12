@@ -16,11 +16,11 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "config.h"
 
 #include "logging.h"
 #include "module.h"

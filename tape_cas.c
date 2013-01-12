@@ -18,10 +18,8 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include "config.h"
-
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include "portalib/glib.h"
 

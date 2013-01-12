@@ -16,8 +16,6 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>

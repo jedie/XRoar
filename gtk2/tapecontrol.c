@@ -16,8 +16,6 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,12 +23,12 @@
 
 #include "events.h"
 #include "fs.h"
-#include "gtk2/tapecontrol.h"
-#include "gtk2/ui_gtk2.h"
 #include "machine.h"
 #include "tape.h"
 #include "vdrive.h"
 #include "xroar.h"
+#include "gtk2/tapecontrol.h"
+#include "gtk2/ui_gtk2.h"
 
 #include "gtk2/tapecontrol_glade.h"
 

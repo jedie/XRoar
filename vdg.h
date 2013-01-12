@@ -6,7 +6,7 @@
 #ifndef XROAR_VDG_H_
 #define XROAR_VDG_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #define VDG_CYCLES(c) ((int)((c) * 4))
 

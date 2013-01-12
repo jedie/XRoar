@@ -16,13 +16,13 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <assert.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"
+
+#include "config.h"
 
 #include "breakpoint.h"
 #include "events.h"

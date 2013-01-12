@@ -18,14 +18,14 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include "config.h"
-
-#include <inttypes.h>
+#include <signal.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 
-#if defined(HAVE_SDL)
+#include "config.h"
+
+#ifdef HAVE_SDL
 #include <SDL.h>
 #else
 #include <errno.h>
@@ -65,7 +65,7 @@ static int init(void) {
 }
 
 static unsigned int current_time(void) {
-#if defined(HAVE_SDL)
+#ifdef HAVE_SDL
 	return SDL_GetTicks();
 #else
 	struct timeval tp;
@@ -75,7 +75,7 @@ static unsigned int current_time(void) {
 }
 
 static void sleep_ms(unsigned int ms) {
-#if defined(HAVE_SDL)
+#ifdef HAVE_SDL
 	SDL_Delay(ms);
 #else
 	struct timespec elapsed, tv;

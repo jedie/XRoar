@@ -16,8 +16,6 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>

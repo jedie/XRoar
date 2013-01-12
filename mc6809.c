@@ -27,8 +27,8 @@
  *         2009 Darren Atkinson
  */
 
-#include <stdint.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "portalib/glib.h"

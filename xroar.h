@@ -6,9 +6,9 @@
 #ifndef XROAR_XROAR_H_
 #define XROAR_XROAR_H_
 
-#include "config.h"
+#include <stdint.h>
 
-#include <inttypes.h>
+#include "config.h"
 
 #include "xconfig.h"
 

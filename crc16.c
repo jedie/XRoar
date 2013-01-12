@@ -8,7 +8,7 @@
  * Scott Dattalo - www.dattalo.com
  */
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #include "crc16.h"
 

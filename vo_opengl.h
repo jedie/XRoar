@@ -9,7 +9,7 @@
 /* OpenGL code is common to several video modules.  All the stuff that's not
  * toolkit-specific goes in here. */
 
-#include <inttypes.h>
+#include <stdint.h>
 
 int vo_opengl_init(void);
 void vo_opengl_shutdown(void);

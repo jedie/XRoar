@@ -21,8 +21,6 @@
  *         http://www.swtpc.com/mholley/DC_5/TMS279X_DataSheet.pdf
  */
 
-#include "config.h"
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>

@@ -16,8 +16,6 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <assert.h>
 #include <fcntl.h>
 #include <stdint.h>
@@ -28,6 +26,8 @@
 #include <sys/types.h>
 #include "portalib/glib.h"
 #include "portalib/strings.h"
+
+#include "config.h"
 
 #include "cart.h"
 #include "crc32.h"

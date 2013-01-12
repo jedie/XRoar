@@ -6,8 +6,6 @@
 #ifndef XROAR_SOUND_H_
 #define XROAR_SOUND_H_
 
-#include <inttypes.h>
-
 #define SOUND_FMT_NULL (-1)
 #define SOUND_FMT_U8 (0)
 #define SOUND_FMT_S8 (1)

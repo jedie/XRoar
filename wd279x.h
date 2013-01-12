@@ -6,7 +6,7 @@
 #ifndef XROAR_WD279X_H_
 #define XROAR_WD279X_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #include "events.h"
 

@@ -6,7 +6,7 @@
 #ifndef XROAR_MACHINE_H_
 #define XROAR_MACHINE_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #include "mc6821.h"

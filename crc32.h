@@ -4,7 +4,7 @@
 #ifndef XROAR_CRC32_H_
 #define XROAR_CRC32_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #define CRC32_RESET (0)
 

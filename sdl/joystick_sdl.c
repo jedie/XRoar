@@ -18,11 +18,8 @@
 
 #define _BSD_SOURCE
 
-#include "config.h"
-
 #include <string.h>
 #include <SDL.h>
-
 #include "portalib/string.h"
 
 #include "events.h"

@@ -18,13 +18,13 @@
 
 /* This Windows32 code is probably all wrong, but it does seem to work */
 
-#include "config.h"
-
 #include <stdlib.h>
 #include <string.h>
+#include "portalib/glib.h"
+
+/* Windows has a habit of making include order important: */
 #include <windows.h>
 #include <commdlg.h>
-#include "portalib/glib.h"
 
 #include "fs.h"
 #include "logging.h"

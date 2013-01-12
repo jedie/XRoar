@@ -6,7 +6,7 @@
 #ifndef XROAR_CART_H_
 #define XROAR_CART_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 
 struct machine_config;
 struct event;

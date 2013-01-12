@@ -21,23 +21,28 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include "config.h"
-
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "config.h"
+
 #ifndef WINDOWS32
-#include <arpa/inet.h>
+
 #include <fcntl.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+
 #else
+
+/* Windows has a habit of making include order important: */
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+
 #endif
 
 #include "becker.h"

@@ -6,8 +6,6 @@
 #ifndef XROAR_KEYBOARD_H_
 #define XROAR_KEYBOARD_H_
 
-#include <inttypes.h>
-
 #define NUM_KEYMAPS   (2)
 #define KEYMAP_DRAGON (0)
 #define KEYMAP_COCO   (1)
