@@ -663,7 +663,7 @@ static void hd6309_reset(struct MC6809 *cpu) {
 static void hd6309_run(struct MC6809 *cpu) {
 	struct HD6309 *hcpu = (struct HD6309 *)cpu;
 
-	while (cpu->running) {
+	do {
 
 		_Bool nmi_active = cpu->nmi && ((cpu->cycle - cpu->nmi_cycle) <= (UINT_MAX/2));
 		_Bool firq_active = cpu->firq && ((cpu->cycle - cpu->firq_cycle) <= (UINT_MAX/2));
@@ -2289,7 +2289,7 @@ done_instruction:
 		INSTRUCTION_POSTHOOK();
 		continue;
 
-	}
+	} while (cpu->running);
 
 }
 
