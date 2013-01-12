@@ -669,6 +669,10 @@ static void hd6309_run(struct MC6809 *cpu) {
 		_Bool firq_active = cpu->firq && ((cpu->cycle - cpu->firq_cycle) <= (UINT_MAX/2));
 		_Bool irq_active = cpu->irq && ((cpu->cycle - cpu->irq_cycle) <= (UINT_MAX/2));
 
+		// Prevent overflow
+		if (firq_active) cpu->firq_cycle = cpu->cycle;
+		if (irq_active) cpu->irq_cycle = cpu->cycle;
+
 		switch (hcpu->state) {
 
 		case hd6309_state_reset:
