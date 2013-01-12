@@ -253,7 +253,7 @@ void cart_rom_init(struct cart *c) {
 	c->attach = dummy_cart;
 	c->detach = cart_rom_detach;
 	c->attach = cart_rom_attach;
-	c->rom_data = g_malloc(0x4000);
+	c->rom_data = g_malloc0(0x4000);
 	if (cc->rom) {
 		char *tmp = romlist_find(cc->rom);
 		if (tmp) {
