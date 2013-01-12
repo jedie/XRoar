@@ -55,6 +55,7 @@
 /* Command line arguments */
 
 /* Emulated machine */
+static char *opt_default_machine = NULL;
 static void set_machine(const char *name);
 static char *opt_machine_desc = NULL;
 static int opt_machine_arch = ANY_AUTO;
@@ -183,6 +184,7 @@ struct xconfig_enum xroar_cross_colour_list[] = {
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
 	/* Emulated machine */
+	XC_SET_STRING("default-machine", &opt_default_machine),
 	XC_CALL_STRING("machine", &set_machine),
 	XC_SET_STRING("machine-desc", &opt_machine_desc),
 	XC_SET_ENUM("machine-arch", &opt_machine_arch, arch_list),
@@ -501,6 +503,7 @@ static void helptext(void) {
 "emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
 
 "\n Emulated machine:\n"
+"  -default-machine NAME   select named machine as default\n"
 "  -machine NAME           select/configure machine (-machine help for list)\n"
 "  -machine-desc TEXT      machine description\n"
 "  -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
@@ -624,6 +627,9 @@ int xroar_init(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	/* Determine initial machine configuration */
+	if (!xroar_machine_config && opt_default_machine) {
+		xroar_machine_config = machine_config_by_name(opt_default_machine);
+	}
 	if (!xroar_machine_config) {
 		xroar_machine_config = machine_config_first_working();
 	}
