@@ -209,7 +209,8 @@ static int find_working_arch(void) {
 	} else if ((tmp = romlist_find("@coco"))) {
 		arch = ARCH_COCO;
 	} else {
-		/* Fall back to this, which won't start up properly */
+		// Fall back to Dragon 64, which won't start up properly:
+		LOG_WARN("Can't find ROMs for any machine.\n");
 		arch = ARCH_DRAGON64;
 	}
 	if (tmp)
