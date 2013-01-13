@@ -548,8 +548,8 @@ static void helptext(void) {
 "  -tape-write FILENAME  open FILENAME for tape writing\n"
 "  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
 "  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
-"  -becker-ip            IP address of DriveWire server [127.0.0.1]\n"
-"  -becker-port          port of DriveWire server [65504]\n"
+"  -becker-ip ADDRESS    address or hostname of DriveWire server [127.0.0.1]\n"
+"  -becker-port PORT     port of DriveWire server [65504]\n"
 
 "\n Automatic actions:\n"
 "  -type STRING          intercept ROM calls to type STRING into BASIC\n"
