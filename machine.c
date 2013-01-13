@@ -102,7 +102,7 @@ static struct machine_config_template config_templates[] = {
 };
 #define NUM_CONFIG_TEMPLATES (int)(sizeof(config_templates)/sizeof(struct machine_config_template))
 
-static struct machine_config **configs = NULL;
+static GSList *config_list = NULL;
 static int num_configs = NUM_CONFIG_TEMPLATES;
 
 static void initialise_ram(void);
@@ -114,39 +114,29 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
 /**************************************************************************/
 
-/* Create config array */
-static void alloc_config_array(int size) {
-	struct machine_config **new_list;
-	int clear_from = num_configs;
-	if (!configs) clear_from = 0;
-	new_list = g_realloc(configs, size * sizeof(struct machine_config *));
-	configs = new_list;
-	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct machine_config *));
-}
-
-/* Populate config from template */
-static int populate_config_index(int i) {
-	assert(configs != NULL);
-	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
-	if (configs[i])
-		return 0;
-	configs[i] = g_malloc0(sizeof(struct machine_config));
-	configs[i]->name = g_strdup(config_templates[i].name);
-	configs[i]->description = g_strdup(config_templates[i].description);
-	configs[i]->architecture = config_templates[i].architecture;
-	configs[i]->cpu = CPU_MC6809;
-	configs[i]->keymap = ANY_AUTO;
-	configs[i]->tv_standard = config_templates[i].tv_standard;
-	configs[i]->ram = config_templates[i].ram;
-	configs[i]->index = i;
-	configs[i]->default_cart_index = ANY_AUTO;
-	configs[i]->cart_enabled = 1;
-	return 0;
+static void machine_config_list_init(void) {
+	if (config_list)
+		return;
+	struct machine_config *config_array = g_malloc0(sizeof(struct machine_config) * NUM_CONFIG_TEMPLATES);
+	for (int i = NUM_CONFIG_TEMPLATES - 1; i >= 0; i--) {
+		struct machine_config *mc = &config_array[i];
+		mc->name = g_strdup(config_templates[i].name);
+		mc->description = g_strdup(config_templates[i].description);
+		mc->architecture = config_templates[i].architecture;
+		mc->cpu = CPU_MC6809;
+		mc->keymap = ANY_AUTO;
+		mc->tv_standard = config_templates[i].tv_standard;
+		mc->ram = config_templates[i].ram;
+		mc->index = i;
+		mc->default_cart_index = ANY_AUTO;
+		mc->cart_enabled = 1;
+		config_list = g_slist_prepend(config_list, mc);
+	}
 }
 
 struct machine_config *machine_config_new(void) {
 	struct machine_config *new;
-	alloc_config_array(num_configs+1);
+	machine_config_list_init();
 	new = g_malloc0(sizeof(struct machine_config));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
@@ -156,7 +146,8 @@ struct machine_config *machine_config_new(void) {
 	new->ram = ANY_AUTO;
 	new->default_cart_index = ANY_AUTO;
 	new->cart_enabled = 1;
-	configs[num_configs++] = new;
+	config_list = g_slist_prepend(config_list, new);
+	num_configs++;
 	return new;
 }
 
@@ -165,25 +156,20 @@ int machine_config_count(void) {
 }
 
 struct machine_config *machine_config_index(int i) {
-	if (i < 0 || i >= num_configs) {
-		return NULL;
+	machine_config_list_init();
+	for (GSList *l = config_list; l; l = l->next) {
+		struct machine_config *mc = l->data;
+		if (mc->index == i)
+			return mc;
 	}
-	if (!configs) {
-		alloc_config_array(num_configs);
-	}
-	if (i < NUM_CONFIG_TEMPLATES && !configs[i]) {
-		if (populate_config_index(i) != 0)
-			return NULL;
-	}
-	return configs[i];
+	return NULL;
 }
 
 struct machine_config *machine_config_by_name(const char *name) {
-	int count, i;
 	if (!name) return NULL;
-	count = machine_config_count();
-	for (i = 0; i < count; i++) {
-		struct machine_config *mc = machine_config_index(i);
+	machine_config_list_init();
+	for (GSList *l = config_list; l; l = l->next) {
+		struct machine_config *mc = l->data;
 		if (0 == strcmp(mc->name, name)) {
 			return mc;
 		}
@@ -192,10 +178,9 @@ struct machine_config *machine_config_by_name(const char *name) {
 }
 
 struct machine_config *machine_config_by_arch(int arch) {
-	int count, i;
-	count = machine_config_count();
-	for (i = 0; i < count; i++) {
-		struct machine_config *mc = machine_config_index(i);
+	machine_config_list_init();
+	for (GSList *l = config_list; l; l = l->next) {
+		struct machine_config *mc = l->data;
 		if (mc->architecture == arch) {
 			return mc;
 		}

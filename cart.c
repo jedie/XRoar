@@ -50,7 +50,7 @@ static struct cart_config_template config_templates[] = {
 };
 #define NUM_CONFIG_TEMPLATES (int)(sizeof(config_templates)/sizeof(struct cart_config_template))
 
-static struct cart_config **configs = NULL;
+static GSList *config_list = NULL;
 static int num_configs = NUM_CONFIG_TEMPLATES;
 
 /* Single config for auto-defined ROM carts */
@@ -64,42 +64,31 @@ static void do_firq(void *);
 
 /**************************************************************************/
 
-/* Create config array */
-static int alloc_config_array(int size) {
-	struct cart_config **new_list;
-	int clear_from = num_configs;
-	if (!configs) clear_from = 0;
-	new_list = g_realloc(configs, size * sizeof(struct cart_config *));
-	configs = new_list;
-	memset(&configs[clear_from], 0, (size - clear_from) * sizeof(struct cart_config *));
-	return 0;
-}
-
-/* Populate config from template */
-static int populate_config_index(int i) {
-	assert(configs != NULL);
-	assert(i >= 0 && i < NUM_CONFIG_TEMPLATES);
-	if (configs[i])
-		return 0;
-	configs[i] = g_malloc0(sizeof(struct cart_config));
-	configs[i]->name = g_strdup(config_templates[i].name);
-	configs[i]->description = g_strdup(config_templates[i].description);
-	configs[i]->type = config_templates[i].type;
-	configs[i]->rom = g_strdup(config_templates[i].rom);
-	configs[i]->becker_port = config_templates[i].becker_port;
-	configs[i]->index = i;
-	return 0;
+static void cart_config_list_init(void) {
+	if (config_list)
+		return;
+	struct cart_config *config_array = g_malloc0(sizeof(struct cart_config) * NUM_CONFIG_TEMPLATES);
+	for (int i = NUM_CONFIG_TEMPLATES - 1; i >= 0; i--) {
+		struct cart_config *cc = &config_array[i];
+		cc->name = g_strdup(config_templates[i].name);
+		cc->description = g_strdup(config_templates[i].description);
+		cc->type = config_templates[i].type;
+		cc->rom = g_strdup(config_templates[i].rom);
+		cc->becker_port = config_templates[i].becker_port;
+		cc->index = i;
+		config_list = g_slist_prepend(config_list, cc);
+	}
 }
 
 struct cart_config *cart_config_new(void) {
 	struct cart_config *new;
-	if (alloc_config_array(num_configs+1) != 0)
-		return NULL;
+	cart_config_list_init();
 	new = g_malloc0(sizeof(struct cart_config));
 	new->index = num_configs;
 	new->type = CART_ROM;
 	new->autorun = ANY_AUTO;
-	configs[num_configs++] = new;
+	config_list = g_slist_prepend(config_list, new);
+	num_configs++;
 	return new;
 }
 
@@ -108,26 +97,20 @@ int cart_config_count(void) {
 }
 
 struct cart_config *cart_config_index(int i) {
-	if (i < 0 || i >= num_configs) {
-		return NULL;
+	cart_config_list_init();
+	for (GSList *l = config_list; l; l = l->next) {
+		struct cart_config *cc = l->data;
+		if (cc->index == i)
+			return cc;
 	}
-	if (!configs) {
-		if (alloc_config_array(num_configs) != 0)
-			return NULL;
-	}
-	if (i < NUM_CONFIG_TEMPLATES && !configs[i]) {
-		if (populate_config_index(i) != 0)
-			return NULL;
-	}
-	return configs[i];
+	return NULL;
 }
 
 struct cart_config *cart_config_by_name(const char *name) {
-	int count, i;
 	if (!name) return NULL;
-	count = cart_config_count();
-	for (i = 0; i < count; i++) {
-		struct cart_config *cc = cart_config_index(i);
+	cart_config_list_init();
+	for (GSList *l = config_list; l; l = l->next) {
+		struct cart_config *cc = l->data;
 		if (0 == strcmp(cc->name, name)) {
 			return cc;
 		}
