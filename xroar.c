@@ -439,32 +439,40 @@ static void set_cart(const char *name) {
 		exit(EXIT_SUCCESS);
 	}
 #endif
+	// Apply any unassigned config to either the current cart config or the
+	// current machine's default cart config.
+	struct cart_config *cc = NULL;
 	if (xroar_cart_config) {
+		cc = xroar_cart_config;
+	} else if (xroar_machine_config) {
+		cc = cart_config_index(xroar_machine_config->default_cart_index);
+	}
+	if (cc) {
 		if (opt_cart_desc) {
-			xroar_cart_config->description = opt_cart_desc;
+			cc->description = opt_cart_desc;
 			opt_cart_desc = NULL;
 		}
 		if (opt_cart_type != ANY_AUTO) {
-			xroar_cart_config->type = opt_cart_type;
+			cc->type = opt_cart_type;
 			opt_cart_type = ANY_AUTO;
 		}
 		if (opt_cart_rom) {
-			xroar_cart_config->rom = opt_cart_rom;
+			cc->rom = opt_cart_rom;
 			opt_cart_rom = NULL;
 		}
 		if (opt_cart_rom2) {
-			xroar_cart_config->rom2 = opt_cart_rom2;
+			cc->rom2 = opt_cart_rom2;
 			opt_cart_rom2 = NULL;
 		}
 		if (opt_cart_becker != ANY_AUTO) {
-			xroar_cart_config->becker_port = opt_cart_becker;
+			cc->becker_port = opt_cart_becker;
 			opt_cart_becker = ANY_AUTO;
 		}
 		if (opt_cart_autorun != ANY_AUTO) {
-			xroar_cart_config->autorun = opt_cart_autorun;
+			cc->autorun = opt_cart_autorun;
 			opt_cart_autorun = ANY_AUTO;
 		}
-		cart_config_complete(xroar_cart_config);
+		cart_config_complete(cc);
 	}
 	if (name) {
 		xroar_cart_config = cart_config_by_name(name);
