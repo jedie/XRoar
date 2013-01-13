@@ -701,7 +701,7 @@ int xroar_init(int argc, char **argv) {
 	xroar_opt_tape_pad_auto = xroar_opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
 	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
 
-	_Bool no_auto_dos = 0;
+	_Bool no_auto_dos = opt_nodos;
 	_Bool definitely_dos = 0;
 	for (GSList *tmp_list = load_list; tmp_list; tmp_list = tmp_list->next) {
 		char *load_file = tmp_list->data;
