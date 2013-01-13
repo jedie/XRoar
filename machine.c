@@ -139,6 +139,8 @@ static int populate_config_index(int i) {
 	configs[i]->tv_standard = config_templates[i].tv_standard;
 	configs[i]->ram = config_templates[i].ram;
 	configs[i]->index = i;
+	configs[i]->default_cart_index = ANY_AUTO;
+	configs[i]->cart_enabled = 1;
 	return 0;
 }
 
@@ -152,6 +154,8 @@ struct machine_config *machine_config_new(void) {
 	new->keymap = ANY_AUTO;
 	new->tv_standard = ANY_AUTO;
 	new->ram = ANY_AUTO;
+	new->default_cart_index = ANY_AUTO;
+	new->cart_enabled = 1;
 	configs[num_configs++] = new;
 	return new;
 }
@@ -276,6 +280,12 @@ void machine_config_complete(struct machine_config *mc) {
 	}
 	if (!mc->noaltbas && !mc->altbas_rom && rom_list[mc->architecture].altbas) {
 		mc->altbas_rom = g_strdup(rom_list[mc->architecture].altbas);
+	}
+	// Determine a default DOS cartridge if necessary
+	if (mc->default_cart_index == ANY_AUTO) {
+		struct cart_config *cc = cart_find_working_dos(mc);
+		if (cc)
+			mc->default_cart_index = cc->index;
 	}
 }
 

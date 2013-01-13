@@ -302,14 +302,6 @@ static void do_load_file(void *);
 //static char *load_file = NULL;
 static int autorun_loaded_file = 0;
 
-struct cart_status {
-	struct cart_config *config;
-	int enabled;
-};
-/* track cart_status for each machine */
-static struct cart_status *cart_status_list = NULL;
-static int cart_status_count = 0;
-
 const char *xroar_disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 const char *xroar_tape_exts[] = { "CAS", NULL };
 const char *xroar_snap_exts[] = { "SNA", NULL };
@@ -336,8 +328,6 @@ static struct {
 
 void (*xroar_fullscreen_changed_cb)(_Bool fullscreen) = NULL;
 void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate) = NULL;
-static void alloc_cart_status(void);
-static struct cart_config *get_machine_cart(void);
 static struct vdg_palette *get_machine_palette(void);
 
 /**************************************************************************/
@@ -419,7 +409,8 @@ static void set_machine(const char *name) {
 			opt_altbas = NULL;
 		}
 		if (opt_machine_cart) {
-			xroar_machine_config->default_cart = opt_machine_cart;
+			struct cart_config *cc = cart_config_by_name(opt_machine_cart);
+			xroar_machine_config->default_cart_index = cc->index;
 			opt_machine_cart = NULL;
 		}
 		machine_config_complete(xroar_machine_config);
@@ -645,12 +636,6 @@ int xroar_init(int argc, char **argv) {
 		xroar_machine_config = machine_config_first_working();
 	}
 	assert(xroar_machine_config != NULL);
-	// If any cart specified on command line, make it default for machine.
-	if (xroar_cart_config) {
-		if (xroar_machine_config->default_cart)
-			g_free(xroar_machine_config->default_cart);
-		xroar_machine_config->default_cart = g_strdup(xroar_cart_config->name);
-	}
 	// Finish any machine or cart config on command line.
 	set_machine(NULL);
 	set_cart(NULL);
@@ -708,14 +693,12 @@ int xroar_init(int argc, char **argv) {
 	xroar_opt_tape_pad_auto = xroar_opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
 	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
 
-	alloc_cart_status();
-
 	_Bool no_auto_dos = 0;
 	_Bool definitely_dos = 0;
 	for (GSList *tmp_list = load_list; tmp_list; tmp_list = tmp_list->next) {
 		char *load_file = tmp_list->data;
 		int load_file_type = xroar_filetype_by_ext(load_file);
-		_Bool autorun_loaded_file = (load_file == opt_run);
+		_Bool autorun = (load_file == opt_run);
 		switch (load_file_type) {
 		// tapes - flag that DOS shouldn't be automatically found
 		case FILETYPE_CAS:
@@ -735,11 +718,11 @@ int xroar_init(int argc, char **argv) {
 		// for cartridge ROMs, create a cart as machine default
 		case FILETYPE_ROM:
 			xroar_cart_config = cart_config_by_name(load_file);
-			xroar_cart_config->autorun = autorun_loaded_file;
+			xroar_cart_config->autorun = autorun;
 			break;
 		// for the rest, wait until later
 		default:
-			xroar_load_file_by_type(load_file, autorun_loaded_file);
+			xroar_load_file_by_type(load_file, autorun);
 			break;
 		}
 	}
@@ -760,14 +743,14 @@ int xroar_init(int argc, char **argv) {
 		}
 	}
 
-	if (!xroar_cart_config && !no_auto_dos) {
-		xroar_cart_config = cart_find_working_dos(xroar_machine_config);
+	// Disable cart if necessary.
+	if (!xroar_cart_config && no_auto_dos) {
+		xroar_machine_config->cart_enabled = 0;
 	}
-
-	/* Record initial cart configuration */
-	//cart_status_list[xroar_machine_config->index].config = xroar_cart_config;
-	/* Re-read cart config - will find a DOS if appropriate */
-	//xroar_cart_config = get_machine_cart();
+	// If any cart still configured, make it default for machine.
+	if (xroar_cart_config) {
+		xroar_machine_config->default_cart_index = xroar_cart_config->index;
+	}
 
 	/* Initial palette */
 	xroar_vdg_palette = get_machine_palette();
@@ -809,7 +792,10 @@ int xroar_init(int argc, char **argv) {
 
 	/* Configure machine */
 	machine_configure(xroar_machine_config);
-	machine_insert_cart(xroar_cart_config);
+	if (xroar_machine_config->cart_enabled) {
+		struct cart_config *cc = cart_config_index(xroar_machine_config->default_cart_index);
+		xroar_set_cart(cc ? cc->index : -1);
+	}
 	/* Reset everything */
 	machine_reset(RESET_HARD);
 	printer_reset();
@@ -818,18 +804,22 @@ int xroar_init(int argc, char **argv) {
 	while (load_list) {
 		char *load_file = load_list->data;
 		int load_file_type = xroar_filetype_by_ext(load_file);
-		_Bool autorun_loaded_file = (load_file == opt_run);
+		_Bool autorun = (load_file == opt_run);
 		switch (load_file_type) {
+		// cart will already be loaded
+		case FILETYPE_ROM:
+			break;
 		// delay loading binary files by 2s
 		case FILETYPE_BIN:
 		case FILETYPE_HEX:
 			event_init(&load_file_event, do_load_file, load_file);
 			load_file_event.at_tick = event_current_tick + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
+			autorun_loaded_file = autorun;
 			break;
 		// the rest can be loaded straight off
 		default:
-			xroar_load_file_by_type(load_file, autorun_loaded_file);
+			xroar_load_file_by_type(load_file, autorun);
 			break;
 		}
 		load_list = g_slist_remove(load_list, load_list->data);
@@ -855,43 +845,6 @@ void xroar_shutdown(void) {
 	module_shutdown((struct module *)video_module);
 	module_shutdown((struct module *)filereq_module);
 	module_shutdown((struct module *)ui_module);
-}
-
-static void alloc_cart_status(void) {
-	int count = xroar_machine_config->index;
-	if (count >= cart_status_count) {
-		struct cart_status *new_list = g_realloc(cart_status_list, (count + 1) * sizeof(struct cart_status));
-		int i;
-		/* clear new entries */
-		cart_status_list = new_list;
-		for (i = cart_status_count; i <= count; i++) {
-			cart_status_list[i].config = NULL;
-			cart_status_list[i].enabled = !opt_nodos;
-		}
-		cart_status_count = count + 1;
-	}
-}
-
-static struct cart_config *get_machine_cart(void) {
-	int mindex;
-	assert(xroar_machine_config != NULL);
-	mindex = xroar_machine_config->index;
-	alloc_cart_status();
-	if (!cart_status_list) {
-		return NULL;
-	}
-	if (!cart_status_list[mindex].enabled) {
-		return NULL;
-	}
-	if (cart_status_list[mindex].config) {
-	}
-	if (!cart_status_list[mindex].config && xroar_machine_config->default_cart) {
-		cart_status_list[mindex].config = cart_config_by_name(xroar_machine_config->default_cart);
-	}
-	if (!cart_status_list[mindex].config) {
-		cart_status_list[mindex].config = cart_find_working_dos(xroar_machine_config);
-	}
-	return cart_status_list[mindex].config;
 }
 
 static struct vdg_palette *get_machine_palette(void) {
@@ -953,9 +906,9 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 			xroar_insert_disk_file(0, filename);
 			if (autorun && vdrive_disk_in_drive(0)) {
 				if (IS_DRAGON) {
-					type_command("\033BOOT\r");
+					keyboard_queue_basic("\033BOOT\r");
 				} else {
-					type_command("\033DOS\r");
+					keyboard_queue_basic("\033DOS\r");
 				}
 				return 0;
 			}
@@ -1247,15 +1200,14 @@ void xroar_set_machine(int machine_type) {
 			break;
 	}
 	if (new >= 0 && new < num_machine_types) {
-		struct cart_config *cc;
-		int cart_index = -1;
+		machine_remove_cart();
 		xroar_machine_config = machine_config_index(new);
 		machine_configure(xroar_machine_config);
-		cc = get_machine_cart();
-		if (cc) {
-			cart_index = cc->index;
+		if (xroar_machine_config->cart_enabled) {
+			xroar_set_cart(xroar_machine_config->default_cart_index);
+		} else {
+			xroar_set_cart(-1);
 		}
-		xroar_set_cart(cart_index);
 		xroar_vdg_palette = get_machine_palette();
 		if (video_module->update_palette) {
 			video_module->update_palette();
@@ -1272,36 +1224,33 @@ void xroar_set_cart(int cart_index) {
 	static int lock = 0;
 	if (lock) return;
 	lock = 1;
-	int old = -1;
-	int mindex;
-	int count = cart_config_count();
+
+	int new_index = -1;
 
 	assert(xroar_machine_config != NULL);
-	alloc_cart_status();
-	mindex = xroar_machine_config->index;
-	assert(cart_status_list != NULL);
-	assert(mindex < cart_status_count);
-
-	if (xroar_cart_config) old = xroar_cart_config->index;
+	machine_remove_cart();
 
 	switch (cart_index) {
-		case XROAR_TOGGLE:
-			cart_status_list[mindex].enabled = !cart_status_list[mindex].enabled;
-			break;
-		case XROAR_CYCLE:
-			cart_status_list[mindex].config = cart_config_index((old + 1) % count);
-			break;
-		case -1:
-			cart_status_list[mindex].enabled = 0;
-			break;
-		default:
-			cart_status_list[mindex].config = cart_config_index(cart_index);
-			cart_status_list[mindex].enabled = 1;
-			break;
+	case XROAR_TOGGLE:
+		xroar_machine_config->cart_enabled = !xroar_machine_config->cart_enabled;
+		if (xroar_machine_config->cart_enabled)
+			new_index = xroar_machine_config->default_cart_index;
+		break;
+	default:
+		new_index = cart_index;
+		break;
 	}
 
-	xroar_cart_config = get_machine_cart();
-	machine_insert_cart(xroar_cart_config);
+	if (new_index >= 0) {
+		xroar_machine_config->default_cart_index = new_index;
+		xroar_machine_config->cart_enabled = 1;
+		xroar_cart_config = cart_config_index(xroar_machine_config->default_cart_index);
+		machine_insert_cart(xroar_cart_config);
+	} else {
+		xroar_machine_config->cart_enabled = 0;
+		xroar_cart_config = NULL;
+	}
+
 	if (ui_module->cart_changed_cb) {
 		if (xroar_cart_config) {
 			ui_module->cart_changed_cb(xroar_cart_config->index);

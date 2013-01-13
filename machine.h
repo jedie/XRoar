@@ -80,7 +80,8 @@ struct machine_config {
 	char *bas_rom;
 	char *extbas_rom;
 	char *altbas_rom;
-	char *default_cart;
+	int default_cart_index;
+	_Bool cart_enabled;
 };
 
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
