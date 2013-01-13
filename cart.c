@@ -24,6 +24,7 @@
 #include "portalib/glib.h"
 
 #include "cart.h"
+#include "crc32.h"
 #include "deltados.h"
 #include "dragondos.h"
 #include "events.h"
@@ -237,14 +238,22 @@ void cart_rom_init(struct cart *c) {
 	if (cc->rom) {
 		char *tmp = romlist_find(cc->rom);
 		if (tmp) {
-			machine_load_rom(tmp, c->rom_data, 0x4000);
+			int size = machine_load_rom(tmp, c->rom_data, 0x4000);
+			if (size > 0) {
+				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data, size);
+				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc);
+			}
 			g_free(tmp);
 		}
 	}
 	if (cc->rom2) {
 		char *tmp = romlist_find(cc->rom2);
 		if (tmp) {
-			machine_load_rom(tmp, c->rom_data + 0x2000, 0x2000);
+			int size = machine_load_rom(tmp, c->rom_data + 0x2000, 0x2000);
+			if (size > 0) {
+				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data + 0x2000, size);
+				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc);
+			}
 			g_free(tmp);
 		}
 	}
