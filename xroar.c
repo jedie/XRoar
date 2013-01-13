@@ -131,6 +131,7 @@ _Bool xroar_opt_disk_write_back = 0;
 
 static GSList *type_command_list = NULL;
 static GSList *load_list = NULL;
+static int load_disk_to_drive = 0;
 
 /* Help text */
 static void helptext(void);
@@ -809,6 +810,7 @@ int xroar_init(int argc, char **argv) {
 	printer_reset();
 	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_pad_auto | xroar_opt_tape_rewrite);
 
+	load_disk_to_drive = 0;
 	while (load_list) {
 		char *load_file = load_list->data;
 		int load_file_type = xroar_filetype_by_ext(load_file);
@@ -825,6 +827,15 @@ int xroar_init(int argc, char **argv) {
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 			autorun_loaded_file = autorun;
 			break;
+		// load disks then advice drive number
+		case FILETYPE_VDK:
+		case FILETYPE_JVC:
+		case FILETYPE_DMK:
+			xroar_load_file_by_type(load_file, autorun);
+			load_disk_to_drive++;
+			if (load_disk_to_drive > 3)
+				load_disk_to_drive = 3;
+			break;
 		// the rest can be loaded straight off
 		default:
 			xroar_load_file_by_type(load_file, autorun);
@@ -832,6 +843,7 @@ int xroar_init(int argc, char **argv) {
 		}
 		load_list = g_slist_remove(load_list, load_list->data);
 	}
+	load_disk_to_drive = 0;
 
 	while (type_command_list) {
 		keyboard_queue_basic(type_command_list->data);
@@ -911,7 +923,7 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 		case FILETYPE_VDK:
 		case FILETYPE_JVC:
 		case FILETYPE_DMK:
-			xroar_insert_disk_file(0, filename);
+			xroar_insert_disk_file(load_disk_to_drive, filename);
 			if (autorun && vdrive_disk_in_drive(0)) {
 				if (IS_DRAGON) {
 					keyboard_queue_basic("\033BOOT\r");
