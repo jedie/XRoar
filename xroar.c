@@ -68,6 +68,7 @@ static _Bool opt_nobas = 0;
 static _Bool opt_noextbas = 0;
 static _Bool opt_noaltbas = 0;
 static int opt_tv = ANY_AUTO;
+static char *opt_machine_cart = NULL;
 static void set_pal(void);
 static void set_ntsc(void);
 static int opt_ram = 0;
@@ -80,17 +81,17 @@ static char *opt_cart_rom = NULL;
 static char *opt_cart_rom2 = NULL;
 static int opt_cart_becker = ANY_AUTO;
 static int opt_cart_autorun = ANY_AUTO;
-static int opt_nodos = 0;
+static _Bool opt_nodos = 0;
 
 /* Attach files */
 _Bool xroar_opt_force_crc_match = 0;
-static char *opt_load = NULL;
 static char *opt_run = NULL;
 static char *opt_tape_write = NULL;
 static char *opt_lp_file = NULL;
 static char *opt_lp_pipe = NULL;
 char *xroar_opt_becker_ip = NULL;
 char *xroar_opt_becker_port = NULL;
+static void add_load(char *string);
 
 /* Automatic actions */
 static void type_command(char *string);
@@ -129,6 +130,7 @@ _Bool xroar_opt_becker = 0;
 _Bool xroar_opt_disk_write_back = 0;
 
 static GSList *type_command_list = NULL;
+static GSList *load_list = NULL;
 
 /* Help text */
 static void helptext(void);
@@ -198,6 +200,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_BOOL("noaltbas", &opt_noaltbas),
 	XC_SET_ENUM("tv-type", &opt_tv, tv_type_list),
 	XC_SET_INT("ram", &opt_ram),
+	XC_SET_STRING("machine-cart", &opt_machine_cart),
 	/* Backwards-compatibility options: */
 	XC_CALL_NULL("pal", &set_pal),
 	XC_CALL_NULL("ntsc", &set_ntsc),
@@ -210,7 +213,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("cart-rom2", &opt_cart_rom2),
 	XC_SET_INT1("cart-becker", &opt_cart_becker),
 	XC_SET_INT1("cart-autorun", &opt_cart_autorun),
-	XC_SET_INT1("nodos", &opt_nodos),
+	XC_SET_BOOL("nodos", &opt_nodos),
 	/* Backwards-compatibility options: */
 	XC_SET_ENUM("dostype", &opt_cart_type, cart_type_list),
 	XC_SET_STRING("dos", &opt_cart_rom),
@@ -221,9 +224,9 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_STRING("crclist", &crclist_assign),
 	XC_CALL_NULL("crclist-print", &crclist_print),
 	XC_SET_BOOL("force-crc-match", &xroar_opt_force_crc_match),
-	XC_SET_STRING("load", &opt_load),
-	XC_SET_STRING("cartna", &opt_load),
-	XC_SET_STRING("snap", &opt_load),
+	XC_CALL_STRING("load", &add_load),
+	XC_CALL_STRING("cartna", &add_load),
+	XC_CALL_STRING("snap", &add_load),
 	XC_SET_STRING("run", &opt_run),
 	XC_SET_STRING("tape-write", &opt_tape_write),
 	XC_SET_STRING("cart", &opt_run),
@@ -296,8 +299,7 @@ struct event *xroar_machine_events = NULL;
 
 static struct event load_file_event;
 static void do_load_file(void *);
-static char *load_file = NULL;
-static int load_file_type = FILETYPE_UNKNOWN;
+//static char *load_file = NULL;
 static int autorun_loaded_file = 0;
 
 struct cart_status {
@@ -416,6 +418,10 @@ static void set_machine(const char *name) {
 			xroar_machine_config->altbas_rom = opt_altbas;
 			opt_altbas = NULL;
 		}
+		if (opt_machine_cart) {
+			xroar_machine_config->default_cart = opt_machine_cart;
+			opt_machine_cart = NULL;
+		}
 		machine_config_complete(xroar_machine_config);
 	}
 	if (name) {
@@ -482,6 +488,10 @@ static void type_command(char *string) {
 	type_command_list = g_slist_append(type_command_list, string);
 }
 
+static void add_load(char *string) {
+	load_list = g_slist_append(load_list, string);
+}
+
 static void versiontext(void) {
 #ifdef LOGGING
 	puts(
@@ -503,7 +513,7 @@ static void helptext(void) {
 "emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
 
 "\n Emulated machine:\n"
-"  -default-machine NAME   select named machine as default\n"
+"  -default-machine NAME   specify default machine\n"
 "  -machine NAME           select/configure machine (-machine help for list)\n"
 "  -machine-desc TEXT      machine description\n"
 "  -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
@@ -515,6 +525,7 @@ static void helptext(void) {
 "  -noextbas               disable Extended BASIC\n"
 "  -tv-type TYPE           set TV type (-tv-type help for list)\n"
 "  -ram KBYTES             specify amount of RAM in K\n"
+"  -machine-cart NAME      specify default cartridge for selected machine\n"
 
 "\n Emulated cartridge:\n"
 "  -cart NAME            select/configure cartridge (-cart help for list)\n"
@@ -607,81 +618,87 @@ int xroar_init(int argc, char **argv) {
 	if (!xroar_conf_path)
 		xroar_conf_path = CONFPATH;
 
-	/* If a configuration file is found, parse it */
+	// If a configuration file is found, parse it.
 	conffile = find_in_path(xroar_conf_path, "xroar.conf");
 	if (conffile) {
-		/* ignore bad lines in config file */
 		(void)xconfig_parse_file(xroar_options, conffile);
 		g_free(conffile);
 	}
-	/* Finish any machine or cart config in config file */
+	// Finish any machine or cart config in config file.
 	set_machine(NULL);
 	set_cart(NULL);
-	/* Don't auto-select last machine or cart in config file */
+	// Don't auto-select last machine or cart in config file.
 	xroar_machine_config = NULL;
 	xroar_cart_config = NULL;
 
-	/* Parse command line options */
+	// Parse command line options.
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
 	if (ret != XCONFIG_OK) {
 		exit(EXIT_FAILURE);
 	}
-	/* Determine initial machine configuration */
+	// If no machine specified on command line, get default.
 	if (!xroar_machine_config && opt_default_machine) {
 		xroar_machine_config = machine_config_by_name(opt_default_machine);
 	}
+	// If that didn't work, just find the first one that will work.
 	if (!xroar_machine_config) {
 		xroar_machine_config = machine_config_first_working();
 	}
-	/* Finish any machine or cart config on command line */
-	set_machine(NULL);
-	if (!xroar_cart_config) {
-		xroar_cart_config = cart_find_working_dos(xroar_machine_config);
+	assert(xroar_machine_config != NULL);
+	// If any cart specified on command line, make it default for machine.
+	if (xroar_cart_config) {
+		if (xroar_machine_config->default_cart)
+			g_free(xroar_machine_config->default_cart);
+		xroar_machine_config->default_cart = g_strdup(xroar_cart_config->name);
 	}
+	// Finish any machine or cart config on command line.
+	set_machine(NULL);
 	set_cart(NULL);
 
-	/* Select a UI module then, possibly using lists specified in that
-	 * module, select all other modules */
+	// Select a UI module.
 	ui_module = (UIModule *)module_select_by_arg((struct module **)ui_module_list, opt_ui);
 	if (ui_module == NULL) {
-		LOG_DEBUG(0, "%s: ui module `%s' not found\n", argv[0], opt_ui);
+		LOG_ERROR("%s: ui module `%s' not found\n", argv[0], opt_ui);
 		exit(EXIT_FAILURE);
 	}
-	/* Select file requester module */
+	// Override other module lists if UI has an entry.
 	if (ui_module->filereq_module_list != NULL)
 		filereq_module_list = ui_module->filereq_module_list;
-	filereq_module = (FileReqModule *)module_select_by_arg((struct module **)filereq_module_list, opt_filereq);
-	/* Select video module */
 	if (ui_module->video_module_list != NULL)
 		video_module_list = ui_module->video_module_list;
-	video_module = (VideoModule *)module_select_by_arg((struct module **)video_module_list, opt_vo);
-	/* Select sound module */
 	if (ui_module->sound_module_list != NULL)
 		sound_module_list = ui_module->sound_module_list;
-	sound_module = (SoundModule *)module_select_by_arg((struct module **)sound_module_list, opt_ao);
-	/* Select keyboard module */
 	if (ui_module->keyboard_module_list != NULL)
 		keyboard_module_list = ui_module->keyboard_module_list;
-	keyboard_module = NULL;
-	/* Select joystick module */
 	if (ui_module->joystick_module_list != NULL)
 		joystick_module_list = ui_module->joystick_module_list;
+	// Select file requester, video & sound modules
+	filereq_module = (FileReqModule *)module_select_by_arg((struct module **)filereq_module_list, opt_filereq);
+	video_module = (VideoModule *)module_select_by_arg((struct module **)video_module_list, opt_vo);
+	sound_module = (SoundModule *)module_select_by_arg((struct module **)sound_module_list, opt_ao);
+	// Keyboard & joystick modules
+	keyboard_module = NULL;
 	joystick_module = NULL;
 
 	/* Check other command-line options */
 	if (xroar_opt_frameskip < 0)
 		xroar_opt_frameskip = 0;
 	xroar_frameskip = xroar_opt_frameskip;
-	if (opt_load) {
-		load_file = opt_load;
-		autorun_loaded_file = 0;
-	} else if (opt_run) {
-		load_file = opt_run;
-		autorun_loaded_file = 1;
-	} else if (argn < argc) {
-		load_file = g_strdup(argv[argn]);
-		autorun_loaded_file = 1;
+
+	// Remaining command line arguments are files.
+	while (argn < argc) {
+		if ((argn+1) < argc) {
+			add_load(argv[argn]);
+		} else {
+			// Autorun last file given.
+			opt_run = argv[argn];
+		}
+		argn++;
 	}
+	if (opt_run) {
+		add_load(opt_run);
+	}
+
 	sound_set_volume(xroar_opt_volume);
 	/* turn off tape_pad_auto if any tape_pad specified */
 	if (xroar_opt_tape_pad >= 0)
@@ -693,38 +710,64 @@ int xroar_init(int argc, char **argv) {
 
 	alloc_cart_status();
 
-	/* Override DOS cart if autoloading a cassette, or replace with ROM
-	 * cart if appropriate. */
-	if (load_file) {
-		load_file_type = xroar_filetype_by_ext(load_file);
+	_Bool no_auto_dos = 0;
+	_Bool definitely_dos = 0;
+	for (GSList *tmp_list = load_list; tmp_list; tmp_list = tmp_list->next) {
+		char *load_file = tmp_list->data;
+		int load_file_type = xroar_filetype_by_ext(load_file);
+		_Bool autorun_loaded_file = (load_file == opt_run);
 		switch (load_file_type) {
+		// tapes - flag that DOS shouldn't be automatically found
+		case FILETYPE_CAS:
+		case FILETYPE_WAV:
+		case FILETYPE_ASC:
+		case FILETYPE_UNKNOWN:
+			no_auto_dos = 1;
+			break;
+		// disks - flag that DOS should *definitely* be attempted
+		case FILETYPE_VDK:
+		case FILETYPE_JVC:
+		case FILETYPE_DMK:
+			// unless explicitly disabled
+			if (!opt_nodos)
+				definitely_dos = 1;
+			break;
+		// for cartridge ROMs, create a cart as machine default
+		case FILETYPE_ROM:
+			xroar_cart_config = cart_config_by_name(load_file);
+			xroar_cart_config->autorun = autorun_loaded_file;
+			break;
+		// for the rest, wait until later
+		default:
+			xroar_load_file_by_type(load_file, autorun_loaded_file);
+			break;
+		}
+	}
+	if (definitely_dos) no_auto_dos = 0;
+
+	if (opt_tape_write) {
+		int write_file_type = xroar_filetype_by_ext(opt_tape_write);
+		switch (write_file_type) {
 			case FILETYPE_CAS:
-			case FILETYPE_ASC:
 			case FILETYPE_WAV:
-			case FILETYPE_UNKNOWN:
-				cart_status_list[xroar_machine_config->index].enabled = 0;
-				/* if user specified commands to type, override
-				 * automatic CLOAD[M] */
-				if (type_command_list) {
-					autorun_loaded_file = 0;
+				tape_open_writing(opt_tape_write);
+				if (ui_module->output_tape_filename_cb) {
+					ui_module->output_tape_filename_cb(opt_tape_write);
 				}
-				break;
-			case FILETYPE_ROM:
-				cart_status_list[xroar_machine_config->index].enabled = 1;
-				xroar_cart_config = cart_config_by_name(load_file);
-				xroar_cart_config->autorun = autorun_loaded_file;
-				g_free((char *)load_file);
-				load_file = NULL;
 				break;
 			default:
 				break;
 		}
 	}
 
+	if (!xroar_cart_config && !no_auto_dos) {
+		xroar_cart_config = cart_find_working_dos(xroar_machine_config);
+	}
+
 	/* Record initial cart configuration */
-	cart_status_list[xroar_machine_config->index].config = xroar_cart_config;
+	//cart_status_list[xroar_machine_config->index].config = xroar_cart_config;
 	/* Re-read cart config - will find a DOS if appropriate */
-	xroar_cart_config = get_machine_cart();
+	//xroar_cart_config = get_machine_cart();
 
 	/* Initial palette */
 	xroar_vdg_palette = get_machine_palette();
@@ -772,41 +815,24 @@ int xroar_init(int argc, char **argv) {
 	printer_reset();
 	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_pad_auto | xroar_opt_tape_rewrite);
 
-	if (load_file) {
+	while (load_list) {
+		char *load_file = load_list->data;
+		int load_file_type = xroar_filetype_by_ext(load_file);
+		_Bool autorun_loaded_file = (load_file == opt_run);
 		switch (load_file_type) {
-		/* most things can be loaded/run straight off */
-		case FILETYPE_VDK:
-		case FILETYPE_JVC:
-		case FILETYPE_DMK:
-		case FILETYPE_CAS:
-		case FILETYPE_WAV:
-		case FILETYPE_SNA:
-		case FILETYPE_ASC:
-			xroar_load_file_by_type(load_file, autorun_loaded_file);
-			break;
-		/* delay loading everything else by 2s */
-		default:
-			/* For everything else, defer loading the file */
-			event_init(&load_file_event, do_load_file, NULL);
+		// delay loading binary files by 2s
+		case FILETYPE_BIN:
+		case FILETYPE_HEX:
+			event_init(&load_file_event, do_load_file, load_file);
 			load_file_event.at_tick = event_current_tick + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 			break;
+		// the rest can be loaded straight off
+		default:
+			xroar_load_file_by_type(load_file, autorun_loaded_file);
+			break;
 		}
-	}
-
-	if (opt_tape_write) {
-		int write_file_type = xroar_filetype_by_ext(opt_tape_write);
-		switch (write_file_type) {
-			case FILETYPE_CAS:
-			case FILETYPE_WAV:
-				tape_open_writing(opt_tape_write);
-				if (ui_module->output_tape_filename_cb) {
-					ui_module->output_tape_filename_cb(opt_tape_write);
-				}
-				break;
-			default:
-				break;
-		}
+		load_list = g_slist_remove(load_list, load_list->data);
 	}
 
 	while (type_command_list) {
@@ -856,6 +882,11 @@ static struct cart_config *get_machine_cart(void) {
 	}
 	if (!cart_status_list[mindex].enabled) {
 		return NULL;
+	}
+	if (cart_status_list[mindex].config) {
+	}
+	if (!cart_status_list[mindex].config && xroar_machine_config->default_cart) {
+		cart_status_list[mindex].config = cart_config_by_name(xroar_machine_config->default_cart);
 	}
 	if (!cart_status_list[mindex].config) {
 		cart_status_list[mindex].config = cart_find_working_dos(xroar_machine_config);
@@ -922,9 +953,9 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 			xroar_insert_disk_file(0, filename);
 			if (autorun && vdrive_disk_in_drive(0)) {
 				if (IS_DRAGON) {
-					keyboard_queue_basic("\033BOOT\r");
+					type_command("\033BOOT\r");
 				} else {
-					keyboard_queue_basic("\033DOS\r");
+					type_command("\033DOS\r");
 				}
 				return 0;
 			}
@@ -966,7 +997,7 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 }
 
 static void do_load_file(void *data) {
-	(void)data;
+	char *load_file = data;
 	xroar_load_file_by_type(load_file, autorun_loaded_file);
 }
 
