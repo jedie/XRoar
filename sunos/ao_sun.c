@@ -50,8 +50,8 @@ static int sound_fd;
 static uint_t samples_written;
 
 static int init(void) {
+	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "/dev/audio";
 	audio_info_t device_info;
-	const char *device = "/dev/audio";
 
 	sound_fd = open(device, O_WRONLY);
 	if (sound_fd == -1) {

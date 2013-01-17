@@ -45,6 +45,7 @@ static pa_simple *pa;
 static int fragment_bytes;
 
 static int init(void) {
+	const char *device = xroar_opt_ao_device;
 	pa_sample_spec ss = {
 		.format = PA_SAMPLE_U8,
 		.channels = 1
@@ -70,8 +71,8 @@ static int init(void) {
 	ba.tlength = fragment_size;
 	fragment_bytes = fragment_size;
 
-	pa = pa_simple_new(NULL, "XRoar", PA_STREAM_PLAYBACK, NULL, "playback",
-	                   &ss, NULL, &ba, &error);
+	pa = pa_simple_new(NULL, "XRoar", PA_STREAM_PLAYBACK, device,
+	                   "output", &ss, NULL, &ba, &error);
 	if (!pa) {
 		LOG_ERROR("Failed to initialise: %s\n", pa_strerror(error));
 		goto failed;

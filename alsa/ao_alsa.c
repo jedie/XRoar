@@ -47,6 +47,7 @@ static snd_pcm_t *pcm_handle;
 static snd_pcm_uframes_t frame_size;
 
 static int init(void) {
+	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "default";
 	int err;
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_format_t format = SND_PCM_FORMAT_U8;
@@ -54,7 +55,7 @@ static int init(void) {
 
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 
-	if ((err = snd_pcm_open(&pcm_handle, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0)
+	if ((err = snd_pcm_open(&pcm_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
 		goto failed;
 
 	if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0)

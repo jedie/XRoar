@@ -45,7 +45,7 @@ static int sound_fd;
 static int fragment_size;
 
 static int init(void) {
-	const char *device = "/dev/dsp";
+	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "/dev/dsp";
 	int fragment_param, tmp;
 
 	sound_fd = open(device, O_WRONLY);
