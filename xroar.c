@@ -103,6 +103,7 @@ static char *opt_vo = NULL;
 char *xroar_opt_geometry = NULL;
 int xroar_opt_gl_filter = ANY_AUTO;
 static char *opt_ao = NULL;
+char *xroar_opt_ao_device = NULL;
 int xroar_opt_ao_rate = 0;
 int xroar_opt_ao_buffer_ms = 0;
 int xroar_opt_ao_buffer_samples = 0;
@@ -249,6 +250,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("g", &xroar_opt_geometry),
 	XC_SET_ENUM("gl-filter", &xroar_opt_gl_filter, gl_filter_list),
 	XC_SET_STRING("ao", &opt_ao),
+	XC_SET_STRING("ao-device", &xroar_opt_ao_device),
 	XC_SET_INT("ao-rate", &xroar_opt_ao_rate),
 	XC_SET_INT("ao-buffer-ms", &xroar_opt_ao_buffer_ms),
 	XC_SET_INT("ao-buffer-samples", &xroar_opt_ao_buffer_samples),
@@ -562,6 +564,7 @@ static void helptext(void) {
 "  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
 #endif
 "  -ao MODULE            audio module (-ao help for list)\n"
+"  -ao-DEVICE STRING     device to use for audio module\n"
 "  -ao-rate HZ           set audio sample rate (if supported by module)\n"
 "  -ao-buffer-ms MS      set audio buffer size in ms (if supported)\n"
 "  -ao-buffer-samples N  set audio buffer size in samples (if supported)\n"

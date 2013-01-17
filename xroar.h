@@ -62,6 +62,7 @@ extern char *xroar_opt_becker_port;
 /* Emulator interface */
 extern char *xroar_opt_geometry;  /* initial emulator geometry string */
 extern int xroar_opt_gl_filter;
+extern char *xroar_opt_ao_device;
 extern int xroar_opt_ao_rate;
 extern int xroar_opt_ao_buffer_ms;
 extern int xroar_opt_ao_buffer_samples;
