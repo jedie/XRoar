@@ -861,6 +861,10 @@ int xroar_init(int argc, char **argv) {
 }
 
 void xroar_shutdown(void) {
+	static _Bool shutting_down = 0;
+	if (shutting_down)
+		return;
+	shutting_down = 1;
 	machine_shutdown();
 	module_shutdown((struct module *)joystick_module);
 	module_shutdown((struct module *)keyboard_module);
@@ -1122,6 +1126,7 @@ void xroar_select_cross_colour(int action) {
 }
 
 void xroar_quit(void) {
+	xroar_shutdown();
 	exit(EXIT_SUCCESS);
 }
 
