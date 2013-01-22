@@ -38,26 +38,25 @@ union sample_t {
 	float as_float;
 };
 
-static int format;
-static int num_channels;
-static void *buffer[2] = { NULL, NULL };
-static int num_buffers;
-static int buffer_num;
-static int buffer_size;
-static int sample_num;
+/* Describes the buffer: */
+static enum sound_fmt buffer_fmt;
+static int buffer_nchannels;
+static int buffer_nsamples;
+static void *buffer = NULL;
+/* Current index into the buffer (in samples, not frames): */
+static int buffer_sample;
 
 static union sample_t last_sample;
 static event_ticks last_cycle;
-static int cycles_per_sample;
-static int cycles_per_frame;
+static unsigned ticks_per_sample;
+static unsigned ticks_per_buffer;
 static int volume;
 
 static void flush_frame(void *);
 static struct event flush_event;
 
-void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
+void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes) {
 	uint16_t test = 0x0123;
-	int size;
 	int big_endian = (*(uint8_t *)(&test) == 0x01);
 	int fmt_big_endian = 1;
 
@@ -84,58 +83,51 @@ void *sound_init(int sample_rate, int channels, int fmt, int frame_size) {
 	LOG_DEBUG(2, "\t");
 	switch (fmt) {
 	case SOUND_FMT_U8:
-		size = 1;
 		last_sample.as_int8 = 0x80;
 		LOG_DEBUG(2, "8-bit unsigned, ");
 		break;
 	case SOUND_FMT_S8:
-		size = 1;
 		last_sample.as_int8 = 0x00;
 		LOG_DEBUG(2, "8-bit signed, ");
 		break;
 	case SOUND_FMT_S16_HE:
 	case SOUND_FMT_S16_SE:
-		size = 2;
 		last_sample.as_int16 = 0x00;
 		LOG_DEBUG(2, "16-bit signed %s-endian, ", fmt_big_endian ? "big" : "little" );
 		break;
 	case SOUND_FMT_FLOAT:
-		size = sizeof(float);
 		last_sample.as_float = (float)(-64 * volume) / 65536.;
 		LOG_DEBUG(2, "Floating point, ");
 		break;
 	case SOUND_FMT_NULL:
+	default:
+		fmt = SOUND_FMT_NULL;
 		LOG_DEBUG(2, "No audio\n");
 		break;
-	default:
-		return NULL;
 	}
 	if (fmt != SOUND_FMT_NULL) {
-		switch (channels) {
+		switch (nchannels) {
 		case 1: LOG_DEBUG(2, "mono, "); break;
 		case 2: LOG_DEBUG(2, "stereo, "); break;
-		default: LOG_DEBUG(2, "%d channel, ", channels); break;
+		default: LOG_DEBUG(2, "%d channel, ", nchannels); break;
 		}
-		LOG_DEBUG(2, "%dHz\n", sample_rate);
-		buffer[0] = g_realloc(buffer[0], frame_size * channels * size);
+		LOG_DEBUG(2, "%dHz\n", rate);
 	}
 
-	buffer_size = frame_size * channels;
-	num_buffers = 1;
-	buffer_num = 0;
-	format = fmt;
-	num_channels = channels;
-	cycles_per_sample = OSCILLATOR_RATE / sample_rate;
-	cycles_per_frame = cycles_per_sample * frame_size;
+	buffer = buf;
+	buffer_nsamples = nframes * nchannels;
+	buffer_fmt = fmt;
+	buffer_nchannels = nchannels;
+	ticks_per_sample = OSCILLATOR_RATE / rate;
+	ticks_per_buffer = ticks_per_sample * nframes;
 	last_cycle = event_current_tick;
 
-	sound_silence();
+	if (buffer)
+		sound_render_silence(buffer, buffer_nsamples);
 
 	event_init(&flush_event, flush_frame, NULL);
-	flush_event.at_tick = event_current_tick + cycles_per_frame;
+	flush_event.at_tick = event_current_tick + ticks_per_buffer;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
-
-	return buffer[0];
 }
 
 void sound_set_volume(int v) {
@@ -147,13 +139,12 @@ void sound_set_volume(int v) {
 /* within sound_update(), this loop is included for each sample format */
 #define fill_buffer(type,member) do { \
 		while ((int)(event_current_tick - last_cycle) > 0) { \
-			for (i = num_channels; i; i--) \
-				((type *)buffer[buffer_num])[sample_num++] = last_sample.member; \
-			last_cycle += cycles_per_sample; \
-			if (sample_num >= buffer_size) { \
-				sound_module->flush_frame(buffer[buffer_num]); \
-				sample_num = 0; \
-				buffer_num = (buffer_num + 1) % num_buffers; \
+			for (i = buffer_nchannels; i; i--) \
+				((type *)buffer)[buffer_sample++] = last_sample.member; \
+			last_cycle += ticks_per_sample; \
+			if (buffer_sample >= buffer_nsamples) { \
+				buffer = sound_module->write_buffer(buffer); \
+				buffer_sample = 0; \
 			} \
 		} \
 	} while (0)
@@ -162,7 +153,8 @@ void sound_set_volume(int v) {
  * update() function if buffer is full. */
 void sound_update(void) {
 	int i;
-	switch (format) {
+	if (buffer) {
+		switch (buffer_fmt) {
 		case SOUND_FMT_U8:
 		case SOUND_FMT_S8:
 			fill_buffer(uint8_t,as_int8);
@@ -174,14 +166,14 @@ void sound_update(void) {
 		case SOUND_FMT_FLOAT:
 			fill_buffer(float,as_float);
 			break;
-		case SOUND_FMT_NULL:
-			while ((int)(event_current_tick - last_cycle) <= 0) {
-				last_cycle += cycles_per_frame;
-				sound_module->flush_frame(buffer[buffer_num]);
-			}
-			break;
 		default:
 			break;
+		}
+	} else {
+		while ((int)(event_current_tick - last_cycle) <= 0) {
+			last_cycle += ticks_per_buffer;
+			buffer = sound_module->write_buffer(buffer);
+		}
 	}
 
 	int value;
@@ -217,7 +209,7 @@ void sound_update(void) {
 #endif
 
 
-	switch (format) {
+	switch (buffer_fmt) {
 	case SOUND_FMT_U8:
 		last_sample.as_int8 = ((value * volume) >> 8) ^ 0x80;
 		break;
@@ -239,16 +231,10 @@ void sound_update(void) {
 	}
 }
 
-void sound_silence(void) {
-	sound_render_silence(buffer[0], buffer_size);
-	if (num_buffers > 1)
-		sound_render_silence(buffer[1], buffer_size);
-}
-
 void sound_render_silence(void *buf, int samples) {
 	int i;
 	for (i = 0; i < samples; i++) {
-		switch (format) {
+		switch (buffer_fmt) {
 		case SOUND_FMT_U8:
 		case SOUND_FMT_S8:
 			((uint8_t *)buf)[i] = last_sample.as_int8;
@@ -269,6 +255,6 @@ void sound_render_silence(void *buf, int samples) {
 static void flush_frame(void *data) {
 	(void)data;
 	sound_update();
-	flush_event.at_tick += cycles_per_frame;
+	flush_event.at_tick += ticks_per_buffer;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
 }

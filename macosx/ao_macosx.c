@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <CoreAudio/AudioHardware.h>
+#include "portalib/glib.h"
 
 #include "logging.h"
 #include "machine.h"
@@ -30,24 +31,24 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 SoundModule sound_macosx_module = {
 	.common = { .name = "macosx", .description = "Mac OS X audio",
 		    .init = init, .shutdown = shutdown },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
 static AudioObjectID device;
 #ifdef MAC_OS_X_VERSION_10_5
 static AudioDeviceIOProcID aprocid;
 #endif
-static float *buffer;
-static int buffer_size;
-static UInt32 buffer_bytes;
+static float *audio_buffer;
+static unsigned buffer_nsamples;
+static UInt32 buffer_size;
 static pthread_mutex_t halt_mutex;
 static pthread_cond_t halt_cv;
-static int ready;
+static _Bool ready;
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		const AudioBufferList *inInputData,
@@ -80,28 +81,29 @@ static int init(void) {
 	if (!(deviceFormat.mFormatFlags & kLinearPCMFormatFlagIsFloat))
 		goto failed;
 
-	int sample_rate = deviceFormat.mSampleRate;
-	int channels = deviceFormat.mChannelsPerFrame;
+	unsigned int sample_rate = deviceFormat.mSampleRate;
+	unsigned int buffer_nchannels = deviceFormat.mChannelsPerFrame;
 
-	int frame_size;
+	unsigned int buffer_nframes;
 	if (xroar_opt_ao_buffer_ms > 0) {
-		frame_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
+		buffer_nframes = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
 	} else if (xroar_opt_ao_buffer_samples > 0) {
-		frame_size = xroar_opt_ao_buffer_samples;
+		buffer_nframes = xroar_opt_ao_buffer_samples;
 	} else {
-		frame_size = 1024;
+		buffer_nframes = 1024;
 	}
 
-	buffer_size = frame_size * channels;
-	buffer_bytes = buffer_size * sizeof(float);
-	propertySize = sizeof(buffer_bytes);
+	buffer_nsamples = buffer_nframes * buffer_nchannels;
+	buffer_size = buffer_nsamples * sizeof(float);
+	propertySize = sizeof(buffer_size);
 	propertyAddress.mSelector = kAudioDevicePropertyBufferSize;
-	if (AudioObjectSetPropertyData(device, &propertyAddress, 0, NULL, propertySize, &buffer_bytes) != kAudioHardwareNoError)
+	if (AudioObjectSetPropertyData(device, &propertyAddress, 0, NULL, propertySize, &buffer_size) != kAudioHardwareNoError)
 		goto failed;
-	buffer_size = buffer_bytes / sizeof(float);
-	frame_size = buffer_size / channels;
-	buffer = sound_init(sample_rate, channels, SOUND_FMT_FLOAT, frame_size);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (frame_size * 1000) / sample_rate, frame_size);
+	buffer_nsamples = buffer_size / sizeof(float);
+	buffer_nframes = buffer_nsamples / buffer_nchannels;
+	audio_buffer = g_malloc(buffer_size);
+	sound_init(audio_buffer, SOUND_FMT_FLOAT, sample_rate, buffer_nchannels, buffer_nframes);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / sample_rate, buffer_nframes);
 
 	pthread_mutex_init(&halt_mutex, NULL);
 	pthread_cond_init(&halt_cv, NULL);
@@ -129,16 +131,17 @@ static void shutdown(void) {
 	pthread_cond_destroy(&halt_cv);
 }
 
-static void flush_frame(void *fbuffer) {
-	(void)fbuffer;
+static void *write_buffer(void *buffer) {
+	(void)buffer;
 	if (xroar_noratelimit)
-		return;
+		return audio_buffer;
 	pthread_mutex_lock(&halt_mutex);
 	ready = 1;
 	while (ready) {
 		pthread_cond_wait(&halt_cv, &halt_mutex);
 	}
 	pthread_mutex_unlock(&halt_mutex);
+	return audio_buffer;
 }
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
@@ -154,9 +157,9 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 	(void)defptr;        /* unused */
 	float *dest = (float *)outOutputData->mBuffers[0].mData;
 	if (ready) {
-		memcpy(dest, buffer, buffer_bytes);
+		memcpy(dest, audio_buffer, buffer_size);
 	} else {
-		sound_render_silence(dest, buffer_size);
+		sound_render_silence(dest, buffer_nsamples);
 	}
 	pthread_mutex_lock(&halt_mutex);
 	ready = 0;

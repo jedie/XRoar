@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/soundcard.h>
+#include "portalib/glib.h"
 
 #include "logging.h"
 #include "machine.h"
@@ -33,16 +34,17 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 SoundModule sound_oss_module = {
 	.common = { .name = "oss", .description = "OSS audio",
 		    .init = init, .shutdown = shutdown },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
 static int sound_fd;
 static int fragment_size;
+static void *audio_buffer;
 
 static int init(void) {
 	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "/dev/dsp";
@@ -128,16 +130,17 @@ static int init(void) {
 		}
 	}
 
-	int request_fmt;
-	if (format & AFMT_U8) request_fmt = SOUND_FMT_U8;
-	else if (format & AFMT_S16_LE) request_fmt = SOUND_FMT_S16_LE;
-	else if (format & AFMT_S16_BE) request_fmt = SOUND_FMT_S16_BE;
-	else if (format & AFMT_S8) request_fmt = SOUND_FMT_S8;
+	enum sound_fmt buffer_fmt;
+	if (format & AFMT_U8) buffer_fmt = SOUND_FMT_U8;
+	else if (format & AFMT_S16_LE) buffer_fmt = SOUND_FMT_S16_LE;
+	else if (format & AFMT_S16_BE) buffer_fmt = SOUND_FMT_S16_BE;
+	else if (format & AFMT_S8) buffer_fmt = SOUND_FMT_S8;
 	else {
 		LOG_WARN("Unhandled audio format.");
 		goto failed;
 	}
-	sound_init(sample_rate, channels, request_fmt, fragment_samples);
+	audio_buffer = g_malloc(fragment_size);
+	sound_init(audio_buffer, buffer_fmt, sample_rate, channels, fragment_samples);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (delay * 1000) / sample_rate, delay);
 
 	if (tmp != fragment_param)
@@ -152,12 +155,13 @@ failed:
 static void shutdown(void) {
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
+	g_free(audio_buffer);
 }
 
-static void flush_frame(void *buffer) {
+static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
-		return;
+		return buffer;
 	int r = write(sound_fd, buffer, fragment_size);
 	(void)r;
-	return;
+	return buffer;
 }

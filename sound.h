@@ -6,16 +6,18 @@
 #ifndef XROAR_SOUND_H_
 #define XROAR_SOUND_H_
 
-#define SOUND_FMT_NULL (-1)
-#define SOUND_FMT_U8 (0)
-#define SOUND_FMT_S8 (1)
-#define SOUND_FMT_S16_BE (2)
-#define SOUND_FMT_S16_LE (4)
-#define SOUND_FMT_S16_HE (6)  /* host-endian */
-#define SOUND_FMT_S16_SE (8)  /* swapped-endian */
-#define SOUND_FMT_FLOAT (10)
+enum sound_fmt {
+	SOUND_FMT_NULL,
+	SOUND_FMT_U8,
+	SOUND_FMT_S8,
+	SOUND_FMT_S16_BE,
+	SOUND_FMT_S16_LE,
+	SOUND_FMT_S16_HE,  // host-endian
+	SOUND_FMT_S16_SE,  // swapped-endian
+	SOUND_FMT_FLOAT,
+};
 
-void *sound_init(int sample_rate, int channels, int fmt, int frame_size);
+void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes);
 void sound_set_volume(int v);
 void sound_update(void);
 void sound_silence(void);

@@ -16,13 +16,14 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 #include <SDL_thread.h>
+#include "portalib/glib.h"
+
+#include "config.h"
 
 #ifdef WINDOWS32
 #include <windows.h>
@@ -36,16 +37,16 @@
 
 static int init(void);
 static void _shutdown(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 SoundModule sound_sdl_module = {
 	.common = { .name = "sdl", .description = "SDL audio",
 		    .init = init, .shutdown = _shutdown },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
-static int buffer_bytes;
-static Uint8 *sound_buf;
+static int buffer_size;
+static Uint8 *audio_buffer;
 
 static SDL_AudioSpec audiospec;
 #ifndef WINDOWS32
@@ -88,20 +89,21 @@ static int init(void) {
 		return 1;
 	}
 
-	int request_fmt;
+	int buffer_fmt;
 	switch (audiospec.format) {
-		case AUDIO_U8: request_fmt = SOUND_FMT_U8; break;
-		case AUDIO_S8: request_fmt = SOUND_FMT_S8; break;
-		case AUDIO_S16LSB: request_fmt = SOUND_FMT_S16_LE; break;
-		case AUDIO_S16MSB: request_fmt = SOUND_FMT_S16_BE; break;
+		case AUDIO_U8: buffer_fmt = SOUND_FMT_U8; break;
+		case AUDIO_S8: buffer_fmt = SOUND_FMT_S8; break;
+		case AUDIO_S16LSB: buffer_fmt = SOUND_FMT_S16_LE; break;
+		case AUDIO_S16MSB: buffer_fmt = SOUND_FMT_S16_BE; break;
 		default:
 			LOG_WARN("Unhandled audio format.");
 			goto failed;
 	}
-	int buffer_length = audiospec.samples;
-	buffer_bytes = audiospec.size;
-	sound_buf = sound_init(audiospec.freq, audiospec.channels, request_fmt, buffer_length);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_length * 1000) / audiospec.freq, buffer_length);
+	int buffer_nframes = audiospec.samples;
+	buffer_size = audiospec.size;
+	audio_buffer = g_malloc(buffer_size);
+	sound_init(audio_buffer, buffer_fmt, audiospec.freq, audiospec.channels, buffer_nframes);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / audiospec.freq, buffer_nframes);
 
 #ifndef WINDOWS32
 	halt_mutex = SDL_CreateMutex();
@@ -124,12 +126,12 @@ static void _shutdown(void) {
 #endif
 	SDL_CloseAudio();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+	g_free(audio_buffer);
 }
 
-static void flush_frame(void *buffer) {
-	(void)buffer;
+static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
-		return;
+		return buffer;
 #ifndef WINDOWS32
 	SDL_LockMutex(halt_mutex);
 	haltflag = 1;
@@ -140,14 +142,15 @@ static void flush_frame(void *buffer) {
 	haltflag = 1;
 	WaitForSingleObject(hEvent, INFINITE);
 #endif
+	return buffer;
 }
 
 static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
-	if (len == buffer_bytes) {
+	if (len == buffer_size) {
 		if (haltflag == 1) {
 			/* Data is ready */
-			memcpy(stream, sound_buf, buffer_bytes);
+			memcpy(stream, audio_buffer, buffer_size);
 		} else {
 			/* Not ready - provide a "padding" frame */
 			sound_render_silence(stream, len);

@@ -17,6 +17,7 @@
  */
 
 #include <windows.h>
+#include "portalib/glib.h"
 
 #include "logging.h"
 #include "module.h"
@@ -25,12 +26,12 @@
 
 static int init(void);
 static void _shutdown(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 SoundModule sound_windows32_module = {
 	.common = { .name = "windows32", .description = "Windows audio",
 		    .init = init, .shutdown = _shutdown },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
 #define NUM_BUFFERS (3)
@@ -44,6 +45,7 @@ static int buffer_samples, buffer_size;
 static DWORD cursor;
 static int buffer_num;
 static int sample_rate;
+static uint8_t *audio_buffer;
 
 static int init(void) {
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
@@ -74,8 +76,7 @@ static int init(void) {
 	if (waveOutOpen(&device, WAVE_MAPPER, &format, 0, 0, WAVE_ALLOWSYNC) != MMSYSERR_NOERROR)
 		return 1;
 
-	int i;
-	for (i = 0; i < NUM_BUFFERS; i++) {
+	for (unsigned i = 0; i < NUM_BUFFERS; i++) {
 		data_alloc[i] = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, buffer_size);
 		if (!data_alloc[i])
 			return 1;
@@ -94,7 +95,8 @@ static int init(void) {
 		waveOutPrepareHeader(device, wavehdr_p[i], sizeof(WAVEHDR));
 	}
 
-	sound_init(sample_rate, channels, request_fmt, buffer_samples);
+	audio_buffer = g_malloc(buffer_size);
+	sound_init(audio_buffer, request_fmt, sample_rate, channels, buffer_samples);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_samples * 1000) / sample_rate, buffer_samples);
 
 	cursor = 0;
@@ -112,11 +114,12 @@ static void _shutdown(void) {
 		GlobalUnlock(data_alloc[i]);
 		GlobalFree(data_alloc[i]);
 	}
+	g_free(audio_buffer);
 }
 
-static void flush_frame(void *buffer) {
+static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
-		return;
+		return buffer;
 	memcpy(data_p[buffer_num], buffer, buffer_size);
 	MMTIME mmtime;
 	mmtime.wType = TIME_SAMPLES;
@@ -133,5 +136,5 @@ static void flush_frame(void *buffer) {
 	waveOutWrite(device, wavehdr_p[buffer_num], sizeof(WAVEHDR));
 	cursor += buffer_samples;
 	buffer_num = (buffer_num + 1) % NUM_BUFFERS;
-	return;
+	return buffer;
 }

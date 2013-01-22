@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <alsa/asoundlib.h>
 #include <sys/ioctl.h>
+#include "portalib/glib.h"
 
 #include "events.h"
 #include "logging.h"
@@ -34,24 +35,25 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 SoundModule sound_alsa_module = {
 	.common = { .name = "alsa", .description = "ALSA audio",
 		    .init = init, .shutdown = shutdown },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
 static unsigned int sample_rate;
 static snd_pcm_t *pcm_handle;
-static snd_pcm_uframes_t frame_size;
+static snd_pcm_uframes_t period_nframes;
+static void *audio_buffer;
 
 static int init(void) {
 	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "default";
 	int err;
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_format_t format = SND_PCM_FORMAT_U8;
-	unsigned int channels = 1;
+	unsigned nchannels = 1;
 
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 
@@ -73,22 +75,22 @@ static int init(void) {
 	if ((err = snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &sample_rate, 0)) < 0)
 		goto failed;
 
-	if ((err = snd_pcm_hw_params_set_channels(pcm_handle, hw_params, channels)) < 0)
+	if ((err = snd_pcm_hw_params_set_channels_near(pcm_handle, hw_params, &nchannels)) < 0)
 		goto failed;
 
-	if ((err = snd_pcm_hw_params_get_period_size(hw_params, &frame_size, NULL)) < 0)
+	if ((err = snd_pcm_hw_params_get_period_size(hw_params, &period_nframes, NULL)) < 0)
 		goto failed;
 
-	snd_pcm_uframes_t buffer_size;
+	snd_pcm_uframes_t buffer_nframes;
 	if (xroar_opt_ao_buffer_ms > 0) {
-		buffer_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
+		buffer_nframes = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
 	} else if (xroar_opt_ao_buffer_samples > 0) {
-		buffer_size = xroar_opt_ao_buffer_samples;
+		buffer_nframes = xroar_opt_ao_buffer_samples;
 	} else {
-		buffer_size = frame_size * 2;
+		buffer_nframes = period_nframes * 2;
 	}
 
-	snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_size);
+	snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_nframes);
 
 	if ((err = snd_pcm_hw_params(pcm_handle, hw_params)) < 0)
 		goto failed;
@@ -98,20 +100,35 @@ static int init(void) {
 	if ((err = snd_pcm_prepare(pcm_handle)) < 0)
 		goto failed;
 
-	int request_fmt;
+	enum sound_fmt buffer_fmt;
+	unsigned sample_size;
 	switch (format) {
-		case SND_PCM_FORMAT_S8: request_fmt = SOUND_FMT_S8; break;
-		case SND_PCM_FORMAT_U8: request_fmt = SOUND_FMT_U8; break;
-		case SND_PCM_FORMAT_S16_LE: request_fmt = SOUND_FMT_S16_LE; break;
-		case SND_PCM_FORMAT_S16_BE: request_fmt = SOUND_FMT_S16_BE; break;
+		case SND_PCM_FORMAT_S8:
+			buffer_fmt = SOUND_FMT_S8;
+			sample_size = 1;
+			break;
+		case SND_PCM_FORMAT_U8:
+			buffer_fmt = SOUND_FMT_U8;
+			sample_size = 1;
+			break;
+		case SND_PCM_FORMAT_S16_LE:
+			buffer_fmt = SOUND_FMT_S16_LE;
+			sample_size = 2;
+			break;
+		case SND_PCM_FORMAT_S16_BE:
+			buffer_fmt = SOUND_FMT_S16_BE;
+			sample_size = 2;
+			break;
 		default:
 			LOG_WARN("Unhandled audio format.");
 			goto failed;
 	}
-	sound_init(sample_rate, 1, request_fmt, frame_size);
-	LOG_DEBUG(2, "\t%ldms (%ld samples) buffer\n", (buffer_size * 1000) / sample_rate, buffer_size);
+	unsigned buffer_size = period_nframes * nchannels * sample_size;
+	audio_buffer = g_malloc(buffer_size);
+	sound_init(audio_buffer, buffer_fmt, sample_rate, nchannels, period_nframes);
+	LOG_DEBUG(2, "\t%ldms (%ld samples) buffer\n", (buffer_nframes * 1000) / sample_rate, buffer_nframes);
 
-	/* snd_pcm_writei(pcm_handle, buffer, frame_size); */
+	/* snd_pcm_writei(pcm_handle, buffer, period_nframes); */
 	return 0;
 failed:
 	LOG_ERROR("Failed to initialise ALSA: %s\n", snd_strerror(err));
@@ -120,13 +137,15 @@ failed:
 
 static void shutdown(void) {
 	snd_pcm_close(pcm_handle);
+	g_free(audio_buffer);
 }
 
-static void flush_frame(void *buffer) {
+static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
-		return;
-	if (snd_pcm_writei(pcm_handle, buffer, frame_size) < 0) {
+		return buffer;
+	if (snd_pcm_writei(pcm_handle, buffer, period_nframes) < 0) {
 		snd_pcm_prepare(pcm_handle);
-		snd_pcm_writei(pcm_handle, buffer, frame_size);
+		snd_pcm_writei(pcm_handle, buffer, period_nframes);
 	}
+	return buffer;
 }

@@ -41,12 +41,12 @@
 #include "xroar.h"
 
 static int init(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 SoundModule sound_null_module = {
 	.common = { .name = "null", .description = "No audio",
 		    .init = init, },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
 #define CYCLES_PER_MS (OSCILLATOR_RATE / 1000)
@@ -58,7 +58,7 @@ static unsigned int current_time(void);
 static void sleep_ms(unsigned int ms);
 
 static int init(void) {
-	sound_init(44100, 1, SOUND_FMT_NULL, 1024);
+	sound_init(NULL, SOUND_FMT_NULL, 44100, 1, 1024);
 	last_pause_cycle = event_current_tick;
 	last_pause_ms = current_time();
 	return 0;
@@ -89,8 +89,7 @@ static void sleep_ms(unsigned int ms) {
 #endif
 }
 
-static void flush_frame(void *buffer) {
-	(void)buffer;
+static void *write_buffer(void *buffer) {
 	event_ticks elapsed_cycles = event_current_tick - last_pause_cycle;
 	unsigned int expected_elapsed_ms = elapsed_cycles / CYCLES_PER_MS;
 	unsigned int actual_elapsed_ms, difference_ms;
@@ -107,4 +106,5 @@ static void flush_frame(void *buffer) {
 			last_pause_cycle += difference_ms * CYCLES_PER_MS;
 		}
 	}
+	return buffer;
 }

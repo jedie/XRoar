@@ -22,6 +22,7 @@
 #include <pulse/error.h>
 #include <pulse/gccmacro.h>
 #include <pulse/simple.h>
+#include "portalib/glib.h"
 
 #include "logging.h"
 #include "machine.h"
@@ -31,16 +32,17 @@
 
 static int init(void);
 static void shutdown(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 SoundModule sound_pulse_module = {
 	.common = { .name = "pulse", .description = "Pulse audio",
 		    .init = init, .shutdown = shutdown },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
 static unsigned int sample_rate;
 static pa_simple *pa;
+static void *audio_buffer;
 
 static int fragment_bytes;
 
@@ -78,15 +80,24 @@ static int init(void) {
 		goto failed;
 	}
 
-	int request_fmt;
-	if (ss.format == PA_SAMPLE_U8) request_fmt = SOUND_FMT_U8;
-	else if (ss.format & PA_SAMPLE_S16LE) request_fmt = SOUND_FMT_S16_LE;
-	else if (ss.format & PA_SAMPLE_S16BE) request_fmt = SOUND_FMT_S16_BE;
-	else {
+	enum sound_fmt request_fmt;
+	unsigned sample_size;
+	if (ss.format == PA_SAMPLE_U8) {
+		request_fmt = SOUND_FMT_U8;
+		sample_size = 1;
+	} else if (ss.format & PA_SAMPLE_S16LE) {
+		request_fmt = SOUND_FMT_S16_LE;
+		sample_size = 2;
+	} else if (ss.format & PA_SAMPLE_S16BE) {
+		request_fmt = SOUND_FMT_S16_BE;
+		sample_size = 2;
+	} else {
 		LOG_WARN("Unhandled audio format.");
 		goto failed;
 	}
-	sound_init(sample_rate, 1, request_fmt, fragment_size);
+	unsigned buffer_size = fragment_size * sample_size;
+	audio_buffer = g_malloc(buffer_size);
+	sound_init(audio_buffer, request_fmt, sample_rate, 1, fragment_size);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
 	return 0;
 failed:
@@ -97,11 +108,13 @@ static void shutdown(void) {
 	int error;
 	pa_simple_flush(pa, &error);
 	pa_simple_free(pa);
+	g_free(audio_buffer);
 }
 
-static void flush_frame(void *buffer) {
+static void *write_buffer(void *buffer) {
 	int error;
 	if (xroar_noratelimit)
-		return;
+		return buffer;
 	pa_simple_write(pa, buffer, fragment_bytes, &error);
+	return buffer;
 }
