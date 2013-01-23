@@ -91,6 +91,34 @@
 			vdrive_set_side(fdc->side); \
 	} while (0)
 
+static const char *debug_state_name[] = {
+	"accept_command",
+	"type1_1",
+	"type1_2",
+	"type1_3",
+	"verify_track_1",
+	"verify_track_2",
+	"type2_1",
+	"type2_2",
+	"read_sector_1",
+	"read_sector_2",
+	"read_sector_3",
+	"write_sector_1",
+	"write_sector_2",
+	"write_sector_3",
+	"write_sector_4",
+	"write_sector_5",
+	"write_sector_6",
+	"type3_1",
+	"read_address_1",
+	"read_address_2",
+	"read_address_3",
+	"write_track_1",
+	"write_track_2",
+	"write_track_2b",
+	"write_track_3",
+};
+
 static void state_machine(WD279X *fdc);
 
 static int stepping_rate[4] = { 6, 12, 20, 30 };
@@ -252,6 +280,20 @@ static void state_machine(WD279X *fdc) {
 	uint8_t data;
 	int i;
 	for (;;) {
+
+		// Log new states if requested:
+		static enum WD279X_state debug_last_state = WD279X_state_invalid;
+		if (fdc->state != debug_last_state) {
+			// compiler can pick signed or unsigned, but
+			// gcc will still give mismatched comparison
+			// warning if i test <= 0 here, so cast...
+			if ((unsigned)fdc->state >= WD279X_state_invalid) {
+				LOG_DEBUG(5, "WD279X: CR=%02x ST=%02x TR=%02x SR=%02x DR=%02x state=INVALID\n", fdc->command_register, fdc->status_register, fdc->track_register, fdc->sector_register, fdc->data_register);
+			} else {
+				LOG_DEBUG(5, "WD279X: CR=%02x ST=%02x TR=%02x SR=%02x DR=%02x state=%s\n", fdc->command_register, fdc->status_register, fdc->track_register, fdc->sector_register, fdc->data_register, debug_state_name[fdc->state]);
+			}
+			debug_last_state = fdc->state;
+		}
 
 		switch (fdc->state) {
 
