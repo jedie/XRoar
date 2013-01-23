@@ -14,6 +14,36 @@ enum WD279X_type {
 	WD2791, WD2793, WD2795, WD2797
 };
 
+/* FDC states: */
+enum WD279X_state {
+	WD279X_state_accept_command,
+	WD279X_state_type1_1,
+	WD279X_state_type1_2,
+	WD279X_state_type1_3,
+	WD279X_state_verify_track_1,
+	WD279X_state_verify_track_2,
+	WD279X_state_type2_1,
+	WD279X_state_type2_2,
+	WD279X_state_read_sector_1,
+	WD279X_state_read_sector_2,
+	WD279X_state_read_sector_3,
+	WD279X_state_write_sector_1,
+	WD279X_state_write_sector_2,
+	WD279X_state_write_sector_3,
+	WD279X_state_write_sector_4,
+	WD279X_state_write_sector_5,
+	WD279X_state_write_sector_6,
+	WD279X_state_type3_1,
+	WD279X_state_read_address_1,
+	WD279X_state_read_address_2,
+	WD279X_state_read_address_3,
+	WD279X_state_write_track_1,
+	WD279X_state_write_track_2,
+	WD279X_state_write_track_2b,
+	WD279X_state_write_track_3,
+	WD279X_state_invalid
+};
+
 typedef struct WD279X WD279X;
 struct WD279X {
 	enum WD279X_type type;
@@ -34,7 +64,7 @@ struct WD279X {
 	void *intrq_data;
 
 	/* WD279X internal state */
-	int state;  /* from enum WD279X_state */
+	enum WD279X_state state;
 	struct event state_event;
 	int direction;
 	int side;
