@@ -103,6 +103,16 @@ extern struct machine_config *xroar_machine_config;
 extern struct cart_config *xroar_cart_config;
 extern struct vdg_palette *xroar_vdg_palette;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Debug flags
+
+// FDC state debug level mask (1 = commands, 2 = all)
+#define XROAR_DEBUG_FDC_STATE (3 << 0)
+// FDC: dump sector data flag
+#define XROAR_DEBUG_FDC_DATA (1 << 2)
+
+extern unsigned xroar_opt_debug_fdc;
+
 /**************************************************************************/
 
 void xroar_getargs(int argc, char **argv);

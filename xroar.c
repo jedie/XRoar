@@ -276,6 +276,9 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("trace", &xroar_trace_enabled),
 #endif
 
+	// Debug options
+	XC_SET_INT("debug-fdc", &xroar_opt_debug_fdc),
+
 	XC_CALL_NULL("help", &helptext),
 	XC_CALL_NULL("h", &helptext),
 	XC_CALL_NULL("version", &versiontext),
@@ -291,6 +294,11 @@ int xroar_frameskip = 0;
 struct machine_config *xroar_machine_config;
 struct cart_config *xroar_cart_config;
 struct vdg_palette *xroar_vdg_palette;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Debug flags
+
+unsigned xroar_opt_debug_fdc = 0;
 
 /**************************************************************************/
 

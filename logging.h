@@ -25,6 +25,7 @@
 #endif
 
 #define LOG_DEBUG(l,...) do { if (DEBUG_LEVEL >= l) { fprintf(stderr, __VA_ARGS__); } } while (0)
+#define LOG_PRINT(...) fprintf(stderr, __VA_ARGS__)
 #define LOG_WARN(...) fprintf(stderr, "WARNING: " __VA_ARGS__)
 #define LOG_ERROR(...) fprintf(stderr, "ERROR: " __VA_ARGS__)
 

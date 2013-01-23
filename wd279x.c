@@ -21,6 +21,7 @@
  *         http://www.swtpc.com/mholley/DC_5/TMS279X_DataSheet.pdf
  */
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -91,34 +92,6 @@
 			vdrive_set_side(fdc->side); \
 	} while (0)
 
-static const char *debug_state_name[] = {
-	"accept_command",
-	"type1_1",
-	"type1_2",
-	"type1_3",
-	"verify_track_1",
-	"verify_track_2",
-	"type2_1",
-	"type2_2",
-	"read_sector_1",
-	"read_sector_2",
-	"read_sector_3",
-	"write_sector_1",
-	"write_sector_2",
-	"write_sector_3",
-	"write_sector_4",
-	"write_sector_5",
-	"write_sector_6",
-	"type3_1",
-	"read_address_1",
-	"read_address_2",
-	"read_address_3",
-	"write_track_1",
-	"write_track_2",
-	"write_track_2b",
-	"write_track_3",
-};
-
 static void state_machine(WD279X *fdc);
 
 static int stepping_rate[4] = { 6, 12, 20, 30 };
@@ -126,6 +99,13 @@ static int sector_size[2][4] = {
 	{ 256, 512, 1024, 128 },
 	{ 128, 256, 512, 1024 }
 };
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Debugging
+
+static void debug_state(WD279X *fdc);
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static uint8_t _vdrive_read(WD279X *fdc) {
 	uint8_t b = vdrive_read();
@@ -159,6 +139,7 @@ void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	fdc->reset_drq_handler = NULL;
 	fdc->set_intrq_handler = NULL;
 	fdc->reset_intrq_handler = NULL;
+	fdc->state = WD279X_state_accept_command;
 	event_init(&fdc->state_event, (event_delegate)state_machine, fdc);
 }
 
@@ -237,7 +218,9 @@ void wd279x_write(WD279X *fdc, uint16_t A, uint8_t D) {
 			fdc->command_register = D;
 			/* FORCE INTERRUPT */
 			if ((fdc->command_register & 0xf0) == 0xd0) {
-				LOG_DEBUG(4,"WD279X: CMD: Force interrupt (%01x)\n",fdc->command_register&0x0f);
+				if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_STATE) {
+					debug_state(fdc);
+				}
 				if ((fdc->command_register & 0x0f) == 0) {
 					event_dequeue(&fdc->state_event);
 					fdc->status_register &= ~(STATUS_BUSY);
@@ -282,17 +265,12 @@ static void state_machine(WD279X *fdc) {
 	for (;;) {
 
 		// Log new states if requested:
-		static enum WD279X_state debug_last_state = WD279X_state_invalid;
-		if (fdc->state != debug_last_state) {
-			// compiler can pick signed or unsigned, but
-			// gcc will still give mismatched comparison
-			// warning if i test <= 0 here, so cast...
-			if ((unsigned)fdc->state >= WD279X_state_invalid) {
-				LOG_DEBUG(5, "WD279X: CR=%02x ST=%02x TR=%02x SR=%02x DR=%02x state=INVALID\n", fdc->command_register, fdc->status_register, fdc->track_register, fdc->sector_register, fdc->data_register);
-			} else {
-				LOG_DEBUG(5, "WD279X: CR=%02x ST=%02x TR=%02x SR=%02x DR=%02x state=%s\n", fdc->command_register, fdc->status_register, fdc->track_register, fdc->sector_register, fdc->data_register, debug_state_name[fdc->state]);
+		if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_STATE) {
+			static enum WD279X_state last_state = WD279X_state_invalid;
+			if (fdc->state != last_state) {
+				debug_state(fdc);
+				last_state = fdc->state;
 			}
-			debug_last_state = fdc->state;
 		}
 
 		switch (fdc->state) {
@@ -306,14 +284,11 @@ static void state_machine(WD279X *fdc) {
 				fdc->step_delay = stepping_rate[fdc->command_register & 3];
 				fdc->is_step_cmd = 0;
 				if ((fdc->command_register & 0xe0) == 0x20) {
-					LOG_DEBUG(4, "WD279X: CMD: Step\n");
 					fdc->is_step_cmd = 1;
 				} else if ((fdc->command_register & 0xe0) == 0x40) {
-					LOG_DEBUG(4, "WD279X: CMD: Step-in\n");
 					fdc->is_step_cmd = 1;
 					SET_DIRECTION;
 				} else if ((fdc->command_register & 0xe0) == 0x60) {
-					LOG_DEBUG(4, "WD279X: CMD: Step-out\n");
 					fdc->is_step_cmd = 1;
 					RESET_DIRECTION;
 				}
@@ -326,20 +301,12 @@ static void state_machine(WD279X *fdc) {
 				if ((fdc->command_register & 0xf0) == 0x00) {
 					fdc->track_register = 0xff;
 					fdc->data_register = 0x00;
-					LOG_DEBUG(4, "WD279X: CMD: Restore\n");
-				} else {
-					LOG_DEBUG(4, "WD279X: CMD: Seek (TR=%d)\n", fdc->data_register);
 				}
 				GOTO_STATE(WD279X_state_type1_1);
 			}
 
 			/* 10xxxxxx = READ/WRITE SECTOR */
 			if ((fdc->command_register & 0xc0) == 0x80) {
-				if ((fdc->command_register & 0xe0) == 0x80) {
-					LOG_DEBUG(4, "WD279X: CMD: Read sector (Tr %d, Side %d, Sector %d)\n", fdc->track_register, fdc->side, fdc->sector_register);
-				} else {
-					LOG_DEBUG(4, "WD279X: CMD: Write sector\n");
-				}
 				fdc->status_register |= STATUS_BUSY;
 				fdc->status_register &= ~(STATUS_LOST_DATA|STATUS_RNF|(1<<5)|(1<<6));
 				RESET_DRQ;
@@ -703,10 +670,8 @@ static void state_machine(WD279X *fdc) {
 					SET_INTRQ;
 					break;
 				case 0xf0:
-					LOG_DEBUG(4, "WD279X: CMD: Write track (Tr %d)\n", fdc->track_register);
 					GOTO_STATE(WD279X_state_write_track_1);
 				default:
-					LOG_WARN("WD279X: CMD: Unknown command %02x\n", fdc->command_register);
 					break;
 			}
 			return;
@@ -877,5 +842,71 @@ static void state_machine(WD279X *fdc) {
 			return;
 
 		}
+	}
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Debugging
+
+static const char *debug_state_name[] = {
+	"accept_command",
+	"type1_1",
+	"type1_2",
+	"type1_3",
+	"verify_track_1",
+	"verify_track_2",
+	"type2_1",
+	"type2_2",
+	"read_sector_1",
+	"read_sector_2",
+	"read_sector_3",
+	"write_sector_1",
+	"write_sector_2",
+	"write_sector_3",
+	"write_sector_4",
+	"write_sector_5",
+	"write_sector_6",
+	"type3_1",
+	"read_address_1",
+	"read_address_2",
+	"read_address_3",
+	"write_track_1",
+	"write_track_2",
+	"write_track_2b",
+	"write_track_3",
+};
+
+static const char *debug_command[] = {
+	"restore",
+	"seek",
+	"step",
+	"step",
+	"step-in",
+	"step-in",
+	"step-out",
+	"step-out",
+	"read-sector",
+	"read-sector",
+	"write-sector",
+	"write-sector",
+	"read-address",
+	"force-interrupt",
+	"read-track N/A",
+	"write-track",
+};
+
+static void debug_state(WD279X *fdc) {
+	unsigned level = xroar_opt_debug_fdc & XROAR_DEBUG_FDC_STATE;
+	assert((unsigned)fdc->state < WD279X_state_invalid);
+	if (level == 0)
+		return;
+	_Bool forced_interrupt = ((fdc->command_register & 0xf0) == 0xd0);
+	if (fdc->state <= WD279X_state_accept_command || forced_interrupt) {
+		// command (incl. forced interrupt)
+		unsigned type = ((fdc->command_register) >> 4) & 15;
+		LOG_PRINT("WD279X: CR=%02x ST=%02x TR=%02x SR=%02x DR=%02x state=%s [%s]\n", fdc->command_register, fdc->status_register, fdc->track_register, fdc->sector_register, fdc->data_register, debug_state_name[fdc->state], debug_command[type]);
+	} else if (level >= 2) {
+		// any other state
+		LOG_PRINT("WD279X: CR=%02x ST=%02x TR=%02x SR=%02x DR=%02x state=%s\n", fdc->command_register, fdc->status_register, fdc->track_register, fdc->sector_register, fdc->data_register, debug_state_name[fdc->state]);
 	}
 }
