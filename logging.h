@@ -6,6 +6,8 @@
 #ifndef XROAR_LOGGING_H_
 #define XROAR_LOGGING_H_
 
+#include <stdint.h>
+
 #include "config.h"
 
 #ifndef LOGGING
@@ -25,10 +27,21 @@
 #endif
 
 #define LOG_DEBUG(l,...) do { if (DEBUG_LEVEL >= l) { fprintf(stderr, __VA_ARGS__); } } while (0)
-#define LOG_PRINT(...) fprintf(stderr, __VA_ARGS__)
+#define LOG_PRINT(...) printf(__VA_ARGS__)
 #define LOG_WARN(...) fprintf(stderr, "WARNING: " __VA_ARGS__)
 #define LOG_ERROR(...) fprintf(stderr, "ERROR: " __VA_ARGS__)
 
 #endif
+
+struct log_handle;
+
+// close any open log
+void log_close(struct log_handle **);
+
+// hexdumps - pretty print blocks of data
+void log_open_hexdump(struct log_handle **, const char *prefix);
+void log_hexdump_line(struct log_handle *);
+void log_hexdump_byte(struct log_handle *, uint8_t b);
+void log_hexdump_flag(struct log_handle *l);
 
 #endif  /* XROAR_LOGGING_H_ */

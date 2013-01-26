@@ -95,6 +95,7 @@ xroar_common_OBJS = \
 	input.o \
 	joystick.o \
 	keyboard.o \
+	logging.o \
 	mc6809.o \
 	machine.o \
 	mc6821.o \
