@@ -30,7 +30,7 @@
 #include "gtk2/drivecontrol_glade.h"
 
 /* Module callbacks */
-static void update_drive_cyl_head(int drive, int cyl, int head);
+static void update_drive_cyl_head(unsigned drive, unsigned cyl, unsigned head);
 
 /* Drive control widgets */
 static GtkWidget *dc_window = NULL;
@@ -207,7 +207,7 @@ void gtk2_update_drive_disk(int drive, struct vdisk *disk) {
 	gtk2_update_drive_write_back(drive, wb);
 }
 
-static void update_drive_cyl_head(int drive, int cyl, int head) {
+static void update_drive_cyl_head(unsigned drive, unsigned cyl, unsigned head) {
 	char string[16];
 	snprintf(string, sizeof(string), "Dr %01d Tr %02d He %01d", drive + 1, cyl, head);
 	gtk_label_set_text(GTK_LABEL(dc_drive_cyl_head), string);
