@@ -87,8 +87,6 @@ struct WD279X {
 };
 
 WD279X *wd279x_new(enum WD279X_type type);
-void wd279x_init(WD279X *fdc, enum WD279X_type type);
-void wd279x_deinit(WD279X *fdc);
 void wd279x_free(WD279X *fdc);
 void wd279x_reset(WD279X *fdc);
 void wd279x_set_dden(WD279X *fdc, _Bool dden);  /* 1 = Double density, 0 = Single */

@@ -103,6 +103,10 @@ static int sector_size[2][4] = {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Debugging
 
+struct log_handle *log_rsec_hex = NULL;
+struct log_handle *log_wsec_hex = NULL;
+struct log_handle *log_wtrk_hex = NULL;
+
 static void debug_state(WD279X *fdc);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -124,13 +128,7 @@ static void _vdrive_write(WD279X *fdc, uint8_t b) {
 		_vdrive_write(fdc, tmp & 0xff); \
 	} while (0)
 
-WD279X *wd279x_new(enum WD279X_type type) {
-	WD279X *new = g_malloc(sizeof(WD279X));
-	wd279x_init(new, type);
-	return new;
-}
-
-void wd279x_init(WD279X *fdc, enum WD279X_type type) {
+static void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	fdc->type = type;
 	fdc->has_sso = (type == WD2795 || type == WD2797);
 	fdc->has_length_flag = (type == WD2795 || type == WD2797);
@@ -143,18 +141,24 @@ void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	event_init(&fdc->state_event, (event_delegate)state_machine, fdc);
 }
 
-void wd279x_deinit(WD279X *fdc) {
+WD279X *wd279x_new(enum WD279X_type type) {
+	WD279X *new = g_malloc(sizeof(WD279X));
+	wd279x_init(new, type);
+	return new;
+}
+
+static void wd279x_deinit(WD279X *fdc) {
 	event_dequeue(&fdc->state_event);
 }
 
 void wd279x_free(WD279X *fdc) {
+	assert(fdc != NULL);
 	wd279x_deinit(fdc);
 	free(fdc);
 }
 
 void wd279x_reset(WD279X *fdc) {
-	if (!fdc)
-		return;
+	assert(fdc != NULL);
 	event_dequeue(&fdc->state_event);
 	fdc->status_register = 0;
 	fdc->track_register = 0;
@@ -540,8 +544,12 @@ static void state_machine(WD279X *fdc) {
 
 		case WD279X_state_read_sector_1:
 			LOG_DEBUG(4,"Reading %d-byte sector (Tr %d, Se %d) from head_pos=%04x\n", fdc->bytes_left, fdc->track_register, fdc->sector_register, vdrive_head_pos());
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+				log_open_hexdump(&log_rsec_hex, "WD279X: read-sector");
 			fdc->status_register |= ((~fdc->dam & 1) << 5);
 			fdc->data_register = _vdrive_read(fdc);
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+				log_hexdump_byte(log_rsec_hex, fdc->data_register);
 			fdc->bytes_left--;
 			SET_DRQ;
 			NEXT_STATE(WD279X_state_read_sector_2, vdrive_time_to_next_byte());
@@ -551,15 +559,20 @@ static void state_machine(WD279X *fdc) {
 		case WD279X_state_read_sector_2:
 			if (fdc->status_register & STATUS_DRQ) {
 				fdc->status_register |= STATUS_LOST_DATA;
+				if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+					log_hexdump_flag(log_rsec_hex);
 				/* RESET_DRQ;  XXX */
 			}
 			if (fdc->bytes_left > 0) {
 				fdc->data_register = _vdrive_read(fdc);
+				if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+					log_hexdump_byte(log_rsec_hex, fdc->data_register);
 				fdc->bytes_left--;
 				SET_DRQ;
 				NEXT_STATE(WD279X_state_read_sector_2, vdrive_time_to_next_byte());
 				return;
 			}
+			log_close(&log_rsec_hex);
 			/* Including CRC bytes should result in computed CRC = 0 */
 			(void)_vdrive_read(fdc);
 			(void)_vdrive_read(fdc);
@@ -603,6 +616,8 @@ static void state_machine(WD279X *fdc) {
 
 
 		case WD279X_state_write_sector_3:
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+				log_open_hexdump(&log_wsec_hex, "WD279X: write-sector");
 			if (IS_DOUBLE_DENSITY) {
 				for (i = 0; i < 11; i++)
 					vdrive_skip();
@@ -637,8 +652,12 @@ static void state_machine(WD279X *fdc) {
 			if (fdc->status_register & STATUS_DRQ) {
 				data = 0;
 				fdc->status_register |= STATUS_LOST_DATA;
+				if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+					log_hexdump_flag(log_wsec_hex);
 				RESET_DRQ;  /* XXX */
 			}
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+				log_hexdump_byte(log_wsec_hex, data);
 			_vdrive_write(fdc, data);
 			fdc->bytes_left--;
 			if (fdc->bytes_left > 0) {
@@ -646,6 +665,7 @@ static void state_machine(WD279X *fdc) {
 				NEXT_STATE(WD279X_state_write_sector_5, vdrive_time_to_next_byte());
 				return;
 			}
+			log_close(&log_wsec_hex);
 			VDRIVE_WRITE_CRC16;
 			NEXT_STATE(WD279X_state_write_sector_6, vdrive_time_to_next_byte() + W_MICROSEC(20));
 			return;
@@ -765,21 +785,29 @@ static void state_machine(WD279X *fdc) {
 				return;
 			}
 			LOG_DEBUG(4,"Writing track from head_pos=%04x\n", vdrive_head_pos());
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+				log_open_hexdump(&log_wtrk_hex, "WD279X: write-track");
 			GOTO_STATE(WD279X_state_write_track_3);
 
 
 		case WD279X_state_write_track_3:
 			data = fdc->data_register;
 			if (vdrive_new_index_pulse()) {
+				if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+					log_close(&log_wtrk_hex);
 				LOG_DEBUG(4,"Finished writing track at head_pos=%04x\n", vdrive_head_pos());
 				RESET_DRQ;  /* XXX */
 				fdc->status_register &= ~(STATUS_BUSY);
 				SET_INTRQ;
 				return;
 			}
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+				log_hexdump_byte(log_wtrk_hex, fdc->data_register);
 			if (fdc->status_register & STATUS_DRQ) {
 				data = 0;
 				fdc->status_register |= STATUS_LOST_DATA;
+				if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_DATA)
+					log_hexdump_flag(log_wtrk_hex);
 			}
 			SET_DRQ;
 			if (IS_SINGLE_DENSITY) {
@@ -896,8 +924,9 @@ static const char *debug_command[] = {
 };
 
 static void debug_state(WD279X *fdc) {
-	unsigned level = xroar_opt_debug_fdc & XROAR_DEBUG_FDC_STATE;
+	assert(fdc != NULL);
 	assert((unsigned)fdc->state < WD279X_state_invalid);
+	unsigned level = xroar_opt_debug_fdc & XROAR_DEBUG_FDC_STATE;
 	if (level == 0)
 		return;
 	_Bool forced_interrupt = ((fdc->command_register & 0xf0) == 0xd0);
