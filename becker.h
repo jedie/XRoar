@@ -13,6 +13,7 @@
 
 _Bool becker_open(void);
 void becker_close(void);
+void becker_reset(void);
 uint8_t becker_read_status(void);
 uint8_t becker_read_data(void);
 void becker_write_data(uint8_t D);

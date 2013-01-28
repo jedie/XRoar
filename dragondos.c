@@ -94,6 +94,8 @@ static void dragondos_reset(struct cart *c) {
 	wd279x_reset(d->fdc);
 	d->ic1_old = 0xff;
 	ff48_write(d, 0);
+	if (d->have_becker)
+		becker_reset();
 }
 
 static void dragondos_detach(struct cart *c) {

@@ -121,10 +121,7 @@ _Bool becker_open(void) {
 	}
 #endif
 
-	if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
-		log_open_hexdump(&log_data_in_hex, "BECKER IN ");
-		log_open_hexdump(&log_data_out_hex, "BECKER OUT");
-	}
+	becker_reset();
 
 	return 1;
 
@@ -146,6 +143,13 @@ void becker_close(void) {
 		log_close(&log_data_in_hex);
 	if (log_data_out_hex)
 		log_close(&log_data_out_hex);
+}
+
+void becker_reset(void) {
+	if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+		log_open_hexdump(&log_data_in_hex, "BECKER IN ");
+		log_open_hexdump(&log_data_out_hex, "BECKER OUT");
+	}
 }
 
 static void fetch_input(void) {

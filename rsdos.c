@@ -93,6 +93,8 @@ static void rsdos_reset(struct cart *c) {
 	r->ic1_drive_select = -1;
 	r->drq_flag = r->intrq_flag = 0;
 	ff40_write(r, 0);
+	if (r->have_becker)
+		becker_reset();
 }
 
 static void rsdos_detach(struct cart *c) {
