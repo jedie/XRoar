@@ -88,7 +88,7 @@ static GLfloat vertices[][2] = {
 	{ 0., 0. }
 };
 
-int vo_opengl_init(void) {
+_Bool vo_opengl_init(void) {
 	screen_tex = g_malloc(320 * 240 * sizeof(Pixel));
 	window_width = 640;
 	window_height = 480;
@@ -108,7 +108,7 @@ int vo_opengl_init(void) {
 
 	alloc_colours();
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
-	return 0;
+	return 1;
 }
 
 void vo_opengl_shutdown(void) {
