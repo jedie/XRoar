@@ -116,7 +116,7 @@ extern unsigned xroar_opt_debug_fdc;
 /**************************************************************************/
 
 void xroar_getargs(int argc, char **argv);
-int xroar_init(int argc, char **argv);
+_Bool xroar_init(int argc, char **argv);
 void xroar_shutdown(void);
 void xroar_run(void);
 int xroar_filetype_by_ext(const char *filename);

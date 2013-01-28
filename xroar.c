@@ -617,7 +617,7 @@ static void helptext(void) {
 # define CONFPATH "."
 #endif
 
-int xroar_init(int argc, char **argv) {
+_Bool xroar_init(int argc, char **argv) {
 	int argn = 1, ret;
 	char *conffile;
 
@@ -786,12 +786,12 @@ int xroar_init(int argc, char **argv) {
 	video_module = (VideoModule *)module_init_from_list((struct module **)video_module_list, (struct module *)video_module);
 	if (video_module == NULL && video_module_list != NULL) {
 		LOG_ERROR("No video module initialised.\n");
-		return 1;
+		return 0;
 	}
 	sound_module = (SoundModule *)module_init_from_list((struct module **)sound_module_list, (struct module *)sound_module);
 	if (sound_module == NULL && sound_module_list != NULL) {
 		LOG_ERROR("No sound module initialised.\n");
-		return 1;
+		return 0;
 	}
 	keyboard_module = (KeyboardModule *)module_init_from_list((struct module **)keyboard_module_list, (struct module *)keyboard_module);
 	if (keyboard_module == NULL && keyboard_module_list != NULL) {
@@ -865,7 +865,7 @@ int xroar_init(int argc, char **argv) {
 	} else if (opt_lp_pipe) {
 		printer_open_pipe(opt_lp_pipe);
 	}
-	return 0;
+	return 1;
 }
 
 void xroar_shutdown(void) {
