@@ -110,6 +110,8 @@ extern struct vdg_palette *xroar_vdg_palette;
 #define XROAR_DEBUG_FDC_STATE (3 << 0)
 // FDC: dump sector data flag
 #define XROAR_DEBUG_FDC_DATA (1 << 2)
+// FDC: dump becker data flag
+#define XROAR_DEBUG_FDC_BECKER (1 << 3)
 
 extern unsigned xroar_opt_debug_fdc;
 

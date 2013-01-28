@@ -62,6 +62,14 @@ static char output_buf[OUTPUT_BUFFER_SIZE];
 static int output_buf_ptr = 0;
 static int output_buf_length = 0;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Debugging
+
+struct log_handle *log_data_in_hex = NULL;
+struct log_handle *log_data_out_hex = NULL;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 _Bool becker_open(void) {
 
 #ifdef WINDOWS32
@@ -113,6 +121,11 @@ _Bool becker_open(void) {
 	}
 #endif
 
+	if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+		log_open_hexdump(&log_data_in_hex, "BECKER IN ");
+		log_open_hexdump(&log_data_out_hex, "BECKER OUT");
+	}
+
 	return 1;
 
 failed:
@@ -129,6 +142,10 @@ failed:
 void becker_close(void) {
 	close(sockfd);
 	sockfd = -1;
+	if (log_data_in_hex)
+		log_close(&log_data_in_hex);
+	if (log_data_out_hex)
+		log_close(&log_data_out_hex);
 }
 
 static void fetch_input(void) {
@@ -136,6 +153,12 @@ static void fetch_input(void) {
 		ssize_t new = recv(sockfd, input_buf, INPUT_BUFFER_SIZE, 0);
 		if (new > 0) {
 			input_buf_length = new;
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+				// flush & reopen output hexdump
+				log_open_hexdump(&log_data_out_hex, "BECKER OUT");
+				for (unsigned i = 0; i < (unsigned)new; i++)
+					log_hexdump_byte(log_data_in_hex, input_buf[i]);
+			}
 		}
 	}
 }
@@ -144,6 +167,12 @@ static void write_output(void) {
 	if (output_buf_length > 0) {
 		ssize_t sent = send(sockfd, output_buf + output_buf_ptr, output_buf_length - output_buf_ptr, 0);
 		if (sent > 0) {
+			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+				// flush & reopen input hexdump
+				log_open_hexdump(&log_data_in_hex, "BECKER IN ");
+				for (unsigned i = 0; i < (unsigned)sent; i++)
+					log_hexdump_byte(log_data_out_hex, output_buf[output_buf_ptr + i]);
+			}
 			output_buf_ptr += sent;
 			if (output_buf_ptr >= output_buf_length) {
 				output_buf_ptr = output_buf_length = 0;
@@ -153,6 +182,11 @@ static void write_output(void) {
 }
 
 uint8_t becker_read_status(void) {
+	if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+		// flush both hexdump logs
+		log_hexdump_line(log_data_in_hex);
+		log_hexdump_line(log_data_out_hex);
+	}
 	fetch_input();
 	if (input_buf_length > 0)
 		return 0x02;
