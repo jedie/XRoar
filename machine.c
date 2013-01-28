@@ -359,6 +359,7 @@ void machine_init(void) {
 }
 
 void machine_shutdown(void) {
+	machine_remove_cart();
 	tape_shutdown();
 	vdrive_shutdown();
 }
