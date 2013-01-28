@@ -350,13 +350,11 @@ uint8_t *vdrive_next_idam(void) {
 }
 
 /* Returns 1 on active transition of index pulse */
-int vdrive_new_index_pulse(void) {
+_Bool vdrive_new_index_pulse(void) {
 	static _Bool last_index_pulse = 0;
 	_Bool last = last_index_pulse;
 	last_index_pulse = vdrive_index_pulse;
-	if (!last && vdrive_index_pulse)
-		return 1;
-	return 0;
+	return (!last && vdrive_index_pulse);
 }
 
 static void do_index_pulse(void *data) {

@@ -45,7 +45,7 @@ void vdrive_write(uint8_t data);
 void vdrive_skip(void);
 uint8_t vdrive_read(void);
 void vdrive_write_idam(void);
-int vdrive_new_index_pulse(void);  /* Has there been one? */
+_Bool vdrive_new_index_pulse(void);  /* Has there been one? */
 unsigned vdrive_time_to_next_byte(void);
 unsigned vdrive_time_to_next_idam(void);
 uint8_t *vdrive_next_idam(void);
