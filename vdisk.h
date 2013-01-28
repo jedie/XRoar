@@ -19,25 +19,25 @@ struct vdisk {
 	char *filename;
 	_Bool file_write_protect;
 	_Bool write_protect;
-	unsigned int num_sides;
-	unsigned int num_tracks;
-	unsigned int track_length;
+	unsigned num_sides;
+	unsigned num_tracks;
+	unsigned track_length;
 	uint8_t *track_data;
 };
 
-struct vdisk *vdisk_blank_disk(int num_sides, int num_tracks,
-		int track_length);
+struct vdisk *vdisk_blank_disk(unsigned num_sides, unsigned num_tracks,
+		unsigned track_length);
 void vdisk_destroy(struct vdisk *disk);
 
 struct vdisk *vdisk_load(const char *filename);
-int vdisk_save(struct vdisk *disk, int force);
+_Bool vdisk_save(struct vdisk *disk, _Bool force);
 
-void *vdisk_track_base(struct vdisk *disk, int side, int track);
-int vdisk_format_disk(struct vdisk *disk, int density,
-		int num_sectors, int first_sector, int ssize_code);
-int vdisk_update_sector(struct vdisk *disk, int side, int track,
-		int sector, int sector_length, uint8_t *buf);
-int vdisk_fetch_sector(struct vdisk *disk, int side, int track,
-		int sector, int sector_length, uint8_t *buf);
+void *vdisk_track_base(struct vdisk *disk, unsigned side, unsigned track);
+_Bool vdisk_format_disk(struct vdisk *disk, unsigned density,
+		unsigned num_sectors, unsigned first_sector, unsigned ssize_code);
+_Bool vdisk_update_sector(struct vdisk *disk, unsigned side, unsigned track,
+		unsigned sector, unsigned sector_length, uint8_t *buf);
+_Bool vdisk_fetch_sector(struct vdisk *disk, unsigned side, unsigned track,
+		unsigned sector, unsigned sector_length, uint8_t *buf);
 
 #endif  /* XROAR_VDISK_H_ */
