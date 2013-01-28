@@ -24,7 +24,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void _shutdown(void);
 static void *write_buffer(void *buffer);
 
@@ -47,7 +47,7 @@ static int buffer_num;
 static int sample_rate;
 static uint8_t *audio_buffer;
 
-static int init(void) {
+static _Bool init(void) {
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 
 	if (xroar_opt_ao_buffer_ms > 0) {
@@ -74,17 +74,17 @@ static int init(void) {
 	format.wBitsPerSample = bytes_per_sample * 8;
 
 	if (waveOutOpen(&device, WAVE_MAPPER, &format, 0, 0, WAVE_ALLOWSYNC) != MMSYSERR_NOERROR)
-		return 1;
+		return 0;
 
 	for (unsigned i = 0; i < NUM_BUFFERS; i++) {
 		data_alloc[i] = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, buffer_size);
 		if (!data_alloc[i])
-			return 1;
+			return 0;
 		data_p[i] = (LPSTR)GlobalLock(data_alloc[i]);
 
 		wavehdr_alloc[i] = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, sizeof(WAVEHDR));
 		if (!wavehdr_alloc[i])
-			return 1;
+			return 0;
 		wavehdr_p[i] = (WAVEHDR *)GlobalLock(wavehdr_alloc[i]);
 
 		wavehdr_p[i]->lpData = data_p[i];
@@ -102,7 +102,7 @@ static int init(void) {
 	cursor = 0;
 	buffer_num = 0;
 
-	return 0;
+	return 1;
 }
 
 static void _shutdown(void) {

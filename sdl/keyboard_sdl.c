@@ -32,7 +32,7 @@
 #include "sdl/ui_sdl.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void update_kbd_translate(void);
 
 KeyboardModule keyboard_sdl_module = {
@@ -75,7 +75,7 @@ static void map_keyboard(unsigned int *map) {
 	}
 }
 
-static int init(void) {
+static _Bool init(void) {
 	int i;
 	keymap_option = xroar_opt_keymap;
 	selected_keymap = NULL;
@@ -91,7 +91,7 @@ static int init(void) {
 	}
 	map_keyboard(selected_keymap);
 	SDL_EnableUNICODE(xroar_kbd_translate);
-	return 0;
+	return 1;
 }
 
 static void update_kbd_translate(void) {

@@ -30,7 +30,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void *write_buffer(void *buffer);
 
@@ -46,7 +46,7 @@ static void *audio_buffer;
 
 static int fragment_bytes;
 
-static int init(void) {
+static _Bool init(void) {
 	const char *device = xroar_opt_ao_device;
 	pa_sample_spec ss = {
 		.format = PA_SAMPLE_U8,
@@ -99,9 +99,9 @@ static int init(void) {
 	audio_buffer = g_malloc(buffer_size);
 	sound_init(audio_buffer, request_fmt, sample_rate, 1, fragment_size);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
-	return 0;
-failed:
 	return 1;
+failed:
+	return 0;
 }
 
 static void shutdown(void) {

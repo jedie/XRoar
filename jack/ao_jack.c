@@ -30,7 +30,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void flush_frame(void *buffer);
 
@@ -49,13 +49,13 @@ static float *buffer;
 
 static pthread_mutex_t haltflag;
 
-static int init(void) {
+static _Bool init(void) {
 	const char **ports;
 	int i;
 
 	if ((client = jack_client_open("XRoar", 0, NULL)) == 0) {
 		LOG_ERROR("Initialisation failed: JACK server not running?\n");
-		return 1;
+		return 0;
 	}
 	jack_set_process_callback(client, jack_callback, 0);
 	output_port[0] = jack_port_register(client, "output0", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
@@ -63,12 +63,12 @@ static int init(void) {
 	if (jack_activate(client)) {
 		LOG_ERROR("Initialisation failed: Cannot activate client\n");
 		jack_client_close(client);
-		return 1;
+		return 0;
 	}
 	if ((ports = jack_get_ports(client, NULL, NULL, JackPortIsPhysical|JackPortIsInput)) == NULL) {
 		LOG_ERROR("Cannot find any physical playback ports\n");
 		jack_client_close(client);
-		return 1;
+		return 0;
 	}
 	/* connect up to 2 ports (stereo output) */
 	for (i = 0; ports[i] && i < 2; i++) {
@@ -76,7 +76,7 @@ static int init(void) {
 			LOG_ERROR("Cannot connect output ports\n");
 			free(ports);
 			jack_client_close(client);
-			return 1;
+			return 0;
 		}
 	}
 	free(ports);
@@ -89,7 +89,7 @@ static int init(void) {
 
 	pthread_mutex_init(&haltflag, NULL);
 
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {

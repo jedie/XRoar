@@ -27,7 +27,7 @@
 #include "vo_opengl.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void _shutdown(void);
 static void vsync(void);
 static void resize(unsigned int w, unsigned int h);
@@ -49,12 +49,12 @@ extern GtkWidget *gtk2_menubar;
 extern GtkWidget *gtk2_drawing_area;
 static gboolean configure(GtkWidget *, GdkEventConfigure *, gpointer);
 
-static int init(void) {
+static _Bool init(void) {
 	gtk_gl_init(NULL, NULL);
 
 	if (gdk_gl_query_extension() != TRUE) {
 		LOG_ERROR("OpenGL not available\n");
-		return 1;
+		return 0;
 	}
 	vo_opengl_init();
 
@@ -63,11 +63,11 @@ static int init(void) {
 	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(GDK_GL_MODE_RGB | GDK_GL_MODE_DOUBLE);
 	if (!glconfig) {
 		LOG_ERROR("Failed to create OpenGL config\n");
-		return 1;
+		return 0;
 	}
 	if (!gtk_widget_set_gl_capability(gtk2_drawing_area, glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE)) {
 		LOG_ERROR("Failed to add OpenGL support to GTK widget\n");
-		return 1;
+		return 0;
 	}
 
 	g_signal_connect(gtk2_drawing_area, "configure-event", G_CALLBACK(configure), NULL);
@@ -83,7 +83,7 @@ static int init(void) {
 
 	vsync();
 
-	return 0;
+	return 1;
 }
 
 static void _shutdown(void) {

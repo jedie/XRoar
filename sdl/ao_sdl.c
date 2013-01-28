@@ -35,7 +35,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void _shutdown(void);
 static void *write_buffer(void *buffer);
 
@@ -59,17 +59,17 @@ static int haltflag;
 
 static void callback(void *userdata, Uint8 *stream, int len);
 
-static int init(void) {
+static _Bool init(void) {
 	static SDL_AudioSpec desired;
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 			LOG_ERROR("Failed to initialise SDL\n");
-			return 1;
+			return 0;
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
 		LOG_ERROR("Failed to initialise SDL audio\n");
-		return 1;
+		return 0;
 	}
 	desired.freq = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	desired.format = AUDIO_U8;
@@ -86,7 +86,7 @@ static int init(void) {
 	if (SDL_OpenAudio(&desired, &audiospec) < 0) {
 		LOG_ERROR("Couldn't open audio: %s\n", SDL_GetError());
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
-		return 1;
+		return 0;
 	}
 
 	int buffer_fmt;
@@ -112,11 +112,11 @@ static int init(void) {
 	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
 	SDL_PauseAudio(0);
-	return 0;
+	return 1;
 failed:
 	SDL_CloseAudio();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
-	return 1;
+	return 0;
 }
 
 static void _shutdown(void) {

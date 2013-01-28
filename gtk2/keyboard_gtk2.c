@@ -32,7 +32,7 @@
 #include "printer.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 
 KeyboardModule keyboard_gtk2_module = {
@@ -110,7 +110,7 @@ static void map_keyboard(unsigned int *map) {
 	}
 }
 
-static int init(void) {
+static _Bool init(void) {
 	static unsigned int *selected_keymap = NULL;
 	int i;
 	for (i = 0; mappings[i].name; i++) {
@@ -127,7 +127,7 @@ static int init(void) {
 	/* Connect GTK key press/release signals to handlers */
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key_press_event", G_CALLBACK(keypress), NULL);
 	g_signal_connect(G_OBJECT(gtk2_top_window), "key_release_event", G_CALLBACK(keyrelease), NULL);
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {

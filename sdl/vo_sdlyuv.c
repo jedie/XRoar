@@ -33,7 +33,7 @@
 #include "windows32/common_windows32.h"
 #endif
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void alloc_colours(void);
 static void vsync(void);
@@ -82,7 +82,7 @@ static Uint32 try_overlay_format[] = {
 #define NUM_OVERLAY_FORMATS ((int)(sizeof(try_overlay_format)/sizeof(Uint32)))
 static Uint32 overlay_format;
 
-static int init(void) {
+static _Bool init(void) {
 	const SDL_VideoInfo *video_info;
 	int i;
 
@@ -93,12 +93,12 @@ static int init(void) {
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 			LOG_ERROR("Failed to initialise SDL: %s\n", SDL_GetError());
-			return 1;
+			return 0;
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
 		LOG_ERROR("Failed to initialise SDL video: %s\n", SDL_GetError());
-		return 1;
+		return 0;
 	}
 
 	video_info = SDL_GetVideoInfo();
@@ -108,7 +108,7 @@ static int init(void) {
 	window_height = 480;
 
 	if (set_fullscreen(xroar_opt_fullscreen))
-		return 1;
+		return 0;
 	Uint32 first_successful_format = 0;
 	for (i = 0; i < NUM_OVERLAY_FORMATS; i++) {
 		overlay_format = try_overlay_format[i];
@@ -132,7 +132,7 @@ static int init(void) {
 	}
 	if (!overlay) {
 		LOG_ERROR("Failed to create SDL overlay for display: %s\n", SDL_GetError());
-		return 1;
+		return 0;
 	}
 	if (overlay->hw_overlay != 1) {
 		LOG_WARN("Warning: SDL overlay is not hardware accelerated\n");
@@ -149,7 +149,7 @@ static int init(void) {
 	}
 #endif
 	vsync();
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {

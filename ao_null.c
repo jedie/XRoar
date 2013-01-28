@@ -40,7 +40,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void *write_buffer(void *buffer);
 
 SoundModule sound_null_module = {
@@ -57,11 +57,11 @@ static unsigned int last_pause_ms;
 static unsigned int current_time(void);
 static void sleep_ms(unsigned int ms);
 
-static int init(void) {
+static _Bool init(void) {
 	sound_init(NULL, SOUND_FMT_NULL, 44100, 1, 1024);
 	last_pause_cycle = event_current_tick;
 	last_pause_ms = current_time();
-	return 0;
+	return 1;
 }
 
 static unsigned int current_time(void) {

@@ -37,7 +37,7 @@
 #include "module.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 
 JoystickModule joystick_linux_module = {
@@ -166,7 +166,7 @@ static void parse_joystick_def(char *def, int base) {
 	}
 }
 
-static int init(void) {
+static _Bool init(void) {
 	int valid, i;
 
 	/* Count how many joystick devices we can open. */
@@ -181,13 +181,13 @@ static int init(void) {
 
 	if (num_joystick_devices < 1) {
 		LOG_DEBUG(2, "\tNo joysticks found\n");
-		return 1;
+		return 0;
 	}
 
 	poll_event = event_new(do_poll, NULL);
 	if (poll_event == NULL) {
 		LOG_WARN("Couldn't create joystick polling event.\n");
-		return 1;
+		return 0;
 	}
 
 	/* If only one joystick attached, change the right joystick defaults */
@@ -237,7 +237,7 @@ static int init(void) {
 	} else {
 		LOG_WARN("No valid joystick mappings made.\n");
 	}
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {

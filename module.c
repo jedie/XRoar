@@ -188,7 +188,7 @@ struct module *module_init(struct module *module) {
 	if (have_description) {
 		LOG_DEBUG(2, "Module init: %s\n", module->description);
 	}
-	if (!module->init || module->init() == 0) {
+	if (!module->init || module->init()) {
 		module->initialised = 1;
 		return module;
 	}

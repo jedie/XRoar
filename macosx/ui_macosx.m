@@ -595,7 +595,7 @@ int main(int argc, char **argv) {
 
 /* XRoar UI definition */
 
-static int init(void);
+static _Bool init(void);
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void keymap_changed_cb(int map);
@@ -639,12 +639,12 @@ UIModule ui_macosx_module = {
 	.cart_changed_cb = cart_changed_cb,
 };
 
-static int init(void) {
+static _Bool init(void) {
 	update_machine_menu();
 	update_cartridge_menu();
 	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
 	xroar_kbd_translate_changed_cb = kbd_translate_changed_cb;
-	return 0;
+	return 1;
 }
 
 static void update_machine_menu(void) {

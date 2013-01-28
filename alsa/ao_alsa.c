@@ -33,7 +33,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void *write_buffer(void *buffer);
 
@@ -48,7 +48,7 @@ static snd_pcm_t *pcm_handle;
 static snd_pcm_uframes_t period_nframes;
 static void *audio_buffer;
 
-static int init(void) {
+static _Bool init(void) {
 	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "default";
 	int err;
 	snd_pcm_hw_params_t *hw_params;
@@ -129,10 +129,10 @@ static int init(void) {
 	LOG_DEBUG(2, "\t%ldms (%ld samples) buffer\n", (buffer_nframes * 1000) / sample_rate, buffer_nframes);
 
 	/* snd_pcm_writei(pcm_handle, buffer, period_nframes); */
-	return 0;
+	return 1;
 failed:
 	LOG_ERROR("Failed to initialise ALSA: %s\n", snd_strerror(err));
-	return 1;
+	return 0;
 }
 
 static void shutdown(void) {

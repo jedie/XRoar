@@ -33,7 +33,7 @@
 #include "windows32/common_windows32.h"
 #endif
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void alloc_colours(void);
 static void vsync(void);
@@ -84,7 +84,7 @@ static Pixel alloc_and_map(int r, int g, int b) {
 
 #include "vo_generic_ops.c"
 
-static int init(void) {
+static _Bool init(void) {
 #ifdef WINDOWS32
 	if (!getenv("SDL_VIDEODRIVER"))
 		putenv("SDL_VIDEODRIVER=windib");
@@ -92,15 +92,15 @@ static int init(void) {
 	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
 		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 			LOG_ERROR("Failed to initialise SDL: %s\n", SDL_GetError());
-			return 1;
+			return 0;
 		}
 	}
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
 		LOG_ERROR("Failed to initialise SDL video: %s\n", SDL_GetError());
-		return 1;
+		return 0;
 	}
 	if (set_fullscreen(xroar_opt_fullscreen))
-		return 1;
+		return 0;
 #ifdef WINDOWS32
 	{
 		SDL_version sdlver;
@@ -112,7 +112,7 @@ static int init(void) {
 	}
 #endif
 	vsync();
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {

@@ -13,7 +13,7 @@ struct vdisk;
 struct module {
 	const char *name;
 	const char *description;
-	int (*init)(void);
+	_Bool (*init)(void);
 	_Bool initialised;
 	void (*shutdown)(void);
 };

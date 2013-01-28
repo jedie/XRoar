@@ -32,7 +32,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void *write_buffer(void *buffer);
 
@@ -46,7 +46,7 @@ static int sound_fd;
 static int fragment_size;
 static void *audio_buffer;
 
-static int init(void) {
+static _Bool init(void) {
 	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "/dev/dsp";
 	int fragment_param, tmp;
 
@@ -64,7 +64,7 @@ static int init(void) {
 		goto failed;
 	if ((format & (AFMT_S8 | AFMT_S16_NE)) == 0) {
 		LOG_ERROR("No desired audio formats supported by device\n");
-		return 1;
+		goto failed;
 	}
 	if (format & AFMT_S8) {
 		format = AFMT_S8;
@@ -147,9 +147,9 @@ static int init(void) {
 		LOG_WARN("Couldn't set desired buffer parameters: sync to audio might not be ideal\n");
 
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
-	return 0;
-failed:
 	return 1;
+failed:
+	return 0;
 }
 
 static void shutdown(void) {

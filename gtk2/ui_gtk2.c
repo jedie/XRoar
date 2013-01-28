@@ -37,7 +37,7 @@
 
 #include "gtk2/top_window_glade.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void run(void);
 
@@ -420,7 +420,7 @@ static GtkRadioActionEntry keymap_radio_entries[] = {
 	{ .name = "keymap_coco", .label = "CoCo Layout", .value = KEYMAP_COCO },
 };
 
-static int init(void) {
+static _Bool init(void) {
 
 	gtk_init(NULL, NULL);
 
@@ -432,7 +432,7 @@ static int init(void) {
 	if (!gtk_builder_add_from_string(builder, top_window_glade, -1, &error)) {
 		g_warning("Couldn't create UI: %s", error->message);
 		g_error_free(error);
-		return 1;
+		return 0;
 	}
 
 	/* Fetch top level window */
@@ -512,7 +512,7 @@ static int init(void) {
 	/* Create (hidden) tape control window */
 	gtk2_create_tc_window();
 
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {

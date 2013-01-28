@@ -29,7 +29,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void *write_buffer(void *buffer);
 
@@ -56,7 +56,7 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		AudioBufferList *outOutputData,
 		const AudioTimeStamp *inOutputTime, void *defptr);
 
-static int init(void) {
+static _Bool init(void) {
 	AudioObjectPropertyAddress propertyAddress;
 	AudioStreamBasicDescription deviceFormat;
 	UInt32 propertySize;
@@ -115,9 +115,9 @@ static int init(void) {
 #endif
 	AudioDeviceStart(device, callback);
 
-	return 0;
-failed:
 	return 1;
+failed:
+	return 0;
 }
 
 static void shutdown(void) {

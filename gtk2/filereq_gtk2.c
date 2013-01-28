@@ -24,7 +24,7 @@
 #include "logging.h"
 #include "module.h"
 
-static int init(void);
+static _Bool init(void);
 static char *load_filename(const char **extensions);
 static char *save_filename(const char **extensions);
 
@@ -37,12 +37,12 @@ FileReqModule filereq_gtk2_module = {
 
 extern GtkWidget *gtk2_top_window;
 
-static int init(void) {
+static _Bool init(void) {
 	/* Only initialise if not running as part of general GTK+ interface */
 	if (gtk2_top_window == NULL) {
 		gtk_init(NULL, NULL);
 	}
-	return 0;
+	return 1;
 }
 
 static GtkWidget *load_dialog = NULL;

@@ -33,7 +33,7 @@
 #include "sound.h"
 #include "xroar.h"
 
-static int init(void);
+static _Bool init(void);
 static void shutdown(void);
 static void flush_frame(void *buffer);
 
@@ -49,14 +49,14 @@ static unsigned int sample_rate;
 static int sound_fd;
 static uint_t samples_written;
 
-static int init(void) {
+static _Bool init(void) {
 	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "/dev/audio";
 	audio_info_t device_info;
 
 	sound_fd = open(device, O_WRONLY);
 	if (sound_fd == -1) {
 		LOG_ERROR("Couldn't open audio device %s: %s!\n", device, strerror(errno));
-		return 1;
+		return 0;
 	}
 	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
 	AUDIO_INITINFO(&device_info);
@@ -67,11 +67,11 @@ static int init(void) {
 	if (ioctl(sound_fd, AUDIO_SETINFO, &device_info) < 0) {
 		LOG_ERROR("Failed to configure audio device %s: %s",
 				device, strerror(errno));
-		return 1;
+		return 0;
 	}
 	if (device_info.play.encoding != AUDIO_ENCODING_LINEAR) {
 		LOG_ERROR("Couldn't set desired audio format.\n");
-		return 1;
+		return 0;
 	}
 
 	int frame_size;
@@ -89,7 +89,7 @@ static int init(void) {
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
 	samples_written = device_info.play.samples;
-	return 0;
+	return 1;
 }
 
 static void shutdown(void) {
