@@ -64,9 +64,9 @@ static char *opt_machine_palette = NULL;
 static char *opt_bas = NULL;
 static char *opt_extbas = NULL;
 static char *opt_altbas = NULL;
-static _Bool opt_nobas = 0;
-static _Bool opt_noextbas = 0;
-static _Bool opt_noaltbas = 0;
+static int opt_nobas = -1;
+static int opt_noextbas = -1;
+static int opt_noaltbas = -1;
 static int opt_tv = ANY_AUTO;
 static char *opt_machine_cart = NULL;
 static void set_pal(void);
@@ -81,6 +81,7 @@ static char *opt_cart_rom = NULL;
 static char *opt_cart_rom2 = NULL;
 static int opt_cart_becker = ANY_AUTO;
 static int opt_cart_autorun = ANY_AUTO;
+
 static _Bool opt_nodos = 0;
 
 /* Attach files */
@@ -197,9 +198,9 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("bas", &opt_bas),
 	XC_SET_STRING("extbas", &opt_extbas),
 	XC_SET_STRING("altbas", &opt_altbas),
-	XC_SET_BOOL("nobas", &opt_nobas),
-	XC_SET_BOOL("noextbas", &opt_noextbas),
-	XC_SET_BOOL("noaltbas", &opt_noaltbas),
+	XC_SET_INT1("nobas", &opt_nobas),
+	XC_SET_INT1("noextbas", &opt_noextbas),
+	XC_SET_INT1("noaltbas", &opt_noaltbas),
 	XC_SET_ENUM("tv-type", &opt_tv, tv_type_list),
 	XC_SET_INT("ram", &opt_ram),
 	XC_SET_STRING("machine-cart", &opt_machine_cart),
@@ -294,6 +295,134 @@ int xroar_frameskip = 0;
 struct machine_config *xroar_machine_config;
 struct cart_config *xroar_cart_config;
 struct vdg_palette *xroar_vdg_palette;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Default configuration
+
+static const char *default_config[] = {
+	// Dragon 32
+	"machine dragon32",
+	"machine-desc Dragon 32",
+	"machine-arch dragon32",
+	"tv-type pal",
+	"ram 32",
+	// Dragon 64
+	"machine dragon64",
+	"machine-desc Dragon 64",
+	"machine-arch dragon64",
+	"tv-type pal",
+	"ram 64",
+	// Tano Dragon
+	"machine tano",
+	"machine-desc Tano Dragon (NTSC)",
+	"machine-arch dragon64",
+	"tv-type ntsc",
+	"ram 64",
+	// CoCo
+	"machine coco",
+	"machine-desc Tandy CoCo (PAL)",
+	"machine-arch coco",
+	"tv-type pal",
+	"ram 64",
+	// CoCo (US)
+	"machine cocous",
+	"machine-desc Tandy CoCo (NTSC)",
+	"machine-arch coco",
+	"tv-type ntsc",
+	"ram 64",
+	// Dynacom MX-1600
+	"machine mx1600",
+	"machine-desc Dynacom MX-1600",
+	"machine-arch coco",
+	"nobas",
+	"extbas @mx1600",
+	"tv-type ntsc",
+	"ram 64",
+
+	// DragonDOS
+	"cart dragondos",
+	"cart-desc DragonDOS",
+	"cart-type dragondos",
+	"cart-rom @dragondos_compat",
+	// RSDOS
+	"cart rsdos",
+	"cart-desc RS-DOS",
+	"cart-type rsdos",
+	"cart-rom @rsdos",
+	// Delta
+	"cart delta",
+	"cart-desc Delta System",
+	"cart-type delta",
+	"cart-rom @delta",
+	// RSDOS w/ Becker port
+	"cart becker",
+	"cart-desc RS-DOS with becker port",
+	"cart-type rsdos",
+	"cart-rom @rsdos_becker",
+	"cart-becker",
+
+	// ROM lists
+
+	// Fallback Dragon BASIC
+	"romlist dragon=dragon",
+	"romlist d64_1=d64_1,d64rom1,Dragon Data Ltd - Dragon 64 - IC17,dragrom",
+	"romlist d64_2=d64_2,d64rom2,Dragon Data Ltd - Dragon 64 - IC18",
+	"romlist d32=d32,dragon32,d32rom,Dragon Data Ltd - Dragon 32 - IC17",
+	// Specific Dragon BASIC
+	"romlist dragon64=@d64_1,@dragon",
+	"romlist dragon64_alt=@d64_2",
+	"romlist dragon32=@d32,@dragon",
+	// Fallback CoCo BASIC
+	"romlist coco=bas13,bas12,bas11,bas10",
+	"romlist coco_ext=extbas11,extbas10",
+	// Specific CoCo BASIC
+	"romlist coco1=bas10,@coco",
+	"romlist coco1e=bas11,@coco",
+	"romlist coco1e_ext=extbas10,@coco_ext",
+	"romlist coco2=bas12,@coco",
+	"romlist coco2_ext=extbas11,@coco_ext",
+	"romlist coco2b=bas13,@coco",
+	// MX-1600 and zephyr-patched version
+	"romlist mx1600=mx1600,mx1600_zephyr",
+	// DragonDOS
+	"romlist dragondos=ddos40,ddos15,ddos10,Dragon Data Ltd - DragonDOS 1.0",
+	"romlist dosplus=dplus49b,dplus48,dosplus-4.8,DOSPLUS",
+	"romlist superdos=sdose6,PNP - SuperDOS E6,sdose5,sdose4",
+	"romlist cumana=cdos20,CDOS20",
+	"romlist dragondos_compat=@dosplus,@superdos,@dragondos,@cumana",
+	// RSDOS
+	"romlist rsdos=disk11,disk10",
+	// Delta
+	"romlist delta=delta,deltados,Premier Micros - DeltaDOS",
+	// RSDOS with becker port
+	"romlist rsdos_becker=hdbdw3bck",
+
+	// CRC lists
+
+	// Dragon BASIC
+	"crclist d64_1=0x84f68bf9,0x60a4634c,@woolham_d64_1",
+	"crclist d64_2=0x17893a42,@woolham_d64_2",
+	"crclist d32=0xe3879310,@woolham_d32",
+	"crclist dragon=@d64_1,@d32",
+	"crclist woolham_d64_1=0xee33ae92",
+	"crclist woolham_d64_2=0x1660ae35",
+	"crclist woolham_d32=0xff7bf41e,0x9c7eed69",
+	// CoCo BASIC
+	"crclist bas10=0x00b50aaa",
+	"crclist bas11=0x6270955a",
+	"crclist bas12=0x54368805",
+	"crclist bas13=0xd8f4d15e",
+	"crclist coco=@bas13,@bas12,@bas11,@bas10",
+	// Latter of these is the corrupt extbas10 found in the Dragon Archive
+	"crclist extbas10=0xe031d076,0x6111a086",
+	"crclist extbas11=0xa82a6254",
+	"crclist cocoext=@extbas11,@extbas10",
+	// MX-1600 (second is zephyr-patched version)
+	"crclist mx1600=0x2af2719f,0x22f17867",
+	"crclist coco_combined=@mx1600",
+
+	NULL
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Debug flags
@@ -403,20 +532,26 @@ static void set_machine(const char *name) {
 			xroar_machine_config->ram = opt_ram;
 			opt_ram = 0;
 		}
-		xroar_machine_config->nobas = opt_nobas;
-		xroar_machine_config->noextbas = opt_noextbas;
-		xroar_machine_config->noaltbas = opt_noaltbas;
-		opt_nobas = opt_noextbas = opt_noaltbas = 0;
+		if (opt_nobas != -1)
+			xroar_machine_config->nobas = opt_nobas;
+		if (opt_noextbas != -1)
+			xroar_machine_config->noextbas = opt_noextbas;
+		if (opt_noaltbas != -1)
+			xroar_machine_config->noaltbas = opt_noaltbas;
+		opt_nobas = opt_noextbas = opt_noaltbas = -1;
 		if (opt_bas) {
 			xroar_machine_config->bas_rom = opt_bas;
+			xroar_machine_config->nobas = 0;
 			opt_bas = NULL;
 		}
 		if (opt_extbas) {
 			xroar_machine_config->extbas_rom = opt_extbas;
+			xroar_machine_config->noextbas = 0;
 			opt_extbas = NULL;
 		}
 		if (opt_altbas) {
 			xroar_machine_config->altbas_rom = opt_altbas;
+			xroar_machine_config->noaltbas = 0;
 			opt_altbas = NULL;
 		}
 		if (opt_machine_cart) {
@@ -628,6 +763,16 @@ _Bool xroar_init(int argc, char **argv) {
 	xroar_conf_path = getenv("XROAR_CONF_PATH");
 	if (!xroar_conf_path)
 		xroar_conf_path = CONFPATH;
+
+	// Default configuration.
+	for (const char **c = default_config; *c; c++) {
+		xconfig_parse_line(xroar_options, *c);
+	}
+	// Finish any machine or cart config in defaults.
+	set_machine(NULL);
+	set_cart(NULL);
+	xroar_machine_config = NULL;
+	xroar_cart_config = NULL;
 
 	// If a configuration file is found, parse it.
 	conffile = find_in_path(xroar_conf_path, "xroar.conf");

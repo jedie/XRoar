@@ -85,25 +85,8 @@ static struct {
 	{ "@coco", "@coco_ext", NULL }
 };
 
-struct machine_config_template {
-	const char *name;
-	const char *description;
-	int architecture;
-	int tv_standard;
-	int ram;
-};
-
-static struct machine_config_template config_templates[] = {
-	{ "dragon32", "Dragon 32", ARCH_DRAGON32, TV_PAL, 32, },
-	{ "dragon64", "Dragon 64", ARCH_DRAGON64, TV_PAL, 64, },
-	{ "tano", "Tano Dragon (NTSC)", ARCH_DRAGON64, TV_NTSC, 64, },
-	{ "coco", "Tandy CoCo (PAL)", ARCH_COCO, TV_PAL, 64, },
-	{ "cocous", "Tandy CoCo (NTSC)", ARCH_COCO, TV_NTSC, 64, },
-};
-#define NUM_CONFIG_TEMPLATES (int)(sizeof(config_templates)/sizeof(struct machine_config_template))
-
 static GSList *config_list = NULL;
-static int num_configs = NUM_CONFIG_TEMPLATES;
+static int num_configs = 0;
 
 static void initialise_ram(void);
 
@@ -114,29 +97,8 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
 /**************************************************************************/
 
-static void machine_config_list_init(void) {
-	if (config_list)
-		return;
-	struct machine_config *config_array = g_malloc0(sizeof(struct machine_config) * NUM_CONFIG_TEMPLATES);
-	for (int i = NUM_CONFIG_TEMPLATES - 1; i >= 0; i--) {
-		struct machine_config *mc = &config_array[i];
-		mc->name = g_strdup(config_templates[i].name);
-		mc->description = g_strdup(config_templates[i].description);
-		mc->architecture = config_templates[i].architecture;
-		mc->cpu = CPU_MC6809;
-		mc->keymap = ANY_AUTO;
-		mc->tv_standard = config_templates[i].tv_standard;
-		mc->ram = config_templates[i].ram;
-		mc->index = i;
-		mc->default_cart_index = ANY_AUTO;
-		mc->cart_enabled = 1;
-		config_list = g_slist_prepend(config_list, mc);
-	}
-}
-
 struct machine_config *machine_config_new(void) {
 	struct machine_config *new;
-	machine_config_list_init();
 	new = g_malloc0(sizeof(struct machine_config));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
@@ -156,7 +118,6 @@ int machine_config_count(void) {
 }
 
 struct machine_config *machine_config_index(int i) {
-	machine_config_list_init();
 	for (GSList *l = config_list; l; l = l->next) {
 		struct machine_config *mc = l->data;
 		if (mc->index == i)
@@ -167,7 +128,6 @@ struct machine_config *machine_config_index(int i) {
 
 struct machine_config *machine_config_by_name(const char *name) {
 	if (!name) return NULL;
-	machine_config_list_init();
 	for (GSList *l = config_list; l; l = l->next) {
 		struct machine_config *mc = l->data;
 		if (0 == strcmp(mc->name, name)) {
@@ -178,7 +138,6 @@ struct machine_config *machine_config_by_name(const char *name) {
 }
 
 struct machine_config *machine_config_by_arch(int arch) {
-	machine_config_list_init();
 	for (GSList *l = config_list; l; l = l->next) {
 		struct machine_config *mc = l->data;
 		if (mc->architecture == arch) {

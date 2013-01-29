@@ -83,6 +83,9 @@ extern int xconfig_line_number;
 enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		const char *filename);
 
+enum xconfig_result xconfig_parse_line(struct xconfig_option *options,
+		const char *line);
+
 enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		int argc, char **argv, int *argn);
 

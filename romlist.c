@@ -33,7 +33,6 @@ struct romlist {
 };
 
 /* List containing all defined rom lists */
-static _Bool romlist_initialised = 0;
 static GSList *romlist_list = NULL;
 
 static const char *rom_extensions[] = {
@@ -46,45 +45,6 @@ static int compare_entry(struct romlist *a, char *b) {
 }
 
 /**************************************************************************/
-
-static void init_romlist_list(void) {
-	if (romlist_initialised)
-		return;
-	romlist_initialised = 1;
-
-	/* Fallback Dragon BASIC */
-	romlist_assign("dragon=dragon");
-	romlist_assign("d64_1=d64_1,d64rom1,Dragon Data Ltd - Dragon 64 - IC17,dragrom");
-	romlist_assign("d64_2=d64_2,d64rom2,Dragon Data Ltd - Dragon 64 - IC18");
-	romlist_assign("d32=d32,dragon32,d32rom,Dragon Data Ltd - Dragon 32 - IC17");
-	/* Specific Dragon BASIC */
-	romlist_assign("dragon64=@d64_1,@dragon");
-	romlist_assign("dragon64_alt=@d64_2");
-	romlist_assign("dragon32=@d32,@dragon");
-	/* Fallback CoCo BASIC */
-	romlist_assign("coco=bas13,bas12,bas11,bas10");
-	romlist_assign("coco_ext=extbas11,extbas10");
-	/* Specific CoCo BASIC */
-	romlist_assign("coco1=bas10,@coco");
-	romlist_assign("coco1e=bas11,@coco");
-	romlist_assign("coco1e_ext=extbas10,@coco_ext");
-	romlist_assign("coco2=bas12,@coco");
-	romlist_assign("coco2_ext=extbas11,@coco_ext");
-	romlist_assign("coco2b=bas13,@coco");
-
-	/* DragonDOS */
-	romlist_assign("dragondos=ddos40,ddos15,ddos10,Dragon Data Ltd - DragonDOS 1.0");
-	romlist_assign("dosplus=dplus49b,dplus48,dosplus-4.8,DOSPLUS");
-	romlist_assign("superdos=sdose6,PNP - SuperDOS E6,sdose5,sdose4");
-	romlist_assign("cumana=cdos20,CDOS20");
-	romlist_assign("dragondos_compat=@dosplus,@superdos,@dragondos,@cumana");
-	/* RSDOS */
-	romlist_assign("rsdos=disk11,disk10");
-	/* Delta */
-	romlist_assign("delta=delta,deltados,Premier Micros - DeltaDOS");
-	/* RSDOS with becker port */
-	romlist_assign("rsdos_becker=hdbdw3bck");
-}
 
 static struct romlist *new_romlist(const char *name) {
 	struct romlist *new = g_malloc(sizeof(struct romlist));
@@ -115,7 +75,6 @@ static struct romlist *find_romlist(const char *name) {
 /* Parse an assignment string of the form "LIST=ROMNAME[,ROMNAME]...".
  * Overwrites any existing list with name LIST. */
 void romlist_assign(const char *astring) {
-	init_romlist_list();
 	if (!astring) return;
 	char *tmp = g_alloca(strlen(astring) + 1);
 	strcpy(tmp, astring);
@@ -167,7 +126,6 @@ static char *find_rom(const char *romname) {
 /* Attempt to find a ROM image.  If name starts with '@', search the named
  * list for the first accessible entry, otherwise search for a single entry. */
 char *romlist_find(const char *name) {
-	init_romlist_list();
 	if (!name) return NULL;
 	char *path = NULL;
 	/* not prefixed with an '@'?  then it's not a list! */
@@ -217,7 +175,6 @@ static void print_romlist_entry(struct romlist *list, void *user_data) {
 
 /* Print a list of defined ROM lists to stdout */
 void romlist_print(void) {
-	init_romlist_list();
 	printf("ROM lists:\n");
 	g_slist_foreach(romlist_list, (GFunc)print_romlist_entry, NULL);
 	exit(EXIT_SUCCESS);

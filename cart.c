@@ -35,24 +35,8 @@
 #include "rsdos.h"
 #include "xroar.h"
 
-struct cart_config_template {
-	const char *name;
-	const char *description;
-	int type;
-	const char *rom;
-	_Bool becker_port;
-};
-
-static struct cart_config_template config_templates[] = {
-	{ .name = "dragondos", .description = "DragonDOS", .type = CART_DRAGONDOS, .rom = "@dragondos_compat" },
-	{ .name = "rsdos", .description = "RS-DOS", .type = CART_RSDOS, .rom = "@rsdos" },
-	{ .name = "delta", .description = "Delta System", .type = CART_DELTADOS, .rom = "@delta" },
-	{ .name = "becker", .description = "RS-DOS with becker port", .type = CART_RSDOS, .rom = "@rsdos_becker", .becker_port = 1 },
-};
-#define NUM_CONFIG_TEMPLATES (int)(sizeof(config_templates)/sizeof(struct cart_config_template))
-
 static GSList *config_list = NULL;
-static int num_configs = NUM_CONFIG_TEMPLATES;
+static int num_configs = 0;
 
 /* Single config for auto-defined ROM carts */
 static struct cart_config *rom_cart_config = NULL;
@@ -65,25 +49,8 @@ static void do_firq(void *);
 
 /**************************************************************************/
 
-static void cart_config_list_init(void) {
-	if (config_list)
-		return;
-	struct cart_config *config_array = g_malloc0(sizeof(struct cart_config) * NUM_CONFIG_TEMPLATES);
-	for (int i = NUM_CONFIG_TEMPLATES - 1; i >= 0; i--) {
-		struct cart_config *cc = &config_array[i];
-		cc->name = g_strdup(config_templates[i].name);
-		cc->description = g_strdup(config_templates[i].description);
-		cc->type = config_templates[i].type;
-		cc->rom = g_strdup(config_templates[i].rom);
-		cc->becker_port = config_templates[i].becker_port;
-		cc->index = i;
-		config_list = g_slist_prepend(config_list, cc);
-	}
-}
-
 struct cart_config *cart_config_new(void) {
 	struct cart_config *new;
-	cart_config_list_init();
 	new = g_malloc0(sizeof(struct cart_config));
 	new->index = num_configs;
 	new->type = CART_ROM;
@@ -98,7 +65,6 @@ int cart_config_count(void) {
 }
 
 struct cart_config *cart_config_index(int i) {
-	cart_config_list_init();
 	for (GSList *l = config_list; l; l = l->next) {
 		struct cart_config *cc = l->data;
 		if (cc->index == i)
@@ -109,7 +75,6 @@ struct cart_config *cart_config_index(int i) {
 
 struct cart_config *cart_config_by_name(const char *name) {
 	if (!name) return NULL;
-	cart_config_list_init();
 	for (GSList *l = config_list; l; l = l->next) {
 		struct cart_config *cc = l->data;
 		if (0 == strcmp(cc->name, name)) {

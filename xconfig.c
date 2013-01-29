@@ -164,72 +164,78 @@ static int unset_option(struct xconfig_option *option) {
 /* Simple parser: one directive per line, "option argument" */
 enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 		const char *filename) {
-	struct xconfig_option *option;
-	char *line, *opt, *arg;
+	char *line;
 	FILE *cfg;
-	int line_number;
 	char buf[256];
 	int ret = XCONFIG_OK;
 
 	cfg = fopen(filename, "r");
 	if (cfg == NULL) return XCONFIG_FILE_ERROR;
-	line_number = 0;
 	while ((line = fgets(buf, sizeof(buf), cfg))) {
-		line_number++;
-		while (isspace((int)*line))
-			line++;
-		if (*line == 0 || *line == '#')
-			continue;
-		opt = strtok(line, "\t\n\v\f\r =");
-		if (opt == NULL) continue;
-		while (*opt == '-') opt++;
-		option = find_option(options, opt);
-		if (option == NULL) {
-			if (0 == strncmp(opt, "no-", 3)) {
-				option = find_option(options, opt + 3);
-				if (option && unset_option(option) == 0) {
-					continue;
-				}
-			}
-			ret = XCONFIG_BAD_OPTION;
-			LOG_ERROR("Unrecognised option `%s'\n", opt);
-			continue;
-		}
-		if (option->type == XCONFIG_STRING) {
-			/* preserve spaces */
-			arg = strtok(NULL, "\n\v\f\r");
-			if (arg) {
-				while (isspace((int)*arg) || *arg == '=') {
-					arg++;
-				}
-			}
-		} else {
-			arg = strtok(NULL, "\n\v\f\r");
-			if (arg) {
-				int i;
-				for (i = strlen(arg)-1; i >= 0; i--) {
-					if (isspace(arg[i]))
-						arg[i] = 0;
-				}
-			}
-		}
-		if (option->type == XCONFIG_BOOL ||
-		    option->type == XCONFIG_BOOL0 ||
-		    option->type == XCONFIG_INT0 ||
-		    option->type == XCONFIG_INT1 ||
-		    option->type == XCONFIG_NULL) {
-			set_option(option, NULL);
-			continue;
-		}
-		if (arg == NULL) {
-			ret = XCONFIG_MISSING_ARG;
-			LOG_ERROR("Missing argument to `%s'\n", opt);
-			continue;
-		}
-		set_option(option, arg);
+		enum xconfig_result r = xconfig_parse_line(options, line);
+		if (r != XCONFIG_OK)
+			ret = r;
 	}
 	fclose(cfg);
 	return ret;
+}
+
+enum xconfig_result xconfig_parse_line(struct xconfig_option *options, const char *line) {
+	struct xconfig_option *option;
+	char *opt, *arg;
+	gsize line_len = strlen(line) + 1;
+	char *cline = g_alloca(line_len);
+	strncpy(cline, line, line_len);
+	cline[line_len-1] = 0;
+	while (isspace((int)*cline))
+		cline++;
+	if (*cline == 0 || *cline == '#')
+		return XCONFIG_OK;
+	opt = strtok(cline, "\t\n\v\f\r =");
+	if (opt == NULL) return XCONFIG_OK;
+	while (*opt == '-') opt++;
+	option = find_option(options, opt);
+	if (option == NULL) {
+		if (0 == strncmp(opt, "no-", 3)) {
+			option = find_option(options, opt + 3);
+			if (option && unset_option(option) == 0) {
+				return XCONFIG_OK;
+			}
+		}
+		return XCONFIG_BAD_OPTION;
+	}
+	if (option->type == XCONFIG_STRING) {
+		/* preserve spaces */
+		arg = strtok(NULL, "\n\v\f\r");
+		if (arg) {
+			while (isspace((int)*arg) || *arg == '=') {
+				arg++;
+			}
+		}
+	} else {
+		arg = strtok(NULL, "\n\v\f\r");
+		if (arg) {
+			int i;
+			for (i = strlen(arg)-1; i >= 0; i--) {
+				if (isspace(arg[i]))
+					arg[i] = 0;
+			}
+		}
+	}
+	if (option->type == XCONFIG_BOOL ||
+	    option->type == XCONFIG_BOOL0 ||
+	    option->type == XCONFIG_INT0 ||
+	    option->type == XCONFIG_INT1 ||
+	    option->type == XCONFIG_NULL) {
+		set_option(option, NULL);
+		return XCONFIG_OK;
+	}
+	if (arg == NULL) {
+		LOG_ERROR("Missing argument to `%s'\n", opt);
+		return XCONFIG_MISSING_ARG;
+	}
+	set_option(option, arg);
+	return XCONFIG_OK;
 }
 
 enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,

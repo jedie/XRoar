@@ -33,7 +33,6 @@ struct crclist {
 };
 
 /* List containing all defined CRC lists */
-static _Bool crclist_initialised = 0;
 static GSList *crclist_list = NULL;
 
 static int compare_entry(struct crclist *a, char *b) {
@@ -41,31 +40,6 @@ static int compare_entry(struct crclist *a, char *b) {
 }
 
 /**************************************************************************/
-
-static void init_crclist_list(void) {
-	if (crclist_initialised)
-		return;
-	crclist_initialised = 1;
-
-	// Dragon BASIC
-	crclist_assign("d64_1=0x84f68bf9,0x60a4634c,@woolham_d64_1");
-	crclist_assign("d64_2=0x17893a42,@woolham_d64_2");
-	crclist_assign("d32=0xe3879310,@woolham_d32");
-	crclist_assign("dragon=@d64_1,@d32");
-	crclist_assign("woolham_d64_1=0xee33ae92");
-	crclist_assign("woolham_d64_2=0x1660ae35");
-	crclist_assign("woolham_d32=0xff7bf41e,0x9c7eed69");
-	// CoCo BASIC
-	crclist_assign("bas10=0x00b50aaa");
-	crclist_assign("bas11=0x6270955a");
-	crclist_assign("bas12=0x54368805");
-	crclist_assign("bas13=0xd8f4d15e");
-	crclist_assign("coco=@bas13,@bas12,@bas11,@bas10");
-	// Latter of these is the corrupt extbas10 found in the Dragon Archive
-	crclist_assign("extbas10=0xe031d076,0x6111a086");
-	crclist_assign("extbas11=0xa82a6254");
-	crclist_assign("cocoext=@extbas11,@extbas10");
-}
 
 static struct crclist *new_crclist(const char *name) {
 	struct crclist *new = g_malloc(sizeof(struct crclist));
@@ -96,7 +70,6 @@ static struct crclist *find_crclist(const char *name) {
 /* Parse an assignment string of the form "LIST=ROMNAME[,ROMNAME]...".
  * Overwrites any existing list with name LIST. */
 void crclist_assign(const char *astring) {
-	init_crclist_list();
 	if (!astring) return;
 	char *tmp = g_alloca(strlen(astring) + 1);
 	strcpy(tmp, astring);
@@ -137,7 +110,6 @@ static int crc_match(const char *crc_string, uint32_t crc) {
 
 /* Match a provided CRC with values in a list.  Returns 1 if found. */
 int crclist_match(const char *name, uint32_t crc) {
-	init_crclist_list();
 	if (!name) return 0;
 	/* not prefixed with an '@'?  then it's not a list! */
 	if (name[0] != '@') {
@@ -186,7 +158,6 @@ static void print_crclist_entry(struct crclist *list, void *user_data) {
 
 /* Print a list of defined ROM lists to stdout */
 void crclist_print(void) {
-	init_crclist_list();
 	printf("CRC lists:\n");
 	g_slist_foreach(crclist_list, (GFunc)print_crclist_entry, NULL);
 	exit(EXIT_SUCCESS);
