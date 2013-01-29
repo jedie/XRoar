@@ -1,3 +1,30 @@
+Version 0.30, unreleased
+
+  * Minimal CoCo BASIC printing support using ROM intercept.
+  * Fix SAM clock stretching on slow/fast transition.
+  * New -default-machine option.
+  * New -machine-cart option specifies default cart per machine.
+  * Successive files on command line attached intelligently.
+  * New -ao-device option supported by ALSA, OSS, Pulse and Sun.
+  * New -debug-fdc option selects FDC debug options (-1 for all).
+  * New -debug-file option selects file loading debug options (-1 for all).
+  * New machine and ROM definitions for Dynacom MX-1600 (CoCo clone).
+  * Add "pause switch".  Pause key in SDL & GTK+ UIs toggles.
+  * Sound MUX levels and single-bit sound interaction improved.
+  * HD6309: some behaviour verified.
+  * VDG: 6847T1 emulated, selectable with -vdg-type.  Default for CoCo.
+  * Fix printing on Dragon 32.
+  * Automatically extend virtual disks on write.
+  * Shift+F12 latches the rate limit toggle.
+  * Revamped joystick handling, added mouse interface.
+  * Fixed PAL CoCo video timing.
+  * GDB target support.  A patched GDB supporting 6809 is recommended.
+  * Recognise .ccc as a cartridge ROM image extension.
+  * Many more menu items in Mac OS X user-interface.
+  * Support the Orchestra 90-CC cartridge.
+  * New -ao-channels option.
+  * New -config-print option.
+
 Version 0.29, Sat Dec 29 2012
 
   * New PIA & keyboard code supports matrix ghosting.
