@@ -57,6 +57,9 @@ struct breakpoint {
 #define BP_COCO_ROM(...) \
 	{ .type = BP_INSTRUCTION, .flags = BP_CRC_BAS | BP_MAP_TYPE, .cond_crc_bas = "@coco", .cond_map_type = 0, __VA_ARGS__ }
 
+#define BP_COCO_COMBO_ROM(...) \
+	{ .type = BP_INSTRUCTION, .flags = BP_CRC_EXTBAS | BP_MAP_TYPE, .cond_crc_extbas = "@coco_combined", .cond_map_type = 0, __VA_ARGS__ }
+
 #define bp_add_list(bp) bp_add_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
 #define bp_remove_list(bp) bp_remove_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
 

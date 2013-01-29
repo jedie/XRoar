@@ -804,26 +804,34 @@ static void rewrite_end_of_block(struct MC6809 *cpu) {
 static struct breakpoint bp_list_fast[] = {
 	BP_DRAGON_ROM(.address = 0xbdd7, .handler = fast_motor_on),
 	BP_COCO_ROM(.address = 0xa7d1, .handler = fast_motor_on),
+	BP_COCO_COMBO_ROM(.address = 0xa7d1, .handler = fast_motor_on),
 	BP_DRAGON_ROM(.address = 0xbded, .handler = fast_sync_leader),
 	BP_COCO_ROM(.address = 0xa782, .handler = fast_sync_leader),
+	BP_COCO_COMBO_ROM(.address = 0xa782, .handler = fast_sync_leader),
 	BP_DRAGON_ROM(.address = 0xbda5, .handler = fast_bitin),
 	BP_COCO_ROM(.address = 0xa755, .handler = fast_bitin),
+	BP_COCO_COMBO_ROM(.address = 0xa755, .handler = fast_bitin),
 };
 
 static struct breakpoint bp_list_fast_cbin[] = {
 	BP_DRAGON_ROM(.address = 0xbdad, .handler = fast_cbin),
 	BP_COCO_ROM(.address = 0xa749, .handler = fast_cbin),
+	BP_COCO_COMBO_ROM(.address = 0xa749, .handler = fast_cbin),
 };
 
 static struct breakpoint bp_list_rewrite[] = {
 	BP_DRAGON_ROM(.address = 0xb94d, .handler = rewrite_sync),
 	BP_COCO_ROM(.address = 0xa719, .handler = rewrite_sync),
+	BP_COCO_COMBO_ROM(.address = 0xa719, .handler = rewrite_sync),
 	BP_DRAGON_ROM(.address = 0xbdac, .handler = rewrite_bitin),
 	BP_COCO_ROM(.address = 0xa75c, .handler = rewrite_bitin),
+	BP_COCO_COMBO_ROM(.address = 0xa75c, .handler = rewrite_bitin),
 	BP_DRAGON_ROM(.address = 0xbdeb, .handler = rewrite_tape_on),
 	BP_COCO_ROM(.address = 0xa780, .handler = rewrite_tape_on),
+	BP_COCO_COMBO_ROM(.address = 0xa780, .handler = rewrite_tape_on),
 	BP_DRAGON_ROM(.address = 0xb97e, .handler = rewrite_end_of_block),
 	BP_COCO_ROM(.address = 0xa746, .handler = rewrite_end_of_block),
+	BP_COCO_COMBO_ROM(.address = 0xa746, .handler = rewrite_end_of_block),
 };
 
 static void set_breakpoints(void) {
