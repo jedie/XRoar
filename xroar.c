@@ -155,6 +155,7 @@ static struct xconfig_enum cpu_list[] = {
 static struct xconfig_enum tv_type_list[] = {
 	{ .value = TV_PAL,  .name = "pal",  .description = "PAL (50Hz)" },
 	{ .value = TV_NTSC, .name = "ntsc", .description = "NTSC (60Hz)" },
+	{ .value = TV_NTSC, .name = "pal-m", .description = "PAL-M (60Hz)" },
 	XC_ENUM_END()
 };
 
@@ -336,7 +337,7 @@ static const char *default_config[] = {
 	"machine-arch coco",
 	"nobas",
 	"extbas @mx1600",
-	"tv-type ntsc",
+	"tv-type pal-m",
 	"ram 64",
 
 	// DragonDOS
