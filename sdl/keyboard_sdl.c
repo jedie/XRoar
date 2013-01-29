@@ -210,6 +210,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 		xroar_noratelimit = 1;
 		xroar_frameskip = 10;
 	}
+	if (sym == SDLK_PAUSE) { machine_toggle_pause(); return; }
 	if (control) {
 		emulator_command(sym);
 		return;

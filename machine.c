@@ -659,6 +659,10 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
 	}
 }
 
+void machine_toggle_pause(void) {
+	CPU0->halt = !CPU0->halt;
+}
+
 /* simplified read byte for use by convenience functions - ROM and RAM only */
 uint8_t machine_read_byte(uint16_t A) {
 	int S, ncycles;

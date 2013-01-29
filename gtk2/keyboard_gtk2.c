@@ -221,6 +221,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		xroar_noratelimit = 1;
 		xroar_frameskip = 10;
 	}
+	if (keyval == 0x13) { machine_toggle_pause(); return FALSE; }
 	if (control) {
 		emulator_command(keyval, shift);
 		return FALSE;

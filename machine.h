@@ -109,6 +109,7 @@ void machine_shutdown(void);
 void machine_configure(struct machine_config *mc);  /* apply config */
 void machine_reset(_Bool hard);
 void machine_run(int ncycles);
+void machine_toggle_pause(void);
 
 /* simplified read & write byte for convenience functions */
 uint8_t machine_read_byte(uint16_t A);
