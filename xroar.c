@@ -894,21 +894,6 @@ _Bool xroar_init(int argc, char **argv) {
 	}
 	if (definitely_dos) no_auto_dos = 0;
 
-	if (opt_tape_write) {
-		int write_file_type = xroar_filetype_by_ext(opt_tape_write);
-		switch (write_file_type) {
-			case FILETYPE_CAS:
-			case FILETYPE_WAV:
-				tape_open_writing(opt_tape_write);
-				if (ui_module->output_tape_filename_cb) {
-					ui_module->output_tape_filename_cb(opt_tape_write);
-				}
-				break;
-			default:
-				break;
-		}
-	}
-
 	// Disable cart if necessary.
 	if (!xroar_cart_config && no_auto_dos) {
 		xroar_machine_config->cart_enabled = 0;
@@ -1001,6 +986,21 @@ _Bool xroar_init(int argc, char **argv) {
 		load_list = g_slist_remove(load_list, load_list->data);
 	}
 	load_disk_to_drive = 0;
+
+	if (opt_tape_write) {
+		int write_file_type = xroar_filetype_by_ext(opt_tape_write);
+		switch (write_file_type) {
+			case FILETYPE_CAS:
+			case FILETYPE_WAV:
+				tape_open_writing(opt_tape_write);
+				if (ui_module->output_tape_filename_cb) {
+					ui_module->output_tape_filename_cb(opt_tape_write);
+				}
+				break;
+			default:
+				break;
+		}
+	}
 
 	while (type_command_list) {
 		keyboard_queue_basic(type_command_list->data);
