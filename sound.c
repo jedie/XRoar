@@ -197,16 +197,16 @@ void sound_update(void) {
 				value = 0;
 				break;
 		}
-	}
 #ifndef FAST_SOUND
-	if (value >= 0x4c) {
-		PIA1.b.in_source |= (1<<1);
-		PIA1.b.in_sink |= (1<<1);
-	} else {
-		PIA1.b.in_source &= ~(1<<1);
-		PIA1.b.in_sink &= ~(1<<1);
-	}
+		if (value >= 0x4c) {
+			PIA1.b.in_source |= (1<<1);
+			PIA1.b.in_sink |= (1<<1);
+		} else {
+			PIA1.b.in_source &= ~(1<<1);
+			PIA1.b.in_sink &= ~(1<<1);
+		}
 #endif
+	}
 
 
 	switch (buffer_fmt) {
