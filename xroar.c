@@ -888,7 +888,6 @@ _Bool xroar_init(int argc, char **argv) {
 			break;
 		// for the rest, wait until later
 		default:
-			xroar_load_file_by_type(load_file, autorun);
 			break;
 		}
 	}
