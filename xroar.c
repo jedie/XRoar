@@ -279,6 +279,7 @@ static struct xconfig_option xroar_options[] = {
 #endif
 
 	// Debug options
+	XC_SET_INT("debug-file", &xroar_opt_debug_file),
 	XC_SET_INT("debug-fdc", &xroar_opt_debug_fdc),
 
 	XC_CALL_NULL("help", &helptext),
@@ -428,6 +429,7 @@ static const char *default_config[] = {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Debug flags
 
+unsigned xroar_opt_debug_file = 0;
 unsigned xroar_opt_debug_fdc = 0;
 
 /**************************************************************************/
