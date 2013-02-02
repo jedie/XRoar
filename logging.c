@@ -75,6 +75,14 @@ void log_close(struct log_handle **lp) {
 	*lp = NULL;
 }
 
+void log_hexdump_set_addr(struct log_handle *l, unsigned addr) {
+	assert(l != NULL);
+	if (l->ctx.hexdump.address != addr) {
+		log_hexdump_line(l);
+		l->ctx.hexdump.address = addr;
+	}
+}
+
 void log_hexdump_line(struct log_handle *l) {
 	assert(l != NULL);
 	assert(l->prefix != NULL);
@@ -84,7 +92,7 @@ void log_hexdump_line(struct log_handle *l) {
 	LOG_PRINT("%s: %04x  ", l->prefix, l->ctx.hexdump.address);
 	unsigned i;
 	for (i = 0; i < l->ctx.hexdump.nbytes; i++) {
-		int f = (i == l->ctx.hexdump.flag) ? '*' : ' ';
+		int f = ((i + 1) == l->ctx.hexdump.flag) ? '*' : ' ';
 		LOG_PRINT("%02x%c", l->ctx.hexdump.buf[i], f);
 		if (i == 8)
 			LOG_PRINT(" ");
@@ -108,9 +116,9 @@ void log_hexdump_line(struct log_handle *l) {
 void log_hexdump_byte(struct log_handle *l, uint8_t b) {
 	assert(l != NULL);
 	assert(l->type == LOG_HEXDUMP);
-	l->ctx.hexdump.buf[l->ctx.hexdump.nbytes++] = b;
 	if (l->ctx.hexdump.nbytes >= 16)
 		log_hexdump_line(l);
+	l->ctx.hexdump.buf[l->ctx.hexdump.nbytes++] = b;
 }
 
 void log_hexdump_flag(struct log_handle *l) {

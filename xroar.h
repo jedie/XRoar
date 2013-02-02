@@ -106,7 +106,14 @@ extern struct vdg_palette *xroar_vdg_palette;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Debug flags
 
-// FDC state debug level mask (1 = commands, 2 = all)
+// Files: binary files & hex record metadata
+#define XROAR_DEBUG_FILE_BIN (1 << 0)
+// Files: binary files & hex record data
+#define XROAR_DEBUG_FILE_BIN_DATA (1 << 1)
+
+extern unsigned xroar_opt_debug_file;
+
+// FDC: state debug level mask (1 = commands, 2 = all)
 #define XROAR_DEBUG_FDC_STATE (3 << 0)
 // FDC: dump sector data flag
 #define XROAR_DEBUG_FDC_DATA (1 << 2)

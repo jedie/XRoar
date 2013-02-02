@@ -40,6 +40,7 @@ void log_close(struct log_handle **);
 
 // hexdumps - pretty print blocks of data
 void log_open_hexdump(struct log_handle **, const char *prefix);
+void log_hexdump_set_addr(struct log_handle *, unsigned addr);
 void log_hexdump_line(struct log_handle *);
 void log_hexdump_byte(struct log_handle *, uint8_t b);
 void log_hexdump_flag(struct log_handle *l);

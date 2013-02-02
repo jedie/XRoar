@@ -6,7 +6,7 @@
 #ifndef XROAR_HEXS19_H_
 #define XROAR_HEXS19_H_
 
-int intel_hex_read(const char *filename);
+int intel_hex_read(const char *filename, int autorun);
 int bin_load(const char *filename, int autorun);
 
 #endif  /* XROAR_HEXS19_H_ */

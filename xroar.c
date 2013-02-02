@@ -1098,7 +1098,7 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 		case FILETYPE_BIN:
 			return bin_load(filename, autorun);
 		case FILETYPE_HEX:
-			return intel_hex_read(filename);
+			return intel_hex_read(filename, autorun);
 		case FILETYPE_SNA:
 			return read_snapshot(filename);
 		case FILETYPE_ROM: {

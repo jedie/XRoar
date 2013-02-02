@@ -16,6 +16,10 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Change of behaviour: when not autorunning, these loaders used to adjust the
+ * BASIC EXEC address at $009D:$009E.  They no longer do, as BASIC might not be
+ * in control. */
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +29,7 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6809.h"
+#include "xroar.h"
 
 static int dragon_bin_load(FILE *fd, int autorun);
 static int coco_bin_load(FILE *fd, int autorun);
@@ -58,44 +63,71 @@ static int skip_eol(FILE *fd) {
 	return 0;
 }
 
-int intel_hex_read(const char *filename) {
+int intel_hex_read(const char *filename, int autorun) {
 	FILE *fd;
 	int data, length, addr, type, sum;
-	int i;
+	uint8_t rsum;
+	uint16_t exec = 0;
+	struct log_handle *log_hex = NULL;
 	if (filename == NULL)
 		return -1;
 	if (!(fd = fopen(filename, "rb")))
 		return -1;
-	LOG_DEBUG(2, "Reading HEX file\n");
+	LOG_DEBUG(2, "Reading Intel HEX record file\n");
+	if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA)
+		log_open_hexdump(&log_hex, "Intel HEX read: ");
 	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data != ':') {
 			fclose(fd);
+			if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA) {
+				log_hexdump_flag(log_hex);
+				log_close(&log_hex);
+			}
 			return -1;
 		}
 		length = read_byte(fd);
 		addr = read_word(fd);
 		type = read_byte(fd);
-		if (type == 0) {
-			LOG_DEBUG(3,"Loading $%x bytes to %04x\n", length, addr);
-		}
-		for (i = 0; i < length; i++) {
+		if (type == 0 && (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA))
+			log_hexdump_set_addr(log_hex, addr);
+		rsum = length + (length >> 8) + addr + (addr >> 8) + type;
+		for (int i = 0; i < length; i++) {
 			data = read_byte(fd);
+			rsum += data;
 			if (type == 0) {
-				LOG_DEBUG(5,"%02x ", (int)data);
+				if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA)
+					log_hexdump_byte(log_hex, data);
 				machine_ram[addr] = data;
 				addr++;
 			}
 		}
-		if (type == 0) {
-			LOG_DEBUG(5,"\n");
-		}
 		sum = read_byte(fd);
-		(void)sum;  /* XXX check this */
+		rsum = ~rsum + 1;
+		if (sum != rsum) {
+			if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA)
+				log_hexdump_flag(log_hex);
+		}
 		if (skip_eol(fd) == 0)
 			break;
-		if (type == 1)
+		if (type == 1) {
+			exec = addr;
 			break;
+		}
 	}
+
+	if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA)
+		log_close(&log_hex);
+	if (exec != 0) {
+		if (autorun) {
+			if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+				LOG_PRINT("Intel HEX: EXEC $%04x - autorunning\n", exec);
+			CPU0->jump(CPU0, exec);
+		} else {
+			if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+				LOG_PRINT("Intel HEX: EXEC $%04x - not autorunning\n", exec);
+		}
+	}
+
 	fclose(fd);
 	return 0;
 }
@@ -122,48 +154,77 @@ int bin_load(const char *filename, int autorun) {
 }
 
 static int dragon_bin_load(FILE *fd, int autorun) {
-	int filetype, length, load, exec;
+	int filetype, load, exec;
+	size_t length;
 	LOG_DEBUG(2, "Reading Dragon BIN file\n");
 	filetype = fs_read_uint8(fd);
-	(void)filetype;  /* XXX verify this makes sense */
+	(void)filetype;  // XXX verify this makes sense
 	load = fs_read_uint16(fd);
 	length = fs_read_uint16(fd);
 	exec = fs_read_uint16(fd);
 	(void)fs_read_uint8(fd);
-	LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
+	if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+		LOG_PRINT("Dragon BIN: LOAD $%04zx bytes to $%04x, EXEC $%04x\n", length, load, exec);
 	fread(&machine_ram[load], length, 1, fd);
+	if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA) {
+		struct log_handle *log_bin = NULL;
+		log_open_hexdump(&log_bin, "Dragon BIN read: ");
+		log_hexdump_set_addr(log_bin, load);
+		for (size_t i = 0; i < length; i++) {
+			log_hexdump_byte(log_bin, machine_ram[load + i]);
+		}
+		log_close(&log_bin);
+	}
 	if (autorun) {
-		LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
+		if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+			LOG_PRINT("Dragon BIN: EXEC $%04x - autorunning\n", exec);
 		CPU0->jump(CPU0, exec);
 	} else {
-		machine_ram[0x9d] = exec >> 8;
-		machine_ram[0x9e] = exec & 0xff;
+		if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+			LOG_PRINT("Dragon BIN: EXEC $%04x - not autorunning\n", exec);
 	}
 	fclose(fd);
 	return 0;
 }
 
 static int coco_bin_load(FILE *fd, int autorun) {
-	int data, length, load, exec;
+	size_t length;
+	int data, load, exec;
 	LOG_DEBUG(2, "Reading CoCo BIN file\n");
 	fseek(fd, 0, SEEK_SET);
 	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data == 0) {
 			length = fs_read_uint16(fd);
 			load = fs_read_uint16(fd);
-			LOG_DEBUG(3,"\tLoading $%x bytes to $%04x\n", length, load);
-			fread(&machine_ram[load], length, 1, fd);
+			if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+				LOG_PRINT("CoCo BIN: LOAD $%04zx bytes to $%04x\n", length, load);
+			size_t nread = fread(&machine_ram[load], 1, length, fd);
+			if (nread < length)
+				LOG_WARN("CoCo BIN: short read in chunk data\n");
+			// Generate a hex dump per chunk
+			if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN_DATA) {
+				struct log_handle *log_bin = NULL;
+				log_open_hexdump(&log_bin, "CoCo BIN: read: ");
+				log_hexdump_set_addr(log_bin, load);
+				for (size_t i = 0; i < nread; i++) {
+					log_hexdump_byte(log_bin, machine_ram[load + i]);
+				}
+				if (nread < length)
+					log_hexdump_flag(log_bin);
+				log_close(&log_bin);
+			}
 			continue;
 		}
 		if (data == 0xff) {
-			(void)fs_read_uint16(fd);  /* skip 0 */
+			(void)fs_read_uint16(fd);  // skip 0
 			exec = fs_read_uint16(fd);
 			if (autorun) {
-				LOG_DEBUG(3,"\tExecuting from $%04x\n", exec);
+				if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+					LOG_PRINT("CoCo BIN: EXEC $%04x - autorunning\n", exec);
 				CPU0->jump(CPU0, exec);
 			} else {
-				machine_ram[0x9d] = exec >> 8;
-				machine_ram[0x9e] = exec & 0xff;
+				if (xroar_opt_debug_file & XROAR_DEBUG_FILE_BIN)
+					LOG_PRINT("CoCo BIN: EXEC $%04x - not autorunning\n", exec);
 			}
 			break;
 		}
