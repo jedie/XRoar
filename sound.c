@@ -16,6 +16,7 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -138,7 +139,7 @@ void sound_set_volume(int v) {
 
 /* within sound_update(), this loop is included for each sample format */
 #define fill_buffer(type,member) do { \
-		while ((int)(event_current_tick - last_cycle) > 0) { \
+		while ((event_current_tick - last_cycle) <= (UINT_MAX/2)) { \
 			for (i = buffer_nchannels; i; i--) \
 				((type *)buffer)[buffer_sample++] = last_sample.member; \
 			last_cycle += ticks_per_sample; \
@@ -170,7 +171,7 @@ void sound_update(void) {
 			break;
 		}
 	} else {
-		while ((int)(event_current_tick - last_cycle) <= 0) {
+		while ((event_current_tick - last_cycle) <= (UINT_MAX/2)) {
 			last_cycle += ticks_per_buffer;
 			buffer = sound_module->write_buffer(buffer);
 		}
