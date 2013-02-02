@@ -108,7 +108,7 @@ struct machine_config *machine_config_new(void) {
 	new->ram = ANY_AUTO;
 	new->default_cart_index = ANY_AUTO;
 	new->cart_enabled = 1;
-	config_list = g_slist_prepend(config_list, new);
+	config_list = g_slist_append(config_list, new);
 	num_configs++;
 	return new;
 }

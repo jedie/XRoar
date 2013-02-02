@@ -55,7 +55,7 @@ struct cart_config *cart_config_new(void) {
 	new->index = num_configs;
 	new->type = CART_ROM;
 	new->autorun = ANY_AUTO;
-	config_list = g_slist_prepend(config_list, new);
+	config_list = g_slist_append(config_list, new);
 	num_configs++;
 	return new;
 }
