@@ -1090,6 +1090,7 @@ fi
 if test "$_sdl" = "yes"; then
 	_sdl_def="#define HAVE_SDL"
 	_have_video_driver=yes
+	sdl_objcflags="$sdl_cflags"
 else
 	_sdl_def="#undef HAVE_SDL"
 	_sdlgl=no
