@@ -41,6 +41,8 @@ profile-use: OBJCFLAGS += -fprofile-use
 profile-use: LDFLAGS += -fprofile-use
 profile-generate profile-use: all
 
+SRCROOT ?= $(dir $(lastword $(MAKEFILE_LIST)))
+
 ############################################################################
 # Base object files and settings required by all builds
 
