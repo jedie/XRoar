@@ -1148,6 +1148,7 @@ fi
 
 if test "$_mingw" \!= "no"; then
 	echocheck MinGW
+	mingw_cflags="-D__USE_MINGW_ANSI_STDIO=1"
 	mingw_ldflags="-lmingw32 -lwinmm -mwindows -lws2_32"
 	cat > $TMPC <<EOF
 #include <windows.h>
@@ -1155,7 +1156,7 @@ if test "$_mingw" \!= "no"; then
 int main(int argc, char **argv) { OPENFILENAME o; o.Flags = OFN_PATHMUSTEXIST; GetSaveFileName(&o); return 0; }
 EOF
 	_mingw=no
-	target_cc_check "" "$mingw_ldflags" && _mingw=yes
+	target_cc_check "$mingw_cflags" "$mingw_ldflags" && _mingw=yes
 	rm -f $TMPC
 	echo "$_mingw"
 fi
