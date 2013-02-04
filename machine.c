@@ -237,6 +237,7 @@ void machine_config_complete(struct machine_config *mc) {
 
 static void pia0a_data_preread(void) {
 	keyboard_update();
+	joystick_update();
 	PIA0.a.in_sink &= input_firebutton_mask;
 }
 
@@ -260,7 +261,6 @@ static void pia0b_data_preread_coco64k(void) {
 }
 
 static void pia1b_data_preread_coco64k(void) {
-	keyboard_update();
 	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
 	if (PIA_VALUE_B(PIA0) & (1<<6)) {
 		PIA1.b.in_source |= (1<<2);
@@ -275,7 +275,6 @@ static void pia1b_data_preread_coco64k(void) {
 
 static void pia1a_data_postwrite(void) {
 	sound_update();
-	joystick_update();
 	tape_update_output();
 	if (IS_DRAGON)
 		printer_strobe();
