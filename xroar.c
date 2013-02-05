@@ -957,9 +957,10 @@ _Bool xroar_init(int argc, char **argv) {
 	while (load_list) {
 		char *load_file = load_list->data;
 		int load_file_type = xroar_filetype_by_ext(load_file);
-		_Bool autorun = (load_file == opt_run);
+		// inhibit autorun if a -type option was given
+		_Bool autorun = !type_command_list && (load_file == opt_run);
 		switch (load_file_type) {
-		// cart will already be loaded
+		// cart will already be loaded (will autorun even with -type)
 		case FILETYPE_ROM:
 			break;
 		// delay loading binary files by 2s
