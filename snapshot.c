@@ -36,20 +36,19 @@
 #include "vdrive.h"
 #include "xroar.h"
 
-/* Write files in 'chunks', each with an identifying byte and a 16-bit
- * length.  This should mean no changes are required that break the
- * format.  */
+/* Write files in 'chunks', each with an identifying byte and a 16-bit length.
+ * This should mean no changes are required that break the format.  */
 
 /* Note: Setting up the correct ROM select for Dragon 64 depends on SAM
  * register update following PIA configuration. */
 
-#define ID_REGISTER_DUMP (0)   /* deprecated */
+#define ID_REGISTER_DUMP (0)  // deprecated - part of ID_MC6809_STATE
 #define ID_RAM_PAGE0     (1)
 #define ID_PIA_REGISTERS (2)
 #define ID_SAM_REGISTERS (3)
-#define ID_MC6809_STATE   (4)
-#define ID_KEYBOARD_MAP  (5)
-#define ID_ARCHITECTURE  (6)
+#define ID_MC6809_STATE  (4)
+#define ID_KEYBOARD_MAP  (5)  // deprecated - part of ID_MACHINECONFIG
+#define ID_ARCHITECTURE  (6)  // deprecated - part of ID_MACHINECONFIG
 #define ID_RAM_PAGE1     (7)
 #define ID_MACHINECONFIG (8)
 #define ID_SNAPVERSION   (9)
@@ -58,17 +57,22 @@
 #define SNAPSHOT_VERSION_MAJOR 1
 #define SNAPSHOT_VERSION_MINOR 6
 
+static void write_chunk_header(FILE *fd, unsigned id, unsigned size) {
+	fs_write_uint8(fd, id);
+	fs_write_uint16(fd, size);
+}
+
 int write_snapshot(const char *filename) {
 	FILE *fd;
 	if (!(fd = fopen(filename, "wb")))
 		return -1;
 	fwrite("XRoar snapshot.\012\000", 17, 1, fd);
-	/* Snapshot version */
-	fs_write_uint8(fd, ID_SNAPVERSION); fs_write_uint16(fd, 3);
+	// Snapshot version
+	write_chunk_header(fd, ID_SNAPVERSION, 3);
 	fs_write_uint8(fd, SNAPSHOT_VERSION_MAJOR);
 	fs_write_uint16(fd, SNAPSHOT_VERSION_MINOR);
-	/* Machine running config */
-	fs_write_uint8(fd, ID_MACHINECONFIG); fs_write_uint16(fd, 8);
+	// Machine running config
+	write_chunk_header(fd, ID_MACHINECONFIG, 8);
 	fs_write_uint8(fd, xroar_machine_config->index);
 	fs_write_uint8(fd, xroar_machine_config->architecture);
 	fs_write_uint8(fd, xroar_machine_config->architecture);  /* romset */
@@ -81,38 +85,35 @@ int write_snapshot(const char *filename) {
 		fs_write_uint8(fd, 0);
 	}
 	fs_write_uint8(fd, xroar_machine_config->cross_colour_phase);
-	/* RAM page 0 */
-	fs_write_uint8(fd, ID_RAM_PAGE0);
-	fs_write_uint16(fd, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size);
-	fwrite(machine_ram, machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size, 1, fd);
-	/* RAM page 1 */
+	// RAM page 0
+	unsigned ram0_size = machine_ram_size > 0x8000 ? 0x8000 : machine_ram_size;
+	write_chunk_header(fd, ID_RAM_PAGE0, ram0_size);
+	fwrite(machine_ram, 1, ram0_size, fd);
+	// RAM page 1
 	if (machine_ram_size > 0x8000) {
-		fs_write_uint8(fd, ID_RAM_PAGE1);
-		fs_write_uint16(fd, machine_ram_size - 0x8000);
-		fwrite(machine_ram + 0x8000, machine_ram_size - 0x8000, 1, fd);
+		unsigned ram1_size = machine_ram_size - 0x8000;
+		write_chunk_header(fd, ID_RAM_PAGE1, ram1_size);
+		fwrite(machine_ram + 0x8000, 1, ram1_size, fd);
 	}
-	/* PIA state written before CPU state because PIA may have
-	 * unacknowledged interrupts pending already cleared in the CPU
-	 * state */
-	fs_write_uint8(fd, ID_PIA_REGISTERS); fs_write_uint16(fd, 3*4);
-	/* PIA0.a */
+	// PIA state written before CPU state because PIA may have
+	// unacknowledged interrupts pending already cleared in the CPU state
+	write_chunk_header(fd, ID_PIA_REGISTERS, 3 * 4);
+	// PIA0
 	fs_write_uint8(fd, PIA0.a.direction_register);
 	fs_write_uint8(fd, PIA0.a.output_register);
 	fs_write_uint8(fd, PIA0.a.control_register);
-	/* PIA0.b */
 	fs_write_uint8(fd, PIA0.b.direction_register);
 	fs_write_uint8(fd, PIA0.b.output_register);
 	fs_write_uint8(fd, PIA0.b.control_register);
-	/* PIA1.a */
+	// PIA1
 	fs_write_uint8(fd, PIA1.a.direction_register);
 	fs_write_uint8(fd, PIA1.a.output_register);
 	fs_write_uint8(fd, PIA1.a.control_register);
-	/* PIA1.b */
 	fs_write_uint8(fd, PIA1.b.direction_register);
 	fs_write_uint8(fd, PIA1.b.output_register);
 	fs_write_uint8(fd, PIA1.b.control_register);
-	/* MC6809 state */
-	fs_write_uint8(fd, ID_MC6809_STATE); fs_write_uint16(fd, 20);
+	// MC6809 state
+	write_chunk_header(fd, ID_MC6809_STATE, 20);
 	fs_write_uint8(fd, CPU0->reg_cc);
 	fs_write_uint8(fd, MC6809_REG_A(CPU0));
 	fs_write_uint8(fd, MC6809_REG_B(CPU0));
@@ -128,25 +129,23 @@ int write_snapshot(const char *filename) {
 	fs_write_uint8(fd, CPU0->irq);
 	fs_write_uint8(fd, CPU0->state);
 	fs_write_uint8(fd, CPU0->nmi_armed);
-	/* SAM */
-	fs_write_uint8(fd, ID_SAM_REGISTERS); fs_write_uint16(fd, 2);
+	// SAM
+	write_chunk_header(fd, ID_SAM_REGISTERS, 2);
 	fs_write_uint16(fd, sam_get_register());
-	/* Attached virtual disk filenames */
+	// Attached virtual disk filenames
 	{
 		struct vdisk *disk;
-		int drive;
-		for (drive = 0; drive < VDRIVE_MAX_DRIVES; drive++) {
+		for (unsigned drive = 0; drive < VDRIVE_MAX_DRIVES; drive++) {
 			disk = vdrive_disk_in_drive(drive);
 			if (disk != NULL && disk->filename != NULL) {
 				int length = strlen(disk->filename) + 1;
-				fs_write_uint8(fd, ID_VDISK_FILE);
-				fs_write_uint16(fd, 1 + length);
+				write_chunk_header(fd, ID_VDISK_FILE, 1 + length);
 				fs_write_uint8(fd, drive);
-				fwrite(disk->filename, length, 1, fd);
+				fwrite(disk->filename, 1, length, fd);
 			}
 		}
 	}
-	/* Finish up */
+	// Finish up
 	fclose(fd);
 	return 0;
 }
@@ -186,8 +185,8 @@ int read_snapshot(const char *filename) {
 		return -1;
 	fread(buffer, 17, 1, fd);
 	if (strncmp((char *)buffer, "XRoar snapshot.\012\000", 17)) {
-		/* Very old-style snapshot.  Register dump always came first.
-		 * Also, it used to be written out as only taking 12 bytes. */
+		// Very old-style snapshot.  Register dump always came first.
+		// Also, it used to be written out as only taking 12 bytes.
 		if (buffer[0] != ID_REGISTER_DUMP || buffer[1] != 0
 				|| (buffer[2] != 12 && buffer[2] != 14)) {
 			LOG_WARN("Snapshot format not recognised.\n");
@@ -195,10 +194,10 @@ int read_snapshot(const char *filename) {
 			return -1;
 		}
 	}
-	/* Default to Dragon 64 for old snapshots */
+	// Default to Dragon 64 for old snapshots
 	xroar_machine_config = machine_config_by_arch(ARCH_DRAGON64);
 	machine_configure(xroar_machine_config);
-	/* If old snapshot, buffer contains register dump */
+	// If old snapshot, buffer contains register dump
 	if (buffer[0] != 'X') {
 		old_set_registers(buffer + 3);
 	}
@@ -207,7 +206,7 @@ int read_snapshot(const char *filename) {
 		if (size == 0) size = 0x10000;
 		switch (section) {
 			case ID_ARCHITECTURE:
-				/* Deprecated: Machine architecture */
+				// Deprecated: Machine architecture
 				if (size < 1) break;
 				tmp = fs_read_uint8(fd);
 				tmp %= 4;
@@ -216,20 +215,20 @@ int read_snapshot(const char *filename) {
 				size--;
 				break;
 			case ID_KEYBOARD_MAP:
-				/* Deprecated: Keyboard map */
+				// Deprecated: Keyboard map
 				if (size < 1) break;
 				tmp = fs_read_uint8(fd);
 				xroar_set_keymap(tmp);
 				size--;
 				break;
 			case ID_REGISTER_DUMP:
-				/* Deprecated */
+				// Deprecated
 				if (size < 14) break;
 				size -= fread(buffer, 1, 14, fd);
 				old_set_registers(buffer);
 				break;
 			case ID_MC6809_STATE:
-				/* MC6809 state */
+				// MC6809 state
 				if (size < 20) break;
 				CPU0->reg_cc = fs_read_uint8(fd);
 				MC6809_REG_A(CPU0) = fs_read_uint8(fd);
@@ -245,7 +244,7 @@ int read_snapshot(const char *filename) {
 				CPU0->firq = fs_read_uint8(fd);
 				CPU0->irq = fs_read_uint8(fd);
 				if (size == 21) {
-					/* Old style */
+					// Old style
 					int wait_for_interrupt;
 					int skip_register_push;
 					wait_for_interrupt = fs_read_uint8(fd);
@@ -266,22 +265,22 @@ int read_snapshot(const char *filename) {
 				CPU0->irq &= 3;
 				size -= 20;
 				if (size > 0) {
-					/* Skip 'halted' */
+					// Skip 'halted'
 					(void)fs_read_uint8(fd);
 					size--;
 				}
 				break;
 			case ID_MACHINECONFIG:
-				/* Machine running config */
+				// Machine running config
 				if (size < 7) break;
-				(void)fs_read_uint8(fd);  /* requested_machine */
+				(void)fs_read_uint8(fd);  // requested_machine
 				tmp = fs_read_uint8(fd);
 				xroar_machine_config = machine_config_by_arch(tmp);
-				(void)fs_read_uint8(fd);  /* romset */
-				xroar_machine_config->keymap = fs_read_uint8(fd);  /* keymap */
+				(void)fs_read_uint8(fd);  // romset
+				xroar_machine_config->keymap = fs_read_uint8(fd);  // keymap
 				xroar_machine_config->tv_standard = fs_read_uint8(fd);
 				xroar_machine_config->ram = fs_read_uint8(fd);
-				tmp = fs_read_uint8(fd);  /* dos_type */
+				tmp = fs_read_uint8(fd);  // dos_type
 				xroar_set_dos(tmp);
 				size -= 7;
 				if (size > 0) {
@@ -291,26 +290,24 @@ int read_snapshot(const char *filename) {
 				machine_configure(xroar_machine_config);
 				break;
 			case ID_PIA_REGISTERS:
-				/* PIA0.a */
+				// PIA0
 				if (size < 3) break;
 				PIA0.a.direction_register = fs_read_uint8(fd);
 				PIA0.a.output_register = fs_read_uint8(fd);
 				PIA0.a.control_register = fs_read_uint8(fd);
 				size -= 3;
-				/* PIA0.b */
 				if (size < 3) break;
 				PIA0.b.direction_register = fs_read_uint8(fd);
 				PIA0.b.output_register = fs_read_uint8(fd);
 				PIA0.b.control_register = fs_read_uint8(fd);
 				size -= 3;
 				mc6821_update_state(&PIA0);
-				/* PIA1.a */
+				// PIA1
 				if (size < 3) break;
 				PIA1.a.direction_register = fs_read_uint8(fd);
 				PIA1.a.output_register = fs_read_uint8(fd);
 				PIA1.a.control_register = fs_read_uint8(fd);
 				size -= 3;
-				/* PIA1.b */
 				if (size < 3) break;
 				PIA1.b.direction_register = fs_read_uint8(fd);
 				PIA1.b.output_register = fs_read_uint8(fd);
@@ -333,7 +330,7 @@ int read_snapshot(const char *filename) {
 				}
 				break;
 			case ID_SAM_REGISTERS:
-				/* SAM */
+				// SAM
 				if (size < 2) break;
 				tmp = fs_read_uint16(fd);
 				size -= 2;
@@ -341,8 +338,8 @@ int read_snapshot(const char *filename) {
 				break;
 			case ID_SNAPVERSION:
 				{
-				/* Snapshot version - abort if snapshot
-				 * contains stuff we don't understand */
+				// Snapshot version - abort if snapshot
+				// contains stuff we don't understand
 				int major, minor;
 				if (size < 3) break;
 				major = fs_read_uint8(fd);
@@ -356,7 +353,7 @@ int read_snapshot(const char *filename) {
 				}
 				break;
 			case ID_VDISK_FILE:
-				/* Attached virtual disk filenames */
+				// Attached virtual disk filenames
 				{
 					int drive;
 					size--;
@@ -372,7 +369,7 @@ int read_snapshot(const char *filename) {
 				}
 				break;
 			default:
-				/* Unknown chunk */
+				// Unknown chunk
 				LOG_WARN("Unknown chunk in snaphot.\n");
 				break;
 		}
