@@ -1912,13 +1912,10 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 0: reg_val = REG_CC; break;
 				case 1: reg_val = RREG_A; break;
 				case 2: reg_val = RREG_B; break;
-				default:
-					// XXX does this really happen?
-					INSTRUCTION_POSTHOOK();
-					PUSH_IRQ_REGISTERS(1);
-					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-					hcpu->state = hd6309_state_label_a;
-					continue;
+				// Invalid register here does *not* trigger an
+				// illegal instruction trap.
+				// TODO: verify if this value is predictable:
+				default: reg_val = 0; break;
 				}
 				unsigned out;
 				switch (op & 7) {
