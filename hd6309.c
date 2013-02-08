@@ -781,7 +781,9 @@ static void hd6309_run(struct MC6809 *cpu) {
 			continue;
 
 		case hd6309_state_tfm:
+			// order is read, NVMA, write
 			hcpu->tfm_data = fetch_byte(*hcpu->tfm_src);
+			NVMA_CYCLE();
 			hcpu->state = hd6309_state_tfm_write;
 			continue;
 
@@ -806,7 +808,6 @@ static void hd6309_run(struct MC6809 *cpu) {
 				continue;
 			}
 			store_byte(*hcpu->tfm_dest, hcpu->tfm_data);
-			NVMA_CYCLE();
 			*hcpu->tfm_src += hcpu->tfm_src_mod;
 			*hcpu->tfm_dest += hcpu->tfm_dest_mod;
 			REG_W--;
@@ -1979,6 +1980,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				default: break;
 				}
 				BYTE_IMMEDIATE(0, postbyte);
+				// Verified 3 NVMA cycles:
 				NVMA_CYCLE();
 				NVMA_CYCLE();
 				NVMA_CYCLE();
@@ -1992,7 +1994,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 					PUSH_IRQ_REGISTERS(1);
 					INSTRUCTION_POSTHOOK();
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-					break;
+					hcpu->state = hd6309_state_label_a;
+					continue;
 				}
 				switch (postbyte & 0xf) {
 				case 0: hcpu->tfm_dest = &REG_D; break;
@@ -2004,7 +2007,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 					PUSH_IRQ_REGISTERS(1);
 					INSTRUCTION_POSTHOOK();
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-					break;
+					hcpu->state = hd6309_state_label_a;
+					continue;
 				}
 				REG_PC -= 3;
 				hcpu->state = hd6309_state_tfm;
@@ -2149,7 +2153,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 					REG_MD |= MD_D0;
 					PUSH_IRQ_REGISTERS(1);
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-					break;
+					hcpu->state = hd6309_state_label_a;
+					continue;
 				}
 				int16_t stmp1 = *((int16_t *)&tmp1);
 				int8_t stmp2 = *((int8_t *)&tmp2);
@@ -2198,7 +2203,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 					REG_MD |= MD_D0;
 					PUSH_IRQ_REGISTERS(1);
 					TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
-					break;
+					hcpu->state = hd6309_state_label_a;
+					continue;
 				}
 				int32_t stmp1 = *((int32_t *)&tmp1);
 				int16_t stmp2 = *((int16_t *)&tmp2);
