@@ -1451,8 +1451,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 			// Illegal instruction
 			default:
 				// XXX Two dead cycles?  Verify further!
-				peek_byte(reg_pc);
-				peek_byte(reg_pc);
+				peek_byte(cpu->reg_pc);
+				peek_byte(cpu->reg_pc);
 				PUSH_IRQ_REGISTERS(1);
 				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
@@ -1876,8 +1876,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 
 			// Illegal instruction
 			default:
-				peek_byte(reg_pc);
-				peek_byte(reg_pc);
+				peek_byte(cpu->reg_pc);
+				peek_byte(cpu->reg_pc);
 				PUSH_IRQ_REGISTERS(1);
 				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
@@ -2285,8 +2285,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 
 			// Illegal instruction
 			default:
-				peek_byte(reg_pc);
-				peek_byte(reg_pc);
+				peek_byte(cpu->reg_pc);
+				peek_byte(cpu->reg_pc);
 				PUSH_IRQ_REGISTERS(1);
 				INSTRUCTION_POSTHOOK();
 				TAKE_INTERRUPT(div, CC_F|CC_I, HD6309_INT_VEC_ILLEGAL);
