@@ -51,7 +51,23 @@ static union sample_t last_sample;
 static event_ticks last_cycle;
 static unsigned ticks_per_sample;
 static unsigned ticks_per_buffer;
-static int volume;
+
+/* All these gain values are computed by set_volume().  They're all relative to
+ * full scale = 32767 = 4.7V */
+
+// DAC output scale & offset:
+static unsigned dac_gain = 124;
+static unsigned dac_offset = 1394;
+// DAC output when single bit out == 0:
+static unsigned dacs0_gain = 78;
+static unsigned dacs0_offset = 1254;
+// DAC output when single bit out == 1:
+static unsigned dacs1_gain = 94;
+static unsigned dacs1_offset = 9063;
+// Single bit out when MUX disabled:
+static unsigned sbs1 = 27189;
+// Tape value for tape_audio == 1:
+static unsigned tape1 = 1742;
 
 static void flush_frame(void *);
 static struct event flush_event;
@@ -97,7 +113,7 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 		LOG_DEBUG(2, "16-bit signed %s-endian, ", fmt_big_endian ? "big" : "little" );
 		break;
 	case SOUND_FMT_FLOAT:
-		last_sample.as_float = (float)(-64 * volume) / 65536.;
+		last_sample.as_float = 0.;
 		LOG_DEBUG(2, "Floating point, ");
 		break;
 	case SOUND_FMT_NULL:
@@ -134,7 +150,15 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 void sound_set_volume(int v) {
 	if (v < 0) v = 0;
 	if (v > 100) v = 100;
-	volume = (256 * v) / 100;
+	float scale = 32767. * ((float)v / 100);
+	dac_gain = (scale * 4.5) / (4.7 * 252.);
+	dacs0_gain = (scale * 2.84) / (4.7 * 252.);
+	dacs1_gain = (scale * 3.4) / (4.7 * 252.);
+	dac_offset = (scale * 0.2) / 4.7;
+	dacs0_offset = (scale * 0.18) / 4.7;
+	dacs1_offset = (scale * 1.3) / 4.7;
+	sbs1 = (scale * 3.9) / 4.7;
+	tape1 = (scale * .25) / 4.7;
 }
 
 /* within sound_update(), this loop is included for each sample format */
@@ -177,55 +201,62 @@ void sound_update(void) {
 		}
 	}
 
-	int value;
-	if (!(PIA1.b.control_register & 0x08)) {
-		/* Single-bit sound */
-		value = (PIA_VALUE_B(PIA1) & (1<<1)) ? 0x3f : 0;
-	} else {
+	_Bool mux_enabled = PIA1.b.control_register & 0x08;
+	_Bool sbs_enabled = !((PIA1.b.out_source ^ PIA1.b.out_sink) & (1<<1));
+	_Bool sbs = PIA1.b.out_source & PIA1.b.out_sink & (1<<1);
+#ifndef FAST_SOUND
+	PIA1.b.in_source |= (1<<1);
+	PIA1.b.in_sink |= (1<<1);
+#endif
+	unsigned value;
+	if (mux_enabled) {
 		int source = ((PIA0.b.control_register & (1<<3)) >> 2)
 		             | ((PIA0.a.control_register & (1<<3)) >> 3);
 		switch (source) {
-			case 0:
-				/* DAC output */
-				value = (PIA_VALUE_A(PIA1) & 0xfc) >> 1;
-				break;
-			case 1:
-				/* Tape input */
-				value = tape_audio;
-				break;
-			default:
-				/* CART input or disabled */
-				value = 0;
-				break;
-		}
+		case 0:
+			value = PIA_VALUE_A(PIA1) & 0xfc;
+			if (sbs_enabled) {
+				if (sbs) {
+					value = (value * dacs1_gain) + dacs1_offset;
+				} else {
+					value = (value * dacs0_gain) + dacs0_offset;
+				}
+			} else {
 #ifndef FAST_SOUND
-		if (value >= 0x4c) {
-			PIA1.b.in_source |= (1<<1);
-			PIA1.b.in_sink |= (1<<1);
-		} else {
-			PIA1.b.in_source &= ~(1<<1);
-			PIA1.b.in_sink &= ~(1<<1);
-		}
+				if (value <= 0x80) {
+					PIA1.b.in_source &= ~(1<<1);
+					PIA1.b.in_sink &= ~(1<<1);
+				}
 #endif
+				value = (value * dac_gain) + dac_offset;
+			}
+			break;
+		case 1:
+			value = tape_audio ? tape1 : 0;
+			break;
+		default:
+			value = 0;
+			break;
+		}
+	} else {
+		value = (sbs_enabled && sbs) ? sbs1 : 0;
 	}
-
 
 	switch (buffer_fmt) {
 	case SOUND_FMT_U8:
-		last_sample.as_int8 = ((value * volume) >> 8) ^ 0x80;
+		last_sample.as_int8 = (value >> 8) + 0x80;
 		break;
 	case SOUND_FMT_S8:
-		last_sample.as_int8 = (value * volume) >> 8;
+		last_sample.as_int8 = value >> 8;
 		break;
 	case SOUND_FMT_S16_HE:
-		last_sample.as_int16 = value * volume;
+		last_sample.as_int16 = value;
 		break;
 	case SOUND_FMT_S16_SE:
-		value *= volume;
 		last_sample.as_int16 = (value & 0xff) << 8 | ((value >> 8) & 0xff);
 		break;
 	case SOUND_FMT_FLOAT:
-		last_sample.as_float = (float)((value-64) * volume) / 65536.;
+		last_sample.as_float = (float)value / 32767.;
 		break;
 	default:
 		break;

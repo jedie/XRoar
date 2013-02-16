@@ -36,7 +36,7 @@
 #include "tape.h"
 #include "xroar.h"
 
-int tape_audio;
+_Bool tape_audio;
 
 static unsigned int motor;
 
@@ -429,7 +429,7 @@ static void waggle_bit(void *data) {
 		break;
 	case 1:
 		PIA1.a.in_sink &= ~(1<<0);
-		tape_audio = 0x0f;
+		tape_audio = 1;
 		break;
 	}
 	sound_update();
