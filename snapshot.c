@@ -24,6 +24,7 @@
 #include "cart.h"
 #include "fs.h"
 #include "keyboard.h"
+#include "hd6309.h"
 #include "logging.h"
 #include "machine.h"
 #include "mc6809.h"
@@ -53,13 +54,80 @@
 #define ID_MACHINECONFIG (8)
 #define ID_SNAPVERSION   (9)
 #define ID_VDISK_FILE    (10)
+#define ID_HD6309_STATE  (11)
 
 #define SNAPSHOT_VERSION_MAJOR 1
-#define SNAPSHOT_VERSION_MINOR 6
+#define SNAPSHOT_VERSION_MINOR 7
 
 static void write_chunk_header(FILE *fd, unsigned id, unsigned size) {
 	fs_write_uint8(fd, id);
 	fs_write_uint16(fd, size);
+}
+
+static void write_mc6809(FILE *fd, struct MC6809 *cpu) {
+	write_chunk_header(fd, ID_MC6809_STATE, 20);
+	fs_write_uint8(fd, cpu->reg_cc);
+	fs_write_uint8(fd, MC6809_REG_A(cpu));
+	fs_write_uint8(fd, MC6809_REG_B(cpu));
+	fs_write_uint8(fd, cpu->reg_dp);
+	fs_write_uint16(fd, cpu->reg_x);
+	fs_write_uint16(fd, cpu->reg_y);
+	fs_write_uint16(fd, cpu->reg_u);
+	fs_write_uint16(fd, cpu->reg_s);
+	fs_write_uint16(fd, cpu->reg_pc);
+	fs_write_uint8(fd, cpu->halt);
+	fs_write_uint8(fd, cpu->nmi);
+	fs_write_uint8(fd, cpu->firq);
+	fs_write_uint8(fd, cpu->irq);
+	fs_write_uint8(fd, cpu->state);
+	fs_write_uint8(fd, cpu->nmi_armed);
+}
+
+static uint8_t tfm_reg(struct HD6309 *hcpu, uint16_t *ptr) {
+	struct MC6809 *cpu = &hcpu->mc6809;
+	if (ptr == &cpu->reg_d)
+		return 0;
+	if (ptr == &cpu->reg_x)
+		return 1;
+	if (ptr == &cpu->reg_y)
+		return 2;
+	if (ptr == &cpu->reg_u)
+		return 3;
+	if (ptr == &cpu->reg_s)
+		return 4;
+	return 15;
+}
+
+static void write_hd6309(FILE *fd, struct HD6309 *hcpu) {
+	struct MC6809 *cpu = &hcpu->mc6809;
+	write_chunk_header(fd, ID_HD6309_STATE, 27);
+	fs_write_uint8(fd, cpu->reg_cc);
+	fs_write_uint8(fd, MC6809_REG_A(cpu));
+	fs_write_uint8(fd, MC6809_REG_B(cpu));
+	fs_write_uint8(fd, cpu->reg_dp);
+	fs_write_uint16(fd, cpu->reg_x);
+	fs_write_uint16(fd, cpu->reg_y);
+	fs_write_uint16(fd, cpu->reg_u);
+	fs_write_uint16(fd, cpu->reg_s);
+	fs_write_uint16(fd, cpu->reg_pc);
+	fs_write_uint8(fd, cpu->halt);
+	fs_write_uint8(fd, cpu->nmi);
+	fs_write_uint8(fd, cpu->firq);
+	fs_write_uint8(fd, cpu->irq);
+	fs_write_uint8(fd, hcpu->state);  // 6309-specific
+	fs_write_uint8(fd, cpu->nmi_armed);
+	// 6309-specific extras:
+	fs_write_uint8(fd, HD6309_REG_E(hcpu));
+	fs_write_uint8(fd, HD6309_REG_F(hcpu));
+	fs_write_uint16(fd, hcpu->reg_v);
+	fs_write_uint8(fd, hcpu->reg_md);
+	uint8_t tfm_src_dest = tfm_reg(hcpu, hcpu->tfm_src) << 4;
+	tfm_src_dest |= tfm_reg(hcpu, hcpu->tfm_dest);
+	fs_write_uint8(fd, tfm_src_dest);
+	// lowest 4 bits of each of these is enough:
+	uint8_t tfm_mod = (hcpu->tfm_src_mod & 15) << 4;
+	tfm_mod |= (hcpu->tfm_dest_mod & 15);
+	fs_write_uint8(fd, tfm_mod);
 }
 
 int write_snapshot(const char *filename) {
@@ -75,7 +143,7 @@ int write_snapshot(const char *filename) {
 	write_chunk_header(fd, ID_MACHINECONFIG, 8);
 	fs_write_uint8(fd, xroar_machine_config->index);
 	fs_write_uint8(fd, xroar_machine_config->architecture);
-	fs_write_uint8(fd, xroar_machine_config->architecture);  /* romset */
+	fs_write_uint8(fd, xroar_machine_config->cpu);
 	fs_write_uint8(fd, xroar_machine_config->keymap);
 	fs_write_uint8(fd, xroar_machine_config->tv_standard);
 	fs_write_uint8(fd, xroar_machine_config->ram);
@@ -112,23 +180,15 @@ int write_snapshot(const char *filename) {
 	fs_write_uint8(fd, PIA1.b.direction_register);
 	fs_write_uint8(fd, PIA1.b.output_register);
 	fs_write_uint8(fd, PIA1.b.control_register);
-	// MC6809 state
-	write_chunk_header(fd, ID_MC6809_STATE, 20);
-	fs_write_uint8(fd, CPU0->reg_cc);
-	fs_write_uint8(fd, MC6809_REG_A(CPU0));
-	fs_write_uint8(fd, MC6809_REG_B(CPU0));
-	fs_write_uint8(fd, CPU0->reg_dp);
-	fs_write_uint16(fd, CPU0->reg_x);
-	fs_write_uint16(fd, CPU0->reg_y);
-	fs_write_uint16(fd, CPU0->reg_u);
-	fs_write_uint16(fd, CPU0->reg_s);
-	fs_write_uint16(fd, CPU0->reg_pc);
-	fs_write_uint8(fd, CPU0->halt);
-	fs_write_uint8(fd, CPU0->nmi);
-	fs_write_uint8(fd, CPU0->firq);
-	fs_write_uint8(fd, CPU0->irq);
-	fs_write_uint8(fd, CPU0->state);
-	fs_write_uint8(fd, CPU0->nmi_armed);
+	// CPU state
+	switch (xroar_machine_config->cpu) {
+	case CPU_MC6809: default:
+		write_mc6809(fd, CPU0);
+		break;
+	case CPU_HD6309:
+		write_hd6309(fd, (struct HD6309 *)CPU0);
+		break;
+	}
 	// SAM
 	write_chunk_header(fd, ID_SAM_REGISTERS, 2);
 	fs_write_uint16(fd, sam_get_register());
@@ -175,10 +235,32 @@ static void old_set_registers(uint8_t *regs) {
 	CPU0->nmi_armed = 0;
 }
 
+static uint16_t *tfm_reg_ptr(struct HD6309 *hcpu, unsigned reg) {
+	struct MC6809 *cpu = &hcpu->mc6809;
+	switch (reg >> 4) {
+	case 0:
+		return &cpu->reg_d;
+	case 1:
+		return &cpu->reg_x;
+	case 2:
+		return &cpu->reg_y;
+	case 3:
+		return &cpu->reg_u;
+	case 4:
+		return &cpu->reg_s;
+	default:
+		break;
+	}
+	return NULL;
+}
+
+#define sex4(v) (((uint16_t)(v) & 0x07) - ((uint16_t)(v) & 0x08))
+
 int read_snapshot(const char *filename) {
 	FILE *fd;
 	uint8_t buffer[17];
 	int section, size, tmp;
+	int version_major = 1, version_minor = 0;
 	if (filename == NULL)
 		return -1;
 	if (!(fd = fopen(filename, "rb")))
@@ -201,6 +283,7 @@ int read_snapshot(const char *filename) {
 	if (buffer[0] != 'X') {
 		old_set_registers(buffer + 3);
 	}
+	struct HD6309 *hcpu = NULL;
 	while ((section = fs_read_uint8(fd)) >= 0) {
 		size = fs_read_uint16(fd);
 		if (size == 0) size = 0x10000;
@@ -227,9 +310,14 @@ int read_snapshot(const char *filename) {
 				size -= fread(buffer, 1, 14, fd);
 				old_set_registers(buffer);
 				break;
+
 			case ID_MC6809_STATE:
 				// MC6809 state
 				if (size < 20) break;
+				if (xroar_machine_config->cpu != CPU_MC6809) {
+					LOG_WARN("CPU mismatch - skipping MC6809 chunk\n");
+					break;
+				}
 				CPU0->reg_cc = fs_read_uint8(fd);
 				MC6809_REG_A(CPU0) = fs_read_uint8(fd);
 				MC6809_REG_B(CPU0) = fs_read_uint8(fd);
@@ -261,8 +349,6 @@ int read_snapshot(const char *filename) {
 					CPU0->state = fs_read_uint8(fd);
 				}
 				CPU0->nmi_armed = fs_read_uint8(fd);
-				CPU0->firq &= 3;
-				CPU0->irq &= 3;
 				size -= 20;
 				if (size > 0) {
 					// Skip 'halted'
@@ -270,13 +356,58 @@ int read_snapshot(const char *filename) {
 					size--;
 				}
 				break;
+
+			case ID_HD6309_STATE:
+				// HD6309 state
+				if (size < 27) break;
+				if (xroar_machine_config->cpu != CPU_HD6309) {
+					LOG_WARN("CPU mismatch - skipping HD6309 chunk\n");
+					break;
+				}
+				hcpu = (struct HD6309 *)CPU0;
+				CPU0->reg_cc = fs_read_uint8(fd);
+				MC6809_REG_A(CPU0) = fs_read_uint8(fd);
+				MC6809_REG_B(CPU0) = fs_read_uint8(fd);
+				CPU0->reg_dp = fs_read_uint8(fd);
+				CPU0->reg_x = fs_read_uint16(fd);
+				CPU0->reg_y = fs_read_uint16(fd);
+				CPU0->reg_u = fs_read_uint16(fd);
+				CPU0->reg_s = fs_read_uint16(fd);
+				CPU0->reg_pc = fs_read_uint16(fd);
+				CPU0->halt = fs_read_uint8(fd);
+				CPU0->nmi = fs_read_uint8(fd);
+				CPU0->firq = fs_read_uint8(fd);
+				CPU0->irq = fs_read_uint8(fd);
+				hcpu->state = fs_read_uint8(fd);
+				CPU0->nmi_armed = fs_read_uint8(fd);
+				HD6309_REG_E(hcpu) = fs_read_uint8(fd);
+				HD6309_REG_F(hcpu) = fs_read_uint8(fd);
+				hcpu->reg_v = fs_read_uint16(fd);
+				tmp = fs_read_uint8(fd);
+				hcpu->reg_md = tmp;
+				hcpu->native_mode = tmp & 0x01;
+				hcpu->firq_stack_all = tmp & 0x02;
+				tmp = fs_read_uint8(fd);
+				hcpu->tfm_src = tfm_reg_ptr(hcpu, tmp >> 4);
+				hcpu->tfm_dest = tfm_reg_ptr(hcpu, tmp & 15);
+				tmp = fs_read_uint8(fd);
+				hcpu->tfm_src_mod = sex4(tmp >> 4);
+				hcpu->tfm_dest_mod = sex4(tmp & 15);
+				size -= 27;
+				break;
+
 			case ID_MACHINECONFIG:
 				// Machine running config
 				if (size < 7) break;
 				(void)fs_read_uint8(fd);  // requested_machine
 				tmp = fs_read_uint8(fd);
 				xroar_machine_config = machine_config_by_arch(tmp);
-				(void)fs_read_uint8(fd);  // romset
+				tmp = fs_read_uint8(fd);  // was romset
+				if (version_minor >= 7) {
+					// old field not used any more, repurposed
+					// in v1.7 to hold cpu type:
+					xroar_machine_config->cpu = tmp;
+				}
 				xroar_machine_config->keymap = fs_read_uint8(fd);  // keymap
 				xroar_machine_config->tv_standard = fs_read_uint8(fd);
 				xroar_machine_config->ram = fs_read_uint8(fd);
@@ -289,6 +420,7 @@ int read_snapshot(const char *filename) {
 				}
 				machine_configure(xroar_machine_config);
 				break;
+
 			case ID_PIA_REGISTERS:
 				// PIA0
 				if (size < 3) break;
@@ -336,22 +468,22 @@ int read_snapshot(const char *filename) {
 				size -= 2;
 				sam_set_register(tmp);
 				break;
+
 			case ID_SNAPVERSION:
-				{
 				// Snapshot version - abort if snapshot
 				// contains stuff we don't understand
-				int major, minor;
 				if (size < 3) break;
-				major = fs_read_uint8(fd);
-				minor = fs_read_uint16(fd);
+				version_major = fs_read_uint8(fd);
+				version_minor = fs_read_uint16(fd);
 				size -= 3;
-				if (major != SNAPSHOT_VERSION_MAJOR || minor > SNAPSHOT_VERSION_MINOR) {
-					LOG_WARN("Snapshot version %d.%d not supported.\n", major, minor);
+				if (version_major != SNAPSHOT_VERSION_MAJOR
+				    || version_minor > SNAPSHOT_VERSION_MINOR) {
+					LOG_WARN("Snapshot version %d.%d not supported.\n", version_major, version_minor);
 					fclose(fd);
 					return -1;
 				}
-				}
 				break;
+
 			case ID_VDISK_FILE:
 				// Attached virtual disk filenames
 				{
