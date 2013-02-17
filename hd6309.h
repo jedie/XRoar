@@ -46,8 +46,8 @@ struct HD6309 {
 	uint16_t *tfm_src;
 	uint16_t *tfm_dest;
 	uint8_t tfm_data;
-	int tfm_src_mod;
-	int tfm_dest_mod;
+	uint16_t tfm_src_mod;
+	uint16_t tfm_dest_mod;
 };
 
 #define HD6309_REG_E(hcpu) (*((uint8_t *)&hcpu->reg_w + MC6809_REG_HI))
