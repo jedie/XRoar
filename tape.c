@@ -36,7 +36,7 @@
 #include "tape.h"
 #include "xroar.h"
 
-_Bool tape_audio;
+float tape_audio = 0.5;
 
 static unsigned int motor;
 
@@ -228,7 +228,7 @@ void tape_free(struct tape *t) {
 /**************************************************************************/
 
 void tape_init(void) {
-	tape_audio = 0;
+	tape_audio = 0.5;
 	event_init(&waggle_event, waggle_bit, NULL);
 	event_init(&flush_event, flush_output, NULL);
 }
@@ -419,17 +419,17 @@ static void waggle_bit(void *data) {
 	switch (in_pulse) {
 	default:
 	case -1:
-		tape_audio = 0;
+		tape_audio = 0.5;
 		sound_update();
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
 		PIA1.a.in_sink |= (1<<0);
-		tape_audio = 0;
+		tape_audio = 0.0;
 		break;
 	case 1:
 		PIA1.a.in_sink &= ~(1<<0);
-		tape_audio = 1;
+		tape_audio = 1.0;
 		break;
 	}
 	sound_update();
