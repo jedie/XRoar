@@ -128,7 +128,6 @@ static void alloc_colours(void) {
 
 /* Render colour line using palette */
 static void render_scanline(uint8_t *scanline_data) {
-	scanline_data += ((VDG_tLB / 2) - 32);
 	LOCK_SURFACE;
 	for (int i = 320; i; i--) {
 		*pixel = vdg_colour[*(scanline_data++)];
@@ -141,7 +140,6 @@ static void render_scanline(uint8_t *scanline_data) {
 /* Render artifacted colours - simple 4-colour lookup */
 static void render_ccr_simple(uint8_t *scanline_data) {
 	int phase = xroar_machine_config->cross_colour_phase - 1;
-	scanline_data += ((VDG_tLB / 2) - 32);
 	LOCK_SURFACE;
 	for (int i = 160; i; i--) {
 		uint8_t c0 = *(scanline_data++);
@@ -163,7 +161,6 @@ static void render_ccr_simple(uint8_t *scanline_data) {
 /* Render artifacted colours - 5-bit lookup table */
 static void render_ccr_5bit(uint8_t *scanline_data) {
 	int phase = xroar_machine_config->cross_colour_phase - 1;
-	scanline_data += ((VDG_tLB / 2) - 32);
 	LOCK_SURFACE;
 	int aindex = 0;
 	for (int i = -2; i < 2; i++) {

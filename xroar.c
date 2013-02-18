@@ -1057,7 +1057,7 @@ void xroar_run(void) {
 	}
 
 	while (1) {
-		machine_run(VDG_LINE_DURATION * 8);
+		machine_run(VDG_LINE_DURATION * 16);
 		event_run_queue(UI_EVENT_LIST);
 	}
 }

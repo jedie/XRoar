@@ -16,6 +16,7 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,8 +32,8 @@
 #include "vdg_bitmaps.h"
 #include "xroar.h"
 
-/* Offset to the first displayed pixel. */
-#define SCAN_OFFSET (VDG_LEFT_BORDER_START)
+// Convert VDG timing to SAM cycles:
+#define VDG_CYCLES(c) ((c) * 2)
 
 /* External handler to fetch data for display.  First arg is number of bytes,
  * second a pointer to a buffer to receive them. */
@@ -42,7 +43,7 @@ static event_ticks scanline_start;
 static _Bool is_32byte;
 static void render_scanline(void);
 
-static int beam_pos;
+static unsigned beam_pos;
 
 static _Bool nA_S;
 static _Bool nA_G;
@@ -72,9 +73,9 @@ enum vdg_render_mode {
 static enum vdg_render_mode render_mode;
 
 static uint8_t vram[32];
-static int lborder_remaining;
-static int vram_remaining;
-static int rborder_remaining;
+static unsigned lborder_remaining;
+static unsigned vram_remaining;
+static unsigned rborder_remaining;
 static int vram_bit = 0;
 static int vram_idx = 0;
 static uint8_t vram_g_data;
@@ -98,15 +99,15 @@ void vdg_reset(void) {
 	scanline = 0;
 	subline = 0;
 	scanline_start = event_current_tick;
-	hs_fall_event.at_tick = event_current_tick + VDG_LINE_DURATION;
+	hs_fall_event.at_tick = event_current_tick + VDG_CYCLES(VDG_LINE_DURATION);
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
 	vdg_set_mode(0);
 	beam_pos = 0;
 	vram_idx = 0;
 	vram_bit = 0;
-	lborder_remaining = VDG_tLB / 2;
+	lborder_remaining = VDG_tLB;
 	vram_remaining = is_32byte ? 32 : 16;
-	rborder_remaining = VDG_tRB / 2;
+	rborder_remaining = VDG_tRB;
 }
 
 static void do_hs_fall(void *data) {
@@ -131,16 +132,16 @@ static void do_hs_fall(void *data) {
 
 	scanline_start = hs_fall_event.at_tick;
 	/* Next HS rise and fall */
-	hs_rise_event.at_tick = scanline_start + VDG_HS_RISING_EDGE;
-	hs_fall_event.at_tick = scanline_start + VDG_LINE_DURATION;
+	hs_rise_event.at_tick = scanline_start + VDG_CYCLES(VDG_HS_RISING_EDGE);
+	hs_fall_event.at_tick = scanline_start + VDG_CYCLES(VDG_LINE_DURATION);
 
 	/* Two delays of 25 scanlines each occur 24 lines after FS falling edge
 	 * and at FS rising edge in PAL systems */
 	if (IS_PAL) {
 		if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 24)
 		    || scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
-			hs_rise_event.at_tick += 25 * VDG_PAL_PADDING_LINE;
-			hs_fall_event.at_tick += 25 * VDG_PAL_PADDING_LINE;
+			hs_rise_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
+			hs_fall_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
 		}
 	}
 
@@ -152,9 +153,9 @@ static void do_hs_fall(void *data) {
 	beam_pos = 0;
 	vram_idx = 0;
 	vram_bit = 0;
-	lborder_remaining = VDG_tLB / 2;
+	lborder_remaining = VDG_tLB;
 	vram_remaining = is_32byte ? 32 : 16;
-	rborder_remaining = VDG_tRB / 2;
+	rborder_remaining = VDG_tRB;
 
 	if (scanline == VDG_ACTIVE_AREA_START) {
 		subline = 0;
@@ -185,9 +186,9 @@ static void do_hs_rise(void *data) {
 }
 
 static void render_scanline(void) {
-	int beam_to = ((int)(event_current_tick - scanline_start) - SCAN_OFFSET) / 2;
-	if (beam_to > 372)
-		beam_to = 372;
+	unsigned beam_to = ((event_current_tick - scanline_start) >> 1) - VDG_LEFT_BORDER_START;
+	if (beam_to > (UINT_MAX/2))
+		return;
 	if (beam_pos >= beam_to)
 		return;
 
@@ -196,7 +197,9 @@ static void render_scanline(void) {
 			CSS_ = CSS__;
 			nINT_EXT_ = nINT_EXT__;
 		}
-		*(pixel++) = border_colour;
+		if (beam_pos >= 28) {
+			*(pixel++) = border_colour;
+		}
 		beam_pos++;
 		lborder_remaining--;
 		if (beam_pos >= beam_to)
@@ -311,7 +314,9 @@ static void render_scanline(void) {
 			nINT_EXT = nINT_EXT_;
 		}
 		border_colour = nA_G ? cg_colours : VDG_BLACK;
-		*(pixel++) = border_colour;
+		if (beam_pos < 348) {
+			*(pixel++) = border_colour;
+		}
 		beam_pos++;
 		rborder_remaining--;
 		if (beam_pos >= beam_to)
