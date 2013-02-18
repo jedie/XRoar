@@ -161,6 +161,8 @@ xroar_OBJS_CXX = $(xroar_BASE_OBJS_CXX)
 xroar_OBJS_OBJC = $(xroar_BASE_OBJS_OBJC)
 xroar_RES =
 
+vdg.o: vdg_bitmaps.h
+
 # Objects for all Unix-style builds (now the only one):
 xroar_unix_OBJS = main_unix.o
 CLEAN += $(xroar_unix_OBJS)
@@ -220,7 +222,6 @@ ifeq ($(opt_gtkgl),yes)
 	xroar_OBJS_C += $(xroar_gtkgl_OBJS_C)
 	xroar_CFLAGS += $(opt_gtkgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_gtkgl_LDFLAGS)
-vo_gtkgl.o: vdg_bitmaps.h
 $(xroar_gtkgl_OBJS_C): | gtk2
 endif
 
@@ -245,8 +246,6 @@ ifeq ($(opt_sdl),yes)
 	xroar_CFLAGS += $(opt_sdl_CFLAGS)
 	xroar_OBJCFLAGS += $(opt_sdl_OBJCFLAGS)
 	xroar_LDFLAGS += $(opt_sdl_LDFLAGS)
-sdl/vo_sdl.o: vdg_bitmaps.h
-sdl/vo_sdlyuv.o: vdg_bitmaps.h
 sdl/keyboard_sdl.o: $(SRCROOT)/sdl/keyboard_sdl_mappings.c
 $(xroar_sdl_OBJS_C): | sdl
 sdl:
@@ -259,7 +258,6 @@ ifeq ($(opt_sdlgl),yes)
 	xroar_OBJS_C += $(xroar_sdlgl_OBJS_C)
 	xroar_CFLAGS += $(opt_sdlgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_sdlgl_LDFLAGS)
-vo_sdlgl.o: vdg_bitmaps.h
 $(xroar_sdlgl_OBJS_C): | sdl
 endif
 
