@@ -322,6 +322,13 @@ static void render_scanline(void) {
 		if (beam_pos >= beam_to)
 			return;
 	}
+
+	// If a program switches to 32 bytes per line mid-scanline, the whole
+	// scanline might not have been rendered:
+	while (beam_pos < VDG_RIGHT_BORDER_END) {
+		*(pixel++) = VDG_BLACK;
+		beam_pos++;
+	}
 }
 
 void vdg_set_mode(unsigned mode) {
