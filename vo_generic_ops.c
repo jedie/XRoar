@@ -162,12 +162,9 @@ static void render_ccr_simple(uint8_t *scanline_data) {
 static void render_ccr_5bit(uint8_t *scanline_data) {
 	int phase = xroar_machine_config->cross_colour_phase - 1;
 	LOCK_SURFACE;
-	int aindex = 0;
-	for (int i = -2; i < 2; i++) {
-		aindex = (aindex << 1) & 31;
-		if (*(scanline_data + i) != VDG_BLACK)
-			aindex |= 1;
-	}
+	unsigned aindex = 0;
+	aindex = (*(scanline_data) != VDG_BLACK) ? 14 : 0;
+	aindex |= (*(scanline_data + 1) != VDG_BLACK) ? 1 : 0;
 	for (int i = 320; i; i--) {
 		aindex = (aindex << 1) & 31;
 		if (*(scanline_data + 2) != VDG_BLACK)
