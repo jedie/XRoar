@@ -130,6 +130,10 @@ static int set_fullscreen(_Bool fullscreen) {
 	SDL_WM_SetCaption("XRoar", "XRoar");
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	alloc_colours();
+	vdg_window_x1 = VDG_tLB - 32;
+	vdg_window_y1 = VDG_TOP_BORDER_START + 1;
+	vdg_window_x2 = vdg_window_x1 + 320;
+	vdg_window_y2 = vdg_window_y1 + 240;
 	if (fullscreen)
 		SDL_ShowCursor(SDL_DISABLE);
 	else

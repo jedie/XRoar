@@ -138,6 +138,10 @@ static _Bool init(void) {
 		LOG_WARN("Warning: SDL overlay is not hardware accelerated\n");
 	}
 	alloc_colours();
+	vdg_window_x1 = VDG_tLB - 32;
+	vdg_window_y1 = VDG_TOP_BORDER_START + 1;
+	vdg_window_x2 = vdg_window_x1 + 320;
+	vdg_window_y2 = vdg_window_y1 + 240;
 #ifdef WINDOWS32
 	{
 		SDL_version sdlver;

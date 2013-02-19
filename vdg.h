@@ -54,6 +54,13 @@ enum vdg_colour {
  * second a pointer to a buffer to receive them. */
 extern void (*vdg_fetch_bytes)(int, uint8_t *);
 
+// Video module configures these window coordinates.  x1 = pixels from left
+// border, y1 = scanlines from top border.  x2 must be within the right border,
+// y2 within the bottom border.
+
+extern unsigned vdg_window_x1, vdg_window_y1;
+extern unsigned vdg_window_x2, vdg_window_y2;
+
 void vdg_init(void);
 void vdg_reset(void);
 /* Mode bits:
