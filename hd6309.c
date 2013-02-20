@@ -1258,7 +1258,8 @@ static void hd6309_run(struct MC6809 *cpu) {
 				NVMA_CYCLE();
 				NVMA_CYCLE();
 				NVMA_CYCLE();
-				NVMA_CYCLE();
+				if (!hcpu->native_mode)
+					NVMA_CYCLE();
 			} break;
 			// 0x3f SWI inherent
 			case 0x3f:
@@ -1357,7 +1358,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			case 0x8d: case 0x9d: case 0xad: case 0xbd: {
 				unsigned ea;
 				switch ((op >> 4) & 3) {
-				case 0: SHORT_RELATIVE(ea); ea += REG_PC; NVMA_CYCLE(); NVMA_CYCLE(); NVMA_CYCLE(); break;
+				case 0: SHORT_RELATIVE(ea); ea += REG_PC; NVMA_CYCLE(); NVMA_CYCLE(); if (!hcpu->native_mode) NVMA_CYCLE(); break;
 				case 1: EA_DIRECT(ea); peek_byte(ea); NVMA_CYCLE(); break;
 				case 2: EA_INDEXED(ea); peek_byte(ea); NVMA_CYCLE(); break;
 				case 3: EA_EXTENDED(ea); peek_byte(ea); NVMA_CYCLE(); break;
