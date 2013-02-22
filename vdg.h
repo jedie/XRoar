@@ -61,6 +61,9 @@ extern void (*vdg_fetch_bytes)(int, uint8_t *);
 extern unsigned vdg_window_x1, vdg_window_y1;
 extern unsigned vdg_window_x2, vdg_window_y2;
 
+// Set to emulate 6847T1.
+extern _Bool vdg_t1;
+
 void vdg_init(void);
 void vdg_reset(void);
 /* Mode bits:

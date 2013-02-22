@@ -50,6 +50,9 @@ static _Bool nA_G;
 static _Bool nINT_EXT, nINT_EXT_, nINT_EXT__;
 static _Bool GM0;
 static _Bool CSS, CSS_, CSS__;
+// 6847T1-only:
+static _Bool inverse_text;
+static _Bool text_border;
 
 // Enough space for borders and active area plus some extra in case mode
 // changes cause render_scanline() to overflow the buffer (max 4 pixels are
@@ -63,6 +66,10 @@ static uint8_t fg_colour;
 static uint8_t bg_colour;
 static uint8_t cg_colours;
 static uint8_t border_colour;
+// Colour to use in place of "bright orange":
+static uint8_t bright_orange;
+// 6847T1-only:
+static uint8_t text_border_colour;
 
 static unsigned scanline;
 static unsigned int subline;
@@ -101,6 +108,11 @@ unsigned vdg_window_y1 = DEFAULT_Y1;
 unsigned vdg_window_x2 = DEFAULT_X1 + 320;
 unsigned vdg_window_y2 = DEFAULT_Y1 + 240;
 
+// Set to enable the extra stuff on a 6847T1
+_Bool vdg_t1 = 0;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 void vdg_init(void) {
 	event_init(&hs_fall_event, do_hs_fall, NULL);
 	event_init(&hs_rise_event, do_hs_rise, NULL);
@@ -115,6 +127,8 @@ void vdg_reset(void) {
 	scanline_start = event_current_tick;
 	hs_fall_event.at_tick = event_current_tick + VDG_CYCLES(VDG_LINE_DURATION);
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
+	// 6847T1 doesn't appear to do bright orange:
+	bright_orange = vdg_t1 ? VDG_ORANGE : VDG_BRIGHT_ORANGE;
 	vdg_set_mode(0);
 	beam_pos = 0;
 	vram_idx = 0;
@@ -244,18 +258,28 @@ static void render_scanline(void) {
 			nINT_EXT = nINT_EXT_;
 			nINT_EXT_ = nINT_EXT__;
 			cg_colours = !CSS ? VDG_GREEN : VDG_WHITE;
+			text_border_colour = !CSS ? VDG_GREEN : bright_orange;
 
 			if (!nA_G && !nA_S) {
-				_Bool INV = vram_g_data & 0x40;
-				if (!nINT_EXT)
-					vram_g_data = vdg_alpha[(vram_g_data&0x3f)*12 + subline];
+				_Bool INV;
+				if (vdg_t1) {
+					INV = nINT_EXT || (vram_g_data & 0x40);
+					INV ^= inverse_text;
+					if (!nINT_EXT)
+						vram_g_data |= 0x40;
+					vram_g_data = font_6847t1[(vram_g_data&0x7f)*12 + subline];
+				} else {
+					INV = vram_g_data & 0x40;
+					if (!nINT_EXT)
+						vram_g_data = font_6847[(vram_g_data&0x3f)*12 + subline];
+				}
 				if (INV)
 					vram_g_data = ~vram_g_data;
 			}
 
 			if (!nA_G && nA_S) {
 				vram_sg_data = vram_g_data;
-				if (!nINT_EXT) {
+				if (vdg_t1 || !nINT_EXT) {
 					if (subline < 6)
 						vram_sg_data >>= 2;
 					s_fg_colour = (vram_g_data >> 4) & 7;
@@ -272,7 +296,7 @@ static void render_scanline(void) {
 
 			if (!nA_G) {
 				render_mode = !nA_S ? VDG_RENDER_RG : VDG_RENDER_SG;
-				fg_colour = !CSS ? VDG_GREEN : VDG_BRIGHT_ORANGE;
+				fg_colour = !CSS ? VDG_GREEN : bright_orange;
 				bg_colour = !CSS ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
 			} else {
 				render_mode = GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
@@ -336,8 +360,9 @@ static void render_scanline(void) {
 		if (beam_pos == 316) {
 			CSS = CSS_;
 			nINT_EXT = nINT_EXT_;
+			text_border_colour = !CSS ? VDG_GREEN : bright_orange;
 		}
-		border_colour = nA_G ? cg_colours : VDG_BLACK;
+		border_colour = nA_G ? cg_colours : (text_border ? text_border_colour : VDG_BLACK);
 		if (beam_pos < vdg_window_x2) {
 			*(pixel++) = border_colour;
 		}
@@ -366,17 +391,21 @@ void vdg_set_mode(unsigned mode) {
 	CSS__ = mode & 0x08;
 	nINT_EXT__ = mode & 0x10;
 	_Bool new_nA_G = mode & 0x80;
+
+	inverse_text = vdg_t1 && (GM & 2);
+	text_border = vdg_t1 && !inverse_text && (GM & 4);
+	text_border_colour = !CSS ? VDG_GREEN : bright_orange;
+
 	/* If switching from graphics to alpha/semigraphics */
 	if (nA_G && !new_nA_G) {
 		subline = 0;
 		render_mode = VDG_RENDER_RG;
-		border_colour = VDG_BLACK;
 		if (nA_S) {
 			vram_g_data = 0x3f;
 			fg_colour = VDG_GREEN;
 			bg_colour = VDG_DARK_GREEN;
 		} else {
-			fg_colour = !CSS ? VDG_GREEN : VDG_BRIGHT_ORANGE;
+			fg_colour = !CSS ? VDG_GREEN : bright_orange;
 			bg_colour = !CSS ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
 		}
 	}
@@ -389,6 +418,8 @@ void vdg_set_mode(unsigned mode) {
 
 	if (nA_G) {
 		render_mode = GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
+	} else {
+		border_colour = text_border ? text_border_colour : VDG_BLACK;
 	}
 
 	is_32byte = !nA_G || !(GM == 0 || (GM0 && GM != 7));

@@ -489,6 +489,7 @@ rm -f $TMPC
 echo "$__c99"
 if test "$__c99" \!= "no"; then
 	TARGET_CC="$TARGET_CC$__std"
+	BUILD_CC="$BUILD_CC$__std"
 fi
 
 ########

@@ -105,6 +105,7 @@ struct machine_config *machine_config_new(void) {
 	new->cpu = CPU_MC6809;
 	new->keymap = ANY_AUTO;
 	new->tv_standard = ANY_AUTO;
+	new->vdg_type = ANY_AUTO;
 	new->ram = ANY_AUTO;
 	new->default_cart_index = ANY_AUTO;
 	new->cart_enabled = 1;
@@ -176,6 +177,8 @@ void machine_config_complete(struct machine_config *mc) {
 	}
 	if (mc->tv_standard == ANY_AUTO)
 		mc->tv_standard = TV_PAL;
+	if (mc->vdg_type == ANY_AUTO)
+		mc->vdg_type = VDG_6847;
 	/* Various heuristics to find a working architecture */
 	if (mc->architecture == ANY_AUTO) {
 		/* TODO: checksum ROMs to help determine arch */
@@ -352,6 +355,7 @@ void machine_configure(struct machine_config *mc) {
 		xroar_select_cross_colour(CROSS_COLOUR_KBRW);
 		break;
 	}
+	vdg_t1 = (mc->vdg_type == VDG_6847T1);
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
 	memset(rom1, 0, sizeof(rom1));

@@ -68,6 +68,7 @@ static int opt_nobas = -1;
 static int opt_noextbas = -1;
 static int opt_noaltbas = -1;
 static int opt_tv = ANY_AUTO;
+static int opt_vdg_type = -1;
 static char *opt_machine_cart = NULL;
 static void set_pal(void);
 static void set_ntsc(void);
@@ -159,6 +160,12 @@ static struct xconfig_enum tv_type_list[] = {
 	XC_ENUM_END()
 };
 
+static struct xconfig_enum vdg_type_list[] = {
+	{ .value = VDG_6847, .name = "6847", .description = "Original 6847" },
+	{ .value = VDG_6847T1, .name = "6847t1", .description = "6847T1 with lowercase" },
+	XC_ENUM_END()
+};
+
 static struct xconfig_enum cart_type_list[] = {
 	{ .value = CART_ROM, .name = "rom", .description = "ROM cartridge" },
 	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
@@ -203,6 +210,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("noextbas", &opt_noextbas),
 	XC_SET_INT1("noaltbas", &opt_noaltbas),
 	XC_SET_ENUM("tv-type", &opt_tv, tv_type_list),
+	XC_SET_ENUM("vdg-type", &opt_vdg_type, vdg_type_list),
 	XC_SET_INT("ram", &opt_ram),
 	XC_SET_STRING("machine-cart", &opt_machine_cart),
 	/* Backwards-compatibility options: */
@@ -325,12 +333,14 @@ static const char *default_config[] = {
 	"machine-desc Tandy CoCo (PAL)",
 	"machine-arch coco",
 	"tv-type pal",
+	"vdg-type 6847t1",
 	"ram 64",
 	// CoCo (US)
 	"machine cocous",
 	"machine-desc Tandy CoCo (NTSC)",
 	"machine-arch coco",
 	"tv-type ntsc",
+	"vdg-type 6847t1",
 	"ram 64",
 	// Dynacom MX-1600
 	"machine mx1600",
@@ -531,6 +541,10 @@ static void set_machine(const char *name) {
 			xroar_machine_config->tv_standard = opt_tv;
 			opt_tv = ANY_AUTO;
 		}
+		if (opt_vdg_type != -1) {
+			xroar_machine_config->vdg_type = opt_vdg_type;
+			opt_vdg_type = -1;
+		}
 		if (opt_ram > 0) {
 			xroar_machine_config->ram = opt_ram;
 			opt_ram = 0;
@@ -672,6 +686,7 @@ static void helptext(void) {
 "  -altbas NAME            alternate BASIC ROM (Dragon 64)\n"
 "  -noextbas               disable Extended BASIC\n"
 "  -tv-type TYPE           set TV type (-tv-type help for list)\n"
+"  -vdg-type TYPE          set VDG type (6847 or 6847t1)\n"
 "  -ram KBYTES             specify amount of RAM in K\n"
 "  -machine-cart NAME      specify default cartridge for selected machine\n"
 

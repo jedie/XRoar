@@ -47,6 +47,8 @@ struct cart;
 #define ROMSET_COCO     (2)
 #define TV_PAL  (0)
 #define TV_NTSC (1)
+#define VDG_6847 (0)
+#define VDG_6847T1 (1)
 
 /* These are now purely for backwards-compatibility with old snapshots.
  * Cartridge types are now more generic: see cart.h.  */
@@ -72,6 +74,7 @@ struct machine_config {
 	char *vdg_palette;
 	int keymap;
 	int tv_standard;
+	int vdg_type;
 	int cross_colour_phase;
 	int ram;
 	_Bool nobas;

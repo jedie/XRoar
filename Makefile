@@ -543,11 +543,13 @@ CLEAN += tools/font2c
 
 #
 
-vdg_bitmaps.h: tools/font2c | $(SRCROOT)/vdgfont.png
-	tools/font2c --header --array vdg_alpha --type "unsigned char" --vdg $(SRCROOT)/vdgfont.png > $@
+vdg_bitmaps.h: tools/font2c | $(SRCROOT)/font-6847.png $(SRCROOT)/font-6847t1.png
+	tools/font2c --header --array font_6847 --type "unsigned char" --vdg $(SRCROOT)/font-6847.png > $@
+	tools/font2c --header --array font_6847t1 --type "unsigned char" --vdgt1 $(SRCROOT)/font-6847t1.png >> $@
 
-vdg_bitmaps.c: tools/font2c | $(SRCROOT)/vdgfont.png
-	tools/font2c --array vdg_alpha --type "unsigned char" --vdg $(SRCROOT)/vdgfont.png > $@
+vdg_bitmaps.c: tools/font2c | $(SRCROOT)/font-6847.png
+	tools/font2c --array font_6847 --type "unsigned char" --vdg $(SRCROOT)/font-6847.png > $@
+	tools/font2c --array font_6847t1 --type "unsigned char" --vdgt1 $(SRCROOT)/font-6847t1.png >> $@
 
 #
 
