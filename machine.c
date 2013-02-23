@@ -279,8 +279,10 @@ static void pia1b_data_preread_coco64k(void) {
 static void pia1a_data_postwrite(void) {
 	sound_update();
 	tape_update_output();
-	if (IS_DRAGON)
+	if (IS_DRAGON) {
+		keyboard_update();
 		printer_strobe();
+	}
 }
 
 #define pia1a_control_postwrite tape_update_motor
