@@ -50,6 +50,7 @@ struct keymap {
 
 static unsigned int control = 0, shift = 0;
 static unsigned int emulate_joystick = 0;
+static _Bool noratelimit_latch = 0;
 
 static uint_least16_t sdl_to_keymap[768];
 
@@ -207,8 +208,19 @@ void sdl_keypress(SDL_keysym *keysym) {
 		return;
 	}
 	if (sym == SDLK_F12) {
-		xroar_noratelimit = 1;
-		xroar_frameskip = 10;
+		if (shift) {
+			noratelimit_latch = !noratelimit_latch;
+			if (noratelimit_latch) {
+				xroar_noratelimit = 1;
+				xroar_frameskip = 10;
+			} else {
+				xroar_noratelimit = 0;
+				xroar_frameskip = xroar_opt_frameskip;
+			}
+		} else {
+			xroar_noratelimit = 1;
+			xroar_frameskip = 10;
+		}
 	}
 	if (sym == SDLK_PAUSE) { machine_toggle_pause(); return; }
 	if (control) {
@@ -259,8 +271,10 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 	}
 	if (sym == SDLK_LCTRL || sym == SDLK_RCTRL) { control = 0; return; }
 	if (sym == SDLK_F12) {
-		xroar_noratelimit = 0;
-		xroar_frameskip = xroar_opt_frameskip;
+		if (!noratelimit_latch) {
+			xroar_noratelimit = 0;
+			xroar_frameskip = xroar_opt_frameskip;
+		}
 	}
 	if (sym == SDLK_UP) { KEYBOARD_RELEASE(KEYMAP_UP); return; }
 	if (sym == SDLK_DOWN) { KEYBOARD_RELEASE(KEYMAP_DOWN); return; }

@@ -53,6 +53,7 @@ struct keymap {
 #include "keyboard_gtk2_mappings.c"
 
 static unsigned int emulate_joystick = 0;
+static _Bool noratelimit_latch = 0;
 
 #define MAX_KEYCODE (256)
 
@@ -218,8 +219,19 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		KEYBOARD_RELEASE_SHIFT();
 	}
 	if (keyval == GDK_F12 && !xroar_noratelimit) {
-		xroar_noratelimit = 1;
-		xroar_frameskip = 10;
+		if (shift) {
+			noratelimit_latch = !noratelimit_latch;
+			if (noratelimit_latch) {
+				xroar_noratelimit = 1;
+				xroar_frameskip = 10;
+			} else {
+				xroar_noratelimit = 0;
+				xroar_frameskip = xroar_opt_frameskip;
+			}
+		} else {
+			xroar_noratelimit = 1;
+			xroar_frameskip = 10;
+		}
 	}
 	if (keyval == 0x13) { machine_toggle_pause(); return FALSE; }
 	if (control) {
@@ -278,8 +290,10 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		KEYBOARD_RELEASE_SHIFT();
 	}
 	if (keyval == GDK_F12) {
-		xroar_noratelimit = 0;
-		xroar_frameskip = xroar_opt_frameskip;
+		if (!noratelimit_latch) {
+			xroar_noratelimit = 0;
+			xroar_frameskip = xroar_opt_frameskip;
+		}
 	}
 	if (keyval == GDK_Up) { KEYBOARD_RELEASE(KEYMAP_UP); return FALSE; }
 	if (keyval == GDK_Down) { KEYBOARD_RELEASE(KEYMAP_DOWN); return FALSE; }
