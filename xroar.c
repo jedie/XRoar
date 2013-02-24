@@ -725,7 +725,7 @@ static void helptext(void) {
 "  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
 #endif
 "  -ao MODULE            audio module (-ao help for list)\n"
-"  -ao-DEVICE STRING     device to use for audio module\n"
+"  -ao-device STRING     device to use for audio module\n"
 "  -ao-rate HZ           set audio sample rate (if supported by module)\n"
 "  -ao-buffer-ms MS      set audio buffer size in ms (if supported)\n"
 "  -ao-buffer-samples N  set audio buffer size in samples (if supported)\n"
