@@ -72,12 +72,12 @@ static struct {
 	int control_num;
 	int invert;
 } control_config[6] = {
-	{ 1, 0, 0 }, /* Right X axis */
-	{ 1, 1, 0 }, /* Right Y axis */
-	{ 0, 0, 0 }, /* Left X axis */
-	{ 0, 1, 0 }, /* Left Y axis */
-	{ 1, 0, 0 }, /* Right firebutton */
-	{ 0, 0, 0 }  /* Left firebutton */
+	{ 0, 0, 0 },  // Right X axis
+	{ 0, 1, 0 },  // Right Y axis
+	{ 1, 0, 0 },  // Left X axis
+	{ 1, 1, 0 },  // Left Y axis
+	{ 0, 0, 0 },  // Right firebutton
+	{ 1, 0, 0 }   // Left firebutton
 };
 
 static struct event *poll_event;
@@ -160,13 +160,14 @@ static _Bool init(void) {
 		return 0;
 	}
 
-	/* If only one joystick attached, change the right joystick defaults */
+	// If only one joystick attached, change the left joystick defaults
 	if (num_sdl_joysticks == 1) {
-		control_config[INPUT_JOY_RIGHT_X].joy_num = control_config[INPUT_JOY_RIGHT_Y].joy_num
-			= control_config[INPUT_JOY_RIGHT_FIRE].joy_num = 0;
-		control_config[INPUT_JOY_RIGHT_X].control_num = 3;
-		control_config[INPUT_JOY_RIGHT_Y].control_num = 2;
-		control_config[INPUT_JOY_RIGHT_FIRE].control_num = 1;
+		control_config[INPUT_JOY_LEFT_X].joy_num
+			= control_config[INPUT_JOY_LEFT_Y].joy_num
+			= control_config[INPUT_JOY_LEFT_FIRE].joy_num = 0;
+		control_config[INPUT_JOY_LEFT_X].control_num = 3;
+		control_config[INPUT_JOY_LEFT_Y].control_num = 2;
+		control_config[INPUT_JOY_LEFT_FIRE].control_num = 1;
 	}
 
 	if (xroar_opt_joy_right) {
