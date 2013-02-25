@@ -281,7 +281,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("tape-rewrite", &xroar_opt_tape_rewrite),
 	XC_SET_INT1("tapehack", &xroar_opt_tape_rewrite),
 	XC_SET_BOOL("becker", &xroar_opt_becker),
-	XC_SET_BOOL0("disk-write-back", &xroar_opt_disk_write_back),
+	XC_SET_BOOL("disk-write-back", &xroar_opt_disk_write_back),
 #ifdef TRACE
 	XC_SET_INT1("trace", &xroar_trace_enabled),
 #endif
