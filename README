@@ -4,7 +4,25 @@ Copyright 2003-2013 Ciaran Anscomb <xroar@6809.org.uk>
 
 XRoar is a Dragon emulator that runs on a wide variety of platforms.
 Due to hardware similarities, XRoar also emulates the Tandy Colour
-Computer (CoCo) models 1 & 2.
+Computer (CoCo) models 1 & 2.  Some features are:
+
+   * Emulates Dragon 32, Dragon 64, Tandy CoCo 1 & 2, and compatibles.
+   * Emulates DragonDOS, Delta and RSDOS disk systems.
+   * Emulates the Orchestra 90-CC stereo sound cartridge.
+   * Supports both raw and translated keyboard modes.
+   * Reads and writes virtual cassettes (compact '.cas' files and audio
+     files).
+   * Reads and writes VDK, JVC and DMK format virtual floppy diskettes.
+   * Saves and loads machine snapshots.
+   * Provides a GDB target for remote debugging.
+
+   XRoar was originally written to run on Solaris, Linux and the GP32
+handheld.  Later, it was ported to the Nintendo DS. Support has now been
+dropped for the GP32 and NDS as emulation accuracy, and thus the CPU
+requirement, has increased.
+
+   XRoar is easily built from source under Linux, and binary packages
+are provided for Mac OS X and Windows.
 
 
 XRoar is free software: you can redistribute it and/or modify
@@ -21,74 +39,93 @@ You should have received a copy of the GNU General Public License
 along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
 
 
-This README contains extracts from the manual.  Binary packages
-contain the full manual as a PDF, which is also available from the
-XRoar home page (http://www.6809.org.uk/dragon/xroar.shtml).
+This README contains extracts from the manual.  Binary packages contain the
+full manual as a PDF, which is also available from the XRoar home page
+(http://www.6809.org.uk/dragon/xroar.shtml).
 
 
 Getting started
 ***************
 
-To start, you will need to acquire (and maybe build) the software and
-install it.  Pre-built binary packages are available from the XRoar
-home page (http://www.6809.org.uk/dragon/xroar.shtml).  If one is not
-available for your architecture, you will have to build from source.
-XRoar should build and run on any POSIX-like system for which SDL
-(http://www.libsdl.org/) is available.
+Pre-built binary packages are available from the XRoar home page
+(http://www.6809.org.uk/dragon/xroar.shtml).  If one is not available
+for your architecture, you will need to build from source.  XRoar should
+build and run on any POSIX-like system for which SDL is available.
+
+   You will also need BASIC ROM images--binary dumps of the firmware
+from an original machine.  The originals were part-written by Microsoft,
+so they are not distributed in the XRoar packages.
 
 
 Installation
 ************
 
-Building from source code
-=========================
+Building from source
+====================
 
 If there is no binary package for your system, you will have to build
-from source.  Before doing so, you should ensure you have the
-dependencies required to build:
+from source.  XRoar can use various backend toolkits, and you will need
+to ensure you have their development files installed.  If you're using
+Debian, this can (at the time of writing) be achieved with the following
+simple command:
 
-   * *GTK+*, the GIMP tookit, is used to provide (at least) a file
-     requester on Linux and Unix builds.  It is available from the GTK+
-     home page (http://www.gtk.org/).
+     $ sudo apt-get install build-essential libsndfile1-dev libgtk2.0-dev \
+             libgtkglext1-dev libasound2-dev
 
-   * *GtkGLExt*, an OpenGL extension to GTK+.  This is optional, but if
-     present, a full GTK+ user interface can be presented.  Under
-     Linux, this obviates the need for SDL entirely.  It is available
-     from the GTK+ OpenGL Extension project page
-     (http://projects.gnome.org/gtkglext/).
+   Under Mac OS X, first be sure to install Apple's Xcode
+(https://developer.apple.com/xcode/) package.  The easiest way to then
+ensure you have XRoar's dependencies available is to use a system like
+Homebrew (http://mxcl.github.com/homebrew/) or MacPorts
+(http://www.macports.org/).  For Homebrew, the following command will
+install the required dependencies:
 
-   * *SDL*, Simple Directmedia Layer, is used for video and audio
-     output on most supported platforms.  It can be obtained from the
-     SDL home page (http://www.libsdl.org/).
+     $ brew install libsndfile sdl
 
-   * *libsndfile* is optional but recommended.  It allows XRoar to use
-     audio files (such as WAVs) as a source for cassette input.  It is
-     available on the libsndfile home page
-     (http://www.mega-nerd.com/libsndfile/).
+   Otherwise, you'll have to do a bit of platform-specific research to
+ensure you have all the dependencies for a full build:
 
-   If you use a modern Linux or Unix distribution, it's likely that
-most of these packages will be installed by default, or easily
-available through its package management system.
+   GTK+ (http://www.gtk.org/), the GIMP toolkit, provides the most
+full-featured user interface.  It is only usable as such if you also
+have GtkGlExt (http://projects.gnome.org/gtkglext/), an OpenGL extension
+used to provide video output.  Otherwise, it can provide a file
+requester for use by other user interfaces.
 
-   The actual build process should be fairly straightforward and
-follows the same steps as many other software packages.  Unpack the
-source code, change into the created source directory, run `configure'
-and then if everything looks good, run `make'.  Example:
+   SDL (http://www.libsdl.org/), Simple Directmedia Layer, provides a
+more basic user experience, with most functionality only available
+through the keyboard shortcuts.  Under Mac OS X, a special case of the
+SDL UI is built that also provides some menus.  Unless you are building
+for Linux, SDL is required to use joysticks.
 
-     $ gzip -dc xroar-0.29.tar.gz | tar xvf -
-     $ cd xroar-0.29
+   Other supported audio APIs: OSS, ALSA, PulseAudio, CoreAudio, JACK,
+Sun audio (not tested in quite a while).
+
+   libsndfile (http://www.mega-nerd.com/libsndfile/) is recommended to
+enable support for using audio files as cassette images.
+
+Compilation
+-----------
+
+Once you have the dependencies, building XRoar follows a familiar
+procedure:
+
+     $ gzip -dc xroar-0.30.tar.gz | tar xvf -
+     $ cd xroar-0.30
      $ ./configure
      $ make
+     $ sudo make install
 
-   `configure' will detect any optionally supported drivers like Sun
-audio, OpenGL video, etc.
+   The 'configure' script has a lot of options guiding what it tests
+for, specifying cross-compilation, changing the install path, etc.  List
+them all with the '--help' option.  Be aware that this is a custom
+script, it is not generated by the GNU build system.
 
-   By default, `configure' will set up an install _PREFIX_ of
-`/usr/local', but this can be changed by using the `--prefix=PATH'
+   By default, 'configure' will set up an install _prefix_ of
+'/usr/local', but this can be changed by using the '--prefix=PATH'
 option.
 
-   Once built, run `make install' to install the binary and info
-documentation on your system.  ROM images should be placed either in
-your home directory under `.xroar/roms/', or under the installation
-directory at `_PREFIX_/share/xroar/roms/'.
-
+   Once built, run 'make install' as root (or use 'sudo', as in the
+example above) to install the binary and info documentation on your
+system.  The executable is called 'xroar'.  ROM images should be placed
+either in your home directory as '~/.xroar/roms/', or under the
+installation _prefix_ as '_prefix_/share/xroar/roms/'.  Any
+configuration file should be created as '~/.xroar/xroar.conf'.
