@@ -1196,8 +1196,8 @@ void xroar_new_disk(int drive) {
 		return;
 	int filetype = xroar_filetype_by_ext(filename);
 	xroar_eject_disk(drive);
-	/* Default to 40T 1H.  XXX: need interface to select */
-	struct vdisk *new_disk = vdisk_blank_disk(1, 40, VDISK_LENGTH_5_25);
+	// Default to 34T 1H.  Will be auto-expanded as necessary.
+	struct vdisk *new_disk = vdisk_blank_disk(1, 34, VDISK_LENGTH_5_25);
 	if (new_disk == NULL)
 		return;
 	LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);

@@ -223,6 +223,10 @@ static int compar_idams(const void *aa, const void *bb) {
 
 void vdrive_write(uint8_t data) {
 	if (!vdrive_ready) return;
+	if (!track_base) {
+		idamptr = vdisk_extend_disk(current_drive->disk, cur_side, current_drive->current_track);
+		track_base = (uint8_t *)idamptr;
+	}
 	for (unsigned i = head_incr; i; i--) {
 		if (track_base && head_pos < current_drive->disk->track_length) {
 			track_base[head_pos] = data;
@@ -264,6 +268,10 @@ uint8_t vdrive_read(void) {
 #define IDAM(i) ((unsigned)(idamptr[i] & 0x3fff))
 
 void vdrive_write_idam(void) {
+	if (!track_base) {
+		idamptr = vdisk_extend_disk(current_drive->disk, cur_side, current_drive->current_track);
+		track_base = (uint8_t *)idamptr;
+	}
 	if (track_base && (head_pos+head_incr) < current_drive->disk->track_length) {
 		/* Write 0xfe and remove old IDAM ptr if it exists */
 		for (unsigned i = 0; i < 64; i++) {

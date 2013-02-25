@@ -28,6 +28,7 @@
 #include "crc16.h"
 #include "fs.h"
 #include "logging.h"
+#include "machine.h"
 #include "module.h"
 #include "vdisk.h"
 #include "xroar.h"
@@ -55,9 +56,8 @@ static struct {
 
 struct vdisk *vdisk_blank_disk(unsigned num_sides, unsigned num_tracks,
 		unsigned track_length) {
-	struct vdisk *new;
-	uint8_t *new_track_data;
-	unsigned data_size;
+	struct vdisk *disk;
+	uint8_t **side_data;
 	/* Ensure multiples of track_length will stay 16-bit aligned */
 	if ((track_length % 2) != 0)
 		track_length++;
@@ -66,24 +66,33 @@ struct vdisk *vdisk_blank_disk(unsigned num_sides, unsigned num_tracks,
 			|| track_length < 129 || track_length > 0x2940) {
 		return NULL;
 	}
-	new = g_try_malloc(sizeof(struct vdisk));
-	if (new == NULL)
+	if (!(disk = g_try_malloc(sizeof(struct vdisk))))
 		return NULL;
-	data_size = num_tracks * num_sides * track_length;
-	new_track_data = g_try_malloc0(data_size);
-	if (new_track_data == NULL) {
-		g_free(new);
-		return NULL;
+	if (!(side_data = g_try_malloc0(num_sides * sizeof(uint8_t *))))
+		goto cleanup;
+	unsigned side_length = num_tracks * track_length;
+	for (unsigned i = 0; i < num_sides; i++) {
+		if (!(side_data[i] = g_try_malloc0(side_length)))
+			goto cleanup_sides;
 	}
-	new->filetype = FILETYPE_DMK;
-	new->filename = NULL;
-	new->file_write_protect = !xroar_opt_disk_write_back;
-	new->write_protect = 0;
-	new->num_sides = num_sides;
-	new->num_tracks = num_tracks;
-	new->track_length = track_length;
-	new->track_data = new_track_data;
-	return new;
+	disk->filetype = FILETYPE_DMK;
+	disk->filename = NULL;
+	disk->file_write_protect = !xroar_opt_disk_write_back;
+	disk->write_protect = 0;
+	disk->num_sides = num_sides;
+	disk->num_tracks = num_tracks;
+	disk->track_length = track_length;
+	disk->side_data = side_data;
+	return disk;
+cleanup_sides:
+	for (unsigned i = 0; i < num_sides; i++) {
+		if (side_data[i])
+			g_free(side_data[i]);
+	}
+	g_free(side_data);
+cleanup:
+	g_free(disk);
+	return NULL;
 }
 
 void vdisk_destroy(struct vdisk *disk) {
@@ -92,7 +101,11 @@ void vdisk_destroy(struct vdisk *disk) {
 		g_free(disk->filename);
 		disk->filename = NULL;
 	}
-	g_free(disk->track_data);
+	for (unsigned i = 0; i < disk->num_sides; i++) {
+		if (disk->side_data[i])
+			g_free(disk->side_data[i]);
+	}
+	g_free(disk->side_data);
 	g_free(disk);
 }
 
@@ -324,10 +337,12 @@ static _Bool vdisk_save_jvc(struct vdisk *disk) {
 		return 0;
 	LOG_DEBUG(2,"Writing JVC virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
 	/* XXX: assume 18 tracks per sector */
-	fs_write_uint8(fd, 18);
-	fs_write_uint8(fd, disk->num_sides);
-	fs_write_uint8(fd, 1);  /* size code = 1 (XXX: assume 256 bytes) */
-	fs_write_uint8(fd, 1);  /* first sector = 1 */
+	if (disk->num_sides != 1) {
+		fs_write_uint8(fd, 18);
+		fs_write_uint8(fd, disk->num_sides);
+		fs_write_uint8(fd, 1);  /* size code = 1 (XXX: assume 256 bytes) */
+		fs_write_uint8(fd, 1);  /* first sector = 1 */
+	}
 	for (track = 0; track < disk->num_tracks; track++) {
 		for (side = 0; side < disk->num_sides; side++) {
 			for (sector = 0; sector < 18; sector++) {
@@ -378,8 +393,7 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = g_strdup(filename);
 	disk->file_write_protect = header[0] ? 1 : 0;
-	if (header[11] == 0
-			|| header[11] == 0xff) {
+	if (header[11] == 0 || header[11] == 0xff) {
 		disk->write_protect = header[11] ? 1 : 0;
 	} else {
 		disk->write_protect = disk->file_write_protect;
@@ -435,13 +449,78 @@ static _Bool vdisk_save_dmk(struct vdisk *disk) {
 	return 1;
 }
 
-/* Returns void because track data is manipulated in 8-bit and 16-bit
- * chunks. */
+// Returns void because track data is manipulated in 8-bit and 16-bit chunks.
 void *vdisk_track_base(struct vdisk *disk, unsigned side, unsigned track) {
 	if (disk == NULL || side >= disk->num_sides || track >= disk->num_tracks) {
 		return NULL;
 	}
-	return disk->track_data + ((track * disk->num_sides) + side) * disk->track_length;
+	return disk->side_data[side] + track * disk->track_length;
+}
+
+// Write routines call this to increase disk size.  Returns same as above.
+void *vdisk_extend_disk(struct vdisk *disk, unsigned side, unsigned track) {
+	if (!disk)
+		return NULL;
+	if (track >= MAX_TRACKS)
+		return NULL;
+	uint8_t **side_data = disk->side_data;
+	unsigned nsides = disk->num_sides;
+	unsigned ntracks = disk->num_tracks;
+	unsigned tlength = disk->track_length;
+	if (side >= nsides) {
+		nsides = side + 1;
+	}
+	if (track >= ntracks) {
+		// Round amount of tracks up to the next nearest standard size.
+		if (IS_COCO) {
+			// Standard CoCo disk.
+			if (ntracks < 35 && track >= ntracks)
+				ntracks = 35;
+		}
+		// Try for exactly 40 or 80 track, but allow 3 tracks more.
+		if (ntracks < 40 && track >= ntracks)
+			ntracks = 40;
+		if (ntracks < 43 && track >= ntracks)
+			ntracks = 43;
+		if (ntracks < 80 && track >= ntracks)
+			ntracks = 80;
+		if (ntracks < 83 && track >= ntracks)
+			ntracks = 83;
+		// If that's still not enough, just increase to new size.
+		if (track >= ntracks)
+			ntracks = track + 1;
+	}
+	if (nsides > disk->num_sides || ntracks > disk->num_tracks) {
+		if (ntracks > disk->num_tracks) {
+			// Allocate and clear new tracks
+			for (unsigned s = 0; s < disk->num_sides; s++) {
+				uint8_t *new_track = g_realloc(side_data[s], ntracks * tlength);
+				if (!new_track)
+					return NULL;
+				side_data[s] = new_track;
+				for (unsigned t = disk->num_tracks; t < ntracks; t++) {
+					uint8_t *dest = new_track + t * tlength;
+					memset(dest, 0, tlength);
+				}
+			}
+			disk->num_tracks = ntracks;
+		}
+		if (nsides > disk->num_sides) {
+			// Increase size of side_data array
+			side_data = g_realloc(side_data, nsides * sizeof(uint8_t *));
+			if (!side_data)
+				return NULL;
+			disk->side_data = side_data;
+			// Allocate new empty side data
+			for (unsigned s = disk->num_sides; s < nsides; s++) {
+				side_data[s] = g_try_malloc0(ntracks * tlength);
+				if (!side_data[s])
+					return NULL;
+			}
+			disk->num_sides = nsides;
+		}
+	}
+	return side_data[side] + track * tlength;
 }
 
 static unsigned sect_interleave[18] =
@@ -462,24 +541,24 @@ static unsigned sect_interleave[18] =
 _Bool vdisk_format_disk(struct vdisk *disk, unsigned density,
 		unsigned num_sectors, unsigned first_sector, unsigned ssize_code) {
 	unsigned ssize = 128 << ssize_code;
-	unsigned side, track, sector, i;
 	if (disk == NULL) return 0;
-	if (density != VDISK_DOUBLE_DENSITY) return 0;
-	for (side = 0; (unsigned)side < disk->num_sides; side++) {
-		for (track = 0; (unsigned)track < disk->num_tracks; track++) {
+	if (density != VDISK_DOUBLE_DENSITY)
+		return 0;
+	for (unsigned side = 0; side < disk->num_sides; side++) {
+		for (unsigned track = 0; track < disk->num_tracks; track++) {
 			uint16_t *idams = vdisk_track_base(disk, side, track);
 			uint8_t *data = (uint8_t *)idams;
 			unsigned offset = 128;
 			unsigned idam = 0;
-			for (i = 0; i < 54; i++) WRITE_BYTE(0x4e);
-			for (i = 0; i < 9; i++) WRITE_BYTE(0x00);
-			for (i = 0; i < 3; i++) WRITE_BYTE(0xc2);
+			for (unsigned i = 0; i < 54; i++) WRITE_BYTE(0x4e);
+			for (unsigned i = 0; i < 9; i++) WRITE_BYTE(0x00);
+			for (unsigned i = 0; i < 3; i++) WRITE_BYTE(0xc2);
 			WRITE_BYTE(0xfc);
-			for (i = 0; i < 32; i++) data[offset++] = 0x4e;
-			for (sector = 0; sector < num_sectors; sector++) {
+			for (unsigned i = 0; i < 32; i++) data[offset++] = 0x4e;
+			for (unsigned sector = 0; sector < num_sectors; sector++) {
 				uint16_t crc = CRC16_RESET;
-				for (i = 0; i < 8; i++) data[offset++] = 0x00;
-				for (i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
+				for (unsigned i = 0; i < 8; i++) data[offset++] = 0x00;
+				for (unsigned i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
 				idams[idam++] = offset | density;
 				WRITE_BYTE_CRC(0xfe);
 				WRITE_BYTE_CRC(track);
@@ -487,15 +566,15 @@ _Bool vdisk_format_disk(struct vdisk *disk, unsigned density,
 				WRITE_BYTE_CRC(sect_interleave[sector] + first_sector);
 				WRITE_BYTE_CRC(ssize_code);
 				WRITE_CRC();
-				for (i = 0; i < 22; i++) WRITE_BYTE(0x4e);
-				for (i = 0; i < 12; i++) WRITE_BYTE(0x00);
+				for (unsigned i = 0; i < 22; i++) WRITE_BYTE(0x4e);
+				for (unsigned i = 0; i < 12; i++) WRITE_BYTE(0x00);
 				crc = CRC16_RESET;
-				for (i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
+				for (unsigned i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
 				WRITE_BYTE_CRC(0xfb);
-				for (i = 0; i < ssize; i++)
+				for (unsigned i = 0; i < ssize; i++)
 					WRITE_BYTE_CRC(0xe5);
 				WRITE_CRC();
-				for (i = 0; i < 24; i++) WRITE_BYTE(0x4e);
+				for (unsigned i = 0; i < 24; i++) WRITE_BYTE(0x4e);
 			}
 			while (offset < disk->track_length) {
 				WRITE_BYTE(0x4e);

@@ -22,7 +22,7 @@ struct vdisk {
 	unsigned num_sides;
 	unsigned num_tracks;
 	unsigned track_length;
-	uint8_t *track_data;
+	uint8_t **side_data;
 };
 
 struct vdisk *vdisk_blank_disk(unsigned num_sides, unsigned num_tracks,
@@ -33,6 +33,7 @@ struct vdisk *vdisk_load(const char *filename);
 _Bool vdisk_save(struct vdisk *disk, _Bool force);
 
 void *vdisk_track_base(struct vdisk *disk, unsigned side, unsigned track);
+void *vdisk_extend_disk(struct vdisk *disk, unsigned side, unsigned track);
 _Bool vdisk_format_disk(struct vdisk *disk, unsigned density,
 		unsigned num_sectors, unsigned first_sector, unsigned ssize_code);
 _Bool vdisk_update_sector(struct vdisk *disk, unsigned side, unsigned track,
