@@ -29,29 +29,9 @@
 #include "machine.h"
 #include "module.h"
 #include "sam.h"
-#include "sdl/ui_sdl.h"
+#include "sdl/common.h"
 #include "vdg.h"
 #include "xroar.h"
-
-static VideoModule *sdl_video_module_list[] = {
-#ifdef HAVE_SDLGL
-	&video_sdlgl_module,
-#endif
-#ifdef PREFER_NOYUV
-	&video_sdl_module,
-	&video_sdlyuv_module,
-#else
-	&video_sdlyuv_module,
-	&video_sdl_module,
-#endif
-	&video_null_module,
-	NULL
-};
-
-static KeyboardModule *sdl_keyboard_module_list[] = {
-	&keyboard_sdl_module,
-	NULL
-};
 
 /* Note: prefer the default order for sound and joystick modules, which
  * will include the SDL options. */
@@ -60,34 +40,6 @@ UIModule ui_sdl_module = {
 	.common = { .name = "sdl", .description = "SDL UI" },
 	.video_module_list = sdl_video_module_list,
 	.keyboard_module_list = sdl_keyboard_module_list,
+	.joystick_module_list = sdl_js_modlist,
 	.run = sdl_run,
 };
-
-void sdl_run(void) {
-	while (1) {
-		SDL_Event event;
-		machine_run(VDG_LINE_DURATION * 16);
-		while (SDL_PollEvent(&event) == 1) {
-			switch(event.type) {
-			case SDL_VIDEORESIZE:
-				if (video_module->resize) {
-					video_module->resize(event.resize.w, event.resize.h);
-				}
-				break;
-			case SDL_QUIT:
-				xroar_quit();
-				break;
-			case SDL_KEYDOWN:
-				sdl_keypress(&event.key.keysym);
-				break;
-			case SDL_KEYUP:
-				sdl_keyrelease(&event.key.keysym);
-				break;
-			default:
-				break;
-			}
-		}
-		/* XXX will this ever be needed? */
-		event_run_queue(UI_EVENT_LIST);
-	}
-}

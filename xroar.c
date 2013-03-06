@@ -17,6 +17,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -118,8 +119,12 @@ int xroar_opt_ccr = CROSS_COLOUR_5BIT;
 int xroar_opt_frameskip = 0;
 char *xroar_opt_keymap = NULL;
 _Bool xroar_kbd_translate = 0;
-char *xroar_opt_joy_left = NULL;
-char *xroar_opt_joy_right = NULL;
+static char *opt_joy_right = NULL;
+static char *opt_joy_left = NULL;
+static void set_joystick(const char *name);
+static void set_joystick_axis(const char *spec);
+static void set_joystick_button(const char *spec);
+static char *opt_joy_desc = NULL;
 static int xroar_opt_tape_fast = 1;
 static int xroar_opt_tape_pad = -1;
 static int xroar_opt_tape_pad_auto = 1;
@@ -135,6 +140,10 @@ _Bool xroar_opt_disk_write_back = 0;
 static GSList *type_command_list = NULL;
 static GSList *load_list = NULL;
 static int load_disk_to_drive = 0;
+
+static struct joystick_config *cur_joy_config = NULL;
+static char *opt_joy_axis[JOYSTICK_NUM_AXES];
+static char *opt_joy_button[JOYSTICK_NUM_BUTTONS];
 
 /* Help text */
 static void helptext(void);
@@ -273,8 +282,12 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT("fskip", &xroar_opt_frameskip),
 	XC_SET_STRING("keymap", &xroar_opt_keymap),
 	XC_SET_BOOL("kbd-translate", &xroar_kbd_translate),
-	XC_SET_STRING("joy-left", &xroar_opt_joy_left),
-	XC_SET_STRING("joy-right", &xroar_opt_joy_right),
+	XC_CALL_STRING("joy", &set_joystick),
+	XC_SET_STRING("joy-desc", &opt_joy_desc),
+	XC_CALL_STRING("joy-axis", &set_joystick_axis),
+	XC_CALL_STRING("joy-button", &set_joystick_button),
+	XC_SET_STRING("joy-right", &opt_joy_right),
+	XC_SET_STRING("joy-left", &opt_joy_left),
 	XC_SET_INT1("tape-fast", &xroar_opt_tape_fast),
 	XC_SET_INT1("tape-pad", &xroar_opt_tape_pad),
 	XC_SET_INT1("tape-pad-auto", &xroar_opt_tape_pad_auto),
@@ -432,6 +445,26 @@ static const char *default_config[] = {
 	// MX-1600 (second is zephyr-patched version)
 	"crclist mx1600=0x2af2719f,0x22f17867",
 	"crclist coco_combined=@mx1600",
+
+	// Joysticks
+	"joy joy0",
+	"joy-desc Physical joystick 0",
+	"joy-axis 0=physical:0,0",
+	"joy-axis 1=physical:0,1",
+	"joy-button 0=physical:0,0",
+	"joy-button 1=physical:0,1",
+	"joy joy1",
+	"joy-desc Physical joystick 1",
+	"joy-axis 0=physical:1,0",
+	"joy-axis 1=physical:1,1",
+	"joy-button 0=physical:1,0",
+	"joy-button 1=physical:1,1",
+	"joy kjoy0",
+	"joy-desc Virtual joystick 0",
+	"joy-axis 0=keyboard:",
+	"joy-axis 1=keyboard:",
+	"joy-button 0=keyboard:",
+	"joy-button 1=keyboard:",
 
 	NULL
 };
@@ -646,6 +679,91 @@ static void set_cart(const char *name) {
 	}
 }
 
+/* Called when a "-joystick" option is encountered. */
+static void set_joystick(const char *name) {
+	// Apply any config to the current joystick config.
+	if (cur_joy_config) {
+		if (opt_joy_desc) {
+			cur_joy_config->description = opt_joy_desc;
+			opt_joy_desc = NULL;
+		}
+		for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
+			if (opt_joy_axis[i]) {
+				if (cur_joy_config->axis_specs[i])
+					g_free(cur_joy_config->axis_specs[i]);
+				cur_joy_config->axis_specs[i] = opt_joy_axis[i];
+				opt_joy_axis[i] = NULL;
+			}
+		}
+		for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
+			if (opt_joy_button[i]) {
+				if (cur_joy_config->button_specs[i])
+					g_free(cur_joy_config->button_specs[i]);
+				cur_joy_config->button_specs[i] = opt_joy_button[i];
+				opt_joy_button[i] = NULL;
+			}
+		}
+	}
+#ifdef LOGGING
+	if (name && 0 == strcmp(name, "help")) {
+		int count = joystick_config_count();
+		int i;
+		for (i = 0; i < count; i++) {
+			struct joystick_config *jc = joystick_config_index(i);
+			printf("\t%-10s %s\n", jc->name, jc->description);
+		}
+		exit(EXIT_SUCCESS);
+	}
+#endif
+	if (name) {
+		cur_joy_config = joystick_config_by_name(name);
+		if (!cur_joy_config) {
+			cur_joy_config = joystick_config_new();
+			cur_joy_config->name = g_strdup(name);
+		}
+	}
+}
+
+static void set_joystick_axis(const char *spec) {
+	char *spec_copy = g_strdup(spec);
+	char *cspec = spec_copy;
+	unsigned axis = 0;
+	char *tmp = strsep(&cspec, "=");
+	if (cspec) {
+		if (toupper(*tmp) == 'X') {
+			axis = 0;
+		} else if (toupper(*tmp) == 'Y') {
+			axis = 1;
+		} else {
+			axis = strtol(tmp, NULL, 0);
+		}
+		if (axis > JOYSTICK_NUM_AXES) {
+			LOG_WARN("Invalid axis number '%d'\n", axis);
+			axis = 0;
+		}
+		tmp = cspec;
+	}
+	opt_joy_axis[axis] = g_strdup(tmp);
+	g_free(spec_copy);
+}
+
+static void set_joystick_button(const char *spec) {
+	char *spec_copy = g_strdup(spec);
+	char *cspec = spec_copy;
+	unsigned button = 0;
+	char *tmp = strsep(&cspec, "=");
+	if (cspec) {
+		button = strtol(tmp, NULL, 0);
+		if (button > JOYSTICK_NUM_AXES) {
+			LOG_WARN("Invalid button number '%d'\n", button);
+			button = 0;
+		}
+		tmp = cspec;
+	}
+	opt_joy_button[button] = g_strdup(tmp);
+	g_free(spec_copy);
+}
+
 static void type_command(char *string) {
 	type_command_list = g_slist_append(type_command_list, string);
 }
@@ -738,8 +856,11 @@ static void helptext(void) {
 "  -fskip FRAMES         frameskip (default: 0)\n"
 "  -keymap CODE          host keyboard type (uk, us, fr, fr_CA, de)\n"
 "  -kbd-translate        enable keyboard translation\n"
-"  -joy-left JOYSPEC     map left joystick\n"
-"  -joy-right JOYSPEC    map right joystick\n"
+"  -joy NAME             select joystick to configure (-joy help for list)\n"
+"  -joy-axis AXIS=SPEC   configure joystick axis\n"
+"  -joy-button BTN=SPEC  configure joystick button\n"
+"  -joy-right NAME       map right joystick\n"
+"  -joy-left NAME        map left joystick\n"
 "  -tape-fast            enable fast tape loading\n"
 "  -tape-pad             enable tape leader padding\n"
 "  -tape-pad-auto        detect need for leader padding automatically\n"
@@ -754,10 +875,16 @@ static void helptext(void) {
 "  -h, --help            display this help and exit\n"
 "      --version         output version information and exit\n"
 
-"\nA JOYSPEC maps physical joystick axes and buttons to one of the emulated\n"
-"machine's joysticks.  JOYSPEC is of the form 'DEV,AXIS:DEV,AXIS:DEV,BUTTON',\n"
-"mapping two axes and a button to the X, Y and firebutton on the emulated\n"
-"joystick respectively."
+"\nJoystick SPECs are of the form [INTERFACE:][ARG[,ARG]...], from:\n"
+
+"\nINTERFACE       Axis ARGs                       Button ARGs\n"
+"physical        joystick-index,[-]axis-index    joystick-index,button-index\n"
+"keyboard        key-name0,key-name1             key-name\n"
+
+"\nFor physical joysticks a '-' before the axis index inverts the axis.  AXIS 0 is\n"
+"the X-axis, and AXIS 1 the Y-axis.  BTN 0 is the only one used so far, but in\n"
+"the future BTN 1 will be the second button on certain CoCo joysticks."
+
 	);
 #endif
 	exit(EXIT_SUCCESS);
@@ -782,6 +909,11 @@ _Bool xroar_init(int argc, char **argv) {
 	if (!xroar_conf_path)
 		xroar_conf_path = CONFPATH;
 
+	for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++)
+		opt_joy_axis[i] = NULL;
+	for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++)
+		opt_joy_button[i] = NULL;
+
 	// Default configuration.
 	for (const char **c = default_config; *c; c++) {
 		xconfig_parse_line(xroar_options, *c);
@@ -789,8 +921,10 @@ _Bool xroar_init(int argc, char **argv) {
 	// Finish any machine or cart config in defaults.
 	set_machine(NULL);
 	set_cart(NULL);
+	set_joystick(NULL);
 	xroar_machine_config = NULL;
 	xroar_cart_config = NULL;
+	cur_joy_config = NULL;
 
 	// If a configuration file is found, parse it.
 	conffile = find_in_path(xroar_conf_path, "xroar.conf");
@@ -801,9 +935,11 @@ _Bool xroar_init(int argc, char **argv) {
 	// Finish any machine or cart config in config file.
 	set_machine(NULL);
 	set_cart(NULL);
+	set_joystick(NULL);
 	// Don't auto-select last machine or cart in config file.
 	xroar_machine_config = NULL;
 	xroar_cart_config = NULL;
+	cur_joy_config = NULL;
 
 	// Parse command line options.
 	ret = xconfig_parse_cli(xroar_options, argc, argv, &argn);
@@ -822,6 +958,7 @@ _Bool xroar_init(int argc, char **argv) {
 	// Finish any machine or cart config on command line.
 	set_machine(NULL);
 	set_cart(NULL);
+	set_joystick(NULL);
 
 	// Select a UI module.
 	ui_module = (UIModule *)module_select_by_arg((struct module **)ui_module_list, opt_ui);
@@ -838,8 +975,10 @@ _Bool xroar_init(int argc, char **argv) {
 		sound_module_list = ui_module->sound_module_list;
 	if (ui_module->keyboard_module_list != NULL)
 		keyboard_module_list = ui_module->keyboard_module_list;
+	/*
 	if (ui_module->joystick_module_list != NULL)
 		joystick_module_list = ui_module->joystick_module_list;
+	*/
 	// Select file requester, video & sound modules
 	filereq_module = (FileReqModule *)module_select_by_arg((struct module **)filereq_module_list, opt_filereq);
 	video_module = (VideoModule *)module_select_by_arg((struct module **)video_module_list, opt_vo);
@@ -953,6 +1092,23 @@ _Bool xroar_init(int argc, char **argv) {
 	joystick_init();
 	machine_init();
 	printer_init();
+
+	// Default joystick mapping
+	if (opt_joy_right) {
+		joystick_map(joystick_config_by_name(opt_joy_right), 0);
+	} else {
+		joystick_map(joystick_config_by_name("joy0"), 0);
+	}
+	if (opt_joy_left) {
+		joystick_map(joystick_config_by_name(opt_joy_left), 1);
+	} else {
+		joystick_map(joystick_config_by_name("joy1"), 1);
+	}
+	if (opt_joy_virtual) {
+		joystick_set_virtual(joystick_config_by_name(opt_joy_virtual));
+	} else {
+		joystick_set_virtual(joystick_config_by_name("kjoy0"));
+	}
 
 	/* Notify UI of starting options: */
 	xroar_set_kbd_translate(xroar_kbd_translate);

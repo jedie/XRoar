@@ -18,231 +18,214 @@
 
 #define _BSD_SOURCE
 
-#include <string.h>
 #include <SDL.h>
+#include "portalib/glib.h"
 #include "portalib/string.h"
 
-#include "events.h"
-#include "input.h"
 #include "joystick.h"
 #include "logging.h"
-#include "machine.h"
-#include "mc6821.h"
 #include "module.h"
-#include "xroar.h"
+#include "sdl/common.h"
 
-static _Bool init(void);
-static void shutdown(void);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-JoystickModule joystick_sdl_module = {
+static struct joystick_axis *configure_axis(char *, unsigned);
+static struct joystick_button *configure_button(char *, unsigned);
+static void unmap_axis(struct joystick_axis *axis);
+static void unmap_button(struct joystick_button *button);
+
+struct joystick_interface sdl_js_if_physical = {
+	.name = "physical",
+	.configure_axis = configure_axis,
+	.configure_button = configure_button,
+	.unmap_axis = unmap_axis,
+	.unmap_button = unmap_button,
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct joystick_interface *js_iflist[] = {
+	&sdl_js_if_physical,
+	NULL
+};
+
+JoystickModule sdl_js_mod_exported = {
 	.common = { .name = "sdl", .description = "SDL joystick input",
-	            .init = init, .shutdown = shutdown }
+	            .shutdown = sdl_js_physical_shutdown },
+	.interface_list = js_iflist,
 };
 
-static int num_sdl_joysticks;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-static struct joy {
-	int joy_num;
-	SDL_Joystick *device;
-	int num_axes;
-	int num_buttons;
-} joy[6];
-static int num_joys = 0;
+static _Bool initialised = 0;
+static unsigned num_joysticks;
 
-#define CONTROL_RIGHT_X    (0)
-#define CONTROL_RIGHT_Y    (1)
-#define CONTROL_LEFT_X     (2)
-#define CONTROL_LEFT_Y     (3)
-#define CONTROL_RIGHT_FIRE (4)
-#define CONTROL_LEFT_FIRE  (5)
-
-static int control_order[6] = {
-	INPUT_JOY_RIGHT_X, INPUT_JOY_RIGHT_Y, INPUT_JOY_RIGHT_FIRE,
-	INPUT_JOY_LEFT_X,  INPUT_JOY_LEFT_Y,  INPUT_JOY_LEFT_FIRE
+// Wrap SDL_Joystick up in struct device.  close_device() will only
+// close the underlying joystick once open_count reaches 0.
+struct device {
+	int joystick_index;
+	SDL_Joystick *joystick;
+	unsigned num_axes;
+	unsigned num_buttons;
+	unsigned open_count;
 };
 
-static struct {
-	struct joy *joy;
-	int control_num;
-	int invert;
-} control[6];
+static GSList *device_list = NULL;
 
-static struct {
-	int joy_num;
-	int control_num;
-	int invert;
-} control_config[6] = {
-	{ 0, 0, 0 },  // Right X axis
-	{ 0, 1, 0 },  // Right Y axis
-	{ 1, 0, 0 },  // Left X axis
-	{ 1, 1, 0 },  // Left Y axis
-	{ 0, 0, 0 },  // Right firebutton
-	{ 1, 0, 0 }   // Left firebutton
+struct control {
+	struct device *device;
+	unsigned control;
+	_Bool inverted;
 };
 
-static struct event *poll_event;
-static void do_poll(void *);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-static struct joy *find_joy(int joy_num) {
-	SDL_Joystick *j;
-	int i;
-	if (joy_num >= num_sdl_joysticks)
-		return NULL;
-	for (i = 0; i < num_joys; i++) {
-		if (joy[i].joy_num == joy_num)
-			return &joy[i];
-	}
-	i = num_joys;
-	j = joy[i].device = SDL_JoystickOpen(joy_num);
-	if (j == NULL)
-		return NULL;
-	num_joys++;
-	joy[i].joy_num = joy_num;
-	joy[i].num_axes = SDL_JoystickNumAxes(j);
-	joy[i].num_buttons = SDL_JoystickNumButtons(j);
-	LOG_DEBUG(1,"\t%s\n", SDL_JoystickName(joy_num));
-	LOG_DEBUG(2,"\tNumber of Axes: %d\n", joy[i].num_axes);
-	LOG_DEBUG(2,"\tNumber of Buttons: %d\n", joy[i].num_buttons);
-	return &joy[i];
-}
-
-static void parse_joystick_def(char *def, int base) {
-	int joy_num = control_config[base].joy_num;
-	int i;
-	if (def == NULL)
+static void sdl_js_physical_init(void) {
+	if (initialised)
 		return;
-	for (i = 0; i < 3; i++) {
-		char *tmp2 = strsep(&def, ":");
-		char *tmp1 = strsep(&tmp2, ",");
-		int control_num = i % 2;
-		int invert = 0;
-		int control_index = control_order[base+i];
-		if (tmp2) {
-			joy_num = atoi(tmp1);
-			if (*tmp2) {
-				if (*tmp2 == '-') {
-					invert = 0xff;
-					tmp2++;
-				}
-				if (*tmp2) {
-					control_num = atoi(tmp2);
-				}
-			}
-		} else if (tmp1) {
-			if (*tmp1 == '-') {
-				invert = 0xff;
-				tmp1++;
-			}
-			if (*tmp1) {
-				control_num = atoi(tmp1);
-			}
-		}
-		control_config[control_index].joy_num = joy_num;
-		control_config[control_index].control_num = control_num;
-		control_config[control_index].invert = invert;
-	}
-}
-
-static _Bool init(void) {
-	int valid, i;
-
 	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-
-	num_sdl_joysticks = SDL_NumJoysticks();
-	if (num_sdl_joysticks < 1) {
+	num_joysticks = SDL_NumJoysticks();
+	if (num_joysticks < 1) {
 		LOG_DEBUG(2, "\tNo joysticks found\n");
-		return 0;
-	}
-
-	poll_event = event_new(do_poll, NULL);
-	if (poll_event == NULL) {
-		LOG_WARN("Couldn't create joystick polling event.\n");
-		return 0;
-	}
-
-	// If only one joystick attached, change the left joystick defaults
-	if (num_sdl_joysticks == 1) {
-		control_config[INPUT_JOY_LEFT_X].joy_num
-			= control_config[INPUT_JOY_LEFT_Y].joy_num
-			= control_config[INPUT_JOY_LEFT_FIRE].joy_num = 0;
-		control_config[INPUT_JOY_LEFT_X].control_num = 3;
-		control_config[INPUT_JOY_LEFT_Y].control_num = 2;
-		control_config[INPUT_JOY_LEFT_FIRE].control_num = 1;
-	}
-
-	if (xroar_opt_joy_right) {
-		parse_joystick_def(xroar_opt_joy_right, 0);
-	}
-	if (xroar_opt_joy_left) {
-		parse_joystick_def(xroar_opt_joy_left, 3);
-	}
-
-	valid = 0;
-	for (i = 0; i < 6; i++) {
-		struct joy *j = find_joy(control_config[i].joy_num);
-		control[i].joy = j;
-		control[i].control_num = control_config[i].control_num;
-		control[i].invert = control_config[i].invert;
-		if (j && (i % 3) < 2) {
-			if (control_config[i].control_num >= j->num_axes) {
-				LOG_WARN("Axis %d not found on joystick %d\n", control_config[i].control_num, control_config[i].joy_num);
-				control[i].joy = NULL;
-			}
-		} else if (j && (i % 3) == 2) {
-			if (control_config[i].control_num >= j->num_buttons) {
-				LOG_WARN("Button %d not found on joystick %d\n", control_config[i].control_num, control_config[i].joy_num);
-				control[i].joy = NULL;
-			}
-		} else {
-			LOG_WARN("Joystick %d not found\n", control_config[i].joy_num);
-			control[i].joy = NULL;
-		}
-		if (control[i].joy)
-			valid++;
-	}
-
-	/* No point scheduling joystick reads if we don't have any */
-	if (valid) {
-		poll_event->at_tick = event_current_tick + (OSCILLATOR_RATE / 100);
-		event_queue(&UI_EVENT_LIST, poll_event);
 	} else {
-		LOG_WARN("No valid joystick mappings made.\n");
+		LOG_DEBUG(2, "\t%d joysticks found\n", num_joysticks);
 	}
-	return 1;
+	initialised = 1;
 }
 
-static void shutdown(void) {
-	int i;
-	for (i = 0; i < num_joys; i++) {
-		SDL_JoystickClose(joy[i].device);
+void sdl_js_physical_shutdown(void) {
+	if (initialised) {
+		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+		initialised = 0;
 	}
-	num_joys = 0;
-	SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
-	event_free(poll_event);
 }
 
-static void do_poll(void *data) {
-	(void)data;
-	int i;
-	SDL_JoystickUpdate();
-	/* Scan axes */
-	for (i = 0; i < 4; i++) {
-		if (control[i].joy) {
-			input_control_press(i, ((SDL_JoystickGetAxis(control[i].joy->device, control[i].control_num)+32768) >> 8) ^ control[i].invert);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct device *open_device(int joystick_index) {
+	// If the device is already open, just up its count and return it
+	for (GSList *iter = device_list; iter; iter = iter->next) {
+		struct device *d = iter->data;
+		if (d->joystick_index == joystick_index) {
+			d->open_count++;
+			return d;
 		}
 	}
-	/* And buttons */
-	if (control[CONTROL_RIGHT_FIRE].joy && SDL_JoystickGetButton(control[CONTROL_RIGHT_FIRE].joy->device, control[CONTROL_RIGHT_FIRE].control_num)) {
-		input_control_press(INPUT_JOY_RIGHT_FIRE, 0);
-	} else {
-		input_control_release(INPUT_JOY_RIGHT_FIRE, 0);
+	// Otherwise open and throw it on the list
+	SDL_Joystick *j = SDL_JoystickOpen(joystick_index);
+	if (!j)
+		return NULL;
+	struct device *d = g_malloc(sizeof(struct device));
+	d->joystick_index = joystick_index;
+	d->joystick = j;
+	d->num_axes = SDL_JoystickNumAxes(j);
+	d->num_buttons = SDL_JoystickNumButtons(j);
+	d->open_count = 1;
+	device_list = g_slist_prepend(device_list, d);
+	return d;
+}
+
+static void close_device(struct device *d) {
+	d->open_count--;
+	if (d->open_count == 0) {
+		SDL_JoystickClose(d->joystick);
+		device_list = g_slist_remove(device_list, d);
+		g_free(d);
 	}
-	if (control[CONTROL_LEFT_FIRE].joy && SDL_JoystickGetButton(control[CONTROL_LEFT_FIRE].joy->device, control[CONTROL_LEFT_FIRE].control_num)) {
-		input_control_press(INPUT_JOY_LEFT_FIRE, 0);
-	} else {
-		input_control_release(INPUT_JOY_LEFT_FIRE, 0);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static unsigned read_axis(struct control *c) {
+	unsigned ret = (SDL_JoystickGetAxis(c->device->joystick, c->control) + 32768) >> 8;
+	if (c->inverted)
+		ret ^= 0xff;
+	return ret;
+}
+
+static _Bool read_button(struct control *c) {
+	return SDL_JoystickGetButton(c->device->joystick, c->control);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+// axis & button specs are basically the same, just track a different
+// "selected" variable.
+static struct control *configure_control(char *spec, unsigned control) {
+	unsigned joystick = 0;
+	_Bool inverted = 0;
+	char *tmp = NULL;
+	if (spec)
+		tmp = strsep(&spec, ",");
+	if (tmp && *tmp) {
+		control = strtol(tmp, NULL, 0);
 	}
-	joystick_update();
-	poll_event->at_tick += OSCILLATOR_RATE / 100;
-	event_queue(&UI_EVENT_LIST, poll_event);
+	if (spec && *spec) {
+		joystick = control;
+		if (*spec == '-') {
+			inverted = 1;
+			spec++;
+		}
+		if (*spec) {
+			control = strtol(spec, NULL, 0);
+		}
+	}
+	struct device *d = open_device(joystick);
+	if (!d)
+		return NULL;
+	struct control *c = g_malloc(sizeof(struct control));
+	c->device = d;
+	c->control = control;
+	c->inverted = inverted;
+	return c;
+}
+
+static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
+	sdl_js_physical_init();
+	struct control *c = configure_control(spec, jaxis);
+	if (!c)
+		return NULL;
+	if (c->control >= c->device->num_axes) {
+		close_device(c->device);
+		g_free(c);
+		return NULL;
+	}
+	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	axis->read = (js_read_axis_func)read_axis;
+	axis->data = c;
+	return axis;
+}
+
+static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
+	sdl_js_physical_init();
+	struct control *c = configure_control(spec, jbutton);
+	if (!c)
+		return NULL;
+	if (c->control >= c->device->num_buttons) {
+		close_device(c->device);
+		g_free(c);
+		return NULL;
+	}
+	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	button->read = (js_read_button_func)read_button;
+	button->data = c;
+	return button;
+}
+
+static void unmap_axis(struct joystick_axis *axis) {
+	if (!axis)
+		return;
+	struct control *c = axis->data;
+	close_device(c->device);
+	g_free(c);
+	g_free(axis);
+}
+
+static void unmap_button(struct joystick_button *button) {
+	if (!button)
+		return;
+	struct control *c = button->data;
+	close_device(c->device);
+	g_free(c);
+	g_free(button);
 }

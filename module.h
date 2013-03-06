@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 
+struct joystick_interface;
 struct vdisk;
 
 struct module {
@@ -48,6 +49,7 @@ typedef struct {
 
 typedef struct {
 	struct module common;
+	struct joystick_interface **interface_list;
 } JoystickModule;
 
 typedef struct {

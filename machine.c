@@ -241,7 +241,6 @@ void machine_config_complete(struct machine_config *mc) {
 static void pia0a_data_preread(void) {
 	keyboard_update();
 	joystick_update();
-	PIA0.a.in_sink &= input_firebutton_mask;
 }
 
 #define pia0a_data_postwrite NULL

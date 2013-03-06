@@ -20,7 +20,7 @@
 #include "machine.h"
 #include "module.h"
 #include "xroar.h"
-#include "sdl/ui_sdl.h"
+#include "sdl/common.h"
 
 #define TAG_TYPE_MASK (0x7f << 24)
 #define TAG_VALUE_MASK (0xffffff)
@@ -607,30 +607,12 @@ static void fast_sound_changed_cb(_Bool fast_sound);
 static void update_machine_menu(void);
 static void update_cartridge_menu(void);
 
-static VideoModule *sdl_video_module_list[] = {
-#ifdef HAVE_SDLGL
-	&video_sdlgl_module,
-#endif
-#ifdef PREFER_NOYUV
-	&video_sdl_module,
-	&video_sdlyuv_module,
-#else
-	&video_sdlyuv_module,
-	&video_sdl_module,
-#endif
-	NULL
-};
-
-static KeyboardModule *sdl_keyboard_module_list[] = {
-	&keyboard_sdl_module,
-	NULL
-};
-
 UIModule ui_macosx_module = {
 	.common = { .name = "macosx", .description = "Mac OS X SDL UI",
 	            .init = init },
 	.video_module_list = sdl_video_module_list,
 	.keyboard_module_list = sdl_keyboard_module_list,
+	.joystick_module_list = sdl_js_modlist,
 	.run = sdl_run,
 	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.machine_changed_cb = machine_changed_cb,

@@ -16,15 +16,19 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+#include "portalib/glib.h"
+#include "portalib/strings.h"
+
+#include "config.h"
 
 #include "input.h"
+#include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
@@ -40,6 +44,41 @@ KeyboardModule keyboard_gtk2_module = {
 	            .init = init, .shutdown = shutdown }
 };
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct joystick_axis *configure_axis(char *, unsigned);
+static struct joystick_button *configure_button(char *, unsigned);
+static void unmap_axis(struct joystick_axis *axis);
+static void unmap_button(struct joystick_button *button);
+
+struct joystick_interface gtk2_js_if_keyboard = {
+	.name = "keyboard",
+	.configure_axis = configure_axis,
+	.configure_button = configure_button,
+	.unmap_axis = unmap_axis,
+	.unmap_button = unmap_button,
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+struct axis {
+	unsigned key0, key1;
+	unsigned value;
+};
+
+struct button {
+	unsigned key;
+	_Bool value;
+};
+
+#define MAX_AXES (4)
+#define MAX_BUTTONS (4)
+
+static struct axis *enabled_axis[MAX_AXES];
+static struct button *enabled_button[MAX_BUTTONS];
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 extern GtkWidget *gtk2_top_window;
 extern GtkUIManager *gtk2_menu_manager;
 static gboolean keypress(GtkWidget *, GdkEventKey *, gpointer);
@@ -52,7 +91,6 @@ struct keymap {
 
 #include "keyboard_gtk2_mappings.c"
 
-static unsigned int emulate_joystick = 0;
 static _Bool noratelimit_latch = 0;
 
 #define MAX_KEYCODE (256)
@@ -159,12 +197,9 @@ static void emulator_command(guint keyval, int shift) {
 		break;
 	case GDK_j:
 		if (shift) {
-			input_control_press(INPUT_SWAP_JOYSTICKS, 0);
+			joystick_swap();
 		} else {
-			if (emulate_joystick) {
-				input_control_press(INPUT_SWAP_JOYSTICKS, 0);
-			}
-			emulate_joystick = (emulate_joystick + 1) % 3;
+			joystick_cycle();
 		}
 		break;
 	case GDK_k:
@@ -203,13 +238,28 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	}
 	guint keyval = keycode_to_keyval[event->hardware_keycode];
 	control = event->state & GDK_CONTROL_MASK;
-	if (emulate_joystick) {
-		if (keyval == GDK_Up) { input_control_press(INPUT_JOY_RIGHT_Y, 0); return FALSE; }
-		if (keyval == GDK_Down) { input_control_press(INPUT_JOY_RIGHT_Y, 255); return FALSE; }
-		if (keyval == GDK_Left) { input_control_press(INPUT_JOY_RIGHT_X, 0); return FALSE; }
-		if (keyval == GDK_Right) { input_control_press(INPUT_JOY_RIGHT_X, 255); return FALSE; }
-		if (keyval == GDK_Alt_L) { input_control_press(INPUT_JOY_RIGHT_FIRE, 0); return FALSE; }
+
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (enabled_axis[i]) {
+			if (keyval == enabled_axis[i]->key0) {
+				enabled_axis[i]->value = 0;
+				return FALSE;
+			}
+			if (keyval == enabled_axis[i]->key1) {
+				enabled_axis[i]->value = 255;
+				return FALSE;
+			}
+		}
 	}
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (enabled_button[i]) {
+			if (keyval == enabled_button[i]->key) {
+				enabled_button[i]->value = 1;
+				return FALSE;
+			}
+		}
+	}
+
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
 		KEYBOARD_PRESS_SHIFT();
 		return FALSE;
@@ -274,13 +324,30 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		return FALSE;
 	}
 	guint keyval = keycode_to_keyval[event->hardware_keycode];
-	if (emulate_joystick) {
-		if (keyval == GDK_Up) { input_control_release(INPUT_JOY_RIGHT_Y, 0); return FALSE; }
-		if (keyval == GDK_Down) { input_control_release(INPUT_JOY_RIGHT_Y, 255); return FALSE; }
-		if (keyval == GDK_Left) { input_control_release(INPUT_JOY_RIGHT_X, 0); return FALSE; }
-		if (keyval == GDK_Right) { input_control_release(INPUT_JOY_RIGHT_X, 255); return FALSE; }
-		if (keyval == GDK_Alt_L) { input_control_release(INPUT_JOY_RIGHT_FIRE, 0); return FALSE; }
+
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (enabled_axis[i]) {
+			if (keyval == enabled_axis[i]->key0) {
+				if (enabled_axis[i]->value < 127)
+					enabled_axis[i]->value = 127;
+				return FALSE;
+			}
+			if (keyval == enabled_axis[i]->key1) {
+				if (enabled_axis[i]->value > 128)
+					enabled_axis[i]->value = 128;
+				return FALSE;
+			}
+		}
 	}
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (enabled_button[i]) {
+			if (keyval == enabled_button[i]->key) {
+				enabled_button[i]->value = 0;
+				return FALSE;
+			}
+		}
+	}
+
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
 		KEYBOARD_RELEASE_SHIFT();
 		return FALSE;
@@ -318,4 +385,101 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		KEYBOARD_RELEASE(keyval);
 	}
 	return FALSE;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static unsigned read_axis(struct axis *a) {
+	return a->value;
+}
+
+static _Bool read_button(struct button *b) {
+	return b->value;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static unsigned get_key_by_name(const char *name) {
+	if (isdigit(name[0]))
+		return strtol(name, NULL, 0);
+	return gdk_keyval_from_name(name);
+}
+
+static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
+	unsigned key0, key1;
+	// sensible defaults
+	if (jaxis == 0) {
+		key0 = GDK_Left;
+		key1 = GDK_Right;
+	} else {
+		key0 = GDK_Up;
+		key1 = GDK_Down;
+	}
+	char *a0 = NULL;
+	char *a1 = NULL;
+	if (spec) {
+		a0 = strsep(&spec, ",");
+		a1 = spec;
+	}
+	if (a0 && *a0)
+		key0 = get_key_by_name(a0);
+	if (a1 && *a1)
+		key1 = get_key_by_name(a1);
+	struct axis *axis_data = g_malloc(sizeof(struct axis));
+	axis_data->key0 = key0;
+	axis_data->key1 = key1;
+	axis_data->value = 127;
+	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	axis->read = (js_read_axis_func)read_axis;
+	axis->data = axis_data;
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (!enabled_axis[i]) {
+			enabled_axis[i] = axis_data;
+			break;
+		}
+	}
+	return axis;
+}
+
+static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
+	unsigned key = (jbutton == 0) ? GDK_Alt_L : GDK_VoidSymbol;
+	if (spec && *spec)
+		key = get_key_by_name(spec);
+	struct button *button_data = g_malloc(sizeof(struct button));
+	button_data->key = key;
+	button_data->value = 0;
+	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	button->read = (js_read_button_func)read_button;
+	button->data = button_data;
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (!enabled_button[i]) {
+			enabled_button[i] = button_data;
+			break;
+		}
+	}
+	return button;
+}
+
+static void unmap_axis(struct joystick_axis *axis) {
+	if (!axis)
+		return;
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (axis->data == enabled_axis[i]) {
+			enabled_axis[i] = NULL;
+		}
+	}
+	g_free(axis->data);
+	g_free(axis);
+}
+
+static void unmap_button(struct joystick_button *button) {
+	if (!button)
+		return;
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (button->data == enabled_button[i]) {
+			enabled_button[i] = NULL;
+		}
+	}
+	g_free(button->data);
+	g_free(button);
 }

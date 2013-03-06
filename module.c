@@ -124,14 +124,14 @@ static VideoModule *default_video_module_list[] = {
 
 /**** Default joystick module list ****/
 
-extern JoystickModule joystick_linux_module;
-extern JoystickModule joystick_sdl_module;
+extern JoystickModule linux_js_mod;
+extern JoystickModule sdl_js_mod_exported;
 static JoystickModule *default_joystick_module_list[] = {
 #ifdef HAVE_LINUX_JOYSTICK
-	&joystick_linux_module,
+	&linux_js_mod,
 #endif
 #ifdef HAVE_SDL
-	&joystick_sdl_module,
+	&sdl_js_mod_exported,
 #endif
 	NULL
 };

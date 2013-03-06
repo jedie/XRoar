@@ -16,20 +16,23 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
+#include "portalib/glib.h"
+#include "portalib/strings.h"
+
+#include "config.h"
 
 #include "input.h"
+#include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
 #include "printer.h"
-#include "sdl/ui_sdl.h"
+#include "sdl/common.h"
 #include "xroar.h"
 
 static _Bool init(void);
@@ -49,7 +52,6 @@ struct keymap {
 #include "keyboard_sdl_mappings.c"
 
 static unsigned int control = 0, shift = 0;
-static unsigned int emulate_joystick = 0;
 static _Bool noratelimit_latch = 0;
 
 static uint_least16_t sdl_to_keymap[768];
@@ -60,6 +62,41 @@ static unsigned int unicode_last_keysym[SDLK_LAST];
 
 static const char *keymap_option;
 static unsigned int *selected_keymap;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct joystick_axis *configure_axis(char *, unsigned);
+static struct joystick_button *configure_button(char *, unsigned);
+static void unmap_axis(struct joystick_axis *axis);
+static void unmap_button(struct joystick_button *button);
+
+struct joystick_interface sdl_js_if_keyboard = {
+	.name = "keyboard",
+	.configure_axis = configure_axis,
+	.configure_button = configure_button,
+	.unmap_axis = unmap_axis,
+	.unmap_button = unmap_button,
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+struct axis {
+	SDLKey key0, key1;
+	unsigned value;
+};
+
+struct button {
+	SDLKey key;
+	_Bool value;
+};
+
+#define MAX_AXES (4)
+#define MAX_BUTTONS (4)
+
+static struct axis *enabled_axis[MAX_AXES];
+static struct button *enabled_button[MAX_BUTTONS];
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static void map_keyboard(unsigned int *map) {
 	int i;
@@ -92,6 +129,12 @@ static _Bool init(void) {
 	}
 	map_keyboard(selected_keymap);
 	SDL_EnableUNICODE(xroar_kbd_translate);
+
+	for (unsigned i = 0; i < MAX_AXES; i++)
+		enabled_axis[i] = NULL;
+	for (unsigned i = 0; i < MAX_BUTTONS; i++)
+		enabled_button[i] = NULL;
+
 	return 1;
 }
 
@@ -137,12 +180,9 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_j:
 		if (shift) {
-			input_control_press(INPUT_SWAP_JOYSTICKS, 0);
+			joystick_swap();
 		} else {
-			if (emulate_joystick) {
-				input_control_press(INPUT_SWAP_JOYSTICKS, 0);
-			}
-			emulate_joystick = (emulate_joystick + 1) % 3;
+			joystick_cycle();
 		}
 		break;
 	case SDLK_k:
@@ -190,13 +230,28 @@ static void emulator_command(SDLKey sym) {
 
 void sdl_keypress(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
-	if (emulate_joystick) {
-		if (sym == SDLK_UP) { input_control_press(INPUT_JOY_RIGHT_Y, 0); return; }
-		if (sym == SDLK_DOWN) { input_control_press(INPUT_JOY_RIGHT_Y, 255); return; }
-		if (sym == SDLK_LEFT) { input_control_press(INPUT_JOY_RIGHT_X, 0); return; }
-		if (sym == SDLK_RIGHT) { input_control_press(INPUT_JOY_RIGHT_X, 255); return; }
-		if (sym == SDLK_LALT) { input_control_press(INPUT_JOY_RIGHT_FIRE, 0); return; }
+
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (enabled_axis[i]) {
+			if (sym == enabled_axis[i]->key0) {
+				enabled_axis[i]->value = 0;
+				return;
+			}
+			if (sym == enabled_axis[i]->key1) {
+				enabled_axis[i]->value = 255;
+				return;
+			}
+		}
 	}
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (enabled_button[i]) {
+			if (sym == enabled_button[i]->key) {
+				enabled_button[i]->value = 1;
+				return;
+			}
+		}
+	}
+
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 1;
 		KEYBOARD_PRESS_SHIFT();
@@ -257,13 +312,30 @@ void sdl_keypress(SDL_keysym *keysym) {
 
 void sdl_keyrelease(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
-	if (emulate_joystick) {
-		if (sym == SDLK_UP) { input_control_release(INPUT_JOY_RIGHT_Y, 0); return; }
-		if (sym == SDLK_DOWN) { input_control_release(INPUT_JOY_RIGHT_Y, 255); return; }
-		if (sym == SDLK_LEFT) { input_control_release(INPUT_JOY_RIGHT_X, 0); return; }
-		if (sym == SDLK_RIGHT) { input_control_release(INPUT_JOY_RIGHT_X, 255); return; }
-		if (sym == SDLK_LALT) { input_control_release(INPUT_JOY_RIGHT_FIRE, 0); return; }
+
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (enabled_axis[i]) {
+			if (sym == enabled_axis[i]->key0) {
+				if (enabled_axis[i]->value < 127)
+					enabled_axis[i]->value = 127;
+				return;
+			}
+			if (sym == enabled_axis[i]->key1) {
+				if (enabled_axis[i]->value > 128)
+					enabled_axis[i]->value = 128;
+				return;
+			}
+		}
 	}
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (enabled_button[i]) {
+			if (sym == enabled_button[i]->key) {
+				enabled_button[i]->value = 0;
+				return;
+			}
+		}
+	}
+
 	if (sym == SDLK_LSHIFT || sym == SDLK_RSHIFT) {
 		shift = 0;
 		KEYBOARD_RELEASE_SHIFT();
@@ -301,4 +373,105 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 		unsigned int mapped = sdl_to_keymap[sym];
 		KEYBOARD_RELEASE(mapped);
 	}
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static unsigned read_axis(struct axis *a) {
+	return a->value;
+}
+
+static _Bool read_button(struct button *b) {
+	return b->value;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static SDLKey get_key_by_name(const char *name) {
+	if (isdigit(name[0]))
+		return strtol(name, NULL, 0);
+	for (SDLKey i = SDLK_FIRST; i < SDLK_LAST; i++) {
+		if (0 == strcasecmp(name, SDL_GetKeyName(i)))
+			return i;
+	}
+	return SDLK_UNKNOWN;
+}
+
+static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
+	SDLKey key0, key1;
+	// sensible defaults
+	if (jaxis == 0) {
+		key0 = SDLK_LEFT;
+		key1 = SDLK_RIGHT;
+	} else {
+		key0 = SDLK_UP;
+		key1 = SDLK_DOWN;
+	}
+	char *a0 = NULL;
+	char *a1 = NULL;
+	if (spec) {
+		a0 = strsep(&spec, ",");
+		a1 = spec;
+	}
+	if (a0 && *a0)
+		key0 = get_key_by_name(a0);
+	if (a1 && *a1)
+		key1 = get_key_by_name(a1);
+	struct axis *axis_data = g_malloc(sizeof(struct axis));
+	axis_data->key0 = key0;
+	axis_data->key1 = key1;
+	axis_data->value = 127;
+	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	axis->read = (js_read_axis_func)read_axis;
+	axis->data = axis_data;
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (!enabled_axis[i]) {
+			enabled_axis[i] = axis_data;
+			break;
+		}
+	}
+	return axis;
+}
+
+static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
+	SDLKey key = (jbutton == 0) ? SDLK_LALT : SDLK_UNKNOWN;
+	if (spec && *spec)
+		key = get_key_by_name(spec);
+	struct button *button_data = g_malloc(sizeof(struct button));
+	button_data->key = key;
+	button_data->value = 0;
+	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	button->read = (js_read_button_func)read_button;
+	button->data = button_data;
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (!enabled_button[i]) {
+			enabled_button[i] = button_data;
+			break;
+		}
+	}
+	return button;
+}
+
+static void unmap_axis(struct joystick_axis *axis) {
+	if (!axis)
+		return;
+	for (unsigned i = 0; i < MAX_AXES; i++) {
+		if (axis->data == enabled_axis[i]) {
+			enabled_axis[i] = NULL;
+		}
+	}
+	g_free(axis->data);
+	g_free(axis);
+}
+
+static void unmap_button(struct joystick_button *button) {
+	if (!button)
+		return;
+	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
+		if (button->data == enabled_button[i]) {
+			enabled_button[i] = NULL;
+		}
+	}
+	g_free(button->data);
+	g_free(button);
 }

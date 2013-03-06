@@ -235,6 +235,7 @@ endif
 
 xroar_sdl_OBJS_C = \
 	sdl/ao_sdl.o \
+	sdl/common.o \
 	sdl/joystick_sdl.o \
 	sdl/keyboard_sdl.o \
 	sdl/ui_sdl.o \
