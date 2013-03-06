@@ -20,10 +20,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
+#include "portalib/glib.h"
 
 #include "config.h"
 
 #include "events.h"
+#include "joystick.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -56,6 +58,25 @@ KeyboardModule *sdl_keyboard_module_list[] = {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+static struct joystick_axis *configure_axis(char *, unsigned);
+static struct joystick_button *configure_button(char *, unsigned);
+
+static struct joystick_interface sdl_js_if_mouse = {
+	.name = "mouse",
+	.configure_axis = configure_axis,
+	.configure_button = configure_button,
+};
+
+static float mouse_xoffset = 34.0;
+static float mouse_yoffset = 25.5;
+static float mouse_xdiv = 252.;
+static float mouse_ydiv = 189.;
+
+static unsigned mouse_axis[2] = { 0, 0 };
+static _Bool mouse_button[3] = { 0, 0, 0 };
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 static void sdl_js_shutdown(void);
 
 // If the SDL UI is active, more joystick interfaces are available
@@ -63,6 +84,7 @@ static void sdl_js_shutdown(void);
 static struct joystick_interface *js_iflist[] = {
 	&sdl_js_if_physical,
 	&sdl_js_if_keyboard,
+	&sdl_js_if_mouse,
 	NULL
 };
 
@@ -112,4 +134,78 @@ void sdl_run(void) {
 		/* XXX will this ever be needed? */
 		event_run_queue(UI_EVENT_LIST);
 	}
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static void update_mouse_state(void) {
+	int x, y;
+	Uint8 buttons = SDL_GetMouseState(&x, &y);
+	x = (x - sdl_window_x) * 320;
+	y = (y - sdl_window_y) * 240;
+	float xx = (float)x / (float)sdl_window_w;
+	float yy = (float)y / (float)sdl_window_h;
+	xx = (xx - mouse_xoffset) / mouse_xdiv;
+	yy = (yy - mouse_yoffset) / mouse_ydiv;
+	if (xx < 0.0) xx = 0.0;
+	if (xx > 1.0) xx = 1.0;
+	if (yy < 0.0) yy = 0.0;
+	if (yy > 1.0) yy = 1.0;
+	mouse_axis[0] = xx * 255.;
+	mouse_axis[1] = yy * 255.;
+	mouse_button[0] = buttons & SDL_BUTTON(1);
+	mouse_button[1] = buttons & SDL_BUTTON(2);
+	mouse_button[2] = buttons & SDL_BUTTON(3);
+}
+
+static unsigned read_axis(unsigned *a) {
+	update_mouse_state();
+	return *a;
+}
+
+static _Bool read_button(_Bool *b) {
+	update_mouse_state();
+	return *b;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
+	jaxis %= 2;
+	float off0 = (jaxis == 0) ? 2.0 : 1.5;
+	float off1 = (jaxis == 0) ? 254.0 : 190.5;
+	char *tmp = NULL;
+	if (spec)
+		tmp = strsep(&spec, ",");
+	if (tmp && *tmp)
+		off0 = strtof(tmp, NULL);
+	if (spec && *spec)
+		off1 = strtof(spec, NULL);
+	if (jaxis == 0) {
+		if (off0 < -32.0) off0 = -32.0;
+		if (off1 > 288.0) off0 = 288.0;
+		mouse_xoffset = off0 + 32.0;
+		mouse_xdiv = off1 - off0;
+	} else {
+		if (off0 < -24.0) off0 = -24.0;
+		if (off1 > 216.0) off0 = 216.0;
+		mouse_yoffset = off0 + 24.0;
+		mouse_ydiv = off1 - off0;
+	}
+	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	axis->read = (js_read_axis_func)read_axis;
+	axis->data = &mouse_axis[jaxis];
+	return axis;
+}
+
+static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
+	jbutton %= 3;
+	if (spec && *spec)
+		jbutton = strtol(spec, NULL, 0) - 1;
+	if (jbutton >= 3)
+		return NULL;
+	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	button->read = (js_read_button_func)read_button;
+	button->data = &mouse_button[jbutton];
+	return button;
 }

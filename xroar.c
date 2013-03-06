@@ -121,6 +121,7 @@ char *xroar_opt_keymap = NULL;
 _Bool xroar_kbd_translate = 0;
 static char *opt_joy_right = NULL;
 static char *opt_joy_left = NULL;
+static char *opt_joy_virtual = NULL;
 static void set_joystick(const char *name);
 static void set_joystick_axis(const char *spec);
 static void set_joystick_button(const char *spec);
@@ -288,6 +289,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_STRING("joy-button", &set_joystick_button),
 	XC_SET_STRING("joy-right", &opt_joy_right),
 	XC_SET_STRING("joy-left", &opt_joy_left),
+	XC_SET_STRING("joy-virtual", &opt_joy_virtual),
 	XC_SET_INT1("tape-fast", &xroar_opt_tape_fast),
 	XC_SET_INT1("tape-pad", &xroar_opt_tape_pad),
 	XC_SET_INT1("tape-pad-auto", &xroar_opt_tape_pad_auto),
@@ -465,6 +467,12 @@ static const char *default_config[] = {
 	"joy-axis 1=keyboard:",
 	"joy-button 0=keyboard:",
 	"joy-button 1=keyboard:",
+	"joy mjoy0",
+	"joy-desc Mouse-joystick 0",
+	"joy-axis 0=mouse:",
+	"joy-axis 1=mouse:",
+	"joy-button 0=mouse:",
+	"joy-button 1=mouse:",
 
 	NULL
 };
@@ -861,6 +869,7 @@ static void helptext(void) {
 "  -joy-button BTN=SPEC  configure joystick button\n"
 "  -joy-right NAME       map right joystick\n"
 "  -joy-left NAME        map left joystick\n"
+"  -joy-virtual NAME     specify the 'virtual' joystick to cycle [kjoy0]\n"
 "  -tape-fast            enable fast tape loading\n"
 "  -tape-pad             enable tape leader padding\n"
 "  -tape-pad-auto        detect need for leader padding automatically\n"
