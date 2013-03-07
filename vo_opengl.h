@@ -11,6 +11,9 @@
 
 #include <stdint.h>
 
+extern int vo_opengl_x, vo_opengl_y;
+extern int vo_opengl_w, vo_opengl_h;
+
 _Bool vo_opengl_init(void);
 void vo_opengl_shutdown(void);
 void vo_opengl_alloc_colours(void);

@@ -66,7 +66,8 @@ static Pixel *screen_tex;
 
 static unsigned window_width, window_height;
 static GLuint texnum = 0;
-static GLint xoffset, yoffset;
+int vo_opengl_x, vo_opengl_y;
+int vo_opengl_w, vo_opengl_h;
 
 static enum {
 	FILTER_AUTO,
@@ -92,7 +93,7 @@ _Bool vo_opengl_init(void) {
 	screen_tex = g_malloc(320 * 240 * sizeof(Pixel));
 	window_width = 640;
 	window_height = 480;
-	xoffset = yoffset = 0;
+	vo_opengl_x = vo_opengl_y = 0;
 
 	switch (xroar_opt_gl_filter) {
 	case XROAR_GL_FILTER_NEAREST:
@@ -128,18 +129,16 @@ void vo_opengl_set_window_size(unsigned w, unsigned h) {
 	window_width = w;
 	window_height = h;
 
-	int width, height;
-
 	if (((float)window_width/(float)window_height)>(4.0/3.0)) {
-		height = window_height;
-		width = ((float)height/3.0)*4;
-		xoffset = (window_width - width) / 2;
-		yoffset = 0;
+		vo_opengl_h = window_height;
+		vo_opengl_w = ((float)vo_opengl_h/3.0)*4;
+		vo_opengl_x = (window_width - vo_opengl_w) / 2;
+		vo_opengl_y = 0;
 	} else {
-		width = window_width;
-		height = ((float)width/4.0)*3;
-		xoffset = 0;
-		yoffset = (window_height - height)/2;
+		vo_opengl_w = window_width;
+		vo_opengl_h = ((float)vo_opengl_w/4.0)*3;
+		vo_opengl_x = 0;
+		vo_opengl_y = (window_height - vo_opengl_h)/2;
 	}
 
 	/* Configure OpenGL */
@@ -164,7 +163,7 @@ void vo_opengl_set_window_size(unsigned w, unsigned h) {
 	glBindTexture(GL_TEXTURE_2D, texnum);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 512, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	if (filter == FILTER_NEAREST
-	    || (filter == FILTER_AUTO && (width % 320) == 0 && (height % 240) == 0)) {
+	    || (filter == FILTER_AUTO && (vo_opengl_w % 320) == 0 && (vo_opengl_h % 240) == 0)) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	} else {
@@ -183,14 +182,14 @@ void vo_opengl_set_window_size(unsigned w, unsigned h) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 
-	vertices[0][0] = xoffset;
-	vertices[0][1] = yoffset;
-	vertices[1][0] = xoffset;
-	vertices[1][1] = window_height - yoffset;
-	vertices[2][0] = window_width - xoffset;
-	vertices[2][1] = yoffset;
-	vertices[3][0] = window_width - xoffset;
-	vertices[3][1] = window_height - yoffset;
+	vertices[0][0] = vo_opengl_x;
+	vertices[0][1] = vo_opengl_y;
+	vertices[1][0] = vo_opengl_x;
+	vertices[1][1] = window_height - vo_opengl_y;
+	vertices[2][0] = window_width - vo_opengl_x;
+	vertices[2][1] = vo_opengl_y;
+	vertices[3][0] = window_width - vo_opengl_x;
+	vertices[3][1] = window_height - vo_opengl_y;
 
 	/* The same vertex & texcoord lists will be used every draw,
 	   so configure them here rather than in vsync() */
