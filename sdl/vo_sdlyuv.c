@@ -26,6 +26,7 @@
 
 #include "logging.h"
 #include "module.h"
+#include "sdl/common.h"
 #include "vdg.h"
 #include "xroar.h"
 
@@ -233,6 +234,10 @@ static int set_fullscreen(_Bool fullscreen) {
 		dstrect.x = 0;
 		dstrect.y = (screen->h - dstrect.h)/2;
 	}
+	sdl_window_x = dstrect.x;
+	sdl_window_y = dstrect.y;
+	sdl_window_w = dstrect.w;
+	sdl_window_h = dstrect.h;
 	return 0;
 }
 

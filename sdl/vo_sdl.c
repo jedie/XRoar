@@ -26,6 +26,7 @@
 
 #include "logging.h"
 #include "module.h"
+#include "sdl/common.h"
 #include "vdg.h"
 #include "xroar.h"
 
@@ -139,6 +140,9 @@ static int set_fullscreen(_Bool fullscreen) {
 	else
 		SDL_ShowCursor(SDL_ENABLE);
 	video_sdl_module.is_fullscreen = fullscreen;
+	sdl_window_x = sdl_window_y = 0;
+	sdl_window_w = 320;
+	sdl_window_h = 240;
 	return 0;
 }
 

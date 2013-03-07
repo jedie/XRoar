@@ -8,6 +8,9 @@
 
 #include "module.h"
 
+extern unsigned sdl_window_x, sdl_window_y;
+extern unsigned sdl_window_w, sdl_window_h;
+
 extern VideoModule video_sdlgl_module;
 extern VideoModule video_sdlyuv_module;
 extern VideoModule video_sdl_module;

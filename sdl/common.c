@@ -31,6 +31,9 @@
 #include "vdg.h"
 #include "xroar.h"
 
+unsigned sdl_window_x = 0, sdl_window_y = 0;
+unsigned sdl_window_w = 320, sdl_window_h = 240;
+
 VideoModule *sdl_video_module_list[] = {
 #ifdef HAVE_SDLGL
 	&video_sdlgl_module,

@@ -26,6 +26,7 @@
 
 #include "logging.h"
 #include "module.h"
+#include "sdl/common.h"
 #include "vdg.h"
 #include "vo_opengl.h"
 #include "xroar.h"
@@ -141,6 +142,10 @@ static int set_fullscreen(_Bool fullscreen) {
 	video_sdlgl_module.is_fullscreen = fullscreen;
 
 	vo_opengl_set_window_size(want_width, want_height);
+	sdl_window_x = vo_opengl_x;
+	sdl_window_y = vo_opengl_y;
+	sdl_window_w = vo_opengl_w;
+	sdl_window_h = vo_opengl_h;
 
 	return 0;
 }
