@@ -28,6 +28,7 @@
 #include "gtk2/drivecontrol.h"
 #include "gtk2/tapecontrol.h"
 #include "gtk2/ui_gtk2.h"
+#include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
@@ -61,6 +62,45 @@ static KeyboardModule *gtk2_keyboard_module_list[] = {
 	NULL
 };
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct joystick_axis *configure_axis(char *, unsigned);
+static struct joystick_button *configure_button(char *, unsigned);
+
+static struct joystick_interface gtk2_js_if_mouse = {
+	.name = "mouse",
+	.configure_axis = configure_axis,
+	.configure_button = configure_button,
+};
+
+static float mouse_xoffset = 34.0;
+static float mouse_yoffset = 25.5;
+static float mouse_xdiv = 252.;
+static float mouse_ydiv = 189.;
+
+static unsigned mouse_axis[2] = { 0, 0 };
+static _Bool mouse_button[3] = { 0, 0, 0 };
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct joystick_interface *js_iflist[] = {
+	&gtk2_js_if_keyboard,
+	&gtk2_js_if_mouse,
+	NULL
+};
+
+JoystickModule gtk2_js_internal = {
+	.common = { .name = "gtk2", .description = "GTK+ joystick" },
+	.interface_list = js_iflist,
+};
+
+static JoystickModule *gtk2_js_modlist[] = {
+	&gtk2_js_internal,
+	NULL
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 /* Module callbacks */
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
@@ -74,6 +114,7 @@ UIModule ui_gtk2_module = {
 	.run = &run,
 	.video_module_list = gtk2_video_module_list,
 	.keyboard_module_list = gtk2_keyboard_module_list,
+	.joystick_module_list = gtk2_js_modlist,
 	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.machine_changed_cb = machine_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
@@ -693,4 +734,80 @@ static char *escape_underscores(const char *str) {
 	}
 	*out = 0;
 	return ret_str;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static void update_mouse_state(void) {
+	int x, y;
+	GdkModifierType buttons;
+	GdkWindow *window = gtk_widget_get_window(gtk2_drawing_area);
+	gdk_window_get_pointer(window, &x, &y, &buttons);
+	x = (x - gtk2_window_x) * 320;
+	y = (y - gtk2_window_y) * 240;
+	float xx = (float)x / (float)gtk2_window_w;
+	float yy = (float)y / (float)gtk2_window_h;
+	xx = (xx - mouse_xoffset) / mouse_xdiv;
+	yy = (yy - mouse_yoffset) / mouse_ydiv;
+	if (xx < 0.0) xx = 0.0;
+	if (xx > 1.0) xx = 1.0;
+	if (yy < 0.0) yy = 0.0;
+	if (yy > 1.0) yy = 1.0;
+	mouse_axis[0] = xx * 255.;
+	mouse_axis[1] = yy * 255.;
+	mouse_button[0] = buttons & GDK_BUTTON1_MASK;
+	mouse_button[1] = buttons & GDK_BUTTON2_MASK;
+	mouse_button[2] = buttons & GDK_BUTTON3_MASK;
+}
+
+static unsigned read_axis(unsigned *a) {
+	update_mouse_state();
+	return *a;
+}
+
+static _Bool read_button(_Bool *b) {
+	update_mouse_state();
+	return *b;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
+	jaxis %= 2;
+	float off0 = (jaxis == 0) ? 2.0 : 1.5;
+	float off1 = (jaxis == 0) ? 254.0 : 190.5;
+	char *tmp = NULL;
+	if (spec)
+		tmp = strsep(&spec, ",");
+	if (tmp && *tmp)
+		off0 = strtof(tmp, NULL);
+	if (spec && *spec)
+		off1 = strtof(spec, NULL);
+	if (jaxis == 0) {
+		if (off0 < -32.0) off0 = -32.0;
+		if (off1 > 288.0) off0 = 288.0;
+		mouse_xoffset = off0 + 32.0;
+		mouse_xdiv = off1 - off0;
+	} else {
+		if (off0 < -24.0) off0 = -24.0;
+		if (off1 > 216.0) off0 = 216.0;
+		mouse_yoffset = off0 + 24.0;
+		mouse_ydiv = off1 - off0;
+	}
+	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	axis->read = (js_read_axis_func)read_axis;
+	axis->data = &mouse_axis[jaxis];
+	return axis;
+}
+
+static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
+	jbutton %= 3;
+	if (spec && *spec)
+		jbutton = strtol(spec, NULL, 0) - 1;
+	if (jbutton >= 3)
+		return NULL;
+	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	button->read = (js_read_button_func)read_button;
+	button->data = &mouse_button[jbutton];
+	return button;
 }
