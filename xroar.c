@@ -889,6 +889,7 @@ static void helptext(void) {
 "\nINTERFACE       Axis ARGs                       Button ARGs\n"
 "physical        joystick-index,[-]axis-index    joystick-index,button-index\n"
 "keyboard        key-name0,key-name1             key-name\n"
+"mouse           screen-offset0,screen-offset1   button-number\n"
 
 "\nFor physical joysticks a '-' before the axis index inverts the axis.  AXIS 0 is\n"
 "the X-axis, and AXIS 1 the Y-axis.  BTN 0 is the only one used so far, but in\n"
