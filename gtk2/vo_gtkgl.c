@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 
+#include "gtk2/ui_gtk2.h"
 #include "logging.h"
 #include "module.h"
 #include "vdg.h"
@@ -139,6 +140,10 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer data
 	}
 
 	vo_opengl_set_window_size(da->allocation.width, da->allocation.height);
+	gtk2_window_x = vo_opengl_x;
+	gtk2_window_y = vo_opengl_y;
+	gtk2_window_w = vo_opengl_w;
+	gtk2_window_h = vo_opengl_h;
 
 	gdk_gl_drawable_gl_end(gldrawable);
 

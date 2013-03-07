@@ -27,6 +27,7 @@
 #include "events.h"
 #include "gtk2/drivecontrol.h"
 #include "gtk2/tapecontrol.h"
+#include "gtk2/ui_gtk2.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
@@ -40,6 +41,9 @@
 static _Bool init(void);
 static void shutdown(void);
 static void run(void);
+
+unsigned gtk2_window_x = 0, gtk2_window_y = 0;
+unsigned gtk2_window_w = 640, gtk2_window_h = 480;
 
 extern VideoModule video_gtkgl_module;
 extern VideoModule video_null_module;

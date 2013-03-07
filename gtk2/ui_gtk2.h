@@ -6,7 +6,11 @@
 #ifndef XROAR_GTK2_UI_GTK2_H_
 #define XROAR_GTK2_UI_GTK2_H_
 
+extern unsigned gtk2_window_x, gtk2_window_y;
+extern unsigned gtk2_window_w, gtk2_window_h;
+
 extern GtkWidget *gtk2_top_window;
+extern GtkWidget *gtk2_drawing_area;
 extern GtkUIManager *gtk2_menu_manager;
 
 #endif  /* XROAR_GTK2_UI_GTK2_H_ */
