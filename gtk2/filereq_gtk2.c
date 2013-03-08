@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 
 #include "fs.h"
+#include "gtk2/ui_gtk2.h"
 #include "logging.h"
 #include "module.h"
 
@@ -34,8 +35,6 @@ FileReqModule filereq_gtk2_module = {
 	.load_filename = load_filename,
 	.save_filename = save_filename
 };
-
-extern GtkWidget *gtk2_top_window;
 
 static _Bool init(void) {
 	/* Only initialise if not running as part of general GTK+ interface */

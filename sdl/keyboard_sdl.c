@@ -114,10 +114,9 @@ static void map_keyboard(unsigned int *map) {
 }
 
 static _Bool init(void) {
-	int i;
 	keymap_option = xroar_opt_keymap;
 	selected_keymap = NULL;
-	for (i = 0; mappings[i].name; i++) {
+	for (unsigned i = 0; mappings[i].name; i++) {
 		if (selected_keymap == NULL
 				&& !strcmp("uk", mappings[i].name)) {
 			selected_keymap = mappings[i].raw;

@@ -45,9 +45,6 @@ VideoModule video_gtkgl_module = {
 };
 
 
-extern GtkWidget *gtk2_top_window;
-extern GtkWidget *gtk2_menubar;
-extern GtkWidget *gtk2_drawing_area;
 static gboolean configure(GtkWidget *, GdkEventConfigure *, gpointer);
 
 static _Bool init(void) {

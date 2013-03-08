@@ -15,6 +15,7 @@ extern struct joystick_interface gtk2_js_if_keyboard;
 
 extern GtkWidget *gtk2_top_window;
 extern GtkWidget *gtk2_drawing_area;
+extern GtkWidget *gtk2_menubar;
 extern GtkUIManager *gtk2_menu_manager;
 
 #endif  /* XROAR_GTK2_UI_GTK2_H_ */

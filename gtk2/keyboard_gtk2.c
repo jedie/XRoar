@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include "gtk2/ui_gtk2.h"
 #include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -79,8 +80,6 @@ static struct button *enabled_button[MAX_BUTTONS];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-extern GtkWidget *gtk2_top_window;
-extern GtkUIManager *gtk2_menu_manager;
 static gboolean keypress(GtkWidget *, GdkEventKey *, gpointer);
 static gboolean keyrelease(GtkWidget *, GdkEventKey *, gpointer);
 
