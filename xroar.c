@@ -16,12 +16,15 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// For strsep()
+#define _BSD_SOURCE
+
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "portalib/glib.h"
+#include "portalib/string.h"
 #include "portalib/strings.h"
 
 #include "config.h"
