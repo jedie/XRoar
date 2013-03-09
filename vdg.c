@@ -95,6 +95,8 @@ static uint8_t vram_sg_data;
 static struct event hs_fall_event, hs_rise_event;
 static void do_hs_fall(void *);
 static void do_hs_rise(void *);
+static void do_hs_fall_pal_coco(void *);
+static unsigned pal_padding;
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
@@ -140,7 +142,7 @@ void vdg_reset(void) {
 
 static void do_hs_fall(void *data) {
 	(void)data;
-	/* Finish rendering previous scanline */
+	// Finish rendering previous scanline
 	if (frame == 0) {
 		if (scanline >= vdg_window_y1 && scanline < VDG_ACTIVE_AREA_START) {
 			if (scanline == vdg_window_y1) {
@@ -163,28 +165,43 @@ static void do_hs_fall(void *data) {
 		}
 	}
 
-	/* HS falling edge */
-	PIA_RESET_Cx1(PIA0.a);
+	// HS falling edge.  The interrupt signal is inverted on PAL CoCos.
+	if (IS_COCO && IS_PAL)
+		PIA_SET_Cx1(PIA0.a);
+	else
+		PIA_RESET_Cx1(PIA0.a);
 
 	scanline_start = hs_fall_event.at_tick;
-	/* Next HS rise and fall */
+	// Next HS rise and fall
 	hs_rise_event.at_tick = scanline_start + VDG_CYCLES(VDG_HS_RISING_EDGE);
 	hs_fall_event.at_tick = scanline_start + VDG_CYCLES(VDG_LINE_DURATION);
 
-	/* Two delays of 25 scanlines each occur 24 lines after FS falling edge
-	 * and at FS rising edge in PAL systems */
-	if (IS_PAL) {
+	/* On PAL machines, the clock to the VDG is interrupted at two points
+	 * in every frame to fake up some extra scanlines, padding the signal
+	 * from 262 lines to 312 lines.  Dragons do not generate an HS-related
+	 * interrupt signal during this time, CoCos do.  The positioning and
+	 * duration of each interruption differs also. */
+
+	if (IS_PAL && IS_COCO) {
+		if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 25)) {
+			pal_padding = 26;
+			hs_fall_event.delegate = do_hs_fall_pal_coco;
+		} else if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 47)) {
+			pal_padding = 24;
+			hs_fall_event.delegate = do_hs_fall_pal_coco;
+		}
+	} else if (IS_PAL && IS_DRAGON) {
 		if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 24)
 		    || scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
-			hs_rise_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
-			hs_fall_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
+				hs_rise_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
+				hs_fall_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
 		}
 	}
 
 	event_queue(&MACHINE_EVENT_LIST, &hs_rise_event);
 	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
 
-	/* Next scanline */
+	// Next scanline
 	scanline = SCANLINE(scanline + 1);
 	beam_pos = 0;
 	vram_idx = 0;
@@ -198,12 +215,12 @@ static void do_hs_fall(void *data) {
 	}
 
 	if (scanline == VDG_ACTIVE_AREA_END) {
-		/* FS falling edge */
+		// FS falling edge
 		PIA_RESET_Cx1(PIA0.b);
 	}
 
 	if (scanline == VDG_VBLANK_START) {
-		/* FS rising edge */
+		// FS rising edge
 		PIA_SET_Cx1(PIA0.b);
 		sam_vdg_fsync();
 		frame--;
@@ -217,8 +234,32 @@ static void do_hs_fall(void *data) {
 
 static void do_hs_rise(void *data) {
 	(void)data;
-	/* HS rising edge */
-	PIA_SET_Cx1(PIA0.a);
+	// HS rising edge.  The interrupt signal is inverted on PAL CoCos.
+	if (IS_COCO && IS_PAL)
+		PIA_RESET_Cx1(PIA0.a);
+	else
+		PIA_SET_Cx1(PIA0.a);
+}
+
+static void do_hs_fall_pal_coco(void *data) {
+	(void)data;
+	// HS falling edge
+	if (IS_COCO && IS_PAL)
+		PIA_SET_Cx1(PIA0.a);
+	else
+		PIA_RESET_Cx1(PIA0.a);
+
+	scanline_start = hs_fall_event.at_tick;
+	// Next HS rise and fall
+	hs_rise_event.at_tick = scanline_start + VDG_CYCLES(VDG_HS_RISING_EDGE);
+	hs_fall_event.at_tick = scanline_start + VDG_CYCLES(VDG_LINE_DURATION);
+
+	pal_padding--;
+	if (pal_padding == 0)
+		hs_fall_event.delegate = do_hs_fall;
+
+	event_queue(&MACHINE_EVENT_LIST, &hs_rise_event);
+	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
 }
 
 static void render_scanline(void) {
