@@ -16,12 +16,16 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+// For strsep()
+#define _BSD_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
+#include "portalib/strings.h"
+
+#include "config.h"
 
 #include "cart.h"
 #include "events.h"

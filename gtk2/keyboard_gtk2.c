@@ -16,6 +16,9 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// For strsep()
+#define _BSD_SOURCE
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
