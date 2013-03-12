@@ -411,7 +411,7 @@ CONFPATH = \":~/Local\ Settings/Application\ Data/XRoar:~/Application\ Data/XRoa
 endif
 
 ifeq ($(opt_coreaudio),yes)
-ROMPATH = \"~/Library/XRoar/Roms:~/.xroar/roms:$(datadir)/xroar/roms:\"
+ROMPATH = \"~/Library/XRoar/roms:~/.xroar/roms:$(datadir)/xroar/roms:\"
 CONFPATH = \"~/Library/XRoar:~/.xroar:$(sysconfdir):$(datadir)/xroar\"
 endif
 
