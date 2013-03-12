@@ -244,6 +244,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("dos", &opt_cart_rom),
 
 	/* Attach files */
+	XC_SET_STRING("rompath", &xroar_rom_path),
 	XC_CALL_STRING("romlist", &romlist_assign),
 	XC_CALL_NULL("romlist-print", &romlist_print),
 	XC_CALL_STRING("crclist", &crclist_assign),
@@ -488,8 +489,8 @@ unsigned xroar_opt_debug_fdc = 0;
 
 /**************************************************************************/
 
-const char *xroar_rom_path;
-const char *xroar_conf_path;
+const char *xroar_conf_path = NULL;
+const char *xroar_rom_path = NULL;
 
 struct event *xroar_ui_events = NULL;
 struct event *xroar_machine_events = NULL;
@@ -830,6 +831,7 @@ static void helptext(void) {
 "  -nodos                don't automatically pick a DOS cartridge\n"
 
 "\n Attach files:\n"
+"  -rompath PATH         set ROM search path (colon-separated list)\n"
 "  -romlist NAME=LIST    define a ROM list\n"
 "  -romlist-print        print defined ROM lists\n"
 "  -crclist NAME=LIST    define a ROM CRC list\n"
@@ -914,10 +916,6 @@ _Bool xroar_init(int argc, char **argv) {
 	int argn = 1, ret;
 	char *conffile;
 
-	xroar_rom_path = getenv("XROAR_ROM_PATH");
-	if (!xroar_rom_path)
-		xroar_rom_path = ROMPATH;
-
 	xroar_conf_path = getenv("XROAR_CONF_PATH");
 	if (!xroar_conf_path)
 		xroar_conf_path = CONFPATH;
@@ -959,6 +957,11 @@ _Bool xroar_init(int argc, char **argv) {
 	if (ret != XCONFIG_OK) {
 		exit(EXIT_FAILURE);
 	}
+	// Set a default ROM search path if required.
+	if (!xroar_rom_path)
+		xroar_rom_path = getenv("XROAR_ROM_PATH");
+	if (!xroar_rom_path)
+		xroar_rom_path = ROMPATH;
 	// If no machine specified on command line, get default.
 	if (!xroar_machine_config && opt_default_machine) {
 		xroar_machine_config = machine_config_by_name(opt_default_machine);
