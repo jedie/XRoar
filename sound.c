@@ -93,11 +93,8 @@ static const float source_offset_v[NUM_SOURCES][3] = {
 	{ 0.0, 0.0, 3.9 }  // Single-bit
 };
 
-/* These gain values are computed from the above by set_volume(), which must be
- * called before any audio output: */
-
-static unsigned source_gain[NUM_SOURCES][3];
-static unsigned source_offset[NUM_SOURCES][3];
+// Computed by set_volume().  Defaults to scale at full volume.
+static unsigned scale = 6971;
 
 static void flush_frame(void *);
 static struct event flush_event;
@@ -180,13 +177,7 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 void sound_set_volume(int v) {
 	if (v < 0) v = 0;
 	if (v > 100) v = 100;
-	float scale = 32767. * ((float)v / 100);
-	for (unsigned j = 0; j < 5; j++) {
-		for (unsigned i = 0; i < 3; i++) {
-			source_gain[j][i] = (scale * source_gain_v[j][i]) / full_scale_v;
-			source_offset[j][i] = (scale * source_offset_v[j][i]) / full_scale_v;
-		}
-	}
+	scale = (unsigned)((327.67 * (float)v) / full_scale_v);
 }
 
 /* within sound_update(), this loop is included for each sample format */
@@ -256,8 +247,10 @@ void sound_update(void) {
 		level = 0.0;
 	}
 
+	level = (level * source_gain_v[source][index]) + source_offset_v[source][index];
+
 #ifndef FAST_SOUND
-	if (!sbs_enabled && level < 0.515) {
+	if (!sbs_enabled && level < 1.414) {
 		PIA1.b.in_source &= ~(1<<1);
 		PIA1.b.in_sink &= ~(1<<1);
 	} else {
@@ -266,7 +259,7 @@ void sound_update(void) {
 	}
 #endif
 
-	unsigned output = (level * source_gain[source][index]) + source_offset[source][index];
+	unsigned output = level * scale;
 
 	switch (buffer_fmt) {
 	case SOUND_FMT_U8:
