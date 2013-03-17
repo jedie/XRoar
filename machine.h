@@ -84,6 +84,7 @@ struct machine_config {
 	char *extbas_rom;
 	char *altbas_rom;
 	int default_cart_index;
+	_Bool nodos;
 	_Bool cart_enabled;
 };
 

@@ -87,7 +87,7 @@ static char *opt_cart_rom2 = NULL;
 static int opt_cart_becker = ANY_AUTO;
 static int opt_cart_autorun = ANY_AUTO;
 
-static _Bool opt_nodos = 0;
+static int opt_nodos = -1;
 
 /* Attach files */
 _Bool xroar_opt_force_crc_match = 0;
@@ -238,7 +238,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("cart-rom2", &opt_cart_rom2),
 	XC_SET_INT1("cart-becker", &opt_cart_becker),
 	XC_SET_INT1("cart-autorun", &opt_cart_autorun),
-	XC_SET_BOOL("nodos", &opt_nodos),
+	XC_SET_INT1("nodos", &opt_nodos),
 	/* Backwards-compatibility options: */
 	XC_SET_ENUM("dostype", &opt_cart_type, cart_type_list),
 	XC_SET_STRING("dos", &opt_cart_rom),
@@ -620,6 +620,10 @@ static void set_machine(const char *name) {
 			struct cart_config *cc = cart_config_by_name(opt_machine_cart);
 			xroar_machine_config->default_cart_index = cc->index;
 			opt_machine_cart = NULL;
+		}
+		if (opt_nodos != -1) {
+			xroar_machine_config->nodos = opt_nodos;
+			opt_nodos = -1;
 		}
 		machine_config_complete(xroar_machine_config);
 	}
@@ -1031,7 +1035,7 @@ _Bool xroar_init(int argc, char **argv) {
 	xroar_opt_tape_pad_auto = xroar_opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
 	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
 
-	_Bool no_auto_dos = opt_nodos;
+	_Bool no_auto_dos = xroar_machine_config->nodos;
 	_Bool definitely_dos = 0;
 	for (GSList *tmp_list = load_list; tmp_list; tmp_list = tmp_list->next) {
 		char *load_file = tmp_list->data;
@@ -1050,7 +1054,7 @@ _Bool xroar_init(int argc, char **argv) {
 		case FILETYPE_JVC:
 		case FILETYPE_DMK:
 			// unless explicitly disabled
-			if (!opt_nodos)
+			if (!xroar_machine_config->nodos)
 				definitely_dos = 1;
 			break;
 		// for cartridge ROMs, create a cart as machine default
