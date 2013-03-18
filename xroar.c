@@ -396,8 +396,8 @@ static const char *default_config[] = {
 
 	// Fallback Dragon BASIC
 	"romlist dragon=dragon",
-	"romlist d64_1=d64_1,d64rom1,Dragon Data Ltd - Dragon 64 - IC17,Eurohard S.A. - Dragon 200 IC18,dragrom",
-	"romlist d64_2=d64_2,d64rom2,Dragon Data Ltd - Dragon 64 - IC18,Eurohard S.A. - Dragon 200 IC17",
+	"romlist d64_1=d64_1,d64rom1,Dragon Data Ltd - Dragon 64 - IC17,Dragon Data Ltd - TANO IC18,Eurohard S.A. - Dragon 200 IC18,dragrom",
+	"romlist d64_2=d64_2,d64rom2,Dragon Data Ltd - Dragon 64 - IC18,Dragon Data Ltd - TANO IC17,Eurohard S.A. - Dragon 200 IC17",
 	"romlist d32=d32,dragon32,d32rom,Dragon Data Ltd - Dragon 32 - IC17",
 	// Specific Dragon BASIC
 	"romlist dragon64=@d64_1,@dragon",
