@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-#ifdef NEED_STRSEP
+#if defined(NEED_STRSEP) && defined(_BSD_SOURCE)
 char *strsep(char **, const char *);
 #endif
 
