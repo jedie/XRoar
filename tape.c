@@ -192,7 +192,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 		}
 		if (type != 0 || block[1] < 15)
 			continue;
-		f = g_malloc(sizeof(struct tape_file));
+		f = g_malloc(sizeof(*f));
 		f->offset = offset;
 		memcpy(f->name, &block[2], 8);
 		int i = 8;
@@ -217,7 +217,7 @@ void tape_seek_to_file(struct tape *t, struct tape_file *f) {
 /**************************************************************************/
 
 struct tape *tape_new(void) {
-	struct tape *new = g_malloc0(sizeof(struct tape));
+	struct tape *new = g_malloc0(sizeof(*new));
 	return new;
 }
 

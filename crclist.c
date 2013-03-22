@@ -42,7 +42,7 @@ static int compare_entry(struct crclist *a, char *b) {
 /**************************************************************************/
 
 static struct crclist *new_crclist(const char *name) {
-	struct crclist *new = g_malloc(sizeof(struct crclist));
+	struct crclist *new = g_malloc(sizeof(*new));
 	new->name = g_strdup(name);
 	new->list = NULL;
 	new->flag = 0;

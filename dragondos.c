@@ -83,7 +83,7 @@ static void dragondos_init(struct dragondos *d) {
 }
 
 struct cart *dragondos_new(struct cart_config *cc) {
-	struct dragondos *d = g_malloc(sizeof(struct dragondos));
+	struct dragondos *d = g_malloc(sizeof(*d));
 	d->cart.config = cc;
 	dragondos_init(d);
 	return (struct cart *)d;

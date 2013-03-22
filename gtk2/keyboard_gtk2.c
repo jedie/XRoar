@@ -427,11 +427,11 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		key0 = get_key_by_name(a0);
 	if (a1 && *a1)
 		key1 = get_key_by_name(a1);
-	struct axis *axis_data = g_malloc(sizeof(struct axis));
+	struct axis *axis_data = g_malloc(sizeof(*axis_data));
 	axis_data->key0 = key0;
 	axis_data->key1 = key1;
 	axis_data->value = 127;
-	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	struct joystick_axis *axis = g_malloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = axis_data;
 	for (unsigned i = 0; i < MAX_AXES; i++) {
@@ -447,10 +447,10 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 	unsigned key = (jbutton == 0) ? GDK_Alt_L : GDK_VoidSymbol;
 	if (spec && *spec)
 		key = get_key_by_name(spec);
-	struct button *button_data = g_malloc(sizeof(struct button));
+	struct button *button_data = g_malloc(sizeof(*button_data));
 	button_data->key = key;
 	button_data->value = 0;
-	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	struct joystick_button *button = g_malloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = button_data;
 	for (unsigned i = 0; i < MAX_BUTTONS; i++) {

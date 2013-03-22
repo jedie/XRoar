@@ -66,9 +66,9 @@ struct vdisk *vdisk_blank_disk(unsigned num_sides, unsigned num_tracks,
 			|| track_length < 129 || track_length > 0x2940) {
 		return NULL;
 	}
-	if (!(disk = g_try_malloc(sizeof(struct vdisk))))
+	if (!(disk = g_try_malloc(sizeof(*disk))))
 		return NULL;
-	if (!(side_data = g_try_malloc0(num_sides * sizeof(uint8_t *))))
+	if (!(side_data = g_try_malloc0(num_sides * sizeof(*side_data))))
 		goto cleanup;
 	unsigned side_length = num_tracks * track_length;
 	for (unsigned i = 0; i < num_sides; i++) {
@@ -507,7 +507,7 @@ void *vdisk_extend_disk(struct vdisk *disk, unsigned side, unsigned track) {
 		}
 		if (nsides > disk->num_sides) {
 			// Increase size of side_data array
-			side_data = g_realloc(side_data, nsides * sizeof(uint8_t *));
+			side_data = g_realloc(side_data, nsides * sizeof(*side_data));
 			if (!side_data)
 				return NULL;
 			disk->side_data = side_data;

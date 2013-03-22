@@ -115,7 +115,7 @@ static struct device *open_device(int joystick_index) {
 	SDL_Joystick *j = SDL_JoystickOpen(joystick_index);
 	if (!j)
 		return NULL;
-	struct device *d = g_malloc(sizeof(struct device));
+	struct device *d = g_malloc(sizeof(*d));
 	d->joystick_index = joystick_index;
 	d->joystick = j;
 	d->num_axes = SDL_JoystickNumAxes(j);
@@ -173,7 +173,7 @@ static struct control *configure_control(char *spec, unsigned control) {
 	struct device *d = open_device(joystick);
 	if (!d)
 		return NULL;
-	struct control *c = g_malloc(sizeof(struct control));
+	struct control *c = g_malloc(sizeof(*c));
 	c->device = d;
 	c->control = control;
 	c->inverted = inverted;
@@ -190,7 +190,7 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		g_free(c);
 		return NULL;
 	}
-	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	struct joystick_axis *axis = g_malloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = c;
 	return axis;
@@ -206,7 +206,7 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 		g_free(c);
 		return NULL;
 	}
-	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	struct joystick_button *button = g_malloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = c;
 	return button;

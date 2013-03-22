@@ -25,7 +25,7 @@
 event_ticks event_current_tick = 0;
 
 struct event *event_new(event_delegate delegate, void *delegate_data) {
-	struct event *new = g_malloc(sizeof(struct event));
+	struct event *new = g_malloc(sizeof(*new));
 	event_init(new, delegate, delegate_data);
 	return new;
 }

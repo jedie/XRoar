@@ -477,13 +477,13 @@ static uint16_t ea_indexed(struct MC6809 *cpu) {
 /* ------------------------------------------------------------------------- */
 
 struct MC6809 *mc6809_new(void) {
-	struct MC6809 *new = g_malloc(sizeof(struct MC6809));
+	struct MC6809 *new = g_malloc(sizeof(*new));
 	mc6809_init(new);
 	return new;
 }
 
 void mc6809_init(struct MC6809 *cpu) {
-	memset(cpu, 0, sizeof(struct MC6809));
+	memset(cpu, 0, sizeof(*cpu));
 	cpu->free = mc6809_free;
 	cpu->reset = mc6809_reset;
 	cpu->run = mc6809_run;

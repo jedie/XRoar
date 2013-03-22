@@ -60,7 +60,7 @@ struct tape *tape_sndfile_open(const char *filename, const char *mode) {
 	struct tape_sndfile *sndfile;
 	t = tape_new();
 	t->module = &tape_sndfile_module;
-	sndfile = g_malloc(sizeof(struct tape_sndfile));
+	sndfile = g_malloc(sizeof(*sndfile));
 	t->data = sndfile;
 	/* initialise sndfile */
 	sndfile->info.format = 0;
@@ -85,7 +85,7 @@ struct tape *tape_sndfile_open(const char *filename, const char *mode) {
 		return NULL;
 	}
 	sndfile->cycles_per_frame = OSCILLATOR_RATE / sndfile->info.samplerate;
-	sndfile->block = g_malloc(BLOCK_LENGTH * sizeof(short) * sndfile->info.channels);
+	sndfile->block = g_malloc(BLOCK_LENGTH * sizeof(*sndfile->block) * sndfile->info.channels);
 	sndfile->block_length = 0;
 	sndfile->cursor = 0;
 	/* find size */

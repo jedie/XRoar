@@ -51,7 +51,7 @@ static void do_firq(void *);
 
 struct cart_config *cart_config_new(void) {
 	struct cart_config *new;
-	new = g_malloc0(sizeof(struct cart_config));
+	new = g_malloc0(sizeof(*new));
 	new->index = num_configs;
 	new->type = CART_ROM;
 	new->autorun = ANY_AUTO;
@@ -226,7 +226,7 @@ void cart_rom_init(struct cart *c) {
 
 struct cart *cart_rom_new(struct cart_config *cc) {
 	if (!cc) return NULL;
-	struct cart *c = g_malloc(sizeof(struct cart));
+	struct cart *c = g_malloc(sizeof(*c));
 	c->config = cc;
 	cart_rom_init(c);
 	return c;

@@ -71,7 +71,7 @@ void joystick_shutdown(void) {
 
 struct joystick_config *joystick_config_new(void) {
 	struct joystick_config *new;
-	new = g_malloc0(sizeof(struct joystick_config));
+	new = g_malloc0(sizeof(*new));
 	new->index = num_configs;
 	config_list = g_slist_append(config_list, new);
 	num_configs++;
@@ -162,7 +162,7 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 	joystick_unmap(port);
 	if (!jc)
 		return;
-	struct joystick *j = g_malloc0(sizeof(struct joystick));
+	struct joystick *j = g_malloc0(sizeof(*j));
 	_Bool valid_joystick = 0;
 	for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
 		char *spec_copy = g_strdup(jc->axis_specs[i]);

@@ -106,7 +106,7 @@ static struct tape *do_tape_cas_open(const char *filename, const char *mode,
 
 	t = tape_new();
 	t->module = &tape_cas_module;
-	cas = g_malloc(sizeof(struct tape_cas));
+	cas = g_malloc(sizeof(*cas));
 	t->data = cas;
 	t->leader_count = 0;
 	/* initialise cas */

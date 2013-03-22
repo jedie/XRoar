@@ -99,7 +99,7 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
 struct machine_config *machine_config_new(void) {
 	struct machine_config *new;
-	new = g_malloc0(sizeof(struct machine_config));
+	new = g_malloc0(sizeof(*new));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
 	new->cpu = CPU_MC6809;

@@ -75,7 +75,7 @@ static struct vdg_palette palette_templates[] = {
 	},
 
 };
-#define NUM_PALETTE_TEMPLATES (int)(sizeof(palette_templates) / sizeof(struct vdg_palette))
+#define NUM_PALETTE_TEMPLATES (int)(sizeof(palette_templates) / sizeof(*palette_templates))
 
 static int num_palettes = NUM_PALETTE_TEMPLATES;
 

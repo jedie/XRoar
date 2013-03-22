@@ -38,7 +38,7 @@ static GSList *romlist_list = NULL;
 static const char *rom_extensions[] = {
 	"", ".rom", ".ROM", ".dgn", ".DGN"
 };
-#define NUM_ROM_EXTENSIONS (int)(sizeof(rom_extensions)/sizeof(const char *))
+#define NUM_ROM_EXTENSIONS (int)(sizeof(rom_extensions)/sizeof(*rom_extensions))
 
 static int compare_entry(struct romlist *a, char *b) {
 	return strcmp(a->name, b);
@@ -47,7 +47,7 @@ static int compare_entry(struct romlist *a, char *b) {
 /**************************************************************************/
 
 static struct romlist *new_romlist(const char *name) {
-	struct romlist *new = g_malloc(sizeof(struct romlist));
+	struct romlist *new = g_malloc(sizeof(*new));
 	new->name = g_strdup(name);
 	new->list = NULL;
 	new->flag = 0;

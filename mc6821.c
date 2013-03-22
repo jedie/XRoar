@@ -23,13 +23,13 @@
 #include "mc6821.h"
 
 struct MC6821 *mc6821_new(void) {
-	struct MC6821 *new = g_malloc(sizeof(struct MC6821));
+	struct MC6821 *new = g_malloc(sizeof(*new));
 	mc6821_init(new);
 	return new;
 }
 
 void mc6821_init(struct MC6821 *pia) {
-	memset(pia, 0, sizeof(struct MC6821));
+	memset(pia, 0, sizeof(*pia));
 	pia->a.in_sink = 0xff;
 	pia->b.in_sink = 0xff;
 }

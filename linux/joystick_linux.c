@@ -107,7 +107,7 @@ static struct device *open_device(int joystick_index) {
 	}
 	if (fd < 0)
 		return NULL;
-	struct device *d = g_malloc(sizeof(struct device));
+	struct device *d = g_malloc(sizeof(*d));
 	d->joystick_index = joystick_index;
 	d->fd = fd;
 	char tmp;
@@ -116,9 +116,9 @@ static struct device *open_device(int joystick_index) {
 	ioctl(fd, JSIOCGBUTTONS, &tmp);
 	d->num_buttons = tmp;
 	if (d->num_axes > 0)
-		d->axis_value = g_malloc0(d->num_axes * sizeof(unsigned));
+		d->axis_value = g_malloc0(d->num_axes * sizeof(*d->axis_value));
 	if (d->num_buttons > 0)
-		d->button_value = g_malloc0(d->num_buttons * sizeof(_Bool));
+		d->button_value = g_malloc0(d->num_buttons * sizeof(*d->button_value));
 	char namebuf[128];
 	ioctl(fd, JSIOCGNAME(sizeof(namebuf)), namebuf);
 	LOG_DEBUG(1, "Opened joystick %d: %s\n", joystick_index, namebuf);
@@ -145,7 +145,7 @@ static void poll_devices(void) {
 	for (GSList *iter = device_list; iter; iter = iter->next) {
 		struct device *d = iter->data;
 		struct js_event e;
-		while (read(d->fd, &e, sizeof(struct js_event)) == sizeof(struct js_event)) {
+		while (read(d->fd, &e, sizeof(e)) == sizeof(e)) {
 			switch (e.type) {
 			case JS_EVENT_AXIS:
 				if (e.number < d->num_axes) {
@@ -205,7 +205,7 @@ static struct control *configure_control(char *spec, unsigned control) {
 	struct device *d = open_device(joystick);
 	if (!d)
 		return NULL;
-	struct control *c = g_malloc(sizeof(struct control));
+	struct control *c = g_malloc(sizeof(*c));
 	c->device = d;
 	c->control = control;
 	c->inverted = inverted;
@@ -221,7 +221,7 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		g_free(c);
 		return NULL;
 	}
-	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	struct joystick_axis *axis = g_malloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = c;
 	return axis;
@@ -236,7 +236,7 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 		g_free(c);
 		return NULL;
 	}
-	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	struct joystick_button *button = g_malloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = c;
 	return button;

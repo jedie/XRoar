@@ -599,7 +599,7 @@ static void update_machine_menu(void) {
 	free_action_group(machine_action_group);
 	gtk_ui_manager_remove_ui(gtk2_menu_manager, merge_machines);
 	if (xroar_machine_config) selected = xroar_machine_config->index;
-	GtkRadioActionEntry *radio_entries = g_malloc0(num_machines * sizeof(GtkRadioActionEntry));
+	GtkRadioActionEntry *radio_entries = g_malloc0(num_machines * sizeof(*radio_entries));
 	/* add these to the ui in reverse order, as each will be
 	 * inserted before the previous */
 	for (i = num_machines-1; i >= 0; i--) {
@@ -625,7 +625,7 @@ static void update_cartridge_menu(void) {
 	free_action_group(cart_action_group);
 	gtk_ui_manager_remove_ui(gtk2_menu_manager, merge_carts);
 	if (xroar_cart_config) selected = xroar_cart_config->index;
-	GtkRadioActionEntry *radio_entries = g_malloc0((num_carts+1) * sizeof(GtkRadioActionEntry));
+	GtkRadioActionEntry *radio_entries = g_malloc0((num_carts+1) * sizeof(*radio_entries));
 	/* add these to the ui in reverse order, as each will be
 	   inserted before the previous */
 	for (i = num_carts-1; i >= 0; i--) {
@@ -798,7 +798,7 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		mouse_yoffset = off0 + 24.0;
 		mouse_ydiv = off1 - off0;
 	}
-	struct joystick_axis *axis = g_malloc(sizeof(struct joystick_axis));
+	struct joystick_axis *axis = g_malloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = &mouse_axis[jaxis];
 	return axis;
@@ -810,7 +810,7 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 		jbutton = strtol(spec, NULL, 0) - 1;
 	if (jbutton >= 3)
 		return NULL;
-	struct joystick_button *button = g_malloc(sizeof(struct joystick_button));
+	struct joystick_button *button = g_malloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = &mouse_button[jbutton];
 	return button;
