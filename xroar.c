@@ -352,14 +352,25 @@ static const char *default_config[] = {
 	"machine-desc Tandy CoCo (PAL)",
 	"machine-arch coco",
 	"tv-type pal",
-	"vdg-type 6847t1",
 	"ram 64",
 	// CoCo (US)
 	"machine cocous",
 	"machine-desc Tandy CoCo (NTSC)",
 	"machine-arch coco",
 	"tv-type ntsc",
+	"ram 64",
+	// CoCo 2B
+	"machine coco2b",
+	"machine-desc Tandy CoCo 2B (PAL,T1)",
+	"machine-arch coco",
+	"tv-type pal",
 	"vdg-type 6847t1",
+	"ram 64",
+	// CoCo 2B (US)
+	"machine coco2bus",
+	"machine-desc Tandy CoCo 2B (NTSC,T1)",
+	"machine-arch coco",
+	"tv-type ntsc",
 	"ram 64",
 	// Dynacom MX-1600
 	"machine mx1600",
