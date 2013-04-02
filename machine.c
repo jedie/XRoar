@@ -611,6 +611,11 @@ static uint8_t read_cycle(uint16_t A) {
 static void write_cycle(uint16_t A, uint8_t D) {
 	int S;
 	uint16_t Z = 0;
+	// Changing the SAM VDG mode can affect its idea of the current VRAM
+	// address, so get the VDG output up to date:
+	if (A >= 0xffc0 && A < 0xffc6) {
+		vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+	}
 	_Bool is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
 	if ((S & 4) || unexpanded_dragon32) {
 		switch (S) {
