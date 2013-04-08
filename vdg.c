@@ -83,7 +83,8 @@ enum vdg_render_mode {
 
 static enum vdg_render_mode render_mode;
 
-static uint8_t vram[32];
+static uint8_t vram[42];
+static unsigned vram_nbytes = 0;
 static unsigned lborder_remaining;
 static unsigned vram_remaining;
 static unsigned rborder_remaining;
@@ -204,6 +205,7 @@ static void do_hs_fall(void *data) {
 	// Next scanline
 	scanline = SCANLINE(scanline + 1);
 	beam_pos = 0;
+	vram_nbytes = 0;
 	vram_idx = 0;
 	vram_bit = 0;
 	lborder_remaining = VDG_tLB;
@@ -263,11 +265,27 @@ static void do_hs_fall_pal_coco(void *data) {
 }
 
 static void render_scanline(void) {
-	unsigned beam_to = ((event_current_tick - scanline_start) >> 1) - VDG_LEFT_BORDER_START;
+	unsigned beam_to = (event_current_tick - scanline_start) >> 1;
+	if (is_32byte && beam_to >= 102) {
+		unsigned nbytes = (beam_to - 102) >> 3;
+		if (nbytes > 42)
+			nbytes = 42;
+		if (nbytes > vram_nbytes) {
+			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes);
+			vram_nbytes = nbytes;
+		}
+	} else if (!is_32byte && beam_to >= 102) {
+		unsigned nbytes = (beam_to - 102) >> 4;
+		if (nbytes > 22)
+			nbytes = 22;
+		if (nbytes > vram_nbytes) {
+			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes);
+			vram_nbytes = nbytes;
+		}
+	}
+	beam_to -= VDG_LEFT_BORDER_START;
 	if (beam_to > (UINT_MAX/2))
 		return;
-	if (beam_to > VDG_tAVB)
-		beam_to = VDG_tAVB;
 	if (beam_pos >= beam_to)
 		return;
 
@@ -287,10 +305,7 @@ static void render_scanline(void) {
 
 	while (vram_remaining > 0) {
 		if (vram_bit == 0) {
-			if (vram_idx == 0)
-				vdg_fetch_bytes(16, vram);
-			vram_g_data = vram[vram_idx];
-			vram_idx = (vram_idx + 1) & 15;
+			vram_g_data = vram[vram_idx++];
 			vram_bit = 8;
 			nA_S = vram_g_data & 0x80;
 
@@ -383,9 +398,6 @@ static void render_scanline(void) {
 		vram_bit -= 2;
 		if (vram_bit == 0) {
 			vram_remaining--;
-			if (vram_remaining == 0) {
-				vdg_fetch_bytes(is_32byte ? 10 : 6, NULL);
-			}
 		}
 		vram_g_data <<= 2;
 		vram_sg_data <<= 2;
