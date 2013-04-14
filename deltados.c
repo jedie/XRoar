@@ -120,7 +120,7 @@ static void ff44_write(struct deltados *d, uint8_t octet) {
 	d->ic1_drive_select = octet & 0x03;
 	vdrive_set_drive(d->ic1_drive_select);
 	d->ic1_side_select = octet & 0x04;
-	vdrive_set_side(d->ic1_side_select ? 1 : 0);
+	vdrive_set_head(d->ic1_side_select ? 1 : 0);
 	d->ic1_density = !(octet & 0x08);
 	wd279x_set_dden(d->fdc, !d->ic1_density);
 }

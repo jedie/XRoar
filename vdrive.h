@@ -33,7 +33,7 @@ unsigned vdrive_head_pos(void);
 
 /* Lines from controller sent to all drives */
 void vdrive_set_direction(int direction);
-void vdrive_set_side(unsigned side);
+void vdrive_set_head(unsigned head);
 void vdrive_set_dden(_Bool dden);
 
 /* Drive select */

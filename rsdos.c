@@ -168,7 +168,7 @@ static void ff40_write(struct rsdos *r, int octet) {
 	} else if (octet & 0x04) {
 		new_drive_select = 2;
 	}
-	vdrive_set_side(octet & 0x40 ? 1 : 0);
+	vdrive_set_head(octet & 0x40 ? 1 : 0);
 	if (octet != r->ic1_old) {
 		LOG_DEBUG(4, "RSDOS: Write to FF40: ");
 		if (new_drive_select != r->ic1_drive_select) {

@@ -89,7 +89,7 @@
 #define SET_SIDE(s) do { \
 		fdc->side = (s) ? 1 : 0; \
 		if (fdc->has_sso) \
-			vdrive_set_side(fdc->side); \
+			vdrive_set_head(fdc->side); \
 	} while (0)
 
 static void state_machine(WD279X *fdc);

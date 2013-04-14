@@ -36,7 +36,7 @@
 struct drive_data {
 	_Bool disk_present;
 	struct vdisk *disk;
-	unsigned current_track;
+	unsigned current_cyl;
 };
 
 _Bool vdrive_ready = 0;
@@ -49,7 +49,7 @@ static struct drive_data drives[MAX_DRIVES];
 static struct drive_data *current_drive = &drives[0];
 static int cur_direction = 1;
 static unsigned cur_drive_number = 0;
-static unsigned cur_side = 0;
+static unsigned cur_head = 0;
 static unsigned cur_density = VDISK_SINGLE_DENSITY;
 static unsigned head_incr = 2;  // bytes per write - 2 in SD, 1 in DD
 static uint8_t *track_base = NULL;  // updated to point to base addr of cur track
@@ -69,7 +69,7 @@ void vdrive_init(void) {
 	for (unsigned i = 0; i < MAX_DRIVES; i++) {
 		drives[i].disk = NULL;
 		drives[i].disk_present = 0;
-		drives[i].current_track = 0;
+		drives[i].current_cyl = 0;
 	}
 	vdrive_set_dden(1);
 	vdrive_set_drive(0);
@@ -152,9 +152,9 @@ void vdrive_set_direction(int direction) {
 	cur_direction = (direction > 0) ? 1 : -1;
 }
 
-void vdrive_set_side(unsigned side) {
-	if (side >= MAX_SIDES) return;
-	cur_side = side;
+void vdrive_set_head(unsigned head) {
+	if (head >= MAX_SIDES) return;
+	cur_head = head;
 	update_signals();
 }
 
@@ -165,9 +165,9 @@ void vdrive_set_dden(_Bool dden) {
 
 static void update_signals(void) {
 	vdrive_ready = current_drive->disk_present;
-	vdrive_tr00 = (current_drive->current_track == 0);
+	vdrive_tr00 = (current_drive->current_cyl == 0);
 	if (vdrive_update_drive_cyl_head) {
-		vdrive_update_drive_cyl_head(cur_drive_number, current_drive->current_track, cur_side);
+		vdrive_update_drive_cyl_head(cur_drive_number, current_drive->current_cyl, cur_head);
 	}
 	if (!vdrive_ready) {
 		vdrive_write_protect = 0;
@@ -176,8 +176,8 @@ static void update_signals(void) {
 		return;
 	}
 	vdrive_write_protect = current_drive->disk->write_protect;
-	if (cur_side < current_drive->disk->num_heads) {
-		idamptr = vdisk_track_base(current_drive->disk, current_drive->current_track, cur_side);
+	if (cur_head < current_drive->disk->num_heads) {
+		idamptr = vdisk_track_base(current_drive->disk, current_drive->current_cyl, cur_head);
 	} else {
 		idamptr = NULL;
 	}
@@ -201,10 +201,10 @@ void vdrive_set_drive(unsigned drive) {
 /* Drive-specific actions */
 void vdrive_step(void) {
 	if (vdrive_ready) {
-		if (cur_direction > 0 || current_drive->current_track > 0)
-			current_drive->current_track += cur_direction;
-		if (current_drive->current_track >= MAX_TRACKS)
-			current_drive->current_track = MAX_TRACKS - 1;
+		if (cur_direction > 0 || current_drive->current_cyl > 0)
+			current_drive->current_cyl += cur_direction;
+		if (current_drive->current_cyl >= MAX_TRACKS)
+			current_drive->current_cyl = MAX_TRACKS - 1;
 	}
 	update_signals();
 }
@@ -224,7 +224,7 @@ static int compar_idams(const void *aa, const void *bb) {
 void vdrive_write(uint8_t data) {
 	if (!vdrive_ready) return;
 	if (!track_base) {
-		idamptr = vdisk_extend_disk(current_drive->disk, current_drive->current_track, cur_side);
+		idamptr = vdisk_extend_disk(current_drive->disk, current_drive->current_cyl, cur_head);
 		track_base = (uint8_t *)idamptr;
 	}
 	for (unsigned i = head_incr; i; i--) {
@@ -269,7 +269,7 @@ uint8_t vdrive_read(void) {
 
 void vdrive_write_idam(void) {
 	if (!track_base) {
-		idamptr = vdisk_extend_disk(current_drive->disk, current_drive->current_track, cur_side);
+		idamptr = vdisk_extend_disk(current_drive->disk, current_drive->current_cyl, cur_head);
 		track_base = (uint8_t *)idamptr;
 	}
 	if (track_base && (head_pos+head_incr) < current_drive->disk->track_length) {
