@@ -200,7 +200,7 @@ void gtk2_update_drive_disk(int drive, struct vdisk *disk) {
 	if (disk) {
 		filename = disk->filename;
 		we = !disk->write_protect;
-		wb = !disk->file_write_protect;
+		wb = disk->write_back;
 	}
 	gtk_label_set_text(GTK_LABEL(dc_filename_drive[drive]), filename);
 	gtk2_update_drive_write_enable(drive, we);

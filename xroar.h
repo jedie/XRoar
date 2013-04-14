@@ -78,6 +78,7 @@ extern char *xroar_opt_joy_right;
 extern int xroar_trace_enabled;
 extern _Bool xroar_opt_becker;
 extern _Bool xroar_opt_disk_write_back;
+extern _Bool xroar_opt_disk_jvc_hack;
 
 extern struct xconfig_enum xroar_cross_colour_list[];
 

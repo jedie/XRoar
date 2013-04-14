@@ -140,6 +140,7 @@ int xroar_trace_enabled = 0;
 #endif
 _Bool xroar_opt_becker = 0;
 _Bool xroar_opt_disk_write_back = 0;
+_Bool xroar_opt_disk_jvc_hack = 0;
 
 static GSList *type_command_list = NULL;
 static GSList *load_list = NULL;
@@ -300,6 +301,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("tape-rewrite", &xroar_opt_tape_rewrite),
 	XC_SET_INT1("tapehack", &xroar_opt_tape_rewrite),
 	XC_SET_BOOL("becker", &xroar_opt_becker),
+	XC_SET_BOOL("disk-jvc-hack", &xroar_opt_disk_jvc_hack),
 	XC_SET_BOOL("disk-write-back", &xroar_opt_disk_write_back),
 #ifdef TRACE
 	XC_SET_INT1("trace", &xroar_trace_enabled),
@@ -896,6 +898,7 @@ static void helptext(void) {
 "  -tape-rewrite         enable tape rewriting\n"
 "  -becker               default to becker-enabled DOS\n"
 "  -disk-write-back      default to enabling write-back for disk images\n"
+"  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
@@ -1384,7 +1387,7 @@ void xroar_new_disk(int drive) {
 	int filetype = xroar_filetype_by_ext(filename);
 	xroar_eject_disk(drive);
 	// Default to 34T 1H.  Will be auto-expanded as necessary.
-	struct vdisk *new_disk = vdisk_blank_disk(1, 34, VDISK_LENGTH_5_25);
+	struct vdisk *new_disk = vdisk_blank_disk(34, 1, VDISK_LENGTH_5_25);
 	if (new_disk == NULL)
 		return;
 	LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);
@@ -1399,7 +1402,7 @@ void xroar_new_disk(int drive) {
 	}
 	new_disk->filetype = filetype;
 	new_disk->filename = g_strdup(filename);
-	new_disk->file_write_protect = 0;
+	new_disk->write_back = 1;
 	vdrive_insert_disk(drive, new_disk);
 	if (ui_module && ui_module->update_drive_disk) {
 		ui_module->update_drive_disk(drive, new_disk);

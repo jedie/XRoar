@@ -133,13 +133,13 @@ _Bool vdrive_set_write_back(unsigned drive, int action) {
 	assert(drive < MAX_DRIVES);
 	struct vdisk *disk = vdrive_disk_in_drive(drive);
 	if (!disk) return -1;
-	_Bool new_wb = !disk->file_write_protect;
+	_Bool new_wb = disk->write_back;
 	if (action < 0) {
 		new_wb = !new_wb;
 	} else {
 		new_wb = action ? 1 : 0;
 	}
-	disk->file_write_protect = !new_wb;
+	disk->write_back = new_wb;
 	return new_wb;
 }
 
@@ -176,8 +176,8 @@ static void update_signals(void) {
 		return;
 	}
 	vdrive_write_protect = current_drive->disk->write_protect;
-	if (cur_side < current_drive->disk->num_sides) {
-		idamptr = vdisk_track_base(current_drive->disk, cur_side, current_drive->current_track);
+	if (cur_side < current_drive->disk->num_heads) {
+		idamptr = vdisk_track_base(current_drive->disk, current_drive->current_track, cur_side);
 	} else {
 		idamptr = NULL;
 	}
@@ -224,7 +224,7 @@ static int compar_idams(const void *aa, const void *bb) {
 void vdrive_write(uint8_t data) {
 	if (!vdrive_ready) return;
 	if (!track_base) {
-		idamptr = vdisk_extend_disk(current_drive->disk, cur_side, current_drive->current_track);
+		idamptr = vdisk_extend_disk(current_drive->disk, current_drive->current_track, cur_side);
 		track_base = (uint8_t *)idamptr;
 	}
 	for (unsigned i = head_incr; i; i--) {
@@ -269,7 +269,7 @@ uint8_t vdrive_read(void) {
 
 void vdrive_write_idam(void) {
 	if (!track_base) {
-		idamptr = vdisk_extend_disk(current_drive->disk, cur_side, current_drive->current_track);
+		idamptr = vdisk_extend_disk(current_drive->disk, current_drive->current_track, cur_side);
 		track_base = (uint8_t *)idamptr;
 	}
 	if (track_base && (head_pos+head_incr) < current_drive->disk->track_length) {

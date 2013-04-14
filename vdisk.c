@@ -16,7 +16,13 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
+/*
+ * To avoid confusion, the position of the heads is referred to as the
+ * 'cylinder' (often abbreviated to 'cyl').  The term 'track' refers only to
+ * the data addressable within one cylinder by one head.  A 'side' is the
+ * collection of all the tracks addressable by one head.
+ */
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,20 +39,20 @@
 #include "vdisk.h"
 #include "xroar.h"
 
-#define MAX_SIDES (2)
-#define MAX_TRACKS (256)
+#define MAX_CYLINDERS (256)
+#define MAX_HEADS (2)
 
 static struct vdisk *vdisk_load_vdk(const char *filename);
 static struct vdisk *vdisk_load_jvc(const char *filename);
 static struct vdisk *vdisk_load_dmk(const char *filename);
-static _Bool vdisk_save_vdk(struct vdisk *disk);
-static _Bool vdisk_save_jvc(struct vdisk *disk);
-static _Bool vdisk_save_dmk(struct vdisk *disk);
+static int vdisk_save_vdk(struct vdisk *disk);
+static int vdisk_save_jvc(struct vdisk *disk);
+static int vdisk_save_dmk(struct vdisk *disk);
 
 static struct {
 	int filetype;
 	struct vdisk *(*load_func)(const char *);
-	_Bool (*save_func)(struct vdisk *);
+	int (*save_func)(struct vdisk *);
 } dispatch[] = {
 	{ FILETYPE_VDK, vdisk_load_vdk, vdisk_save_vdk },
 	{ FILETYPE_JVC, vdisk_load_jvc, vdisk_save_jvc },
@@ -54,38 +60,38 @@ static struct {
 	{ -1, NULL, NULL }
 };
 
-struct vdisk *vdisk_blank_disk(unsigned num_sides, unsigned num_tracks,
-		unsigned track_length) {
+struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
+			       unsigned track_length) {
 	struct vdisk *disk;
 	uint8_t **side_data;
 	/* Ensure multiples of track_length will stay 16-bit aligned */
 	if ((track_length % 2) != 0)
 		track_length++;
-	if (num_sides < 1 || num_sides > MAX_SIDES
-			|| num_tracks < 1 || num_tracks > MAX_TRACKS
+	if (nheads < 1 || nheads > MAX_HEADS
+			|| ncyls < 1 || ncyls > MAX_CYLINDERS
 			|| track_length < 129 || track_length > 0x2940) {
 		return NULL;
 	}
 	if (!(disk = g_try_malloc(sizeof(*disk))))
 		return NULL;
-	if (!(side_data = g_try_malloc0(num_sides * sizeof(*side_data))))
+	if (!(side_data = g_try_malloc0(nheads * sizeof(*side_data))))
 		goto cleanup;
-	unsigned side_length = num_tracks * track_length;
-	for (unsigned i = 0; i < num_sides; i++) {
+	unsigned side_length = ncyls * track_length;
+	for (unsigned i = 0; i < nheads; i++) {
 		if (!(side_data[i] = g_try_malloc0(side_length)))
 			goto cleanup_sides;
 	}
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = NULL;
-	disk->file_write_protect = !xroar_opt_disk_write_back;
+	disk->write_back = xroar_opt_disk_write_back;
 	disk->write_protect = 0;
-	disk->num_sides = num_sides;
-	disk->num_tracks = num_tracks;
+	disk->num_cylinders = ncyls;
+	disk->num_heads = nheads;
 	disk->track_length = track_length;
 	disk->side_data = side_data;
 	return disk;
 cleanup_sides:
-	for (unsigned i = 0; i < num_sides; i++) {
+	for (unsigned i = 0; i < nheads; i++) {
 		if (side_data[i])
 			g_free(side_data[i]);
 	}
@@ -101,7 +107,7 @@ void vdisk_destroy(struct vdisk *disk) {
 		g_free(disk->filename);
 		disk->filename = NULL;
 	}
-	for (unsigned i = 0; i < disk->num_sides; i++) {
+	for (unsigned i = 0; i < disk->num_heads; i++) {
 		if (disk->side_data[i])
 			g_free(disk->side_data[i]);
 	}
@@ -122,53 +128,74 @@ struct vdisk *vdisk_load(const char *filename) {
 	return dispatch[i].load_func(filename);
 }
 
-_Bool vdisk_save(struct vdisk *disk, _Bool force) {
+int vdisk_save(struct vdisk *disk, _Bool force) {
 	char *backup_filename;
 	int i;
-	if (disk == NULL) return 0;
-	if (!force && disk->file_write_protect) {
+	if (!disk)
+		return -1;
+	if (!force && !disk->write_back) {
 		LOG_DEBUG(2, "Not saving disk file: write-back is disabled.\n");
 		// This is the requested behaviour, so success:
-		return 1;
+		return 0;
 	}
 	if (disk->filename == NULL) {
 		disk->filename = filereq_module->save_filename(NULL);
 		if (disk->filename == NULL) {
 			 LOG_WARN("No filename given: not writing disk file.\n");
-			 return 0;
+			 return -1;
 		}
 		disk->filetype = xroar_filetype_by_ext(disk->filename);
 	}
 	for (i = 0; dispatch[i].filetype >= 0 && dispatch[i].filetype != disk->filetype; i++);
 	if (dispatch[i].save_func == NULL) {
 		LOG_WARN("No writer for virtual disk file type.\n");
-		return 0;
+		return -1;
 	}
-	{
-		int bf_len = strlen(disk->filename) + 5;
-		backup_filename = g_alloca(bf_len);
-		/* Rename old file to filename.bak if that .bak file does not
-		 * already exist */
-		if (backup_filename != NULL) {
-			snprintf(backup_filename, bf_len, "%s.bak", disk->filename);
-			struct stat statbuf;
-			if (stat(backup_filename, &statbuf) != 0) {
-				rename(disk->filename, backup_filename);
-			}
+	int bf_len = strlen(disk->filename) + 5;
+	backup_filename = g_alloca(bf_len);
+	// Rename old file to filename.bak if that .bak does not already exist
+	if (backup_filename != NULL) {
+		snprintf(backup_filename, bf_len, "%s.bak", disk->filename);
+		struct stat statbuf;
+		if (stat(backup_filename, &statbuf) != 0) {
+			rename(disk->filename, backup_filename);
 		}
 	}
 	return dispatch[i].save_func(disk);
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/*
+ * VDK header entry meanings taken from the source to PC-Dragon II:
+
+ * [0..1]       Magic identified string "dk"
+ * [2..3]       Header length (little-endian)
+ * [4]          VDK version
+ * [5]          VDK backwards compatibility version
+ * [6]          Identity of file source ('P' - PC Dragon, 'X' - XRoar)
+ * [7]          Version of file source
+ * [8]          Number of cylinders
+ * [9]          Number of heads
+ * [10]         Flags
+ * [11]         Compression flags (bits 0-2) and name length (bits 3-7)
+
+ * PC-Dragon then reserves 31 bytes for a disk name, the number of significant
+ * characaters in which are indicated in the name length bitfield of byte 11.
+ *
+ * The only flag used by XRoar is bit 0 which indicates write protect.
+ * Compressed data in VDK disk images is not supported.  XRoar will not write a
+ * disk name.
+ */
+
 static struct vdisk *vdisk_load_vdk(const char *filename) {
 	struct vdisk *disk;
 	ssize_t file_size;
 	unsigned header_size;
-	unsigned num_tracks;
-	unsigned num_sides = 1;
-	unsigned num_sectors = 18;
+	unsigned ncyls;
+	unsigned nheads = 1;
+	unsigned nsectors = 18;
 	unsigned ssize_code = 1, ssize;
-	unsigned track, sector, side;
 	uint8_t buf[1024];
 	FILE *fd;
 	struct stat statbuf;
@@ -179,39 +206,42 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		return NULL;
 	fread(buf, 12, 1, fd);
 	file_size -= 12;
-	(void)file_size;  /* check this matches what's going to be read */
+	(void)file_size;  // TODO: check this matches what's going to be read
 	if (buf[0] != 'd' || buf[1] != 'k') {
 		fclose(fd);
 		return NULL;
 	}
 	header_size = (buf[2] | (buf[3]<<8)) - 12;
-	num_tracks = buf[8];
-	num_sides = buf[9];
-	if (header_size != (buf[11] >> 3)) {
-		LOG_WARN("Possibly corrupt VDK file: mismatched header size and name length\n");
-	}
+	ncyls = buf[8];
+	nheads = buf[9];
+	disk->write_protect = buf[10] & 1;
 	if (header_size > 0) {
+		if (header_size > sizeof(buf)) {
+			fclose(fd);
+			return NULL;
+		}
 		fread(buf, header_size, 1, fd);
 	}
 	ssize = 128 << ssize_code;
-	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
-	if (disk == NULL) {
+	disk = vdisk_blank_disk(ncyls, nheads, VDISK_LENGTH_5_25);
+	if (!disk) {
 		fclose(fd);
 		return NULL;
 	}
 	disk->filetype = FILETYPE_VDK;
 	disk->filename = g_strdup(filename);
-	if (!vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, 1, ssize_code)) {
+
+	if (vdisk_format_disk(disk, 1, nsectors, 1, ssize_code) != 0) {
 		fclose(fd);
 		vdisk_destroy(disk);
 		return NULL;
 	}
-	LOG_DEBUG(2,"Loading VDK virtual disk: %dT %dH %dS (%d-byte)\n", num_tracks, num_sides, num_sectors, ssize);
-	for (track = 0; track < num_tracks; track++) {
-		for (side = 0; side < num_sides; side++) {
-			for (sector = 0; sector < num_sectors; sector++) {
+	LOG_DEBUG(2,"Loading VDK virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
+	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
+		for (unsigned head = 0; head < nheads; head++) {
+			for (unsigned sector = 0; sector < nsectors; sector++) {
 				fread(buf, ssize, 1, fd);
-				vdisk_update_sector(disk, side, track, sector + 1, ssize, buf);
+				vdisk_update_sector(disk, cyl, head, sector + 1, ssize, buf);
 			}
 		}
 	}
@@ -219,107 +249,151 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	return disk;
 }
 
-/* VDK header entry meanings taken from the source to PC-Dragon II
- * see http://www.emulator.org.uk/ */
-static _Bool vdisk_save_vdk(struct vdisk *disk) {
-	unsigned track, sector, side;
+static int vdisk_save_vdk(struct vdisk *disk) {
 	uint8_t buf[1024];
 	FILE *fd;
 	if (disk == NULL)
-		return 0;
+		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
-		return 0;
-	LOG_DEBUG(2,"Writing VDK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
-	buf[0] = 'd';   /* magic */
-	buf[1] = 'k';   /* magic */
-	buf[2] = 12;    /* header size LSB */
-	buf[3] = 0;     /* header size MSB */
-	buf[4] = 0x10;  /* VDK version */
-	buf[5] = 0x10;  /* VDK backwards compatibility version */
-	buf[6] = 'X';	/* file source - 'X' for XRoar */
-	buf[7] = 0;	/* version of file source */
-	buf[8] = disk->num_tracks;
-	buf[9] = disk->num_sides;
-	buf[10] = 0;    /* flags */
-	buf[11] = 0;    /* name length & compression flag (we write neither) */
+		return -1;
+	LOG_DEBUG(2,"Writing VDK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	buf[0] = 'd';   // magic
+	buf[1] = 'k';   // magic
+	buf[2] = 12;    // header size LSB
+	buf[3] = 0;     // header size MSB
+	buf[4] = 0x10;  // VDK version
+	buf[5] = 0x10;  // VDK backwards compatibility version
+	buf[6] = 'X';   // file source - 'X' for XRoar
+	buf[7] = 0;     // version of file source
+	buf[8] = disk->num_cylinders;
+	buf[9] = disk->num_heads;
+	buf[10] = 0;    // flags
+	buf[11] = 0;    // name length & compression flag (we write neither)
 	fwrite(buf, 12, 1, fd);
-	for (track = 0; track < disk->num_tracks; track++) {
-		for (side = 0; side < disk->num_sides; side++) {
-			for (sector = 0; sector < 18; sector++) {
-				vdisk_fetch_sector(disk, side, track, sector + 1, 256, buf);
+	for (unsigned cyl = 0; cyl < disk->num_cylinders; cyl++) {
+		for (unsigned head = 0; head < disk->num_heads; head++) {
+			for (unsigned sector = 0; sector < 18; sector++) {
+				vdisk_fetch_sector(disk, cyl, head, sector + 1, 256, buf);
 				fwrite(buf, 256, 1, fd);
 			}
 		}
 	}
 	fclose(fd);
-	return 1;
+	return 0;
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/*
+ * The JVC format (as used in Jeff Vavasour's emulators) is also known as DSK.
+ * It consists of an optional header followed by a simple dump of the sector
+ * data.  The header length is the file size modulo 256.  The header needn't be
+ * large enough to contain all fields if they are to have their default value.
+ * Potential header information, and the default values:
+
+ * [0]  Sectors per track       18
+ * [1]  Sides (1-2)             1
+ * [2]  Sector size code (0-3)  1 (== 256 bytes)
+ * [3]  First sector ID         1
+ * [4]  Sector attribute flag   0
+
+ * Sector size is 128 * 2 ^ (size code).  If the "sector attribute flag" is
+ * non-zero, it indicates that each sector is preceded by an attribute byte,
+ * containing the following information in its bitfields:
+
+ * Bit 3        Set on CRC error
+ * Bit 4        Set if sector not found
+ * Bit 5        0 = Data Mark, 1 = Deleted Data Mark
+
+ * The potential for 128-byte sectors, and for each sector to be one byte
+ * larger would interfere with the "modulo 256" method of identifying header
+ * size, so XRoar takes the following precautions:
+ *
+ * 1. Header is identified by file size modulo 128 instead of modulo 256.
+ *
+ * 2. If XRoar is expanded in the future to write sector attribute bytes,
+ * padding bytes of zero should appear at the end of the file such that the
+ * total file size modulo 128 remains equal to the amount of bytes in the
+ * header.
+ *
+ * Some images are distributed with partial last tracks.  XRoar reads as much
+ * of the track as is available.
+ *
+ * Some images seen in the wild are double-sided without containing header
+ * information.  If started with the "-disk-jvc-hack" option, XRoar will
+ * identify any headerless disk that appears to be longer than 43 track
+ * single-sided as double-sided instead.
+ */
+
+static const uint8_t jvc_defaults[] = { 18, 1, 1, 1, 0 };
 
 static struct vdisk *vdisk_load_jvc(const char *filename) {
 	struct vdisk *disk;
 	ssize_t file_size;
 	unsigned header_size;
-	unsigned num_tracks;
-	unsigned num_sides = 1;
-	unsigned num_sectors = 18;
+	unsigned ncyls;
+	unsigned nheads = 1;
+	unsigned nsectors = 18;
 	unsigned ssize_code = 1, ssize;
 	unsigned first_sector = 1;
-	unsigned sector_attr = 0;
-	unsigned track, sector, side;
+	_Bool sector_attr_flag = 0;
 	uint8_t buf[1024];
 	FILE *fd;
+
 	struct stat statbuf;
 	if (stat(filename, &statbuf) != 0)
 		return NULL;
 	file_size = statbuf.st_size;
-	header_size = file_size % 256;
+	header_size = file_size % 128;
 	file_size -= header_size;
-	/* Supposedly, we are supposed to default to single sided if there's
-	 * no header information overriding, but I found double sided
-	 * headerless DSK files. */
-	if (file_size > 198144) num_sides = 2;
+
 	if (!(fd = fopen(filename, "rb")))
 		return NULL;
-	if (header_size > 0) {
+
+	memcpy(buf, jvc_defaults, sizeof(jvc_defaults));
+	if (xroar_opt_disk_jvc_hack && file_size > 198144)
+		buf[1] = 2;
+	if (header_size > 0)
 		fread(buf, header_size, 1, fd);
-		num_sectors = buf[0];
-	}
-	if (header_size > 1) num_sides = buf[1];
-	if (header_size > 2) ssize_code = buf[2] & 3;
+	nsectors = buf[0];
+	nheads = buf[1];
+	ssize_code = buf[2] & 3;
+	first_sector = buf[3];
+	sector_attr_flag = buf[4];
+
 	ssize = 128 << ssize_code;
-	if (header_size > 3) first_sector = buf[3];
-	if (header_size > 4) sector_attr = buf[4] ? 1 : 0;
-	int bytes_per_sector = ssize + sector_attr;
-	int bytes_per_track = num_sectors * bytes_per_sector * num_sides;
-	num_tracks = file_size / bytes_per_track;
-	/* if there is at least one more sector of data, allow an extra track */
-	if ((file_size % bytes_per_track) >= bytes_per_sector) {
-		num_tracks++;
+	unsigned bytes_per_sector = ssize + sector_attr_flag;
+	unsigned bytes_per_cyl = nsectors * bytes_per_sector * nheads;
+	ncyls = file_size / bytes_per_cyl;
+	// if there is at least one more sector of data, allow an extra track
+	if ((file_size % bytes_per_cyl) >= bytes_per_sector) {
+		ncyls++;
 	}
-	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
-	if (disk == NULL) {
+
+	disk = vdisk_blank_disk(ncyls, nheads, VDISK_LENGTH_5_25);
+	if (!disk) {
 		fclose(fd);
 		return NULL;
 	}
 	disk->filetype = FILETYPE_JVC;
 	disk->filename = g_strdup(filename);
-	if (!vdisk_format_disk(disk, VDISK_DOUBLE_DENSITY, num_sectors, first_sector, ssize_code)) {
+	if (vdisk_format_disk(disk, 1, nsectors, first_sector, ssize_code) != 0) {
 		fclose(fd);
 		vdisk_destroy(disk);
 		return NULL;
 	}
-	LOG_DEBUG(2,"Loading JVC virtual disk: %dT %dH %dS (%d-byte)\n", num_tracks, num_sides, num_sectors, ssize);
-	for (track = 0; track < num_tracks; track++) {
-		for (side = 0; side < num_sides; side++) {
-			for (sector = 0; sector < num_sectors; sector++) {
-				if (sector_attr) {
-					/* skip attribute byte */
-					(void)fs_read_uint8(fd);
+	LOG_DEBUG(2,"Loading JVC virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
+	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
+		for (unsigned head = 0; head < nheads; head++) {
+			for (unsigned sector = 0; sector < nsectors; sector++) {
+				unsigned attr;
+				if (sector_attr_flag) {
+					attr = fs_read_uint8(fd);
 				}
 				if (fread(buf, ssize, 1, fd) < 1) {
 					memset(buf, 0, ssize);
 				}
-				vdisk_update_sector(disk, side, track, sector + first_sector, ssize, buf);
+				vdisk_update_sector(disk, cyl, head, sector + first_sector, ssize, buf);
 			}
 		}
 	}
@@ -327,84 +401,124 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 	return disk;
 }
 
-static _Bool vdisk_save_jvc(struct vdisk *disk) {
-	unsigned track, sector, side;
+static int vdisk_save_jvc(struct vdisk *disk) {
+	unsigned nsectors = 18;
 	uint8_t buf[1024];
 	FILE *fd;
-	if (disk == NULL)
-		return 0;
+	if (!disk)
+		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
-		return 0;
-	LOG_DEBUG(2,"Writing JVC virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
-	/* XXX: assume 18 tracks per sector */
-	if (disk->num_sides != 1) {
-		fs_write_uint8(fd, 18);
-		fs_write_uint8(fd, disk->num_sides);
-		fs_write_uint8(fd, 1);  /* size code = 1 (XXX: assume 256 bytes) */
-		fs_write_uint8(fd, 1);  /* first sector = 1 */
+		return -1;
+	LOG_DEBUG(2,"Writing JVC virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+
+	// TODO: scan the disk to potentially correct these assumptions
+	buf[0] = nsectors;  // assumed
+	buf[1] = disk->num_heads;
+	buf[2] = 1;  // assumed 256 byte sectors
+	buf[3] = 1;  // assumed first sector == 1
+	buf[4] = 0;
+
+	unsigned header_size = 0;
+	if (disk->num_heads != 1)
+		header_size = 2;
+
+	if (header_size > 0) {
+		fwrite(buf, header_size, 1, fd);
 	}
-	for (track = 0; track < disk->num_tracks; track++) {
-		for (side = 0; side < disk->num_sides; side++) {
-			for (sector = 0; sector < 18; sector++) {
-				vdisk_fetch_sector(disk, side, track, sector + 1, 256, buf);
+
+	for (unsigned cyl = 0; cyl < disk->num_cylinders; cyl++) {
+		for (unsigned head = 0; head < disk->num_heads; head++) {
+			for (unsigned sector = 0; sector < nsectors; sector++) {
+				vdisk_fetch_sector(disk, cyl, head, sector + 1, 256, buf);
 				fwrite(buf, 256, 1, fd);
 			}
 		}
 	}
 	fclose(fd);
-	return 1;
+	return 0;
 }
 
-/* XRoar extension to DMK: byte 11 of header contains actual virtual
- * disk write protect status, as value in header[0] is interpreted as the
- * write protect status of the file. */
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/*
+ * DMK is the format use by David Keil's emulators.  It preserves far more of
+ * the underlying disk format than VDK or JVC.  A 16-byte header is followed by
+ * raw track data as it would be written by the disk controller, though minus
+ * the clocking information.  A special table preceeding each track contains
+ * the location of sector ID Address Marks.  Header information is as follows:
+
+ * [0]          Write protect ($00 = write enable, $FF = write protect)
+ * [1]          Number of cylinders
+ * [2..3]       Track length including 128-byte IDAM table (little-endian)
+ * [4]          Option flags
+ * [5..11]      Reserved
+ * [12..15]     Must be 0x000000.  0x12345678 flags a real drive (unsupported)
+
+ * In the option flags byte, bit 4 indicates a single-sided disk if set.  Bit 6
+ * flags single-density-only, and bit 7 indicates mixed density; both are
+ * ignored by XRoar.
+ *
+ * Next follows track data, each track consisting of a 64-entry table of 16-bit
+ * (little-endian) IDAM offsets.  These offsets are relative to the beginning
+ * of the track data (and so include the size of the table itself).
+ *
+ * Because XRoar maintains separate ideas of write protect and write back, the
+ * write protect flag is interpreted as write back instead - a value of $FF
+ * will disable overwriting the disk image with changes made in memory.  A
+ * separate header entry at offset 11 (last of the reserved bytes) is used to
+ * indicate write protect instead.
+ */
 
 static struct vdisk *vdisk_load_dmk(const char *filename) {
 	struct vdisk *disk;
 	uint8_t header[16];
 	ssize_t file_size;
-	unsigned num_sides;
-	unsigned num_tracks;
+	unsigned nheads;
+	unsigned ncyls;
 	unsigned track_length;
-	unsigned track, side;
 	FILE *fd;
 	struct stat statbuf;
+
 	if (stat(filename, &statbuf) != 0)
 		return NULL;
 	file_size = statbuf.st_size;
 	if (!(fd = fopen(filename, "rb")))
 		return NULL;
+
 	fread(header, 16, 1, fd);
-	num_tracks = header[1];
-	track_length = (header[3] << 8) | header[2];  /* yes, little-endian! */
-	num_sides = (header[4] & 0x10) ? 1 : 2;
+	ncyls = header[1];
+	track_length = (header[3] << 8) | header[2];  // yes, little-endian!
+	nheads = (header[4] & 0x10) ? 1 : 2;
 	if (header[4] & 0x40)
 		LOG_WARN("DMK is flagged single-density only\n");
 	if (header[4] & 0x80)
 		LOG_WARN("DMK is flagged density-agnostic\n");
 	file_size -= 16;
-	(void)file_size;  /* check this matches what's going to be read */
-	disk = vdisk_blank_disk(num_sides, num_tracks, VDISK_LENGTH_5_25);
+	(void)file_size;  // TODO: check this matches what's going to be read
+	disk = vdisk_blank_disk(ncyls, nheads, VDISK_LENGTH_5_25);
 	if (disk == NULL) {
 		fclose(fd);
 		return NULL;
 	}
-	LOG_DEBUG(2,"Loading DMK virtual disk: %dT %dH (%d-byte)\n", num_tracks, num_sides, track_length);
+	LOG_DEBUG(2,"Loading DMK virtual disk: %dC %dH (%d-byte)\n", ncyls, nheads, track_length);
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = g_strdup(filename);
-	disk->file_write_protect = header[0] ? 1 : 0;
+	disk->write_back = header[0] ? 0 : 1;
 	if (header[11] == 0 || header[11] == 0xff) {
 		disk->write_protect = header[11] ? 1 : 0;
 	} else {
-		disk->write_protect = disk->file_write_protect;
+		disk->write_protect = !disk->write_back;
 	}
-	for (track = 0; track < num_tracks; track++) {
-		for (side = 0; side < num_sides; side++) {
-			uint16_t *idams = vdisk_track_base(disk, side, track);
+
+	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
+		for (unsigned head = 0; head < nheads; head++) {
+			uint16_t *idams = vdisk_extend_disk(disk, cyl, head);
+			if (!idams) {
+				fclose(fd);
+				return NULL;
+			}
 			uint8_t *buf = (uint8_t *)idams + 128;
-			int i;
-			if (idams == NULL) continue;
-			for (i = 0; i < 64; i++) {
+			for (unsigned i = 0; i < 64; i++) {
 				idams[i] = fs_read_uint16_le(fd);
 			}
 			fread(buf, track_length - 128, 1, fd);
@@ -414,28 +528,27 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	return disk;
 }
 
-static _Bool vdisk_save_dmk(struct vdisk *disk) {
+static int vdisk_save_dmk(struct vdisk *disk) {
 	uint8_t header[16];
-	unsigned track, side;
 	FILE *fd;
-	if (disk == NULL)
-		return 0;
+	if (!disk)
+		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
-		return 0;
-	LOG_DEBUG(2,"Writing DMK virtual disk: %dT %dH (%d-byte)\n", disk->num_tracks, disk->num_sides, disk->track_length);
+		return -1;
+	LOG_DEBUG(2,"Writing DMK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
 	memset(header, 0, sizeof(header));
-	if (disk->file_write_protect)
+	if (!disk->write_back)
 		header[0] = 0xff;
-	header[1] = disk->num_tracks;
+	header[1] = disk->num_cylinders;
 	header[2] = disk->track_length & 0xff;
 	header[3] = (disk->track_length >> 8) & 0xff;
-	if (disk->num_sides == 1)
+	if (disk->num_heads == 1)
 		header[4] |= 0x10;
 	header[11] = disk->write_protect ? 0xff : 0;
 	fwrite(header, 16, 1, fd);
-	for (track = 0; track < disk->num_tracks; track++) {
-		for (side = 0; side < disk->num_sides; side++) {
-			uint16_t *idams = vdisk_track_base(disk, side, track);
+	for (unsigned cyl = 0; cyl < disk->num_cylinders; cyl++) {
+		for (unsigned head = 0; head < disk->num_heads; head++) {
+			uint16_t *idams = vdisk_track_base(disk, cyl, head);
 			uint8_t *buf = (uint8_t *)idams + 128;
 			int i;
 			if (idams == NULL) continue;
@@ -446,85 +559,103 @@ static _Bool vdisk_save_dmk(struct vdisk *disk) {
 		}
 	}
 	fclose(fd);
-	return 1;
+	return 0;
 }
 
-// Returns void because track data is manipulated in 8-bit and 16-bit chunks.
-void *vdisk_track_base(struct vdisk *disk, unsigned side, unsigned track) {
-	if (disk == NULL || side >= disk->num_sides || track >= disk->num_tracks) {
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/*
+ * Returns a pointer to the beginning of the specified track.  Return type is
+ * (void *) because track data is manipulated in 8-bit and 16-bit chunks.
+ */
+
+void *vdisk_track_base(struct vdisk *disk, unsigned cyl, unsigned head) {
+	if (disk == NULL || head >= disk->num_heads || cyl >= disk->num_cylinders) {
 		return NULL;
 	}
-	return disk->side_data[side] + track * disk->track_length;
+	return disk->side_data[head] + cyl * disk->track_length;
 }
 
-// Write routines call this to increase disk size.  Returns same as above.
-void *vdisk_extend_disk(struct vdisk *disk, unsigned side, unsigned track) {
+/*
+ * Write routines call this instead of vdisk_track_base() - it will increase
+ * disk size if required.  Returns same as above.
+ */
+
+void *vdisk_extend_disk(struct vdisk *disk, unsigned cyl, unsigned head) {
 	if (!disk)
 		return NULL;
-	if (track >= MAX_TRACKS)
+	if (cyl >= MAX_CYLINDERS)
 		return NULL;
 	uint8_t **side_data = disk->side_data;
-	unsigned nsides = disk->num_sides;
-	unsigned ntracks = disk->num_tracks;
+	unsigned nheads = disk->num_heads;
+	unsigned ncyls = disk->num_cylinders;
 	unsigned tlength = disk->track_length;
-	if (side >= nsides) {
-		nsides = side + 1;
+	if (head >= nheads) {
+		nheads = head + 1;
 	}
-	if (track >= ntracks) {
+	if (cyl >= ncyls) {
 		// Round amount of tracks up to the next nearest standard size.
 		if (IS_COCO) {
 			// Standard CoCo disk.
-			if (ntracks < 35 && track >= ntracks)
-				ntracks = 35;
+			if (ncyls < 35 && cyl >= ncyls)
+				ncyls = 35;
 		}
 		// Try for exactly 40 or 80 track, but allow 3 tracks more.
-		if (ntracks < 40 && track >= ntracks)
-			ntracks = 40;
-		if (ntracks < 43 && track >= ntracks)
-			ntracks = 43;
-		if (ntracks < 80 && track >= ntracks)
-			ntracks = 80;
-		if (ntracks < 83 && track >= ntracks)
-			ntracks = 83;
+		if (ncyls < 40 && cyl >= ncyls)
+			ncyls = 40;
+		if (ncyls < 43 && cyl >= ncyls)
+			ncyls = 43;
+		if (ncyls < 80 && cyl >= ncyls)
+			ncyls = 80;
+		if (ncyls < 83 && cyl >= ncyls)
+			ncyls = 83;
 		// If that's still not enough, just increase to new size.
-		if (track >= ntracks)
-			ntracks = track + 1;
+		if (cyl >= ncyls)
+			ncyls = cyl + 1;
 	}
-	if (nsides > disk->num_sides || ntracks > disk->num_tracks) {
-		if (ntracks > disk->num_tracks) {
+	if (nheads > disk->num_heads || ncyls > disk->num_cylinders) {
+		if (ncyls > disk->num_cylinders) {
 			// Allocate and clear new tracks
-			for (unsigned s = 0; s < disk->num_sides; s++) {
-				uint8_t *new_track = g_realloc(side_data[s], ntracks * tlength);
-				if (!new_track)
+			for (unsigned s = 0; s < disk->num_heads; s++) {
+				uint8_t *new_side = g_realloc(side_data[s], ncyls * tlength);
+				if (!new_side)
 					return NULL;
-				side_data[s] = new_track;
-				for (unsigned t = disk->num_tracks; t < ntracks; t++) {
-					uint8_t *dest = new_track + t * tlength;
+				side_data[s] = new_side;
+				for (unsigned t = disk->num_cylinders; t < ncyls; t++) {
+					uint8_t *dest = new_side + t * tlength;
 					memset(dest, 0, tlength);
 				}
 			}
-			disk->num_tracks = ntracks;
+			disk->num_cylinders = ncyls;
 		}
-		if (nsides > disk->num_sides) {
+		if (nheads > disk->num_heads) {
 			// Increase size of side_data array
-			side_data = g_realloc(side_data, nsides * sizeof(*side_data));
+			side_data = g_realloc(side_data, nheads * sizeof(*side_data));
 			if (!side_data)
 				return NULL;
 			disk->side_data = side_data;
 			// Allocate new empty side data
-			for (unsigned s = disk->num_sides; s < nsides; s++) {
-				side_data[s] = g_try_malloc0(ntracks * tlength);
+			for (unsigned s = disk->num_heads; s < nheads; s++) {
+				side_data[s] = g_try_malloc0(ncyls * tlength);
 				if (!side_data[s])
 					return NULL;
 			}
-			disk->num_sides = nsides;
+			disk->num_heads = nheads;
 		}
 	}
-	return side_data[side] + track * tlength;
+	return side_data[head] + cyl * tlength;
 }
 
-static unsigned sect_interleave[18] =
+/*
+ * DragonDOS gets pretty good performance using 2:1 interleave, RS-DOS is a bit
+ * slower and needs 3:1.
+ */
+
+static const unsigned ddos_sector_interleave[18] =
 	{ 0, 9, 1, 10, 2, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7, 16, 8, 17 };
+
+static const unsigned rsdos_sector_interleave[18] =
+	{ 0, 6, 12, 1, 7, 13, 2, 8, 14, 3, 9, 15, 4, 10, 16, 5, 11, 17 };
 
 #define WRITE_BYTE(v) data[offset++] = (v)
 
@@ -538,70 +669,101 @@ static unsigned sect_interleave[18] =
 		data[offset++] = crc & 0xff; \
 	} while (0)
 
-_Bool vdisk_format_disk(struct vdisk *disk, unsigned density,
-		unsigned num_sectors, unsigned first_sector, unsigned ssize_code) {
+int vdisk_format_track(struct vdisk *disk, _Bool double_density,
+		       unsigned cyl, unsigned head,
+		       unsigned nsectors, unsigned first_sector, unsigned ssize_code) {
+	if (!disk || cyl > 255 || nsectors > 64 || ssize_code > 3)
+		return -1;
+
+	uint16_t *idams = vdisk_extend_disk(disk, cyl, head);
+	uint8_t *data = (uint8_t *)idams;
+	unsigned offset = 128;
+	unsigned idam = 0;
 	unsigned ssize = 128 << ssize_code;
-	if (disk == NULL) return 0;
-	if (density != VDISK_DOUBLE_DENSITY)
-		return 0;
-	for (unsigned side = 0; side < disk->num_sides; side++) {
-		for (unsigned track = 0; track < disk->num_tracks; track++) {
-			uint16_t *idams = vdisk_track_base(disk, side, track);
-			uint8_t *data = (uint8_t *)idams;
-			unsigned offset = 128;
-			unsigned idam = 0;
-			for (unsigned i = 0; i < 54; i++) WRITE_BYTE(0x4e);
-			for (unsigned i = 0; i < 9; i++) WRITE_BYTE(0x00);
-			for (unsigned i = 0; i < 3; i++) WRITE_BYTE(0xc2);
-			WRITE_BYTE(0xfc);
-			for (unsigned i = 0; i < 32; i++) data[offset++] = 0x4e;
-			for (unsigned sector = 0; sector < num_sectors; sector++) {
-				uint16_t crc = CRC16_RESET;
-				for (unsigned i = 0; i < 8; i++) data[offset++] = 0x00;
-				for (unsigned i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
-				idams[idam++] = offset | density;
-				WRITE_BYTE_CRC(0xfe);
-				WRITE_BYTE_CRC(track);
-				WRITE_BYTE_CRC(side);
-				WRITE_BYTE_CRC(sect_interleave[sector] + first_sector);
-				WRITE_BYTE_CRC(ssize_code);
-				WRITE_CRC();
-				for (unsigned i = 0; i < 22; i++) WRITE_BYTE(0x4e);
-				for (unsigned i = 0; i < 12; i++) WRITE_BYTE(0x00);
-				crc = CRC16_RESET;
-				for (unsigned i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
-				WRITE_BYTE_CRC(0xfb);
-				for (unsigned i = 0; i < ssize; i++)
-					WRITE_BYTE_CRC(0xe5);
-				WRITE_CRC();
-				for (unsigned i = 0; i < 24; i++) WRITE_BYTE(0x4e);
-			}
-			while (offset < disk->track_length) {
-				WRITE_BYTE(0x4e);
-			}
-		}
+
+	const unsigned *sect_interleave;
+	if (IS_DRAGON)
+		sect_interleave = ddos_sector_interleave;
+	else
+		sect_interleave = rsdos_sector_interleave;
+
+	// XXX can't handle single density here yet - will need to for the
+	// first track on flex disks!
+	if (!double_density)
+		return -1;
+
+	for (unsigned i = 0; i < 54; i++) WRITE_BYTE(0x4e);
+	for (unsigned i = 0; i < 9; i++) WRITE_BYTE(0x00);
+	for (unsigned i = 0; i < 3; i++) WRITE_BYTE(0xc2);
+	WRITE_BYTE(0xfc);
+	for (unsigned i = 0; i < 32; i++) WRITE_BYTE(0x4e);
+	for (unsigned sector = 0; sector < nsectors; sector++) {
+		if (offset + ssize + 82 >= disk->track_length)
+			break;
+		for (unsigned i = 0; i < 8; i++) WRITE_BYTE(0x00);
+		uint16_t crc = CRC16_RESET;
+		for (unsigned i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
+		idams[idam++] = offset | VDISK_DOUBLE_DENSITY;
+		WRITE_BYTE_CRC(0xfe);
+		WRITE_BYTE_CRC(cyl);
+		WRITE_BYTE_CRC(head);
+		WRITE_BYTE_CRC(sect_interleave[sector] + first_sector);
+		WRITE_BYTE_CRC(ssize_code);
+		WRITE_CRC();
+		for (unsigned i = 0; i < 22; i++) WRITE_BYTE(0x4e);
+		for (unsigned i = 0; i < 12; i++) WRITE_BYTE(0x00);
+		crc = CRC16_RESET;
+		for (unsigned i = 0; i < 3; i++) WRITE_BYTE_CRC(0xa1);
+		WRITE_BYTE_CRC(0xfb);
+		for (unsigned i = 0; i < ssize; i++) WRITE_BYTE_CRC(0xe5);
+		WRITE_CRC();
+		for (unsigned i = 0; i < 24; i++) WRITE_BYTE(0x4e);
 	}
-	return 1;
+	while (offset < disk->track_length) {
+		WRITE_BYTE(0x4e);
+	}
+	return 0;
 }
 
-_Bool vdisk_update_sector(struct vdisk *disk, unsigned side, unsigned track,
-		unsigned sector, unsigned sector_length, uint8_t *buf) {
+int vdisk_format_disk(struct vdisk *disk, _Bool double_density,
+		      unsigned nsectors, unsigned first_sector, unsigned ssize_code) {
+	if (disk == NULL) return 0;
+	for (unsigned cyl = 0; cyl < disk->num_cylinders; cyl++) {
+		for (unsigned head = 0; head < disk->num_heads; head++) {
+			int ret = vdisk_format_track(disk, double_density, cyl, head, nsectors, first_sector, ssize_code);
+			if (ret != 0)
+				return ret;
+		}
+	}
+	return 0;
+}
+
+/*
+ * Locate a sector on the disk (by searching the disk data in the same way the
+ * FDC would) and update its data from that provided.
+ */
+
+int vdisk_update_sector(struct vdisk *disk, unsigned cyl, unsigned head,
+			unsigned sector, unsigned sector_length, uint8_t *buf) {
 	uint8_t *data;
 	uint16_t *idams;
 	unsigned offset;
 	unsigned ssize, i;
 	uint16_t crc;
-	if (disk == NULL) return 0;
-	idams = vdisk_track_base(disk, side, track);
-	if (idams == NULL) return 0;
+	if (disk == NULL)
+		return -1;
+	idams = vdisk_extend_disk(disk, cyl, head);
+	if (idams == NULL)
+		return -1;
 	data = (uint8_t *)idams;
 	for (i = 0; i < 64; i++) {
 		offset = idams[i] & 0x3fff;
-		if (data[offset + 1] == track && data[offset + 2] == side
+		if (data[offset + 1] == cyl && data[offset + 2] == head
 				&& data[offset + 3] == sector)
 			break;
 	}
-	if (i >= 64) return 0;
+	if (i >= 64)
+		return -1;
 	ssize = 128 << data[offset + 4];
 	offset += 7;
 	offset += 22;
@@ -613,34 +775,40 @@ _Bool vdisk_update_sector(struct vdisk *disk, unsigned side, unsigned track,
 		if (i < ssize)
 			WRITE_BYTE_CRC(buf[i]);
 	}
-	for ( ; i < ssize; i++)
-		WRITE_BYTE_CRC(0x00);
+	// On-disk sector size may differ from provided sector_length
+	for ( ; i < ssize; i++) WRITE_BYTE_CRC(0x00);
 	WRITE_CRC();
 	WRITE_BYTE(0xfe);
-	return 1;
+	return 0;
 }
 
 #define READ_BYTE() data[offset++]
 
-_Bool vdisk_fetch_sector(struct vdisk *disk, unsigned side, unsigned track,
-		unsigned sector, unsigned sector_length, uint8_t *buf) {
+/*
+ * Similarly, locate a sector and copy out its data.
+ */
+
+int vdisk_fetch_sector(struct vdisk *disk, unsigned cyl, unsigned head,
+		       unsigned sector, unsigned sector_length, uint8_t *buf) {
 	uint8_t *data;
 	uint16_t *idams;
 	unsigned offset;
 	unsigned ssize, i;
-	if (disk == NULL) return 0;
-	idams = vdisk_track_base(disk, side, track);
-	if (idams == NULL) return 0;
+	if (!disk)
+		return -1;
+	idams = vdisk_track_base(disk, cyl, head);
+	if (!idams)
+		return -1;
 	data = (uint8_t *)idams;
 	for (i = 0; i < 64; i++) {
 		offset = idams[i] & 0x3fff;
-		if (data[offset + 1] == track && data[offset + 2] == side
+		if (data[offset + 1] == cyl && data[offset + 2] == head
 				&& data[offset + 3] == sector)
 			break;
 	}
 	if (i >= 64) {
 		memset(buf, 0, sector_length);
-		return 0;
+		return -1;
 	}
 	ssize = 128 << data[offset + 4];
 	if (ssize > sector_length)
@@ -653,9 +821,9 @@ _Bool vdisk_fetch_sector(struct vdisk *disk, unsigned side, unsigned track,
 			break;
 	}
 	if (i >= 43)
-		return 0;
+		return -1;
 	for (i = 0; i < ssize; i++) {
 		buf[i] = READ_BYTE();
 	}
-	return 1;
+	return 0;
 }
