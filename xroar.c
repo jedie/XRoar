@@ -64,75 +64,92 @@ struct xroar_cfg xroar_cfg = {
 	.ccr = CROSS_COLOUR_5BIT
 };
 
-/* Emulated machine */
-static char *opt_default_machine = NULL;
+struct private_cfg {
+	/* Emulated machine */
+	char *default_machine;
+	char *machine_desc;
+	int machine_arch;
+	int machine_cpu;
+	char *machine_palette;
+	char *bas;
+	char *extbas;
+	char *altbas;
+	int nobas;
+	int noextbas;
+	int noaltbas;
+	int tv;
+	int vdg_type;
+	char *machine_cart;
+	int ram;
+	int nodos;
+
+	/* Emulated cartridge */
+	char *cart_desc;
+	int cart_type;
+	char *cart_rom;
+	char *cart_rom2;
+	int cart_becker;
+	int cart_autorun;
+
+	/* Attach files */
+	char *run;
+	char *tape_write;
+	char *lp_file;
+	char *lp_pipe;
+	GSList *load_list;
+	GSList *type_list;
+
+	/* Emulator interface */
+	char *ui;
+	char *filereq;
+	char *vo;
+	char *ao;
+	int volume;
+	char *joy_right;
+	char *joy_left;
+	char *joy_virtual;
+	char *joy_desc;
+	int tape_fast;
+	int tape_pad;
+	int tape_pad_auto;
+	int tape_rewrite;
+
+	char *joy_axis[JOYSTICK_NUM_AXES];
+	char *joy_button[JOYSTICK_NUM_BUTTONS];
+
+};
+
+static struct private_cfg private_cfg = {
+	.machine_arch = ANY_AUTO,
+	.machine_cpu = CPU_MC6809,
+	.nobas = -1,
+	.noextbas = -1,
+	.noaltbas = -1,
+	.tv = ANY_AUTO,
+	.vdg_type = -1,
+	.nodos = -1,
+	.cart_type = ANY_AUTO,
+	.cart_becker = ANY_AUTO,
+	.cart_autorun = ANY_AUTO,
+	.volume = 100,
+	.tape_fast = 1,
+	.tape_pad = -1,
+	.tape_pad_auto = 1,
+};
+
 static void set_machine(const char *name);
-static char *opt_machine_desc = NULL;
-static int opt_machine_arch = ANY_AUTO;
-static int opt_machine_cpu = CPU_MC6809;
-static char *opt_machine_palette = NULL;
-static char *opt_bas = NULL;
-static char *opt_extbas = NULL;
-static char *opt_altbas = NULL;
-static int opt_nobas = -1;
-static int opt_noextbas = -1;
-static int opt_noaltbas = -1;
-static int opt_tv = ANY_AUTO;
-static int opt_vdg_type = -1;
-static char *opt_machine_cart = NULL;
 static void set_pal(void);
 static void set_ntsc(void);
-static int opt_ram = 0;
-
-/* Emulated cartridge */
 static void set_cart(const char *name);
-static char *opt_cart_desc = NULL;
-static int opt_cart_type = ANY_AUTO;
-static char *opt_cart_rom = NULL;
-static char *opt_cart_rom2 = NULL;
-static int opt_cart_becker = ANY_AUTO;
-static int opt_cart_autorun = ANY_AUTO;
-
-static int opt_nodos = -1;
-
-/* Attach files */
-static char *opt_run = NULL;
-static char *opt_tape_write = NULL;
-static char *opt_lp_file = NULL;
-static char *opt_lp_pipe = NULL;
 static void add_load(char *string);
-
-/* Automatic actions */
 static void type_command(char *string);
-
-/* Emulator interface */
-static char *opt_ui = NULL;
-static char *opt_filereq = NULL;
-static char *opt_vo = NULL;
-static char *opt_ao = NULL;
-static int opt_volume = 100;
-static char *opt_joy_right = NULL;
-static char *opt_joy_left = NULL;
-static char *opt_joy_virtual = NULL;
 static void set_joystick(const char *name);
 static void set_joystick_axis(const char *spec);
 static void set_joystick_button(const char *spec);
-static char *opt_joy_desc = NULL;
-static int opt_tape_fast = 1;
-static int opt_tape_pad = -1;
-static int opt_tape_pad_auto = 1;
-static int opt_tape_rewrite = 0;
-#ifndef TRACE
-# define xroar_cfg.trace_enabled (0)
-#endif
 
-static GSList *type_command_list = NULL;
-static GSList *load_list = NULL;
 static int load_disk_to_drive = 0;
 
 static struct joystick_config *cur_joy_config = NULL;
-static char *opt_joy_axis[JOYSTICK_NUM_AXES];
-static char *opt_joy_button[JOYSTICK_NUM_BUTTONS];
 
 /* Help text */
 static void helptext(void);
@@ -195,38 +212,38 @@ struct xconfig_enum xroar_cross_colour_list[] = {
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
 	/* Emulated machine */
-	XC_SET_STRING("default-machine", &opt_default_machine),
+	XC_SET_STRING("default-machine", &private_cfg.default_machine),
 	XC_CALL_STRING("machine", &set_machine),
-	XC_SET_STRING("machine-desc", &opt_machine_desc),
-	XC_SET_ENUM("machine-arch", &opt_machine_arch, arch_list),
-	XC_SET_ENUM("machine-cpu", &opt_machine_cpu, cpu_list),
-	XC_SET_STRING("machine-palette", &opt_machine_palette),
-	XC_SET_STRING("bas", &opt_bas),
-	XC_SET_STRING("extbas", &opt_extbas),
-	XC_SET_STRING("altbas", &opt_altbas),
-	XC_SET_INT1("nobas", &opt_nobas),
-	XC_SET_INT1("noextbas", &opt_noextbas),
-	XC_SET_INT1("noaltbas", &opt_noaltbas),
-	XC_SET_ENUM("tv-type", &opt_tv, tv_type_list),
-	XC_SET_ENUM("vdg-type", &opt_vdg_type, vdg_type_list),
-	XC_SET_INT("ram", &opt_ram),
-	XC_SET_STRING("machine-cart", &opt_machine_cart),
+	XC_SET_STRING("machine-desc", &private_cfg.machine_desc),
+	XC_SET_ENUM("machine-arch", &private_cfg.machine_arch, arch_list),
+	XC_SET_ENUM("machine-cpu", &private_cfg.machine_cpu, cpu_list),
+	XC_SET_STRING("machine-palette", &private_cfg.machine_palette),
+	XC_SET_STRING("bas", &private_cfg.bas),
+	XC_SET_STRING("extbas", &private_cfg.extbas),
+	XC_SET_STRING("altbas", &private_cfg.altbas),
+	XC_SET_INT1("nobas", &private_cfg.nobas),
+	XC_SET_INT1("noextbas", &private_cfg.noextbas),
+	XC_SET_INT1("noaltbas", &private_cfg.noaltbas),
+	XC_SET_ENUM("tv-type", &private_cfg.tv, tv_type_list),
+	XC_SET_ENUM("vdg-type", &private_cfg.vdg_type, vdg_type_list),
+	XC_SET_INT("ram", &private_cfg.ram),
+	XC_SET_STRING("machine-cart", &private_cfg.machine_cart),
 	/* Backwards-compatibility options: */
 	XC_CALL_NULL("pal", &set_pal),
 	XC_CALL_NULL("ntsc", &set_ntsc),
 
 	/* Emulated cartridge */
 	XC_CALL_STRING("cart", &set_cart),
-	XC_SET_STRING("cart-desc", &opt_cart_desc),
-	XC_SET_ENUM("cart-type", &opt_cart_type, cart_type_list),
-	XC_SET_STRING("cart-rom", &opt_cart_rom),
-	XC_SET_STRING("cart-rom2", &opt_cart_rom2),
-	XC_SET_INT1("cart-becker", &opt_cart_becker),
-	XC_SET_INT1("cart-autorun", &opt_cart_autorun),
-	XC_SET_INT1("nodos", &opt_nodos),
+	XC_SET_STRING("cart-desc", &private_cfg.cart_desc),
+	XC_SET_ENUM("cart-type", &private_cfg.cart_type, cart_type_list),
+	XC_SET_STRING("cart-rom", &private_cfg.cart_rom),
+	XC_SET_STRING("cart-rom2", &private_cfg.cart_rom2),
+	XC_SET_INT1("cart-becker", &private_cfg.cart_becker),
+	XC_SET_INT1("cart-autorun", &private_cfg.cart_autorun),
+	XC_SET_INT1("nodos", &private_cfg.nodos),
 	/* Backwards-compatibility options: */
-	XC_SET_ENUM("dostype", &opt_cart_type, cart_type_list),
-	XC_SET_STRING("dos", &opt_cart_rom),
+	XC_SET_ENUM("dostype", &private_cfg.cart_type, cart_type_list),
+	XC_SET_STRING("dos", &private_cfg.cart_rom),
 
 	/* Attach files */
 	XC_SET_STRING("rompath", &xroar_rom_path),
@@ -238,11 +255,11 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_STRING("load", &add_load),
 	XC_CALL_STRING("cartna", &add_load),
 	XC_CALL_STRING("snap", &add_load),
-	XC_SET_STRING("run", &opt_run),
-	XC_SET_STRING("tape-write", &opt_tape_write),
-	XC_SET_STRING("cart", &opt_run),
-	XC_SET_STRING("lp-file", &opt_lp_file),
-	XC_SET_STRING("lp-pipe", &opt_lp_pipe),
+	XC_SET_STRING("run", &private_cfg.run),
+	XC_SET_STRING("tape-write", &private_cfg.tape_write),
+	XC_SET_STRING("cart", &private_cfg.run),
+	XC_SET_STRING("lp-file", &private_cfg.lp_file),
+	XC_SET_STRING("lp-pipe", &private_cfg.lp_pipe),
 	XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip),
 	XC_SET_STRING("becker-port", &xroar_cfg.becker_port),
 	XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip),
@@ -252,18 +269,18 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_STRING("type", &type_command),
 
 	/* Emulator interface */
-	XC_SET_STRING("ui", &opt_ui),
-	XC_SET_STRING("filereq", &opt_filereq),
-	XC_SET_STRING("vo", &opt_vo),
+	XC_SET_STRING("ui", &private_cfg.ui),
+	XC_SET_STRING("filereq", &private_cfg.filereq),
+	XC_SET_STRING("vo", &private_cfg.vo),
 	XC_SET_STRING("geometry", &xroar_cfg.geometry),
 	XC_SET_STRING("g", &xroar_cfg.geometry),
 	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
-	XC_SET_STRING("ao", &opt_ao),
+	XC_SET_STRING("ao", &private_cfg.ao),
 	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
 	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
 	XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms),
 	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_samples),
-	XC_SET_INT("volume", &opt_volume),
+	XC_SET_INT("volume", &private_cfg.volume),
 #ifndef FAST_SOUND
 	XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound),
 #endif
@@ -273,17 +290,17 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("keymap", &xroar_cfg.keymap),
 	XC_SET_BOOL("kbd-translate", &xroar_cfg.kbd_translate),
 	XC_CALL_STRING("joy", &set_joystick),
-	XC_SET_STRING("joy-desc", &opt_joy_desc),
+	XC_SET_STRING("joy-desc", &private_cfg.joy_desc),
 	XC_CALL_STRING("joy-axis", &set_joystick_axis),
 	XC_CALL_STRING("joy-button", &set_joystick_button),
-	XC_SET_STRING("joy-right", &opt_joy_right),
-	XC_SET_STRING("joy-left", &opt_joy_left),
-	XC_SET_STRING("joy-virtual", &opt_joy_virtual),
-	XC_SET_INT1("tape-fast", &opt_tape_fast),
-	XC_SET_INT1("tape-pad", &opt_tape_pad),
-	XC_SET_INT1("tape-pad-auto", &opt_tape_pad_auto),
-	XC_SET_INT1("tape-rewrite", &opt_tape_rewrite),
-	XC_SET_INT1("tapehack", &opt_tape_rewrite),
+	XC_SET_STRING("joy-right", &private_cfg.joy_right),
+	XC_SET_STRING("joy-left", &private_cfg.joy_left),
+	XC_SET_STRING("joy-virtual", &private_cfg.joy_virtual),
+	XC_SET_INT1("tape-fast", &private_cfg.tape_fast),
+	XC_SET_INT1("tape-pad", &private_cfg.tape_pad),
+	XC_SET_INT1("tape-pad-auto", &private_cfg.tape_pad_auto),
+	XC_SET_INT1("tape-rewrite", &private_cfg.tape_rewrite),
+	XC_SET_INT1("tapehack", &private_cfg.tape_rewrite),
 	XC_SET_BOOL("becker", &xroar_cfg.becker),
 	XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack),
 	XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back),
@@ -522,11 +539,11 @@ static struct vdg_palette *get_machine_palette(void);
 /**************************************************************************/
 
 static void set_pal(void) {
-	opt_tv = TV_PAL;
+	private_cfg.tv = TV_PAL;
 }
 
 static void set_ntsc(void) {
-	opt_tv = TV_NTSC;
+	private_cfg.tv = TV_NTSC;
 }
 
 /* Called when a "-machine" option is encountered.  If an existing machine
@@ -546,20 +563,20 @@ static void set_machine(const char *name) {
 #endif
 
 	if (xroar_machine_config) {
-		if (opt_machine_arch != ANY_AUTO) {
-			xroar_machine_config->architecture = opt_machine_arch;
-			opt_machine_arch = ANY_AUTO;
+		if (private_cfg.machine_arch != ANY_AUTO) {
+			xroar_machine_config->architecture = private_cfg.machine_arch;
+			private_cfg.machine_arch = ANY_AUTO;
 		}
-		xroar_machine_config->cpu = opt_machine_cpu;
-		if (opt_machine_cpu == CPU_HD6309) {
+		xroar_machine_config->cpu = private_cfg.machine_cpu;
+		if (private_cfg.machine_cpu == CPU_HD6309) {
 			LOG_WARN("Hitachi HD6309 support is UNVERIFIED!\n");
 		}
-		if (opt_machine_desc) {
-			xroar_machine_config->description = opt_machine_desc;
-			opt_machine_desc = NULL;
+		if (private_cfg.machine_desc) {
+			xroar_machine_config->description = private_cfg.machine_desc;
+			private_cfg.machine_desc = NULL;
 		}
 #ifdef LOGGING
-		if (opt_machine_palette && 0 == strcmp(opt_machine_palette, "help")) {
+		if (private_cfg.machine_palette && 0 == strcmp(private_cfg.machine_palette, "help")) {
 			int count = vdg_palette_count();
 			int i;
 			for (i = 0; i < count; i++) {
@@ -569,52 +586,52 @@ static void set_machine(const char *name) {
 			exit(EXIT_SUCCESS);
 		}
 #endif
-		if (opt_machine_palette) {
-			xroar_machine_config->vdg_palette = opt_machine_palette;
-			opt_machine_palette = NULL;
+		if (private_cfg.machine_palette) {
+			xroar_machine_config->vdg_palette = private_cfg.machine_palette;
+			private_cfg.machine_palette = NULL;
 		}
-		if (opt_tv != ANY_AUTO) {
-			xroar_machine_config->tv_standard = opt_tv;
-			opt_tv = ANY_AUTO;
+		if (private_cfg.tv != ANY_AUTO) {
+			xroar_machine_config->tv_standard = private_cfg.tv;
+			private_cfg.tv = ANY_AUTO;
 		}
-		if (opt_vdg_type != -1) {
-			xroar_machine_config->vdg_type = opt_vdg_type;
-			opt_vdg_type = -1;
+		if (private_cfg.vdg_type != -1) {
+			xroar_machine_config->vdg_type = private_cfg.vdg_type;
+			private_cfg.vdg_type = -1;
 		}
-		if (opt_ram > 0) {
-			xroar_machine_config->ram = opt_ram;
-			opt_ram = 0;
+		if (private_cfg.ram > 0) {
+			xroar_machine_config->ram = private_cfg.ram;
+			private_cfg.ram = 0;
 		}
-		if (opt_nobas != -1)
-			xroar_machine_config->nobas = opt_nobas;
-		if (opt_noextbas != -1)
-			xroar_machine_config->noextbas = opt_noextbas;
-		if (opt_noaltbas != -1)
-			xroar_machine_config->noaltbas = opt_noaltbas;
-		opt_nobas = opt_noextbas = opt_noaltbas = -1;
-		if (opt_bas) {
-			xroar_machine_config->bas_rom = opt_bas;
+		if (private_cfg.nobas != -1)
+			xroar_machine_config->nobas = private_cfg.nobas;
+		if (private_cfg.noextbas != -1)
+			xroar_machine_config->noextbas = private_cfg.noextbas;
+		if (private_cfg.noaltbas != -1)
+			xroar_machine_config->noaltbas = private_cfg.noaltbas;
+		private_cfg.nobas = private_cfg.noextbas = private_cfg.noaltbas = -1;
+		if (private_cfg.bas) {
+			xroar_machine_config->bas_rom = private_cfg.bas;
 			xroar_machine_config->nobas = 0;
-			opt_bas = NULL;
+			private_cfg.bas = NULL;
 		}
-		if (opt_extbas) {
-			xroar_machine_config->extbas_rom = opt_extbas;
+		if (private_cfg.extbas) {
+			xroar_machine_config->extbas_rom = private_cfg.extbas;
 			xroar_machine_config->noextbas = 0;
-			opt_extbas = NULL;
+			private_cfg.extbas = NULL;
 		}
-		if (opt_altbas) {
-			xroar_machine_config->altbas_rom = opt_altbas;
+		if (private_cfg.altbas) {
+			xroar_machine_config->altbas_rom = private_cfg.altbas;
 			xroar_machine_config->noaltbas = 0;
-			opt_altbas = NULL;
+			private_cfg.altbas = NULL;
 		}
-		if (opt_machine_cart) {
-			struct cart_config *cc = cart_config_by_name(opt_machine_cart);
+		if (private_cfg.machine_cart) {
+			struct cart_config *cc = cart_config_by_name(private_cfg.machine_cart);
 			xroar_machine_config->default_cart_index = cc->index;
-			opt_machine_cart = NULL;
+			private_cfg.machine_cart = NULL;
 		}
-		if (opt_nodos != -1) {
-			xroar_machine_config->nodos = opt_nodos;
-			opt_nodos = -1;
+		if (private_cfg.nodos != -1) {
+			xroar_machine_config->nodos = private_cfg.nodos;
+			private_cfg.nodos = -1;
 		}
 		machine_config_complete(xroar_machine_config);
 	}
@@ -651,29 +668,29 @@ static void set_cart(const char *name) {
 		cc = cart_config_index(xroar_machine_config->default_cart_index);
 	}
 	if (cc) {
-		if (opt_cart_desc) {
-			cc->description = opt_cart_desc;
-			opt_cart_desc = NULL;
+		if (private_cfg.cart_desc) {
+			cc->description = private_cfg.cart_desc;
+			private_cfg.cart_desc = NULL;
 		}
-		if (opt_cart_type != ANY_AUTO) {
-			cc->type = opt_cart_type;
-			opt_cart_type = ANY_AUTO;
+		if (private_cfg.cart_type != ANY_AUTO) {
+			cc->type = private_cfg.cart_type;
+			private_cfg.cart_type = ANY_AUTO;
 		}
-		if (opt_cart_rom) {
-			cc->rom = opt_cart_rom;
-			opt_cart_rom = NULL;
+		if (private_cfg.cart_rom) {
+			cc->rom = private_cfg.cart_rom;
+			private_cfg.cart_rom = NULL;
 		}
-		if (opt_cart_rom2) {
-			cc->rom2 = opt_cart_rom2;
-			opt_cart_rom2 = NULL;
+		if (private_cfg.cart_rom2) {
+			cc->rom2 = private_cfg.cart_rom2;
+			private_cfg.cart_rom2 = NULL;
 		}
-		if (opt_cart_becker != ANY_AUTO) {
-			cc->becker_port = opt_cart_becker;
-			opt_cart_becker = ANY_AUTO;
+		if (private_cfg.cart_becker != ANY_AUTO) {
+			cc->becker_port = private_cfg.cart_becker;
+			private_cfg.cart_becker = ANY_AUTO;
 		}
-		if (opt_cart_autorun != ANY_AUTO) {
-			cc->autorun = opt_cart_autorun;
-			opt_cart_autorun = ANY_AUTO;
+		if (private_cfg.cart_autorun != ANY_AUTO) {
+			cc->autorun = private_cfg.cart_autorun;
+			private_cfg.cart_autorun = ANY_AUTO;
 		}
 		cart_config_complete(cc);
 	}
@@ -690,24 +707,24 @@ static void set_cart(const char *name) {
 static void set_joystick(const char *name) {
 	// Apply any config to the current joystick config.
 	if (cur_joy_config) {
-		if (opt_joy_desc) {
-			cur_joy_config->description = opt_joy_desc;
-			opt_joy_desc = NULL;
+		if (private_cfg.joy_desc) {
+			cur_joy_config->description = private_cfg.joy_desc;
+			private_cfg.joy_desc = NULL;
 		}
 		for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
-			if (opt_joy_axis[i]) {
+			if (private_cfg.joy_axis[i]) {
 				if (cur_joy_config->axis_specs[i])
 					g_free(cur_joy_config->axis_specs[i]);
-				cur_joy_config->axis_specs[i] = opt_joy_axis[i];
-				opt_joy_axis[i] = NULL;
+				cur_joy_config->axis_specs[i] = private_cfg.joy_axis[i];
+				private_cfg.joy_axis[i] = NULL;
 			}
 		}
 		for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
-			if (opt_joy_button[i]) {
+			if (private_cfg.joy_button[i]) {
 				if (cur_joy_config->button_specs[i])
 					g_free(cur_joy_config->button_specs[i]);
-				cur_joy_config->button_specs[i] = opt_joy_button[i];
-				opt_joy_button[i] = NULL;
+				cur_joy_config->button_specs[i] = private_cfg.joy_button[i];
+				private_cfg.joy_button[i] = NULL;
 			}
 		}
 	}
@@ -750,7 +767,7 @@ static void set_joystick_axis(const char *spec) {
 		}
 		tmp = cspec;
 	}
-	opt_joy_axis[axis] = g_strdup(tmp);
+	private_cfg.joy_axis[axis] = g_strdup(tmp);
 	g_free(spec_copy);
 }
 
@@ -767,16 +784,16 @@ static void set_joystick_button(const char *spec) {
 		}
 		tmp = cspec;
 	}
-	opt_joy_button[button] = g_strdup(tmp);
+	private_cfg.joy_button[button] = g_strdup(tmp);
 	g_free(spec_copy);
 }
 
 static void type_command(char *string) {
-	type_command_list = g_slist_append(type_command_list, string);
+	private_cfg.type_list = g_slist_append(private_cfg.type_list, string);
 }
 
 static void add_load(char *string) {
-	load_list = g_slist_append(load_list, string);
+	private_cfg.load_list = g_slist_append(private_cfg.load_list, string);
 }
 
 static void versiontext(void) {
@@ -917,9 +934,9 @@ _Bool xroar_init(int argc, char **argv) {
 		xroar_conf_path = CONFPATH;
 
 	for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++)
-		opt_joy_axis[i] = NULL;
+		private_cfg.joy_axis[i] = NULL;
 	for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++)
-		opt_joy_button[i] = NULL;
+		private_cfg.joy_button[i] = NULL;
 
 	// Default configuration.
 	for (const char **c = default_config; *c; c++) {
@@ -959,8 +976,8 @@ _Bool xroar_init(int argc, char **argv) {
 	if (!xroar_rom_path)
 		xroar_rom_path = ROMPATH;
 	// If no machine specified on command line, get default.
-	if (!xroar_machine_config && opt_default_machine) {
-		xroar_machine_config = machine_config_by_name(opt_default_machine);
+	if (!xroar_machine_config && private_cfg.default_machine) {
+		xroar_machine_config = machine_config_by_name(private_cfg.default_machine);
 	}
 	// If that didn't work, just find the first one that will work.
 	if (!xroar_machine_config) {
@@ -973,9 +990,9 @@ _Bool xroar_init(int argc, char **argv) {
 	set_joystick(NULL);
 
 	// Select a UI module.
-	ui_module = (UIModule *)module_select_by_arg((struct module **)ui_module_list, opt_ui);
+	ui_module = (UIModule *)module_select_by_arg((struct module **)ui_module_list, private_cfg.ui);
 	if (ui_module == NULL) {
-		LOG_ERROR("%s: ui module `%s' not found\n", argv[0], opt_ui);
+		LOG_ERROR("%s: ui module `%s' not found\n", argv[0], private_cfg.ui);
 		exit(EXIT_FAILURE);
 	}
 	// Override other module lists if UI has an entry.
@@ -992,9 +1009,9 @@ _Bool xroar_init(int argc, char **argv) {
 		joystick_module_list = ui_module->joystick_module_list;
 	*/
 	// Select file requester, video & sound modules
-	filereq_module = (FileReqModule *)module_select_by_arg((struct module **)filereq_module_list, opt_filereq);
-	video_module = (VideoModule *)module_select_by_arg((struct module **)video_module_list, opt_vo);
-	sound_module = (SoundModule *)module_select_by_arg((struct module **)sound_module_list, opt_ao);
+	filereq_module = (FileReqModule *)module_select_by_arg((struct module **)filereq_module_list, private_cfg.filereq);
+	video_module = (VideoModule *)module_select_by_arg((struct module **)video_module_list, private_cfg.vo);
+	sound_module = (SoundModule *)module_select_by_arg((struct module **)sound_module_list, private_cfg.ao);
 	// Keyboard & joystick modules
 	keyboard_module = NULL;
 	joystick_module = NULL;
@@ -1010,29 +1027,29 @@ _Bool xroar_init(int argc, char **argv) {
 			add_load(argv[argn]);
 		} else {
 			// Autorun last file given.
-			opt_run = argv[argn];
+			private_cfg.run = argv[argn];
 		}
 		argn++;
 	}
-	if (opt_run) {
-		add_load(opt_run);
+	if (private_cfg.run) {
+		add_load(private_cfg.run);
 	}
 
-	sound_set_volume(opt_volume);
+	sound_set_volume(private_cfg.volume);
 	/* turn off tape_pad_auto if any tape_pad specified */
-	if (opt_tape_pad >= 0)
-		opt_tape_pad_auto = 0;
-	opt_tape_fast = opt_tape_fast ? TAPE_FAST : 0;
-	opt_tape_pad = (opt_tape_pad > 0) ? TAPE_PAD : 0;
-	opt_tape_pad_auto = opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
-	opt_tape_rewrite = opt_tape_rewrite ? TAPE_REWRITE : 0;
+	if (private_cfg.tape_pad >= 0)
+		private_cfg.tape_pad_auto = 0;
+	private_cfg.tape_fast = private_cfg.tape_fast ? TAPE_FAST : 0;
+	private_cfg.tape_pad = (private_cfg.tape_pad > 0) ? TAPE_PAD : 0;
+	private_cfg.tape_pad_auto = private_cfg.tape_pad_auto ? TAPE_PAD_AUTO : 0;
+	private_cfg.tape_rewrite = private_cfg.tape_rewrite ? TAPE_REWRITE : 0;
 
 	_Bool no_auto_dos = xroar_machine_config->nodos;
 	_Bool definitely_dos = 0;
-	for (GSList *tmp_list = load_list; tmp_list; tmp_list = tmp_list->next) {
+	for (GSList *tmp_list = private_cfg.load_list; tmp_list; tmp_list = tmp_list->next) {
 		char *load_file = tmp_list->data;
 		int load_file_type = xroar_filetype_by_ext(load_file);
-		_Bool autorun = (load_file == opt_run);
+		_Bool autorun = (load_file == private_cfg.run);
 		switch (load_file_type) {
 		// tapes - flag that DOS shouldn't be automatically found
 		case FILETYPE_CAS:
@@ -1106,18 +1123,18 @@ _Bool xroar_init(int argc, char **argv) {
 	printer_init();
 
 	// Default joystick mapping
-	if (opt_joy_right) {
-		joystick_map(joystick_config_by_name(opt_joy_right), 0);
+	if (private_cfg.joy_right) {
+		joystick_map(joystick_config_by_name(private_cfg.joy_right), 0);
 	} else {
 		joystick_map(joystick_config_by_name("joy0"), 0);
 	}
-	if (opt_joy_left) {
-		joystick_map(joystick_config_by_name(opt_joy_left), 1);
+	if (private_cfg.joy_left) {
+		joystick_map(joystick_config_by_name(private_cfg.joy_left), 1);
 	} else {
 		joystick_map(joystick_config_by_name("joy1"), 1);
 	}
-	if (opt_joy_virtual) {
-		joystick_set_virtual(joystick_config_by_name(opt_joy_virtual));
+	if (private_cfg.joy_virtual) {
+		joystick_set_virtual(joystick_config_by_name(private_cfg.joy_virtual));
 	} else {
 		joystick_set_virtual(joystick_config_by_name("kjoy0"));
 	}
@@ -1134,14 +1151,14 @@ _Bool xroar_init(int argc, char **argv) {
 	/* Reset everything */
 	machine_reset(RESET_HARD);
 	printer_reset();
-	tape_select_state(opt_tape_fast | opt_tape_pad | opt_tape_pad_auto | opt_tape_rewrite);
+	tape_select_state(private_cfg.tape_fast | private_cfg.tape_pad | private_cfg.tape_pad_auto | private_cfg.tape_rewrite);
 
 	load_disk_to_drive = 0;
-	while (load_list) {
-		char *load_file = load_list->data;
+	while (private_cfg.load_list) {
+		char *load_file = private_cfg.load_list->data;
 		int load_file_type = xroar_filetype_by_ext(load_file);
 		// inhibit autorun if a -type option was given
-		_Bool autorun = !type_command_list && (load_file == opt_run);
+		_Bool autorun = !private_cfg.type_list && (load_file == private_cfg.run);
 		switch (load_file_type) {
 		// cart will already be loaded (will autorun even with -type)
 		case FILETYPE_ROM:
@@ -1168,18 +1185,18 @@ _Bool xroar_init(int argc, char **argv) {
 			xroar_load_file_by_type(load_file, autorun);
 			break;
 		}
-		load_list = g_slist_remove(load_list, load_list->data);
+		private_cfg.load_list = g_slist_remove(private_cfg.load_list, private_cfg.load_list->data);
 	}
 	load_disk_to_drive = 0;
 
-	if (opt_tape_write) {
-		int write_file_type = xroar_filetype_by_ext(opt_tape_write);
+	if (private_cfg.tape_write) {
+		int write_file_type = xroar_filetype_by_ext(private_cfg.tape_write);
 		switch (write_file_type) {
 			case FILETYPE_CAS:
 			case FILETYPE_WAV:
-				tape_open_writing(opt_tape_write);
+				tape_open_writing(private_cfg.tape_write);
 				if (ui_module->output_tape_filename_cb) {
-					ui_module->output_tape_filename_cb(opt_tape_write);
+					ui_module->output_tape_filename_cb(private_cfg.tape_write);
 				}
 				break;
 			default:
@@ -1187,14 +1204,14 @@ _Bool xroar_init(int argc, char **argv) {
 		}
 	}
 
-	while (type_command_list) {
-		keyboard_queue_basic(type_command_list->data);
-		type_command_list = g_slist_remove(type_command_list, type_command_list->data);
+	while (private_cfg.type_list) {
+		keyboard_queue_basic(private_cfg.type_list->data);
+		private_cfg.type_list = g_slist_remove(private_cfg.type_list, private_cfg.type_list->data);
 	}
-	if (opt_lp_file) {
-		printer_open_file(opt_lp_file);
-	} else if (opt_lp_pipe) {
-		printer_open_pipe(opt_lp_pipe);
+	if (private_cfg.lp_file) {
+		printer_open_file(private_cfg.lp_file);
+	} else if (private_cfg.lp_pipe) {
+		printer_open_pipe(private_cfg.lp_pipe);
 	}
 	return 1;
 }
