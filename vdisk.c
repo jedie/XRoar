@@ -196,6 +196,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	unsigned nheads = 1;
 	unsigned nsectors = 18;
 	unsigned ssize_code = 1, ssize;
+	_Bool write_protect;
 	uint8_t buf[1024];
 	FILE *fd;
 	struct stat statbuf;
@@ -214,7 +215,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	header_size = (buf[2] | (buf[3]<<8)) - 12;
 	ncyls = buf[8];
 	nheads = buf[9];
-	disk->write_protect = buf[10] & 1;
+	write_protect = buf[10] & 1;
 	if (header_size > 0) {
 		if (header_size > sizeof(buf)) {
 			fclose(fd);
@@ -230,6 +231,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	}
 	disk->filetype = FILETYPE_VDK;
 	disk->filename = g_strdup(filename);
+	disk->write_protect = write_protect;
 
 	if (vdisk_format_disk(disk, 1, nsectors, 1, ssize_code) != 0) {
 		fclose(fd);
@@ -390,6 +392,7 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 				if (sector_attr_flag) {
 					attr = fs_read_uint8(fd);
 				}
+				(void)attr;  // not used yet...
 				if (fread(buf, ssize, 1, fd) < 1) {
 					memset(buf, 0, ssize);
 				}

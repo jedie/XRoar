@@ -197,7 +197,7 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 	} while (0)
 
 #define sex5(v) (((uint16_t)(v) & 0x0f) - ((uint16_t)(v) & 0x10))
-static inline uint16_t sex8(uint8_t v) {
+static uint16_t sex8(uint8_t v) {
 	return (int16_t)(*((int8_t *)&v));
 }
 
@@ -209,14 +209,14 @@ static void dummy_write_cycle(uint16_t a, uint8_t v) { (void)a; (void)v; }
 
 /* 8-bit inherent operations */
 
-static inline uint8_t op_neg(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_neg(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = ~in + 1;
 	CLR_NZVC;
 	SET_NZVC8(0, in, out);
 	return out;
 }
 
-static inline uint8_t op_com(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_com(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = ~in;
 	CLR_NZV;
 	SET_NZ8(out);
@@ -224,14 +224,14 @@ static inline uint8_t op_com(struct MC6809 *cpu, uint8_t in) {
 	return out;
 }
 
-static inline uint8_t op_negcom(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_negcom(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = ~in + (~REG_CC & 1);
 	CLR_NZVC;
 	SET_NZVC8(0, in, out);
 	return out;
 }
 
-static inline uint8_t op_lsr(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_lsr(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = in >> 1;
 	CLR_NZC;
 	REG_CC |= (in & 1);
@@ -239,7 +239,7 @@ static inline uint8_t op_lsr(struct MC6809 *cpu, uint8_t in) {
 	return out;
 }
 
-static inline uint8_t op_ror(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_ror(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = (in >> 1) | ((REG_CC & 1) << 7);
 	CLR_NZC;
 	REG_CC |= (in & 1);
@@ -247,7 +247,7 @@ static inline uint8_t op_ror(struct MC6809 *cpu, uint8_t in) {
 	return out;
 }
 
-static inline uint8_t op_asr(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_asr(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = (in >> 1) | (in & 0x80);
 	CLR_NZC;
 	REG_CC |= (in & 1);
@@ -255,21 +255,21 @@ static inline uint8_t op_asr(struct MC6809 *cpu, uint8_t in) {
 	return out;
 }
 
-static inline uint8_t op_asl(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_asl(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = in << 1;
 	CLR_NZVC;
 	SET_NZVC8(in, in, out);
 	return out;
 }
 
-static inline uint8_t op_rol(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_rol(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = (in << 1) | (REG_CC & 1);
 	CLR_NZVC;
 	SET_NZVC8(in, in, out);
 	return out;
 }
 
-static inline uint8_t op_dec(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_dec(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = in - 1;
 	CLR_NZV;
 	SET_NZ8(out);
@@ -277,7 +277,7 @@ static inline uint8_t op_dec(struct MC6809 *cpu, uint8_t in) {
 	return out;
 }
 
-static inline uint8_t op_inc(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_inc(struct MC6809 *cpu, uint8_t in) {
 	unsigned out = in + 1;
 	CLR_NZV;
 	SET_NZ8(out);
@@ -285,13 +285,13 @@ static inline uint8_t op_inc(struct MC6809 *cpu, uint8_t in) {
 	return out;
 }
 
-static inline uint8_t op_tst(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_tst(struct MC6809 *cpu, uint8_t in) {
 	CLR_NZV;
 	SET_NZ8(in);
 	return in;
 }
 
-static inline uint8_t op_clr(struct MC6809 *cpu, uint8_t in) {
+static uint8_t op_clr(struct MC6809 *cpu, uint8_t in) {
 	(void)in;
 	CLR_NVC;
 	REG_CC |= CC_Z;
@@ -300,49 +300,49 @@ static inline uint8_t op_clr(struct MC6809 *cpu, uint8_t in) {
 
 /* 8-bit arithmetic operations */
 
-static inline uint8_t op_sub(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_sub(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	unsigned out = a - b;
 	CLR_NZVC;
 	SET_NZVC8(a, b, out);
 	return out;
 }
 
-static inline uint8_t op_sbc(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_sbc(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	unsigned out = a - b - (REG_CC & CC_C);
 	CLR_NZVC;
 	SET_NZVC8(a, b, out);
 	return out;
 }
 
-static inline uint8_t op_and(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_and(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	unsigned out = a & b;
 	CLR_NZV;
 	SET_NZ8(out);
 	return out;
 }
 
-static inline uint8_t op_ld(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_ld(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	(void)a;
 	CLR_NZV;
 	SET_NZ8(b);
 	return b;
 }
 
-static inline uint8_t op_discard(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_discard(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	(void)b;
 	CLR_NZV;
 	REG_CC |= CC_N;
 	return a;
 }
 
-static inline uint8_t op_eor(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_eor(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	unsigned out = a ^ b;
 	CLR_NZV;
 	SET_NZ8(out);
 	return out;
 }
 
-static inline uint8_t op_adc(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_adc(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	unsigned out = a + b + (REG_CC & CC_C);
 	CLR_HNZVC;
 	SET_NZVC8(a, b, out);
@@ -350,14 +350,14 @@ static inline uint8_t op_adc(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	return out;
 }
 
-static inline uint8_t op_or(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_or(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	unsigned out = a | b;
 	CLR_NZV;
 	SET_NZ8(out);
 	return out;
 }
 
-static inline uint8_t op_add(struct MC6809 *cpu, uint8_t a, uint8_t b) {
+static uint8_t op_add(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 	unsigned out = a + b;
 	CLR_HNZVC;
 	SET_NZVC8(a, b, out);
@@ -367,21 +367,21 @@ static inline uint8_t op_add(struct MC6809 *cpu, uint8_t a, uint8_t b) {
 
 /* 16-bit arithmetic operations */
 
-static inline uint16_t op_sub16(struct MC6809 *cpu, uint16_t a, uint16_t b) {
+static uint16_t op_sub16(struct MC6809 *cpu, uint16_t a, uint16_t b) {
 	unsigned out = a - b;
 	CLR_NZVC;
 	SET_NZVC16(a, b, out);
 	return out;
 }
 
-static inline uint16_t op_ld16(struct MC6809 *cpu, uint16_t a, uint16_t b) {
+static uint16_t op_ld16(struct MC6809 *cpu, uint16_t a, uint16_t b) {
 	(void)a;
 	CLR_NZV;
 	SET_NZ16(b);
 	return b;
 }
 
-static inline uint16_t op_add16(struct MC6809 *cpu, uint16_t a, uint16_t b) {
+static uint16_t op_add16(struct MC6809 *cpu, uint16_t a, uint16_t b) {
 	unsigned out = a + b;
 	CLR_NZVC;
 	SET_NZVC16(a, b, out);
