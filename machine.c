@@ -311,7 +311,7 @@ void machine_init(void) {
 	PIA1.b.data_preread = pia1b_data_preread;
 	PIA1.b.data_postwrite = pia1b_data_postwrite;
 #ifndef FAST_SOUND
-	machine_select_fast_sound(xroar_fast_sound);
+	machine_select_fast_sound(xroar_cfg.fast_sound);
 #endif
 	vdrive_init();
 	vdg_init();
@@ -371,7 +371,7 @@ void machine_configure(struct machine_config *mc) {
 				has_bas = 1;
 				crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, size);
 				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_bas);
-				if (IS_COCO && xroar_opt_force_crc_match) {
+				if (IS_COCO && xroar_cfg.force_crc_match) {
 					/* force Color BASIC 1.3 */
 					crc_bas = 0xd8f4d15e;
 				}
@@ -390,7 +390,7 @@ void machine_configure(struct machine_config *mc) {
 				has_extbas = 1;
 				crc_extbas = crc32_block(CRC32_RESET, rom0, size);
 				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_extbas);
-				if (xroar_opt_force_crc_match) {
+				if (xroar_cfg.force_crc_match) {
 					if (IS_DRAGON64) {
 						/* force Dragon 64 BASIC */
 						crc_extbas = 0x84f68bf9;
@@ -594,7 +594,7 @@ static uint8_t read_cycle(uint16_t A) {
 			break;
 	}
 #ifdef TRACE
-	if (xroar_trace_enabled) {
+	if (xroar_cfg.trace_enabled) {
 		switch (xroar_machine_config->cpu) {
 		case CPU_MC6809: default:
 			mc6809_trace_byte(read_D, A);
@@ -712,7 +712,7 @@ void machine_op_rts(struct MC6809 *cpu) {
 
 #ifndef FAST_SOUND
 void machine_set_fast_sound(_Bool fast) {
-	xroar_fast_sound = fast;
+	xroar_cfg.fast_sound = fast;
 	if (fast) {
 		PIA0.a.control_postwrite = NULL;
 		PIA0.b.control_postwrite = NULL;

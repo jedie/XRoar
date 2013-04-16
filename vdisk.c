@@ -83,7 +83,7 @@ struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
 	}
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = NULL;
-	disk->write_back = xroar_opt_disk_write_back;
+	disk->write_back = xroar_cfg.disk_write_back;
 	disk->write_protect = 0;
 	disk->num_cylinders = ncyls;
 	disk->num_heads = nheads;
@@ -353,7 +353,7 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 		return NULL;
 
 	memcpy(buf, jvc_defaults, sizeof(jvc_defaults));
-	if (xroar_opt_disk_jvc_hack && file_size > 198144)
+	if (xroar_cfg.disk_jvc_hack && file_size > 198144)
 		buf[1] = 2;
 	if (header_size > 0)
 		fread(buf, header_size, 1, fd);

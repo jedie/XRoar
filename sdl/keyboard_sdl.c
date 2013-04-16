@@ -117,7 +117,7 @@ static void map_keyboard(unsigned int *map) {
 }
 
 static _Bool init(void) {
-	keymap_option = xroar_opt_keymap;
+	keymap_option = xroar_cfg.keymap;
 	selected_keymap = NULL;
 	for (unsigned i = 0; mappings[i].name; i++) {
 		if (selected_keymap == NULL
@@ -130,7 +130,7 @@ static _Bool init(void) {
 		}
 	}
 	map_keyboard(selected_keymap);
-	SDL_EnableUNICODE(xroar_kbd_translate);
+	SDL_EnableUNICODE(xroar_cfg.kbd_translate);
 
 	for (unsigned i = 0; i < MAX_AXES; i++)
 		enabled_axis[i] = NULL;
@@ -141,7 +141,7 @@ static _Bool init(void) {
 }
 
 static void update_kbd_translate(void) {
-	SDL_EnableUNICODE(xroar_kbd_translate);
+	SDL_EnableUNICODE(xroar_cfg.kbd_translate);
 }
 
 static void emulator_command(SDLKey sym) {
@@ -272,7 +272,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 				xroar_frameskip = 10;
 			} else {
 				xroar_noratelimit = 0;
-				xroar_frameskip = xroar_opt_frameskip;
+				xroar_frameskip = xroar_cfg.frameskip;
 			}
 		} else {
 			xroar_noratelimit = 1;
@@ -289,7 +289,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 	if (sym == SDLK_LEFT) { KEYBOARD_PRESS(KEYMAP_LEFT); return; }
 	if (sym == SDLK_RIGHT) { KEYBOARD_PRESS(KEYMAP_RIGHT); return; }
 	if (sym == SDLK_HOME) { KEYBOARD_PRESS_CLEAR(); return; }
-	if (xroar_kbd_translate) {
+	if (xroar_cfg.kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)
 			return;
@@ -347,7 +347,7 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 	if (sym == SDLK_F12) {
 		if (!noratelimit_latch) {
 			xroar_noratelimit = 0;
-			xroar_frameskip = xroar_opt_frameskip;
+			xroar_frameskip = xroar_cfg.frameskip;
 		}
 	}
 	if (sym == SDLK_UP) { KEYBOARD_RELEASE(KEYMAP_UP); return; }
@@ -355,7 +355,7 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 	if (sym == SDLK_LEFT) { KEYBOARD_RELEASE(KEYMAP_LEFT); return; }
 	if (sym == SDLK_RIGHT) { KEYBOARD_RELEASE(KEYMAP_RIGHT); return; }
 	if (sym == SDLK_HOME) { KEYBOARD_RELEASE_CLEAR(); return; }
-	if (xroar_kbd_translate) {
+	if (xroar_cfg.kbd_translate) {
 		unsigned int unicode;
 		if (sym >= SDLK_LAST)
 			return;

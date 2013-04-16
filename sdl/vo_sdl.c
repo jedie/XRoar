@@ -100,7 +100,7 @@ static _Bool init(void) {
 		LOG_ERROR("Failed to initialise SDL video: %s\n", SDL_GetError());
 		return 0;
 	}
-	if (set_fullscreen(xroar_opt_fullscreen))
+	if (set_fullscreen(xroar_cfg.fullscreen))
 		return 0;
 #ifdef WINDOWS32
 	{

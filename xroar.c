@@ -58,6 +58,12 @@
 /**************************************************************************/
 /* Command line arguments */
 
+/* Public arguments */
+
+struct xroar_cfg xroar_cfg = {
+	.ccr = CROSS_COLOUR_5BIT
+};
+
 /* Emulated machine */
 static char *opt_default_machine = NULL;
 static void set_machine(const char *name);
@@ -90,13 +96,10 @@ static int opt_cart_autorun = ANY_AUTO;
 static int opt_nodos = -1;
 
 /* Attach files */
-_Bool xroar_opt_force_crc_match = 0;
 static char *opt_run = NULL;
 static char *opt_tape_write = NULL;
 static char *opt_lp_file = NULL;
 static char *opt_lp_pipe = NULL;
-char *xroar_opt_becker_ip = NULL;
-char *xroar_opt_becker_port = NULL;
 static void add_load(char *string);
 
 /* Automatic actions */
@@ -106,22 +109,8 @@ static void type_command(char *string);
 static char *opt_ui = NULL;
 static char *opt_filereq = NULL;
 static char *opt_vo = NULL;
-char *xroar_opt_geometry = NULL;
-int xroar_opt_gl_filter = ANY_AUTO;
 static char *opt_ao = NULL;
-char *xroar_opt_ao_device = NULL;
-int xroar_opt_ao_rate = 0;
-int xroar_opt_ao_buffer_ms = 0;
-int xroar_opt_ao_buffer_samples = 0;
-static int xroar_opt_volume = 100;
-#ifndef FAST_SOUND
-_Bool xroar_fast_sound = 0;
-#endif
-_Bool xroar_opt_fullscreen = 0;
-int xroar_opt_ccr = CROSS_COLOUR_5BIT;
-int xroar_opt_frameskip = 0;
-char *xroar_opt_keymap = NULL;
-_Bool xroar_kbd_translate = 0;
+static int opt_volume = 100;
 static char *opt_joy_right = NULL;
 static char *opt_joy_left = NULL;
 static char *opt_joy_virtual = NULL;
@@ -129,18 +118,13 @@ static void set_joystick(const char *name);
 static void set_joystick_axis(const char *spec);
 static void set_joystick_button(const char *spec);
 static char *opt_joy_desc = NULL;
-static int xroar_opt_tape_fast = 1;
-static int xroar_opt_tape_pad = -1;
-static int xroar_opt_tape_pad_auto = 1;
-static int xroar_opt_tape_rewrite = 0;
-#ifdef TRACE
-int xroar_trace_enabled = 0;
-#else
-# define xroar_trace_enabled (0)
+static int opt_tape_fast = 1;
+static int opt_tape_pad = -1;
+static int opt_tape_pad_auto = 1;
+static int opt_tape_rewrite = 0;
+#ifndef TRACE
+# define xroar_cfg.trace_enabled (0)
 #endif
-_Bool xroar_opt_becker = 0;
-_Bool xroar_opt_disk_write_back = 0;
-_Bool xroar_opt_disk_jvc_hack = 0;
 
 static GSList *type_command_list = NULL;
 static GSList *load_list = NULL;
@@ -250,7 +234,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_NULL("romlist-print", &romlist_print),
 	XC_CALL_STRING("crclist", &crclist_assign),
 	XC_CALL_NULL("crclist-print", &crclist_print),
-	XC_SET_BOOL("force-crc-match", &xroar_opt_force_crc_match),
+	XC_SET_BOOL("force-crc-match", &xroar_cfg.force_crc_match),
 	XC_CALL_STRING("load", &add_load),
 	XC_CALL_STRING("cartna", &add_load),
 	XC_CALL_STRING("snap", &add_load),
@@ -259,10 +243,10 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("cart", &opt_run),
 	XC_SET_STRING("lp-file", &opt_lp_file),
 	XC_SET_STRING("lp-pipe", &opt_lp_pipe),
-	XC_SET_STRING("becker-ip", &xroar_opt_becker_ip),
-	XC_SET_STRING("becker-port", &xroar_opt_becker_port),
-	XC_SET_STRING("dw4-ip", &xroar_opt_becker_ip),
-	XC_SET_STRING("dw4-port", &xroar_opt_becker_port),
+	XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip),
+	XC_SET_STRING("becker-port", &xroar_cfg.becker_port),
+	XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip),
+	XC_SET_STRING("dw4-port", &xroar_cfg.becker_port),
 
 	/* Automatic actions */
 	XC_CALL_STRING("type", &type_command),
@@ -271,23 +255,23 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("ui", &opt_ui),
 	XC_SET_STRING("filereq", &opt_filereq),
 	XC_SET_STRING("vo", &opt_vo),
-	XC_SET_STRING("geometry", &xroar_opt_geometry),
-	XC_SET_STRING("g", &xroar_opt_geometry),
-	XC_SET_ENUM("gl-filter", &xroar_opt_gl_filter, gl_filter_list),
+	XC_SET_STRING("geometry", &xroar_cfg.geometry),
+	XC_SET_STRING("g", &xroar_cfg.geometry),
+	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
 	XC_SET_STRING("ao", &opt_ao),
-	XC_SET_STRING("ao-device", &xroar_opt_ao_device),
-	XC_SET_INT("ao-rate", &xroar_opt_ao_rate),
-	XC_SET_INT("ao-buffer-ms", &xroar_opt_ao_buffer_ms),
-	XC_SET_INT("ao-buffer-samples", &xroar_opt_ao_buffer_samples),
-	XC_SET_INT("volume", &xroar_opt_volume),
+	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
+	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
+	XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms),
+	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_samples),
+	XC_SET_INT("volume", &opt_volume),
 #ifndef FAST_SOUND
-	XC_SET_BOOL("fast-sound", &xroar_fast_sound),
+	XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound),
 #endif
-	XC_SET_BOOL("fs", &xroar_opt_fullscreen),
-	XC_SET_ENUM("ccr", &xroar_opt_ccr, ccr_list),
-	XC_SET_INT("fskip", &xroar_opt_frameskip),
-	XC_SET_STRING("keymap", &xroar_opt_keymap),
-	XC_SET_BOOL("kbd-translate", &xroar_kbd_translate),
+	XC_SET_BOOL("fs", &xroar_cfg.fullscreen),
+	XC_SET_ENUM("ccr", &xroar_cfg.ccr, ccr_list),
+	XC_SET_INT("fskip", &xroar_cfg.frameskip),
+	XC_SET_STRING("keymap", &xroar_cfg.keymap),
+	XC_SET_BOOL("kbd-translate", &xroar_cfg.kbd_translate),
 	XC_CALL_STRING("joy", &set_joystick),
 	XC_SET_STRING("joy-desc", &opt_joy_desc),
 	XC_CALL_STRING("joy-axis", &set_joystick_axis),
@@ -295,21 +279,21 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("joy-right", &opt_joy_right),
 	XC_SET_STRING("joy-left", &opt_joy_left),
 	XC_SET_STRING("joy-virtual", &opt_joy_virtual),
-	XC_SET_INT1("tape-fast", &xroar_opt_tape_fast),
-	XC_SET_INT1("tape-pad", &xroar_opt_tape_pad),
-	XC_SET_INT1("tape-pad-auto", &xroar_opt_tape_pad_auto),
-	XC_SET_INT1("tape-rewrite", &xroar_opt_tape_rewrite),
-	XC_SET_INT1("tapehack", &xroar_opt_tape_rewrite),
-	XC_SET_BOOL("becker", &xroar_opt_becker),
-	XC_SET_BOOL("disk-jvc-hack", &xroar_opt_disk_jvc_hack),
-	XC_SET_BOOL("disk-write-back", &xroar_opt_disk_write_back),
+	XC_SET_INT1("tape-fast", &opt_tape_fast),
+	XC_SET_INT1("tape-pad", &opt_tape_pad),
+	XC_SET_INT1("tape-pad-auto", &opt_tape_pad_auto),
+	XC_SET_INT1("tape-rewrite", &opt_tape_rewrite),
+	XC_SET_INT1("tapehack", &opt_tape_rewrite),
+	XC_SET_BOOL("becker", &xroar_cfg.becker),
+	XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack),
+	XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back),
 #ifdef TRACE
-	XC_SET_INT1("trace", &xroar_trace_enabled),
+	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
 #endif
 
 	// Debug options
-	XC_SET_INT("debug-file", &xroar_opt_debug_file),
-	XC_SET_INT("debug-fdc", &xroar_opt_debug_fdc),
+	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
+	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
 
 	XC_CALL_NULL("help", &helptext),
 	XC_CALL_NULL("h", &helptext),
@@ -493,12 +477,6 @@ static const char *default_config[] = {
 
 	NULL
 };
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Debug flags
-
-unsigned xroar_opt_debug_file = 0;
-unsigned xroar_opt_debug_fdc = 0;
 
 /**************************************************************************/
 
@@ -1022,9 +1000,9 @@ _Bool xroar_init(int argc, char **argv) {
 	joystick_module = NULL;
 
 	/* Check other command-line options */
-	if (xroar_opt_frameskip < 0)
-		xroar_opt_frameskip = 0;
-	xroar_frameskip = xroar_opt_frameskip;
+	if (xroar_cfg.frameskip < 0)
+		xroar_cfg.frameskip = 0;
+	xroar_frameskip = xroar_cfg.frameskip;
 
 	// Remaining command line arguments are files.
 	while (argn < argc) {
@@ -1040,14 +1018,14 @@ _Bool xroar_init(int argc, char **argv) {
 		add_load(opt_run);
 	}
 
-	sound_set_volume(xroar_opt_volume);
+	sound_set_volume(opt_volume);
 	/* turn off tape_pad_auto if any tape_pad specified */
-	if (xroar_opt_tape_pad >= 0)
-		xroar_opt_tape_pad_auto = 0;
-	xroar_opt_tape_fast = xroar_opt_tape_fast ? TAPE_FAST : 0;
-	xroar_opt_tape_pad = (xroar_opt_tape_pad > 0) ? TAPE_PAD : 0;
-	xroar_opt_tape_pad_auto = xroar_opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
-	xroar_opt_tape_rewrite = xroar_opt_tape_rewrite ? TAPE_REWRITE : 0;
+	if (opt_tape_pad >= 0)
+		opt_tape_pad_auto = 0;
+	opt_tape_fast = opt_tape_fast ? TAPE_FAST : 0;
+	opt_tape_pad = (opt_tape_pad > 0) ? TAPE_PAD : 0;
+	opt_tape_pad_auto = opt_tape_pad_auto ? TAPE_PAD_AUTO : 0;
+	opt_tape_rewrite = opt_tape_rewrite ? TAPE_REWRITE : 0;
 
 	_Bool no_auto_dos = xroar_machine_config->nodos;
 	_Bool definitely_dos = 0;
@@ -1145,7 +1123,7 @@ _Bool xroar_init(int argc, char **argv) {
 	}
 
 	/* Notify UI of starting options: */
-	xroar_set_kbd_translate(xroar_kbd_translate);
+	xroar_set_kbd_translate(xroar_cfg.kbd_translate);
 
 	/* Configure machine */
 	machine_configure(xroar_machine_config);
@@ -1156,7 +1134,7 @@ _Bool xroar_init(int argc, char **argv) {
 	/* Reset everything */
 	machine_reset(RESET_HARD);
 	printer_reset();
-	tape_select_state(xroar_opt_tape_fast | xroar_opt_tape_pad | xroar_opt_tape_pad_auto | xroar_opt_tape_rewrite);
+	tape_select_state(opt_tape_fast | opt_tape_pad | opt_tape_pad_auto | opt_tape_rewrite);
 
 	load_disk_to_drive = 0;
 	while (load_list) {
@@ -1252,7 +1230,7 @@ void xroar_run(void) {
 	CPU0->instruction_posthook = NULL;
 
 #ifdef TRACE
-	xroar_set_trace(xroar_trace_enabled);
+	xroar_set_trace(xroar_cfg.trace_enabled);
 #endif
 
 	/* If UI module has its own idea of a main loop, delegate to that */
@@ -1356,11 +1334,11 @@ void xroar_set_trace(int mode) {
 			set_to = 1;
 			break;
 		case XROAR_TOGGLE: case XROAR_CYCLE:
-			set_to = !xroar_trace_enabled;
+			set_to = !xroar_cfg.trace_enabled;
 			break;
 	}
-	xroar_trace_enabled = set_to;
-	if (xroar_trace_enabled) {
+	xroar_cfg.trace_enabled = set_to;
+	if (xroar_cfg.trace_enabled) {
 		switch (xroar_machine_config->cpu) {
 		case CPU_MC6809: default:
 			CPU0->interrupt_hook = mc6809_trace_irq;
@@ -1557,14 +1535,14 @@ void xroar_set_kbd_translate(int kbd_translate) {
 	lock = 1;
 	switch (kbd_translate) {
 		case XROAR_TOGGLE: case XROAR_CYCLE:
-			xroar_kbd_translate = !xroar_kbd_translate;
+			xroar_cfg.kbd_translate = !xroar_cfg.kbd_translate;
 			break;
 		default:
-			xroar_kbd_translate = kbd_translate;
+			xroar_cfg.kbd_translate = kbd_translate;
 			break;
 	}
 	if (xroar_kbd_translate_changed_cb) {
-		xroar_kbd_translate_changed_cb(xroar_kbd_translate);
+		xroar_kbd_translate_changed_cb(xroar_cfg.kbd_translate);
 	}
 	if (keyboard_module->update_kbd_translate) {
 		keyboard_module->update_kbd_translate();

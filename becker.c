@@ -84,8 +84,8 @@ _Bool becker_open(void) {
 #endif
 
 	struct addrinfo hints, *info;
-	const char *hostname = xroar_opt_becker_ip ? xroar_opt_becker_ip : "localhost";
-	const char *portname = xroar_opt_becker_port ? xroar_opt_becker_port : "65504";
+	const char *hostname = xroar_cfg.becker_ip ? xroar_cfg.becker_ip : "localhost";
+	const char *portname = xroar_cfg.becker_port ? xroar_cfg.becker_port : "65504";
 
 	// Find the server
 	memset(&hints, 0, sizeof(hints));
@@ -146,7 +146,7 @@ void becker_close(void) {
 }
 
 void becker_reset(void) {
-	if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+	if (xroar_cfg.debug_fdc & XROAR_DEBUG_FDC_BECKER) {
 		log_open_hexdump(&log_data_in_hex, "BECKER IN ");
 		log_open_hexdump(&log_data_out_hex, "BECKER OUT");
 	}
@@ -157,7 +157,7 @@ static void fetch_input(void) {
 		ssize_t new = recv(sockfd, input_buf, INPUT_BUFFER_SIZE, 0);
 		if (new > 0) {
 			input_buf_length = new;
-			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+			if (xroar_cfg.debug_fdc & XROAR_DEBUG_FDC_BECKER) {
 				// flush & reopen output hexdump
 				log_open_hexdump(&log_data_out_hex, "BECKER OUT");
 				for (unsigned i = 0; i < (unsigned)new; i++)
@@ -171,7 +171,7 @@ static void write_output(void) {
 	if (output_buf_length > 0) {
 		ssize_t sent = send(sockfd, output_buf + output_buf_ptr, output_buf_length - output_buf_ptr, 0);
 		if (sent > 0) {
-			if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+			if (xroar_cfg.debug_fdc & XROAR_DEBUG_FDC_BECKER) {
 				// flush & reopen input hexdump
 				log_open_hexdump(&log_data_in_hex, "BECKER IN ");
 				for (unsigned i = 0; i < (unsigned)sent; i++)
@@ -186,7 +186,7 @@ static void write_output(void) {
 }
 
 uint8_t becker_read_status(void) {
-	if (xroar_opt_debug_fdc & XROAR_DEBUG_FDC_BECKER) {
+	if (xroar_cfg.debug_fdc & XROAR_DEBUG_FDC_BECKER) {
 		// flush both hexdump logs
 		log_hexdump_line(log_data_in_hex);
 		log_hexdump_line(log_data_out_hex);

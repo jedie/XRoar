@@ -537,8 +537,8 @@ static _Bool init(void) {
 	gtk_widget_show(gtk2_drawing_area);
 
 	/* Parse initial geometry */
-	if (xroar_opt_geometry) {
-		gtk_window_parse_geometry(GTK_WINDOW(gtk2_top_window), xroar_opt_geometry);
+	if (xroar_cfg.geometry) {
+		gtk_window_parse_geometry(GTK_WINDOW(gtk2_top_window), xroar_cfg.geometry);
 	}
 
 	/* Now up to video module to do something with this drawing_area */

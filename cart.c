@@ -132,11 +132,11 @@ struct cart_config *cart_find_working_dos(struct machine_config *mc) {
 			cc = cart_config_by_name("delta");
 		}
 	} else {
-		if (xroar_opt_becker && (tmp = romlist_find("@rsdos_becker"))) {
+		if (xroar_cfg.becker && (tmp = romlist_find("@rsdos_becker"))) {
 			cc = cart_config_by_name("becker");
 		} else if ((tmp = romlist_find("@rsdos"))) {
 			cc = cart_config_by_name("rsdos");
-		} else if (!xroar_opt_becker && (tmp = romlist_find("@rsdos_becker"))) {
+		} else if (!xroar_cfg.becker && (tmp = romlist_find("@rsdos_becker"))) {
 			cc = cart_config_by_name("becker");
 		}
 	}

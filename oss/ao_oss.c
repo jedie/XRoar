@@ -47,7 +47,7 @@ static int fragment_size;
 static void *audio_buffer;
 
 static _Bool init(void) {
-	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "/dev/dsp";
+	const char *device = xroar_cfg.ao_device ? xroar_cfg.ao_device : "/dev/dsp";
 	int fragment_param, tmp;
 
 	sound_fd = open(device, O_WRONLY);
@@ -83,16 +83,16 @@ static _Bool init(void) {
 
 	unsigned int sample_rate;
 	/* Attempt to set sample_rate, but live with whatever we get */
-	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
 	if (ioctl(sound_fd, SNDCTL_DSP_SPEED, &sample_rate) == -1)
 		goto failed;
 
 	int fragments = 2;
 	int buffer_samples;
-	if (xroar_opt_ao_buffer_ms > 0) {
-		buffer_samples = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
-	} else if (xroar_opt_ao_buffer_samples > 0) {
-		buffer_samples = xroar_opt_ao_buffer_samples;
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		buffer_samples = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_samples > 0) {
+		buffer_samples = xroar_cfg.ao_buffer_samples;
 	} else {
 		buffer_samples = 1024;
 	}

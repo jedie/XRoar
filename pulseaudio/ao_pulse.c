@@ -47,7 +47,7 @@ static void *audio_buffer;
 static int fragment_bytes;
 
 static _Bool init(void) {
-	const char *device = xroar_opt_ao_device;
+	const char *device = xroar_cfg.ao_device;
 	pa_sample_spec ss = {
 		.format = PA_SAMPLE_U8,
 		.channels = 1
@@ -59,14 +59,14 @@ static _Bool init(void) {
 	};
 	int error;
 
-	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
 	ss.rate = sample_rate;
 
 	int fragment_size;
-	if (xroar_opt_ao_buffer_ms > 0) {
-		fragment_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
-	} else if (xroar_opt_ao_buffer_samples > 0) {
-		fragment_size = xroar_opt_ao_buffer_samples;
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		fragment_size = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_samples > 0) {
+		fragment_size = xroar_cfg.ao_buffer_samples;
 	} else {
 		fragment_size = 512;
 	}

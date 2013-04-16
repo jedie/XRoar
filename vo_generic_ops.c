@@ -186,7 +186,7 @@ static void update_cross_colour_phase(void) {
 	if (xroar_machine_config->cross_colour_phase == CROSS_COLOUR_OFF) {
 		video_module->render_scanline = render_scanline;
 	} else {
-		if (xroar_opt_ccr == CROSS_COLOUR_SIMPLE) {
+		if (xroar_cfg.ccr == CROSS_COLOUR_SIMPLE) {
 			video_module->render_scanline = render_ccr_simple;
 		} else {
 			video_module->render_scanline = render_ccr_5bit;

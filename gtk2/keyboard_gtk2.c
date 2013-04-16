@@ -159,9 +159,9 @@ static _Bool init(void) {
 				&& !strcmp("uk", mappings[i].name)) {
 			selected_keymap = mappings[i].raw;
 		}
-		if (xroar_opt_keymap && !strcmp(xroar_opt_keymap, mappings[i].name)) {
+		if (xroar_cfg.keymap && !strcmp(xroar_cfg.keymap, mappings[i].name)) {
 			selected_keymap = mappings[i].raw;
-			LOG_DEBUG(2,"\tSelecting '%s' keymap\n", xroar_opt_keymap);
+			LOG_DEBUG(2,"\tSelecting '%s' keymap\n", xroar_cfg.keymap);
 		}
 	}
 	map_keyboard(selected_keymap);
@@ -278,7 +278,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 				xroar_frameskip = 10;
 			} else {
 				xroar_noratelimit = 0;
-				xroar_frameskip = xroar_opt_frameskip;
+				xroar_frameskip = xroar_cfg.frameskip;
 			}
 		} else {
 			xroar_noratelimit = 1;
@@ -295,7 +295,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (keyval == GDK_Left) { KEYBOARD_PRESS(KEYMAP_LEFT); return FALSE; }
 	if (keyval == GDK_Right) { KEYBOARD_PRESS(KEYMAP_RIGHT); return FALSE; }
 	if (keyval == GDK_Home) { KEYBOARD_PRESS_CLEAR(); return FALSE; }
-	if (xroar_kbd_translate) {
+	if (xroar_cfg.kbd_translate) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
 		if (event->keyval >= 0xff00 && event->keyval < 0xff20) {
@@ -361,7 +361,7 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	if (keyval == GDK_F12) {
 		if (!noratelimit_latch) {
 			xroar_noratelimit = 0;
-			xroar_frameskip = xroar_opt_frameskip;
+			xroar_frameskip = xroar_cfg.frameskip;
 		}
 	}
 	if (keyval == GDK_Up) { KEYBOARD_RELEASE(KEYMAP_UP); return FALSE; }
@@ -369,7 +369,7 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	if (keyval == GDK_Left) { KEYBOARD_RELEASE(KEYMAP_LEFT); return FALSE; }
 	if (keyval == GDK_Right) { KEYBOARD_RELEASE(KEYMAP_RIGHT); return FALSE; }
 	if (keyval == GDK_Home) { KEYBOARD_RELEASE_CLEAR(); return FALSE; }
-	if (xroar_kbd_translate) {
+	if (xroar_cfg.kbd_translate) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
 		unicode = last_unicode[keycode];

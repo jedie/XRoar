@@ -71,12 +71,12 @@ static _Bool init(void) {
 		LOG_ERROR("Failed to initialise SDL audio\n");
 		return 0;
 	}
-	desired.freq = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
+	desired.freq = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
 	desired.format = AUDIO_U8;
-	if (xroar_opt_ao_buffer_ms > 0) {
-		desired.samples = (desired.freq * xroar_opt_ao_buffer_ms) / 1000;
-	} else if (xroar_opt_ao_buffer_samples > 0) {
-		desired.samples = xroar_opt_ao_buffer_samples;
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		desired.samples = (desired.freq * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_samples > 0) {
+		desired.samples = xroar_cfg.ao_buffer_samples;
 	} else {
 		desired.samples = 1024;
 	}

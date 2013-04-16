@@ -86,7 +86,7 @@ static _Bool init(void) {
 	window_width = 640;
 	window_height = 480;
 
-	if (set_fullscreen(xroar_opt_fullscreen))
+	if (set_fullscreen(xroar_cfg.fullscreen))
 		return 0;
 
 #ifdef WINDOWS32

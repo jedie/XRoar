@@ -49,13 +49,13 @@ static snd_pcm_uframes_t period_nframes;
 static void *audio_buffer;
 
 static _Bool init(void) {
-	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "default";
+	const char *device = xroar_cfg.ao_device ? xroar_cfg.ao_device : "default";
 	int err;
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_format_t format = SND_PCM_FORMAT_U8;
 	unsigned nchannels = 1;
 
-	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
 
 	if ((err = snd_pcm_open(&pcm_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
 		goto failed;
@@ -82,10 +82,10 @@ static _Bool init(void) {
 		goto failed;
 
 	snd_pcm_uframes_t buffer_nframes;
-	if (xroar_opt_ao_buffer_ms > 0) {
-		buffer_nframes = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
-	} else if (xroar_opt_ao_buffer_samples > 0) {
-		buffer_nframes = xroar_opt_ao_buffer_samples;
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		buffer_nframes = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_samples > 0) {
+		buffer_nframes = xroar_cfg.ao_buffer_samples;
 	} else {
 		buffer_nframes = period_nframes * 2;
 	}

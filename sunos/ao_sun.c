@@ -50,7 +50,7 @@ static int sound_fd;
 static uint_t samples_written;
 
 static _Bool init(void) {
-	const char *device = xroar_opt_ao_device ? xroar_opt_ao_device : "/dev/audio";
+	const char *device = xroar_cfg.ao_device ? xroar_cfg.ao_device : "/dev/audio";
 	audio_info_t device_info;
 
 	sound_fd = open(device, O_WRONLY);
@@ -58,7 +58,7 @@ static _Bool init(void) {
 		LOG_ERROR("Couldn't open audio device %s: %s!\n", device, strerror(errno));
 		return 0;
 	}
-	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
 	AUDIO_INITINFO(&device_info);
 	device_info.play.sample_rate = sample_rate;
 	device_info.play.channels = 1;
@@ -75,10 +75,10 @@ static _Bool init(void) {
 	}
 
 	int frame_size;
-	if (xroar_opt_ao_buffer_ms > 0) {
-		frame_size = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
-	} else if (xroar_opt_ao_buffer_samples > 0) {
-		frame_size = xroar_opt_ao_buffer_samples;
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		frame_size = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_samples > 0) {
+		frame_size = xroar_cfg.ao_buffer_samples;
 	} else {
 		frame_size = 1024;
 	}

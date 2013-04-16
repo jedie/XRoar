@@ -108,7 +108,7 @@ static _Bool init(void) {
 	window_width = 640;
 	window_height = 480;
 
-	if (set_fullscreen(xroar_opt_fullscreen))
+	if (set_fullscreen(xroar_cfg.fullscreen))
 		return 0;
 	Uint32 first_successful_format = 0;
 	for (i = 0; i < NUM_OVERLAY_FORMATS; i++) {

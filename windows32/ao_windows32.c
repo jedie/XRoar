@@ -48,12 +48,12 @@ static int sample_rate;
 static uint8_t *audio_buffer;
 
 static _Bool init(void) {
-	sample_rate = (xroar_opt_ao_rate > 0) ? xroar_opt_ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
 
-	if (xroar_opt_ao_buffer_ms > 0) {
-		buffer_samples = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
-	} else if (xroar_opt_ao_buffer_samples > 0) {
-		buffer_samples = xroar_opt_ao_buffer_samples;
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		buffer_samples = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_samples > 0) {
+		buffer_samples = xroar_cfg.ao_buffer_samples;
 	} else {
 		buffer_samples = (sample_rate * 23) / 1000;
 	}

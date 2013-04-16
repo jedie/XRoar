@@ -95,7 +95,7 @@ _Bool vo_opengl_init(void) {
 	window_height = 480;
 	vo_opengl_x = vo_opengl_y = 0;
 
-	switch (xroar_opt_gl_filter) {
+	switch (xroar_cfg.gl_filter) {
 	case XROAR_GL_FILTER_NEAREST:
 		filter = FILTER_NEAREST;
 		break;

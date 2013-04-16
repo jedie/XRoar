@@ -85,10 +85,10 @@ static _Bool init(void) {
 	unsigned int buffer_nchannels = deviceFormat.mChannelsPerFrame;
 
 	unsigned int buffer_nframes;
-	if (xroar_opt_ao_buffer_ms > 0) {
-		buffer_nframes = (sample_rate * xroar_opt_ao_buffer_ms) / 1000;
-	} else if (xroar_opt_ao_buffer_samples > 0) {
-		buffer_nframes = xroar_opt_ao_buffer_samples;
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		buffer_nframes = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_samples > 0) {
+		buffer_nframes = xroar_cfg.ao_buffer_samples;
 	} else {
 		buffer_nframes = 1024;
 	}

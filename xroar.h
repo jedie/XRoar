@@ -54,31 +54,43 @@ extern void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate);
 #define XROAR_GL_FILTER_NEAREST (0)
 #define XROAR_GL_FILTER_LINEAR  (1)
 
-/* Attach files */
-extern _Bool xroar_opt_force_crc_match;
-extern char *xroar_opt_becker_ip;
-extern char *xroar_opt_becker_port;
+struct xroar_cfg {
+	/* Emulator interface */
+	// Video
+	char *geometry;
+	int gl_filter;
+	_Bool fullscreen;
+	int frameskip;
+	int ccr;
+	// Audio
+	char *ao_device;
+	int ao_rate;
+	int ao_buffer_ms;
+	int ao_buffer_samples;
+#ifndef FAST_SOUND
+	_Bool fast_sound;
+#endif
+	// Keyboard
+	char *keymap;
+	_Bool kbd_translate;
+	// Cartridges
+	_Bool becker;
+	char *becker_ip;
+	char *becker_port;
+	// Disks
+	_Bool disk_write_back;
+	_Bool disk_jvc_hack;
+	// CRC lists
+	_Bool force_crc_match;
+	// Debugging
+	int trace_enabled;
+	unsigned debug_file;
+	unsigned debug_fdc;
+};
+
+extern struct xroar_cfg xroar_cfg;
 
 /* Emulator interface */
-extern char *xroar_opt_geometry;  /* initial emulator geometry string */
-extern int xroar_opt_gl_filter;
-extern char *xroar_opt_ao_device;
-extern int xroar_opt_ao_rate;
-extern int xroar_opt_ao_buffer_ms;
-extern int xroar_opt_ao_buffer_samples;
-#ifndef FAST_SOUND
-extern _Bool xroar_fast_sound;
-#endif
-extern _Bool xroar_opt_fullscreen;
-extern int xroar_opt_frameskip;
-extern char *xroar_opt_keymap;
-extern _Bool xroar_kbd_translate;
-extern char *xroar_opt_joy_left;
-extern char *xroar_opt_joy_right;
-extern int xroar_trace_enabled;
-extern _Bool xroar_opt_becker;
-extern _Bool xroar_opt_disk_write_back;
-extern _Bool xroar_opt_disk_jvc_hack;
 
 extern struct xconfig_enum xroar_cross_colour_list[];
 
@@ -89,7 +101,7 @@ extern struct xconfig_enum xroar_cross_colour_list[];
  * or with a 5-bit lookup table */
 #define CROSS_COLOUR_SIMPLE (0)
 #define CROSS_COLOUR_5BIT   (1)
-extern int xroar_opt_ccr;
+
 extern _Bool xroar_noratelimit;
 extern int xroar_frameskip;
 
@@ -112,16 +124,12 @@ extern struct vdg_palette *xroar_vdg_palette;
 // Files: binary files & hex record data
 #define XROAR_DEBUG_FILE_BIN_DATA (1 << 1)
 
-extern unsigned xroar_opt_debug_file;
-
 // FDC: state debug level mask (1 = commands, 2 = all)
 #define XROAR_DEBUG_FDC_STATE (3 << 0)
 // FDC: dump sector data flag
 #define XROAR_DEBUG_FDC_DATA (1 << 2)
 // FDC: dump becker data flag
 #define XROAR_DEBUG_FDC_BECKER (1 << 3)
-
-extern unsigned xroar_opt_debug_fdc;
 
 /**************************************************************************/
 

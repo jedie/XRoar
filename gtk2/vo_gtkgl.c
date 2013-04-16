@@ -74,9 +74,9 @@ static _Bool init(void) {
 	 * right size even if we then fullscreen.  */
 	gtk_widget_show(gtk2_top_window);
 	/* Set fullscreen and update UI. */
-	set_fullscreen(xroar_opt_fullscreen);
+	set_fullscreen(xroar_cfg.fullscreen);
 	if (xroar_fullscreen_changed_cb) {
-		xroar_fullscreen_changed_cb(xroar_opt_fullscreen);
+		xroar_fullscreen_changed_cb(xroar_cfg.fullscreen);
 	}
 
 	vsync();
