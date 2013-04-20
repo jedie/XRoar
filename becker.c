@@ -72,17 +72,6 @@ struct log_handle *log_data_out_hex = NULL;
 
 _Bool becker_open(void) {
 
-#ifdef WINDOWS32
-	// Windows needs this to load the appropriate DLL, it seems
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	wVersionRequested = MAKEWORD(2, 2);
-	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
-		LOG_WARN("becker: WSAStartup failed\n");
-		return 0;
-	}
-#endif
-
 	struct addrinfo hints, *info;
 	const char *hostname = xroar_cfg.becker_ip ? xroar_cfg.becker_ip : "localhost";
 	const char *portname = xroar_cfg.becker_port ? xroar_cfg.becker_port : "65504";
@@ -130,9 +119,6 @@ failed:
 		close(sockfd);
 		sockfd = -1;
 	}
-#ifdef WINDOWS32
-	WSACleanup();
-#endif
 	return 0;
 }
 

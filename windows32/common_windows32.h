@@ -10,4 +10,7 @@
 
 extern HWND windows32_main_hwnd;
 
+int windows32_init(void);
+void windows32_shutdown(void);
+
 #endif  /* XROAR_COMMON_WINDOWS32_H_ */

@@ -16,8 +16,28 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Windows has a habit of making include order important: */
+#include <winsock2.h>
 #include <windows.h>
+#include <ws2tcpip.h>
 
+#include "logging.h"
 #include "windows32/common_windows32.h"
 
 HWND windows32_main_hwnd;
+
+int windows32_init(void) {
+	// Windows needs this to do networking
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	wVersionRequested = MAKEWORD(2, 2);
+	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
+		LOG_WARN("windows32: WSAStartup failed\n");
+		return -1;
+	}
+	return 0;
+}
+
+void windows32_shutdown(void) {
+	WSACleanup();
+}

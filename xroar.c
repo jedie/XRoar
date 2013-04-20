@@ -929,6 +929,10 @@ _Bool xroar_init(int argc, char **argv) {
 	int argn = 1, ret;
 	char *conffile;
 
+#ifdef WINDOWS32
+	windows32_init();
+#endif
+
 	xroar_conf_path = getenv("XROAR_CONF_PATH");
 	if (!xroar_conf_path)
 		xroar_conf_path = CONFPATH;
@@ -1228,6 +1232,9 @@ void xroar_shutdown(void) {
 	module_shutdown((struct module *)video_module);
 	module_shutdown((struct module *)filereq_module);
 	module_shutdown((struct module *)ui_module);
+#ifdef WINDOWS32
+	windows32_shutdown();
+#endif
 }
 
 static struct vdg_palette *get_machine_palette(void) {
