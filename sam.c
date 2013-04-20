@@ -134,6 +134,9 @@ _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles) {
 		*S = 2;
 	}
 
+	if (!ncycles)
+		return is_ram_access;
+
 	if (running_fast) {
 		if (fast_cycle) {
 			// Fast cycle, may become un-interleaved
