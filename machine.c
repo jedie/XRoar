@@ -534,6 +534,18 @@ static _Bool do_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 	return is_ram_access;
 }
 
+/* Same as do_cpu_cycle, but for debugging accesses */
+static _Bool debug_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
+	uint16_t tmp_Z;
+	_Bool is_ram_access = sam_run(A, RnW, S, &tmp_Z, NULL);
+	if (is_ram_access) {
+		*Z = decode_Z(tmp_Z);
+	}
+	MC6809_IRQ_SET(CPU0, PIA0.a.irq | PIA0.b.irq);
+	MC6809_FIRQ_SET(CPU0, PIA1.a.irq | PIA1.b.irq);
+	return is_ram_access;
+}
+
 static uint8_t read_D = 0;
 
 static uint8_t read_cycle(uint16_t A) {
@@ -672,34 +684,111 @@ void machine_toggle_pause(void) {
 	CPU0->halt = !CPU0->halt;
 }
 
-/* simplified read byte for use by convenience functions - ROM and RAM only */
+/* Read a byte without advancing clock.  Used for debugging & breakpoints. */
+
 uint8_t machine_read_byte(uint16_t A) {
-	int S, ncycles;
-	uint16_t Z;
-	_Bool is_ram_access = sam_run(A, 1, &S, &Z, &ncycles);
-	if (is_ram_access) {
-		Z = decode_Z(Z);
-		if (Z < machine_ram_size)
-			return machine_ram[Z];
-		return 0;
+	uint8_t D = read_D;
+	int S;
+	uint16_t Z = 0;
+	_Bool is_ram_access = debug_cpu_cycle(A, 1, &S, &Z);
+	if (is_ram_access)
+		D = 0xff;
+	switch (S) {
+		case 0:
+			if (Z < machine_ram_size)
+				D = machine_ram[Z];
+			break;
+		case 1:
+		case 2:
+			D = machine_rom[A & 0x3fff];
+			break;
+		case 3:
+			if (machine_cart)
+				machine_cart->read(machine_cart, A, 0, &D);
+			break;
+		case 4:
+			if (IS_COCO) {
+				D = mc6821_read(&PIA0, A & 3);
+			} else {
+				if ((A & 4) == 0) {
+					D = mc6821_read(&PIA0, A & 3);
+				} else {
+					if (have_acia) {
+						/* XXX Dummy ACIA reads */
+						switch (A & 3) {
+						default:
+						case 0:  /* Receive Data */
+						case 3:  /* Control */
+							D = 0x00;
+							break;
+						case 2:  /* Command */
+							D = 0x02;
+							break;
+						case 1:  /* Status */
+							D = 0x10;
+							break;
+						}
+					}
+				}
+			}
+			break;
+		case 5:
+			D = mc6821_read(&PIA1, A & 3);
+			break;
+		case 6:
+			if (machine_cart)
+				machine_cart->read(machine_cart, A, 1, &D);
+			break;
+		default:
+			break;
 	}
-	if (S == 1 || S == 2)
-		return machine_rom[A & 0x3fff];
-	if (S == 3 && machine_cart)
-		return machine_cart->rom_data[A & 0x3fff];
-	return 0;
+	return D;
 }
 
-/* simplified write byte for use by convenience functions - RAM only */
+/* Write a byte without advancing clock.  Used for debugging & breakpoints. */
+
 void machine_write_byte(uint16_t A, uint8_t D) {
-	int S, ncycles;
-	uint16_t Z;
-	int is_ram_access = sam_run(A, 0, &S, &Z, &ncycles);
-	if (!is_ram_access)
-		return;
-	Z = decode_Z(Z);
-	if (Z < machine_ram_size)
+	int S;
+	uint16_t Z = 0;
+	// Changing the SAM VDG mode can affect its idea of the current VRAM
+	// address, so get the VDG output up to date:
+	if (A >= 0xffc0 && A < 0xffc6) {
+		vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+	}
+	_Bool is_ram_access = debug_cpu_cycle(A, 0, &S, &Z);
+	if ((S & 4) || unexpanded_dragon32) {
+		switch (S) {
+			case 1:
+			case 2:
+				D = machine_rom[A & 0x3fff];
+				break;
+			case 3:
+				if (machine_cart)
+					machine_cart->write(machine_cart, A, 0, D);
+				break;
+			case 4:
+				if (IS_COCO) {
+					mc6821_write(&PIA0, A & 3, D);
+				} else {
+					if ((A & 4) == 0) {
+						mc6821_write(&PIA0, A & 3, D);
+					}
+				}
+				break;
+			case 5:
+				mc6821_write(&PIA1, A & 3, D);
+				break;
+			case 6:
+				if (machine_cart)
+					machine_cart->write(machine_cart, A, 1, D);
+				break;
+			default:
+				break;
+		}
+	}
+	if (is_ram_access) {
 		machine_ram[Z] = D;
+	}
 }
 
 /* simulate an RTS without otherwise affecting machine state */
