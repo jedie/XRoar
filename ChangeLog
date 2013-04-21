@@ -12,6 +12,7 @@ Version 0.29, Sat Dec 29 2012
   * "Becker" port supported in RS-DOS.
   * Various CPU timing fixes.
   * Hitachi 6309 support (unverified) with "-machine-cpu 6309".
+  * Added -c option (must be first one) to specify configuration file.
 
 Version 0.28, Sat May 12 2012
 
