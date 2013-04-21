@@ -39,9 +39,6 @@ struct HD6309 {
 	uint16_t reg_w;
 	uint8_t reg_md;
 	uint16_t reg_v;
-	// Extra state (derived from reg_md)
-	_Bool native_mode;
-	_Bool firq_stack_all;
 	// TFM state
 	uint16_t *tfm_src;
 	uint16_t *tfm_dest;

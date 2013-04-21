@@ -385,8 +385,6 @@ int read_snapshot(const char *filename) {
 				hcpu->reg_v = fs_read_uint16(fd);
 				tmp = fs_read_uint8(fd);
 				hcpu->reg_md = tmp;
-				hcpu->native_mode = tmp & 0x01;
-				hcpu->firq_stack_all = tmp & 0x02;
 				tmp = fs_read_uint8(fd);
 				hcpu->tfm_src = tfm_reg_ptr(hcpu, tmp >> 4);
 				hcpu->tfm_dest = tfm_reg_ptr(hcpu, tmp & 15);

@@ -111,6 +111,9 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 
 #define RREG_Q ((REG_D << 16) | REG_W)
 
+#define NATIVE_MODE (REG_MD & MD_NM)
+#define FIRQ_STACK_ALL (REG_MD & MD_FM)
+
 /* CPU fetch/store goes via SAM */
 #define fetch_byte(a) (cpu->cycle++, cpu->read_cycle(a))
 #define store_byte(a,v) do { cpu->cycle++; cpu->write_cycle(a, v); } while (0)
@@ -150,7 +153,7 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 		unsigned postbyte; \
 		BYTE_IMMEDIATE(0, postbyte); \
 		NVMA_CYCLE(); \
-		if (!hcpu->native_mode) \
+		if (!NATIVE_MODE) \
 			NVMA_CYCLE(); \
 		peek_byte(s); \
 		if (postbyte & 0x80) { PUSHWORD(s, REG_PC); } \
@@ -167,7 +170,7 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 		unsigned postbyte; \
 		BYTE_IMMEDIATE(0, postbyte); \
 		NVMA_CYCLE(); \
-		if (!hcpu->native_mode) \
+		if (!NATIVE_MODE) \
 			NVMA_CYCLE(); \
 		if (postbyte & 0x01) { PULLBYTE(s, REG_CC); } \
 		if (postbyte & 0x02) { PULLBYTE(s, WREG_A); } \
@@ -189,7 +192,7 @@ static void hd6309_jump(struct MC6809 *cpu, uint16_t pc);
 			PUSHWORD(REG_S, REG_Y); \
 			PUSHWORD(REG_S, REG_X); \
 			PUSHBYTE(REG_S, REG_DP); \
-			if (hcpu->native_mode) { \
+			if (NATIVE_MODE) { \
 				PUSHBYTE(REG_S, RREG_F); \
 				PUSHBYTE(REG_S, RREG_E); \
 			} \
@@ -546,7 +549,7 @@ static _Bool branch_cond(struct MC6809 *cpu, unsigned op) {
 static uint16_t ea_direct(struct MC6809 *cpu) {
 	struct HD6309 *hcpu = (struct HD6309 *)cpu;
 	unsigned ea = REG_DP << 8 | fetch_byte(REG_PC++);
-	if (!hcpu->native_mode)
+	if (!NATIVE_MODE)
 		NVMA_CYCLE();
 	return ea;
 }
@@ -556,7 +559,7 @@ static uint16_t ea_extended(struct MC6809 *cpu) {
 	unsigned ea = fetch_byte(REG_PC) << 8;
 	ea |= fetch_byte(REG_PC+1);
 	REG_PC += 2;
-	if (!hcpu->native_mode)
+	if (!NATIVE_MODE)
 		NVMA_CYCLE();
 	return ea;
 }
@@ -597,22 +600,22 @@ static uint16_t ea_indexed(struct MC6809 *cpu) {
 		NVMA_CYCLE();
 		NVMA_CYCLE();
 	} else switch (postbyte & 0x0f) {
-		case 0x00: ea = *reg; *reg += 1; peek_byte(REG_PC); NVMA_CYCLE(); if (!hcpu->native_mode) NVMA_CYCLE(); break;
-		case 0x01: ea = *reg; *reg += 2; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); if (!hcpu->native_mode) NVMA_CYCLE(); break;
-		case 0x02: *reg -= 1; ea = *reg; peek_byte(REG_PC); NVMA_CYCLE(); if (!hcpu->native_mode) NVMA_CYCLE(); break;
-		case 0x03: *reg -= 2; ea = *reg; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); if (!hcpu->native_mode) NVMA_CYCLE(); break;
+		case 0x00: ea = *reg; *reg += 1; peek_byte(REG_PC); NVMA_CYCLE(); if (!NATIVE_MODE) NVMA_CYCLE(); break;
+		case 0x01: ea = *reg; *reg += 2; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); if (!NATIVE_MODE) NVMA_CYCLE(); break;
+		case 0x02: *reg -= 1; ea = *reg; peek_byte(REG_PC); NVMA_CYCLE(); if (!NATIVE_MODE) NVMA_CYCLE(); break;
+		case 0x03: *reg -= 2; ea = *reg; peek_byte(REG_PC); NVMA_CYCLE(); NVMA_CYCLE(); if (!NATIVE_MODE) NVMA_CYCLE(); break;
 		case 0x04: ea = *reg; peek_byte(REG_PC); break;
 		case 0x05: ea = *reg + sex8(RREG_B); peek_byte(REG_PC); NVMA_CYCLE(); break;
 		case 0x06: ea = *reg + sex8(RREG_A); peek_byte(REG_PC); NVMA_CYCLE(); break;
 		case 0x07: ea = *reg + sex8(RREG_E); peek_byte(REG_PC); NVMA_CYCLE(); break;
 		case 0x08: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + *reg; NVMA_CYCLE(); break;
-		case 0x09: WORD_IMMEDIATE(0, ea); ea = ea + *reg; NVMA_CYCLE(); NVMA_CYCLE(); if (!hcpu->native_mode) NVMA_CYCLE(); break;
+		case 0x09: WORD_IMMEDIATE(0, ea); ea = ea + *reg; NVMA_CYCLE(); NVMA_CYCLE(); if (!NATIVE_MODE) NVMA_CYCLE(); break;
 		case 0x0a: ea = *reg + sex8(RREG_F); peek_byte(REG_PC); NVMA_CYCLE(); break;
-		case 0x0b: ea = *reg + REG_D; peek_byte(REG_PC); peek_byte(REG_PC + 1); NVMA_CYCLE(); if (!hcpu->native_mode) { NVMA_CYCLE(); NVMA_CYCLE(); } break;
+		case 0x0b: ea = *reg + REG_D; peek_byte(REG_PC); peek_byte(REG_PC + 1); NVMA_CYCLE(); if (!NATIVE_MODE) { NVMA_CYCLE(); NVMA_CYCLE(); } break;
 		case 0x0c: BYTE_IMMEDIATE(0, ea); ea = sex8(ea) + REG_PC; NVMA_CYCLE(); break;
-		case 0x0d: WORD_IMMEDIATE(0, ea); ea = ea + REG_PC; peek_byte(REG_PC); NVMA_CYCLE(); if (!hcpu->native_mode) { NVMA_CYCLE(); NVMA_CYCLE(); } break;
+		case 0x0d: WORD_IMMEDIATE(0, ea); ea = ea + REG_PC; peek_byte(REG_PC); NVMA_CYCLE(); if (!NATIVE_MODE) { NVMA_CYCLE(); NVMA_CYCLE(); } break;
 		case 0x0e: ea = *reg + REG_W; NVMA_CYCLE(); NVMA_CYCLE(); break;
-		case 0x0f: WORD_IMMEDIATE(0, ea); if (!hcpu->native_mode) NVMA_CYCLE(); break;
+		case 0x0f: WORD_IMMEDIATE(0, ea); if (!NATIVE_MODE) NVMA_CYCLE(); break;
 		default: ea = 0; break;
 	}
 	if (postbyte & 0x10) {
@@ -715,7 +718,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			if (!(REG_CC & CC_F) && firq_active) {
 				peek_byte(REG_PC);
 				peek_byte(REG_PC);
-				PUSH_IRQ_REGISTERS(hcpu->firq_stack_all);
+				PUSH_IRQ_REGISTERS(FIRQ_STACK_ALL);
 				hcpu->state = hd6309_state_dispatch_irq;
 				continue;
 			}
@@ -881,7 +884,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				switch (op & 0xf) {
 				case 0xd: // TST
 					NVMA_CYCLE();
-					if (!hcpu->native_mode)
+					if (!NATIVE_MODE)
 						NVMA_CYCLE();
 					break;
 				default: // the rest need storing
@@ -893,12 +896,12 @@ static void hd6309_run(struct MC6809 *cpu) {
 						break;
 					case 0x4:
 						WREG_A = tmp1;
-						if (!hcpu->native_mode)
+						if (!NATIVE_MODE)
 							peek_byte(REG_PC);
 						break;
 					case 0x5:
 						WREG_B = tmp1;
-						if (!hcpu->native_mode)
+						if (!NATIVE_MODE)
 							peek_byte(REG_PC);
 						break;
 					}
@@ -970,7 +973,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			case 0x12: peek_byte(REG_PC); break;
 			// 0x13 SYNC inherent
 			case 0x13:
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					peek_byte(REG_PC);
 				hcpu->state = hd6309_state_sync;
 				continue;
@@ -1037,7 +1040,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				WREG_A = (RREG_B & 0x80) ? 0xff : 0;
 				CLR_NZ;
 				SET_NZ16(REG_D);
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					peek_byte(REG_PC);
 				break;
 			// 0x1e EXG immediate
@@ -1099,7 +1102,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				NVMA_CYCLE();
 				NVMA_CYCLE();
 				NVMA_CYCLE();
-				if (!hcpu->native_mode) {
+				if (!NATIVE_MODE) {
 					NVMA_CYCLE();
 					NVMA_CYCLE();
 					NVMA_CYCLE();
@@ -1146,7 +1149,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				}
 				NVMA_CYCLE();
 				NVMA_CYCLE();
-				if (!hcpu->native_mode) {
+				if (!NATIVE_MODE) {
 					NVMA_CYCLE();
 					NVMA_CYCLE();
 				}
@@ -1204,7 +1207,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			case 0x3a:
 				REG_X += RREG_B;
 				peek_byte(REG_PC);
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					NVMA_CYCLE();
 				break;
 			// 0x3b RTI inherent
@@ -1214,7 +1217,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				if (REG_CC & CC_E) {
 					PULLBYTE(REG_S, WREG_A);
 					PULLBYTE(REG_S, WREG_B);
-					if (hcpu->native_mode) {
+					if (NATIVE_MODE) {
 						PULLBYTE(REG_S, WREG_E);
 						PULLBYTE(REG_S, WREG_F);
 					}
@@ -1258,7 +1261,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				NVMA_CYCLE();
 				NVMA_CYCLE();
 				NVMA_CYCLE();
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					NVMA_CYCLE();
 			} break;
 			// 0x3f SWI inherent
@@ -1346,7 +1349,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 0x43: tmp1 = op_add16(cpu, tmp1, tmp2); break; // ADDD
 				default: break;
 				}
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					NVMA_CYCLE();
 				if (!(op & 0x08)) {
 					REG_D = tmp1;
@@ -1358,7 +1361,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			case 0x8d: case 0x9d: case 0xad: case 0xbd: {
 				unsigned ea;
 				switch ((op >> 4) & 3) {
-				case 0: SHORT_RELATIVE(ea); ea += REG_PC; NVMA_CYCLE(); NVMA_CYCLE(); if (!hcpu->native_mode) NVMA_CYCLE(); break;
+				case 0: SHORT_RELATIVE(ea); ea += REG_PC; NVMA_CYCLE(); NVMA_CYCLE(); if (!NATIVE_MODE) NVMA_CYCLE(); break;
 				case 1: EA_DIRECT(ea); peek_byte(ea); NVMA_CYCLE(); break;
 				case 2: EA_INDEXED(ea); peek_byte(ea); NVMA_CYCLE(); break;
 				case 3: EA_EXTENDED(ea); peek_byte(ea); NVMA_CYCLE(); break;
@@ -1678,7 +1681,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				}
 				switch (op & 0xf) {
 				case 0xd: // TST
-					if (!hcpu->native_mode)
+					if (!NATIVE_MODE)
 						NVMA_CYCLE();
 					break;
 				default: // the rest
@@ -1687,7 +1690,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 					} else {
 						REG_W = tmp1;
 					}
-					if (!hcpu->native_mode)
+					if (!NATIVE_MODE)
 						NVMA_CYCLE();
 					break;
 				}
@@ -1714,7 +1717,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 0xb: tmp1 = op_add16(cpu, tmp1, tmp2); break;
 				default: break;
 				}
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					NVMA_CYCLE();
 				REG_W = tmp1;
 			} break;
@@ -1772,7 +1775,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 0xa: tmp1 = op_or16(cpu, tmp1, tmp2); break;
 				default: break;
 				}
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					NVMA_CYCLE();
 				REG_D = tmp1;
 			} break;
@@ -1789,7 +1792,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				default: tmp2 = 0; break;
 				}
 				(void)op_sub16(cpu, tmp1, tmp2); // CMPY
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					NVMA_CYCLE();
 			} break;
 
@@ -2040,8 +2043,6 @@ static void hd6309_run(struct MC6809 *cpu) {
 				BYTE_IMMEDIATE(0, data);
 				data &= (MD_FM | MD_NM);
 				REG_MD = (REG_MD & ~(MD_FM | MD_NM)) | data;
-				hcpu->native_mode = REG_MD & MD_NM;
-				hcpu->firq_stack_all = REG_MD & MD_FM;
 				NVMA_CYCLE();
 				NVMA_CYCLE();
 			} break;
@@ -2076,7 +2077,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				switch (op & 0xf) {
 				case 0xd: // TST
 					NVMA_CYCLE();
-					if (!hcpu->native_mode)
+					if (!NATIVE_MODE)
 						NVMA_CYCLE();
 					break;
 				default: // the rest need storing
@@ -2085,7 +2086,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 					} else {
 						WREG_F = tmp1;
 					}
-					if (!hcpu->native_mode)
+					if (!NATIVE_MODE)
 						NVMA_CYCLE();
 					break;
 				}
@@ -2138,7 +2139,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				default: tmp2 = 0; break;
 				}
 				(void)op_sub16(cpu, tmp1, tmp2); break; // CMPU, CMPS
-				if (!hcpu->native_mode)
+				if (!NATIVE_MODE)
 					NVMA_CYCLE();
 			} break;
 
