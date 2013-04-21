@@ -812,9 +812,11 @@ static void versiontext(void) {
 static void helptext(void) {
 #ifdef LOGGING
 	puts(
-"Usage: xroar [OPTION]...\n"
+"Usage: xroar [-c CONFFILE] [OPTION]...\n"
 "XRoar is a Dragon emulator.  Due to hardware similarities, XRoar also\n"
 "emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
+
+"\n  -c CONFFILE   specify a configuration file\n"
 
 "\n Emulated machine:\n"
 "  -default-machine NAME   specify default machine\n"
@@ -927,7 +929,13 @@ static void helptext(void) {
 
 _Bool xroar_init(int argc, char **argv) {
 	int argn = 1, ret;
-	char *conffile;
+	char *conffile = NULL;
+
+	// If the very first argument is -c, override conffile.
+	if ((argn + 1) <= argc && 0 == strcmp(argv[argn], "-c")) {
+		conffile = g_strdup(argv[argn+1]);
+		argn += 2;
+	}
 
 #ifdef WINDOWS32
 	windows32_init();
@@ -955,7 +963,8 @@ _Bool xroar_init(int argc, char **argv) {
 	cur_joy_config = NULL;
 
 	// If a configuration file is found, parse it.
-	conffile = find_in_path(xroar_conf_path, "xroar.conf");
+	if (!conffile)
+		conffile = find_in_path(xroar_conf_path, "xroar.conf");
 	if (conffile) {
 		(void)xconfig_parse_file(xroar_options, conffile);
 		g_free(conffile);
