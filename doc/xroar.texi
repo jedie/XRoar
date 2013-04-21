@@ -1056,6 +1056,9 @@ Windows systems it is in the @env{USERPROFILE} environment variable (often
 @file{c:/Users/@emph{username}}).  @emph{PREFIX} is the installation prefix,
 usually @file{/usr/local}.
 
+The search path can be overridden, and an explicit file specified, by passing
+@option{-c @var{filename}} as the very first option to XRoar.
+
 Directives are listed one per line without the leading dashes of the command
 line option.
 
