@@ -55,6 +55,10 @@
 #include "xconfig.h"
 #include "xroar.h"
 
+#ifdef WINDOWS32
+#include "windows32/common_windows32.h"
+#endif
+
 /**************************************************************************/
 /* Command line arguments */
 
