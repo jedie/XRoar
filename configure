@@ -42,6 +42,7 @@ nullaudio
 linux_joystick
 sndfile
 mingw
+pthreads
 trace
 fast_sound
 logging
@@ -1169,6 +1170,32 @@ if test "$_mingw" = "yes"; then
 	_cli=no
 else
 	_mingw_def="#undef WINDOWS32"
+fi
+
+########
+
+if test "$_pthreads" \!= "no"; then
+	echocheck POSIX threads
+	cat > $TMPC <<EOF
+#include <pthread.h>
+#include <stdlib.h>
+int main(int argc, char **argv) { pthread_create(NULL, NULL, NULL, NULL); return 0; }
+EOF
+	_pthreads=no
+	pthreads_cflags=""
+	pthreads_ldflags="-pthread"
+	target_cc_check "$pthreads_cflags" "$pthreads_ldflags" && _pthreads=yes
+	if test "$_pthreads" = "no"; then
+		pthreads_ldflags="-lpthreadGC2"
+		target_cc_check "$pthreads_cflags" "$pthreads_ldflags" && _pthreads=yes
+	fi
+	rm -f $TMPC
+	echo "$_pthreads"
+fi
+if test "$_pthreads" = "yes"; then
+	_pthreads_def="#define HAVE_PTHREADS"
+else
+	_pthreads_def="#undef HAVE_PTHREADS"
 fi
 
 ########

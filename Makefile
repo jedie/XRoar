@@ -399,6 +399,10 @@ ifeq ($(opt_trace),yes)
 	xroar_LDFLAGS += $(opt_trace_LDFLAGS)
 endif
 
+ifeq ($(opt_pthreads),yes)
+	xroar_LDFLAGS += $(opt_pthreads_LDFLAGS)
+endif
+
 ############################################################################
 # Build rules
 
@@ -575,6 +579,10 @@ dist-w64: all doc/xroar.pdf
 	$(TOOL_PREFIX)strip $(DISTNAME)-w64/xroar.exe
 	$(TOOL_PREFIX)strip $(DISTNAME)-w64/SDL.dll
 	$(TOOL_PREFIX)strip $(DISTNAME)-w64/libsndfile-1.dll
+ifeq ($(opt_pthreads),yes)
+	cp $(prefix)/bin/pthreadGC2.dll $(DISTNAME)-w64/
+	$(TOOL_PREFIX)strip $(DISTNAME)-w64/pthreadGC2.dll
+endif
 	rm -f ../$(DISTNAME)-w64.zip
 	zip -r ../$(DISTNAME)-w64.zip $(DISTNAME)-w64
 	rm -rf $(DISTNAME)-w64/
@@ -587,6 +595,10 @@ dist-w32: all doc/xroar.pdf
 	$(TOOL_PREFIX)strip $(DISTNAME)-w32/xroar.exe
 	$(TOOL_PREFIX)strip $(DISTNAME)-w32/SDL.dll
 	$(TOOL_PREFIX)strip $(DISTNAME)-w32/libsndfile-1.dll
+ifeq ($(opt_pthreads),yes)
+	cp $(prefix)/bin/pthreadGC2.dll $(DISTNAME)-w32/
+	$(TOOL_PREFIX)strip $(DISTNAME)-w32/pthreadGC2.dll
+endif
 	rm -f ../$(DISTNAME)-w32.zip
 	zip -r ../$(DISTNAME)-w32.zip $(DISTNAME)-w32
 	rm -rf $(DISTNAME)-w32/
