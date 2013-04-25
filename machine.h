@@ -96,6 +96,14 @@ extern struct cart *machine_cart;
 extern _Bool has_bas, has_extbas, has_altbas;
 extern uint32_t crc_bas, crc_extbas, crc_altbas;
 
+enum machine_state {
+	machine_state_stopped = 0,
+	machine_state_single_step,
+	machine_state_running
+};
+
+extern enum machine_state machine_state;
+
 /* Add a new machine config: */
 struct machine_config *machine_config_new(void);
 /* For finding known configs: */
@@ -114,6 +122,11 @@ void machine_configure(struct machine_config *mc);  /* apply config */
 void machine_reset(_Bool hard);
 void machine_run(int ncycles);
 void machine_toggle_pause(void);
+
+void machine_start(void);
+void machine_stop(void);
+void machine_step(void);
+void machine_instruction_posthook(struct MC6809 *cpu);
 
 /* simplified read & write byte for convenience functions */
 uint8_t machine_read_byte(uint16_t A);

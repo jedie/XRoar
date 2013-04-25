@@ -33,6 +33,7 @@
 #include "crclist.h"
 #include "events.h"
 #include "fs.h"
+#include "gdb.h"
 #include "hd6309_trace.h"
 #include "hexs19.h"
 #include "joystick.h"
@@ -312,9 +313,16 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
 #endif
 
+#ifdef WANT_GDB_STUB
+	// GDB stub
+	XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip),
+	XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port),
+#endif
+
 	// Debug options
 	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
 	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
+	XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb),
 
 	XC_CALL_NULL("help", &helptext),
 	XC_CALL_NULL("h", &helptext),
@@ -900,6 +908,10 @@ static void helptext(void) {
 "  -becker               default to becker-enabled DOS\n"
 "  -disk-write-back      default to enabling write-back for disk images\n"
 "  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
+#ifdef WANT_GDB_STUB
+"  -gdb-ip               address of interface for gdb stub [localhost]\n"
+"  -gdb-port             port for gdb stub to listen on [65520]\n"
+#endif
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
@@ -1221,6 +1233,11 @@ _Bool xroar_init(int argc, char **argv) {
 		}
 	}
 
+#ifdef WANT_GDB_STUB
+	// Must follow machine_init(), so that machine_state_cv is initialised.
+	gdb_init();
+#endif
+
 	while (private_cfg.type_list) {
 		keyboard_queue_basic(private_cfg.type_list->data);
 		private_cfg.type_list = g_slist_remove(private_cfg.type_list, private_cfg.type_list->data);
@@ -1238,6 +1255,9 @@ void xroar_shutdown(void) {
 	if (shutting_down)
 		return;
 	shutting_down = 1;
+#ifdef WANT_GDB_STUB
+	gdb_shutdown();
+#endif
 	machine_shutdown();
 	module_shutdown((struct module *)joystick_module);
 	module_shutdown((struct module *)keyboard_module);
@@ -1264,7 +1284,7 @@ static struct vdg_palette *get_machine_palette(void) {
 
 void xroar_run(void) {
 	CPU0->interrupt_hook = NULL;
-	CPU0->instruction_posthook = NULL;
+	CPU0->instruction_posthook = machine_instruction_posthook;
 
 #ifdef TRACE
 	xroar_set_trace(xroar_cfg.trace_enabled);
@@ -1379,16 +1399,13 @@ void xroar_set_trace(int mode) {
 		switch (xroar_machine_config->cpu) {
 		case CPU_MC6809: default:
 			CPU0->interrupt_hook = mc6809_trace_irq;
-			CPU0->instruction_posthook = mc6809_trace_print;
 			break;
 		case CPU_HD6309:
 			CPU0->interrupt_hook = hd6309_trace_irq;
-			CPU0->instruction_posthook = hd6309_trace_print;
 			break;
 		}
 	} else {
 		CPU0->interrupt_hook = NULL;
-		CPU0->instruction_posthook = NULL;
 	}
 #endif
 }

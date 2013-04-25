@@ -17,12 +17,15 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include "portalib/glib.h"
 #include "portalib/strings.h"
@@ -94,6 +97,14 @@ static int cycles;
 static uint8_t read_cycle(uint16_t A);
 static void write_cycle(uint16_t A, uint8_t D);
 static void vdg_fetch_handler(int nbytes, uint8_t *dest);
+
+enum machine_state machine_state = machine_state_running;
+#ifdef WANT_GDB_STUB
+static pthread_cond_t machine_state_cv;
+static pthread_mutex_t machine_state_mt;
+#endif
+
+static _Bool machine_initialised = 0;
 
 /**************************************************************************/
 
@@ -298,6 +309,10 @@ static void pia1b_data_postwrite(void) {
 #define pia1b_control_postwrite sound_update
 
 void machine_init(void) {
+#ifdef WANT_GDB_STUB
+	pthread_mutex_init(&machine_state_mt, NULL);
+	pthread_cond_init(&machine_state_cv, NULL);
+#endif
 	sam_init();
 	mc6821_init(&PIA0);
 	PIA0.a.data_preread = pia0a_data_preread;
@@ -318,12 +333,19 @@ void machine_init(void) {
 	tape_init();
 
 	vdg_fetch_bytes = vdg_fetch_handler;
+	machine_initialised = 1;
 }
 
 void machine_shutdown(void) {
+	if (!machine_initialised)
+		return;
 	machine_remove_cart();
 	tape_shutdown();
 	vdrive_shutdown();
+#ifdef WANT_GDB_STUB
+	pthread_cond_destroy(&machine_state_cv);
+	pthread_mutex_destroy(&machine_state_mt);
+#endif
 }
 
 void machine_configure(struct machine_config *mc) {
@@ -501,9 +523,77 @@ void machine_reset(_Bool hard) {
 }
 
 void machine_run(int ncycles) {
-	cycles += ncycles;
-	CPU0->running = 1;
-	CPU0->run(CPU0);
+#ifdef WANT_GDB_STUB
+	pthread_mutex_lock(&machine_state_mt);
+	if (machine_state == machine_state_stopped) {
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		tv.tv_usec += 20000;
+		tv.tv_sec += (tv.tv_usec / 1000000);
+		tv.tv_usec %= 1000000;
+		struct timespec ts;
+		ts.tv_sec = tv.tv_sec;
+		ts.tv_nsec = tv.tv_usec * 1000;
+		if (pthread_cond_timedwait(&machine_state_cv, &machine_state_mt, &ts) == ETIMEDOUT)
+			goto done;
+	}
+	if (machine_state != machine_state_stopped) {
+#endif
+		cycles += ncycles;
+		CPU0->running = 1;
+		CPU0->run(CPU0);
+#ifdef WANT_GDB_STUB
+		if (machine_state == machine_state_single_step) {
+			machine_state = machine_state_stopped;
+			pthread_cond_signal(&machine_state_cv);
+		}
+	}
+done:
+	pthread_mutex_unlock(&machine_state_mt);
+#endif
+}
+
+#ifdef WANT_GDB_STUB
+void machine_start(void) {
+	if (machine_state != machine_state_stopped)
+		return;
+	pthread_mutex_lock(&machine_state_mt);
+	machine_state = machine_state_running;
+	pthread_cond_signal(&machine_state_cv);
+	pthread_mutex_unlock(&machine_state_mt);
+}
+
+void machine_stop(void) {
+	if (machine_state == machine_state_stopped)
+		return;
+	pthread_mutex_lock(&machine_state_mt);
+	machine_state = machine_state_stopped;
+	pthread_mutex_unlock(&machine_state_mt);
+}
+
+void machine_step(void) {
+	if (machine_state != machine_state_stopped)
+		return;
+	pthread_mutex_lock(&machine_state_mt);
+	machine_state = machine_state_single_step;
+	pthread_cond_wait(&machine_state_cv, &machine_state_mt);
+	pthread_mutex_unlock(&machine_state_mt);
+}
+#endif
+
+void machine_instruction_posthook(struct MC6809 *cpu) {
+	if (xroar_cfg.trace_enabled) {
+		switch (xroar_machine_config->cpu) {
+		case CPU_MC6809: default:
+			mc6809_trace_print(cpu);
+			break;
+		case CPU_HD6309:
+			hd6309_trace_print(cpu);
+			break;
+		}
+	}
+	if (machine_state == machine_state_single_step)
+		CPU0->running = 0;
 }
 
 static uint16_t decode_Z(uint16_t Z) {

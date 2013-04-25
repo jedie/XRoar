@@ -196,6 +196,12 @@ $(portalib_glib2_OBJS_C): | portalib/glib
 portalib/glib: | portalib
 	mkdir -p portalib/glib
 
+xroar_gdb_OBJS_C = gdb.o
+CLEAN += $(xroar_gdb_OBJS_C)
+ifeq ($(opt_gdb_stub),yes)
+	xroar_OBJS_C += $(xroar_gdb_OBJS_C)
+endif
+
 xroar_gtk2_OBJS_C = \
 	gtk2/drivecontrol.o \
 	gtk2/filereq_gtk2.o \
