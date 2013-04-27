@@ -37,6 +37,7 @@
 
 static _Bool init(void);
 static void shutdown(void);
+static void refresh(void);
 static void vsync(void);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(_Bool fullscreen);
@@ -45,6 +46,7 @@ VideoModule video_sdlgl_module = {
 	.common = { .name = "sdlgl", .description = "SDL OpenGL video",
 	            .init = init, .shutdown = shutdown },
 	.update_palette = vo_opengl_alloc_colours,
+	.refresh = refresh,
 	.vsync = vsync,
 	.render_scanline = vo_opengl_render_scanline,
 	.resize = resize, .set_fullscreen = set_fullscreen,
@@ -148,6 +150,11 @@ static int set_fullscreen(_Bool fullscreen) {
 	sdl_window_h = vo_opengl_h;
 
 	return 0;
+}
+
+static void refresh(void) {
+	vo_opengl_refresh();
+	SDL_GL_SwapBuffers();
 }
 
 static void vsync(void) {
