@@ -534,8 +534,12 @@ void machine_run(int ncycles) {
 		struct timespec ts;
 		ts.tv_sec = tv.tv_sec;
 		ts.tv_nsec = tv.tv_usec * 1000;
-		if (pthread_cond_timedwait(&machine_state_cv, &machine_state_mt, &ts) == ETIMEDOUT)
-			goto done;
+		if (pthread_cond_timedwait(&machine_state_cv, &machine_state_mt, &ts) == ETIMEDOUT) {
+			if (video_module->refresh)
+				video_module->refresh();
+			pthread_mutex_unlock(&machine_state_mt);
+			return;
+		}
 	}
 	if (machine_state != machine_state_stopped) {
 #endif
@@ -545,10 +549,10 @@ void machine_run(int ncycles) {
 #ifdef WANT_GDB_STUB
 		if (machine_state == machine_state_single_step) {
 			machine_state = machine_state_stopped;
+			vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
 			pthread_cond_signal(&machine_state_cv);
 		}
 	}
-done:
 	pthread_mutex_unlock(&machine_state_mt);
 #endif
 }
@@ -568,6 +572,7 @@ void machine_stop(void) {
 		return;
 	pthread_mutex_lock(&machine_state_mt);
 	machine_state = machine_state_stopped;
+	vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
 	pthread_mutex_unlock(&machine_state_mt);
 }
 
