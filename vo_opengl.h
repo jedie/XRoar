@@ -17,6 +17,7 @@ extern int vo_opengl_w, vo_opengl_h;
 _Bool vo_opengl_init(void);
 void vo_opengl_shutdown(void);
 void vo_opengl_alloc_colours(void);
+void vo_opengl_refresh(void);
 void vo_opengl_vsync(void);
 void vo_opengl_set_window_size(unsigned w, unsigned h);
 void vo_opengl_render_scanline(uint8_t *scanline_data);

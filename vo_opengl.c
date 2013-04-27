@@ -197,14 +197,18 @@ void vo_opengl_set_window_size(unsigned w, unsigned h) {
 	glTexCoordPointer(2, GL_FLOAT, 0, tex_coords);
 }
 
-void vo_opengl_vsync(void) {
+void vo_opengl_refresh(void) {
 	/* Draw main window */
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 			320, 240, GL_RGB,
 			GL_UNSIGNED_SHORT_5_6_5, screen_tex);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	/* Video module should now do whatever's required to swap buffers */
+}
+
+void vo_opengl_vsync(void) {
+	vo_opengl_refresh();
+	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 }
 
 void vo_opengl_render_scanline(uint8_t *scanline_data) {
