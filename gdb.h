@@ -11,4 +11,6 @@
 int gdb_init(void);
 void gdb_shutdown(void);
 
+void gdb_handle_signal(void);
+
 #endif  /* XROAR_GDB_H_ */

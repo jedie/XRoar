@@ -35,6 +35,7 @@
 #include "cart.h"
 #include "crc32.h"
 #include "fs.h"
+#include "gdb.h"
 #include "hd6309.h"
 #include "hd6309_trace.h"
 #include "input.h"
@@ -99,6 +100,7 @@ static void write_cycle(uint16_t A, uint8_t D);
 static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
 enum machine_state machine_state = machine_state_running;
+int machine_last_signal = 0;
 #ifdef WANT_GDB_STUB
 static pthread_cond_t machine_state_cv;
 static pthread_mutex_t machine_state_mt;
@@ -542,14 +544,16 @@ void machine_run(int ncycles) {
 		}
 	}
 	if (machine_state != machine_state_stopped) {
+		machine_last_signal = 0;
 #endif
 		cycles += ncycles;
 		CPU0->running = 1;
 		CPU0->run(CPU0);
 #ifdef WANT_GDB_STUB
-		if (machine_state == machine_state_single_step) {
-			machine_state = machine_state_stopped;
+		if (machine_last_signal != 0) {
 			vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+			machine_state = machine_state_stopped;
+			gdb_handle_signal();
 			pthread_cond_signal(&machine_state_cv);
 		}
 	}
@@ -559,29 +563,35 @@ void machine_run(int ncycles) {
 
 #ifdef WANT_GDB_STUB
 void machine_start(void) {
-	if (machine_state != machine_state_stopped)
-		return;
 	pthread_mutex_lock(&machine_state_mt);
-	machine_state = machine_state_running;
-	pthread_cond_signal(&machine_state_cv);
-	pthread_mutex_unlock(&machine_state_mt);
-}
-
-void machine_stop(void) {
-	if (machine_state == machine_state_stopped)
-		return;
-	pthread_mutex_lock(&machine_state_mt);
-	machine_state = machine_state_stopped;
-	vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+	if (machine_state == machine_state_stopped) {
+		machine_state = machine_state_running;
+		pthread_cond_signal(&machine_state_cv);
+	}
 	pthread_mutex_unlock(&machine_state_mt);
 }
 
 void machine_step(void) {
-	if (machine_state != machine_state_stopped)
-		return;
 	pthread_mutex_lock(&machine_state_mt);
-	machine_state = machine_state_single_step;
-	pthread_cond_wait(&machine_state_cv, &machine_state_mt);
+	if (machine_state == machine_state_stopped) {
+		machine_state = machine_state_single_step;
+		pthread_cond_wait(&machine_state_cv, &machine_state_mt);
+	}
+	pthread_mutex_unlock(&machine_state_mt);
+}
+
+/*
+ * Stop emulation and set machine_last_signal to reflect the reason.
+ */
+
+void machine_signal(int sig) {
+	pthread_mutex_lock(&machine_state_mt);
+	if (machine_state == machine_state_running) {
+		vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+		machine_last_signal = sig;
+		gdb_handle_signal();
+		machine_state = machine_state_stopped;
+	}
 	pthread_mutex_unlock(&machine_state_mt);
 }
 #endif
@@ -597,8 +607,10 @@ void machine_instruction_posthook(struct MC6809 *cpu) {
 			break;
 		}
 	}
-	if (machine_state == machine_state_single_step)
+	if (machine_state == machine_state_single_step) {
+		machine_last_signal = MACHINE_SIGTRAP;
 		CPU0->running = 0;
+	}
 }
 
 static uint16_t decode_Z(uint16_t Z) {

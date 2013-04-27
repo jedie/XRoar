@@ -102,7 +102,13 @@ enum machine_state {
 	machine_state_running
 };
 
+#define MACHINE_SIGINT (2)
+#define MACHINE_SIGILL (4)
+#define MACHINE_SIGTRAP (5)
+#define MACHINE_SIGFPE (8)
+
 extern enum machine_state machine_state;
+extern int machine_last_signal;
 
 /* Add a new machine config: */
 struct machine_config *machine_config_new(void);
@@ -124,8 +130,8 @@ void machine_run(int ncycles);
 void machine_toggle_pause(void);
 
 void machine_start(void);
-void machine_stop(void);
 void machine_step(void);
+void machine_signal(int sig);
 void machine_instruction_posthook(struct MC6809 *cpu);
 
 /* simplified read & write byte for convenience functions */

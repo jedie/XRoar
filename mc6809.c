@@ -574,6 +574,11 @@ static void mc6809_run(struct MC6809 *cpu) {
 				continue;
 			}
 			cpu->state = mc6809_state_next_instruction;
+			// Instruction fetch hook called here so that machine
+			// can be stopped beforehand.
+			if (cpu->instruction_hook) {
+				cpu->instruction_hook(cpu);
+			}
 			continue;
 
 		case mc6809_state_dispatch_irq:
@@ -630,10 +635,6 @@ static void mc6809_run(struct MC6809 *cpu) {
 		case mc6809_state_next_instruction:
 			{
 			unsigned op;
-			// Instruction fetch hook
-			if (cpu->instruction_hook) {
-				cpu->instruction_hook(cpu);
-			}
 			// Fetch op-code and process
 			BYTE_IMMEDIATE(0, op);
 			switch (op) {

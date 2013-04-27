@@ -111,6 +111,8 @@ static struct addrinfo *info;
 static pthread_t sock_thread;
 static void *handle_tcp_sock(void *data);
 
+static int sockfd;
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 enum gdb_error {
@@ -121,6 +123,7 @@ enum gdb_error {
 	GDBE_WRITE_ERROR,
 };
 
+static char in_packet[1025];
 static char packet[1025];
 
 static int read_packet(int fd, char *buffer, unsigned count);
@@ -128,6 +131,7 @@ static int send_packet(int fd, char *buffer, unsigned count);
 static int send_packet_string(int fd, char *string);
 static int send_char(int fd, char c);
 
+static void send_last_signal(int fd);  // ?
 static void send_general_registers(int fd);  // g
 static void set_general_registers(int fd, char *args);  // G
 static void send_memory(int fd, char *args);  // m
@@ -206,7 +210,7 @@ static void *handle_tcp_sock(void *data) {
 	(void)data;
 
 	for (;;) {
-		int sockfd = accept(listenfd, info->ai_addr, &info->ai_addrlen);
+		sockfd = accept(listenfd, info->ai_addr, &info->ai_addrlen);
 		if (sockfd < 0) {
 			LOG_WARN("gdb: accept() failed\n");
 			continue;
@@ -214,17 +218,15 @@ static void *handle_tcp_sock(void *data) {
 		if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_CONNECT) {
 			LOG_PRINT("gdb: connection accepted\n");
 		}
-		machine_stop();
+		machine_signal(MACHINE_SIGINT);
 		_Bool attached = 1;
 		while (attached) {
-			int l = read_packet(sockfd, packet, sizeof(packet));
+			int l = read_packet(sockfd, in_packet, sizeof(in_packet));
 			if (l == -GDBE_BREAK) {
 				if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_PACKET) {
 					LOG_PRINT("gdb: BREAK\n");
 				}
-				if (machine_state == machine_state_running)
-					machine_stop();
-				send_packet_string(sockfd, "S02");
+				machine_signal(MACHINE_SIGINT);
 				continue;
 			} else if (l == -GDBE_BAD_CHECKSUM) {
 				if (send_char(sockfd, '-') < 0)
@@ -240,10 +242,10 @@ static void *handle_tcp_sock(void *data) {
 					LOG_PRINT("gdb: packet ignored (send ^C first): ");
 				}
 				for (unsigned i = 0; i < (unsigned)l; i++) {
-					if (isprint(packet[i])) {
-						LOG_PRINT("%c", packet[i]);
+					if (isprint(in_packet[i])) {
+						LOG_PRINT("%c", in_packet[i]);
 					} else {
-						LOG_PRINT("\\%o", packet[i] & 0xff);
+						LOG_PRINT("\\%o", in_packet[i] & 0xff);
 					}
 				}
 				LOG_PRINT("\n");
@@ -256,13 +258,12 @@ static void *handle_tcp_sock(void *data) {
 			if (send_char(sockfd, '+') < 0)
 				break;
 
-			char *args = &packet[1];
+			char *args = &in_packet[1];
 
-			switch (packet[0]) {
+			switch (in_packet[0]) {
 
 			case '?':
-				// XXX
-				send_packet_string(sockfd, "S00");
+				send_last_signal(sockfd);
 				break;
 
 			case 'c':
@@ -308,7 +309,6 @@ static void *handle_tcp_sock(void *data) {
 
 			case 's':
 				machine_step();
-				send_packet_string(sockfd, "S05");
 				break;
 
 			case 'z':
@@ -334,6 +334,11 @@ static void *handle_tcp_sock(void *data) {
 	}
 	return NULL;
 }
+
+void gdb_handle_signal(void) {
+	send_last_signal(sockfd);
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 enum packet_state {
@@ -354,6 +359,7 @@ static int read_packet(int fd, char *buffer, unsigned count) {
 		switch (state) {
 		case packet_wait:
 			if (in_byte == '$') {
+				packet_sum = 0;
 				state = packet_read;
 			} else if (in_byte == 3) {
 				return -GDBE_BREAK;
@@ -372,7 +378,7 @@ static int read_packet(int fd, char *buffer, unsigned count) {
 		case packet_csum0:
 			tmp = hexdigit(in_byte);
 			if (tmp < 0) {
-				state = packet_read;
+				state = packet_wait;
 			} else {
 				csum = tmp << 4;
 				state = packet_csum1;
@@ -381,17 +387,17 @@ static int read_packet(int fd, char *buffer, unsigned count) {
 		case packet_csum1:
 			tmp = hexdigit(in_byte);
 			if (tmp < 0) {
-				state = packet_read;
+				state = packet_wait;
 				break;
 			}
 			csum |= tmp;
 			if (csum != packet_sum) {
 				if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_CHECKSUM) {
 					LOG_PRINT("gdb: bad checksum in '");
-					if (isprint(packet[0]))
-						LOG_PRINT("%c", packet[0]);
+					if (isprint(buffer[0]))
+						LOG_PRINT("%c", buffer[0]);
 					else
-						LOG_PRINT("0x%02x", packet[0]);
+						LOG_PRINT("0x%02x", buffer[0]);
 					LOG_PRINT("' packet.  Expected 0x%02x, got 0x%02x.\n",
 						  packet_sum, csum);
 				}
@@ -431,10 +437,7 @@ static int send_packet(int fd, char *buffer, unsigned count) {
 	snprintf(tmpbuf, sizeof(tmpbuf), "#%02x", csum);
 	if (send(fd, tmpbuf, 3, 0) < 0)
 		return -GDBE_WRITE_ERROR;
-	if (recv(fd, tmpbuf, 1, 0) < 0)
-		return -GDBE_READ_ERROR;
-	if (tmpbuf[0] != '+')
-		return -GDBE_WRITE_ERROR;
+	// the reply ("+" or "-") will be discarded by the next read_packet
 
 	if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_PACKET) {
 		LOG_PRINT("gdb: packet sent: ");
@@ -463,6 +466,12 @@ static int send_char(int fd, char c) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static void send_last_signal(int fd) {
+	char tmpbuf[4];
+	snprintf(tmpbuf, sizeof(tmpbuf), "S%02x", machine_last_signal);
+	send_packet(fd, tmpbuf, 3);
+}
 
 static void send_general_registers(int fd) {
 	sprintf(packet, "%02x%02x%02x%02x%04x%04x%04x%04x%04x",
@@ -545,10 +554,7 @@ static void send_memory(int fd, char *args) {
 	snprintf(packet, sizeof(packet), "#%02x", csum);
 	if (send(fd, packet, 3, 0) < 0)
 		return;
-	if (recv(fd, packet, 1, 0) < 0)
-		return;
-	if (packet[0] != '+')
-		return;
+	// the ACK ("+") or NAK ("-") will be discarded by the next read_packet
 	if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_PACKET) {
 		LOG_PRINT("gdb: packet sent (binary): %u bytes\n", length);
 	}
