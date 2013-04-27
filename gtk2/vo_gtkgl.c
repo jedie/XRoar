@@ -30,6 +30,7 @@
 
 static _Bool init(void);
 static void _shutdown(void);
+static void refresh(void);
 static void vsync(void);
 static void resize(unsigned int w, unsigned int h);
 static int set_fullscreen(_Bool fullscreen);
@@ -38,6 +39,7 @@ VideoModule video_gtkgl_module = {
 	.common = { .name = "gtkgl", .description = "GtkGLExt video",
 	            .init = init, .shutdown = _shutdown },
 	.update_palette = vo_opengl_alloc_colours,
+	.refresh = refresh,
 	.vsync = vsync,
 	.render_scanline = vo_opengl_render_scanline,
 	.resize = resize, .set_fullscreen = set_fullscreen,
@@ -145,6 +147,20 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer data
 	gdk_gl_drawable_gl_end(gldrawable);
 
 	return 0;
+}
+
+static void refresh(void) {
+	GdkGLContext *glcontext = gtk_widget_get_gl_context(gtk2_drawing_area);
+	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(gtk2_drawing_area);
+
+	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext)) {
+		g_assert_not_reached ();
+	}
+
+	vo_opengl_refresh();
+
+	gdk_gl_drawable_swap_buffers(gldrawable);
+	gdk_gl_drawable_gl_end(gldrawable);
 }
 
 static void vsync(void) {
