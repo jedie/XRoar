@@ -84,6 +84,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -216,6 +217,10 @@ static void *handle_tcp_sock(void *data) {
 		if (sockfd < 0) {
 			LOG_WARN("gdb: accept() failed\n");
 			continue;
+		}
+		{
+			int flag = 1;
+			setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
 		}
 		if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_CONNECT) {
 			LOG_PRINT("gdb: connection accepted\n");
