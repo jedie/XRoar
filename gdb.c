@@ -50,8 +50,7 @@
  * 'm' and 'M' packets will read or write translated memory addresses (as seen
  * by the CPU).
  *
- * Breakpoints and watchpoints are not yet supported (given that the machine is
- * not yet stopped), but the 'z' and 'Z' packets will elicit an "OK" response.
+ * Breakpoints and watchpoints are supported ('Z' and 'z').
  *
  * Some standard, and some vendor-specific general queries are supported:
 
@@ -97,6 +96,7 @@
 
 #endif
 
+#include "breakpoint.h"
 #include "gdb.h"
 #include "hd6309.h"
 #include "logging.h"
@@ -140,6 +140,8 @@ static void send_register(int fd, char *args);  // p
 static void set_register(int fd, char *args);  // P
 static void general_query(int fd, char *args);  // q
 static void general_set(int fd, char *args);  // Q
+static void add_breakpoint(int fd, char *args);  // Z
+static void remove_breakpoint(int fd, char *args);  // z
 
 static void send_supported(int fd, char *args);  // qSupported
 
@@ -312,13 +314,11 @@ static void *handle_tcp_sock(void *data) {
 				break;
 
 			case 'z':
-				// XXX
-				send_packet_string(sockfd, "OK");
+				remove_breakpoint(sockfd, args);
 				break;
 
 			case 'Z':
-				// XXX
-				send_packet_string(sockfd, "OK");
+				add_breakpoint(sockfd, args);
 				break;
 
 			default:
@@ -707,6 +707,58 @@ static void general_set(int fd, char *args) {
 	}
 	send_packet(fd, NULL, 0);
 	return;
+}
+
+static void add_breakpoint(int fd, char *args) {
+	char *type_str = strsep(&args, ",");
+	if (!type_str || !args)
+		goto error;
+	int type = *type_str - '0';
+	if (type < 0 || type > 4)
+		goto error;
+	char *addr_str = strsep(&args, ",");
+	if (!addr_str || !args)
+		goto error;
+	char *kind_str = strsep(&args, ";");
+	if (!kind_str)
+		goto error;
+	unsigned addr = strtoul(addr_str, NULL, 16);
+	if (type <= 1) {
+		bp_hbreak_add(addr, 0, 0);
+	} else {
+		unsigned nbytes = strtoul(kind_str, NULL, 16);
+		bp_wp_add(type, addr, nbytes, 0, 0);
+	}
+	send_packet_string(fd, "OK");
+	return;
+error:
+	send_packet_string(fd, "E00");
+}
+
+static void remove_breakpoint(int fd, char *args) {
+	char *type_str = strsep(&args, ",");
+	if (!type_str || !args)
+		goto error;
+	int type = *type_str - '0';
+	if (type < 0 || type > 4)
+		goto error;
+	char *addr_str = strsep(&args, ",");
+	if (!addr_str || !args)
+		goto error;
+	char *kind_str = strsep(&args, ";");
+	if (!kind_str)
+		goto error;
+	unsigned addr = strtoul(addr_str, NULL, 16);
+	if (type <= 1) {
+		bp_hbreak_remove(addr, 0, 0);
+	} else {
+		unsigned nbytes = strtoul(kind_str, NULL, 16);
+		bp_wp_remove(type, addr, nbytes, 0, 0);
+	}
+	send_packet_string(fd, "OK");
+	return;
+error:
+	send_packet_string(fd, "E00");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
