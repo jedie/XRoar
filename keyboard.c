@@ -210,13 +210,13 @@ static const char *basic_command = NULL;
 static void type_command(struct MC6809 *cpu);
 
 static struct breakpoint basic_command_breakpoint[] = {
-	BP_DRAGON_ROM(.address = 0xbbe5, .handler = type_command),
-	BP_COCO_BAS10_ROM(.address = 0xa1c1, .handler = type_command),
-	BP_COCO_BAS11_ROM(.address = 0xa1c1, .handler = type_command),
-	BP_COCO_BAS12_ROM(.address = 0xa1cb, .handler = type_command),
-	BP_COCO_BAS13_ROM(.address = 0xa1cb, .handler = type_command),
+	BP_DRAGON_ROM(.address = 0xbbe5, .handler = (bp_handler)type_command),
+	BP_COCO_BAS10_ROM(.address = 0xa1c1, .handler = (bp_handler)type_command),
+	BP_COCO_BAS11_ROM(.address = 0xa1c1, .handler = (bp_handler)type_command),
+	BP_COCO_BAS12_ROM(.address = 0xa1cb, .handler = (bp_handler)type_command),
+	BP_COCO_BAS13_ROM(.address = 0xa1cb, .handler = (bp_handler)type_command),
 	// Combo ROM so far only seen in clones, dispatch is here:
-	BP_COCO_COMBO_ROM(.address = 0xa1cb, .handler = type_command),
+	BP_COCO_COMBO_ROM(.address = 0xa1cb, .handler = (bp_handler)type_command),
 };
 
 static void type_command(struct MC6809 *cpu) {

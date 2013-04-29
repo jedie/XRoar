@@ -132,6 +132,7 @@ void machine_toggle_pause(void);
 void machine_start(void);
 void machine_step(void);
 void machine_signal(int sig);
+void machine_trap(void *data);
 void machine_instruction_posthook(struct MC6809 *cpu);
 
 /* simplified read & write byte for convenience functions */

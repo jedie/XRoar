@@ -6,59 +6,82 @@
 #ifndef XROAR_BREAKPOINT_H_
 #define XROAR_BREAKPOINT_H_
 
-#include "mc6809.h"
+/*
+ * Breakpoint support both for internal hooks and user-added traps (e.g. via
+ * the GDB stub).
+ *
+ * For internal hooks, an array of struct breakpoint is usually supplied using
+ * bp_add_list, and the add_cond field determines whether each breakpoint is
+ * relevant to the currently configured architecture.
+ *
+ * Once a breakpoint is added, match_mask determines the match bits that need
+ * to match to trigger, and match_cond specifies what those values must be.
+ */
 
-enum bp_type {
-	BP_INSTRUCTION = 0,  /* specifically 0 to be the C99 default */
-};
+/* Conditions that must be met for breakpoints to be considered: */
 
-/* flag conditions that must be met for breakpoints to be added to list: */
 #define BP_MACHINE_ARCH (1 << 0)
 #define BP_CRC_BAS (1 << 1)
-#define BP_CRC_EXTBAS (1 << 2)
-#define BP_CRC_ALTBAS (1 << 3)
+#define BP_CRC_EXT (1 << 2)
 
-/* flag conditions in which breakpoint then applies: */
-#define BP_PAGE (1 << 4)
-#define BP_MAP_TYPE (1 << 5)
+/* Match conditions. */
+
+#define BP_SAM_TY (1 << 15)
+#define BP_SAM_P1 (1 << 10)
+
+/* Useful mask and condition combinations. */
+
+#define BP_MASK_ROM (BP_SAM_TY)
+#define BP_COND_ROM (0)
+
+typedef void (*bp_handler)(void *);
 
 struct breakpoint {
-	enum bp_type type;
-	unsigned int flags;
-	void (*handler)(struct MC6809 *);
-	uint16_t address;
-	/* add conditions */
+	// Dynamic match conditions
+	unsigned match_mask;
+	unsigned match_cond;
+	unsigned address;
+	unsigned address_end;
+
+	// Handler
+	bp_handler handler;
+	void *handler_data;
+
+	// Conditions for bp_list_add to consider entry for adding
+	unsigned add_cond;
 	int cond_machine_arch;
 	const char *cond_crc_bas;
 	const char *cond_crc_extbas;
 	const char *cond_crc_altbas;
-	/* active conditions */
-	int cond_page;
-	int cond_map_type;
 };
 
-/* convenience macros for standard types of breakpoint */
+// Chosen to match up to the GDB protcol watchpoint type minus 1.
+#define WP_WRITE (1)
+#define WP_READ  (2)
+#define WP_BOTH  (3)
+
+/* Convenience macros for standard types of breakpoint. */
 
 #define BP_DRAGON64_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_EXTBAS | BP_MAP_TYPE, .cond_crc_extbas = "@d64_1", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@d64_1", __VA_ARGS__ }
 #define BP_DRAGON32_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_EXTBAS | BP_MAP_TYPE, .cond_crc_extbas = "@d32", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@d32", __VA_ARGS__ }
 #define BP_DRAGON_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_EXTBAS | BP_MAP_TYPE, .cond_crc_extbas = "@dragon", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@dragon", __VA_ARGS__ }
 
 #define BP_COCO_BAS10_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_BAS | BP_MAP_TYPE, .cond_crc_bas = "@bas10", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@bas10", __VA_ARGS__ }
 #define BP_COCO_BAS11_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_BAS | BP_MAP_TYPE, .cond_crc_bas = "@bas11", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@bas11", __VA_ARGS__ }
 #define BP_COCO_BAS12_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_BAS | BP_MAP_TYPE, .cond_crc_bas = "@bas12", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@bas12", __VA_ARGS__ }
 #define BP_COCO_BAS13_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_BAS | BP_MAP_TYPE, .cond_crc_bas = "@bas13", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@bas13", __VA_ARGS__ }
 #define BP_COCO_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_BAS | BP_MAP_TYPE, .cond_crc_bas = "@coco", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@coco", __VA_ARGS__ }
 
 #define BP_COCO_COMBO_ROM(...) \
-	{ .type = BP_INSTRUCTION, .flags = BP_CRC_EXTBAS | BP_MAP_TYPE, .cond_crc_extbas = "@coco_combined", .cond_map_type = 0, __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@coco_combined", __VA_ARGS__ }
 
 #define bp_add_list(bp) bp_add_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
 #define bp_remove_list(bp) bp_remove_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
@@ -69,6 +92,15 @@ void bp_add_n(struct breakpoint *bp, int n);
 void bp_remove(struct breakpoint *bp);
 void bp_remove_n(struct breakpoint *bp, int n);
 
-void bp_clear(void);
+// Manipulate simple traps.  machine_trap() used as a handler.
+
+void bp_hbreak_add(unsigned addr, unsigned match_mask, unsigned match_cond);
+void bp_hbreak_remove(unsigned addr, unsigned match_mask, unsigned match_cond);
+
+void bp_wp_add(unsigned type, unsigned addr, unsigned nbytes, unsigned match_mask, unsigned match_cond);
+void bp_wp_remove(unsigned type, unsigned addr, unsigned nbytes, unsigned match_mask, unsigned match_cond);
+
+void bp_wp_read_hook(unsigned address);
+void bp_wp_write_hook(unsigned address);
 
 #endif  /* XROAR_BREAKPOINT_H_ */

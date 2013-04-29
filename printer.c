@@ -45,7 +45,7 @@ static void open_stream(void);
 static void coco_print_byte(struct MC6809 *cpu);
 
 static struct breakpoint coco_print_breakpoint[] = {
-	BP_COCO_ROM(.address = 0xa2c1, .handler = coco_print_byte),
+	BP_COCO_ROM(.address = 0xa2c1, .handler = (bp_handler)coco_print_byte),
 };
 
 void printer_init(void) {

@@ -32,6 +32,7 @@
 
 #include "config.h"
 
+#include "breakpoint.h"
 #include "cart.h"
 #include "crc32.h"
 #include "fs.h"
@@ -594,6 +595,12 @@ void machine_signal(int sig) {
 	}
 	pthread_mutex_unlock(&machine_state_mt);
 }
+
+void machine_trap(void *data) {
+	(void)data;
+	machine_last_signal = MACHINE_SIGTRAP;
+	CPU0->running = 0;
+}
 #endif
 
 void machine_instruction_posthook(struct MC6809 *cpu) {
@@ -608,8 +615,7 @@ void machine_instruction_posthook(struct MC6809 *cpu) {
 		}
 	}
 	if (machine_state == machine_state_single_step) {
-		machine_last_signal = MACHINE_SIGTRAP;
-		CPU0->running = 0;
+		machine_trap(NULL);
 	}
 }
 
@@ -724,6 +730,7 @@ static uint8_t read_cycle(uint16_t A) {
 		}
 	}
 #endif
+	bp_wp_read_hook(A);
 	return read_D;
 }
 
@@ -769,6 +776,7 @@ static void write_cycle(uint16_t A, uint8_t D) {
 	if (is_ram_access) {
 		machine_ram[Z] = D;
 	}
+	bp_wp_write_hook(A);
 }
 
 static void vdg_fetch_handler(int nbytes, uint8_t *dest) {

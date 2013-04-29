@@ -23,6 +23,7 @@
 
 #include "breakpoint.h"
 #include "crclist.h"
+#include "logging.h"
 #include "machine.h"
 #include "mc6809.h"
 #include "sam.h"
@@ -30,46 +31,48 @@
 
 static GSList *bp_instruction_list = NULL;
 
+static GSList *wp_read_list = NULL;
+static GSList *wp_write_list = NULL;
+static GSList *wp_access_list = NULL;
+
 static void bp_instruction_hook(struct MC6809 *cpu);
 
-/**************************************************************************/
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static _Bool is_in_list(GSList *bp_list, struct breakpoint *bp) {
+	for (GSList *iter = bp_list; iter; iter = iter->next) {
+		if (bp == iter->data)
+			return 1;
+	}
+	return 0;
+}
 
 void bp_add(struct breakpoint *bp) {
-	if ((bp->flags & BP_MACHINE_ARCH) && xroar_machine_config->architecture != bp->cond_machine_arch)
+	if (is_in_list(bp_instruction_list, bp))
 		return;
-	if ((bp->flags & BP_CRC_BAS) && (!has_bas || !crclist_match(bp->cond_crc_bas, crc_bas)))
-		return;
-	if ((bp->flags & BP_CRC_EXTBAS) && (!has_extbas || !crclist_match(bp->cond_crc_extbas, crc_extbas)))
-		return;
-	if ((bp->flags & BP_CRC_ALTBAS) && (!has_altbas || !crclist_match(bp->cond_crc_altbas, crc_altbas)))
-		return;
-	switch (bp->type) {
-	case BP_INSTRUCTION:
-		bp_instruction_list = g_slist_prepend(bp_instruction_list, bp);
-		CPU0->instruction_hook = bp_instruction_hook;
-		break;
-	default:
-		break;
-	}
+	bp->address_end = bp->address;
+	bp_instruction_list = g_slist_prepend(bp_instruction_list, bp);
+	CPU0->instruction_hook = bp_instruction_hook;
 }
 
 void bp_add_n(struct breakpoint *bp, int n) {
-	int i;
-	for (i = 0; i < n; i++) {
+	for (int i = 0; i < n; i++) {
+		if ((bp[i].add_cond & BP_MACHINE_ARCH) && xroar_machine_config->architecture != bp[i].cond_machine_arch)
+			continue;
+		if ((bp[i].add_cond & BP_CRC_BAS) && (!has_bas || !crclist_match(bp[i].cond_crc_bas, crc_bas)))
+			continue;
+		if ((bp[i].add_cond & BP_CRC_EXT) && (!has_extbas || !crclist_match(bp[i].cond_crc_extbas, crc_extbas)))
+			continue;
+		if (!bp[i].handler_data)
+			bp[i].handler_data = CPU0;
 		bp_add(&bp[i]);
 	}
 }
 
 void bp_remove(struct breakpoint *bp) {
-	switch (bp->type) {
-	case BP_INSTRUCTION:
-		bp_instruction_list = g_slist_remove(bp_instruction_list, bp);
-		if (!bp_instruction_list) {
-			CPU0->instruction_hook = NULL;
-		}
-		break;
-	default:
-		break;
+	bp_instruction_list = g_slist_remove(bp_instruction_list, bp);
+	if (!bp_instruction_list) {
+		CPU0->instruction_hook = NULL;
 	}
 }
 
@@ -80,30 +83,116 @@ void bp_remove_n(struct breakpoint *bp, int n) {
 	}
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+static struct breakpoint *trap_find(GSList *bp_list, unsigned addr, unsigned addr_end,
+				    unsigned match_mask, unsigned match_cond) {
+	for (GSList *iter = bp_list; iter; iter = iter->next) {
+		struct breakpoint *bp = iter->data;
+		if (bp->address == addr && bp->address_end == addr_end
+		    && bp->match_mask == match_mask
+		    && bp->match_cond == match_cond
+		    && bp->handler == machine_trap)
+			return bp;
+	}
+	return NULL;
+}
+
+static void trap_add(GSList **bp_list, unsigned addr, unsigned addr_end,
+		     unsigned match_mask, unsigned match_cond) {
+	if (trap_find(*bp_list, addr, addr_end, match_mask, match_cond))
+		return;
+	struct breakpoint *new = g_malloc(sizeof(*new));
+	new->match_mask = match_mask;
+	new->match_cond = match_cond;
+	new->address = addr;
+	new->address_end = addr_end;
+	new->handler = machine_trap;
+	*bp_list = g_slist_prepend(*bp_list, new);
+}
+
+static void trap_remove(GSList **bp_list, unsigned addr, unsigned addr_end,
+			unsigned match_mask, unsigned match_cond) {
+	struct breakpoint *bp = trap_find(*bp_list, addr, addr_end, match_mask, match_cond);
+	if (bp) {
+		*bp_list = g_slist_remove(*bp_list, bp);
+		g_free(bp);
+	}
+}
+
+void bp_hbreak_add(unsigned addr, unsigned match_mask, unsigned match_cond) {
+	trap_add(&bp_instruction_list, addr, addr, match_mask, match_cond);
+	if (bp_instruction_list)
+		CPU0->instruction_hook = bp_instruction_hook;
+}
+
+void bp_hbreak_remove(unsigned addr, unsigned match_mask, unsigned match_cond) {
+	trap_remove(&bp_instruction_list, addr, addr, match_mask, match_cond);
+	if (!bp_instruction_list)
+		CPU0->instruction_hook = NULL;
+}
+
+void bp_wp_add(unsigned type, unsigned addr, unsigned nbytes, unsigned match_mask, unsigned match_cond) {
+	switch (type) {
+	case 2:
+		trap_add(&wp_write_list, addr, addr + nbytes - 1, match_mask, match_cond);
+		break;
+	case 3:
+		trap_add(&wp_read_list, addr, addr + nbytes - 1, match_mask, match_cond);
+		break;
+	case 4:
+		trap_add(&wp_access_list, addr, addr + nbytes - 1, match_mask, match_cond);
+		break;
+	default:
+		break;
+	}
+}
+
+void bp_wp_remove(unsigned type, unsigned addr, unsigned nbytes, unsigned match_mask, unsigned match_cond) {
+	switch (type) {
+	case 2:
+		trap_remove(&wp_write_list, addr, addr + nbytes - 1, match_mask, match_cond);
+		break;
+	case 3:
+		trap_remove(&wp_read_list, addr, addr + nbytes - 1, match_mask, match_cond);
+		break;
+	case 4:
+		trap_remove(&wp_access_list, addr, addr + nbytes - 1, match_mask, match_cond);
+		break;
+	default:
+		break;
+	}
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static void bp_hook(GSList *bp_list, unsigned address) {
+	unsigned sam_register = sam_get_register();
+	unsigned cond = sam_register & 0x8400;
+	for (GSList *iter = bp_list; iter; iter = iter->next) {
+		struct breakpoint *bp = iter->data;
+		if ((cond & bp->match_mask) != bp->match_cond)
+			continue;
+		if (address < bp->address)
+			continue;
+		if (address > bp->address_end)
+			continue;
+		bp->handler(bp->handler_data);
+	}
+}
 
 static void bp_instruction_hook(struct MC6809 *cpu) {
-	GSList *iter = bp_instruction_list;
-	uint16_t pc = CPU0->reg_pc;
-	unsigned int sam_register = sam_get_register();
-	int page = (sam_register & 0x0400) ? 1 : 0;
-	int map_type = (sam_register & 0x8000) ? 1 : 0;
-	while (iter) {
-		struct breakpoint *bp = iter->data;
-		iter = iter->next;
-		if (bp->type != BP_INSTRUCTION)
-			continue;
-		if ((bp->flags & BP_PAGE) && page != bp->cond_page)
-			continue;
-		if ((bp->flags & BP_MAP_TYPE) && map_type != bp->cond_map_type)
-			continue;
-		if (pc != bp->address)
-			continue;
-		bp->handler(cpu);
-		if (pc != CPU0->reg_pc) {
-			/* pc changed, start again */
-			iter = bp_instruction_list;
-			pc = CPU0->reg_pc;
-		}
-	}
+	uint16_t old_pc;
+	do {
+		old_pc = cpu->reg_pc;
+		bp_hook(bp_instruction_list, old_pc);
+	} while (old_pc != cpu->reg_pc);
+}
+
+void bp_wp_read_hook(unsigned address) {
+	bp_hook(wp_read_list, address);
+	bp_hook(wp_access_list, address);
+}
+
+void bp_wp_write_hook(unsigned address) {
+	bp_hook(wp_write_list, address);
+	bp_hook(wp_access_list, address);
 }
