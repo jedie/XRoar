@@ -78,9 +78,9 @@ Installation directories:
 
 System types:
   --build=BUILD     configure for building on BUILD [guessed]
-  --target=TARGET   cross-compile to build programs to run on TARGET [BUILD]
-  --target-le       specify that target is little-endian
-  --target-be       specify that target is big-endian
+  --host=HOST       cross-compile to build programs to run on HOST [BUILD]
+  --host-le         specify that HOST is little-endian
+  --host-be         specify that HOST is big-endian
 
 Optional Features:
   --disable-glib2       don't test for GLib 2
@@ -189,6 +189,8 @@ while test -n "$1"; do
 	--pdfdir=*) pdfdir=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--build=*) build=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--host=*) _cross=yes; target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--host-le) _endian=little; ;;
+	--host-be) _endian=big; ;;
 	--target=*) _cross=yes; target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--target-le) _endian=little; ;;
 	--target-be) _endian=big; ;;

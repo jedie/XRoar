@@ -213,9 +213,9 @@ directory under @file{.xroar/roms/}, or under the installation directory at
 XRoar can be built on one platform to run on another.  The Windows binary
 package is built like this.
 
-To specify a cross-compile, use the @option{--target=TARGET} argument to
+To specify a cross-compile, use the @option{--host=HOST} argument to
 @command{configure}.  For example, to build for Windows, you might use
-@samp{./configure --target=i586-mingw32}.  @command{configure} will detect
+@samp{./configure --host=i686-w64-mingw32}.  @command{configure} will detect
 Windows headers and configure the build accordingly.
 
 
