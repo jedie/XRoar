@@ -111,9 +111,8 @@ void sdl_js_shutdown(void) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void sdl_run(void) {
-	while (1) {
+	while (xroar_run()) {
 		SDL_Event event;
-		machine_run(VDG_LINE_DURATION * 16);
 		while (SDL_PollEvent(&event) == 1) {
 			switch(event.type) {
 			case SDL_VIDEORESIZE:
@@ -134,8 +133,6 @@ void sdl_run(void) {
 				break;
 			}
 		}
-		/* XXX will this ever be needed? */
-		event_run_queue(UI_EVENT_LIST);
 	}
 }
 

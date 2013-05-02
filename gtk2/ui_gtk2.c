@@ -569,9 +569,7 @@ static void shutdown(void) {
 
 static gboolean run_cpu(gpointer data) {
 	(void)data;
-	machine_run(VDG_LINE_DURATION * 16);
-	event_run_queue(UI_EVENT_LIST);
-	return 1;
+	return xroar_run();
 }
 
 static void run(void) {

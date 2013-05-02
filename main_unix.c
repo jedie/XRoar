@@ -25,6 +25,7 @@
 # include <SDL.h>
 #endif
 
+#include "module.h"
 #include "xroar.h"
 #include "logging.h"
 
@@ -32,6 +33,11 @@ int main(int argc, char **argv) {
 	atexit(xroar_shutdown);
 	if (!xroar_init(argc, argv))
 		exit(EXIT_FAILURE);
-	xroar_run();
+	if (ui_module->run) {
+		ui_module->run();
+	} else {
+		while (xroar_run())
+			;
+	}
 	return 0;
 }

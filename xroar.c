@@ -1285,17 +1285,15 @@ static struct vdg_palette *get_machine_palette(void) {
 	return vp;
 }
 
-void xroar_run(void) {
-	/* If UI module has its own idea of a main loop, delegate to that */
-	if (ui_module->run) {
-		ui_module->run();
-		return;
-	}
+/*
+ * Called either by main() in a loop, or by a UI module's run() member.
+ * Returns 1 for as long as the machine is running.
+ */
 
-	while (1) {
-		machine_run(VDG_LINE_DURATION * 16);
-		event_run_queue(UI_EVENT_LIST);
-	}
+_Bool xroar_run(void) {
+	machine_run(VDG_LINE_DURATION * 16);
+	event_run_queue(UI_EVENT_LIST);
+	return 1;
 }
 
 int xroar_filetype_by_ext(const char *filename) {

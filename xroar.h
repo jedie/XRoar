@@ -149,7 +149,7 @@ extern struct vdg_palette *xroar_vdg_palette;
 void xroar_getargs(int argc, char **argv);
 _Bool xroar_init(int argc, char **argv);
 void xroar_shutdown(void);
-void xroar_run(void);
+_Bool xroar_run(void);
 int xroar_filetype_by_ext(const char *filename);
 int xroar_load_file_by_type(const char *filename, int autorun);
 
