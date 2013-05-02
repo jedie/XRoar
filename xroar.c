@@ -1233,6 +1233,9 @@ _Bool xroar_init(int argc, char **argv) {
 		}
 	}
 
+	CPU0->instruction_posthook = machine_instruction_posthook;
+	xroar_set_trace(xroar_cfg.trace_enabled);
+
 #ifdef WANT_GDB_STUB
 	// Must follow machine_init(), so that machine_state_cv is initialised.
 	gdb_init();
@@ -1283,13 +1286,6 @@ static struct vdg_palette *get_machine_palette(void) {
 }
 
 void xroar_run(void) {
-	CPU0->interrupt_hook = NULL;
-	CPU0->instruction_posthook = machine_instruction_posthook;
-
-#ifdef TRACE
-	xroar_set_trace(xroar_cfg.trace_enabled);
-#endif
-
 	/* If UI module has its own idea of a main loop, delegate to that */
 	if (ui_module->run) {
 		ui_module->run();
@@ -1379,7 +1375,6 @@ static void do_load_file(void *data) {
 
 /* Helper functions */
 
-#ifdef TRACE
 void xroar_set_trace(int mode) {
 #ifdef TRACE
 	int set_to;
@@ -1407,9 +1402,10 @@ void xroar_set_trace(int mode) {
 	} else {
 		CPU0->interrupt_hook = NULL;
 	}
+#else
+	CPU0->interrupt_hook = NULL;
 #endif
 }
-#endif
 
 void xroar_new_disk(int drive) {
 	char *filename = filereq_module->save_filename(xroar_disk_exts);
