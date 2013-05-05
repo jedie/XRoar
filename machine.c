@@ -121,7 +121,6 @@ struct machine_config *machine_config_new(void) {
 	new->tv_standard = ANY_AUTO;
 	new->vdg_type = ANY_AUTO;
 	new->ram = ANY_AUTO;
-	new->default_cart_index = ANY_AUTO;
 	new->cart_enabled = 1;
 	config_list = g_slist_append(config_list, new);
 	num_configs++;
@@ -243,10 +242,10 @@ void machine_config_complete(struct machine_config *mc) {
 		mc->altbas_rom = g_strdup(rom_list[mc->architecture].altbas);
 	}
 	// Determine a default DOS cartridge if necessary
-	if (mc->default_cart_index == ANY_AUTO) {
+	if (!mc->default_cart) {
 		struct cart_config *cc = cart_find_working_dos(mc);
 		if (cc)
-			mc->default_cart_index = cc->index;
+			mc->default_cart = g_strdup(cc->name);
 	}
 }
 

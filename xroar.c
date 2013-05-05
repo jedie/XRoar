@@ -637,8 +637,9 @@ static void set_machine(const char *name) {
 			private_cfg.altbas = NULL;
 		}
 		if (private_cfg.machine_cart) {
-			struct cart_config *cc = cart_config_by_name(private_cfg.machine_cart);
-			xroar_machine_config->default_cart_index = cc->index;
+			if (xroar_machine_config->default_cart)
+				g_free(xroar_machine_config->default_cart);
+			xroar_machine_config->default_cart = g_strdup(private_cfg.machine_cart);
 			private_cfg.machine_cart = NULL;
 		}
 		if (private_cfg.nodos != -1) {
@@ -677,7 +678,7 @@ static void set_cart(const char *name) {
 	if (xroar_cart_config) {
 		cc = xroar_cart_config;
 	} else if (xroar_machine_config) {
-		cc = cart_config_index(xroar_machine_config->default_cart_index);
+		cc = cart_config_by_name(xroar_machine_config->default_cart);
 	}
 	if (cc) {
 		if (private_cfg.cart_desc) {
@@ -1113,7 +1114,9 @@ _Bool xroar_init(int argc, char **argv) {
 	}
 	// If any cart still configured, make it default for machine.
 	if (xroar_cart_config) {
-		xroar_machine_config->default_cart_index = xroar_cart_config->index;
+		if (xroar_machine_config->default_cart)
+			g_free(xroar_machine_config->default_cart);
+		xroar_machine_config->default_cart = g_strdup(xroar_cart_config->name);
 	}
 
 	/* Initial palette */
@@ -1174,8 +1177,7 @@ _Bool xroar_init(int argc, char **argv) {
 	/* Configure machine */
 	machine_configure(xroar_machine_config);
 	if (xroar_machine_config->cart_enabled) {
-		struct cart_config *cc = cart_config_index(xroar_machine_config->default_cart_index);
-		xroar_set_cart(cc ? cc->index : -1);
+		xroar_set_cart(xroar_machine_config->default_cart);
 	}
 	/* Reset everything */
 	machine_reset(RESET_HARD);
@@ -1342,7 +1344,7 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 			cc = cart_config_by_name(filename);
 			if (cc) {
 				cc->autorun = autorun;
-				xroar_set_cart(cc->index);
+				xroar_set_cart(cc->name);
 				if (autorun) {
 					machine_reset(RESET_HARD);
 				}
@@ -1619,9 +1621,9 @@ void xroar_set_machine(int machine_type) {
 		xroar_machine_config = machine_config_index(new);
 		machine_configure(xroar_machine_config);
 		if (xroar_machine_config->cart_enabled) {
-			xroar_set_cart(xroar_machine_config->default_cart_index);
+			xroar_set_cart(xroar_machine_config->default_cart);
 		} else {
-			xroar_set_cart(-1);
+			xroar_set_cart(NULL);
 		}
 		xroar_vdg_palette = get_machine_palette();
 		if (video_module->update_palette) {
@@ -1635,35 +1637,35 @@ void xroar_set_machine(int machine_type) {
 	lock = 0;
 }
 
-void xroar_set_cart(int cart_index) {
+void xroar_toggle_cart(void) {
+	assert(xroar_machine_config != NULL);
+	xroar_machine_config->cart_enabled = !xroar_machine_config->cart_enabled;
+	if (xroar_machine_config->cart_enabled) {
+		xroar_set_cart(xroar_machine_config->default_cart);
+	} else {
+		xroar_set_cart(NULL);
+	}
+}
+
+void xroar_set_cart(const char *cart_name) {
 	static int lock = 0;
 	if (lock) return;
 	lock = 1;
 
-	int new_index = -1;
-
 	assert(xroar_machine_config != NULL);
 	machine_remove_cart();
 
-	switch (cart_index) {
-	case XROAR_TOGGLE:
-		xroar_machine_config->cart_enabled = !xroar_machine_config->cart_enabled;
-		if (xroar_machine_config->cart_enabled)
-			new_index = xroar_machine_config->default_cart_index;
-		break;
-	default:
-		new_index = cart_index;
-		break;
-	}
-
-	if (new_index >= 0) {
-		xroar_machine_config->default_cart_index = new_index;
-		xroar_machine_config->cart_enabled = 1;
-		xroar_cart_config = cart_config_index(xroar_machine_config->default_cart_index);
-		machine_insert_cart(xroar_cart_config);
-	} else {
+	if (!cart_name) {
 		xroar_machine_config->cart_enabled = 0;
 		xroar_cart_config = NULL;
+	} else {
+		if (xroar_machine_config->default_cart != cart_name) {
+			g_free(xroar_machine_config->default_cart);
+			xroar_machine_config->default_cart = g_strdup(cart_name);
+		}
+		xroar_machine_config->cart_enabled = 1;
+		xroar_cart_config = cart_config_by_name(cart_name);
+		machine_insert_cart(xroar_cart_config);
 	}
 
 	if (ui_module->cart_changed_cb) {
@@ -1678,25 +1680,19 @@ void xroar_set_cart(int cart_index) {
 
 /* For old snapshots */
 void xroar_set_dos(int dos_type) {
-	struct cart_config *cc = NULL;
-	int i = -1;
 	switch (dos_type) {
 	case DOS_DRAGONDOS:
-		cc = cart_config_by_name("dragondos");
+		xroar_set_cart("dragondos");
 		break;
 	case DOS_RSDOS:
-		cc = cart_config_by_name("rsdos");
+		xroar_set_cart("rsdos");
 		break;
 	case DOS_DELTADOS:
-		cc = cart_config_by_name("delta");
+		xroar_set_cart("delta");
 		break;
 	default:
 		break;
 	}
-	if (cc) {
-		i = cc->index;
-	}
-	xroar_set_cart(i);
 }
 
 void xroar_save_snapshot(void) {

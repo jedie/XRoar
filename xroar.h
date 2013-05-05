@@ -172,7 +172,8 @@ void xroar_run_file(const char **exts);
 void xroar_set_keymap(int map);
 void xroar_set_kbd_translate(int kbd_translate);
 void xroar_set_machine(int machine);
-void xroar_set_cart(int cart_index);
+void xroar_toggle_cart(void);
+void xroar_set_cart(const char *cart_name);
 void xroar_set_dos(int dos_type);  /* for old snapshots only */
 void xroar_save_snapshot(void);
 void xroar_select_tape_input(void);

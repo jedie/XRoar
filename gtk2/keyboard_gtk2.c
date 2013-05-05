@@ -192,7 +192,7 @@ static void emulator_command(guint keyval, int shift) {
 		xroar_select_cross_colour(XROAR_CYCLE);
 		break;
 	case GDK_e:
-		xroar_set_cart(XROAR_TOGGLE);
+		xroar_toggle_cart();
 		break;
 	case GDK_f:
 		xroar_fullscreen(XROAR_TOGGLE);

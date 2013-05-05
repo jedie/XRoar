@@ -258,7 +258,8 @@ static void set_cart(GtkRadioAction *action, GtkRadioAction *current, gpointer u
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
 	(void)user_data;
-	xroar_set_cart(val);
+	struct cart_config *cc = cart_config_index(val);
+	xroar_set_cart(cc ? cc->name : NULL);
 }
 
 static void set_keymap(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
