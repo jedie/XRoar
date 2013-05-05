@@ -48,6 +48,23 @@ extern const char *xroar_cart_exts[];
 extern void (*xroar_fullscreen_changed_cb)(_Bool fullscreen);
 extern void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate);
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+enum xroar_run_state {
+	xroar_run_state_stopped = 0,
+	xroar_run_state_single_step,
+	xroar_run_state_running
+};
+
+extern enum xroar_run_state xroar_run_state;
+
+#define XROAR_SIGINT (2)
+#define XROAR_SIGILL (4)
+#define XROAR_SIGTRAP (5)
+#define XROAR_SIGFPE (8)
+
+extern int xroar_last_signal;
+
 /**************************************************************************/
 /* Command line arguments */
 
@@ -149,7 +166,13 @@ extern struct vdg_palette *xroar_vdg_palette;
 void xroar_getargs(int argc, char **argv);
 _Bool xroar_init(int argc, char **argv);
 void xroar_shutdown(void);
+
 _Bool xroar_run(void);
+void xroar_machine_continue(void);
+void xroar_machine_signal(int sig);
+void xroar_machine_single_step(void);
+void xroar_machine_trap(void *data);
+
 int xroar_filetype_by_ext(const char *filename);
 int xroar_load_file_by_type(const char *filename, int autorun);
 

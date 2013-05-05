@@ -126,6 +126,7 @@ enum gdb_error {
 
 static char in_packet[1025];
 static char packet[1025];
+static int last_signal = 0;
 
 static int read_packet(int fd, char *buffer, unsigned count);
 static int send_packet(int fd, char *buffer, unsigned count);
@@ -189,6 +190,7 @@ int gdb_init(void) {
 	}
 
 	pthread_create(&sock_thread, NULL, handle_tcp_sock, NULL);
+	pthread_detach(sock_thread);
 
 	LOG_DEBUG(2, "gdb: stub listening on %s:%s\n", hostname, portname);
 
@@ -204,7 +206,6 @@ failed:
 
 void gdb_shutdown(void) {
 	pthread_cancel(sock_thread);
-	pthread_join(sock_thread, NULL);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -225,7 +226,7 @@ static void *handle_tcp_sock(void *data) {
 		if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_CONNECT) {
 			LOG_PRINT("gdb: connection accepted\n");
 		}
-		machine_signal(MACHINE_SIGINT);
+		xroar_machine_signal(XROAR_SIGINT);
 		_Bool attached = 1;
 		while (attached) {
 			int l = read_packet(sockfd, in_packet, sizeof(in_packet));
@@ -233,7 +234,7 @@ static void *handle_tcp_sock(void *data) {
 				if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_PACKET) {
 					LOG_PRINT("gdb: BREAK\n");
 				}
-				machine_signal(MACHINE_SIGINT);
+				xroar_machine_signal(XROAR_SIGINT);
 				continue;
 			} else if (l == -GDBE_BAD_CHECKSUM) {
 				if (send_char(sockfd, '-') < 0)
@@ -243,7 +244,7 @@ static void *handle_tcp_sock(void *data) {
 				break;
 			}
 			if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_PACKET) {
-				if (machine_state == machine_state_stopped) {
+				if (xroar_run_state == xroar_run_state_stopped) {
 					LOG_PRINT("gdb: packet received: ");
 				} else {
 					LOG_PRINT("gdb: packet ignored (send ^C first): ");
@@ -257,7 +258,7 @@ static void *handle_tcp_sock(void *data) {
 				}
 				LOG_PRINT("\n");
 			}
-			if (machine_state != machine_state_stopped) {
+			if (xroar_run_state != xroar_run_state_stopped) {
 				if (send_char(sockfd, '-') < 0)
 					break;
 				continue;
@@ -274,7 +275,7 @@ static void *handle_tcp_sock(void *data) {
 				break;
 
 			case 'c':
-				machine_start();
+				xroar_machine_continue();
 				break;
 
 			case 'D':
@@ -315,7 +316,7 @@ static void *handle_tcp_sock(void *data) {
 				break;
 
 			case 's':
-				machine_step();
+				xroar_machine_single_step();
 				break;
 
 			case 'z':
@@ -332,7 +333,7 @@ static void *handle_tcp_sock(void *data) {
 			}
 		}
 		close(sockfd);
-		machine_start();
+		xroar_machine_continue();
 		if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_CONNECT) {
 			LOG_PRINT("gdb: connection closed\n");
 		}
@@ -340,7 +341,8 @@ static void *handle_tcp_sock(void *data) {
 	return NULL;
 }
 
-void gdb_handle_signal(void) {
+void gdb_handle_signal(int sig) {
+	last_signal = sig;
 	send_last_signal(sockfd);
 }
 
@@ -474,7 +476,7 @@ static int send_char(int fd, char c) {
 
 static void send_last_signal(int fd) {
 	char tmpbuf[4];
-	snprintf(tmpbuf, sizeof(tmpbuf), "S%02x", machine_last_signal);
+	snprintf(tmpbuf, sizeof(tmpbuf), "S%02x", last_signal);
 	send_packet(fd, tmpbuf, 3);
 }
 

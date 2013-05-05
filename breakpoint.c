@@ -90,7 +90,7 @@ static struct breakpoint *trap_find(GSList *bp_list, unsigned addr, unsigned add
 		if (bp->address == addr && bp->address_end == addr_end
 		    && bp->match_mask == match_mask
 		    && bp->match_cond == match_cond
-		    && bp->handler == machine_trap)
+		    && bp->handler == xroar_machine_trap)
 			return bp;
 	}
 	return NULL;
@@ -105,7 +105,7 @@ static void trap_add(GSList **bp_list, unsigned addr, unsigned addr_end,
 	new->match_cond = match_cond;
 	new->address = addr;
 	new->address_end = addr_end;
-	new->handler = machine_trap;
+	new->handler = xroar_machine_trap;
 	*bp_list = g_slist_prepend(*bp_list, new);
 }
 

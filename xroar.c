@@ -21,8 +21,11 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include "portalib/glib.h"
 #include "portalib/string.h"
 #include "portalib/strings.h"
@@ -548,6 +551,16 @@ static struct {
 void (*xroar_fullscreen_changed_cb)(_Bool fullscreen) = NULL;
 void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate) = NULL;
 static struct vdg_palette *get_machine_palette(void);
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#ifdef WANT_GDB_STUB
+static pthread_cond_t run_state_cv;
+static pthread_mutex_t run_state_mt;
+#endif
+
+enum xroar_run_state xroar_run_state = xroar_run_state_running;
+int xroar_last_signal;
 
 /**************************************************************************/
 
@@ -1238,11 +1251,11 @@ _Bool xroar_init(int argc, char **argv) {
 		}
 	}
 
-	CPU0->instruction_posthook = machine_instruction_posthook;
 	xroar_set_trace(xroar_cfg.trace_enabled);
 
 #ifdef WANT_GDB_STUB
-	// Must follow machine_init(), so that machine_state_cv is initialised.
+	pthread_mutex_init(&run_state_mt, NULL);
+	pthread_cond_init(&run_state_cv, NULL);
 	gdb_init();
 #endif
 
@@ -1265,6 +1278,8 @@ void xroar_shutdown(void) {
 	shutting_down = 1;
 #ifdef WANT_GDB_STUB
 	gdb_shutdown();
+	pthread_mutex_destroy(&run_state_mt);
+	pthread_cond_destroy(&run_state_cv);
 #endif
 	machine_shutdown();
 	module_shutdown((struct module *)joystick_module);
@@ -1292,13 +1307,86 @@ static struct vdg_palette *get_machine_palette(void) {
 
 /*
  * Called either by main() in a loop, or by a UI module's run() member.
- * Returns 1 for as long as the machine is running.
+ * Returns 1 for as long as the machine is active.
  */
 
 _Bool xroar_run(void) {
-	machine_run(VDG_LINE_DURATION * 16);
+
+#ifdef WANT_GDB_STUB
+	pthread_mutex_lock(&run_state_mt);
+	if (xroar_run_state == xroar_run_state_stopped) {
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		tv.tv_usec += 20000;
+		tv.tv_sec += (tv.tv_usec / 1000000);
+		tv.tv_usec %= 1000000;
+		struct timespec ts;
+		ts.tv_sec = tv.tv_sec;
+		ts.tv_nsec = tv.tv_usec * 1000;
+		if (pthread_cond_timedwait(&run_state_cv, &run_state_mt, &ts) == ETIMEDOUT) {
+			if (video_module->refresh)
+				video_module->refresh();
+			pthread_mutex_unlock(&run_state_mt);
+			return 1;
+		}
+	}
+	if (xroar_run_state == xroar_run_state_running) {
+#endif
+
+		int sig = machine_run(VDG_LINE_DURATION * 32);
+		(void)sig;
+
+#ifdef WANT_GDB_STUB
+		if (sig != 0) {
+			xroar_run_state = xroar_run_state_stopped;
+			gdb_handle_signal(sig);
+		}
+	} else if (xroar_run_state == xroar_run_state_single_step) {
+		machine_single_step();
+		xroar_run_state = xroar_run_state_stopped;
+		gdb_handle_signal(XROAR_SIGTRAP);
+		pthread_cond_signal(&run_state_cv);
+	}
+	pthread_mutex_unlock(&run_state_mt);
+#endif
+
 	event_run_queue(UI_EVENT_LIST);
 	return 1;
+}
+
+#ifdef WANT_GDB_STUB
+void xroar_machine_continue(void) {
+	pthread_mutex_lock(&run_state_mt);
+	if (xroar_run_state == xroar_run_state_stopped) {
+		xroar_run_state = xroar_run_state_running;
+		pthread_cond_signal(&run_state_cv);
+	}
+	pthread_mutex_unlock(&run_state_mt);
+}
+
+void xroar_machine_signal(int sig) {
+	pthread_mutex_lock(&run_state_mt);
+	if (xroar_run_state == xroar_run_state_running) {
+		machine_signal(sig);
+		xroar_run_state = xroar_run_state_stopped;
+		gdb_handle_signal(sig);
+	}
+	pthread_mutex_unlock(&run_state_mt);
+}
+
+void xroar_machine_single_step(void) {
+	pthread_mutex_lock(&run_state_mt);
+	if (xroar_run_state == xroar_run_state_stopped) {
+		xroar_run_state = xroar_run_state_single_step;
+		pthread_cond_wait(&run_state_cv, &run_state_mt);
+	}
+	pthread_mutex_unlock(&run_state_mt);
+}
+#endif  /* WANT_GDB_STUB */
+
+void xroar_machine_trap(void *data) {
+	(void)data;
+	machine_signal(XROAR_SIGTRAP);
 }
 
 int xroar_filetype_by_ext(const char *filename) {
@@ -1393,6 +1481,7 @@ void xroar_set_trace(int mode) {
 			break;
 	}
 	xroar_cfg.trace_enabled = set_to;
+	machine_set_trace(xroar_cfg.trace_enabled);
 	if (xroar_cfg.trace_enabled) {
 		switch (xroar_machine_config->cpu) {
 		case CPU_MC6809: default:
