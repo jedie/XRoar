@@ -179,6 +179,11 @@ struct cart *cart_new(struct cart_config *cc) {
 	return c;
 }
 
+struct cart *cart_new_named(const char *cc_name) {
+	struct cart_config *cc = cart_config_by_name(cc_name);
+	return cart_new(cc);
+}
+
 void cart_free(struct cart *c) {
 	if (!c) return;
 	if (c->detach)

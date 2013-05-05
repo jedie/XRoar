@@ -162,7 +162,8 @@ int cocoa_super_all_keys = 0;
 	if (set_to & (1 << 23)) {
 		set_to = -1;
 	}
-	xroar_set_cart(set_to);
+	struct cart_config *cc = cart_config_index(set_to);
+	xroar_set_cart(cc ? cc->name : NULL);
 }
 
 
@@ -653,7 +654,8 @@ static void update_cartridge_menu(void) {
 	int i;
 	NSMenuItem *item;
 
-	if (xroar_cart_config) current_cartridge = TAG_CARTRIDGE | (xroar_cart_config->index & TAG_VALUE_MASK);
+	if (xroar_cart)
+		current_cartridge = TAG_CARTRIDGE | (xroar_cart->config->index & TAG_VALUE_MASK);
 
 	for (i = num_carts-1; i >= 0; i--) {
 		struct cart_config *cc = cart_config_index(i);

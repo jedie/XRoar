@@ -337,7 +337,8 @@ _Bool xroar_noratelimit = 0;
 int xroar_frameskip = 0;
 
 struct machine_config *xroar_machine_config;
-struct cart_config *xroar_cart_config;
+static struct cart_config *selected_cart_config;
+struct cart *xroar_cart;
 struct vdg_palette *xroar_vdg_palette;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -675,8 +676,8 @@ static void set_cart(const char *name) {
 	// Apply any unassigned config to either the current cart config or the
 	// current machine's default cart config.
 	struct cart_config *cc = NULL;
-	if (xroar_cart_config) {
-		cc = xroar_cart_config;
+	if (selected_cart_config) {
+		cc = selected_cart_config;
 	} else if (xroar_machine_config) {
 		cc = cart_config_by_name(xroar_machine_config->default_cart);
 	}
@@ -708,10 +709,10 @@ static void set_cart(const char *name) {
 		cart_config_complete(cc);
 	}
 	if (name) {
-		xroar_cart_config = cart_config_by_name(name);
-		if (!xroar_cart_config) {
-			xroar_cart_config = cart_config_new();
-			xroar_cart_config->name = g_strdup(name);
+		selected_cart_config = cart_config_by_name(name);
+		if (!selected_cart_config) {
+			selected_cart_config = cart_config_new();
+			selected_cart_config->name = g_strdup(name);
 		}
 	}
 }
@@ -976,7 +977,7 @@ _Bool xroar_init(int argc, char **argv) {
 	set_cart(NULL);
 	set_joystick(NULL);
 	xroar_machine_config = NULL;
-	xroar_cart_config = NULL;
+	selected_cart_config = NULL;
 	cur_joy_config = NULL;
 
 	// If a configuration file is found, parse it.
@@ -992,7 +993,7 @@ _Bool xroar_init(int argc, char **argv) {
 	set_joystick(NULL);
 	// Don't auto-select last machine or cart in config file.
 	xroar_machine_config = NULL;
-	xroar_cart_config = NULL;
+	selected_cart_config = NULL;
 	cur_joy_config = NULL;
 
 	// Parse command line options.
@@ -1098,8 +1099,8 @@ _Bool xroar_init(int argc, char **argv) {
 			break;
 		// for cartridge ROMs, create a cart as machine default
 		case FILETYPE_ROM:
-			xroar_cart_config = cart_config_by_name(load_file);
-			xroar_cart_config->autorun = autorun;
+			selected_cart_config = cart_config_by_name(load_file);
+			selected_cart_config->autorun = autorun;
 			break;
 		// for the rest, wait until later
 		default:
@@ -1109,14 +1110,14 @@ _Bool xroar_init(int argc, char **argv) {
 	if (definitely_dos) no_auto_dos = 0;
 
 	// Disable cart if necessary.
-	if (!xroar_cart_config && no_auto_dos) {
+	if (!selected_cart_config && no_auto_dos) {
 		xroar_machine_config->cart_enabled = 0;
 	}
 	// If any cart still configured, make it default for machine.
-	if (xroar_cart_config) {
+	if (selected_cart_config) {
 		if (xroar_machine_config->default_cart)
 			g_free(xroar_machine_config->default_cart);
-		xroar_machine_config->default_cart = g_strdup(xroar_cart_config->name);
+		xroar_machine_config->default_cart = g_strdup(selected_cart_config->name);
 	}
 
 	/* Initial palette */
@@ -1178,6 +1179,8 @@ _Bool xroar_init(int argc, char **argv) {
 	machine_configure(xroar_machine_config);
 	if (xroar_machine_config->cart_enabled) {
 		xroar_set_cart(xroar_machine_config->default_cart);
+	} else {
+		xroar_set_cart(NULL);
 	}
 	/* Reset everything */
 	machine_reset(RESET_HARD);
@@ -1647,7 +1650,7 @@ void xroar_toggle_cart(void) {
 	}
 }
 
-void xroar_set_cart(const char *cart_name) {
+void xroar_set_cart(const char *cc_name) {
 	static int lock = 0;
 	if (lock) return;
 	lock = 1;
@@ -1655,22 +1658,20 @@ void xroar_set_cart(const char *cart_name) {
 	assert(xroar_machine_config != NULL);
 	machine_remove_cart();
 
-	if (!cart_name) {
+	if (!cc_name) {
 		xroar_machine_config->cart_enabled = 0;
-		xroar_cart_config = NULL;
 	} else {
-		if (xroar_machine_config->default_cart != cart_name) {
+		if (xroar_machine_config->default_cart != cc_name) {
 			g_free(xroar_machine_config->default_cart);
-			xroar_machine_config->default_cart = g_strdup(cart_name);
+			xroar_machine_config->default_cart = g_strdup(cc_name);
 		}
 		xroar_machine_config->cart_enabled = 1;
-		xroar_cart_config = cart_config_by_name(cart_name);
-		machine_insert_cart(xroar_cart_config);
+		machine_insert_cart(cart_new_named(cc_name));
 	}
 
 	if (ui_module->cart_changed_cb) {
-		if (xroar_cart_config) {
-			ui_module->cart_changed_cb(xroar_cart_config->index);
+		if (machine_cart) {
+			ui_module->cart_changed_cb(machine_cart->config->index);
 		} else {
 			ui_module->cart_changed_cb(-1);
 		}

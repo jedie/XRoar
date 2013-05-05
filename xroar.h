@@ -14,7 +14,7 @@
 
 struct event;
 struct machine_config;
-struct cart_config;
+struct cart;
 struct vdg_palette;
 
 /* Convenient values for arguments to helper functions */
@@ -117,7 +117,7 @@ extern struct event *xroar_ui_events;
 extern struct event *xroar_machine_events;
 
 extern struct machine_config *xroar_machine_config;
-extern struct cart_config *xroar_cart_config;
+extern struct cart *xroar_cart;
 extern struct vdg_palette *xroar_vdg_palette;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -173,7 +173,7 @@ void xroar_set_keymap(int map);
 void xroar_set_kbd_translate(int kbd_translate);
 void xroar_set_machine(int machine);
 void xroar_toggle_cart(void);
-void xroar_set_cart(const char *cart_name);
+void xroar_set_cart(const char *cc_name);
 void xroar_set_dos(int dos_type);  /* for old snapshots only */
 void xroar_save_snapshot(void);
 void xroar_select_tape_input(void);

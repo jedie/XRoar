@@ -12,7 +12,6 @@
 #include "mc6821.h"
 #include "mc6809.h"
 
-struct cart_config;
 struct cart;
 
 /* Dragon 64s and later Dragon 32s used a 14.218MHz crystal
@@ -145,7 +144,7 @@ void machine_set_fast_sound(_Bool fast);
 void machine_select_fast_sound(_Bool fast);
 void machine_update_sound(void);
 
-void machine_insert_cart(struct cart_config *cc);
+void machine_insert_cart(struct cart *c);
 void machine_remove_cart(void);
 
 int machine_load_rom(const char *path, uint8_t *dest, size_t max_size);

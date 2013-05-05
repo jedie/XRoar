@@ -935,14 +935,12 @@ void machine_select_fast_sound(_Bool fast) {
 }
 #endif
 
-void machine_insert_cart(struct cart_config *cc) {
+void machine_insert_cart(struct cart *c) {
 	machine_remove_cart();
-	if (cc) {
-		machine_cart = cart_new(cc);
-		if (!machine_cart)
-			return;
-		assert(machine_cart->read != NULL);
-		assert(machine_cart->write != NULL);
+	if (c) {
+		assert(c->read != NULL);
+		assert(c->write != NULL);
+		machine_cart = c;
 	}
 }
 

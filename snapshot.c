@@ -147,8 +147,8 @@ int write_snapshot(const char *filename) {
 	fs_write_uint8(fd, xroar_machine_config->keymap);
 	fs_write_uint8(fd, xroar_machine_config->tv_standard);
 	fs_write_uint8(fd, xroar_machine_config->ram);
-	if (xroar_cart_config) {
-		fs_write_uint8(fd, xroar_cart_config->type);
+	if (xroar_cart) {
+		fs_write_uint8(fd, xroar_cart->config->type);
 	} else {
 		fs_write_uint8(fd, 0);
 	}

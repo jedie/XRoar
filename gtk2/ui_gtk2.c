@@ -623,7 +623,8 @@ static void update_cartridge_menu(void) {
 	int selected = 0;
 	free_action_group(cart_action_group);
 	gtk_ui_manager_remove_ui(gtk2_menu_manager, merge_carts);
-	if (xroar_cart_config) selected = xroar_cart_config->index;
+	if (xroar_cart)
+		selected = xroar_cart->config->index;
 	GtkRadioActionEntry *radio_entries = g_malloc0((num_carts+1) * sizeof(*radio_entries));
 	/* add these to the ui in reverse order, as each will be
 	   inserted before the previous */

@@ -50,6 +50,7 @@ void cart_config_complete(struct cart_config *cc);
 // c->config MUST point to a complete cart config before calling cart_init()
 void cart_init(struct cart *c);
 struct cart *cart_new(struct cart_config *cc);
+struct cart *cart_new_named(const char *cc_name);
 void cart_free(struct cart *c);
 
 void cart_rom_init(struct cart *c);
