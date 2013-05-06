@@ -168,9 +168,9 @@ static void do_hs_fall(void *data) {
 
 	// HS falling edge.  The interrupt signal is inverted on PAL CoCos.
 	if (IS_COCO && IS_PAL)
-		PIA_SET_Cx1(PIA0.a);
+		PIA_SET_Cx1(PIA0->a);
 	else
-		PIA_RESET_Cx1(PIA0.a);
+		PIA_RESET_Cx1(PIA0->a);
 
 	scanline_start = hs_fall_event.at_tick;
 	// Next HS rise and fall
@@ -218,12 +218,12 @@ static void do_hs_fall(void *data) {
 
 	if (scanline == VDG_ACTIVE_AREA_END) {
 		// FS falling edge
-		PIA_RESET_Cx1(PIA0.b);
+		PIA_RESET_Cx1(PIA0->b);
 	}
 
 	if (scanline == VDG_VBLANK_START) {
 		// FS rising edge
-		PIA_SET_Cx1(PIA0.b);
+		PIA_SET_Cx1(PIA0->b);
 		sam_vdg_fsync();
 		frame--;
 		if (frame < 0)
@@ -238,18 +238,18 @@ static void do_hs_rise(void *data) {
 	(void)data;
 	// HS rising edge.  The interrupt signal is inverted on PAL CoCos.
 	if (IS_COCO && IS_PAL)
-		PIA_RESET_Cx1(PIA0.a);
+		PIA_RESET_Cx1(PIA0->a);
 	else
-		PIA_SET_Cx1(PIA0.a);
+		PIA_SET_Cx1(PIA0->a);
 }
 
 static void do_hs_fall_pal_coco(void *data) {
 	(void)data;
 	// HS falling edge
 	if (IS_COCO && IS_PAL)
-		PIA_SET_Cx1(PIA0.a);
+		PIA_SET_Cx1(PIA0->a);
 	else
-		PIA_RESET_Cx1(PIA0.a);
+		PIA_RESET_Cx1(PIA0->a);
 
 	scanline_start = hs_fall_event.at_tick;
 	// Next HS rise and fall

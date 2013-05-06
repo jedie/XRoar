@@ -49,12 +49,12 @@ struct MC6821 {
 /* Convenience macros to calculate the effective value of a port output, for
  * example as seen by a high impedance input. */
 
-#define PIA_VALUE_A(p) ((p).a.out_sink & (p).a.in_sink)
-#define PIA_VALUE_B(p) (((p).b.out_source | (p).b.in_source) & (p).b.out_sink & (p).b.in_sink)
+#define PIA_VALUE_A(p) ((p)->a.out_sink & (p)->a.in_sink)
+#define PIA_VALUE_B(p) (((p)->b.out_source | (p)->b.in_source) & (p)->b.out_sink & (p)->b.in_sink)
 
 struct MC6821 *mc6821_new(void);
 void mc6821_init(struct MC6821 *pia);
-void mc6821_destroy(struct MC6821 *pia);
+void mc6821_free(struct MC6821 *pia);
 
 void mc6821_reset(struct MC6821 *pia);
 void mc6821_set_cx1(struct MC6821_side *side);

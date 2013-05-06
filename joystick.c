@@ -308,25 +308,25 @@ void joystick_cycle(void) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void joystick_update(void) {
-	unsigned port = (PIA0.b.control_register & 0x08) >> 3;
-	unsigned axis = (PIA0.a.control_register & 0x08) >> 3;
-	unsigned dac_value = PIA1.a.out_sink & 0xfc;
+	unsigned port = (PIA0->b.control_register & 0x08) >> 3;
+	unsigned axis = (PIA0->a.control_register & 0x08) >> 3;
+	unsigned dac_value = PIA1->a.out_sink & 0xfc;
 	unsigned js_value = 0;
 	struct joystick *j = joystick_port[port];
 	if (j && j->axes[axis]) {
 		js_value = j->axes[axis]->read(j->axes[axis]->data);
 	}
 	if (js_value >= dac_value) {
-		PIA0.a.in_sink |= 0x80;
+		PIA0->a.in_sink |= 0x80;
 	} else {
-		PIA0.a.in_sink &= 0x7f;
+		PIA0->a.in_sink &= 0x7f;
 	}
 	if (joystick_port[0] && joystick_port[0]->buttons[0]) {
 		if (joystick_port[0]->buttons[0]->read(joystick_port[0]->buttons[0]->data))
-			PIA0.a.in_sink &= ~0x01;
+			PIA0->a.in_sink &= ~0x01;
 	}
 	if (joystick_port[1] && joystick_port[1]->buttons[0]) {
 		if (joystick_port[1]->buttons[0]->read(joystick_port[1]->buttons[0]->data))
-			PIA0.a.in_sink &= ~0x02;
+			PIA0->a.in_sink &= ~0x02;
 	}
 }

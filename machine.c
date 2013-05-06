@@ -62,7 +62,7 @@ static uint8_t *machine_rom;
 static uint8_t rom0[0x4000];
 static uint8_t rom1[0x4000];
 struct MC6809 *CPU0 = NULL;
-struct MC6821 PIA0, PIA1;
+struct MC6821 *PIA0, *PIA1;
 struct cart *machine_cart = NULL;
 _Bool has_bas, has_extbas, has_altbas;
 uint32_t crc_bas, crc_extbas, crc_altbas;
@@ -259,22 +259,22 @@ static void pia0b_data_preread_coco64k(void) {
 	keyboard_update();
 	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
 	if (PIA_VALUE_B(PIA1) & (1<<2)) {
-		PIA0.b.in_source |= (1<<6);
-		PIA0.b.in_sink |= (1<<6);
+		PIA0->b.in_source |= (1<<6);
+		PIA0->b.in_sink |= (1<<6);
 	} else {
-		PIA0.b.in_source &= ~(1<<6);
-		PIA0.b.in_sink &= ~(1<<6);
+		PIA0->b.in_source &= ~(1<<6);
+		PIA0->b.in_sink &= ~(1<<6);
 	}
 }
 
 static void pia1b_data_preread_coco64k(void) {
 	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
 	if (PIA_VALUE_B(PIA0) & (1<<6)) {
-		PIA1.b.in_source |= (1<<2);
-		PIA1.b.in_sink |= (1<<2);
+		PIA1->b.in_source |= (1<<2);
+		PIA1->b.in_sink |= (1<<2);
 	} else {
-		PIA1.b.in_source &= ~(1<<2);
-		PIA1.b.in_sink &= ~(1<<2);
+		PIA1->b.in_source &= ~(1<<2);
+		PIA1->b.in_sink &= ~(1<<2);
 	}
 }
 
@@ -298,26 +298,13 @@ static void pia1b_data_postwrite(void) {
 		machine_rom = PIA_VALUE_B(PIA1) & 0x04 ? rom0 : rom1;
 	}
 	sound_update();
-	vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
 }
 #define pia1b_control_postwrite sound_update
 
 void machine_init(void) {
 	sam_init();
-	mc6821_init(&PIA0);
-	PIA0.a.data_preread = pia0a_data_preread;
-	PIA0.a.data_postwrite = pia0a_data_postwrite;
-	PIA0.b.data_preread = pia0b_data_preread;
-	PIA0.b.data_postwrite = pia0b_data_postwrite;
-	mc6821_init(&PIA1);
-	PIA1.a.data_preread = pia1a_data_preread;
-	PIA1.a.data_postwrite = pia1a_data_postwrite;
-	PIA1.a.control_postwrite = pia1a_control_postwrite;
-	PIA1.b.data_preread = pia1b_data_preread;
-	PIA1.b.data_postwrite = pia1b_data_postwrite;
-#ifndef FAST_SOUND
-	machine_select_fast_sound(xroar_cfg.fast_sound);
-#endif
+
 	vdrive_init();
 	vdg_init();
 	tape_init();
@@ -337,7 +324,7 @@ void machine_configure(struct machine_config *mc) {
 	if (mc->description) {
 		LOG_DEBUG(2, "Machine: %s\n", mc->description);
 	}
-	/* */
+	// CPU
 	if (CPU0) {
 		CPU0->free(CPU0);
 		CPU0 = NULL;
@@ -352,6 +339,26 @@ void machine_configure(struct machine_config *mc) {
 	}
 	CPU0->read_cycle = read_cycle;
 	CPU0->write_cycle = write_cycle;
+	// PIAs
+	if (PIA0) {
+		mc6821_free(PIA0);
+		PIA0 = NULL;
+	}
+	if (PIA1) {
+		mc6821_free(PIA1);
+		PIA1 = NULL;
+	}
+	PIA0 = mc6821_new();
+	PIA0->a.data_preread = pia0a_data_preread;
+	PIA0->a.data_postwrite = pia0a_data_postwrite;
+	PIA0->b.data_preread = pia0b_data_preread;
+	PIA0->b.data_postwrite = pia0b_data_postwrite;
+	PIA1 = mc6821_new();
+	PIA1->a.data_preread = pia1a_data_preread;
+	PIA1->a.data_postwrite = pia1a_data_postwrite;
+	PIA1->a.control_postwrite = pia1a_control_postwrite;
+	PIA1->b.data_preread = pia1b_data_preread;
+	PIA1->b.data_postwrite = pia1b_data_postwrite;
 	vdg_t1 = (mc->vdg_type == VDG_6847T1);
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
@@ -423,33 +430,33 @@ void machine_configure(struct machine_config *mc) {
 	machine_rom = rom0;
 
 	/* Default all PIA connections to unconnected (no source, no sink) */
-	PIA0.b.in_source = 0;
-	PIA1.b.in_source = 0;
-	PIA0.a.in_sink = PIA0.b.in_sink = 0xff;
-	PIA1.a.in_sink = PIA1.b.in_sink = 0xff;
+	PIA0->b.in_source = 0;
+	PIA1->b.in_source = 0;
+	PIA0->a.in_sink = PIA0->b.in_sink = 0xff;
+	PIA1->a.in_sink = PIA1->b.in_sink = 0xff;
 	/* Machine-specific PIA connections */
 	if (IS_DRAGON) {
 		/* Centronics printer port - !BUSY */
-		PIA1.b.in_source |= (1<<0);
+		PIA1->b.in_source |= (1<<0);
 	}
 	if (IS_DRAGON64) {
 		have_acia = 1;
-		PIA1.b.in_source |= (1<<2);
+		PIA1->b.in_source |= (1<<2);
 	} else if (IS_COCO && machine_ram_size <= 0x1000) {
 		/* 4K CoCo ties PB2 of PIA1 low */
-		PIA1.b.in_sink &= ~(1<<2);
+		PIA1->b.in_sink &= ~(1<<2);
 	} else if (IS_COCO && machine_ram_size <= 0x4000) {
 		/* 16K CoCo pulls PB2 of PIA1 high */
-		PIA1.b.in_source |= (1<<2);
+		PIA1->b.in_source |= (1<<2);
 	}
-	PIA0.b.data_postwrite = pia0b_data_postwrite;
-	PIA0.b.data_preread = pia0b_data_preread;
-	PIA1.b.data_preread = pia1b_data_preread;
+	PIA0->b.data_postwrite = pia0b_data_postwrite;
+	PIA0->b.data_preread = pia0b_data_preread;
+	PIA1->b.data_preread = pia1b_data_preread;
 	if (IS_COCO && machine_ram_size > 0x4000) {
-		/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1.
+		/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1->
 		 * Deal with this through a postwrite. */
-		PIA0.b.data_preread = pia0b_data_preread_coco64k;
-		PIA1.b.data_preread = pia1b_data_preread_coco64k;
+		PIA0->b.data_preread = pia0b_data_preread_coco64k;
+		PIA1->b.data_preread = pia1b_data_preread_coco64k;
 	}
 
 	unexpanded_dragon32 = 0;
@@ -475,6 +482,10 @@ void machine_configure(struct machine_config *mc) {
 			ram_mask = 0x7fff;
 		}
 	}
+
+#ifndef FAST_SOUND
+	machine_select_fast_sound(xroar_cfg.fast_sound);
+#endif
 }
 
 void machine_reset(_Bool hard) {
@@ -490,8 +501,8 @@ void machine_reset(_Bool hard) {
 	if (hard) {
 		initialise_ram();
 	}
-	mc6821_reset(&PIA0);
-	mc6821_reset(&PIA1);
+	mc6821_reset(PIA0);
+	mc6821_reset(PIA1);
 	if (machine_cart && machine_cart->reset) {
 		machine_cart->reset(machine_cart);
 	}
@@ -520,7 +531,7 @@ void machine_single_step(void) {
 	do {
 		CPU0->run(CPU0);
 	} while (single_step);
-	vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
 	if (xroar_cfg.trace_enabled)
 		CPU0->instruction_posthook = NULL;
 }
@@ -530,7 +541,7 @@ void machine_single_step(void) {
  */
 
 void machine_signal(int sig) {
-	vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
 	stop_signal = sig;
 	CPU0->running = 0;
 }
@@ -583,8 +594,8 @@ static _Bool do_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 	if (cycles <= 0) CPU0->running = 0;
 	event_current_tick += ncycles;
 	event_run_queue(MACHINE_EVENT_LIST);
-	MC6809_IRQ_SET(CPU0, PIA0.a.irq | PIA0.b.irq);
-	MC6809_FIRQ_SET(CPU0, PIA1.a.irq | PIA1.b.irq);
+	MC6809_IRQ_SET(CPU0, PIA0->a.irq | PIA0->b.irq);
+	MC6809_FIRQ_SET(CPU0, PIA1->a.irq | PIA1->b.irq);
 	return is_ram_access;
 }
 
@@ -595,8 +606,8 @@ static _Bool debug_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 	if (is_ram_access) {
 		*Z = decode_Z(tmp_Z);
 	}
-	MC6809_IRQ_SET(CPU0, PIA0.a.irq | PIA0.b.irq);
-	MC6809_FIRQ_SET(CPU0, PIA1.a.irq | PIA1.b.irq);
+	MC6809_IRQ_SET(CPU0, PIA0->a.irq | PIA0->b.irq);
+	MC6809_FIRQ_SET(CPU0, PIA1->a.irq | PIA1->b.irq);
 	return is_ram_access;
 }
 
@@ -625,10 +636,10 @@ static uint8_t read_cycle(uint16_t A) {
 			break;
 		case 4:
 			if (IS_COCO) {
-				read_D = mc6821_read(&PIA0, A & 3);
+				read_D = mc6821_read(PIA0, A & 3);
 			} else {
 				if ((A & 4) == 0) {
-					read_D = mc6821_read(&PIA0, A & 3);
+					read_D = mc6821_read(PIA0, A & 3);
 				} else {
 					if (have_acia) {
 						/* XXX Dummy ACIA reads */
@@ -650,7 +661,7 @@ static uint8_t read_cycle(uint16_t A) {
 			}
 			break;
 		case 5:
-			read_D = mc6821_read(&PIA1, A & 3);
+			read_D = mc6821_read(PIA1, A & 3);
 			break;
 		case 6:
 			if (machine_cart)
@@ -681,7 +692,7 @@ static void write_cycle(uint16_t A, uint8_t D) {
 	// Changing the SAM VDG mode can affect its idea of the current VRAM
 	// address, so get the VDG output up to date:
 	if (A >= 0xffc0 && A < 0xffc6) {
-		vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+		vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
 	}
 	_Bool is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
 	if ((S & 4) || unexpanded_dragon32) {
@@ -696,15 +707,15 @@ static void write_cycle(uint16_t A, uint8_t D) {
 				break;
 			case 4:
 				if (IS_COCO) {
-					mc6821_write(&PIA0, A & 3, D);
+					mc6821_write(PIA0, A & 3, D);
 				} else {
 					if ((A & 4) == 0) {
-						mc6821_write(&PIA0, A & 3, D);
+						mc6821_write(PIA0, A & 3, D);
 					}
 				}
 				break;
 			case 5:
-				mc6821_write(&PIA1, A & 3, D);
+				mc6821_write(PIA1, A & 3, D);
 				break;
 			case 6:
 				if (machine_cart)
@@ -764,10 +775,10 @@ uint8_t machine_read_byte(uint16_t A) {
 			break;
 		case 4:
 			if (IS_COCO) {
-				D = mc6821_read(&PIA0, A & 3);
+				D = mc6821_read(PIA0, A & 3);
 			} else {
 				if ((A & 4) == 0) {
-					D = mc6821_read(&PIA0, A & 3);
+					D = mc6821_read(PIA0, A & 3);
 				} else {
 					if (have_acia) {
 						/* XXX Dummy ACIA reads */
@@ -789,7 +800,7 @@ uint8_t machine_read_byte(uint16_t A) {
 			}
 			break;
 		case 5:
-			D = mc6821_read(&PIA1, A & 3);
+			D = mc6821_read(PIA1, A & 3);
 			break;
 		case 6:
 			if (machine_cart)
@@ -809,7 +820,7 @@ void machine_write_byte(uint16_t A, uint8_t D) {
 	// Changing the SAM VDG mode can affect its idea of the current VRAM
 	// address, so get the VDG output up to date:
 	if (A >= 0xffc0 && A < 0xffc6) {
-		vdg_set_mode(PIA1.b.out_source & PIA1.b.out_sink);
+		vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
 	}
 	_Bool is_ram_access = debug_cpu_cycle(A, 0, &S, &Z);
 	if ((S & 4) || unexpanded_dragon32) {
@@ -824,15 +835,15 @@ void machine_write_byte(uint16_t A, uint8_t D) {
 				break;
 			case 4:
 				if (IS_COCO) {
-					mc6821_write(&PIA0, A & 3, D);
+					mc6821_write(PIA0, A & 3, D);
 				} else {
 					if ((A & 4) == 0) {
-						mc6821_write(&PIA0, A & 3, D);
+						mc6821_write(PIA0, A & 3, D);
 					}
 				}
 				break;
 			case 5:
-				mc6821_write(&PIA1, A & 3, D);
+				mc6821_write(PIA1, A & 3, D);
 				break;
 			case 6:
 				if (machine_cart)
@@ -859,13 +870,13 @@ void machine_op_rts(struct MC6809 *cpu) {
 void machine_set_fast_sound(_Bool fast) {
 	xroar_cfg.fast_sound = fast;
 	if (fast) {
-		PIA0.a.control_postwrite = NULL;
-		PIA0.b.control_postwrite = NULL;
-		PIA1.b.control_postwrite = NULL;
+		PIA0->a.control_postwrite = NULL;
+		PIA0->b.control_postwrite = NULL;
+		PIA1->b.control_postwrite = NULL;
 	} else  {
-		PIA0.a.control_postwrite = pia0a_control_postwrite;
-		PIA0.b.control_postwrite = pia0b_control_postwrite;
-		PIA1.b.control_postwrite = pia1b_control_postwrite;
+		PIA0->a.control_postwrite = pia0a_control_postwrite;
+		PIA0->b.control_postwrite = pia0b_control_postwrite;
+		PIA1->b.control_postwrite = pia1b_control_postwrite;
 	}
 }
 

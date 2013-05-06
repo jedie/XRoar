@@ -34,7 +34,7 @@ void mc6821_init(struct MC6821 *pia) {
 	pia->b.in_sink = 0xff;
 }
 
-void mc6821_destroy(struct MC6821 *pia) {
+void mc6821_free(struct MC6821 *pia) {
 	if (pia == NULL) return;
 	g_free(pia);
 }

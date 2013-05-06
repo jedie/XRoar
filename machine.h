@@ -90,7 +90,7 @@ struct machine_config {
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
 extern uint8_t machine_ram[0x10000];
 extern struct MC6809 *CPU0;
-extern struct MC6821 PIA0, PIA1;
+extern struct MC6821 *PIA0, *PIA1;
 extern struct cart *machine_cart;
 extern _Bool has_bas, has_extbas, has_altbas;
 extern uint32_t crc_bas, crc_extbas, crc_altbas;

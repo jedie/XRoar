@@ -108,8 +108,8 @@ void keyboard_set_keymap(int map) {
 }
 
 void keyboard_update(void) {
-	unsigned row_out = PIA0.a.out_sink;
-	unsigned col_out = PIA0.b.out_source & PIA0.b.out_sink;
+	unsigned row_out = PIA0->a.out_sink;
+	unsigned col_out = PIA0->b.out_source & PIA0->b.out_sink;
 	unsigned row_in = ~0, col_in = ~0;
 	unsigned old, i;
 
@@ -148,8 +148,8 @@ void keyboard_update(void) {
 	} while (old != col_in);
 
 	/* Update inputs */
-	PIA0.a.in_sink = (PIA0.a.in_sink & 0x80) | (row_in & 0x7f);
-	PIA0.b.in_sink = col_in;
+	PIA0->a.in_sink = (PIA0->a.in_sink & 0x80) | (row_in & 0x7f);
+	PIA0->b.in_sink = col_in;
 }
 
 void keyboard_unicode_press(unsigned unicode) {

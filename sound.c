@@ -220,15 +220,15 @@ void sound_update(void) {
 		}
 	}
 
-	_Bool mux_enabled = PIA1.b.control_register & 0x08;
-	_Bool sbs_enabled = !((PIA1.b.out_source ^ PIA1.b.out_sink) & (1<<1));
-	_Bool sbs = PIA1.b.out_source & PIA1.b.out_sink & (1<<1);
+	_Bool mux_enabled = PIA1->b.control_register & 0x08;
+	_Bool sbs_enabled = !((PIA1->b.out_source ^ PIA1->b.out_sink) & (1<<1));
+	_Bool sbs = PIA1->b.out_source & PIA1->b.out_sink & (1<<1);
 	unsigned index = sbs_enabled ? (sbs ? 2 : 1) : 0;
 	enum sound_source source;
 	float level;
 	if (mux_enabled) {
-		source = ((PIA0.b.control_register & (1<<3)) >> 2)
-		         | ((PIA0.a.control_register & (1<<3)) >> 3);
+		source = ((PIA0->b.control_register & (1<<3)) >> 2)
+		         | ((PIA0->a.control_register & (1<<3)) >> 3);
 		switch (source) {
 		case SOURCE_DAC:
 			level = (float)(PIA_VALUE_A(PIA1) & 0xfc) / 252.;
@@ -251,11 +251,11 @@ void sound_update(void) {
 
 #ifndef FAST_SOUND
 	if (!sbs_enabled && level < 1.414) {
-		PIA1.b.in_source &= ~(1<<1);
-		PIA1.b.in_sink &= ~(1<<1);
+		PIA1->b.in_source &= ~(1<<1);
+		PIA1->b.in_sink &= ~(1<<1);
 	} else {
-		PIA1.b.in_source |= (1<<1);
-		PIA1.b.in_sink |= (1<<1);
+		PIA1->b.in_source |= (1<<1);
+		PIA1->b.in_sink |= (1<<1);
 	}
 #endif
 

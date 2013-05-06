@@ -167,19 +167,19 @@ int write_snapshot(const char *filename) {
 	// unacknowledged interrupts pending already cleared in the CPU state
 	write_chunk_header(fd, ID_PIA_REGISTERS, 3 * 4);
 	// PIA0
-	fs_write_uint8(fd, PIA0.a.direction_register);
-	fs_write_uint8(fd, PIA0.a.output_register);
-	fs_write_uint8(fd, PIA0.a.control_register);
-	fs_write_uint8(fd, PIA0.b.direction_register);
-	fs_write_uint8(fd, PIA0.b.output_register);
-	fs_write_uint8(fd, PIA0.b.control_register);
+	fs_write_uint8(fd, PIA0->a.direction_register);
+	fs_write_uint8(fd, PIA0->a.output_register);
+	fs_write_uint8(fd, PIA0->a.control_register);
+	fs_write_uint8(fd, PIA0->b.direction_register);
+	fs_write_uint8(fd, PIA0->b.output_register);
+	fs_write_uint8(fd, PIA0->b.control_register);
 	// PIA1
-	fs_write_uint8(fd, PIA1.a.direction_register);
-	fs_write_uint8(fd, PIA1.a.output_register);
-	fs_write_uint8(fd, PIA1.a.control_register);
-	fs_write_uint8(fd, PIA1.b.direction_register);
-	fs_write_uint8(fd, PIA1.b.output_register);
-	fs_write_uint8(fd, PIA1.b.control_register);
+	fs_write_uint8(fd, PIA1->a.direction_register);
+	fs_write_uint8(fd, PIA1->a.output_register);
+	fs_write_uint8(fd, PIA1->a.control_register);
+	fs_write_uint8(fd, PIA1->b.direction_register);
+	fs_write_uint8(fd, PIA1->b.output_register);
+	fs_write_uint8(fd, PIA1->b.control_register);
 	// CPU state
 	switch (xroar_machine_config->cpu) {
 	case CPU_MC6809: default:
@@ -422,28 +422,28 @@ int read_snapshot(const char *filename) {
 			case ID_PIA_REGISTERS:
 				// PIA0
 				if (size < 3) break;
-				PIA0.a.direction_register = fs_read_uint8(fd);
-				PIA0.a.output_register = fs_read_uint8(fd);
-				PIA0.a.control_register = fs_read_uint8(fd);
+				PIA0->a.direction_register = fs_read_uint8(fd);
+				PIA0->a.output_register = fs_read_uint8(fd);
+				PIA0->a.control_register = fs_read_uint8(fd);
 				size -= 3;
 				if (size < 3) break;
-				PIA0.b.direction_register = fs_read_uint8(fd);
-				PIA0.b.output_register = fs_read_uint8(fd);
-				PIA0.b.control_register = fs_read_uint8(fd);
+				PIA0->b.direction_register = fs_read_uint8(fd);
+				PIA0->b.output_register = fs_read_uint8(fd);
+				PIA0->b.control_register = fs_read_uint8(fd);
 				size -= 3;
-				mc6821_update_state(&PIA0);
+				mc6821_update_state(PIA0);
 				// PIA1
 				if (size < 3) break;
-				PIA1.a.direction_register = fs_read_uint8(fd);
-				PIA1.a.output_register = fs_read_uint8(fd);
-				PIA1.a.control_register = fs_read_uint8(fd);
+				PIA1->a.direction_register = fs_read_uint8(fd);
+				PIA1->a.output_register = fs_read_uint8(fd);
+				PIA1->a.control_register = fs_read_uint8(fd);
 				size -= 3;
 				if (size < 3) break;
-				PIA1.b.direction_register = fs_read_uint8(fd);
-				PIA1.b.output_register = fs_read_uint8(fd);
-				PIA1.b.control_register = fs_read_uint8(fd);
+				PIA1->b.direction_register = fs_read_uint8(fd);
+				PIA1->b.output_register = fs_read_uint8(fd);
+				PIA1->b.control_register = fs_read_uint8(fd);
 				size -= 3;
-				mc6821_update_state(&PIA1);
+				mc6821_update_state(PIA1);
 				break;
 			case ID_RAM_PAGE0:
 				if (size <= (int)sizeof(machine_ram)) {

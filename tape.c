@@ -371,10 +371,10 @@ int tape_autorun(const char *filename) {
 	return type;
 }
 
-/* Called whenever PIA1.a control register is written to.
+/* Called whenever PIA1->a control register is written to.
  * Detects changes in motor status. */
 void tape_update_motor(void) {
-	unsigned int new_motor = PIA1.a.control_register & 0x08;
+	unsigned int new_motor = PIA1->a.control_register & 0x08;
 	if (new_motor) {
 		if (tape_input && !waggle_event.queued) {
 			/* If motor turned on and tape file attached,
@@ -402,11 +402,11 @@ void tape_update_motor(void) {
 	set_breakpoints();
 }
 
-/* Called whenever PIA1.a data register is written to. */
+/* Called whenever PIA1->a data register is written to. */
 void tape_update_output(void) {
 	if (!motor || !tape_output || tape_rewrite)
 		return;
-	uint8_t sample = PIA1.a.out_sink & 0xfc;
+	uint8_t sample = PIA1->a.out_sink & 0xfc;
 	int length = event_current_tick - tape_output->last_write_cycle;
 	tape_output->module->sample_out(tape_output, sample, length);
 	tape_output->last_write_cycle = event_current_tick;
@@ -424,11 +424,11 @@ static void waggle_bit(void *data) {
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
-		PIA1.a.in_sink |= (1<<0);
+		PIA1->a.in_sink |= (1<<0);
 		tape_audio = 0.0;
 		break;
 	case 1:
-		PIA1.a.in_sink &= ~(1<<0);
+		PIA1->a.in_sink &= ~(1<<0);
 		tape_audio = 1.0;
 		break;
 	}
@@ -461,9 +461,9 @@ static int pulse_skip(void) {
 			waggle_event.at_tick = event_current_tick + in_pulse_width;
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 			if (in_pulse) {
-				PIA1.a.in_sink &= ~(1<<0);
+				PIA1->a.in_sink &= ~(1<<0);
 			} else {
-				PIA1.a.in_sink |= (1<<0);
+				PIA1->a.in_sink |= (1<<0);
 			}
 			return in_pulse;
 		}

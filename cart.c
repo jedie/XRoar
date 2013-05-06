@@ -274,7 +274,7 @@ void cart_rom_detach(struct cart *c) {
 
 static void do_firq(void *data) {
 	struct cart *c = data;
-	PIA_SET_Cx1(PIA1.b);
+	PIA_SET_Cx1(PIA1->b);
 	c->firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
 	event_queue(&MACHINE_EVENT_LIST, c->firq_event);
 }
