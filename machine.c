@@ -352,15 +352,6 @@ void machine_configure(struct machine_config *mc) {
 	}
 	CPU0->read_cycle = read_cycle;
 	CPU0->write_cycle = write_cycle;
-	xroar_set_keymap(mc->keymap);
-	switch (mc->tv_standard) {
-	case TV_PAL: default:
-		xroar_select_cross_colour(CROSS_COLOUR_OFF);
-		break;
-	case TV_NTSC:
-		xroar_select_cross_colour(CROSS_COLOUR_KBRW);
-		break;
-	}
 	vdg_t1 = (mc->vdg_type == VDG_6847T1);
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
@@ -487,6 +478,15 @@ void machine_configure(struct machine_config *mc) {
 }
 
 void machine_reset(_Bool hard) {
+	xroar_set_keymap(xroar_machine_config->keymap);
+	switch (xroar_machine_config->tv_standard) {
+	case TV_PAL: default:
+		xroar_select_cross_colour(CROSS_COLOUR_OFF);
+		break;
+	case TV_NTSC:
+		xroar_select_cross_colour(CROSS_COLOUR_KBRW);
+		break;
+	}
 	if (hard) {
 		initialise_ram();
 	}
