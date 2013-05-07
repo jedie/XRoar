@@ -92,7 +92,7 @@ void bp_add_n(struct breakpoint *bp, int n);
 void bp_remove(struct breakpoint *bp);
 void bp_remove_n(struct breakpoint *bp, int n);
 
-// Manipulate simple traps.  machine_trap() used as a handler.
+// Manipulate simple traps.  xroar_machine_trap() used as a handler.
 
 void bp_hbreak_add(unsigned addr, unsigned match_mask, unsigned match_cond);
 void bp_hbreak_remove(unsigned addr, unsigned match_mask, unsigned match_cond);
