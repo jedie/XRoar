@@ -35,7 +35,7 @@ static GSList *wp_read_list = NULL;
 static GSList *wp_write_list = NULL;
 static GSList *wp_access_list = NULL;
 
-static void bp_instruction_hook(struct MC6809 *cpu);
+static void bp_instruction_hook(void *dptr);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -53,6 +53,7 @@ void bp_add(struct breakpoint *bp) {
 	bp->address_end = bp->address;
 	bp_instruction_list = g_slist_prepend(bp_instruction_list, bp);
 	CPU0->instruction_hook = bp_instruction_hook;
+	CPU0->instr_hook_dptr = CPU0;
 }
 
 void bp_add_n(struct breakpoint *bp, int n) {
@@ -120,8 +121,10 @@ static void trap_remove(GSList **bp_list, unsigned addr, unsigned addr_end,
 
 void bp_hbreak_add(unsigned addr, unsigned match_mask, unsigned match_cond) {
 	trap_add(&bp_instruction_list, addr, addr, match_mask, match_cond);
-	if (bp_instruction_list)
+	if (bp_instruction_list) {
 		CPU0->instruction_hook = bp_instruction_hook;
+		CPU0->instr_hook_dptr = CPU0;
+	}
 }
 
 void bp_hbreak_remove(unsigned addr, unsigned match_mask, unsigned match_cond) {
@@ -179,7 +182,8 @@ static void bp_hook(GSList *bp_list, unsigned address) {
 	}
 }
 
-static void bp_instruction_hook(struct MC6809 *cpu) {
+static void bp_instruction_hook(void *dptr) {
+	struct MC6809 *cpu = dptr;
 	uint16_t old_pc;
 	do {
 		old_pc = cpu->reg_pc;

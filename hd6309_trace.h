@@ -10,7 +10,7 @@
 
 void hd6309_trace_reset(void);
 void hd6309_trace_byte(uint8_t byte, uint16_t pc);
-void hd6309_trace_irq(struct MC6809 *cpu, uint16_t vector);
+void hd6309_trace_irq(void *dptr, uint16_t vector);
 void hd6309_trace_print(struct MC6809 *cpu);
 
 #endif  /* XROAR_HD6309_TRACE_H_ */

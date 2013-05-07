@@ -183,7 +183,7 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 		REG_CC |= (cm); \
 		NVMA_CYCLE(); \
 		if (cpu->interrupt_hook) { \
-			cpu->interrupt_hook(cpu, v); \
+			cpu->interrupt_hook(cpu->intr_dptr, v); \
 		} \
 		REG_PC = fetch_byte(v) << 8; \
 		REG_PC |= fetch_byte((v)+1); \
@@ -192,7 +192,7 @@ static void mc6809_jump(struct MC6809 *cpu, uint16_t pc);
 
 #define INSTRUCTION_POSTHOOK() do { \
 		if (cpu->instruction_posthook) { \
-			cpu->instruction_posthook(cpu); \
+			cpu->instruction_posthook(cpu->instr_posthook_dptr); \
 		} \
 	} while (0)
 
@@ -577,7 +577,7 @@ static void mc6809_run(struct MC6809 *cpu) {
 			// Instruction fetch hook called here so that machine
 			// can be stopped beforehand.
 			if (cpu->instruction_hook) {
-				cpu->instruction_hook(cpu);
+				cpu->instruction_hook(cpu->instr_hook_dptr);
 			}
 			continue;
 
