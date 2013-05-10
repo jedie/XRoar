@@ -478,16 +478,16 @@ CLEAN += xroar xroar.exe
 doc:
 	mkdir -p doc
 
-doc/xroar.info: $(SRCROOT)/doc/xroar.texi | doc
+doc/%.info: $(SRCROOT)/doc/%.texi | doc
 	$(call do_makeinfo,$@,-D "VERSION $(VERSION)" $<)
 
-doc/xroar.pdf: $(SRCROOT)/doc/xroar.texi | doc
+doc/%.pdf: $(SRCROOT)/doc/%.texi | doc
 	$(call do_texi2pdf,$@,-q -t "@set VERSION $(VERSION)" --build=clean $<)
 
-doc/xroar.html: $(SRCROOT)/doc/xroar.texi | doc
+doc/%.html: $(SRCROOT)/doc/%.texi | doc
 	$(call do_makeinfo,$@,--html --no-headers --no-split -D "VERSION $(VERSION)" $<)
 
-doc/xroar.txt: $(SRCROOT)/doc/xroar.texi | doc
+doc/%.txt: $(SRCROOT)/doc/%.texi | doc
 	$(call do_makeinfo,$@,--plaintext --no-headers --no-split -D "VERSION $(VERSION)" $<)
 
 CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
