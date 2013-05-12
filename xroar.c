@@ -543,6 +543,7 @@ static struct {
 	{ "WAV", FILETYPE_WAV },
 	{ "SN",  FILETYPE_SNA },
 	{ "ROM", FILETYPE_ROM },
+	{ "CCC", FILETYPE_ROM },
 	{ "BAS", FILETYPE_ASC },
 	{ "ASC", FILETYPE_ASC },
 	{ NULL, FILETYPE_UNKNOWN }
