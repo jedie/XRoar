@@ -555,9 +555,9 @@ extension determines which type of file will be written.
 @menu
 * Video output::
 * Audio output::
-* Printing::
 * Drive control::
 * Tape control::
+* Printing::
 * Keyboard commands::
 * Snapshots::
 * Trace mode::
