@@ -69,7 +69,8 @@
 /* Public arguments */
 
 struct xroar_cfg xroar_cfg = {
-	.ccr = CROSS_COLOUR_5BIT
+	.gl_filter = ANY_AUTO,
+	.ccr = CROSS_COLOUR_5BIT,
 };
 
 struct private_cfg {
