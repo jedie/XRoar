@@ -118,7 +118,7 @@ _Bool vo_opengl_init(void) {
 
 void vo_opengl_shutdown(void) {
 	glDeleteTextures(1, &texnum);
-	free(screen_tex);
+	g_free(screen_tex);
 }
 
 void vo_opengl_alloc_colours(void) {
