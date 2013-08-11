@@ -154,7 +154,7 @@ static void wd279x_deinit(WD279X *fdc) {
 void wd279x_free(WD279X *fdc) {
 	assert(fdc != NULL);
 	wd279x_deinit(fdc);
-	free(fdc);
+	g_free(fdc);
 }
 
 void wd279x_reset(WD279X *fdc) {
