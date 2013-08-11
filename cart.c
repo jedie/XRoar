@@ -188,7 +188,7 @@ void cart_free(struct cart *c) {
 	if (!c) return;
 	if (c->detach)
 		c->detach(c);
-	free(c);
+	g_free(c);
 }
 
 /* ROM cart routines */
@@ -267,7 +267,7 @@ void cart_rom_detach(struct cart *c) {
 		c->firq_event = NULL;
 	}
 	if (c->rom_data) {
-		free(c->rom_data);
+		g_free(c->rom_data);
 		c->rom_data = NULL;
 	}
 }
