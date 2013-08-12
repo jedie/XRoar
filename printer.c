@@ -120,7 +120,7 @@ void printer_strobe(void) {
 		fputc(byte, stream);
 	}
 	/* ACK, and schedule !ACK */
-	PIA_RESET_Cx1(PIA1->a);
+	mc6821_reset_cx1(&PIA1->a);
 	ack_clear_event.at_tick = event_current_tick + (OSCILLATOR_RATE / 150000);
 	event_queue(&MACHINE_EVENT_LIST, &ack_clear_event);
 }
@@ -153,7 +153,7 @@ static void open_stream(void) {
 
 static void do_ack_clear(void *data) {
 	(void)data;
-	PIA_SET_Cx1(PIA1->a);
+	mc6821_set_cx1(&PIA1->a);
 }
 
 static void set_busy(int state) {

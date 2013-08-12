@@ -43,9 +43,6 @@ struct MC6821 {
 	struct MC6821_side a, b;
 };
 
-#define PIA_SET_Cx1(s) mc6821_set_cx1(&s)
-#define PIA_RESET_Cx1(s) mc6821_reset_cx1(&s)
-
 /* Convenience macros to calculate the effective value of a port output, for
  * example as seen by a high impedance input. */
 

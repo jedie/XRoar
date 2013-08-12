@@ -192,12 +192,12 @@ static void ff48_write(struct dragondos *d, int octet) {
 
 static void set_drq_handler(void *v) {
 	(void)v;
-	PIA_SET_Cx1(PIA1->b);
+	mc6821_set_cx1(&PIA1->b);
 }
 
 static void reset_drq_handler(void *v) {
 	(void)v;
-	PIA_RESET_Cx1(PIA1->b);
+	mc6821_reset_cx1(&PIA1->b);
 }
 
 static void set_intrq_handler(void *v) {
