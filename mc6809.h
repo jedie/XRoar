@@ -99,10 +99,30 @@ struct MC6809 {
 #define MC6809_REG_A(cpu) (*((uint8_t *)&cpu->reg_d + MC6809_REG_HI))
 #define MC6809_REG_B(cpu) (*((uint8_t *)&cpu->reg_d + MC6809_REG_LO))
 
-#define MC6809_HALT_SET(cpu,val) do { (cpu)->halt = (val); } while (0)
-#define MC6809_NMI_SET(cpu,val) do { if (!(cpu)->nmi) { (cpu)->nmi_cycle = (cpu)->cycle + 2; } (cpu)->nmi = (val); } while (0)
-#define MC6809_FIRQ_SET(cpu,val) do { if (!(cpu)->firq) { (cpu)->firq_cycle = (cpu)->cycle + 2; } (cpu)->firq = (val); } while (0)
-#define MC6809_IRQ_SET(cpu,val) do { if (!(cpu)->irq) { (cpu)->irq_cycle = (cpu)->cycle + 2; } (cpu)->irq = (val); } while (0)
+static inline void MC6809_HALT_SET(struct MC6809 *cpu, _Bool val) {
+	cpu->halt = val;
+}
+
+static inline void MC6809_NMI_SET(struct MC6809 *cpu, _Bool val) {
+	if (!cpu->nmi) {
+		cpu->nmi_cycle = cpu->cycle + 2;
+	}
+	cpu->nmi = val;
+}
+
+static inline void MC6809_FIRQ_SET(struct MC6809 *cpu, _Bool val) {
+	if (!cpu->firq) {
+		cpu->firq_cycle = cpu->cycle + 2;
+	}
+	cpu->firq = val;
+}
+
+static inline void MC6809_IRQ_SET(struct MC6809 *cpu, _Bool val) {
+	if (!cpu->irq) {
+		cpu->irq_cycle = cpu->cycle + 2;
+	}
+	cpu->irq = val;
+}
 
 struct MC6809 *mc6809_new(void);
 
