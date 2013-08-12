@@ -477,13 +477,7 @@ static uint16_t ea_indexed(struct MC6809 *cpu) {
 /* ------------------------------------------------------------------------- */
 
 struct MC6809 *mc6809_new(void) {
-	struct MC6809 *new = g_malloc(sizeof(*new));
-	mc6809_init(new);
-	return new;
-}
-
-void mc6809_init(struct MC6809 *cpu) {
-	memset(cpu, 0, sizeof(*cpu));
+	struct MC6809 *cpu = g_malloc0(sizeof(*cpu));
 	cpu->free = mc6809_free;
 	cpu->reset = mc6809_reset;
 	cpu->run = mc6809_run;
@@ -492,10 +486,11 @@ void mc6809_init(struct MC6809 *cpu) {
 	cpu->read_cycle = dummy_read_cycle;
 	cpu->write_cycle = dummy_write_cycle;
 	mc6809_reset(cpu);
+	return cpu;
 }
 
 static void mc6809_free(struct MC6809 *cpu) {
-	free(cpu);
+	g_free(cpu);
 }
 
 static void mc6809_reset(struct MC6809 *cpu) {

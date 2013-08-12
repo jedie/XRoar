@@ -629,14 +629,8 @@ static uint16_t ea_indexed(struct MC6809 *cpu) {
 /* ------------------------------------------------------------------------- */
 
 struct MC6809 *hd6309_new(void) {
-	struct HD6309 *new = g_malloc(sizeof(*new));
-	hd6309_init(new);
-	return (struct MC6809 *)new;
-}
-
-void hd6309_init(struct HD6309 *hcpu) {
+	struct HD6309 *hcpu = g_malloc0(sizeof(*hcpu));
 	struct MC6809 *cpu = (struct MC6809 *)hcpu;
-	memset(hcpu, 0, sizeof(*hcpu));
 	cpu->free = hd6309_free;
 	cpu->reset = hd6309_reset;
 	cpu->run = hd6309_run;
@@ -645,11 +639,12 @@ void hd6309_init(struct HD6309 *hcpu) {
 	cpu->read_cycle = dummy_read_cycle;
 	cpu->write_cycle = dummy_write_cycle;
 	hd6309_reset(cpu);
+	return cpu;
 }
 
 static void hd6309_free(struct MC6809 *cpu) {
 	struct HD6309 *hcpu = (struct HD6309 *)cpu;
-	free(hcpu);
+	g_free(hcpu);
 }
 
 static void hd6309_reset(struct MC6809 *cpu) {

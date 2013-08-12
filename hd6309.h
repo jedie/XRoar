@@ -52,7 +52,5 @@ struct HD6309 {
 
 /* new still returns a struct MC6809 */
 struct MC6809 *hd6309_new(void);
-/* but init() requires a struct HD6309 */
-void hd6309_init(struct HD6309 *hcpu);
 
 #endif  /* XROAR_HD6309_H_ */

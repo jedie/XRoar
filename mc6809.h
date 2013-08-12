@@ -105,6 +105,5 @@ struct MC6809 {
 #define MC6809_IRQ_SET(cpu,val) do { if (!(cpu)->irq) { (cpu)->irq_cycle = (cpu)->cycle + 2; } (cpu)->irq = (val); } while (0)
 
 struct MC6809 *mc6809_new(void);
-void mc6809_init(struct MC6809 *cpu);
 
 #endif  /* XROAR_MC6809_H_ */
