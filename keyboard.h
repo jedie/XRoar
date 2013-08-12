@@ -43,28 +43,33 @@ extern unsigned keyboard_row[9];
 
 /* Press or release a key at the the matrix position (col,row). */
 
-#define KEYBOARD_PRESS_MATRIX(col,row) do { \
-		keyboard_column[col] &= ~(1<<(row)); \
-		keyboard_row[row] &= ~(1<<(col)); \
-	} while (0)
+static inline void KEYBOARD_PRESS_MATRIX(int col, int row) {
+	keyboard_column[col] &= ~(1<<(row));
+	keyboard_row[row] &= ~(1<<(col));
+}
 
-#define KEYBOARD_RELEASE_MATRIX(col,row) do { \
-		keyboard_column[col] |= 1<<(row); \
-		keyboard_row[row] |= 1<<(col); \
-	} while (0)
+static inline void KEYBOARD_RELEASE_MATRIX(int col, int row) {
+	keyboard_column[col] |= 1<<(row);
+	keyboard_row[row] |= 1<<(col);
+}
 
 /* Press or release a key from the current keymap. */
 
-#define KEYBOARD_PRESS(s) KEYBOARD_PRESS_MATRIX(keymap[s].col, keymap[s].row)
-#define KEYBOARD_RELEASE(s) KEYBOARD_RELEASE_MATRIX(keymap[s].col, keymap[s].row)
+static inline void KEYBOARD_PRESS(int s) {
+	KEYBOARD_PRESS_MATRIX(keymap[s].col, keymap[s].row);
+}
+
+static inline void KEYBOARD_RELEASE(int s) {
+	KEYBOARD_RELEASE_MATRIX(keymap[s].col, keymap[s].row);
+}
 
 /* Shift and clear keys are at the same matrix point in both Dragon & CoCo
- * keymaps, looking them up in keymap can be bypassed. */
+ * keymaps; indirection through the keymap can be bypassed. */
 
-#define KEYBOARD_PRESS_CLEAR() KEYBOARD_PRESS_MATRIX(1,6)
-#define KEYBOARD_RELEASE_CLEAR() KEYBOARD_RELEASE_MATRIX(1,6)
-#define KEYBOARD_PRESS_SHIFT() KEYBOARD_PRESS_MATRIX(7,6)
-#define KEYBOARD_RELEASE_SHIFT() KEYBOARD_RELEASE_MATRIX(7,6)
+#define KEYBOARD_PRESS_CLEAR KEYBOARD_PRESS_MATRIX(1,6)
+#define KEYBOARD_RELEASE_CLEAR KEYBOARD_RELEASE_MATRIX(1,6)
+#define KEYBOARD_PRESS_SHIFT KEYBOARD_PRESS_MATRIX(7,6)
+#define KEYBOARD_RELEASE_SHIFT KEYBOARD_RELEASE_MATRIX(7,6)
 
 void keyboard_init(void);
 void keyboard_set_keymap(int map);

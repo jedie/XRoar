@@ -263,12 +263,12 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	}
 
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
-		KEYBOARD_PRESS_SHIFT();
+		KEYBOARD_PRESS_SHIFT;
 		return FALSE;
 	}
 	shift = event->state & GDK_SHIFT_MASK;
 	if (!shift) {
-		KEYBOARD_RELEASE_SHIFT();
+		KEYBOARD_RELEASE_SHIFT;
 	}
 	if (keyval == GDK_F12 && !xroar_noratelimit) {
 		if (shift) {
@@ -294,7 +294,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (keyval == GDK_Down) { KEYBOARD_PRESS(KEYMAP_DOWN); return FALSE; }
 	if (keyval == GDK_Left) { KEYBOARD_PRESS(KEYMAP_LEFT); return FALSE; }
 	if (keyval == GDK_Right) { KEYBOARD_PRESS(KEYMAP_RIGHT); return FALSE; }
-	if (keyval == GDK_Home) { KEYBOARD_PRESS_CLEAR(); return FALSE; }
+	if (keyval == GDK_Home) { KEYBOARD_PRESS_CLEAR; return FALSE; }
 	if (xroar_cfg.kbd_translate) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
@@ -351,12 +351,12 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	}
 
 	if (keyval == GDK_Shift_L || keyval == GDK_Shift_R) {
-		KEYBOARD_RELEASE_SHIFT();
+		KEYBOARD_RELEASE_SHIFT;
 		return FALSE;
 	}
 	shift = event->state & GDK_SHIFT_MASK;
 	if (!shift) {
-		KEYBOARD_RELEASE_SHIFT();
+		KEYBOARD_RELEASE_SHIFT;
 	}
 	if (keyval == GDK_F12) {
 		if (!noratelimit_latch) {
@@ -368,7 +368,7 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	if (keyval == GDK_Down) { KEYBOARD_RELEASE(KEYMAP_DOWN); return FALSE; }
 	if (keyval == GDK_Left) { KEYBOARD_RELEASE(KEYMAP_LEFT); return FALSE; }
 	if (keyval == GDK_Right) { KEYBOARD_RELEASE(KEYMAP_RIGHT); return FALSE; }
-	if (keyval == GDK_Home) { KEYBOARD_RELEASE_CLEAR(); return FALSE; }
+	if (keyval == GDK_Home) { KEYBOARD_RELEASE_CLEAR; return FALSE; }
 	if (xroar_cfg.kbd_translate) {
 		guint32 unicode;
 		guint16 keycode = event->hardware_keycode;
@@ -380,7 +380,7 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 		keyboard_unicode_release(unicode);
 		/* Might have unpressed shift prematurely */
 		if (shift)
-			KEYBOARD_PRESS_SHIFT();
+			KEYBOARD_PRESS_SHIFT;
 		return FALSE;
 	}
 	if (keyval < 128) {
