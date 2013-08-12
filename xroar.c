@@ -1352,7 +1352,7 @@ _Bool xroar_run(void) {
 	pthread_mutex_unlock(&run_state_mt);
 #endif
 
-	event_run_queue(UI_EVENT_LIST);
+	event_run_queue(&UI_EVENT_LIST);
 	return 1;
 }
 

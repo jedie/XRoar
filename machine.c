@@ -595,7 +595,7 @@ static _Bool do_cpu_cycle(uint16_t A, _Bool RnW, int *S, uint16_t *Z) {
 	cycles -= ncycles;
 	if (cycles <= 0) CPU0->running = 0;
 	event_current_tick += ncycles;
-	event_run_queue(MACHINE_EVENT_LIST);
+	event_run_queue(&MACHINE_EVENT_LIST);
 	MC6809_IRQ_SET(CPU0, PIA0->a.irq | PIA0->b.irq);
 	MC6809_FIRQ_SET(CPU0, PIA1->a.irq | PIA1->b.irq);
 	return is_ram_access;

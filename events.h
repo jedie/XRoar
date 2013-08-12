@@ -27,28 +27,27 @@ struct event {
 	struct event *next;
 };
 
-#define event_exists(list) (list)
-
-#define event_pending(list) (list && \
-		(event_current_tick - list->at_tick) <= (UINT_MAX/2))
-
-#define event_dispatch_next(list) do { \
-		struct event *e = list; \
-		list = list->next; \
-		e->queued = 0; \
-		e->delegate(e->delegate_data); \
-	} while (0)
-
-#define event_run_queue(list) do { \
-		while (event_pending(list)) \
-			event_dispatch_next(list); \
-	} while (0)
-
 struct event *event_new(event_delegate delegate, void *delegate_data);
 void event_init(struct event *event, event_delegate delegate, void *delegate_data);
 
 void event_free(struct event *event);
 void event_queue(struct event **list, struct event *event);
 void event_dequeue(struct event *event);
+
+static inline _Bool event_pending(struct event **list) {
+	return *list && (event_current_tick - (*list)->at_tick) <= (UINT_MAX/2);
+}
+
+static inline void event_dispatch_next(struct event **list) {
+	struct event *e = *list;
+	*list = e->next;
+	e->queued = 0;
+	e->delegate(e->delegate_data);
+}
+
+static inline void event_run_queue(struct event **list) {
+	while (event_pending(list))
+		event_dispatch_next(list);
+}
 
 #endif  /* XROAR_EVENT_H_ */
