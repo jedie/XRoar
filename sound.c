@@ -223,7 +223,7 @@ void sound_update(void) {
 	_Bool mux_enabled = PIA1->b.control_register & 0x08;
 	_Bool sbs_enabled = !((PIA1->b.out_source ^ PIA1->b.out_sink) & (1<<1));
 	_Bool sbs = PIA1->b.out_source & PIA1->b.out_sink & (1<<1);
-	unsigned index = sbs_enabled ? (sbs ? 2 : 1) : 0;
+	unsigned sindex = sbs_enabled ? (sbs ? 2 : 1) : 0;
 	enum sound_source source;
 	float level;
 	if (mux_enabled) {
@@ -247,7 +247,7 @@ void sound_update(void) {
 		level = 0.0;
 	}
 
-	level = (level * source_gain_v[source][index]) + source_offset_v[source][index];
+	level = (level * source_gain_v[source][sindex]) + source_offset_v[source][sindex];
 
 #ifndef FAST_SOUND
 	if (!sbs_enabled && level < 1.414) {
