@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "fs.h"
 #include "machine.h"

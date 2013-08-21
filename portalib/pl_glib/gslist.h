@@ -1,7 +1,5 @@
 /* Portalib - replace common functions from other libraries. */
 
-/* portalib/glib/gslist.h - wrap glib/gslist.h */
-
 #ifndef PORTALIB_GSLIST_H_
 #define PORTALIB_GSLIST_H_
 

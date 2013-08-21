@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "hd6309.h"
 #include "mc6809.h"

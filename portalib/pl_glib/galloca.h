@@ -1,7 +1,5 @@
 /* Portalib - replace common functions from other libraries. */
 
-/* portalib/glib/galloca.h */
-
 #ifndef PORTALIB_GLIB_GALLOCA_H_
 #define PORTALIB_GLIB_GALLOCA_H_
 

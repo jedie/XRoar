@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "crc16.h"
 #include "events.h"

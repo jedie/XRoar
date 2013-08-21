@@ -24,8 +24,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "portalib/glib.h"
-#include "portalib/strings.h"
+#include "pl_glib.h"
+#include "pl_strings.h"
 
 #include "config.h"
 

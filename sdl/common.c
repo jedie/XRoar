@@ -22,8 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <SDL.h>
-#include "portalib/string.h"
-#include "portalib/glib.h"
+#include "pl_string.h"
+#include "pl_glib.h"
 
 #include "config.h"
 

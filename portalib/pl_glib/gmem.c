@@ -3,11 +3,13 @@
 /* GLib proper has its own slice allocation stuff that makes this more
  * efficient.  These replacements just wrap the standard syscalls. */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
-#include "portalib/string.h"
-#include "portalib/glib/gtypes.h"
-#include "portalib/glib/gmem.h"
+#include <string.h>
+
+#include "pl_glib.h"
 
 gpointer g_try_malloc(gsize n_bytes) {
 	return malloc(n_bytes);
@@ -15,18 +17,18 @@ gpointer g_try_malloc(gsize n_bytes) {
 
 gpointer g_try_malloc0(gsize n_bytes) {
 	gpointer mem = malloc(n_bytes);
-	if (!mem) return NULL;
-	memset(mem, 0, n_bytes);
+	if (mem)
+		memset(mem, 0, n_bytes);
 	return mem;
 }
 
 gpointer g_try_realloc(gpointer mem, gsize n_bytes) {
-	void *new_mem = realloc(mem, n_bytes);
-	if (new_mem && n_bytes == 0) {
-		g_free(new_mem);
+	if (n_bytes == 0) {
+		if (mem)
+			g_free(mem);
 		return NULL;
 	}
-	return new_mem;
+	return realloc(mem, n_bytes);
 }
 
 gpointer g_malloc(gsize n_bytes) {
@@ -54,5 +56,14 @@ gpointer g_realloc(gpointer mem, gsize n_bytes) {
 }
 
 void g_free(gpointer mem) {
-	free(mem);
+	if (mem)
+		free(mem);
+}
+
+gpointer g_memdup(gconstpointer mem, guint byte_size) {
+	if (!mem)
+		return NULL;
+	void *new_mem = g_malloc(byte_size);
+	memcpy(new_mem, mem, byte_size);
+	return new_mem;
 }

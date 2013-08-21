@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "cart.h"
 #include "fs.h"

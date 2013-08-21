@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/soundcard.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "logging.h"
 #include "machine.h"

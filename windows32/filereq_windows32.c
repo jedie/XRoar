@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 /* Windows has a habit of making include order important: */
 #include <windows.h>

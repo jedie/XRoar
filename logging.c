@@ -20,7 +20,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "logging.h"
 #include "xroar.h"

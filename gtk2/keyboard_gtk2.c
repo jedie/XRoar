@@ -25,8 +25,8 @@
 #include <string.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
-#include "portalib/glib.h"
-#include "portalib/strings.h"
+#include "pl_glib.h"
+#include "pl_strings.h"
 
 #include "config.h"
 

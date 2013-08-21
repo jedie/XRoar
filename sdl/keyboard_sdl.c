@@ -22,9 +22,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <SDL.h>
-#include "portalib/glib.h"
-#include "portalib/string.h"
-#include "portalib/strings.h"
+#include "pl_glib.h"
+#include "pl_string.h"
+#include "pl_strings.h"
 
 #include "config.h"
 

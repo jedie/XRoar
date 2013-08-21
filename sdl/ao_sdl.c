@@ -21,7 +21,7 @@
 #include <string.h>
 #include <SDL.h>
 #include <SDL_thread.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "config.h"
 

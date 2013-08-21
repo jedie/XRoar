@@ -23,7 +23,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "config.h"
 

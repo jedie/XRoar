@@ -33,7 +33,7 @@
 # include <GL/gl.h>
 #endif
 
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #ifdef WINDOWS32
 #include "windows32/common_windows32.h"

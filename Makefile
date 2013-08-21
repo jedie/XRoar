@@ -98,15 +98,15 @@ portalib_OBJS_C = $(portalib_BASE_OBJS)
 ### XRoar
 
 xroar_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) $(WARN) \
+	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib $(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_CXXFLAGS = $(CXXFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) $(WARN) \
+	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib $(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_OBJCFLAGS = $(OBJCFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) $(WARN) \
+	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib $(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_LDFLAGS = $(LDFLAGS) $(LDLIBS)

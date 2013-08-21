@@ -74,8 +74,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "portalib/glib.h"
-#include "portalib/string.h"
+#include "pl_glib.h"
+#include "pl_string.h"
 
 #include "config.h"
 

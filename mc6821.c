@@ -18,7 +18,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "mc6821.h"
 

@@ -29,7 +29,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "crc16.h"
 #include "fs.h"

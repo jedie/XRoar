@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
-#include "portalib/strings.h"
+#include "pl_strings.h"
 
 #include "config.h"
 

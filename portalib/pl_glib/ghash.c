@@ -6,8 +6,9 @@
 #include "config.h"
 
 #include <stdlib.h>
-#include "portalib/string.h"
-#include "portalib/glib.h"
+#include <string.h>
+
+#include "pl_glib.h"
 
 struct list_entry {
 	gpointer key;

@@ -8,7 +8,7 @@
 
 #include "config.h"
 
-#include "portalib/string.h"
+#include "pl_string.h"
 
 #ifdef NEED_STRSEP
 char *strsep(char **str, const char *sep) {

@@ -17,7 +17,7 @@
  */
 
 #include <windows.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "logging.h"
 #include "module.h"

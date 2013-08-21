@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <alsa/asoundlib.h>
 #include <sys/ioctl.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "events.h"
 #include "logging.h"

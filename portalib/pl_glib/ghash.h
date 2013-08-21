@@ -6,7 +6,7 @@
 #define PORTALIB_GLIB_GHASH_H_
 
 #include <stdlib.h>
-#include "portalib/glib/gtypes.h"
+#include "pl_glib/gtypes.h"
 
 struct _GHashTable;
 typedef struct _GHashTable GHashTable;

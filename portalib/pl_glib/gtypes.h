@@ -1,9 +1,15 @@
 /* Portalib - replace common functions from other libraries. */
 
-/* portalib/glib/gtypes.h - wrap glib/gtypes.h */
-
 #ifndef PORTALIB_GLIB_GTYPES_H_
 #define PORTALIB_GLIB_GTYPES_H_
+
+#ifndef FALSE
+#define FALSE (0)
+#endif
+
+#ifndef TRUE
+#define TRUE (!FALSE)
+#endif
 
 typedef char gchar;
 typedef short gshort;

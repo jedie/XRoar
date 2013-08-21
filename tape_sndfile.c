@@ -19,7 +19,7 @@
 #include <sndfile.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "fs.h"
 #include "logging.h"

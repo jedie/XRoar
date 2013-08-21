@@ -26,8 +26,8 @@
 #include <linux/joystick.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "portalib/string.h"
-#include "portalib/glib.h"
+#include "pl_string.h"
+#include "pl_glib.h"
 
 #include "events.h"
 #include "input.h"

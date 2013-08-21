@@ -19,8 +19,8 @@
 #define _BSD_SOURCE
 
 #include <SDL.h>
-#include "portalib/glib.h"
-#include "portalib/string.h"
+#include "pl_glib.h"
+#include "pl_string.h"
 
 #include "joystick.h"
 #include "logging.h"

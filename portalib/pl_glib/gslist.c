@@ -3,7 +3,8 @@
 #include "config.h"
 
 #include <stdlib.h>
-#include "portalib/glib.h"
+
+#include "pl_glib.h"
 
 /* Wrap data in a new list container */
 static GSList *g_slist_new(void *data) {

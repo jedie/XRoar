@@ -22,7 +22,7 @@
 #include <pulse/error.h>
 #include <pulse/gccmacro.h>
 #include <pulse/simple.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "logging.h"
 #include "machine.h"

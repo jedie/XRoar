@@ -6,11 +6,13 @@
  * version 2 of the License, or (at your option) any later version.
  */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <ctype.h>
 
-#include "portalib/strings.h"
+#include "pl_strings.h"
 
 #ifdef NEED_STRCASECMP
 int strcasecmp(const char *_l, const char *_r) {

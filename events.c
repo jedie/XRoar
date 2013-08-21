@@ -17,7 +17,7 @@
  */
 
 #include <stdlib.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "events.h"
 #include "logging.h"

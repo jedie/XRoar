@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <CoreAudio/AudioHardware.h>
-#include "portalib/glib.h"
+#include "pl_glib.h"
 
 #include "logging.h"
 #include "machine.h"
