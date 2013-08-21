@@ -16,6 +16,8 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <fcntl.h>
 #include <stdint.h>
@@ -24,10 +26,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "pl_glib.h"
-#include "pl_strings.h"
 
-#include "config.h"
+#include "pl_glib.h"
 
 #include "breakpoint.h"
 #include "cart.h"
@@ -931,7 +931,7 @@ int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	if (!(fd = fopen(path, "rb"))) {
 		return -1;
 	}
-	if (dot && strcasecmp(dot, ".dgn") == 0) {
+	if (dot && g_ascii_strcasecmp(dot, ".dgn") == 0) {
 		LOG_DEBUG(2, "Loading DGN: %s\n", path);
 		fread(dest, 1, 16, fd);
 	} else {

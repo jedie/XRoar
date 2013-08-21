@@ -19,6 +19,8 @@
 // For strsep()
 #define _BSD_SOURCE
 
+#include "config.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -26,11 +28,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+
 #include "pl_glib.h"
 #include "pl_string.h"
-#include "pl_strings.h"
-
-#include "config.h"
 
 #include "cart.h"
 #include "crclist.h"
@@ -1399,7 +1399,7 @@ int xroar_filetype_by_ext(const char *filename) {
 		return FILETYPE_UNKNOWN;
 	ext++;
 	for (i = 0; filetypes[i].ext; i++) {
-		if (!strncasecmp(ext, filetypes[i].ext, strlen(filetypes[i].ext)))
+		if (!g_ascii_strncasecmp(ext, filetypes[i].ext, strlen(filetypes[i].ext)))
 			return filetypes[i].filetype;
 	}
 	return FILETYPE_UNKNOWN;

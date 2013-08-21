@@ -19,14 +19,14 @@
 // For strsep()
 #define _BSD_SOURCE
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <SDL.h>
+
 #include "pl_glib.h"
 #include "pl_string.h"
-#include "pl_strings.h"
-
-#include "config.h"
 
 #include "input.h"
 #include "joystick.h"
@@ -393,7 +393,7 @@ static SDLKey get_key_by_name(const char *name) {
 	if (isdigit(name[0]))
 		return strtol(name, NULL, 0);
 	for (SDLKey i = SDLK_FIRST; i < SDLK_LAST; i++) {
-		if (0 == strcasecmp(name, SDL_GetKeyName(i)))
+		if (0 == g_ascii_strcasecmp(name, SDL_GetKeyName(i)))
 			return i;
 	}
 	return SDLK_UNKNOWN;
