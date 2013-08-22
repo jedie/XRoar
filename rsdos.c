@@ -21,9 +21,12 @@
  *         http://www.coco3.com/unravalled/disk-basic-unravelled.pdf
  */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "pl_glib.h"
 
 #include "becker.h"

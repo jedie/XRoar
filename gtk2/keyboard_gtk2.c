@@ -16,6 +16,8 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 // For strsep()
 #define _BSD_SOURCE
 
@@ -23,14 +25,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <gdk/gdkkeysyms.h>
+#include <glib.h>
 #include <gtk/gtk.h>
-#include "pl_glib.h"
-#include "pl_strings.h"
 
-#include "config.h"
+#include "pl_string.h"
 
-#include "gtk2/ui_gtk2.h"
 #include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -39,6 +40,8 @@
 #include "module.h"
 #include "printer.h"
 #include "xroar.h"
+
+#include "gtk2/ui_gtk2.h"
 
 static _Bool init(void);
 static void shutdown(void);

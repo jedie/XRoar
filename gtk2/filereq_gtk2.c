@@ -16,14 +16,19 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
+
+#include <glib.h>
 #include <gtk/gtk.h>
 
 #include "fs.h"
-#include "gtk2/ui_gtk2.h"
 #include "logging.h"
 #include "module.h"
+
+#include "gtk2/ui_gtk2.h"
 
 static _Bool init(void);
 static char *load_filename(const char **extensions);

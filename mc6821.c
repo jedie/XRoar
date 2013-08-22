@@ -16,8 +16,11 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
+
 #include "pl_glib.h"
 
 #include "mc6821.h"

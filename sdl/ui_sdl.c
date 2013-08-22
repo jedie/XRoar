@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <SDL.h>
 
 #include "events.h"
@@ -29,9 +30,10 @@
 #include "machine.h"
 #include "module.h"
 #include "sam.h"
-#include "sdl/common.h"
 #include "vdg.h"
 #include "xroar.h"
+
+#include "sdl/common.h"
 
 /* Note: prefer the default order for sound and joystick modules, which
  * will include the SDL options. */

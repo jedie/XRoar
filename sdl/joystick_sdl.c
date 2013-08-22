@@ -16,15 +16,22 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
+// For strsep()
 #define _BSD_SOURCE
 
+#include <string.h>
+
 #include <SDL.h>
+
 #include "pl_glib.h"
 #include "pl_string.h"
 
 #include "joystick.h"
 #include "logging.h"
 #include "module.h"
+
 #include "sdl/common.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

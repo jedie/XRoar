@@ -16,8 +16,12 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 // For strsep()
 #define _BSD_SOURCE
+
+#include <string.h>
 
 #include "pl_glib.h"
 #include "pl_string.h"

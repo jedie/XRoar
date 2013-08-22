@@ -16,6 +16,8 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>

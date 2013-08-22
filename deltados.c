@@ -23,9 +23,12 @@
  *         www.dragon-archive.co.uk.
  */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "pl_glib.h"
 
 #include "cart.h"

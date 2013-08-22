@@ -16,13 +16,15 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 // For strsep()
 #define _BSD_SOURCE
 
-#include "config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include <SDL.h>
 
 #include "pl_glib.h"
@@ -35,8 +37,9 @@
 #include "machine.h"
 #include "module.h"
 #include "printer.h"
-#include "sdl/common.h"
 #include "xroar.h"
+
+#include "sdl/common.h"
 
 static _Bool init(void);
 static void update_kbd_translate(void);

@@ -16,19 +16,21 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <SDL.h>
 #include <SDL_syswm.h>
 
-#include "config.h"
-
 #include "logging.h"
 #include "module.h"
-#include "sdl/common.h"
 #include "vdg.h"
 #include "xroar.h"
+
+#include "sdl/common.h"
 
 #ifdef WINDOWS32
 #include "windows32/common_windows32.h"

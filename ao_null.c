@@ -16,14 +16,14 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #define _POSIX_C_SOURCE 200112L
 
 #include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "config.h"
 
 #ifdef HAVE_SDL
 #include <SDL.h>

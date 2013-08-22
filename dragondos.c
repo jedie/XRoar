@@ -24,9 +24,12 @@
 /* TODO: I've hacked in an optional "becker port" at $FF49/$FF4A.  Is this the
  * best place for it? */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "pl_glib.h"
 
 #include "becker.h"

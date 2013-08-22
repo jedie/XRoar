@@ -16,17 +16,21 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
+
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 
-#include "gtk2/ui_gtk2.h"
 #include "logging.h"
 #include "module.h"
 #include "vdg.h"
 #include "vo_opengl.h"
 #include "xroar.h"
+
+#include "gtk2/ui_gtk2.h"
 
 static _Bool init(void);
 static void _shutdown(void);

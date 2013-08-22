@@ -64,6 +64,8 @@
 
  */
 
+#include "config.h"
+
 #define _POSIX_C_SOURCE 200112L
 // For strsep()
 #define _BSD_SOURCE
@@ -73,11 +75,11 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+
 #include "pl_glib.h"
 #include "pl_string.h"
-
-#include "config.h"
 
 #ifndef WINDOWS32
 

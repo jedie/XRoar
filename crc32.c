@@ -1,9 +1,9 @@
 /* CRC-32 implementation.  If zlib is available, this just wraps its crc32()
  * function, otherwise a table-based implementation is built. */
 
-#include <stdint.h>
-
 #include "config.h"
+
+#include <stdint.h>
 
 #ifdef HAVE_ZLIB
 #include <zlib.h>

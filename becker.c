@@ -19,6 +19,8 @@
 /* Support the so-called "becker port", an IP version of the usually-serial
  * DriveWire protocol. */
 
+#include "config.h"
+
 #define _POSIX_C_SOURCE 200112L
 
 #include <stdint.h>
@@ -26,13 +28,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "config.h"
-
 #ifndef WINDOWS32
 
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 

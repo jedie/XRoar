@@ -16,6 +16,8 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,9 +25,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "pl_glib.h"
 
-#include "config.h"
+#include "pl_glib.h"
 
 #include "path.h"
 

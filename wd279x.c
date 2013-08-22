@@ -21,10 +21,13 @@
  *         http://www.swtpc.com/mholley/DC_5/TMS279X_DataSheet.pdf
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "pl_glib.h"
 
 #include "crc16.h"

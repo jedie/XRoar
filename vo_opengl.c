@@ -19,13 +19,13 @@
 /* OpenGL code is common to several video modules.  All the stuff that's not
  * toolkit-specific goes in here. */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-
-#include "config.h"
 
 #if defined(__APPLE_CC__)
 # include <OpenGL/gl.h>

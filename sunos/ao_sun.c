@@ -16,16 +16,18 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/audioio.h>
 #include <sys/ioctl.h>
+#include <sys/stropts.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/audioio.h>
-#include <sys/stropts.h>
 
 #include "logging.h"
 #include "machine.h"

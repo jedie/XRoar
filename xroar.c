@@ -16,10 +16,10 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 // For strsep()
 #define _BSD_SOURCE
-
-#include "config.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -27,6 +27,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 
 #include "pl_glib.h"

@@ -16,12 +16,16 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <pulse/error.h>
 #include <pulse/gccmacro.h>
 #include <pulse/simple.h>
+
 #include "pl_glib.h"
 
 #include "logging.h"

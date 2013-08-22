@@ -16,25 +16,29 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 // For strsep()
 #define _BSD_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <SDL.h>
-#include "pl_string.h"
-#include "pl_glib.h"
+#include <string.h>
 
-#include "config.h"
+#include <SDL.h>
+
+#include "pl_glib.h"
+#include "pl_string.h"
 
 #include "events.h"
 #include "joystick.h"
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
-#include "sdl/common.h"
 #include "vdg.h"
 #include "xroar.h"
+
+#include "sdl/common.h"
 
 unsigned sdl_window_x = 0, sdl_window_y = 0;
 unsigned sdl_window_w = 320, sdl_window_h = 240;

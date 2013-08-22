@@ -23,12 +23,15 @@
  * collection of all the tracks addressable by one head.
  */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include "pl_glib.h"
 
 #include "crc16.h"

@@ -20,6 +20,8 @@
  * BASIC EXEC address at $009D:$009E.  They no longer do, as BASIC might not be
  * in control. */
 
+#include "config.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

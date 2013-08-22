@@ -16,12 +16,15 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 /* Windows has a habit of making include order important: */
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
 
 #include "logging.h"
+
 #include "windows32/common_windows32.h"
 
 HWND windows32_main_hwnd;

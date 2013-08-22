@@ -16,10 +16,13 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 /* This Windows32 code is probably all wrong, but it does seem to work */
 
 #include <stdlib.h>
 #include <string.h>
+
 #include "pl_glib.h"
 
 /* Windows has a habit of making include order important: */
@@ -29,6 +32,7 @@
 #include "fs.h"
 #include "logging.h"
 #include "module.h"
+
 #include "windows32/common_windows32.h"
 
 static char *load_filename(const char **extensions);

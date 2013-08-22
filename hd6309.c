@@ -27,6 +27,8 @@
  *         2009 Darren Atkinson
  */
 
+#include "config.h"
+
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>

@@ -16,18 +16,20 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <SDL.h>
 #include <SDL_thread.h>
-#include "pl_glib.h"
-
-#include "config.h"
 
 #ifdef WINDOWS32
 #include <windows.h>
 #endif
+
+#include "pl_glib.h"
 
 #include "logging.h"
 #include "machine.h"

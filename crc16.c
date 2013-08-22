@@ -8,6 +8,8 @@
  * Scott Dattalo - www.dattalo.com
  */
 
+#include "config.h"
+
 #include <stdint.h>
 
 #include "crc16.h"

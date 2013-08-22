@@ -16,7 +16,10 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <windows.h>
+
 #include "pl_glib.h"
 
 #include "logging.h"
