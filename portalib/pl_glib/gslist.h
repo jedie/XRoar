@@ -1,7 +1,13 @@
-/* Portalib - replace common functions from other libraries. */
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * Singly-linked lists.
+ */
 
-#ifndef PORTALIB_GSLIST_H_
-#define PORTALIB_GSLIST_H_
+#ifndef PL_GSLIST_H_
+#define PL_GSLIST_H_
 
 struct GSList;
 typedef struct GSList GSList;
@@ -28,4 +34,4 @@ GSList *g_slist_find_custom(GSList *list, gconstpointer data, GCompareFunc func)
 
 #define g_slist_next(slist) ((slist) ? (((GSList *)(slist))->next) : NULL)
 
-#endif  /* def PORTALIB_GSLIST_H_ */
+#endif  /* def PL_GSLIST_H_ */

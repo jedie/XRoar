@@ -1,5 +1,18 @@
-#ifndef PORTALIB_GLIB_H_
-#define PORTALIB_GLIB_H_
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * This header will simply wrap the normal GLib headers if HAVE_GLIB2 is
+ * defined.
+ *
+ * On systems with GLib, use GLib.  For others, this lets you use some GLib
+ * functions without delving into the crazy world of GLib circular
+ * dependencies.
+ */
+
+#ifndef PL_GLIB_H_
+#define PL_GLIB_H_
 
 #include "config.h"
 
@@ -21,4 +34,4 @@
 #include "pl_glib/gstrfuncs.h"
 #endif
 
-#endif  /* PORTALIB_GLIB_H_ */
+#endif  /* PL_GLIB_H_ */

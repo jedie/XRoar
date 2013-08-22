@@ -1,7 +1,13 @@
-/* Portalib - replace common functions from other libraries. */
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * String utility functions.
+ */
 
-#ifndef PORTALIB_GLIB_GSTRFUNCS_H_
-#define PORTALIB_GLIB_GSTRFUNCS_H_
+#ifndef PL_GLIB_GSTRFUNCS_H_
+#define PL_GLIB_GSTRFUNCS_H_
 
 #include "pl_glib/gtypes.h"
 
@@ -19,4 +25,4 @@ static inline gboolean g_ascii_isupper(gchar c) {
 	return (c >= 'A' && c <= 'Z');
 }
 
-#endif  /* def PORTALIB_GLIB_GSTRFUNCS_H_ */
+#endif  /* def PL_GLIB_GSTRFUNCS_H_ */

@@ -1,7 +1,14 @@
-/* Portalib - replace common functions from other libraries. */
-
-/* GLib proper has its own slice allocation stuff that makes this more
- * efficient.  These replacements just wrap the standard syscalls. */
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * Memory management.
+ *
+ * GLib proper has its own slice allocation stuff that makes this more
+ * efficient.  These replacements mostly just wrap the equivalent standard C
+ * library functions.
+ */
 
 #include "config.h"
 

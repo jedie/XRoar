@@ -1,4 +1,10 @@
-/* Portalib - replace common functions from other libraries. */
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * Singly-linked lists.
+ */
 
 #include "config.h"
 

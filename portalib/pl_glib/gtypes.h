@@ -1,7 +1,14 @@
-/* Portalib - replace common functions from other libraries. */
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * This header defines types and macros used throughout.  Most GLib types are
+ * just aliases to standard C types.
+ */
 
-#ifndef PORTALIB_GLIB_GTYPES_H_
-#define PORTALIB_GLIB_GTYPES_H_
+#ifndef PL_GLIB_GTYPES_H_
+#define PL_GLIB_GTYPES_H_
 
 #ifndef FALSE
 #define FALSE (0)
@@ -33,4 +40,4 @@ typedef void (*GFunc)(gpointer data, gpointer user_data);
 typedef guint (*GHashFunc)(gconstpointer key);
 typedef void (*GHFunc)(gpointer key, gpointer value, gpointer user_data);
 
-#endif  /* def PORTALIB_GLIB_GTYPES_H_ */
+#endif  /* def PL_GLIB_GTYPES_H_ */

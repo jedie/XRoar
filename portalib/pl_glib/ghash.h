@@ -1,9 +1,13 @@
-/* Portalib - replace common functions from other libraries. */
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * Hash tables.
+ */
 
-/* portalib/glib/ghash.h - wrap glib/ghash.h */
-
-#ifndef PORTALIB_GLIB_GHASH_H_
-#define PORTALIB_GLIB_GHASH_H_
+#ifndef PL_GLIB_GHASH_H_
+#define PL_GLIB_GHASH_H_
 
 #include <stdlib.h>
 #include "pl_glib/gtypes.h"
@@ -21,4 +25,4 @@ void g_hash_table_foreach(GHashTable *hash_table, GHFunc func, gpointer user_dat
 gboolean g_str_equal(gconstpointer v1, gconstpointer v2);
 #define g_str_hash NULL
 
-#endif  /* def PORTALIB_GLIB_GHASH_H_ */
+#endif  /* def PL_GLIB_GHASH_H_ */

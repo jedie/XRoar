@@ -1,7 +1,13 @@
-/* Portalib - replace common functions from other libraries. */
-
-/* This implementation is very stupid: not really a hash at all, just a linked
- * list full of key/value pairs */
+/*
+ * pl_glib is a set of public domain work-a-likes for some GLib functions and
+ * macros.  It is not even slightly close to a complete reimplementation of
+ * GLib.
+ *
+ * Hash tables.
+ *
+ * This implementation is very stupid: not really a hash at all, just a linked
+ * list full of key/value pairs.
+ */
 
 #include "config.h"
 
