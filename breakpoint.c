@@ -35,6 +35,8 @@ static GSList *wp_read_list = NULL;
 static GSList *wp_write_list = NULL;
 static GSList *wp_access_list = NULL;
 
+static GSList *iter_next = NULL;
+
 static void bp_instruction_hook(void *dptr);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -71,6 +73,8 @@ void bp_add_n(struct breakpoint *bp, int n) {
 }
 
 void bp_remove(struct breakpoint *bp) {
+	if (iter_next && iter_next->data == bp)
+		iter_next = iter_next->next;
 	bp_instruction_list = g_slist_remove(bp_instruction_list, bp);
 	if (!bp_instruction_list) {
 		CPU0->instruction_hook = NULL;
@@ -114,6 +118,8 @@ static void trap_remove(GSList **bp_list, unsigned addr, unsigned addr_end,
 			unsigned match_mask, unsigned match_cond) {
 	struct breakpoint *bp = trap_find(*bp_list, addr, addr_end, match_mask, match_cond);
 	if (bp) {
+		if (iter_next && iter_next->data == bp)
+			iter_next = iter_next->next;
 		*bp_list = g_slist_remove(*bp_list, bp);
 		g_free(bp);
 	}
@@ -167,10 +173,15 @@ void bp_wp_remove(unsigned type, unsigned addr, unsigned nbytes, unsigned match_
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+/* Check the supplied list for any matching hooks.  These are temporarily
+ * addded to a new list for dispatch, as the handler may call routines that
+ * alter the original list. */
+
 static void bp_hook(GSList *bp_list, unsigned address) {
 	unsigned sam_register = sam_get_register();
 	unsigned cond = sam_register & 0x8400;
-	for (GSList *iter = bp_list; iter; iter = iter->next) {
+	for (GSList *iter = bp_list; iter; iter = iter_next) {
+		iter_next = iter->next;
 		struct breakpoint *bp = iter->data;
 		if ((cond & bp->match_mask) != bp->match_cond)
 			continue;
@@ -180,6 +191,7 @@ static void bp_hook(GSList *bp_list, unsigned address) {
 			continue;
 		bp->handler(bp->handler_data);
 	}
+	iter_next = NULL;
 }
 
 static void bp_instruction_hook(void *dptr) {
