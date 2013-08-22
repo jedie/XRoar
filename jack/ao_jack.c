@@ -27,6 +27,8 @@
 
 #include <jack/jack.h>
 
+#include "pl_glib.h"
+
 #include "logging.h"
 #include "machine.h"
 #include "module.h"
@@ -35,20 +37,20 @@
 
 static _Bool init(void);
 static void shutdown(void);
-static void flush_frame(void *buffer);
+static void *write_buffer(void *buffer);
 
 static int jack_callback(jack_nframes_t nframes, void *arg);
 
 SoundModule sound_jack_module = {
 	.common = { .name = "jack", .description = "JACK audio",
 		    .init = init, .shutdown = shutdown },
-	.flush_frame = flush_frame,
+	.write_buffer = write_buffer,
 };
 
 static jack_client_t *client;
 static int num_output_ports;  /* maximum of 2... */
 static jack_port_t *output_port[2];
-static float *buffer;
+static float *audio_buffer;
 
 static pthread_mutex_t haltflag;
 
@@ -85,10 +87,12 @@ static _Bool init(void) {
 	free(ports);
 	num_output_ports = i;
 	jack_nframes_t sample_rate = jack_get_sample_rate(client);
-	jack_nframes_t buffer_size = jack_get_buffer_size(client);
+	jack_nframes_t buffer_nframes = jack_get_buffer_size(client);
 
-	buffer = sound_init(sample_rate, 1, SOUND_FMT_FLOAT, buffer_size);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_size * 1000) / sample_rate, buffer_size);
+	size_t buffer_size = buffer_nframes * sizeof(float);
+	audio_buffer = g_malloc(buffer_size);
+	sound_init(audio_buffer, SOUND_FMT_FLOAT, sample_rate, 1, buffer_nframes);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / sample_rate, buffer_nframes);
 
 	pthread_mutex_init(&haltflag, NULL);
 
@@ -102,13 +106,13 @@ static void shutdown(void) {
 	client = NULL;
 }
 
-static void flush_frame(void *buffer) {
-	(void)buffer;
+static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
-		return;
+		return buffer;
 	pthread_mutex_lock(&haltflag);
 	pthread_mutex_lock(&haltflag);
 	pthread_mutex_unlock(&haltflag);
+	return buffer;
 }
 
 static int jack_callback(jack_nframes_t nframes, void *arg) {
@@ -117,7 +121,7 @@ static int jack_callback(jack_nframes_t nframes, void *arg) {
 	(void)arg;  /* unused */
 	for (i = 0; i < num_output_ports; i++) {
 		out = (float *)jack_port_get_buffer(output_port[i], nframes);
-		memcpy(out, buffer, nframes * sizeof(float));
+		memcpy(out, audio_buffer, nframes * sizeof(float));
 	}
 	pthread_mutex_unlock(&haltflag);
 	return 0;
