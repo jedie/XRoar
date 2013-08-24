@@ -312,22 +312,19 @@ void sdl_keypress(SDL_keysym *keysym) {
 	}
 }
 
-#define JOY_UNLOW(j) if (j < 127) j = 127;
-#define JOY_UNHIGH(j) if (j > 128) j = 128;
-
 void sdl_keyrelease(SDL_keysym *keysym) {
 	SDLKey sym = keysym->sym;
 
 	for (unsigned i = 0; i < MAX_AXES; i++) {
 		if (enabled_axis[i]) {
 			if (sym == enabled_axis[i]->key0) {
-				if (enabled_axis[i]->value < 127)
-					enabled_axis[i]->value = 127;
+				if (enabled_axis[i]->value < 129)
+					enabled_axis[i]->value = 129;
 				return;
 			}
 			if (sym == enabled_axis[i]->key1) {
-				if (enabled_axis[i]->value > 128)
-					enabled_axis[i]->value = 128;
+				if (enabled_axis[i]->value > 130)
+					enabled_axis[i]->value = 130;
 				return;
 			}
 		}

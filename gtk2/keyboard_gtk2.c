@@ -333,13 +333,13 @@ static gboolean keyrelease(GtkWidget *widget, GdkEventKey *event, gpointer user_
 	for (unsigned i = 0; i < MAX_AXES; i++) {
 		if (enabled_axis[i]) {
 			if (keyval == enabled_axis[i]->key0) {
-				if (enabled_axis[i]->value < 127)
-					enabled_axis[i]->value = 127;
+				if (enabled_axis[i]->value < 129)
+					enabled_axis[i]->value = 129;
 				return FALSE;
 			}
 			if (keyval == enabled_axis[i]->key1) {
-				if (enabled_axis[i]->value > 128)
-					enabled_axis[i]->value = 128;
+				if (enabled_axis[i]->value > 130)
+					enabled_axis[i]->value = 130;
 				return FALSE;
 			}
 		}

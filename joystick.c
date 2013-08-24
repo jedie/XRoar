@@ -314,8 +314,8 @@ void joystick_cycle(void) {
 void joystick_update(void) {
 	unsigned port = (PIA0->b.control_register & 0x08) >> 3;
 	unsigned axis = (PIA0->a.control_register & 0x08) >> 3;
-	unsigned dac_value = PIA1->a.out_sink & 0xfc;
-	unsigned js_value = 0;
+	unsigned dac_value = (PIA1->a.out_sink & 0xfc) + 2;
+	unsigned js_value = 127;
 	struct joystick *j = joystick_port[port];
 	if (j && j->axes[axis]) {
 		js_value = j->axes[axis]->read(j->axes[axis]->data);
