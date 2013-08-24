@@ -36,9 +36,9 @@ static void print_usage(FILE *f);
 int main(int argc, char **argv) {
 	int header_only = 0;
 	enum vdg_type output_mode = VDG;
-	unsigned nchars = 64;
-	unsigned pad_top = 3;
-	unsigned pad_bottom = 2;
+	int nchars = 64;
+	int pad_top = 3;
+	int pad_bottom = 2;
 	Uint32 pmask = ~0;
 	int i;
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "%s: %s: %s\n", argv0, argv[i], IMG_GetError());
 		exit(EXIT_FAILURE);
 	}
-	unsigned fheight = in->h / 6;
+	int fheight = in->h / 6;
 	if (in->w != 128 || fheight < 7) {
 		fprintf(stderr, "%s: %s: Wrong resolution for a font image file\n", argv0, argv[i]);
 		exit(EXIT_FAILURE);
