@@ -90,7 +90,6 @@ portalib_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
 	-I$(CURDIR) -I$(SRCROOT) $(WARN)
 
 portalib_BASE_OBJS = \
-	portalib/strcasecmp.o \
 	portalib/strsep.o
 CLEAN += $(portalib_BASE_OBJS)
 portalib_OBJS_C = $(portalib_BASE_OBJS)
