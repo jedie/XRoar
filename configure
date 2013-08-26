@@ -1324,6 +1324,11 @@ if test \! -f Makefile; then
 	ln -s "$SRCROOT"/Makefile Makefile
 fi
 
+# Ensure build directories exist
+mkdir -p doc portalib src tools
+mkdir -p src/alsa src/gtk2 src/jack src/linux src/macosx src/oss src/pulseaudio
+mkdir -p src/sdl src/sunos src/windows32
+
 exec 3<&-
 
 ############################################################################

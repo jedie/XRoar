@@ -97,59 +97,62 @@ portalib_OBJS_C = $(portalib_BASE_OBJS)
 ### XRoar
 
 xroar_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib $(WARN) \
+	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
+	$(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_CXXFLAGS = $(CXXFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib $(WARN) \
+	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
+	$(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_OBJCFLAGS = $(OBJCFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib $(WARN) \
+	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
+	$(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_LDFLAGS = $(LDFLAGS) $(LDLIBS)
 
 xroar_BASE_OBJS_C = \
-	becker.o \
-	breakpoint.o \
-	cart.o \
-	crc16.o \
-	crc32.o \
-	crclist.o \
-	deltados.o \
-	dragondos.o \
-	events.o \
-	fs.o \
-	hd6309.o \
-	hexs19.o \
-	input.o \
-	joystick.o \
-	keyboard.o \
-	logging.o \
-	machine.o \
-	mc6809.o \
-	mc6821.o \
-	module.o \
-	path.o \
-	printer.o \
-	romlist.o \
-	rsdos.o \
-	sam.o \
-	snapshot.o \
-	sound.o \
-	tape.o \
-	tape_cas.o \
-	ui_null.o \
-	vdg.o \
-	vdg_palette.o \
-	vdisk.o \
-	vdrive.o \
-	vo_null.o \
-	wd279x.o \
-	xconfig.o \
-	xroar.o
-xroar_BASE_INT_OBJS_C = vdg_bitmaps.o
+	src/becker.o \
+	src/breakpoint.o \
+	src/cart.o \
+	src/crc16.o \
+	src/crc32.o \
+	src/crclist.o \
+	src/deltados.o \
+	src/dragondos.o \
+	src/events.o \
+	src/fs.o \
+	src/hd6309.o \
+	src/hexs19.o \
+	src/input.o \
+	src/joystick.o \
+	src/keyboard.o \
+	src/logging.o \
+	src/machine.o \
+	src/mc6809.o \
+	src/mc6821.o \
+	src/module.o \
+	src/path.o \
+	src/printer.o \
+	src/romlist.o \
+	src/rsdos.o \
+	src/sam.o \
+	src/snapshot.o \
+	src/sound.o \
+	src/tape.o \
+	src/tape_cas.o \
+	src/ui_null.o \
+	src/vdg.o \
+	src/vdg_palette.o \
+	src/vdisk.o \
+	src/vdrive.o \
+	src/vo_null.o \
+	src/wd279x.o \
+	src/xconfig.o \
+	src/xroar.o
+xroar_BASE_INT_OBJS_C = src/vdg_bitmaps.o
 xroar_BASE_OBJS_CXX =
 xroar_BASE_OBJS_OBJC =
 CLEAN += $(xroar_BASE_OBJS_C) $(xroar_BASE_INT_OBJS_C) \
@@ -160,10 +163,10 @@ xroar_OBJS_CXX = $(xroar_BASE_OBJS_CXX)
 xroar_OBJS_OBJC = $(xroar_BASE_OBJS_OBJC)
 xroar_RES =
 
-vdg.o: vdg_bitmaps.h
+src/vdg.o: src/vdg_bitmaps.h
 
 # Objects for all Unix-style builds (now the only one):
-xroar_unix_OBJS = main_unix.o
+xroar_unix_OBJS = src/main_unix.o
 CLEAN += $(xroar_unix_OBJS)
 xroar_OBJS_C += $(xroar_unix_OBJS)
 
@@ -189,48 +192,47 @@ CLEAN += $(portalib_glib2_OBJS_C)
 ifneq ($(opt_glib2),yes)
 	portalib_OBJS_C += $(portalib_glib2_OBJS_C)
 	portalib_CFLAGS += $(opt_glib2_CFLAGS)
-	portalib_LDFLAGS += $(opt_glib2_LDFLAGS)
 endif
-$(portalib_glib2_OBJS_C): | portalib/glib
-portalib/glib: | portalib
-	mkdir -p portalib/glib
 
-xroar_gdb_OBJS_C = gdb.o
+xroar_gdb_OBJS_C = src/gdb.o
 CLEAN += $(xroar_gdb_OBJS_C)
 ifeq ($(opt_gdb_stub),yes)
 	xroar_OBJS_C += $(xroar_gdb_OBJS_C)
 endif
 
+ifeq ($(opt_glib2),yes)
+	xroar_CFLAGS += $(opt_glib2_CFLAGS)
+	xroar_OBJCFLAGS += $(opt_glib2_CFLAGS)
+	xroar_LDFLAGS += $(opt_glib2_LDFLAGS)
+endif
+
 xroar_gtk2_OBJS_C = \
-	gtk2/drivecontrol.o \
-	gtk2/filereq_gtk2.o \
-	gtk2/keyboard_gtk2.o \
-	gtk2/tapecontrol.o \
-	gtk2/ui_gtk2.o
+	src/gtk2/drivecontrol.o \
+	src/gtk2/filereq_gtk2.o \
+	src/gtk2/keyboard_gtk2.o \
+	src/gtk2/tapecontrol.o \
+	src/gtk2/ui_gtk2.o
 CLEAN += $(xroar_gtk2_OBJS_C)
 ifeq ($(opt_gtk2),yes)
 	xroar_OBJS_C += $(xroar_gtk2_OBJS_C)
 	xroar_CFLAGS += $(opt_gtk2_CFLAGS)
 	xroar_LDFLAGS += $(opt_gtk2_LDFLAGS)
-gtk2/drivecontrol.o: gtk2/drivecontrol_glade.h
-gtk2/tapecontrol.o: gtk2/tapecontrol_glade.h
-gtk2/ui_gtk2.o: gtk2/top_window_glade.h
-keyboard_gtk2.o: $(SRCROOT)/gtk2/keyboard_gtk2_mappings.c
-$(xroar_gtk2_OBJS_C): | gtk2
-gtk2:
-	mkdir -p gtk2
+src/gtk2/drivecontrol.o: src/gtk2/drivecontrol_glade.h
+src/gtk2/tapecontrol.o: src/gtk2/tapecontrol_glade.h
+src/gtk2/ui_gtk2.o: src/gtk2/top_window_glade.h
+src/keyboard_gtk2.o: $(SRCROOT)/src/gtk2/keyboard_gtk2_mappings.c
 endif
 
-xroar_gtkgl_OBJS_C = gtk2/vo_gtkgl.o
+xroar_gtkgl_OBJS_C = src/gtk2/vo_gtkgl.o
 CLEAN += $(xroar_gtkgl_OBJS_C)
 ifeq ($(opt_gtkgl),yes)
 	xroar_OBJS_C += $(xroar_gtkgl_OBJS_C)
 	xroar_CFLAGS += $(opt_gtkgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_gtkgl_LDFLAGS)
-$(xroar_gtkgl_OBJS_C): | gtk2
+$(xroar_gtkgl_OBJS_C): | src/gtk2
 endif
 
-xroar_opengl_OBJS_C = vo_opengl.o
+xroar_opengl_OBJS_C = src/vo_opengl.o
 CLEAN += $(xroar_opengl_OBJS_C)
 ifeq ($(opt_opengl),yes)
 	xroar_OBJS_C += $(xroar_opengl_OBJS_C)
@@ -239,35 +241,32 @@ ifeq ($(opt_opengl),yes)
 endif
 
 xroar_sdl_OBJS_C = \
-	sdl/ao_sdl.o \
-	sdl/common.o \
-	sdl/joystick_sdl.o \
-	sdl/keyboard_sdl.o \
-	sdl/ui_sdl.o \
-	sdl/vo_sdl.o \
-	sdl/vo_sdlyuv.o
+	src/sdl/ao_sdl.o \
+	src/sdl/common.o \
+	src/sdl/joystick_sdl.o \
+	src/sdl/keyboard_sdl.o \
+	src/sdl/ui_sdl.o \
+	src/sdl/vo_sdl.o \
+	src/sdl/vo_sdlyuv.o
 CLEAN += $(xroar_sdl_OBJS_C)
 ifeq ($(opt_sdl),yes)
 	xroar_OBJS_C += $(xroar_sdl_OBJS_C)
 	xroar_CFLAGS += $(opt_sdl_CFLAGS)
 	xroar_OBJCFLAGS += $(opt_sdl_OBJCFLAGS)
 	xroar_LDFLAGS += $(opt_sdl_LDFLAGS)
-sdl/keyboard_sdl.o: $(SRCROOT)/sdl/keyboard_sdl_mappings.c
-$(xroar_sdl_OBJS_C): | sdl
-sdl:
-	mkdir -p sdl
+src/sdl/keyboard_sdl.o: $(SRCROOT)/src/sdl/keyboard_sdl_mappings.c
 endif
 
-xroar_sdlgl_OBJS_C = sdl/vo_sdlgl.o
+xroar_sdlgl_OBJS_C = src/sdl/vo_sdlgl.o
 CLEAN += $(xroar_sdlgl_OBJS_C)
 ifeq ($(opt_sdlgl),yes)
 	xroar_OBJS_C += $(xroar_sdlgl_OBJS_C)
 	xroar_CFLAGS += $(opt_sdlgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_sdlgl_LDFLAGS)
-$(xroar_sdlgl_OBJS_C): | sdl
+$(xroar_sdlgl_OBJS_C): | src/sdl
 endif
 
-xroar_cli_OBJS_C = filereq_cli.o
+xroar_cli_OBJS_C = src/filereq_cli.o
 CLEAN += $(xroar_cli_OBJS_C)
 ifeq ($(opt_cli),yes)
 	xroar_OBJS_C += $(xroar_cli_OBJS_C)
@@ -276,84 +275,66 @@ ifeq ($(opt_cli),yes)
 endif
 
 xroar_cocoa_OBJS_OBJC = \
-	macosx/filereq_cocoa.o \
-	macosx/ui_macosx.o
+	src/macosx/filereq_cocoa.o \
+	src/macosx/ui_macosx.o
 CLEAN += $(xroar_cocoa_OBJS_OBJC)
 ifeq ($(opt_cocoa),yes)
 	xroar_OBJS_OBJC += $(xroar_cocoa_OBJS_OBJC)
 	xroar_CFLAGS += $(opt_cocoa_CFLAGS)
 	xroar_OBJCFLAGS += $(opt_cocoa_OBJCFLAGS)
 	xroar_LDFLAGS += $(opt_cocoa_LDFLAGS)
-$(xroar_cocoa_OBJS_OBJC): | macosx
-macosx:
-	mkdir -p macosx
 endif
 
-xroar_alsa_OBJS_C = alsa/ao_alsa.o
+xroar_alsa_OBJS_C = src/alsa/ao_alsa.o
 CLEAN += $(xroar_alsa_OBJS_C)
 ifeq ($(opt_alsa),yes)
 	xroar_OBJS_C += $(xroar_alsa_OBJS_C)
 	xroar_CFLAGS += $(opt_alsa_CFLAGS)
 	xroar_LDFLAGS += $(opt_alsa_LDFLAGS)
-$(xroar_alsa_OBJS_C): | alsa
-alsa:
-	mkdir -p alsa
 endif
 
-xroar_oss_OBJS_C = oss/ao_oss.o
+xroar_oss_OBJS_C = src/oss/ao_oss.o
 CLEAN += $(xroar_oss_OBJS_C)
 ifeq ($(opt_oss),yes)
 	xroar_OBJS_C += $(xroar_oss_OBJS_C)
 	xroar_CFLAGS += $(opt_oss_CFLAGS)
 	xroar_LDFLAGS += $(opt_oss_LDFLAGS)
-$(xroar_oss_OBJS_C): | oss
-oss:
-	mkdir -p oss
 endif
 
-xroar_pulse_OBJS_C = pulseaudio/ao_pulse.o
+xroar_pulse_OBJS_C = src/pulseaudio/ao_pulse.o
 CLEAN += $(xroar_pulse_OBJS_C)
 ifeq ($(opt_pulse),yes)
 	xroar_OBJS_C += $(xroar_pulse_OBJS_C)
 	xroar_CFLAGS += $(opt_pulse_CFLAGS)
 	xroar_LDFLAGS += $(opt_pulse_LDFLAGS)
-$(xroar_pulse_OBJS_C): | pulseaudio
-pulseaudio:
-	mkdir -p pulseaudio
 endif
 
-xroar_sunaudio_OBJS_C = sunos/ao_sun.o
+xroar_sunaudio_OBJS_C = src/sunos/ao_sun.o
 CLEAN += $(xroar_sunaudio_OBJS_C)
 ifeq ($(opt_sunaudio),yes)
 	xroar_OBJS_C += $(xroar_sunaudio_OBJS_C)
 	xroar_CFLAGS += $(opt_sunaudio_CFLAGS)
 	xroar_LDFLAGS += $(opt_sunaudio_LDFLAGS)
-$(xroar_sunaudio_OBJS_C): | sunos
-sunos:
-	mkdir -p sunos
 endif
 
-xroar_coreaudio_OBJS_C = macosx/ao_macosx.o
+xroar_coreaudio_OBJS_C = src/macosx/ao_macosx.o
 CLEAN += $(xroar_coreaudio_OBJS_C)
 ifeq ($(opt_coreaudio),yes)
 	xroar_OBJS_C += $(xroar_coreaudio_OBJS_C)
 	xroar_CFLAGS += $(opt_coreaudio_CFLAGS)
 	xroar_LDFLAGS += $(opt_coreaudio_LDFLAGS)
-$(xroar_coreaudio_OBJS_C): | macosx
+$(xroar_coreaudio_OBJS_C): | src/macosx
 endif
 
-xroar_jack_OBJS_C = jack/ao_jack.o
+xroar_jack_OBJS_C = src/jack/ao_jack.o
 CLEAN += $(xroar_jack_OBJS_C)
 ifeq ($(opt_jack),yes)
 	xroar_OBJS_C += $(xroar_jack_OBJS_C)
 	xroar_CFLAGS += $(opt_jack_CFLAGS)
 	xroar_LDFLAGS += $(opt_jack_LDFLAGS)
-$(xroar_jack_OBJS_C): | jack
-jack:
-	mkdir -p jack
 endif
 
-xroar_sndfile_OBJS_C = tape_sndfile.o
+xroar_sndfile_OBJS_C = src/tape_sndfile.o
 CLEAN += $(xroar_sndfile_OBJS_C)
 ifeq ($(opt_sndfile),yes)
 	xroar_OBJS_C += $(xroar_sndfile_OBJS_C)
@@ -361,7 +342,7 @@ ifeq ($(opt_sndfile),yes)
 	xroar_LDFLAGS += $(opt_sndfile_LDFLAGS)
 endif
 
-xroar_nullaudio_OBJS_C = ao_null.o
+xroar_nullaudio_OBJS_C = src/ao_null.o
 CLEAN += $(xroar_nullaudio_OBJS_C)
 ifeq ($(opt_nullaudio),yes)
 	xroar_OBJS_C += $(xroar_nullaudio_OBJS_C)
@@ -369,34 +350,28 @@ ifeq ($(opt_nullaudio),yes)
 	xroar_LDFLAGS += $(opt_nullaudio_LDFLAGS)
 endif
 
-xroar_linux_joystick_OBJS_C = linux/joystick_linux.o
+xroar_linux_joystick_OBJS_C = src/linux/joystick_linux.o
 CLEAN += $(xroar_linux_joystick_OBJS_C)
 ifeq ($(opt_linux_joystick),yes)
 	xroar_OBJS_C += $(xroar_linux_joystick_OBJS_C)
 	xroar_CFLAGS += $(opt_linux_joystick_CFLAGS)
 	xroar_LDFLAGS += $(opt_linux_joystick_LDFLAGS)
-$(xroar_linux_joystick_OBJS_C): | linux
-linux:
-	mkdir -p linux
 endif
 
 xroar_mingw_OBJS_C = \
-	windows32/ao_windows32.o \
-	windows32/common_windows32.o \
-	windows32/filereq_windows32.o
-xroar_mingw_RES = windows32/xroar.res
+	src/windows32/ao_windows32.o \
+	src/windows32/common_windows32.o \
+	src/windows32/filereq_windows32.o
+xroar_mingw_RES = src/windows32/xroar.res
 CLEAN += $(xroar_mingw_OBJS_C) $(xroar_mingw_RES)
 ifeq ($(opt_mingw),yes)
 	xroar_OBJS_C += $(xroar_mingw_OBJS_C)
 	xroar_RES += $(xroar_mingw_RES)
 	xroar_CFLAGS += $(opt_mingw_CFLAGS)
 	xroar_LDFLAGS += $(opt_mingw_LDFLAGS)
-$(xroar_mingw_OBJS_C): | windows32
-windows32:
-	mkdir -p windows32
 endif
 
-xroar_trace_OBJS_C = mc6809_trace.o hd6309_trace.o
+xroar_trace_OBJS_C = src/mc6809_trace.o src/hd6309_trace.o
 CLEAN += $(xroar_trace_OBJS_C)
 ifeq ($(opt_trace),yes)
 	xroar_OBJS_C += $(xroar_trace_OBJS_C)
@@ -436,9 +411,6 @@ xroar_OBJS = $(xroar_OBJS_C) $(xroar_INT_OBJS_C) \
 
 portalib_OBJS = $(portalib_OBJS_C)
 
-portalib:
-	mkdir -p portalib
-
 $(portalib_OBJS): $(CONFIG_FILES)
 
 $(portalib_OBJS_C): %.o: $(SRCROOT)/%.c | portalib
@@ -473,9 +445,6 @@ CLEAN += xroar xroar.exe
 
 ############################################################################
 # Documentation build rules
-
-doc:
-	mkdir -p doc
 
 doc/%.info: $(SRCROOT)/doc/%.texi | doc
 	$(call do_makeinfo,$@,-D "VERSION $(VERSION)" $<)
@@ -542,9 +511,6 @@ install-info: doc/xroar.info
 ############################################################################
 # Generated dependencies and the tools that generate them
 
-tools:
-	mkdir -p tools
-
 .SECONDARY: tools/font2c
 tools/font2c: $(SRCROOT)/tools/font2c.c | tools
 	$(call do_build_cc,$@,$(opt_build_sdl_CFLAGS) $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS))
@@ -553,13 +519,13 @@ CLEAN += tools/font2c
 
 #
 
-vdg_bitmaps.h: tools/font2c | $(SRCROOT)/font-6847.png $(SRCROOT)/font-6847t1.png
-	tools/font2c --header --array font_6847 --type "unsigned char" --vdg $(SRCROOT)/font-6847.png > $@
-	tools/font2c --header --array font_6847t1 --type "unsigned char" --vdgt1 $(SRCROOT)/font-6847t1.png >> $@
+src/vdg_bitmaps.h: tools/font2c | $(SRCROOT)/src/font-6847.png $(SRCROOT)/src/font-6847t1.png
+	tools/font2c --header --array font_6847 --type "unsigned char" --vdg $(SRCROOT)/src/font-6847.png > $@
+	tools/font2c --header --array font_6847t1 --type "unsigned char" --vdgt1 $(SRCROOT)/src/font-6847t1.png >> $@
 
-vdg_bitmaps.c: tools/font2c | $(SRCROOT)/font-6847.png
-	tools/font2c --array font_6847 --type "unsigned char" --vdg $(SRCROOT)/font-6847.png > $@
-	tools/font2c --array font_6847t1 --type "unsigned char" --vdgt1 $(SRCROOT)/font-6847t1.png >> $@
+src/vdg_bitmaps.c: tools/font2c | $(SRCROOT)/src/font-6847.png
+	tools/font2c --array font_6847 --type "unsigned char" --vdg $(SRCROOT)/src/font-6847.png > $@
+	tools/font2c --array font_6847t1 --type "unsigned char" --vdgt1 $(SRCROOT)/src/font-6847t1.png >> $@
 
 #
 
