@@ -526,7 +526,7 @@ src/vdg_bitmaps.c: tools/font2c | $(SRCROOT)/src/font-6847.png
 
 #
 
-gtk2/%_glade.h: $(SRCROOT)/gtk2/%.glade
+%.h: %.glade
 	echo "static const gchar *$(@:%.h=%) =" | sed 's/\*.*\//\*/'> $@
 	sed 's/"/'\''/g;s/^\( *\)/\1"/;s/$$/"/;' $< >> $@
 	echo ";" >> $@
