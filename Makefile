@@ -229,7 +229,6 @@ ifeq ($(opt_gtkgl),yes)
 	xroar_OBJS_C += $(xroar_gtkgl_OBJS_C)
 	xroar_CFLAGS += $(opt_gtkgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_gtkgl_LDFLAGS)
-$(xroar_gtkgl_OBJS_C): | src/gtk2
 endif
 
 xroar_opengl_OBJS_C = src/vo_opengl.o
@@ -263,7 +262,6 @@ ifeq ($(opt_sdlgl),yes)
 	xroar_OBJS_C += $(xroar_sdlgl_OBJS_C)
 	xroar_CFLAGS += $(opt_sdlgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_sdlgl_LDFLAGS)
-$(xroar_sdlgl_OBJS_C): | src/sdl
 endif
 
 xroar_cli_OBJS_C = src/filereq_cli.o
@@ -323,7 +321,6 @@ ifeq ($(opt_coreaudio),yes)
 	xroar_OBJS_C += $(xroar_coreaudio_OBJS_C)
 	xroar_CFLAGS += $(opt_coreaudio_CFLAGS)
 	xroar_LDFLAGS += $(opt_coreaudio_LDFLAGS)
-$(xroar_coreaudio_OBJS_C): | src/macosx
 endif
 
 xroar_jack_OBJS_C = src/jack/ao_jack.o
@@ -413,7 +410,7 @@ portalib_OBJS = $(portalib_OBJS_C)
 
 $(portalib_OBJS): $(CONFIG_FILES)
 
-$(portalib_OBJS_C): %.o: $(SRCROOT)/%.c | portalib
+$(portalib_OBJS_C): %.o: $(SRCROOT)/%.c
 	$(call do_cc,$@,$(portalib_CFLAGS) -c $<)
 
 $(xroar_OBJS): $(CONFIG_FILES)
@@ -436,7 +433,7 @@ xroar$(EXEEXT): $(xroar_OBJS) $(portalib_OBJS)
 .PHONY: build-bin
 build-bin: xroar$(EXEEXT)
 
-windows32/xroar.res: $(SRCROOT)/windows32/xroar.rc | windows32
+windows32/xroar.res: $(SRCROOT)/windows32/xroar.rc
 	$(call do_windres,$@,-O coff -DVERSION=$(VERSION) -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR) -DVERSION_PATCH=$(VERSION_PATCH) -DVERSION_SUBPATCH=$(VERSION_SUBPATCH) $<)
 
 endif
@@ -446,16 +443,16 @@ CLEAN += xroar xroar.exe
 ############################################################################
 # Documentation build rules
 
-doc/%.info: $(SRCROOT)/doc/%.texi | doc
+doc/%.info: $(SRCROOT)/doc/%.texi
 	$(call do_makeinfo,$@,-D "VERSION $(VERSION)" $<)
 
-doc/%.pdf: $(SRCROOT)/doc/%.texi | doc
+doc/%.pdf: $(SRCROOT)/doc/%.texi
 	$(call do_texi2pdf,$@,-q -t "@set VERSION $(VERSION)" --build=clean $<)
 
-doc/%.html: $(SRCROOT)/doc/%.texi | doc
+doc/%.html: $(SRCROOT)/doc/%.texi
 	$(call do_makeinfo,$@,--html --no-headers --no-split -D "VERSION $(VERSION)" $<)
 
-doc/%.txt: $(SRCROOT)/doc/%.texi | doc
+doc/%.txt: $(SRCROOT)/doc/%.texi
 	$(call do_makeinfo,$@,--plaintext --no-headers --no-split -D "VERSION $(VERSION)" $<)
 
 CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
@@ -512,7 +509,7 @@ install-info: doc/xroar.info
 # Generated dependencies and the tools that generate them
 
 .SECONDARY: tools/font2c
-tools/font2c: $(SRCROOT)/tools/font2c.c | tools
+tools/font2c: $(SRCROOT)/tools/font2c.c
 	$(call do_build_cc,$@,$(opt_build_sdl_CFLAGS) $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS))
 
 CLEAN += tools/font2c
@@ -529,7 +526,7 @@ src/vdg_bitmaps.c: tools/font2c | $(SRCROOT)/src/font-6847.png
 
 #
 
-gtk2/%_glade.h: $(SRCROOT)/gtk2/%.glade | gtk2
+gtk2/%_glade.h: $(SRCROOT)/gtk2/%.glade
 	echo "static const gchar *$(@:%.h=%) =" | sed 's/\*.*\//\*/'> $@
 	sed 's/"/'\''/g;s/^\( *\)/\1"/;s/$$/"/;' $< >> $@
 	echo ";" >> $@
