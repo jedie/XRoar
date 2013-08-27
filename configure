@@ -121,6 +121,8 @@ test -n "$OBJCFLAGS" && TARGET_OBJCFLAGS="$OBJCFLAGS"
 test -n "$CPPFLAGS" && TARGET_CPPFLAGS="$CPPFLAGS"
 test -n "$LDFLAGS" && TARGET_LDFLAGS="$LDFLAGS"
 test -n "$LDLIBS" && TARGET_LDLIBS="$LDLIBS"
+test -n "$AR" && TARGET_AR="$AR"
+test -n "$RANLIB" && TARGET_RANLIB="$RANLIB"
 CC=
 CXX=
 OBJC=
@@ -129,6 +131,8 @@ OBJCFLAGS=
 CPPFLAGS=
 LDFLAGS=
 LDLIBS=
+AR=
+RANLIB=
 
 TMPC=./conftemp.c
 TMPCXX=./conftemp.cc
@@ -192,23 +196,32 @@ while test -n "$1"; do
 	--target=*) _cross=yes; target=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
 	--target-le) _endian=little; ;;
 	--target-be) _endian=big; ;;
-	--enable-[a-z-]*) eval _`echo "$opt"|sed 's/^--enable-//;s/-/_/g'`=yes; ;;
-	--disable-[a-z-]*) eval _`echo "$opt"|sed 's/^--disable-//;s/-/_/g'`=no; ;;
-	--with-sdl-config=*) target_sdl_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--with-sdl=*)
-		_tmp=`echo "$opt"|sed 's/^[^=]*=//'`
-		sdl_includes="$_tmp/include"
-		sdl_libs="$_tmp/lib"
+	--with-[a-z-]*=*)
+		tmpk=with_`echo "$opt"|sed 's/^--with-//;s/=.*//;s/-/_/g'`
+		tmpv=`echo "$opt"|sed 's/^[^=]*=//'`
+		eval $tmpk="\$tmpv"
 		;;
-	--with-gtk2=*)
-		_tmp=`echo "$opt"|sed 's/^[^=]*=//'`
-		gtk2_includes="$_tmp/include"
-		gtk2_libs="$_tmp/lib"
+	--enable-[a-z-]*=*)
+		tmpk=with_`echo "$opt"|sed 's/^--enable-//;s/=.*//;s/-/_/g'`
+		tmpv=`echo "$opt"|sed 's/^[^=]*=//'`
+		eval $tmpk="\$tmpv"
 		;;
-	--with-pkg-config=*) target_pkg_config=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--with-makeinfo=*) MAKEINFO=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--with-texi2pdf=*) TEXI2PDF=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
-	--with-install=*) INSTALL=`echo "$opt"|sed 's/^[^=]*=//'`; ;;
+	--with-[a-z-]*)
+		tmpk=_`echo "$opt"|sed 's/^--with-//;s/-/_/g'`
+		eval $tmpk="yes"
+		;;
+	--enable-[a-z-]*)
+		tmpk=_`echo "$opt"|sed 's/^--enable-//;s/-/_/g'`
+		eval $tmpk="yes"
+		;;
+	--without-[a-z-]*)
+		tmpk=_`echo "$opt"|sed 's/^--without-//;s/-/_/g'`
+		eval $tmpk="no"
+		;;
+	--disable-[a-z-]*)
+		tmpk=_`echo "$opt"|sed 's/^--disable-//;s/-/_/g'`
+		eval $tmpk="no"
+		;;
 	-h|--help)
 		helptext
 		exit 0
@@ -217,6 +230,22 @@ while test -n "$1"; do
 	esac
 	shift
 done
+
+test -n "$with_sdl_config" && target_sdl_config="$with_sdl_config"
+test -n "$with_pkg_config" && target_sdl_config="$with_pkg_config"
+test -n "$with_makeinfo" && MAKEINFO="$with_makeinfo"
+test -n "$with_texi2pdf" && TEXI2PDF="$with_texi2pdf"
+test -n "$with_install" && INSTALL="$with_install"
+
+if test -n "$with_sdl"; then
+	sdl_includes="$with_sdl/include"
+	sdl_libs="$with_sdl/lib"
+fi
+
+if test -n "$with_gtk2"; then
+	gtk2_includes="$with_gtk2/include"
+	gtk2_libs="$with_gtk2/lib"
+fi
 
 echo "# $cli" >&$config_log
 
@@ -256,6 +285,7 @@ if test -z "$TARGET_CC"; then
 	fi
 fi
 
+if false; then  # skip
 if test -z "$BUILD_CXX"; then
 	if ( g++ -v ) >/dev/null 2>&1; then
 		BUILD_CXX=g++
@@ -265,6 +295,7 @@ if test -z "$BUILD_CXX"; then
 		BUILD_CXX=false
 	fi
 fi
+fi  # end skip
 
 if test -z "$TARGET_CXX"; then
 	if ( "$target-g++" -v ) > /dev/null 2>&1; then
@@ -291,6 +322,15 @@ if test -z "$__target_objc_machine"; then
 	fi
 fi
 
+test -z "$BUILD_AR" && BUILD_AR="ar"
+if test -z "$TARGET_AR"; then
+	if type "$target-ar" >/dev/null 2>&1; then
+		TARGET_AR="$target-ar"
+	else
+		TARGET_AR="$BUILD_AR"
+	fi
+fi
+
 test -z "$BUILD_AS" && BUILD_AS="as"
 if test -z "$TARGET_AS"; then
 	if ( "$target-as" --version ) > /dev/null 2>&1; then
@@ -306,6 +346,16 @@ if test -z "$TARGET_OBJCOPY"; then
 		TARGET_OBJCOPY="$target-objcopy"
 	else
 		TARGET_OBJCOPY="$BUILD_OBJCOPY"
+	fi
+fi
+
+test -z "$BUILD_RANLIB" && type ranlib >/dev/null 2>&1 && BUILD_RANLIB="ranlib"
+test -z "$BUILD_RANLIB" && BUILD_RANLIB="true"
+if test -z "$TARGET_RANLIB"; then
+	if type "$target-ranlib" >/dev/null 2>&1; then
+		TARGET_RANLIB="$target-ranlib"
+	else
+		TARGET_RANLIB="$BUILD_RANLIB"
 	fi
 fi
 
@@ -522,6 +572,7 @@ EOF
 	TARGET_C_OPT="$__opt"
 fi
 
+if false; then  # skip
 unset TARGET_CXX_OPT
 test -z "$TARGET_CXXFLAGS" && TARGET_CXXFLAGS="$CXXFLAGS"
 if test -z "$TARGET_CXXFLAGS"; then
@@ -540,6 +591,7 @@ EOF
 	target_cxx_check "$__opt" "" && TARGET_CXX_OPT="$__opt"
 	echo "$TARGET_CXX_OPT"
 fi
+fi  # end skip
 
 unset TARGET_OBJC_OPT
 test -z "$TARGET_OBJCFLAGS" && TARGET_OBJCFLAGS="$OBJCFLAGS"
@@ -1270,6 +1322,8 @@ CC = $TARGET_CC
 CXX = $TARGET_CXX
 OBJC = $TARGET_OBJC
 OBJCOPY = $TARGET_OBJCOPY
+AR = $TARGET_AR
+RANLIB = $TARGET_RANLIB
 WINDRES = $TARGET_WINDRES
 
 CFLAGS = $TARGET_C_OPT $TARGET_CFLAGS
@@ -1278,6 +1332,7 @@ OBJCFLAGS = $TARGET_OBJC_OPT $TARGET_CFLAGS $TARGET_OBJCFLAGS
 CPPFLAGS = $TARGET_CPPFLAGS
 LDFLAGS = $TARGET_LDFLAGS
 
+BUILD_AR = $BUILD_AR
 BUILD_CC = $BUILD_CC
 BUILD_CXX = $BUILD_CXX
 BUILD_OBJC = $BUILD_OBJC

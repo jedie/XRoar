@@ -1,5 +1,5 @@
 # Makefile for XRoar.
-# Needs you to run './configure' first.  './configure --help' for help.
+# You need to run 'configure' first.
 
 # Run with "VERBOSE=1" for normal output.
 
@@ -28,7 +28,11 @@ endif
 DISTNAME = xroar-$(VERSION)
 
 .PHONY: all
-all: build-bin build-doc
+all: build-lib build-bin build-doc
+
+.PHONY: build-lib
+.PHONY: build-bin
+.PHONY: build-doc
 
 .PHONY: profile-generate profile-use
 profile-generate: CFLAGS += -fprofile-generate -ftest-coverage
@@ -53,6 +57,8 @@ WARN = -Wall -W
 do_cc = @echo CC $(1); $(CC) -o $(1) $(2)
 do_cxx = @echo CXX $(1); $(CXX) -o $(1) $(2)
 do_objc = @echo OBJC $(1); $(OBJC) -o $(1) $(2)
+do_ar = @echo AR $(1); $(AR) cru $(1) $(2)
+do_ranlib = @echo RANLIB $(1); $(RANLIB) $(1)
 do_ld = @echo LD $(1); $(CC) -o $(1) $(2)
 do_build_cc = @echo BUILD_CC $(1); $(BUILD_CC) -o $(1) $(2)
 do_build_cxx = @echo BUILD_CXX $(1); $(BUILD_CXX) -o $(1) $(2)
@@ -70,6 +76,8 @@ WARN = -Wall -W -Wstrict-prototypes -Wpointer-arith -Wcast-align \
 do_cc = $(CC) -o $(1) $(2)
 do_cxx = $(CXX) -o $(1) $(2)
 do_objc = $(OBJC) -o $(1) $(2)
+do_ar = $(AR) cru $(1) $(2)
+do_ranlib = $(RANLIB) $(1)
 do_ld = $(CC) -o $(1) $(2)
 do_build_cc = $(BUILD_CC) -o $(1) $(2)
 do_build_cxx = $(BUILD_CXX) -o $(1) $(2)
@@ -82,93 +90,106 @@ endif
 
 CONFIG_FILES = config.h config.mak
 
-CLEAN =
-
 ### Portalib
 
-portalib_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) $(WARN)
+portalib_CLEAN =
+portalib_SOURCES_C =
+portalib_C_O =
 
-portalib_BASE_OBJS = \
-	portalib/strsep.o
-CLEAN += $(portalib_BASE_OBJS)
-portalib_OBJS_C = $(portalib_BASE_OBJS)
+portalib_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
+	-I$(CURDIR) -I$(SRCROOT)/portalib \
+	$(WARN)
+
+portalib_BASE_C = \
+	portalib/strsep.c
+portalib_BASE_C_O = $(portalib_BASE_C:.c=.o)
+#
+portalib_SOURCES_C += $(portalib_BASE_C)
+portalib_CLEAN += $(portalib_BASE_C_O)
+portalib_C_O = $(portalib_BASE_C_O)
 
 ### XRoar
 
+xroar_CLEAN =
+xroar_SOURCES_C =
+xroar_SOURCES_CXX =
+xroar_SOURCES_OBJC =
+xroar_SOURCES_RC =
+xroar_C_O =
+xroar_CXX_O =
+xroar_OBJC_O =
+xroar_RC_RES =
+
 xroar_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
+	-I$(CURDIR) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
 	$(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_CXXFLAGS = $(CXXFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
+	-I$(CURDIR) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
 	$(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_OBJCFLAGS = $(OBJCFLAGS) $(CPPFLAGS) \
-	-I$(CURDIR) -I$(SRCROOT) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
+	-I$(CURDIR) -I$(SRCROOT)/portalib -I$(SRCROOT)/src \
 	$(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
 xroar_LDFLAGS = $(LDFLAGS) $(LDLIBS)
 
-xroar_BASE_OBJS_C = \
-	src/becker.o \
-	src/breakpoint.o \
-	src/cart.o \
-	src/crc16.o \
-	src/crc32.o \
-	src/crclist.o \
-	src/deltados.o \
-	src/dragondos.o \
-	src/events.o \
-	src/fs.o \
-	src/hd6309.o \
-	src/hexs19.o \
-	src/input.o \
-	src/joystick.o \
-	src/keyboard.o \
-	src/logging.o \
-	src/machine.o \
-	src/mc6809.o \
-	src/mc6821.o \
-	src/module.o \
-	src/path.o \
-	src/printer.o \
-	src/romlist.o \
-	src/rsdos.o \
-	src/sam.o \
-	src/snapshot.o \
-	src/sound.o \
-	src/tape.o \
-	src/tape_cas.o \
-	src/ui_null.o \
-	src/vdg.o \
-	src/vdg_palette.o \
-	src/vdisk.o \
-	src/vdrive.o \
-	src/vo_null.o \
-	src/wd279x.o \
-	src/xconfig.o \
-	src/xroar.o
-xroar_BASE_INT_OBJS_C = src/vdg_bitmaps.o
-xroar_BASE_OBJS_CXX =
-xroar_BASE_OBJS_OBJC =
-CLEAN += $(xroar_BASE_OBJS_C) $(xroar_BASE_INT_OBJS_C) \
-	$(xroar_BASE_OBJS_CXX) $(xroar_BASE_OBJS_OBJC)
-xroar_OBJS_C = $(xroar_BASE_OBJS_C)
-xroar_INT_OBJS_C = $(xroar_BASE_INT_OBJS_C)
-xroar_OBJS_CXX = $(xroar_BASE_OBJS_CXX)
-xroar_OBJS_OBJC = $(xroar_BASE_OBJS_OBJC)
-xroar_RES =
-
-src/vdg.o: src/vdg_bitmaps.h
+xroar_BASE_C = \
+	src/becker.c \
+	src/breakpoint.c \
+	src/cart.c \
+	src/crc16.c \
+	src/crc32.c \
+	src/crclist.c \
+	src/deltados.c \
+	src/dragondos.c \
+	src/events.c \
+	src/fs.c \
+	src/hd6309.c \
+	src/hexs19.c \
+	src/input.c \
+	src/joystick.c \
+	src/keyboard.c \
+	src/logging.c \
+	src/machine.c \
+	src/mc6809.c \
+	src/mc6821.c \
+	src/module.c \
+	src/path.c \
+	src/printer.c \
+	src/romlist.c \
+	src/rsdos.c \
+	src/sam.c \
+	src/snapshot.c \
+	src/sound.c \
+	src/tape.c \
+	src/tape_cas.c \
+	src/ui_null.c \
+	src/vdg.c \
+	src/vdg_bitmaps.c \
+	src/vdg_palette.c \
+	src/vdisk.c \
+	src/vdrive.c \
+	src/vo_null.c \
+	src/wd279x.c \
+	src/xconfig.c \
+	src/xroar.c
+xroar_BASE_C_O = $(xroar_BASE_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_BASE_C)
+xroar_CLEAN += $(xroar_BASE_C_O)
+xroar_C_O += $(xroar_BASE_C_O)
 
 # Objects for all Unix-style builds (now the only one):
-xroar_unix_OBJS = src/main_unix.o
-CLEAN += $(xroar_unix_OBJS)
-xroar_OBJS_C += $(xroar_unix_OBJS)
+xroar_unix_C = src/main_unix.c
+xroar_unix_C_O = $(xroar_unix_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_unix_C)
+xroar_CLEAN += $(xroar_unix_C_O)
+xroar_C_O += $(xroar_unix_C_O)
 
 ############################################################################
 # Optional extras (most only apply to Unix-style build)
@@ -183,21 +204,26 @@ ifeq ($(opt_glib2),yes)
 	xroar_LDFLAGS += $(opt_glib2_LDFLAGS)
 endif
 
-portalib_glib2_OBJS_C = \
-	portalib/glib/ghash.o \
-	portalib/glib/gmem.o \
-	portalib/glib/gslist.o \
-	portalib/glib/gstrfuncs.o
-CLEAN += $(portalib_glib2_OBJS_C)
+portalib_glib2_C = \
+	portalib/pl_glib/ghash.c \
+	portalib/pl_glib/gmem.c \
+	portalib/pl_glib/gslist.c \
+	portalib/pl_glib/gstrfuncs.c
+portalib_glib2_C_O = $(portalib_glib2_C:.c=.o)
+#
+portalib_SOURCES_C += $(portalib_glib2_C)
+portalib_CLEAN += $(portalib_glib2_C_O)
 ifneq ($(opt_glib2),yes)
-	portalib_OBJS_C += $(portalib_glib2_OBJS_C)
-	portalib_CFLAGS += $(opt_glib2_CFLAGS)
+	portalib_C_O += $(portalib_glib2_C_O)
 endif
 
-xroar_gdb_OBJS_C = src/gdb.o
-CLEAN += $(xroar_gdb_OBJS_C)
+xroar_gdb_C = src/gdb.c
+xroar_gdb_C_O = $(xroar_gdb_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_gdb_C)
+xroar_CLEAN += $(xroar_gdb_C_O)
 ifeq ($(opt_gdb_stub),yes)
-	xroar_OBJS_C += $(xroar_gdb_OBJS_C)
+	xroar_C_O += $(xroar_gdb_C_O)
 endif
 
 ifeq ($(opt_glib2),yes)
@@ -206,15 +232,18 @@ ifeq ($(opt_glib2),yes)
 	xroar_LDFLAGS += $(opt_glib2_LDFLAGS)
 endif
 
-xroar_gtk2_OBJS_C = \
-	src/gtk2/drivecontrol.o \
-	src/gtk2/filereq_gtk2.o \
-	src/gtk2/keyboard_gtk2.o \
-	src/gtk2/tapecontrol.o \
-	src/gtk2/ui_gtk2.o
-CLEAN += $(xroar_gtk2_OBJS_C)
+xroar_gtk2_C = \
+	src/gtk2/drivecontrol.c \
+	src/gtk2/filereq_gtk2.c \
+	src/gtk2/keyboard_gtk2.c \
+	src/gtk2/tapecontrol.c \
+	src/gtk2/ui_gtk2.c
+xroar_gtk2_C_O = $(xroar_gtk2_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_gtk2_C)
+xroar_CLEAN += $(xroar_gtk2_C_O)
 ifeq ($(opt_gtk2),yes)
-	xroar_OBJS_C += $(xroar_gtk2_OBJS_C)
+	xroar_C_O += $(xroar_gtk2_C_O)
 	xroar_CFLAGS += $(opt_gtk2_CFLAGS)
 	xroar_LDFLAGS += $(opt_gtk2_LDFLAGS)
 src/gtk2/drivecontrol.o: src/gtk2/drivecontrol_glade.h
@@ -223,155 +252,208 @@ src/gtk2/ui_gtk2.o: src/gtk2/top_window_glade.h
 src/keyboard_gtk2.o: $(SRCROOT)/src/gtk2/keyboard_gtk2_mappings.c
 endif
 
-xroar_gtkgl_OBJS_C = src/gtk2/vo_gtkgl.o
-CLEAN += $(xroar_gtkgl_OBJS_C)
+xroar_gtkgl_C = src/gtk2/vo_gtkgl.c
+xroar_gtkgl_C_O = $(xroar_gtkgl_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_gtkgl_C)
+xroar_CLEAN += $(xroar_gtkgl_C_O)
 ifeq ($(opt_gtkgl),yes)
-	xroar_OBJS_C += $(xroar_gtkgl_OBJS_C)
+	xroar_C_O += $(xroar_gtkgl_C_O)
 	xroar_CFLAGS += $(opt_gtkgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_gtkgl_LDFLAGS)
 endif
 
-xroar_opengl_OBJS_C = src/vo_opengl.o
-CLEAN += $(xroar_opengl_OBJS_C)
+xroar_opengl_C = src/vo_opengl.c
+xroar_opengl_C_O = $(xroar_opengl_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_opengl_C)
+xroar_CLEAN += $(xroar_opengl_C_O)
 ifeq ($(opt_opengl),yes)
-	xroar_OBJS_C += $(xroar_opengl_OBJS_C)
+	xroar_C_O += $(xroar_opengl_C_O)
 	xroar_CFLAGS += $(opt_opengl_CFLAGS)
 	xroar_LDFLAGS += $(opt_opengl_LDFLAGS)
 endif
 
-xroar_sdl_OBJS_C = \
-	src/sdl/ao_sdl.o \
-	src/sdl/common.o \
-	src/sdl/joystick_sdl.o \
-	src/sdl/keyboard_sdl.o \
-	src/sdl/ui_sdl.o \
-	src/sdl/vo_sdl.o \
-	src/sdl/vo_sdlyuv.o
-CLEAN += $(xroar_sdl_OBJS_C)
+xroar_sdl_C = \
+	src/sdl/ao_sdl.c \
+	src/sdl/common.c \
+	src/sdl/joystick_sdl.c \
+	src/sdl/keyboard_sdl.c \
+	src/sdl/ui_sdl.c \
+	src/sdl/vo_sdl.c \
+	src/sdl/vo_sdlyuv.c
+xroar_sdl_C_O = $(xroar_sdl_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_sdl_C)
+xroar_CLEAN += $(xroar_sdl_C_O)
 ifeq ($(opt_sdl),yes)
-	xroar_OBJS_C += $(xroar_sdl_OBJS_C)
+	xroar_C_O += $(xroar_sdl_C_O)
 	xroar_CFLAGS += $(opt_sdl_CFLAGS)
 	xroar_OBJCFLAGS += $(opt_sdl_OBJCFLAGS)
 	xroar_LDFLAGS += $(opt_sdl_LDFLAGS)
 src/sdl/keyboard_sdl.o: $(SRCROOT)/src/sdl/keyboard_sdl_mappings.c
 endif
 
-xroar_sdlgl_OBJS_C = src/sdl/vo_sdlgl.o
-CLEAN += $(xroar_sdlgl_OBJS_C)
+xroar_sdlgl_C = src/sdl/vo_sdlgl.c
+xroar_sdlgl_C_O = $(xroar_sdlgl_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_sdlgl_C)
+xroar_CLEAN += $(xroar_sdlgl_C_O)
 ifeq ($(opt_sdlgl),yes)
-	xroar_OBJS_C += $(xroar_sdlgl_OBJS_C)
+	xroar_C_O += $(xroar_sdlgl_C_O)
 	xroar_CFLAGS += $(opt_sdlgl_CFLAGS)
 	xroar_LDFLAGS += $(opt_sdlgl_LDFLAGS)
 endif
 
-xroar_cli_OBJS_C = src/filereq_cli.o
-CLEAN += $(xroar_cli_OBJS_C)
+xroar_cli_C = src/filereq_cli.c
+xroar_cli_C_O = $(xroar_cli_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_cli_C)
+xroar_CLEAN += $(xroar_cli_C_O)
 ifeq ($(opt_cli),yes)
-	xroar_OBJS_C += $(xroar_cli_OBJS_C)
+	xroar_C_O += $(xroar_cli_C_O)
 	xroar_CFLAGS += $(opt_cli_CFLAGS)
 	xroar_LDFLAGS += $(opt_cli_LDFLAGS)
 endif
 
-xroar_cocoa_OBJS_OBJC = \
-	src/macosx/filereq_cocoa.o \
-	src/macosx/ui_macosx.o
-CLEAN += $(xroar_cocoa_OBJS_OBJC)
+xroar_cocoa_OBJC = \
+	src/macosx/filereq_cocoa.m \
+	src/macosx/ui_macosx.m
+xroar_cocoa_OBJC_O = $(xroar_cocoa_OBJC:.m=.o)
+#
+xroar_SOURCES_OBJC += $(xroar_cocoa_OBJC)
+xroar_CLEAN += $(xroar_cocoa_OBJC_O)
 ifeq ($(opt_cocoa),yes)
-	xroar_OBJS_OBJC += $(xroar_cocoa_OBJS_OBJC)
+	xroar_OBJC_O += $(xroar_cocoa_OBJC_O)
 	xroar_CFLAGS += $(opt_cocoa_CFLAGS)
 	xroar_OBJCFLAGS += $(opt_cocoa_OBJCFLAGS)
 	xroar_LDFLAGS += $(opt_cocoa_LDFLAGS)
 endif
 
-xroar_alsa_OBJS_C = src/alsa/ao_alsa.o
-CLEAN += $(xroar_alsa_OBJS_C)
+xroar_alsa_C = src/alsa/ao_alsa.c
+xroar_alsa_C_O = $(xroar_alsa_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_alsa_C)
+xroar_CLEAN += $(xroar_alsa_C_O)
 ifeq ($(opt_alsa),yes)
-	xroar_OBJS_C += $(xroar_alsa_OBJS_C)
+	xroar_C_O += $(xroar_alsa_C_O)
 	xroar_CFLAGS += $(opt_alsa_CFLAGS)
 	xroar_LDFLAGS += $(opt_alsa_LDFLAGS)
 endif
 
-xroar_oss_OBJS_C = src/oss/ao_oss.o
-CLEAN += $(xroar_oss_OBJS_C)
+xroar_oss_C = src/oss/ao_oss.c
+xroar_oss_C_O = $(xroar_oss_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_oss_C)
+xroar_CLEAN += $(xroar_oss_C_O)
 ifeq ($(opt_oss),yes)
-	xroar_OBJS_C += $(xroar_oss_OBJS_C)
+	xroar_C_O += $(xroar_oss_C_O)
 	xroar_CFLAGS += $(opt_oss_CFLAGS)
 	xroar_LDFLAGS += $(opt_oss_LDFLAGS)
 endif
 
-xroar_pulse_OBJS_C = src/pulseaudio/ao_pulse.o
-CLEAN += $(xroar_pulse_OBJS_C)
+xroar_pulse_C = src/pulseaudio/ao_pulse.c
+xroar_pulse_C_O = $(xroar_pulse_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_pulse_C)
+xroar_CLEAN += $(xroar_pulse_C_O)
 ifeq ($(opt_pulse),yes)
-	xroar_OBJS_C += $(xroar_pulse_OBJS_C)
+	xroar_C_O += $(xroar_pulse_C_O)
 	xroar_CFLAGS += $(opt_pulse_CFLAGS)
 	xroar_LDFLAGS += $(opt_pulse_LDFLAGS)
 endif
 
-xroar_sunaudio_OBJS_C = src/sunos/ao_sun.o
-CLEAN += $(xroar_sunaudio_OBJS_C)
+xroar_sunaudio_C = src/sunos/ao_sun.c
+xroar_sunaudio_C_O = $(xroar_sunaudio_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_sunaudio_C)
+xroar_CLEAN += $(xroar_sunaudio_C_O)
 ifeq ($(opt_sunaudio),yes)
-	xroar_OBJS_C += $(xroar_sunaudio_OBJS_C)
+	xroar_C_O += $(xroar_sunaudio_C_O)
 	xroar_CFLAGS += $(opt_sunaudio_CFLAGS)
 	xroar_LDFLAGS += $(opt_sunaudio_LDFLAGS)
 endif
 
-xroar_coreaudio_OBJS_C = src/macosx/ao_macosx.o
-CLEAN += $(xroar_coreaudio_OBJS_C)
+xroar_coreaudio_C = src/macosx/ao_macosx.c
+xroar_coreaudio_C_O = $(xroar_coreaudio_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_coreaudio_C)
+xroar_CLEAN += $(xroar_coreaudio_C_O)
 ifeq ($(opt_coreaudio),yes)
-	xroar_OBJS_C += $(xroar_coreaudio_OBJS_C)
+	xroar_C_O += $(xroar_coreaudio_C_O)
 	xroar_CFLAGS += $(opt_coreaudio_CFLAGS)
 	xroar_LDFLAGS += $(opt_coreaudio_LDFLAGS)
 endif
 
-xroar_jack_OBJS_C = src/jack/ao_jack.o
-CLEAN += $(xroar_jack_OBJS_C)
+xroar_jack_C = src/jack/ao_jack.c
+xroar_jack_C_O = $(xroar_jack_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_jack_C)
+xroar_CLEAN += $(xroar_jack_C_O)
 ifeq ($(opt_jack),yes)
-	xroar_OBJS_C += $(xroar_jack_OBJS_C)
+	xroar_C_O += $(xroar_jack_C_O)
 	xroar_CFLAGS += $(opt_jack_CFLAGS)
 	xroar_LDFLAGS += $(opt_jack_LDFLAGS)
 endif
 
-xroar_sndfile_OBJS_C = src/tape_sndfile.o
-CLEAN += $(xroar_sndfile_OBJS_C)
+xroar_sndfile_C = src/tape_sndfile.c
+xroar_sndfile_C_O = $(xroar_sndfile_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_sndfile_C)
+xroar_CLEAN += $(xroar_sndfile_C_O)
 ifeq ($(opt_sndfile),yes)
-	xroar_OBJS_C += $(xroar_sndfile_OBJS_C)
+	xroar_C_O += $(xroar_sndfile_C_O)
 	xroar_CFLAGS += $(opt_sndfile_CFLAGS)
 	xroar_LDFLAGS += $(opt_sndfile_LDFLAGS)
 endif
 
-xroar_nullaudio_OBJS_C = src/ao_null.o
-CLEAN += $(xroar_nullaudio_OBJS_C)
+xroar_nullaudio_C = src/ao_null.c
+xroar_nullaudio_C_O = $(xroar_nullaudio_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_nullaudio_C)
+xroar_CLEAN += $(xroar_nullaudio_C_O)
 ifeq ($(opt_nullaudio),yes)
-	xroar_OBJS_C += $(xroar_nullaudio_OBJS_C)
+	xroar_C_O += $(xroar_nullaudio_C_O)
 	xroar_CFLAGS += $(opt_nullaudio_CFLAGS)
 	xroar_LDFLAGS += $(opt_nullaudio_LDFLAGS)
 endif
 
-xroar_linux_joystick_OBJS_C = src/linux/joystick_linux.o
-CLEAN += $(xroar_linux_joystick_OBJS_C)
+xroar_linux_joystick_C = src/linux/joystick_linux.c
+xroar_linux_joystick_C_O = $(xroar_linux_joystick_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_linux_joystick_C)
+xroar_CLEAN += $(xroar_linux_joystick_C_O)
 ifeq ($(opt_linux_joystick),yes)
-	xroar_OBJS_C += $(xroar_linux_joystick_OBJS_C)
+	xroar_C_O += $(xroar_linux_joystick_C_O)
 	xroar_CFLAGS += $(opt_linux_joystick_CFLAGS)
 	xroar_LDFLAGS += $(opt_linux_joystick_LDFLAGS)
 endif
 
-xroar_mingw_OBJS_C = \
-	src/windows32/ao_windows32.o \
-	src/windows32/common_windows32.o \
-	src/windows32/filereq_windows32.o
-xroar_mingw_RES = src/windows32/xroar.res
-CLEAN += $(xroar_mingw_OBJS_C) $(xroar_mingw_RES)
+xroar_mingw_C = \
+	src/windows32/ao_windows32.c \
+	src/windows32/common_windows32.c \
+	src/windows32/filereq_windows32.c
+xroar_mingw_C_O = $(xroar_mingw_C:.c=.o)
+xroar_mingw_RC = src/windows32/xroar.rc
+xroar_mingw_RC_RES = $(xroar_mingw_RC:.rc=.res)
+#
+xroar_SOURCES_C += $(xroar_mingw_C)
+xroar_SOURCES_RC += $(xroar_mingw_RES)
+xroar_CLEAN += $(xroar_mingw_C_O) $(xroar_mingw_RC_RES)
 ifeq ($(opt_mingw),yes)
-	xroar_OBJS_C += $(xroar_mingw_OBJS_C)
-	xroar_RES += $(xroar_mingw_RES)
+	xroar_C_O += $(xroar_mingw_C_O)
+	xroar_RC_RES += $(xroar_mingw_RC_RES)
 	xroar_CFLAGS += $(opt_mingw_CFLAGS)
 	xroar_LDFLAGS += $(opt_mingw_LDFLAGS)
 endif
 
-xroar_trace_OBJS_C = src/mc6809_trace.o src/hd6309_trace.o
-CLEAN += $(xroar_trace_OBJS_C)
+xroar_trace_C = src/mc6809_trace.c src/hd6309_trace.c
+xroar_trace_C_O = $(xroar_trace_C:.c=.o)
+#
+xroar_SOURCES_C += $(xroar_trace_C)
+xroar_CLEAN += $(xroar_trace_C_O)
 ifeq ($(opt_trace),yes)
-	xroar_OBJS_C += $(xroar_trace_OBJS_C)
+	xroar_C_O += $(xroar_trace_C_O)
 	xroar_CFLAGS += $(opt_trace_CFLAGS)
 	xroar_LDFLAGS += $(opt_trace_LDFLAGS)
 endif
@@ -383,8 +465,25 @@ endif
 ############################################################################
 # Build rules
 
-# Unix rules (default)
-ifeq ($(BUILD_STYLE),)
+### Portalib
+
+portalib_OBJS = \
+	$(portalib_C_O)
+
+$(portalib_OBJS): $(CONFIG_FILES)
+
+$(portalib_C_O): %.o: $(SRCROOT)/%.c
+	$(call do_cc,$@,$(portalib_CFLAGS) -c $<)
+
+portalib/libporta.a: $(portalib_OBJS)
+	$(call do_ar,$@,$(portalib_OBJS))
+	$(call do_ranlib,$@)
+
+portalib_CLEAN += portalib/libporta.a
+
+build-lib: portalib/libporta.a
+
+### XRoar
 
 ifeq ($(opt_mingw),yes)
 ROMPATH = \":~/Local\ Settings/Application\ Data/XRoar/roms:~/Application\ Data/XRoar/roms\"
@@ -401,47 +500,37 @@ ROMPATH = \"~/.xroar/roms:$(datadir)/xroar/roms:\"
 CONFPATH = \"~/.xroar:$(sysconfdir):$(datadir)/xroar\"
 endif
 
-xroar_OBJS = $(xroar_OBJS_C) $(xroar_INT_OBJS_C) \
-	$(xroar_OBJS_CXX) \
-	$(xroar_OBJS_OBJC) \
-	$(xroar_RES)
-
-portalib_OBJS = $(portalib_OBJS_C)
-
-$(portalib_OBJS): $(CONFIG_FILES)
-
-$(portalib_OBJS_C): %.o: $(SRCROOT)/%.c
-	$(call do_cc,$@,$(portalib_CFLAGS) -c $<)
+xroar_OBJS = \
+	$(xroar_C_O) \
+	$(xroar_CXX_O) \
+	$(xroar_OBJC_O) \
+	$(xroar_RC_RES)
 
 $(xroar_OBJS): $(CONFIG_FILES)
 
-$(xroar_OBJS_C): %.o: $(SRCROOT)/%.c
+$(xroar_C_O): %.o: $(SRCROOT)/%.c
 	$(call do_cc,$@,$(xroar_CFLAGS) -c $<)
 
-$(xroar_OBJS_CXX): %.o: $(SRCROOT)/%.cc
-	$(call do_cxx,$@,$(xroar_CXXFLAGS) -c $<)
+$(xroar_CXX_O): %.o: $(SRCROOT)/%.cc
+	$(call do_cc,$@,$(xroar_CXXFLAGS) -c $<)
 
-$(xroar_OBJS_OBJC): %.o: $(SRCROOT)/%.m
+$(xroar_OBJC_O): %.o: $(SRCROOT)/%.m
 	$(call do_objc,$@,$(xroar_OBJCFLAGS) -c $<)
 
-$(xroar_INT_OBJS_C): %.o: ./%.c
-	$(call do_cc,$@,$(xroar_CFLAGS) -c $<)
-
-src/xroar$(EXEEXT): $(xroar_OBJS) $(portalib_OBJS)
-	$(call do_ld,$@,$(xroar_OBJS) $(portalib_OBJS) $(xroar_LDFLAGS))
-
-.PHONY: build-bin
-build-bin: src/xroar$(EXEEXT)
-
-windows32/xroar.res: $(SRCROOT)/windows32/xroar.rc
+$(xroar_RC_RES): %.res: $(SRCROOT)/%.rc
 	$(call do_windres,$@,-O coff -DVERSION=$(VERSION) -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR) -DVERSION_PATCH=$(VERSION_PATCH) -DVERSION_SUBPATCH=$(VERSION_SUBPATCH) $<)
 
-endif
+src/xroar$(EXEEXT): $(xroar_OBJS) portalib/libporta.a
+	$(call do_ld,$@,$(xroar_OBJS) portalib/libporta.a $(xroar_LDFLAGS))
 
-CLEAN += src/xroar src/xroar.exe
+xroar_CLEAN += src/xroar src/xroar.exe
+
+build-bin: src/xroar$(EXEEXT)
 
 ############################################################################
 # Documentation build rules
+
+doc_CLEAN =
 
 doc/%.info: $(SRCROOT)/doc/%.texi
 	$(call do_makeinfo,$@,-D "VERSION $(VERSION)" $<)
@@ -455,11 +544,7 @@ doc/%.html: $(SRCROOT)/doc/%.texi
 doc/%.txt: $(SRCROOT)/doc/%.texi
 	$(call do_makeinfo,$@,--plaintext --no-headers --no-split -D "VERSION $(VERSION)" $<)
 
-CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
-
-.PHONY: build-doc
-build-doc:
-	@
+doc_CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
 
 ifneq ($(MAKEINFO),)
 build-doc: doc/xroar.info
@@ -508,11 +593,15 @@ install-info: doc/xroar.info
 ############################################################################
 # Generated dependencies and the tools that generate them
 
+tools_CLEAN =
+
+# font2c
+
 .SECONDARY: tools/font2c
 tools/font2c: $(SRCROOT)/tools/font2c.c
 	$(call do_build_cc,$@,$(opt_build_sdl_CFLAGS) $< $(opt_build_sdl_LDFLAGS) $(opt_build_sdl_image_LDFLAGS))
 
-CLEAN += tools/font2c
+tools_CLEAN += tools/font2c
 
 #
 
@@ -585,8 +674,8 @@ dist-macosx dist-macos: all doc/xroar.pdf
 	strip XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar
 	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libSDL-1.2.0.dylib
 	strip -x XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libsndfile.1.dylib
-	sed -e "s!@VERSION@!$(VERSION)!g" macosx/Info.plist.in > XRoar-$(VERSION)/XRoar.app/Contents/Info.plist
-	cp $(SRCROOT)/macosx/xroar.icns XRoar-$(VERSION)/XRoar.app/Contents/Resources/
+	sed -e "s!@VERSION@!$(VERSION)!g" $(SRCROOT)/src/macosx/Info.plist.in > XRoar-$(VERSION)/XRoar.app/Contents/Info.plist
+	cp $(SRCROOT)/src/macosx/xroar.icns XRoar-$(VERSION)/XRoar.app/Contents/Resources/
 	cp $(SRCROOT)/README $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog doc/xroar.pdf XRoar-$(VERSION)/
 	cp $(SRCROOT)/COPYING.LGPL-2.1 XRoar-$(VERSION)/COPYING.LGPL-2.1
 	chmod -R o+rX,g+rX XRoar-$(VERSION)/
@@ -606,7 +695,10 @@ debuild: dist
 
 .PHONY: clean
 clean:
-	rm -f $(CLEAN)
+	rm -f $(portalib_CLEAN)
+	rm -f $(xroar_CLEAN)
+	rm -f $(doc_CLEAN)
+	rm -f $(tools_CLEAN)
 
 .PHONY: profile-clean
 profile-clean:
@@ -620,6 +712,6 @@ distclean: clean profile-clean
 .PHONY: depend
 depend:
 	@touch .deps.mak
-	makedepend -f .deps.mak -Y `git ls-files | sort | grep '\.c'` 2> /dev/null
+	makedepend -f .deps.mak -Y $(portalib_SOURCES_C) $(xroar_SOURCES_C) 2> /dev/null
 
 -include .deps.mak
