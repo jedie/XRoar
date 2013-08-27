@@ -427,18 +427,18 @@ $(xroar_OBJS_OBJC): %.o: $(SRCROOT)/%.m
 $(xroar_INT_OBJS_C): %.o: ./%.c
 	$(call do_cc,$@,$(xroar_CFLAGS) -c $<)
 
-xroar$(EXEEXT): $(xroar_OBJS) $(portalib_OBJS)
+src/xroar$(EXEEXT): $(xroar_OBJS) $(portalib_OBJS)
 	$(call do_ld,$@,$(xroar_OBJS) $(portalib_OBJS) $(xroar_LDFLAGS))
 
 .PHONY: build-bin
-build-bin: xroar$(EXEEXT)
+build-bin: src/xroar$(EXEEXT)
 
 windows32/xroar.res: $(SRCROOT)/windows32/xroar.rc
 	$(call do_windres,$@,-O coff -DVERSION=$(VERSION) -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR) -DVERSION_PATCH=$(VERSION_PATCH) -DVERSION_SUBPATCH=$(VERSION_SUBPATCH) $<)
 
 endif
 
-CLEAN += xroar xroar.exe
+CLEAN += src/xroar src/xroar.exe
 
 ############################################################################
 # Documentation build rules
@@ -487,7 +487,7 @@ endif
 .PHONY: install-bin
 install-bin: build-bin
 	$(INSTALL_DIR) $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) xroar$(EXEEXT) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) src/xroar$(EXEEXT) $(DESTDIR)$(bindir)
 
 .PHONY: install-doc
 install-doc: build-doc
@@ -542,7 +542,7 @@ dist:
 .PHONY: dist-w64
 dist-w64: all doc/xroar.pdf
 	mkdir $(DISTNAME)-w64
-	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w64/
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w64/
 	cp $(SRCROOT)/COPYING.LGPL-2.1 $(DISTNAME)-w64/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(DISTNAME)-w64/xroar.exe
 	$(TOOL_PREFIX)strip $(DISTNAME)-w64/SDL.dll
@@ -558,7 +558,7 @@ endif
 .PHONY: dist-w32
 dist-w32: all doc/xroar.pdf
 	mkdir $(DISTNAME)-w32
-	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w32/
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w32/
 	cp $(SRCROOT)/COPYING.LGPL-2.1 $(DISTNAME)-w32/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(DISTNAME)-w32/xroar.exe
 	$(TOOL_PREFIX)strip $(DISTNAME)-w32/SDL.dll
@@ -575,7 +575,7 @@ endif
 dist-macosx dist-macos: all doc/xroar.pdf
 	mkdir XRoar-$(VERSION)
 	mkdir -p XRoar-$(VERSION)/XRoar.app/Contents/MacOS XRoar-$(VERSION)/XRoar.app/Contents/Frameworks XRoar-$(VERSION)/XRoar.app/Contents/Resources
-	cp xroar XRoar-$(VERSION)/XRoar.app/Contents/MacOS/
+	cp src/xroar XRoar-$(VERSION)/XRoar.app/Contents/MacOS/
 	cp /usr/local/lib/libSDL-1.2.0.dylib XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/
 	chmod 0644 XRoar-$(VERSION)/XRoar.app/Contents/Frameworks/libSDL-1.2.0.dylib
 	install_name_tool -change /usr/local/lib/libSDL-1.2.0.dylib @executable_path/../Frameworks/libSDL-1.2.0.dylib XRoar-$(VERSION)/XRoar.app/Contents/MacOS/xroar

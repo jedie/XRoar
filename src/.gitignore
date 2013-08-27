@@ -1,3 +1,6 @@
 ## intermediates
 ## build files
 *.o
+/xroar
+/xroar.exe
+/xroar.dSYM/
