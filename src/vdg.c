@@ -27,7 +27,6 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6809.h"
-#include "mc6821.h"
 #include "module.h"
 #include "sam.h"
 #include "vdg.h"
@@ -40,6 +39,10 @@
 /* External handler to fetch data for display.  First arg is number of bytes,
  * second a pointer to a buffer to receive them. */
 void (*vdg_fetch_bytes)(int, uint8_t *);
+
+/* Delegates to notify on signal edges */
+vdg_edge_delegate vdg_signal_hs = { NULL, NULL };
+vdg_edge_delegate vdg_signal_fs = { NULL, NULL };
 
 static event_ticks scanline_start;
 static _Bool is_32byte;
@@ -168,11 +171,9 @@ static void do_hs_fall(void *data) {
 		}
 	}
 
-	// HS falling edge.  The interrupt signal is inverted on PAL CoCos.
-	if (IS_COCO && IS_PAL)
-		mc6821_set_cx1(&PIA0->a);
-	else
-		mc6821_reset_cx1(&PIA0->a);
+	// HS falling edge.
+	if (vdg_signal_hs.delegate)
+		vdg_signal_hs.delegate(vdg_signal_hs.dptr, 0);
 
 	scanline_start = hs_fall_event.at_tick;
 	// Next HS rise and fall
@@ -220,12 +221,14 @@ static void do_hs_fall(void *data) {
 
 	if (scanline == VDG_ACTIVE_AREA_END) {
 		// FS falling edge
-		mc6821_reset_cx1(&PIA0->b);
+		if (vdg_signal_fs.delegate)
+			vdg_signal_fs.delegate(vdg_signal_fs.dptr, 0);
 	}
 
 	if (scanline == VDG_VBLANK_START) {
 		// FS rising edge
-		mc6821_set_cx1(&PIA0->b);
+		if (vdg_signal_fs.delegate)
+			vdg_signal_fs.delegate(vdg_signal_fs.dptr, 1);
 		sam_vdg_fsync();
 		frame--;
 		if (frame < 0)
@@ -238,20 +241,16 @@ static void do_hs_fall(void *data) {
 
 static void do_hs_rise(void *data) {
 	(void)data;
-	// HS rising edge.  The interrupt signal is inverted on PAL CoCos.
-	if (IS_COCO && IS_PAL)
-		mc6821_reset_cx1(&PIA0->a);
-	else
-		mc6821_set_cx1(&PIA0->a);
+	// HS rising edge.
+	if (vdg_signal_hs.delegate)
+		vdg_signal_hs.delegate(vdg_signal_hs.dptr, 1);
 }
 
 static void do_hs_fall_pal_coco(void *data) {
 	(void)data;
 	// HS falling edge
-	if (IS_COCO && IS_PAL)
-		mc6821_set_cx1(&PIA0->a);
-	else
-		mc6821_reset_cx1(&PIA0->a);
+	if (vdg_signal_hs.delegate)
+		vdg_signal_hs.delegate(vdg_signal_hs.dptr, 0);
 
 	scanline_start = hs_fall_event.at_tick;
 	// Next HS rise and fall

@@ -319,6 +319,33 @@ void machine_shutdown(void) {
 	vdrive_shutdown();
 }
 
+/* VDG edge delegates */
+
+static void vdg_hs(void *dptr, _Bool level) {
+	(void)dptr;
+	if (level)
+		mc6821_set_cx1(&PIA0->a);
+	else
+		mc6821_reset_cx1(&PIA0->a);
+}
+
+// PAL CoCos invert HS
+static void vdg_hs_pal_coco(void *dptr, _Bool level) {
+	(void)dptr;
+	if (level)
+		mc6821_reset_cx1(&PIA0->a);
+	else
+		mc6821_set_cx1(&PIA0->a);
+}
+
+static void vdg_fs(void *dptr, _Bool level) {
+	(void)dptr;
+	if (level)
+		mc6821_set_cx1(&PIA0->b);
+	else
+		mc6821_reset_cx1(&PIA0->b);
+}
+
 /* Tape audio delegate */
 
 static void update_audio_from_tape(void *dptr, float value) {
@@ -376,7 +403,15 @@ void machine_configure(struct machine_config *mc) {
 	// Tape
 	tape_update_audio = (tape_audio_delegate){update_audio_from_tape, NULL};
 
+	// VDG
 	vdg_t1 = (mc->vdg_type == VDG_6847T1);
+	if (IS_COCO && IS_PAL) {
+		vdg_signal_hs = (vdg_edge_delegate){vdg_hs_pal_coco, NULL};
+	} else {
+		vdg_signal_hs = (vdg_edge_delegate){vdg_hs, NULL};
+	}
+	vdg_signal_fs = (vdg_edge_delegate){vdg_fs, NULL};
+
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
 	memset(rom1, 0, sizeof(rom1));

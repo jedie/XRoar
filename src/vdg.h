@@ -54,6 +54,15 @@ enum vdg_colour {
  * second a pointer to a buffer to receive them. */
 extern void (*vdg_fetch_bytes)(int, uint8_t *);
 
+/* Delegates for signalling HS/FS fall/rise */
+typedef struct {
+	void (*delegate)(void *, _Bool level);
+	void *dptr;
+} vdg_edge_delegate;
+
+extern vdg_edge_delegate vdg_signal_hs;
+extern vdg_edge_delegate vdg_signal_fs;
+
 // Video module configures these window coordinates.  x1 = pixels from left
 // border, y1 = scanlines from top border.  x2 must be within the right border,
 // y2 within the bottom border.
@@ -66,6 +75,7 @@ extern _Bool vdg_t1;
 
 void vdg_init(void);
 void vdg_reset(void);
+
 /* Mode bits:
  * 7..5  GM2..GM0
  * 4    ¬INT/EXT
