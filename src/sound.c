@@ -100,6 +100,9 @@ static unsigned scale = 6971;
 static void flush_frame(void *);
 static struct event flush_event;
 
+// Input from tape
+float sound_tape_level = 0.0;
+
 void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes) {
 	uint16_t test = 0x0123;
 	int big_endian = (*(uint8_t *)(&test) == 0x01);
@@ -235,7 +238,7 @@ void sound_update(void) {
 			level = (float)(PIA_VALUE_A(PIA1) & 0xfc) / 252.;
 			break;
 		case SOURCE_TAPE:
-			level = tape_audio;
+			level = sound_tape_level;
 			break;
 		default:
 		case SOURCE_CART:

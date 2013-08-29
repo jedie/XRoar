@@ -31,15 +31,14 @@
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "module.h"
 #include "sound.h"
 #include "tape.h"
 #include "xroar.h"
 
-float tape_audio = 0.5;
-
-static unsigned int motor;
+/* Tape output delegate.  Called when the output from the tape unit (i.e., the
+ * input to the machine) changes. */
+tape_audio_delegate tape_update_audio = { NULL, NULL };
 
 struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
@@ -55,6 +54,9 @@ static int tape_pad_auto = 0;
 static int tape_rewrite = 0;
 static int in_pulse = -1;
 static int in_pulse_width = 0;
+
+static uint8_t last_tape_output = 0;
+static _Bool motor = 0;
 
 static int input_skip_sync = 0;
 static int rewrite_have_sync = 0;
@@ -72,7 +74,7 @@ static void set_breakpoints(void);
 
 int tape_seek(struct tape *t, long offset, int whence) {
 	int r = t->module->seek(t, offset, whence);
-	tape_update_motor();
+	tape_update_motor(motor);
 	/* if seeking to beginning of tape, ensure any fake leader etc.
 	 * is set up properly */
 	if (r >= 0 && t->offset == 0) {
@@ -229,7 +231,8 @@ void tape_free(struct tape *t) {
 /**************************************************************************/
 
 void tape_init(void) {
-	tape_audio = 0.5;
+	if (tape_update_audio.delegate)
+		tape_update_audio.delegate(tape_update_audio.dptr, 0.5);
 	event_init(&waggle_event, waggle_bit, NULL);
 	event_init(&flush_event, flush_output, NULL);
 }
@@ -288,7 +291,7 @@ int tape_open_reading(const char *filename) {
 	}
 
 	tape_desync(256);
-	tape_update_motor();
+	tape_update_motor(motor);
 	LOG_DEBUG(2,"Attached virtual cassette '%s'\n", filename);
 	return 0;
 }
@@ -324,7 +327,7 @@ int tape_open_writing(const char *filename) {
 		break;
 	}
 
-	tape_update_motor();
+	tape_update_motor(motor);
 	rewrite_bit_count = 0;
 	LOG_DEBUG(2,"Attached virtual cassette '%s' for writing.\n", filename);
 	return 0;
@@ -337,7 +340,7 @@ void tape_close_writing(void) {
 	}
 	if (tape_output) {
 		event_dequeue(&flush_event);
-		tape_update_output();
+		tape_update_output(last_tape_output);
 		tape_close(tape_output);
 	}
 	tape_output = NULL;
@@ -372,11 +375,9 @@ int tape_autorun(const char *filename) {
 	return type;
 }
 
-/* Called whenever PIA1->a control register is written to.
- * Detects changes in motor status. */
-void tape_update_motor(void) {
-	unsigned int new_motor = PIA1->a.control_register & 0x08;
-	if (new_motor) {
+/* Called whenever the motor control line is written to. */
+void tape_update_motor(_Bool state) {
+	if (state) {
 		if (tape_input && !waggle_event.queued) {
 			/* If motor turned on and tape file attached,
 			 * enable the tape input bit waggler */
@@ -391,7 +392,7 @@ void tape_update_motor(void) {
 	} else {
 		event_dequeue(&waggle_event);
 		event_dequeue(&flush_event);
-		tape_update_output();
+		tape_update_output(last_tape_output);
 		if (tape_output && tape_output->module->motor_off) {
 			tape_output->module->motor_off(tape_output);
 		}
@@ -399,18 +400,18 @@ void tape_update_motor(void) {
 			tape_desync(256);
 		}
 	}
-	motor = new_motor;
+	motor = state;
 	set_breakpoints();
 }
 
-/* Called whenever PIA1->a data register is written to. */
-void tape_update_output(void) {
+/* Called whenever the DAC is written to. */
+void tape_update_output(uint8_t value) {
 	if (!motor || !tape_output || tape_rewrite)
 		return;
-	uint8_t sample = PIA1->a.out_sink & 0xfc;
 	int length = event_current_tick - tape_output->last_write_cycle;
-	tape_output->module->sample_out(tape_output, sample, length);
+	tape_output->module->sample_out(tape_output, value, length);
 	tape_output->last_write_cycle = event_current_tick;
+	last_tape_output = value;
 }
 
 /* Read pulse & duration, schedule next read */
@@ -420,17 +421,18 @@ static void waggle_bit(void *data) {
 	switch (in_pulse) {
 	default:
 	case -1:
-		tape_audio = 0.5;
+		if (tape_update_audio.delegate)
+			tape_update_audio.delegate(tape_update_audio.dptr, 0.5);
 		sound_update();
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
-		PIA1->a.in_sink |= (1<<0);
-		tape_audio = 0.0;
+		if (tape_update_audio.delegate)
+			tape_update_audio.delegate(tape_update_audio.dptr, 0.0);
 		break;
 	case 1:
-		PIA1->a.in_sink &= ~(1<<0);
-		tape_audio = 1.0;
+		if (tape_update_audio.delegate)
+			tape_update_audio.delegate(tape_update_audio.dptr, 1.0);
 		break;
 	}
 	sound_update();
@@ -442,7 +444,7 @@ static void waggle_bit(void *data) {
  * overflow any counters */
 static void flush_output(void *data) {
 	(void)data;
-	tape_update_output();
+	tape_update_output(last_tape_output);
 	if (motor) {
 		flush_event.at_tick += OSCILLATOR_RATE / 2;
 		event_queue(&MACHINE_EVENT_LIST, &flush_event);
@@ -461,11 +463,8 @@ static int pulse_skip(void) {
 			pskip = 0;
 			waggle_event.at_tick = event_current_tick + in_pulse_width;
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
-			if (in_pulse) {
-				PIA1->a.in_sink &= ~(1<<0);
-			} else {
-				PIA1->a.in_sink |= (1<<0);
-			}
+			if (tape_update_audio.delegate)
+				tape_update_audio.delegate(tape_update_audio.dptr, in_pulse ? 1.0 : 0.0);
 			return in_pulse;
 		}
 		pskip -= in_pulse_width;

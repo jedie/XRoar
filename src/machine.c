@@ -281,14 +281,16 @@ static void pia1b_data_preread_coco64k(void) {
 
 static void pia1a_data_postwrite(void) {
 	sound_update();
-	tape_update_output();
+	tape_update_output(PIA1->a.out_sink & 0xfc);
 	if (IS_DRAGON) {
 		keyboard_update();
 		printer_strobe();
 	}
 }
 
-#define pia1a_control_postwrite tape_update_motor
+static void pia1a_control_postwrite(void) {
+	tape_update_motor(PIA1->a.control_register & 0x08);
+}
 
 #define pia1b_data_preread NULL
 
@@ -315,6 +317,17 @@ void machine_shutdown(void) {
 	machine_remove_cart();
 	tape_shutdown();
 	vdrive_shutdown();
+}
+
+/* Tape audio delegate */
+
+static void update_audio_from_tape(void *dptr, float value) {
+	(void)dptr;
+	sound_tape_level = value;
+	if (value >= 0.5)
+		PIA1->a.in_sink &= ~(1<<0);
+	else
+		PIA1->a.in_sink |= (1<<0);
 }
 
 void machine_configure(struct machine_config *mc) {
@@ -359,6 +372,10 @@ void machine_configure(struct machine_config *mc) {
 	PIA1->a.control_postwrite = pia1a_control_postwrite;
 	PIA1->b.data_preread = pia1b_data_preread;
 	PIA1->b.data_postwrite = pia1b_data_postwrite;
+
+	// Tape
+	tape_update_audio = (tape_audio_delegate){update_audio_from_tape, NULL};
+
 	vdg_t1 = (mc->vdg_type == VDG_6847T1);
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));

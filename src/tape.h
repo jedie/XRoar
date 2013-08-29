@@ -87,6 +87,14 @@ void tape_init(void);
 void tape_reset(void);
 void tape_shutdown(void);
 
+/* Delegate for tape output updates */
+typedef struct {
+	void (*delegate)(void *, float value);
+	void *dptr;
+} tape_audio_delegate;
+
+extern tape_audio_delegate tape_update_audio;
+
 int tape_open_reading(const char *filename);
 void tape_close_reading(void);
 int tape_open_writing(const char *filename);
@@ -94,8 +102,8 @@ void tape_close_writing(void);
 
 int tape_autorun(const char *filename);
 
-void tape_update_motor(void);
-void tape_update_output(void);
+void tape_update_motor(_Bool state);
+void tape_update_output(uint8_t value);
 
 #define TAPE_FAST (1 << 0)
 #define TAPE_PAD (1 << 1)
