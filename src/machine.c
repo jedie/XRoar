@@ -36,7 +36,6 @@
 #include "gdb.h"
 #include "hd6309.h"
 #include "hd6309_trace.h"
-#include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"

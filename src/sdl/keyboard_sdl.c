@@ -30,7 +30,6 @@
 #include "pl_glib.h"
 #include "pl_string.h"
 
-#include "input.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "logging.h"

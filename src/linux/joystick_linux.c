@@ -34,7 +34,6 @@
 #include "pl_string.h"
 
 #include "events.h"
-#include "input.h"
 #include "joystick.h"
 #include "logging.h"
 #include "machine.h"

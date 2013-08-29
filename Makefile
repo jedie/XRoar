@@ -150,7 +150,6 @@ xroar_BASE_C = \
 	src/fs.c \
 	src/hd6309.c \
 	src/hexs19.c \
-	src/input.c \
 	src/joystick.c \
 	src/keyboard.c \
 	src/logging.c \
