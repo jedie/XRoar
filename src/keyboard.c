@@ -179,7 +179,6 @@ void keyboard_unicode_press(unsigned unicode) {
 			KEYBOARD_RELEASE_SHIFT;
 		KEYBOARD_PRESS(code & 0x7f);
 	}
-	keyboard_update();
 }
 
 void keyboard_unicode_release(unsigned unicode) {
@@ -204,7 +203,6 @@ void keyboard_unicode_release(unsigned unicode) {
 			KEYBOARD_RELEASE_SHIFT;
 		KEYBOARD_RELEASE(code & 0x7f);
 	}
-	keyboard_update();
 }
 
 static GSList *basic_command_list = NULL;
