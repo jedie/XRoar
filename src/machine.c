@@ -284,7 +284,7 @@ static void pia1a_data_postwrite(void) {
 	tape_update_output(PIA1->a.out_sink & 0xfc);
 	if (IS_DRAGON) {
 		keyboard_update();
-		printer_strobe();
+		printer_strobe(PIA_VALUE_A(PIA1) & 0x02, PIA_VALUE_B(PIA0));
 	}
 }
 
@@ -344,6 +344,26 @@ static void vdg_fs(void *dptr, _Bool level) {
 		mc6821_set_cx1(&PIA0->b);
 	else
 		mc6821_reset_cx1(&PIA0->b);
+}
+
+/* Dragon parallel printer line delegate. */
+
+//ACK is active low
+static void printer_ack(void *dptr, _Bool ack) {
+	(void)dptr;
+	if (ack)
+		mc6821_reset_cx1(&PIA1->a);
+	else
+		mc6821_set_cx1(&PIA1->a);
+}
+
+// BUSY is active high
+static void printer_busy(void *dptr, _Bool busy) {
+	(void)dptr;
+	if (busy)
+		PIA1->b.in_sink |= 0x01;
+	else
+		PIA1->b.in_sink &= ~0x01;
 }
 
 /* Tape audio delegate */
@@ -411,6 +431,10 @@ void machine_configure(struct machine_config *mc) {
 		vdg_signal_hs = (vdg_edge_delegate){vdg_hs, NULL};
 	}
 	vdg_signal_fs = (vdg_edge_delegate){vdg_fs, NULL};
+
+	// Printer
+	printer_signal_ack = (printer_line_delegate){printer_ack, NULL};
+	printer_signal_busy = (printer_line_delegate){printer_busy, NULL};
 
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
@@ -501,7 +525,6 @@ void machine_configure(struct machine_config *mc) {
 		/* 16K CoCo pulls PB2 of PIA1 high */
 		PIA1->b.in_source |= (1<<2);
 	}
-	PIA0->b.data_postwrite = pia0b_data_postwrite;
 	PIA0->b.data_preread = pia0b_data_preread;
 	PIA1->b.data_preread = pia1b_data_preread;
 	if (IS_COCO && machine_ram_size > 0x4000) {

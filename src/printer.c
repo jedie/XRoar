@@ -30,19 +30,20 @@
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "printer.h"
 #include "xroar.h"
 
 static FILE *stream;
 static char *stream_dest;
 static int is_pipe;
-static int busy;
 static struct event ack_clear_event;
 static int strobe_state;
 
+printer_line_delegate printer_signal_ack = { NULL, NULL };
+printer_line_delegate printer_signal_busy = { NULL, NULL };
+
 static void do_ack_clear(void *);
-static void set_busy(int state);
+static void set_busy(_Bool state);
 static void open_stream(void);
 
 static void coco_print_byte(struct MC6809 *cpu);
@@ -60,7 +61,7 @@ void printer_init(void) {
 }
 
 void printer_reset(void) {
-	strobe_state = PIA_VALUE_A(PIA1) & 0x02;
+	strobe_state = 1;
 }
 
 /* "Open" routines don't directly open the stream.  This way, a file or pipe
@@ -107,23 +108,21 @@ void printer_flush(void) {
 }
 
 /* Called when the PIA bus containing STROBE is changed */
-void printer_strobe(void) {
-	int new_strobe, byte;
-	new_strobe = PIA_VALUE_A(PIA1) & 0x02;
+void printer_strobe(_Bool strobe, int data) {
 	/* Ignore if this is not a transition to high */
-	if (new_strobe == strobe_state) return;
-	strobe_state = new_strobe;
+	if (strobe == strobe_state) return;
+	strobe_state = strobe;
 	if (!strobe_state) return;
 	/* Open stream for output if it's not already */
 	if (!stream_dest) return;
 	if (!stream) open_stream();
 	/* Print byte */
-	byte = PIA_VALUE_B(PIA0);
 	if (stream) {
-		fputc(byte, stream);
+		fputc(data, stream);
 	}
 	/* ACK, and schedule !ACK */
-	mc6821_reset_cx1(&PIA1->a);
+	if (printer_signal_ack.delegate)
+		printer_signal_ack.delegate(printer_signal_ack.dptr, 1);
 	ack_clear_event.at_tick = event_current_tick + (OSCILLATOR_RATE / 150000);
 	event_queue(&MACHINE_EVENT_LIST, &ack_clear_event);
 }
@@ -156,14 +155,11 @@ static void open_stream(void) {
 
 static void do_ack_clear(void *data) {
 	(void)data;
-	mc6821_set_cx1(&PIA1->a);
+	if (printer_signal_ack.delegate)
+		printer_signal_ack.delegate(printer_signal_ack.dptr, 0);
 }
 
-static void set_busy(int state) {
-	busy = state;
-	if (state) {
-		PIA1->b.in_sink |= 0x01;
-	} else {
-		PIA1->b.in_sink &= ~0x01;
-	}
+static void set_busy(_Bool state) {
+	if (printer_signal_busy.delegate)
+		printer_signal_busy.delegate(printer_signal_busy.dptr, state);
 }
