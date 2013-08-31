@@ -91,6 +91,7 @@ void joystick_set_virtual(struct joystick_config *);
 void joystick_swap(void);
 void joystick_cycle(void);
 
-void joystick_update(void);
+int joystick_read_axis(int port, int axis);
+int joystick_read_buttons(void);
 
 #endif  /* XROAR_JOYSTICK_H_ */

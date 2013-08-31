@@ -29,7 +29,6 @@
 #include "joystick.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "module.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -311,26 +310,23 @@ void joystick_cycle(void) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void joystick_update(void) {
-	unsigned port = (PIA0->b.control_register & 0x08) >> 3;
-	unsigned axis = (PIA0->a.control_register & 0x08) >> 3;
-	unsigned dac_value = (PIA1->a.out_sink & 0xfc) + 2;
-	unsigned js_value = 127;
+int joystick_read_axis(int port, int axis) {
 	struct joystick *j = joystick_port[port];
 	if (j && j->axes[axis]) {
-		js_value = j->axes[axis]->read(j->axes[axis]->data);
+		return j->axes[axis]->read(j->axes[axis]->data);
 	}
-	if (js_value >= dac_value) {
-		PIA0->a.in_sink |= 0x80;
-	} else {
-		PIA0->a.in_sink &= 0x7f;
-	}
+	return 127;
+}
+
+int joystick_read_buttons(void) {
+	int buttons = 0;
 	if (joystick_port[0] && joystick_port[0]->buttons[0]) {
 		if (joystick_port[0]->buttons[0]->read(joystick_port[0]->buttons[0]->data))
-			PIA0->a.in_sink &= ~0x01;
+			buttons |= 1;
 	}
 	if (joystick_port[1] && joystick_port[1]->buttons[0]) {
 		if (joystick_port[1]->buttons[0]->read(joystick_port[1]->buttons[0]->data))
-			PIA0->a.in_sink &= ~0x02;
+			buttons |= 2;
 	}
+	return buttons;
 }

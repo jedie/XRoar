@@ -242,6 +242,18 @@ void machine_config_complete(struct machine_config *mc) {
 
 /* ---------------------------------------------------------------------- */
 
+static void joystick_update(void) {
+	int port = (PIA0->b.control_register & 0x08) >> 3;
+	int axis = (PIA0->a.control_register & 0x08) >> 3;
+	int dac_value = (PIA1->a.out_sink & 0xfc) + 2;
+	int js_value = joystick_read_axis(port, axis);
+	if (js_value >= dac_value)
+		PIA0->a.in_sink |= 0x80;
+	else
+		PIA0->a.in_sink &= 0x7f;
+	PIA0->a.in_sink &= ~(joystick_read_buttons() & 3);
+}
+
 static void pia0a_data_preread(void) {
 	keyboard_update();
 	joystick_update();
