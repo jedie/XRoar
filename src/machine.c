@@ -242,6 +242,15 @@ void machine_config_complete(struct machine_config *mc) {
 
 /* ---------------------------------------------------------------------- */
 
+static void keyboard_update(void) {
+	int row = PIA0->a.out_sink;
+	int col = PIA0->b.out_source & PIA0->b.out_sink;
+	int row_sink = 0xff, col_sink = 0xff;
+	keyboard_read_matrix(row, col, &row_sink, &col_sink);
+	PIA0->a.in_sink = (PIA0->a.in_sink & 0x80) | (row_sink & 0x7f);
+	PIA0->b.in_sink = col_sink;
+}
+
 static void joystick_update(void) {
 	int port = (PIA0->b.control_register & 0x08) >> 3;
 	int axis = (PIA0->a.control_register & 0x08) >> 3;
@@ -308,7 +317,14 @@ static void pia1a_control_postwrite(void) {
 
 static void pia1b_data_postwrite(void) {
 	if (IS_DRAGON64) {
-		machine_rom = PIA_VALUE_B(PIA1) & 0x04 ? rom0 : rom1;
+		_Bool is_32k = PIA_VALUE_B(PIA1) & 0x04;
+		if (is_32k) {
+			machine_rom = rom0;
+			keyboard_set_chord_mode(keyboard_chord_mode_dragon_32k_basic);
+		} else {
+			machine_rom = rom1;
+			keyboard_set_chord_mode(keyboard_chord_mode_dragon_64k_basic);
+		}
 	}
 	sound_update();
 	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
@@ -566,6 +582,12 @@ void machine_configure(struct machine_config *mc) {
 		 * Deal with this through a postwrite. */
 		PIA0->b.data_preread = pia0b_data_preread_coco64k;
 		PIA1->b.data_preread = pia1b_data_preread_coco64k;
+	}
+
+	if (IS_DRAGON) {
+		keyboard_set_chord_mode(keyboard_chord_mode_dragon_32k_basic);
+	} else {
+		keyboard_set_chord_mode(keyboard_chord_mode_coco_basic);
 	}
 
 	unexpanded_dragon32 = 0;

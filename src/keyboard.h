@@ -71,10 +71,20 @@ static inline void KEYBOARD_RELEASE(int s) {
 #define KEYBOARD_PRESS_SHIFT KEYBOARD_PRESS_MATRIX(7,6)
 #define KEYBOARD_RELEASE_SHIFT KEYBOARD_RELEASE_MATRIX(7,6)
 
+/* Chord mode affects how special characters are typed (specifically, the
+ * backslash character when in translation mode). */
+enum keyboard_chord_mode {
+	keyboard_chord_mode_dragon_32k_basic,
+	keyboard_chord_mode_dragon_64k_basic,
+	keyboard_chord_mode_coco_basic
+};
+
 void keyboard_init(void);
 void keyboard_set_keymap(int map);
 
-void keyboard_update(void);
+void keyboard_set_chord_mode(enum keyboard_chord_mode mode);
+
+void keyboard_read_matrix(int row_out, int col_out, int *row_in, int *col_in);
 void keyboard_unicode_press(unsigned unicode);
 void keyboard_unicode_release(unsigned unicode);
 void keyboard_queue_basic(const char *s);

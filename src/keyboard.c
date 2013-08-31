@@ -29,7 +29,6 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6809.h"
-#include "mc6821.h"
 #include "xroar.h"
 
 /* These map virtual scancodes to keyboard matrix points */
@@ -55,6 +54,8 @@ static Keymap dragon_keymap = {
 static Keymap coco_keymap;
 /* Active keymap */
 Keymap keymap;
+
+static enum keyboard_chord_mode chord_mode = keyboard_chord_mode_dragon_32k_basic;
 
 static unsigned unicode_to_dragon[128] = {
 	0,       0,       0,       0,       0,       0,       0,       0,
@@ -111,62 +112,61 @@ void keyboard_set_keymap(int map) {
 	}
 }
 
-void keyboard_update(void) {
-	unsigned row_out = PIA0->a.out_sink;
-	unsigned col_out = PIA0->b.out_source & PIA0->b.out_sink;
-	unsigned row_in = ~0, col_in = ~0;
-	unsigned old, i;
+void keyboard_set_chord_mode(enum keyboard_chord_mode mode) {
+	chord_mode = mode;
+}
 
+/* Compute which rows & columns are to act as sinks based on inputs to the
+ * matrix and the current state of depressed keys. */
+
+void keyboard_read_matrix(int row_in, int col_in, int *row_sink, int *col_sink) {
 	/* Pull low any directly connected rows & columns */
-	for (i = 0; i < 8; i++) {
-		if (!(col_out & (1 << i))) {
-			row_in &= keyboard_column[i];
+	for (int i = 0; i < 8; i++) {
+		if (!(col_in & (1 << i))) {
+			*row_sink &= keyboard_column[i];
 		}
 	}
-	for (i = 0; i < 7; i++) {
-		if (!(row_out & (1 << i))) {
-			col_in &= keyboard_row[i];
+	for (int i = 0; i < 7; i++) {
+		if (!(row_in & (1 << i))) {
+			*col_sink &= keyboard_row[i];
 		}
 	}
 	/* Ghosting: pull low column inputs that share any pulled low rows, and
 	 * merge that column's direct row connections.  Repeat until no change
 	 * in the row mask. */
+	int old;
 	do {
-		old = row_in;
-		for (i = 0; i < 8; i++) {
-			if (~row_in & ~keyboard_column[i]) {
-				col_in &= ~(1 << i);
-				row_in &= keyboard_column[i];
+		old = *row_sink;
+		for (int i = 0; i < 8; i++) {
+			if (~*row_sink & ~keyboard_column[i]) {
+				*col_sink &= ~(1 << i);
+				*row_sink &= keyboard_column[i];
 			}
 		}
-	} while (old != row_in);
+	} while (old != *row_sink);
 	/* Likewise the other way around. */
 	do {
-		old = col_in;
-		for (i = 0; i < 7; i++) {
-			if (~col_in & ~keyboard_row[i]) {
-				row_in &= ~(1 << i);
-				col_in &= keyboard_row[i];
+		old = *col_sink;
+		for (int i = 0; i < 7; i++) {
+			if (~*col_sink & ~keyboard_row[i]) {
+				*row_sink &= ~(1 << i);
+				*col_sink &= keyboard_row[i];
 			}
 		}
-	} while (old != col_in);
-
-	/* Update inputs */
-	PIA0->a.in_sink = (PIA0->a.in_sink & 0x80) | (row_in & 0x7f);
-	PIA0->b.in_sink = col_in;
+	} while (old != *col_sink);
 }
 
 void keyboard_unicode_press(unsigned unicode) {
 	if (unicode == '\\') {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
-		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_VALUE_B(PIA1) & 0x04))) {
-			KEYBOARD_PRESS_SHIFT;
-			KEYBOARD_PRESS_CLEAR;
-		} else {
+		if (chord_mode == keyboard_chord_mode_dragon_32k_basic) {
 			KEYBOARD_PRESS_SHIFT;
 			KEYBOARD_PRESS_CLEAR;
 			KEYBOARD_PRESS(',');
+		} else {
+			KEYBOARD_PRESS_SHIFT;
+			KEYBOARD_PRESS_CLEAR;
 		}
 	} else if (unicode == 163) {
 		/* Pound sign */
@@ -186,13 +186,13 @@ void keyboard_unicode_release(unsigned unicode) {
 	if (unicode == '\\') {
 		/* CoCo and Dragon 64 in 64K mode have a different way
 		 * of scanning for '\' */
-		if (IS_COCO_KEYMAP || (IS_DRAGON64 && !(PIA_VALUE_B(PIA1) & 0x04))) {
-			KEYBOARD_RELEASE_SHIFT;
-			KEYBOARD_RELEASE_CLEAR;
-		} else {
+		if (chord_mode == keyboard_chord_mode_dragon_32k_basic) {
 			KEYBOARD_RELEASE_SHIFT;
 			KEYBOARD_RELEASE_CLEAR;
 			KEYBOARD_RELEASE(',');
+		} else {
+			KEYBOARD_RELEASE_SHIFT;
+			KEYBOARD_RELEASE_CLEAR;
 		}
 	} else if (unicode == 163) {
 		/* Pound sign */
