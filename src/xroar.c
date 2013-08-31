@@ -1485,20 +1485,21 @@ void xroar_set_trace(int mode) {
 	}
 	xroar_cfg.trace_enabled = set_to;
 	machine_set_trace(xroar_cfg.trace_enabled);
+	struct MC6809 *cpu = machine_get_cpu(0);
 	if (xroar_cfg.trace_enabled) {
 		switch (xroar_machine_config->cpu) {
 		case CPU_MC6809: default:
-			CPU0->interrupt_hook = mc6809_trace_irq;
+			cpu->interrupt_hook = mc6809_trace_irq;
 			break;
 		case CPU_HD6309:
-			CPU0->interrupt_hook = hd6309_trace_irq;
+			cpu->interrupt_hook = hd6309_trace_irq;
 			break;
 		}
 	} else {
-		CPU0->interrupt_hook = NULL;
+		cpu->interrupt_hook = NULL;
 	}
 #else
-	CPU0->interrupt_hook = NULL;
+	cpu->interrupt_hook = NULL;
 #endif
 }
 
