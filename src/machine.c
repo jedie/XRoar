@@ -263,17 +263,25 @@ static void joystick_update(void) {
 	PIA0->a.in_sink &= ~(joystick_read_buttons() & 3);
 }
 
+static void update_sound_mux_source(void) {
+	unsigned source = ((PIA0->b.control_register & (1<<3)) >> 2)
+	                  | ((PIA0->a.control_register & (1<<3)) >> 3);
+	sound_set_mux_source(source);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 static void pia0a_data_preread(void) {
 	keyboard_update();
 	joystick_update();
 }
 
 #define pia0a_data_postwrite NULL
-#define pia0a_control_postwrite sound_update
+#define pia0a_control_postwrite update_sound_mux_source
 
 #define pia0b_data_preread keyboard_update
 #define pia0b_data_postwrite NULL
-#define pia0b_control_postwrite sound_update
+#define pia0b_control_postwrite update_sound_mux_source
 
 static void pia0b_data_preread_coco64k(void) {
 	keyboard_update();
@@ -301,7 +309,7 @@ static void pia1b_data_preread_coco64k(void) {
 #define pia1a_data_preread NULL
 
 static void pia1a_data_postwrite(void) {
-	sound_update();
+	sound_set_dac_level((float)(PIA_VALUE_A(PIA1) & 0xfc) / 252.);
 	tape_update_output(PIA1->a.out_sink & 0xfc);
 	if (IS_DRAGON) {
 		keyboard_update();
@@ -326,10 +334,17 @@ static void pia1b_data_postwrite(void) {
 			keyboard_set_chord_mode(keyboard_chord_mode_dragon_64k_basic);
 		}
 	}
-	sound_update();
+	// Single-bit sound
+	_Bool sbs_enabled = !((PIA1->b.out_source ^ PIA1->b.out_sink) & (1<<1));
+	_Bool sbs_level = PIA1->b.out_source & PIA1->b.out_sink & (1<<1);
+	sound_set_sbs(sbs_enabled, sbs_level);
+	// VDG mode
 	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
 }
-#define pia1b_control_postwrite sound_update
+
+static void pia1b_control_postwrite(void) {
+	sound_set_mux_enabled(PIA1->b.control_register & 0x08);
+}
 
 void machine_init(void) {
 	sam_init();
@@ -394,11 +409,25 @@ static void printer_busy(void *dptr, _Bool busy) {
 		PIA1->b.in_sink &= ~0x01;
 }
 
+/* Sound output can feed back into the single bit sound pin when it's
+ * configured as an input. */
+
+static void single_bit_feedback(void *dptr, _Bool level) {
+	(void)dptr;
+	if (level) {
+		PIA1->b.in_source &= ~(1<<1);
+		PIA1->b.in_sink &= ~(1<<1);
+	} else {
+		PIA1->b.in_source |= (1<<1);
+		PIA1->b.in_sink |= (1<<1);
+	}
+}
+
 /* Tape audio delegate */
 
 static void update_audio_from_tape(void *dptr, float value) {
 	(void)dptr;
-	sound_tape_level = value;
+	sound_set_tape_level(value);
 	if (value >= 0.5)
 		PIA1->a.in_sink &= ~(1<<0);
 	else
@@ -461,14 +490,22 @@ void machine_configure(struct machine_config *mc) {
 	PIA0 = mc6821_new();
 	PIA0->a.data_preread = pia0a_data_preread;
 	PIA0->a.data_postwrite = pia0a_data_postwrite;
+	PIA0->a.control_postwrite = pia0a_control_postwrite;
 	PIA0->b.data_preread = pia0b_data_preread;
 	PIA0->b.data_postwrite = pia0b_data_postwrite;
+	PIA0->b.control_postwrite = pia0b_control_postwrite;
 	PIA1 = mc6821_new();
 	PIA1->a.data_preread = pia1a_data_preread;
 	PIA1->a.data_postwrite = pia1a_data_postwrite;
 	PIA1->a.control_postwrite = pia1a_control_postwrite;
 	PIA1->b.data_preread = pia1b_data_preread;
 	PIA1->b.data_postwrite = pia1b_data_postwrite;
+	PIA1->b.control_postwrite = pia1b_control_postwrite;
+
+	// Single-bit sound feedback
+#ifndef FAST_SOUND
+	sound_sbs_feedback = (sound_feedback_delegate){single_bit_feedback, NULL};
+#endif
 
 	// Tape
 	tape_update_audio = (tape_audio_delegate){update_audio_from_tape, NULL};
@@ -1001,15 +1038,6 @@ void machine_op_rts(struct MC6809 *cpu) {
 #ifndef FAST_SOUND
 void machine_set_fast_sound(_Bool fast) {
 	xroar_cfg.fast_sound = fast;
-	if (fast) {
-		PIA0->a.control_postwrite = NULL;
-		PIA0->b.control_postwrite = NULL;
-		PIA1->b.control_postwrite = NULL;
-	} else  {
-		PIA0->a.control_postwrite = pia0a_control_postwrite;
-		PIA0->b.control_postwrite = pia0b_control_postwrite;
-		PIA1->b.control_postwrite = pia1b_control_postwrite;
-	}
 }
 
 void machine_select_fast_sound(_Bool fast) {

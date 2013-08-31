@@ -28,7 +28,6 @@
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "module.h"
 #include "sound.h"
 #include "tape.h"
@@ -100,8 +99,15 @@ static unsigned scale = 6971;
 static void flush_frame(void *);
 static struct event flush_event;
 
-// Input from tape
-float sound_tape_level = 0.0;
+static _Bool sbs_enabled = 0;
+static _Bool sbs_level = 0;
+static _Bool mux_enabled = 0;
+static unsigned mux_source;
+static float dac_level = 0.0;
+static float tape_level = 0.0;
+
+// Feedback to the single-bit audio pin
+sound_feedback_delegate sound_sbs_feedback = { NULL, NULL };
 
 void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes) {
 	uint16_t test = 0x0123;
@@ -187,7 +193,7 @@ void sound_set_volume(int v) {
 /* within sound_update(), this loop is included for each sample format */
 #define fill_buffer(type,member) do { \
 		while ((event_current_tick - last_cycle) <= (UINT_MAX/2)) { \
-			for (i = buffer_nchannels; i; i--) \
+			for (int i = buffer_nchannels; i; i--) \
 				((type *)buffer)[buffer_sample++] = last_sample.member; \
 			last_cycle += ticks_per_sample; \
 			if (buffer_sample >= buffer_nsamples) { \
@@ -199,8 +205,7 @@ void sound_set_volume(int v) {
 
 /* Fill sound buffer to current point in time, call sound modules
  * update() function if buffer is full. */
-void sound_update(void) {
-	int i;
+static void sound_update(void) {
 	if (buffer) {
 		switch (buffer_fmt) {
 		case SOUND_FMT_U8:
@@ -224,21 +229,17 @@ void sound_update(void) {
 		}
 	}
 
-	_Bool mux_enabled = PIA1->b.control_register & 0x08;
-	_Bool sbs_enabled = !((PIA1->b.out_source ^ PIA1->b.out_sink) & (1<<1));
-	_Bool sbs = PIA1->b.out_source & PIA1->b.out_sink & (1<<1);
-	unsigned sindex = sbs_enabled ? (sbs ? 2 : 1) : 0;
+	unsigned sindex = sbs_enabled ? (sbs_level ? 2 : 1) : 0;
 	enum sound_source source;
 	float level;
 	if (mux_enabled) {
-		source = ((PIA0->b.control_register & (1<<3)) >> 2)
-		         | ((PIA0->a.control_register & (1<<3)) >> 3);
+		source = mux_source;
 		switch (source) {
 		case SOURCE_DAC:
-			level = (float)(PIA_VALUE_A(PIA1) & 0xfc) / 252.;
+			level = dac_level;
 			break;
 		case SOURCE_TAPE:
-			level = sound_tape_level;
+			level = tape_level;
 			break;
 		default:
 		case SOURCE_CART:
@@ -254,13 +255,9 @@ void sound_update(void) {
 	level = (level * source_gain_v[source][sindex]) + source_offset_v[source][sindex];
 
 #ifndef FAST_SOUND
-	if (!sbs_enabled && level < 1.414) {
-		PIA1->b.in_source &= ~(1<<1);
-		PIA1->b.in_sink &= ~(1<<1);
-	} else {
-		PIA1->b.in_source |= (1<<1);
-		PIA1->b.in_sink |= (1<<1);
-	}
+	if (sound_sbs_feedback.delegate)
+		sound_sbs_feedback.delegate(sound_sbs_feedback.dptr,
+		                            sbs_enabled || level >= 1.414);
 #endif
 
 	unsigned output = level * scale;
@@ -284,6 +281,50 @@ void sound_update(void) {
 	default:
 		break;
 	}
+}
+
+void sound_set_sbs(_Bool enabled, _Bool level) {
+	if (sbs_enabled == enabled && sbs_level == level)
+		return;
+	sbs_enabled = enabled;
+	sbs_level = level;
+	sound_update();
+}
+
+void sound_set_mux_enabled(_Bool enabled) {
+	if (mux_enabled == enabled)
+		return;
+	mux_enabled = enabled;
+#ifndef FAST_SOUND
+	if (xroar_cfg.fast_sound)
+		return;
+#endif
+	sound_update();
+}
+
+void sound_set_mux_source(unsigned source) {
+	if (mux_source == source)
+		return;
+	mux_source = source;
+	if (!mux_enabled)
+		return;
+#ifndef FAST_SOUND
+	if (xroar_cfg.fast_sound)
+		return;
+#endif
+	sound_update();
+}
+
+void sound_set_dac_level(float level) {
+	dac_level = level;
+	if (mux_enabled && mux_source == SOURCE_DAC)
+		sound_update();
+}
+
+void sound_set_tape_level(float level) {
+	tape_level = level;
+	if (mux_enabled && mux_source == SOURCE_TAPE)
+		sound_update();
 }
 
 void sound_render_silence(void *buf, int samples) {

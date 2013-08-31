@@ -424,7 +424,6 @@ static void waggle_bit(void *data) {
 	case -1:
 		if (tape_update_audio.delegate)
 			tape_update_audio.delegate(tape_update_audio.dptr, 0.5);
-		sound_update();
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
@@ -436,7 +435,6 @@ static void waggle_bit(void *data) {
 			tape_update_audio.delegate(tape_update_audio.dptr, 1.0);
 		break;
 	}
-	sound_update();
 	waggle_event.at_tick += in_pulse_width;
 	event_queue(&MACHINE_EVENT_LIST, &waggle_event);
 }
