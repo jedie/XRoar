@@ -119,6 +119,11 @@ void machine_trap(void *data);
 
 void machine_set_trace(_Bool trace_on);
 
+int machine_num_cpus(void);
+int machine_num_pias(void);
+struct MC6809 *machine_get_cpu(int n);
+struct MC6821 *machine_get_pia(int n);
+
 /* simplified read & write byte for convenience functions */
 uint8_t machine_read_byte(uint16_t A);
 void machine_write_byte(uint16_t A, uint8_t D);

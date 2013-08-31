@@ -722,6 +722,32 @@ void machine_set_trace(_Bool trace_on) {
 }
 
 /*
+ * Device inspection.
+ */
+
+int machine_num_cpus(void) {
+	return 1;
+}
+
+int machine_num_pias(void) {
+	return 2;
+}
+
+struct MC6809 *machine_get_cpu(int n) {
+	if (n != 0)
+		return NULL;
+	return CPU0;
+}
+
+struct MC6821 *machine_get_pia(int n) {
+	if (n == 0)
+		return PIA0;
+	if (n == 1)
+		return PIA1;
+	return NULL;
+}
+
+/*
  * Used when single-stepping or tracing.
  */
 
