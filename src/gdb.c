@@ -483,22 +483,23 @@ static void send_last_signal(int fd) {
 }
 
 static void send_general_registers(int fd) {
+	struct MC6809 *cpu = machine_get_cpu(0);
 	sprintf(packet, "%02x%02x%02x%02x%04x%04x%04x%04x%04x",
-		 CPU0->reg_cc,
-		 MC6809_REG_A(CPU0),
-		 MC6809_REG_B(CPU0),
-		 CPU0->reg_dp,
-		 CPU0->reg_x,
-		 CPU0->reg_y,
-		 CPU0->reg_u,
-		 CPU0->reg_s,
-		 CPU0->reg_pc);
+		 cpu->reg_cc,
+		 MC6809_REG_A(cpu),
+		 MC6809_REG_B(cpu),
+		 cpu->reg_dp,
+		 cpu->reg_x,
+		 cpu->reg_y,
+		 cpu->reg_u,
+		 cpu->reg_s,
+		 cpu->reg_pc);
 	if (xroar_machine_config->cpu == CPU_HD6309) {
 		sprintf(packet + 28, "%02x%02x%02x%04x",
-			 ((struct HD6309 *)CPU0)->reg_md,
-			 HD6309_REG_E(((struct HD6309 *)CPU0)),
-			 HD6309_REG_F(((struct HD6309 *)CPU0)),
-			 ((struct HD6309 *)CPU0)->reg_v);
+			 ((struct HD6309 *)cpu)->reg_md,
+			 HD6309_REG_E(((struct HD6309 *)cpu)),
+			 HD6309_REG_F(((struct HD6309 *)cpu)),
+			 ((struct HD6309 *)cpu)->reg_v);
 	} else {
 		strcat(packet, "xxxxxxxxxx");
 	}
@@ -506,38 +507,39 @@ static void send_general_registers(int fd) {
 }
 
 static void set_general_registers(int fd, char *args) {
+	struct MC6809 *cpu = machine_get_cpu(0);
 	if (strlen(args) != 38) {
 		send_packet_string(fd, "E00");
 		return;
 	}
 	int tmp;
 	if ((tmp = hex8(args)) >= 0)
-		CPU0->reg_cc = tmp;
+		cpu->reg_cc = tmp;
 	if ((tmp = hex8(args+2)) >= 0)
-		MC6809_REG_A(CPU0) = tmp;
+		MC6809_REG_A(cpu) = tmp;
 	if ((tmp = hex8(args+4)) >= 0)
-		MC6809_REG_B(CPU0) = tmp;
+		MC6809_REG_B(cpu) = tmp;
 	if ((tmp = hex8(args+6)) >= 0)
-		CPU0->reg_dp = tmp;
+		cpu->reg_dp = tmp;
 	if ((tmp = hex16(args+8)) >= 0)
-		CPU0->reg_x = tmp;
+		cpu->reg_x = tmp;
 	if ((tmp = hex16(args+12)) >= 0)
-		CPU0->reg_y = tmp;
+		cpu->reg_y = tmp;
 	if ((tmp = hex16(args+16)) >= 0)
-		CPU0->reg_u = tmp;
+		cpu->reg_u = tmp;
 	if ((tmp = hex16(args+20)) >= 0)
-		CPU0->reg_s = tmp;
+		cpu->reg_s = tmp;
 	if ((tmp = hex16(args+24)) >= 0)
-		CPU0->reg_pc = tmp;
+		cpu->reg_pc = tmp;
 	if (xroar_machine_config->cpu == CPU_HD6309) {
 		if ((tmp = hex8(args)) >= 0)
-			((struct HD6309 *)CPU0)->reg_md = tmp;
+			((struct HD6309 *)cpu)->reg_md = tmp;
 		if ((tmp = hex8(args)) >= 0)
-			HD6309_REG_E(((struct HD6309 *)CPU0)) = tmp;
+			HD6309_REG_E(((struct HD6309 *)cpu)) = tmp;
 		if ((tmp = hex8(args)) >= 0)
-			HD6309_REG_F(((struct HD6309 *)CPU0)) = tmp;
+			HD6309_REG_F(((struct HD6309 *)cpu)) = tmp;
 		if ((tmp = hex16(args)) >= 0)
-			((struct HD6309 *)CPU0)->reg_v = tmp;
+			((struct HD6309 *)cpu)->reg_v = tmp;
 	}
 	send_packet_string(fd, "OK");
 }
@@ -599,19 +601,20 @@ error:
 }
 
 static void send_register(int fd, char *args) {
+	struct MC6809 *cpu = machine_get_cpu(0);
 	unsigned regnum = strtoul(args, NULL, 16);
 	unsigned value = 0;
 	int size = 0;
 	switch (regnum) {
-	case 0: value = CPU0->reg_cc; size = 1; break;
-	case 1: value = MC6809_REG_A(CPU0); size = 1; break;
-	case 2: value = MC6809_REG_B(CPU0); size = 1; break;
-	case 3: value = CPU0->reg_dp; size = 1; break;
-	case 4: value = CPU0->reg_x; size = 2; break;
-	case 5: value = CPU0->reg_y; size = 2; break;
-	case 6: value = CPU0->reg_u; size = 2; break;
-	case 7: value = CPU0->reg_s; size = 2; break;
-	case 8: value = CPU0->reg_pc; size = 2; break;
+	case 0: value = cpu->reg_cc; size = 1; break;
+	case 1: value = MC6809_REG_A(cpu); size = 1; break;
+	case 2: value = MC6809_REG_B(cpu); size = 1; break;
+	case 3: value = cpu->reg_dp; size = 1; break;
+	case 4: value = cpu->reg_x; size = 2; break;
+	case 5: value = cpu->reg_y; size = 2; break;
+	case 6: value = cpu->reg_u; size = 2; break;
+	case 7: value = cpu->reg_s; size = 2; break;
+	case 8: value = cpu->reg_pc; size = 2; break;
 	case 9: size = -1; break;
 	case 10: size = -1; break;
 	case 11: size = -1; break;
@@ -619,7 +622,7 @@ static void send_register(int fd, char *args) {
 	default: break;
 	}
 	if (xroar_machine_config->cpu == CPU_HD6309) {
-		struct HD6309 *hcpu = (struct HD6309 *)CPU0;
+		struct HD6309 *hcpu = (struct HD6309 *)cpu;
 		switch (regnum) {
 		case 9: value = hcpu->reg_md; size = 1; break;
 		case 10: value = HD6309_REG_E(hcpu); size = 1; break;
@@ -644,21 +647,22 @@ static void set_register(int fd, char *args) {
 		goto error;
 	unsigned regnum = strtoul(regnum_str, NULL, 16);
 	unsigned value = strtoul(args, NULL, 16);
-	struct HD6309 *hcpu = (struct HD6309 *)CPU0;
+	struct MC6809 *cpu = machine_get_cpu(0);
+	struct HD6309 *hcpu = (struct HD6309 *)cpu;
 	if (regnum > 12)
 		goto error;
 	if (regnum > 8 && xroar_machine_config->cpu != CPU_HD6309)
 		goto error;
 	switch (regnum) {
-	case 0: CPU0->reg_cc = value; break;
-	case 1: MC6809_REG_A(CPU0) = value; break;
-	case 2: MC6809_REG_B(CPU0) = value; break;
-	case 3: CPU0->reg_dp = value; break;
-	case 4: CPU0->reg_x = value; break;
-	case 5: CPU0->reg_y = value; break;
-	case 6: CPU0->reg_u = value; break;
-	case 7: CPU0->reg_s = value; break;
-	case 8: CPU0->reg_pc = value; break;
+	case 0: cpu->reg_cc = value; break;
+	case 1: MC6809_REG_A(cpu) = value; break;
+	case 2: MC6809_REG_B(cpu) = value; break;
+	case 3: cpu->reg_dp = value; break;
+	case 4: cpu->reg_x = value; break;
+	case 5: cpu->reg_y = value; break;
+	case 6: cpu->reg_u = value; break;
+	case 7: cpu->reg_s = value; break;
+	case 8: cpu->reg_pc = value; break;
 	case 9: hcpu->reg_md = value; break;
 	case 10: HD6309_REG_E(hcpu) = value; break;
 	case 11: HD6309_REG_F(hcpu) = value; break;
