@@ -131,8 +131,8 @@ static char packet[1025];
 static int last_signal = 0;
 
 static int read_packet(int fd, char *buffer, unsigned count);
-static int send_packet(int fd, char *buffer, unsigned count);
-static int send_packet_string(int fd, char *string);
+static int send_packet(int fd, const char *buffer, unsigned count);
+static int send_packet_string(int fd, const char *string);
 static int send_char(int fd, char c);
 
 static void send_last_signal(int fd);  // ?
@@ -419,7 +419,7 @@ static int read_packet(int fd, char *buffer, unsigned count) {
 	return -GDBE_READ_ERROR;
 }
 
-static int send_packet(int fd, char *buffer, unsigned count) {
+static int send_packet(int fd, const char *buffer, unsigned count) {
 	char tmpbuf[4];
 	uint8_t csum = 0;
 	tmpbuf[0] = '$';
@@ -463,7 +463,7 @@ static int send_packet(int fd, char *buffer, unsigned count) {
 	return count;
 }
 
-static int send_packet_string(int fd, char *string) {
+static int send_packet_string(int fd, const char *string) {
 	unsigned count = strlen(string);
 	return send_packet(fd, string, count);
 }
