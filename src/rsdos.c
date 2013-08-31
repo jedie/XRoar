@@ -33,7 +33,6 @@
 #include "cart.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6809.h"
 #include "rsdos.h"
 #include "vdrive.h"
 #include "wd279x.h"
@@ -57,10 +56,10 @@ static void rsdos_reset(struct cart *c);
 static void rsdos_detach(struct cart *c);
 
 /* Handle signals from WD2793 */
-static void set_drq_handler(void *v);
-static void reset_drq_handler(void *v);
-static void set_intrq_handler(void *v);
-static void reset_intrq_handler(void *v);
+static void set_drq_handler(void *dptr);
+static void reset_drq_handler(void *dptr);
+static void set_intrq_handler(void *dptr);
+static void reset_intrq_handler(void *dptr);
 
 static void ff40_write(struct rsdos *r, int octet);
 
@@ -162,6 +161,7 @@ static void rsdos_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D) {
 
 /* RSDOS cartridge circuitry */
 static void ff40_write(struct rsdos *r, int octet) {
+	struct cart *c = (struct cart *)r;
 	int new_drive_select = 0;
 	octet ^= 0x20;
 	if (octet & 0x01) {
@@ -200,43 +200,50 @@ static void ff40_write(struct rsdos *r, int octet) {
 	r->ic1_density = octet & 0x20;
 	wd279x_set_dden(r->fdc, !r->ic1_density);
 	if (r->ic1_density && r->intrq_flag) {
-		MC6809_NMI_SET(CPU0, 1);
+		if (c->signal_nmi.delegate)
+			c->signal_nmi.delegate(c->signal_nmi.dptr, 1);
 	}
 	r->halt_enable = octet & 0x80;
 	if (r->intrq_flag) r->halt_enable = 0;
-	if (r->halt_enable && !r->drq_flag) {
-		MC6809_HALT_SET(CPU0, 1);
-	} else {
-		MC6809_HALT_SET(CPU0, 0);
-	}
+	if (c->signal_halt.delegate)
+		c->signal_halt.delegate(c->signal_halt.dptr, r->halt_enable && !r->drq_flag);
 }
 
-static void set_drq_handler(void *v) {
-	struct rsdos *r = v;
+static void set_drq_handler(void *dptr) {
+	struct cart *c = dptr;
+	struct rsdos *r = dptr;
 	r->drq_flag = 1;
-	MC6809_HALT_SET(CPU0, 0);
+	if (c->signal_halt.delegate)
+		c->signal_halt.delegate(c->signal_halt.dptr, 0);
 }
 
-static void reset_drq_handler(void *v) {
-	struct rsdos *r = v;
+static void reset_drq_handler(void *dptr) {
+	struct cart *c = dptr;
+	struct rsdos *r = dptr;
 	r->drq_flag = 0;
 	if (r->halt_enable) {
-		MC6809_HALT_SET(CPU0, 1);
+		if (c->signal_halt.delegate)
+			c->signal_halt.delegate(c->signal_halt.dptr, 1);
 	}
 }
 
-static void set_intrq_handler(void *v) {
-	struct rsdos *r = v;
+static void set_intrq_handler(void *dptr) {
+	struct cart *c = dptr;
+	struct rsdos *r = dptr;
 	r->intrq_flag = 1;
 	r->halt_enable = 0;
-	MC6809_HALT_SET(CPU0, 0);
+	if (c->signal_halt.delegate)
+		c->signal_halt.delegate(c->signal_halt.dptr, 0);
 	if (!r->ic1_density && r->intrq_flag) {
-		MC6809_NMI_SET(CPU0, 1);
+		if (c->signal_nmi.delegate)
+			c->signal_nmi.delegate(c->signal_nmi.dptr, 1);
 	}
 }
 
-static void reset_intrq_handler(void *v) {
-	struct rsdos *r = v;
+static void reset_intrq_handler(void *dptr) {
+	struct cart *c = dptr;
+	struct rsdos *r = dptr;
 	r->intrq_flag = 0;
-	MC6809_NMI_SET(CPU0, 0);
+	if (c->signal_nmi.delegate)
+		c->signal_nmi.delegate(c->signal_nmi.dptr, 0);
 }

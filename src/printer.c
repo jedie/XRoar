@@ -30,6 +30,7 @@
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
+#include "mc6809.h"
 #include "printer.h"
 #include "xroar.h"
 

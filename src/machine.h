@@ -9,10 +9,9 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include "mc6821.h"
-#include "mc6809.h"
-
 struct cart;
+struct MC6809;
+struct MC6821;
 
 /* Dragon 64s and later Dragon 32s used a 14.218MHz crystal
  * (ref: "Dragon 64 differences", Graham E. Kinns and then a motherboard) */

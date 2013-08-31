@@ -31,6 +31,7 @@
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
+#include "mc6809.h"
 #include "module.h"
 #include "sound.h"
 #include "tape.h"

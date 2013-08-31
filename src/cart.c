@@ -33,7 +33,6 @@
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6821.h"
 #include "romlist.h"
 #include "rsdos.h"
 #include "xroar.h"
@@ -230,6 +229,9 @@ void cart_rom_init(struct cart *c) {
 			g_free(tmp);
 		}
 	}
+	c->signal_firq = (cart_signal_delegate){ NULL, NULL };
+	c->signal_nmi = (cart_signal_delegate){ NULL, NULL };
+	c->signal_halt = (cart_signal_delegate){ NULL, NULL };
 }
 
 struct cart *cart_rom_new(struct cart_config *cc) {
@@ -277,7 +279,8 @@ void cart_rom_detach(struct cart *c) {
 
 static void do_firq(void *data) {
 	struct cart *c = data;
-	mc6821_set_cx1(&PIA1->b);
+	if (c->signal_firq.delegate)
+		c->signal_firq.delegate(c->signal_firq.dptr, 1);
 	c->firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
 	event_queue(&MACHINE_EVENT_LIST, c->firq_event);
 }

@@ -37,8 +37,6 @@
 #include "dragondos.h"
 #include "logging.h"
 #include "machine.h"
-#include "mc6809.h"
-#include "mc6821.h"
 #include "vdrive.h"
 #include "wd279x.h"
 #include "xroar.h"
@@ -56,10 +54,10 @@ struct dragondos {
 };
 
 /* Handle signals from WD2797 */
-static void set_drq_handler(void *c);
-static void reset_drq_handler(void *c);
-static void set_intrq_handler(void *c);
-static void reset_intrq_handler(void *c);
+static void set_drq_handler(void *dptr);
+static void reset_drq_handler(void *dptr);
+static void set_intrq_handler(void *dptr);
+static void reset_intrq_handler(void *dptr);
 
 static void dragondos_read(struct cart *c, uint16_t A, _Bool P2, uint8_t *D);
 static void dragondos_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D);
@@ -193,24 +191,29 @@ static void ff48_write(struct dragondos *d, int octet) {
 	d->ic1_nmi_enable = octet & 0x20;
 }
 
-static void set_drq_handler(void *v) {
-	(void)v;
-	mc6821_set_cx1(&PIA1->b);
+static void set_drq_handler(void *dptr) {
+	struct cart *c = dptr;
+	if (c->signal_firq.delegate)
+		c->signal_firq.delegate(c->signal_firq.dptr, 1);
 }
 
-static void reset_drq_handler(void *v) {
-	(void)v;
-	mc6821_reset_cx1(&PIA1->b);
+static void reset_drq_handler(void *dptr) {
+	struct cart *c = dptr;
+	if (c->signal_firq.delegate)
+		c->signal_firq.delegate(c->signal_firq.dptr, 0);
 }
 
-static void set_intrq_handler(void *v) {
-	struct dragondos *d = v;
+static void set_intrq_handler(void *dptr) {
+	struct cart *c = dptr;
+	struct dragondos *d = dptr;
 	if (d->ic1_nmi_enable) {
-		MC6809_NMI_SET(CPU0, 1);
+		if (c->signal_nmi.delegate)
+			c->signal_nmi.delegate(c->signal_nmi.dptr, 1);
 	}
 }
 
-static void reset_intrq_handler(void *v) {
-	(void)v;
-	MC6809_NMI_SET(CPU0, 0);
+static void reset_intrq_handler(void *dptr) {
+	struct cart *c = dptr;
+	if (c->signal_nmi.delegate)
+		c->signal_nmi.delegate(c->signal_nmi.dptr, 0);
 }

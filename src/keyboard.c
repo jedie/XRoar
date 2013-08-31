@@ -28,6 +28,7 @@
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
+#include "mc6809.h"
 #include "mc6821.h"
 #include "xroar.h"
 
