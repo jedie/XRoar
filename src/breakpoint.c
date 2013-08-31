@@ -57,8 +57,9 @@ void bp_add(struct breakpoint *bp) {
 		return;
 	bp->address_end = bp->address;
 	bp_instruction_list = g_slist_prepend(bp_instruction_list, bp);
-	CPU0->instruction_hook = bp_instruction_hook;
-	CPU0->instr_hook_dptr = CPU0;
+	struct MC6809 *cpu = machine_get_cpu(0);
+	cpu->instruction_hook = bp_instruction_hook;
+	cpu->instr_hook_dptr = cpu;
 }
 
 void bp_add_n(struct breakpoint *bp, int n) {
@@ -69,8 +70,9 @@ void bp_add_n(struct breakpoint *bp, int n) {
 			continue;
 		if ((bp[i].add_cond & BP_CRC_EXT) && (!has_extbas || !crclist_match(bp[i].cond_crc_extbas, crc_extbas)))
 			continue;
-		if (!bp[i].handler_data)
-			bp[i].handler_data = CPU0;
+		if (!bp[i].handler_data) {
+			bp[i].handler_data = machine_get_cpu(0);
+		}
 		bp_add(&bp[i]);
 	}
 }
@@ -80,7 +82,8 @@ void bp_remove(struct breakpoint *bp) {
 		iter_next = iter_next->next;
 	bp_instruction_list = g_slist_remove(bp_instruction_list, bp);
 	if (!bp_instruction_list) {
-		CPU0->instruction_hook = NULL;
+		struct MC6809 *cpu = machine_get_cpu(0);
+		cpu->instruction_hook = NULL;
 	}
 }
 
@@ -131,15 +134,18 @@ static void trap_remove(GSList **bp_list, unsigned addr, unsigned addr_end,
 void bp_hbreak_add(unsigned addr, unsigned match_mask, unsigned match_cond) {
 	trap_add(&bp_instruction_list, addr, addr, match_mask, match_cond);
 	if (bp_instruction_list) {
-		CPU0->instruction_hook = bp_instruction_hook;
-		CPU0->instr_hook_dptr = CPU0;
+		struct MC6809 *cpu = machine_get_cpu(0);
+		cpu->instruction_hook = bp_instruction_hook;
+		cpu->instr_hook_dptr = cpu;
 	}
 }
 
 void bp_hbreak_remove(unsigned addr, unsigned match_mask, unsigned match_cond) {
 	trap_remove(&bp_instruction_list, addr, addr, match_mask, match_cond);
-	if (!bp_instruction_list)
-		CPU0->instruction_hook = NULL;
+	if (!bp_instruction_list) {
+		struct MC6809 *cpu = machine_get_cpu(0);
+		cpu->instruction_hook = NULL;
+	}
 }
 
 void bp_wp_add(unsigned type, unsigned addr, unsigned nbytes, unsigned match_mask, unsigned match_cond) {
