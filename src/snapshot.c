@@ -169,27 +169,23 @@ int write_snapshot(const char *filename) {
 	// PIA state written before CPU state because PIA may have
 	// unacknowledged interrupts pending already cleared in the CPU state
 	write_chunk_header(fd, ID_PIA_REGISTERS, 3 * 4);
-	// PIA0
-	fs_write_uint8(fd, PIA0->a.direction_register);
-	fs_write_uint8(fd, PIA0->a.output_register);
-	fs_write_uint8(fd, PIA0->a.control_register);
-	fs_write_uint8(fd, PIA0->b.direction_register);
-	fs_write_uint8(fd, PIA0->b.output_register);
-	fs_write_uint8(fd, PIA0->b.control_register);
-	// PIA1
-	fs_write_uint8(fd, PIA1->a.direction_register);
-	fs_write_uint8(fd, PIA1->a.output_register);
-	fs_write_uint8(fd, PIA1->a.control_register);
-	fs_write_uint8(fd, PIA1->b.direction_register);
-	fs_write_uint8(fd, PIA1->b.output_register);
-	fs_write_uint8(fd, PIA1->b.control_register);
+	for (int i = 0; i < 2; i++) {
+		struct MC6821 *pia = machine_get_pia(i);
+		fs_write_uint8(fd, pia->a.direction_register);
+		fs_write_uint8(fd, pia->a.output_register);
+		fs_write_uint8(fd, pia->a.control_register);
+		fs_write_uint8(fd, pia->b.direction_register);
+		fs_write_uint8(fd, pia->b.output_register);
+		fs_write_uint8(fd, pia->b.control_register);
+	}
 	// CPU state
+	struct MC6809 *cpu = machine_get_cpu(0);
 	switch (xroar_machine_config->cpu) {
 	case CPU_MC6809: default:
-		write_mc6809(fd, CPU0);
+		write_mc6809(fd, cpu);
 		break;
 	case CPU_HD6309:
-		write_hd6309(fd, (struct HD6309 *)CPU0);
+		write_hd6309(fd, (struct HD6309 *)cpu);
 		break;
 	}
 	// SAM
@@ -221,21 +217,22 @@ static int old_arch_mapping[4] = {
 };
 
 static void old_set_registers(uint8_t *regs) {
-	CPU0->reg_cc = regs[0];
-	MC6809_REG_A(CPU0) = regs[1];
-	MC6809_REG_B(CPU0) = regs[2];
-	CPU0->reg_dp = regs[3];
-	CPU0->reg_x = regs[4] << 8 | regs[5];
-	CPU0->reg_y = regs[6] << 8 | regs[7];
-	CPU0->reg_u = regs[8] << 8 | regs[9];
-	CPU0->reg_s = regs[10] << 8 | regs[11];
-	CPU0->reg_pc = regs[12] << 8 | regs[13];
-	CPU0->halt = 0;
-	CPU0->nmi = 0;
-	CPU0->firq = 0;
-	CPU0->irq = 0;
-	CPU0->state = MC6809_COMPAT_STATE_NORMAL;
-	CPU0->nmi_armed = 0;
+	struct MC6809 *cpu = machine_get_cpu(0);
+	cpu->reg_cc = regs[0];
+	MC6809_REG_A(cpu) = regs[1];
+	MC6809_REG_B(cpu) = regs[2];
+	cpu->reg_dp = regs[3];
+	cpu->reg_x = regs[4] << 8 | regs[5];
+	cpu->reg_y = regs[6] << 8 | regs[7];
+	cpu->reg_u = regs[8] << 8 | regs[9];
+	cpu->reg_s = regs[10] << 8 | regs[11];
+	cpu->reg_pc = regs[12] << 8 | regs[13];
+	cpu->halt = 0;
+	cpu->nmi = 0;
+	cpu->firq = 0;
+	cpu->irq = 0;
+	cpu->state = MC6809_COMPAT_STATE_NORMAL;
+	cpu->nmi_armed = 0;
 }
 
 static uint16_t *tfm_reg_ptr(struct HD6309 *hcpu, unsigned reg) {
@@ -315,86 +312,92 @@ int read_snapshot(const char *filename) {
 				break;
 
 			case ID_MC6809_STATE:
-				// MC6809 state
-				if (size < 20) break;
-				if (xroar_machine_config->cpu != CPU_MC6809) {
-					LOG_WARN("CPU mismatch - skipping MC6809 chunk\n");
-					break;
-				}
-				CPU0->reg_cc = fs_read_uint8(fd);
-				MC6809_REG_A(CPU0) = fs_read_uint8(fd);
-				MC6809_REG_B(CPU0) = fs_read_uint8(fd);
-				CPU0->reg_dp = fs_read_uint8(fd);
-				CPU0->reg_x = fs_read_uint16(fd);
-				CPU0->reg_y = fs_read_uint16(fd);
-				CPU0->reg_u = fs_read_uint16(fd);
-				CPU0->reg_s = fs_read_uint16(fd);
-				CPU0->reg_pc = fs_read_uint16(fd);
-				CPU0->halt = fs_read_uint8(fd);
-				CPU0->nmi = fs_read_uint8(fd);
-				CPU0->firq = fs_read_uint8(fd);
-				CPU0->irq = fs_read_uint8(fd);
-				if (size == 21) {
-					// Old style
-					int wait_for_interrupt;
-					int skip_register_push;
-					wait_for_interrupt = fs_read_uint8(fd);
-					skip_register_push = fs_read_uint8(fd);
-					if (wait_for_interrupt && skip_register_push) {
-						CPU0->state = MC6809_COMPAT_STATE_CWAI;
-					} else if (wait_for_interrupt) {
-						CPU0->state = MC6809_COMPAT_STATE_SYNC;
-					} else {
-						CPU0->state = MC6809_COMPAT_STATE_NORMAL;
+				{
+					// MC6809 state
+					if (size < 20) break;
+					if (xroar_machine_config->cpu != CPU_MC6809) {
+						LOG_WARN("CPU mismatch - skipping MC6809 chunk\n");
+						break;
 					}
-					size--;
-				} else {
-					CPU0->state = fs_read_uint8(fd);
-				}
-				CPU0->nmi_armed = fs_read_uint8(fd);
-				size -= 20;
-				if (size > 0) {
-					// Skip 'halted'
-					(void)fs_read_uint8(fd);
-					size--;
+					struct MC6809 *cpu = machine_get_cpu(0);
+					cpu->reg_cc = fs_read_uint8(fd);
+					MC6809_REG_A(cpu) = fs_read_uint8(fd);
+					MC6809_REG_B(cpu) = fs_read_uint8(fd);
+					cpu->reg_dp = fs_read_uint8(fd);
+					cpu->reg_x = fs_read_uint16(fd);
+					cpu->reg_y = fs_read_uint16(fd);
+					cpu->reg_u = fs_read_uint16(fd);
+					cpu->reg_s = fs_read_uint16(fd);
+					cpu->reg_pc = fs_read_uint16(fd);
+					cpu->halt = fs_read_uint8(fd);
+					cpu->nmi = fs_read_uint8(fd);
+					cpu->firq = fs_read_uint8(fd);
+					cpu->irq = fs_read_uint8(fd);
+					if (size == 21) {
+						// Old style
+						int wait_for_interrupt;
+						int skip_register_push;
+						wait_for_interrupt = fs_read_uint8(fd);
+						skip_register_push = fs_read_uint8(fd);
+						if (wait_for_interrupt && skip_register_push) {
+							cpu->state = MC6809_COMPAT_STATE_CWAI;
+						} else if (wait_for_interrupt) {
+							cpu->state = MC6809_COMPAT_STATE_SYNC;
+						} else {
+							cpu->state = MC6809_COMPAT_STATE_NORMAL;
+						}
+						size--;
+					} else {
+						cpu->state = fs_read_uint8(fd);
+					}
+					cpu->nmi_armed = fs_read_uint8(fd);
+					size -= 20;
+					if (size > 0) {
+						// Skip 'halted'
+						(void)fs_read_uint8(fd);
+						size--;
+					}
 				}
 				break;
 
 			case ID_HD6309_STATE:
-				// HD6309 state
-				if (size < 27) break;
-				if (xroar_machine_config->cpu != CPU_HD6309) {
-					LOG_WARN("CPU mismatch - skipping HD6309 chunk\n");
-					break;
+				{
+					// HD6309 state
+					if (size < 27) break;
+					if (xroar_machine_config->cpu != CPU_HD6309) {
+						LOG_WARN("CPU mismatch - skipping HD6309 chunk\n");
+						break;
+					}
+					struct MC6809 *cpu = machine_get_cpu(0);
+					hcpu = (struct HD6309 *)cpu;
+					cpu->reg_cc = fs_read_uint8(fd);
+					MC6809_REG_A(cpu) = fs_read_uint8(fd);
+					MC6809_REG_B(cpu) = fs_read_uint8(fd);
+					cpu->reg_dp = fs_read_uint8(fd);
+					cpu->reg_x = fs_read_uint16(fd);
+					cpu->reg_y = fs_read_uint16(fd);
+					cpu->reg_u = fs_read_uint16(fd);
+					cpu->reg_s = fs_read_uint16(fd);
+					cpu->reg_pc = fs_read_uint16(fd);
+					cpu->halt = fs_read_uint8(fd);
+					cpu->nmi = fs_read_uint8(fd);
+					cpu->firq = fs_read_uint8(fd);
+					cpu->irq = fs_read_uint8(fd);
+					hcpu->state = fs_read_uint8(fd);
+					cpu->nmi_armed = fs_read_uint8(fd);
+					HD6309_REG_E(hcpu) = fs_read_uint8(fd);
+					HD6309_REG_F(hcpu) = fs_read_uint8(fd);
+					hcpu->reg_v = fs_read_uint16(fd);
+					tmp = fs_read_uint8(fd);
+					hcpu->reg_md = tmp;
+					tmp = fs_read_uint8(fd);
+					hcpu->tfm_src = tfm_reg_ptr(hcpu, tmp >> 4);
+					hcpu->tfm_dest = tfm_reg_ptr(hcpu, tmp & 15);
+					tmp = fs_read_uint8(fd);
+					hcpu->tfm_src_mod = sex4(tmp >> 4);
+					hcpu->tfm_dest_mod = sex4(tmp & 15);
+					size -= 27;
 				}
-				hcpu = (struct HD6309 *)CPU0;
-				CPU0->reg_cc = fs_read_uint8(fd);
-				MC6809_REG_A(CPU0) = fs_read_uint8(fd);
-				MC6809_REG_B(CPU0) = fs_read_uint8(fd);
-				CPU0->reg_dp = fs_read_uint8(fd);
-				CPU0->reg_x = fs_read_uint16(fd);
-				CPU0->reg_y = fs_read_uint16(fd);
-				CPU0->reg_u = fs_read_uint16(fd);
-				CPU0->reg_s = fs_read_uint16(fd);
-				CPU0->reg_pc = fs_read_uint16(fd);
-				CPU0->halt = fs_read_uint8(fd);
-				CPU0->nmi = fs_read_uint8(fd);
-				CPU0->firq = fs_read_uint8(fd);
-				CPU0->irq = fs_read_uint8(fd);
-				hcpu->state = fs_read_uint8(fd);
-				CPU0->nmi_armed = fs_read_uint8(fd);
-				HD6309_REG_E(hcpu) = fs_read_uint8(fd);
-				HD6309_REG_F(hcpu) = fs_read_uint8(fd);
-				hcpu->reg_v = fs_read_uint16(fd);
-				tmp = fs_read_uint8(fd);
-				hcpu->reg_md = tmp;
-				tmp = fs_read_uint8(fd);
-				hcpu->tfm_src = tfm_reg_ptr(hcpu, tmp >> 4);
-				hcpu->tfm_dest = tfm_reg_ptr(hcpu, tmp & 15);
-				tmp = fs_read_uint8(fd);
-				hcpu->tfm_src_mod = sex4(tmp >> 4);
-				hcpu->tfm_dest_mod = sex4(tmp & 15);
-				size -= 27;
 				break;
 
 			case ID_MACHINECONFIG:
@@ -423,31 +426,22 @@ int read_snapshot(const char *filename) {
 				break;
 
 			case ID_PIA_REGISTERS:
-				// PIA0
-				if (size < 3) break;
-				PIA0->a.direction_register = fs_read_uint8(fd);
-				PIA0->a.output_register = fs_read_uint8(fd);
-				PIA0->a.control_register = fs_read_uint8(fd);
-				size -= 3;
-				if (size < 3) break;
-				PIA0->b.direction_register = fs_read_uint8(fd);
-				PIA0->b.output_register = fs_read_uint8(fd);
-				PIA0->b.control_register = fs_read_uint8(fd);
-				size -= 3;
-				mc6821_update_state(PIA0);
-				// PIA1
-				if (size < 3) break;
-				PIA1->a.direction_register = fs_read_uint8(fd);
-				PIA1->a.output_register = fs_read_uint8(fd);
-				PIA1->a.control_register = fs_read_uint8(fd);
-				size -= 3;
-				if (size < 3) break;
-				PIA1->b.direction_register = fs_read_uint8(fd);
-				PIA1->b.output_register = fs_read_uint8(fd);
-				PIA1->b.control_register = fs_read_uint8(fd);
-				size -= 3;
-				mc6821_update_state(PIA1);
+				for (int i = 0; i < 2; i++) {
+					struct MC6821 *pia = machine_get_pia(i);
+					if (size < 3) break;
+					pia->a.direction_register = fs_read_uint8(fd);
+					pia->a.output_register = fs_read_uint8(fd);
+					pia->a.control_register = fs_read_uint8(fd);
+					size -= 3;
+					if (size < 3) break;
+					pia->b.direction_register = fs_read_uint8(fd);
+					pia->b.output_register = fs_read_uint8(fd);
+					pia->b.control_register = fs_read_uint8(fd);
+					size -= 3;
+					mc6821_update_state(pia);
+				}
 				break;
+
 			case ID_RAM_PAGE0:
 				if (size <= (int)sizeof(machine_ram)) {
 					size -= fread(machine_ram, 1, size, fd);
