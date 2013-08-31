@@ -121,9 +121,10 @@ int intel_hex_read(const char *filename, int autorun) {
 		log_close(&log_hex);
 	if (exec != 0) {
 		if (autorun) {
+			struct MC6809 *cpu = machine_get_cpu(0);
 			if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 				LOG_PRINT("Intel HEX: EXEC $%04x - autorunning\n", exec);
-			CPU0->jump(CPU0, exec);
+			cpu->jump(cpu, exec);
 		} else {
 			if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 				LOG_PRINT("Intel HEX: EXEC $%04x - not autorunning\n", exec);
@@ -178,9 +179,10 @@ static int dragon_bin_load(FILE *fd, int autorun) {
 		log_close(&log_bin);
 	}
 	if (autorun) {
+		struct MC6809 *cpu = machine_get_cpu(0);
 		if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 			LOG_PRINT("Dragon BIN: EXEC $%04x - autorunning\n", exec);
-		CPU0->jump(CPU0, exec);
+		cpu->jump(cpu, exec);
 	} else {
 		if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 			LOG_PRINT("Dragon BIN: EXEC $%04x - not autorunning\n", exec);
@@ -221,9 +223,10 @@ static int coco_bin_load(FILE *fd, int autorun) {
 			(void)fs_read_uint16(fd);  // skip 0
 			exec = fs_read_uint16(fd);
 			if (autorun) {
+				struct MC6809 *cpu = machine_get_cpu(0);
 				if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 					LOG_PRINT("CoCo BIN: EXEC $%04x - autorunning\n", exec);
-				CPU0->jump(CPU0, exec);
+				cpu->jump(cpu, exec);
 			} else {
 				if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 					LOG_PRINT("CoCo BIN: EXEC $%04x - not autorunning\n", exec);
