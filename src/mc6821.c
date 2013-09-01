@@ -103,6 +103,8 @@ void mc6821_reset_cx1(struct MC6821_side *side) {
 void mc6821_update_state(struct MC6821 *pia) {
 	UPDATE_OUTPUT_A(pia->a);
 	UPDATE_OUTPUT_B(pia->b);
+	if (pia->a.control_postwrite) pia->a.control_postwrite();
+	if (pia->b.control_postwrite) pia->b.control_postwrite();
 }
 
 #define READ_DR(p) do { \
