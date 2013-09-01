@@ -1,6 +1,16 @@
 ## intermediates
 ## build files
-*.o
+/*.o
+/alsa/*.o
+/gtk2/*.o
+/jack/*.o
+/linux/*.o
+/macosx/*.o
+/oss/*.o
+/pulseaudio/*.o
+/sdl/*.o
+/sunos/*.o
+/windows32/*.o
 /xroar
 /xroar.exe
 /xroar.dSYM/
