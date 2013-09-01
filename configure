@@ -41,7 +41,7 @@ linux_joystick
 sndfile
 mingw
 pthreads
-gdb_stub
+gdb_target
 trace
 fast_sound
 logging
@@ -1211,13 +1211,13 @@ fi
 
 ########
 
-if test "$_gdb_stub" \!= "no"; then
-	test "$_pthreads" = "yes" && _gdb_stub=yes
+if test "$_gdb_target" \!= "no"; then
+	test "$_pthreads" = "yes" && _gdb_target=yes
 fi
-if test "$_gdb_stub" = "yes"; then
-	_gdb_stub_def="#define WANT_GDB_STUB"
+if test "$_gdb_target" = "yes"; then
+	_gdb_target_def="#define WANT_GDB_TARGET"
 else
-	_gdb_stub_def="#undef WANT_GDB_STUB"
+	_gdb_target_def="#undef WANT_GDB_TARGET"
 fi
 
 ########

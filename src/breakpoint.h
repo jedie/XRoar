@@ -8,7 +8,7 @@
 
 /*
  * Breakpoint support both for internal hooks and user-added traps (e.g. via
- * the GDB stub).
+ * the GDB target).
  *
  * For internal hooks, an array of struct breakpoint is usually supplied using
  * bp_add_list, and the add_cond field determines whether each breakpoint is

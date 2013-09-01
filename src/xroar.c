@@ -29,7 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 
-#ifdef WANT_GDB_STUB
+#ifdef WANT_GDB_TARGET
 #include <pthread.h>
 #endif
 
@@ -323,8 +323,8 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
 #endif
 
-#ifdef WANT_GDB_STUB
-	// GDB stub
+#ifdef WANT_GDB_TARGET
+	// GDB target
 	XC_SET_BOOL("gdb", &private_cfg.gdb),
 	XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip),
 	XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port),
@@ -563,7 +563,7 @@ static struct vdg_palette *get_machine_palette(void);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-#ifdef WANT_GDB_STUB
+#ifdef WANT_GDB_TARGET
 static pthread_cond_t run_state_cv;
 static pthread_mutex_t run_state_mt;
 #endif
@@ -1263,7 +1263,7 @@ _Bool xroar_init(int argc, char **argv) {
 
 	xroar_set_trace(xroar_cfg.trace_enabled);
 
-#ifdef WANT_GDB_STUB
+#ifdef WANT_GDB_TARGET
 	pthread_mutex_init(&run_state_mt, NULL);
 	pthread_cond_init(&run_state_cv, NULL);
 	if (private_cfg.gdb)
@@ -1287,7 +1287,7 @@ void xroar_shutdown(void) {
 	if (shutting_down)
 		return;
 	shutting_down = 1;
-#ifdef WANT_GDB_STUB
+#ifdef WANT_GDB_TARGET
 	gdb_shutdown();
 	pthread_mutex_destroy(&run_state_mt);
 	pthread_cond_destroy(&run_state_cv);
@@ -1323,7 +1323,7 @@ static struct vdg_palette *get_machine_palette(void) {
 
 _Bool xroar_run(void) {
 
-#ifdef WANT_GDB_STUB
+#ifdef WANT_GDB_TARGET
 	pthread_mutex_lock(&run_state_mt);
 	if (xroar_run_state == xroar_run_state_stopped) {
 		struct timeval tv;
@@ -1347,7 +1347,7 @@ _Bool xroar_run(void) {
 		int sig = machine_run(VDG_LINE_DURATION * 32);
 		(void)sig;
 
-#ifdef WANT_GDB_STUB
+#ifdef WANT_GDB_TARGET
 		if (sig != 0) {
 			xroar_run_state = xroar_run_state_stopped;
 			gdb_handle_signal(sig);
@@ -1365,7 +1365,7 @@ _Bool xroar_run(void) {
 	return 1;
 }
 
-#ifdef WANT_GDB_STUB
+#ifdef WANT_GDB_TARGET
 void xroar_machine_continue(void) {
 	pthread_mutex_lock(&run_state_mt);
 	if (xroar_run_state == xroar_run_state_stopped) {
@@ -1393,7 +1393,7 @@ void xroar_machine_single_step(void) {
 	}
 	pthread_mutex_unlock(&run_state_mt);
 }
-#endif  /* WANT_GDB_STUB */
+#endif  /* WANT_GDB_TARGET */
 
 void xroar_machine_trap(void *data) {
 	(void)data;

@@ -221,7 +221,7 @@ xroar_gdb_C_O = $(xroar_gdb_C:.c=.o)
 #
 xroar_SOURCES_C += $(xroar_gdb_C)
 xroar_CLEAN += $(xroar_gdb_C_O)
-ifeq ($(opt_gdb_stub),yes)
+ifeq ($(opt_gdb_target),yes)
 	xroar_C_O += $(xroar_gdb_C_O)
 endif
 

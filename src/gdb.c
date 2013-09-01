@@ -43,10 +43,6 @@
  * and either a further 5 hex pairs for the 6309 registers, or 'xx'.  'G'
  * packets must supply 19 values, either hex pairs or 'xx'.
  *
- * The machine is not currently stopped for debugging, and 'c' and 's' do not
- * yet function correctly.  'c' will however put the stub into a state where a
- * break character (0x03) is required.
- *
  * 'm' and 'M' packets will read or write translated memory addresses (as seen
  * by the CPU).
  *
@@ -194,7 +190,7 @@ int gdb_init(void) {
 	pthread_create(&sock_thread, NULL, handle_tcp_sock, NULL);
 	pthread_detach(sock_thread);
 
-	LOG_DEBUG(2, "gdb: stub listening on %s:%s\n", hostname, portname);
+	LOG_DEBUG(2, "gdb: target listening on %s:%s\n", hostname, portname);
 
 	return 0;
 

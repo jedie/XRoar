@@ -99,7 +99,7 @@ struct xroar_cfg {
 	_Bool disk_jvc_hack;
 	// CRC lists
 	_Bool force_crc_match;
-	// GDB stub
+	// GDB target
 	char *gdb_ip;
 	char *gdb_port;
 	// Debugging
