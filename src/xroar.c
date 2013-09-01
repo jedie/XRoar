@@ -24,11 +24,14 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+
+#ifdef WANT_GDB_STUB
+#include <pthread.h>
+#endif
 
 #include "pl_glib.h"
 #include "pl_string.h"
@@ -123,6 +126,7 @@ struct private_cfg {
 	int tape_pad;
 	int tape_pad_auto;
 	int tape_rewrite;
+	_Bool gdb;
 
 	char *joy_axis[JOYSTICK_NUM_AXES];
 	char *joy_button[JOYSTICK_NUM_BUTTONS];
@@ -145,6 +149,7 @@ static struct private_cfg private_cfg = {
 	.tape_fast = 1,
 	.tape_pad = -1,
 	.tape_pad_auto = 1,
+	.gdb = 0,
 };
 
 static void set_machine(const char *name);
@@ -320,6 +325,7 @@ static struct xconfig_option xroar_options[] = {
 
 #ifdef WANT_GDB_STUB
 	// GDB stub
+	XC_SET_BOOL("gdb", &private_cfg.gdb),
 	XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip),
 	XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port),
 #endif
@@ -926,9 +932,10 @@ static void helptext(void) {
 "  -becker               default to becker-enabled DOS\n"
 "  -disk-write-back      default to enabling write-back for disk images\n"
 "  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
-#ifdef WANT_GDB_STUB
-"  -gdb-ip               address of interface for gdb stub [localhost]\n"
-"  -gdb-port             port for gdb stub to listen on [65520]\n"
+#ifdef WANT_GDB_TARGET
+"  -gdb                  enable GDB target\n"
+"  -gdb-ip               address of interface for GDB target [localhost]\n"
+"  -gdb-port             port for GDB target to listen on [65520]\n"
 #endif
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
@@ -1259,7 +1266,8 @@ _Bool xroar_init(int argc, char **argv) {
 #ifdef WANT_GDB_STUB
 	pthread_mutex_init(&run_state_mt, NULL);
 	pthread_cond_init(&run_state_cv, NULL);
-	gdb_init();
+	if (private_cfg.gdb)
+		gdb_init();
 #endif
 
 	while (private_cfg.type_list) {

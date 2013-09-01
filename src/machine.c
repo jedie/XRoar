@@ -33,7 +33,6 @@
 #include "cart.h"
 #include "crc32.h"
 #include "fs.h"
-#include "gdb.h"
 #include "hd6309.h"
 #include "hd6309_trace.h"
 #include "joystick.h"
