@@ -31,6 +31,9 @@
 #define TAG_KBD_TRANSLATE (5 << 24)
 #define TAG_CC (6 << 24)
 #define TAG_FAST_SOUND (7 << 24)
+#define TAG_DRIVE (8 << 24)
+#define TAG_WRITE_ENABLE (9 << 24)
+#define TAG_WRITE_BACK (10 << 24)
 
 @interface SDLMain : NSObject
 @end
@@ -86,6 +89,8 @@ static int current_keymap = 0;
 static int is_fullscreen = 0;
 static int is_kbd_translate = 0;
 static _Bool is_fast_sound = 0;
+static _Bool disk_write_enable[4] = { 1, 1, 1, 1 };
+static _Bool disk_write_back[4] = { 0, 0, 0, 0 };
 
 /* Setting this to true is a massive hack so that cocoa file dialogues receive
  * keypresses.  Ideally, need to sort SDL out or turn this into a regular
@@ -122,6 +127,28 @@ int cocoa_super_all_keys = 0;
 - (void)do_load_file:(id)sender {
 	(void)sender;
 	xroar_load_file(NULL);
+}
+
+- (void)do_insert_disk:(id)sender {
+	int drive = [sender tag] & TAG_VALUE_MASK;
+	xroar_insert_disk(drive);
+}
+
+- (void)do_new_disk:(id)sender {
+	int drive = [sender tag] & TAG_VALUE_MASK;
+	xroar_new_disk(drive);
+}
+
+- (void)do_set_write_enable:(id)sender {
+	int drive = [sender tag] & TAG_VALUE_MASK;
+	disk_write_enable[drive] = !disk_write_enable[drive];
+	xroar_select_write_enable(drive, disk_write_enable[drive]);
+}
+
+- (void)do_set_write_back:(id)sender {
+	int drive = [sender tag] & TAG_VALUE_MASK;
+	disk_write_back[drive] = !disk_write_back[drive];
+	xroar_select_write_back(drive, disk_write_back[drive]);
 }
 
 - (void)do_save_snapshot:(id)sender {
@@ -187,26 +214,34 @@ int cocoa_super_all_keys = 0;
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
 	int tag = [item tag];
-	if ((tag & TAG_TYPE_MASK) == TAG_MACHINE) {
+	int tag_type = tag & TAG_TYPE_MASK;
+	int tag_value = tag & TAG_VALUE_MASK;
+	if (tag_type == TAG_MACHINE) {
 		[item setState:((tag == current_machine) ? NSOnState : NSOffState)];
 	}
-	if ((tag & TAG_TYPE_MASK) == TAG_KEYMAP) {
+	if (tag_type == TAG_KEYMAP) {
 		[item setState:((tag == current_keymap) ? NSOnState : NSOffState)];
 	}
-	if ((tag & TAG_TYPE_MASK) == TAG_CARTRIDGE) {
+	if (tag_type == TAG_CARTRIDGE) {
 		[item setState:((tag == current_cartridge) ? NSOnState : NSOffState)];
 	}
-	if ((tag & TAG_TYPE_MASK) == TAG_FULLSCREEN) {
+	if (tag_type == TAG_FULLSCREEN) {
 		[item setState:(is_fullscreen ? NSOnState : NSOffState)];
 	}
-	if ((tag & TAG_TYPE_MASK) == TAG_KBD_TRANSLATE) {
+	if (tag_type == TAG_KBD_TRANSLATE) {
 		[item setState:(is_kbd_translate ? NSOnState : NSOffState)];
 	}
-	if ((tag & TAG_TYPE_MASK) == TAG_FAST_SOUND) {
+	if (tag_type == TAG_FAST_SOUND) {
 		[item setState:(is_fast_sound ? NSOnState : NSOffState)];
 	}
-	if ((tag & TAG_TYPE_MASK) == TAG_CC) {
+	if (tag_type == TAG_CC) {
 		[item setState:((tag == current_cc) ? NSOnState : NSOffState)];
+	}
+	if (tag_type == TAG_WRITE_ENABLE) {
+		[item setState:(disk_write_enable[tag_value] ? NSOnState : NSOffState)];
+	}
+	if (tag_type == TAG_WRITE_BACK) {
+		[item setState:(disk_write_back[tag_value] ? NSOnState : NSOffState)];
 	}
 	return YES;
 }
@@ -278,6 +313,7 @@ static void setup_file_menu(void) {
 	NSMenu *file_menu;
 	NSMenuItem *file_menu_item;
 	NSMenuItem *item;
+	NSMenu *submenu;
 
 	file_menu = [[NSMenu alloc] initWithTitle:@"File"];
 
@@ -286,6 +322,132 @@ static void setup_file_menu(void) {
 	[item release];
 
 	item = [[NSMenuItem alloc] initWithTitle:@"Load" action:@selector(do_load_file:) keyEquivalent:@"l"];
+	[file_menu addItem:item];
+	[item release];
+
+	[file_menu addItem:[NSMenuItem separatorItem]];
+
+	submenu = [[NSMenu alloc] initWithTitle:@"Drive 1"];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"1"];
+	[item setTag:(TAG_DRIVE | 0)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"1"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_DRIVE | 0)];
+	[submenu addItem:item];
+	[item release];
+
+	[submenu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"5"];
+	[item setTag:(TAG_WRITE_ENABLE | 0)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"5"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_WRITE_BACK | 0)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Drive 1" action:nil keyEquivalent:@""];
+	[item setSubmenu:submenu];
+	[file_menu addItem:item];
+	[item release];
+
+	submenu = [[NSMenu alloc] initWithTitle:@"Drive 2"];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"2"];
+	[item setTag:(TAG_DRIVE | 1)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"2"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_DRIVE | 1)];
+	[submenu addItem:item];
+	[item release];
+
+	[submenu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"6"];
+	[item setTag:(TAG_WRITE_ENABLE | 1)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"6"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_WRITE_BACK | 1)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Drive 2" action:nil keyEquivalent:@""];
+	[item setSubmenu:submenu];
+	[file_menu addItem:item];
+	[item release];
+
+	submenu = [[NSMenu alloc] initWithTitle:@"Drive 3"];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"3"];
+	[item setTag:(TAG_DRIVE | 2)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"3"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_DRIVE | 2)];
+	[submenu addItem:item];
+	[item release];
+
+	[submenu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"7"];
+	[item setTag:(TAG_WRITE_ENABLE | 2)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"7"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_WRITE_BACK | 2)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Drive 3" action:nil keyEquivalent:@""];
+	[item setSubmenu:submenu];
+	[file_menu addItem:item];
+	[item release];
+
+	submenu = [[NSMenu alloc] initWithTitle:@"Drive 4"];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"4"];
+	[item setTag:(TAG_DRIVE | 3)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"4"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_DRIVE | 3)];
+	[submenu addItem:item];
+	[item release];
+
+	[submenu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"8"];
+	[item setTag:(TAG_WRITE_ENABLE | 3)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"8"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:(TAG_WRITE_BACK | 3)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Drive 4" action:nil keyEquivalent:@""];
+	[item setSubmenu:submenu];
 	[file_menu addItem:item];
 	[item release];
 
@@ -604,6 +766,8 @@ static void cart_changed_cb(int cart_index);
 static void fullscreen_changed_cb(_Bool fullscreen);
 static void kbd_translate_changed_cb(_Bool kbd_translate);
 static void fast_sound_changed_cb(_Bool fast_sound);
+static void update_drive_write_enable(int drive, _Bool write_enable);
+static void update_drive_write_back(int drive, _Bool write_back);
 
 static void update_machine_menu(void);
 static void update_cartridge_menu(void);
@@ -620,6 +784,8 @@ UIModule ui_macosx_module = {
 	.keymap_changed_cb = keymap_changed_cb,
 	.fast_sound_changed_cb = fast_sound_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
+	.update_drive_write_enable = update_drive_write_enable,
+	.update_drive_write_back = update_drive_write_back,
 };
 
 static _Bool init(void) {
@@ -699,4 +865,14 @@ static void kbd_translate_changed_cb(_Bool kbd_translate) {
 
 static void fast_sound_changed_cb(_Bool fast_sound) {
 	is_fast_sound = fast_sound;
+}
+
+static void update_drive_write_enable(int drive, _Bool write_enable) {
+	if (drive >= 0 && drive <= 3)
+		disk_write_enable[drive] = write_enable;
+}
+
+static void update_drive_write_back(int drive, _Bool write_back) {
+	if (drive >= 0 && drive <= 3)
+		disk_write_back[drive] = write_back;
 }
