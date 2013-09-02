@@ -408,6 +408,7 @@ static void cas_motor_off(struct tape *t) {
 		t->offset += 2;
 		if (t->offset > t->size) t->size = t->offset;
 	}
+	fflush(cas->fd);
 	cas->output_sense = -1;
 	cas->pulse_length = cas->last_pulse_length = 0;
 	cas->leader_length = cas->leader_bits = 0;
