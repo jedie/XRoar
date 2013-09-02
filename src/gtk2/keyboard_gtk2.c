@@ -272,7 +272,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 	if (!shift) {
 		KEYBOARD_RELEASE_SHIFT;
 	}
-	if (keyval == GDK_F12 && !xroar_noratelimit) {
+	if (keyval == GDK_F12) {
 		if (shift) {
 			noratelimit_latch = !noratelimit_latch;
 			if (noratelimit_latch) {
@@ -282,7 +282,7 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 				xroar_noratelimit = 0;
 				xroar_frameskip = xroar_cfg.frameskip;
 			}
-		} else {
+		} else if (!noratelimit_latch) {
 			xroar_noratelimit = 1;
 			xroar_frameskip = 10;
 		}
