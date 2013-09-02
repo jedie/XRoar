@@ -11,6 +11,7 @@
 /sdl/*.o
 /sunos/*.o
 /windows32/*.o
+/windows32/*.res
 /xroar
 /xroar.exe
 /xroar.dSYM/
