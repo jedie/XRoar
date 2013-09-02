@@ -8,6 +8,8 @@
 
 #include "config.h"
 
+#include <string.h>
+
 #include "pl_string.h"
 
 #ifdef NEED_STRSEP
