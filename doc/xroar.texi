@@ -7,6 +7,8 @@
 * XRoar: (xroar).               Dragon & Tandy CoCo emulator.
 @end direntry
 
+@include version.texi
+
 @settitle XRoar Dragon Emulator Manual
 @c @setchapternewpage off
 @ifclear VERSION

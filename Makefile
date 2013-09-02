@@ -531,17 +531,20 @@ build-bin: src/xroar$(EXEEXT)
 
 doc_CLEAN =
 
-doc/%.info: $(SRCROOT)/doc/%.texi
-	$(call do_makeinfo,$@,-D "VERSION $(VERSION)" $<)
+doc/version.texi: $(CONFIG_FILES)
+	echo "@set VERSION $(VERSION)" > $@
 
-doc/%.pdf: $(SRCROOT)/doc/%.texi
-	$(call do_texi2pdf,$@,-q -t "@set VERSION $(VERSION)" --build=clean $<)
+doc/%.info: $(SRCROOT)/doc/%.texi doc/version.texi
+	$(call do_makeinfo,$@,$<)
 
-doc/%.html: $(SRCROOT)/doc/%.texi
-	$(call do_makeinfo,$@,--html --no-headers --no-split -D "VERSION $(VERSION)" $<)
+doc/%.pdf: $(SRCROOT)/doc/%.texi doc/version.texi
+	$(call do_texi2pdf,$@,-q --build=clean $<)
 
-doc/%.txt: $(SRCROOT)/doc/%.texi
-	$(call do_makeinfo,$@,--plaintext --no-headers --no-split -D "VERSION $(VERSION)" $<)
+doc/%.html: $(SRCROOT)/doc/%.texi doc/version.texi
+	$(call do_makeinfo,$@,--html --no-headers --no-split $<)
+
+doc/%.txt: $(SRCROOT)/doc/%.texi doc/version.texi
+	$(call do_makeinfo,$@,--plaintext --no-headers --no-split $<)
 
 doc_CLEAN += doc/xroar.info doc/xroar.pdf doc/xroar.html doc/xroar.txt
 
