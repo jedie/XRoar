@@ -204,7 +204,6 @@ ifeq ($(opt_glib2),yes)
 endif
 
 portalib_glib2_C = \
-	portalib/pl_glib/ghash.c \
 	portalib/pl_glib/gmem.c \
 	portalib/pl_glib/gslist.c \
 	portalib/pl_glib/gstrfuncs.c

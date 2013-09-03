@@ -25,7 +25,6 @@
 #include "pl_glib/gtypes.h"
 
 /* Data types */
-#include "pl_glib/ghash.h"
 #include "pl_glib/gslist.h"
 
 /* Utilities */
