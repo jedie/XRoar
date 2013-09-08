@@ -45,6 +45,7 @@ SoundModule sound_pulse_module = {
 };
 
 static unsigned int sample_rate;
+static unsigned int nchannels;
 static pa_simple *pa;
 static void *audio_buffer;
 
@@ -53,8 +54,7 @@ static int fragment_bytes;
 static _Bool init(void) {
 	const char *device = xroar_cfg.ao_device;
 	pa_sample_spec ss = {
-		.format = PA_SAMPLE_U8,
-		.channels = 1
+		.format = PA_SAMPLE_S16NE,
 	};
 	pa_buffer_attr ba = {
 		.maxlength = -1,
@@ -64,7 +64,9 @@ static _Bool init(void) {
 	int error;
 
 	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
+	nchannels = 2;
 	ss.rate = sample_rate;
+	ss.channels = nchannels;
 
 	int fragment_size;
 	if (xroar_cfg.ao_buffer_ms > 0) {
@@ -101,7 +103,7 @@ static _Bool init(void) {
 	}
 	unsigned buffer_size = fragment_size * sample_size;
 	audio_buffer = g_malloc(buffer_size);
-	sound_init(audio_buffer, request_fmt, sample_rate, 1, fragment_size);
+	sound_init(audio_buffer, request_fmt, sample_rate, nchannels, fragment_size);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
 	return 1;
 failed:

@@ -75,7 +75,7 @@ static _Bool init(void) {
 		return 0;
 	}
 	desired.freq = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
-	desired.format = AUDIO_U8;
+	desired.format = AUDIO_S16;
 	if (xroar_cfg.ao_buffer_ms > 0) {
 		desired.samples = (desired.freq * xroar_cfg.ao_buffer_ms) / 1000;
 	} else if (xroar_cfg.ao_buffer_samples > 0) {
@@ -83,7 +83,7 @@ static _Bool init(void) {
 	} else {
 		desired.samples = 1024;
 	}
-	desired.channels = 1;
+	desired.channels = 2;
 	desired.callback = callback;
 	desired.userdata = NULL;
 	if (SDL_OpenAudio(&desired, &audiospec) < 0) {

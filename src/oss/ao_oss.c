@@ -69,17 +69,17 @@ static _Bool init(void) {
 		LOG_ERROR("No desired audio formats supported by device\n");
 		goto failed;
 	}
-	if (format & AFMT_S8) {
-		format = AFMT_S8;
-		bytes_per_sample = 1;
-	} else {
+	if (format & AFMT_S16_NE) {
 		format = AFMT_S16_NE;
 		bytes_per_sample = 2;
+	} else {
+		format = AFMT_S8;
+		bytes_per_sample = 1;
 	}
 	if (ioctl(sound_fd, SNDCTL_DSP_SETFMT, &format) == -1)
 		goto failed;
-	/* Set device to mono if possible */
-	int channels = 0;
+	/* Set device to stereo if possible */
+	int channels = 1;
 	if (ioctl(sound_fd, SNDCTL_DSP_STEREO, &channels) == -1)
 		goto failed;
 	channels++;
