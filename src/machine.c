@@ -915,6 +915,12 @@ static void write_cycle(uint16_t A, uint8_t D) {
 				if (machine_cart)
 					machine_cart->write(machine_cart, A, 1, D);
 				break;
+			// Should call cart's write() whatever the address and
+			// set P2 accordingly, but for now this enables orch90:
+			case 7:
+				if (machine_cart)
+					machine_cart->write(machine_cart, A, 0, D);
+				break;
 			default:
 				break;
 		}

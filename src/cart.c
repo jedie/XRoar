@@ -33,6 +33,7 @@
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
+#include "orch90.h"
 #include "romlist.h"
 #include "rsdos.h"
 #include "xroar.h"
@@ -175,6 +176,7 @@ struct cart *cart_new(struct cart_config *cc) {
 	case CART_DRAGONDOS: c = dragondos_new(cc); break;
 	case CART_RSDOS: c = rsdos_new(cc); break;
 	case CART_DELTADOS: c = deltados_new(cc); break;
+	case CART_ORCH90: c = orch90_new(cc); break;
 	}
 	if (c->attach)
 		c->attach(c);

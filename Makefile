@@ -157,6 +157,7 @@ xroar_BASE_C = \
 	src/mc6809.c \
 	src/mc6821.c \
 	src/module.c \
+	src/orch90.c \
 	src/path.c \
 	src/printer.c \
 	src/romlist.c \

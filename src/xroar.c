@@ -201,6 +201,7 @@ static struct xconfig_enum cart_type_list[] = {
 	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
 	{ .value = CART_DELTADOS, .name = "delta", .description = "Delta System" },
 	{ .value = CART_RSDOS, .name = "rsdos", .description = "RS-DOS" },
+	{ .value = CART_ORCH90, .name = "orch90", .description = "Orchestra 90-CC" },
 	XC_ENUM_END()
 };
 
@@ -429,6 +430,11 @@ static const char *default_config[] = {
 	"cart-type rsdos",
 	"cart-rom @rsdos_becker",
 	"cart-becker",
+	// Orchestra 90
+	"cart orch90",
+	"cart-desc Orchestra 90-CC",
+	"cart-type orch90",
+	"cart-rom orch90",
 
 	// ROM lists
 
