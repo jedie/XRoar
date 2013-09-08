@@ -48,7 +48,7 @@ static AudioObjectID device;
 static AudioDeviceIOProcID aprocid;
 #endif
 static float *audio_buffer;
-static unsigned buffer_nsamples;
+static unsigned buffer_nframes;
 static UInt32 buffer_size;
 static pthread_mutex_t halt_mutex;
 static pthread_cond_t halt_cv;
@@ -88,7 +88,6 @@ static _Bool init(void) {
 	unsigned int sample_rate = deviceFormat.mSampleRate;
 	unsigned int buffer_nchannels = deviceFormat.mChannelsPerFrame;
 
-	unsigned int buffer_nframes;
 	if (xroar_cfg.ao_buffer_ms > 0) {
 		buffer_nframes = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
 	} else if (xroar_cfg.ao_buffer_samples > 0) {
@@ -97,7 +96,7 @@ static _Bool init(void) {
 		buffer_nframes = 1024;
 	}
 
-	buffer_nsamples = buffer_nframes * buffer_nchannels;
+	unsigned buffer_nsamples = buffer_nframes * buffer_nchannels;
 	buffer_size = buffer_nsamples * sizeof(float);
 	propertySize = sizeof(buffer_size);
 	propertyAddress.mSelector = kAudioDevicePropertyBufferSize;
@@ -163,7 +162,7 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 	if (ready) {
 		memcpy(dest, audio_buffer, buffer_size);
 	} else {
-		sound_render_silence(dest, buffer_nsamples);
+		sound_render_silence(dest, buffer_nframes);
 	}
 	pthread_mutex_lock(&halt_mutex);
 	ready = 0;

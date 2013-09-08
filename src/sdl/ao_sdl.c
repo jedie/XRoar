@@ -48,6 +48,7 @@ SoundModule sound_sdl_module = {
 };
 
 static int buffer_size;
+static int buffer_nframes;
 static Uint8 *audio_buffer;
 
 static SDL_AudioSpec audiospec;
@@ -101,7 +102,7 @@ static _Bool init(void) {
 			LOG_WARN("Unhandled audio format.");
 			goto failed;
 	}
-	int buffer_nframes = audiospec.samples;
+	buffer_nframes = audiospec.samples;
 	buffer_size = audiospec.size;
 	audio_buffer = g_malloc(buffer_size);
 	sound_init(audio_buffer, buffer_fmt, audiospec.freq, audiospec.channels, buffer_nframes);
@@ -155,7 +156,7 @@ static void callback(void *userdata, Uint8 *stream, int len) {
 			memcpy(stream, audio_buffer, buffer_size);
 		} else {
 			/* Not ready - provide a "padding" frame */
-			sound_render_silence(stream, len);
+			sound_render_silence(stream, buffer_nframes);
 		}
 	}
 #ifndef WINDOWS32
