@@ -41,7 +41,6 @@ static GSList *romlist_list = NULL;
 static const char *rom_extensions[] = {
 	"", ".rom", ".ROM", ".dgn", ".DGN"
 };
-#define NUM_ROM_EXTENSIONS (int)(sizeof(rom_extensions)/sizeof(*rom_extensions))
 
 static int compare_entry(struct romlist *a, char *b) {
 	return strcmp(a->name, b);
@@ -114,10 +113,9 @@ void romlist_assign(const char *astring) {
 static char *find_rom(const char *romname) {
 	char *filename;
 	char *path = NULL;
-	int i;
 	if (!romname) return NULL;
 	filename = g_alloca(strlen(romname) + 5);
-	for (i = 0; i < NUM_ROM_EXTENSIONS; i++) {
+	for (unsigned i = 0; i < G_N_ELEMENTS(rom_extensions); i++) {
 		strcpy(filename, romname);
 		strcat(filename, rom_extensions[i]);
 		path = find_in_path(xroar_rom_path, filename);

@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pl_glib.h"
+
 #include "vdg_palette.h"
 
 static struct vdg_palette palette_templates[] = {
@@ -77,9 +79,8 @@ static struct vdg_palette palette_templates[] = {
 	},
 
 };
-#define NUM_PALETTE_TEMPLATES (int)(sizeof(palette_templates) / sizeof(*palette_templates))
 
-static int num_palettes = NUM_PALETTE_TEMPLATES;
+static int num_palettes = G_N_ELEMENTS(palette_templates);
 
 /**************************************************************************/
 

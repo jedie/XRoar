@@ -521,8 +521,6 @@ static const char *default_config[] = {
 	"joy-axis 1=mouse:",
 	"joy-button 0=mouse:",
 	"joy-button 1=mouse:",
-
-	NULL
 };
 
 /**************************************************************************/
@@ -998,8 +996,8 @@ _Bool xroar_init(int argc, char **argv) {
 		private_cfg.joy_button[i] = NULL;
 
 	// Default configuration.
-	for (const char **c = default_config; *c; c++) {
-		xconfig_parse_line(xroar_options, *c);
+	for (unsigned i = 0; i < G_N_ELEMENTS(default_config); i++) {
+		xconfig_parse_line(xroar_options, default_config[i]);
 	}
 	// Finish any machine or cart config in defaults.
 	set_machine(NULL);
