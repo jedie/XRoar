@@ -1,4 +1,6 @@
 ## build files
+/.deps.mak
+/.deps.mak.bak
 /*.o
 /pl_glib/*.o
 /libporta.a

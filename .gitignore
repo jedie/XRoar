@@ -1,8 +1,5 @@
 *~
 *.swp
-## build files
-/.deps.mak
-/.deps.mak.bak
 /config.h
 /config.log
 /config.mak
