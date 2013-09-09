@@ -18,6 +18,8 @@
 #define TRUE (!FALSE)
 #endif
 
+#define G_N_ELEMENTS(arr) (sizeof(arr)/sizeof((arr)[0]))
+
 typedef char gchar;
 typedef short gshort;
 typedef long glong;
