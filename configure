@@ -233,7 +233,7 @@ while test -n "$1"; do
 done
 
 test -n "$with_sdl_config" && target_sdl_config="$with_sdl_config"
-test -n "$with_pkg_config" && target_sdl_config="$with_pkg_config"
+test -n "$with_pkg_config" && target_pkg_config="$with_pkg_config"
 test -n "$with_makeinfo" && MAKEINFO="$with_makeinfo"
 test -n "$with_texi2pdf" && TEXI2PDF="$with_texi2pdf"
 test -n "$with_install" && INSTALL="$with_install"
