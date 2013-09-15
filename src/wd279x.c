@@ -382,7 +382,11 @@ static void state_machine(WD279X *fdc) {
 			if (vdrive_tr00 && fdc->direction == -1) {
 				LOG_DEBUG(4,"WD279X: TR00!\n");
 				fdc->track_register = 0;
-				GOTO_STATE(WD279X_state_verify_track_1);
+				// The WD279x flow chart implies this delay is
+				// not incurred in this situation, but real
+				// code fails without it.
+				NEXT_STATE(WD279X_state_verify_track_1, W_MILLISEC(fdc->step_delay));
+				return;
 			}
 			vdrive_step();
 			if (fdc->is_step_cmd) {
