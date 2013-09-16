@@ -227,13 +227,12 @@ struct xconfig_enum xroar_cross_colour_list[] = {
 
 /* CLI information to hand off to config reader */
 static struct xconfig_option xroar_options[] = {
-	/* Emulated machine */
+	/* Machines: */
 	XC_SET_STRING("default-machine", &private_cfg.default_machine),
 	XC_CALL_STRING("machine", &set_machine),
 	XC_SET_STRING("machine-desc", &private_cfg.machine_desc),
 	XC_SET_ENUM("machine-arch", &private_cfg.machine_arch, arch_list),
 	XC_SET_ENUM("machine-cpu", &private_cfg.machine_cpu, cpu_list),
-	XC_SET_STRING("machine-palette", &private_cfg.machine_palette),
 	XC_SET_STRING("bas", &private_cfg.bas),
 	XC_SET_STRING("extbas", &private_cfg.extbas),
 	XC_SET_STRING("altbas", &private_cfg.altbas),
@@ -244,53 +243,76 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_ENUM("vdg-type", &private_cfg.vdg_type, vdg_type_list),
 	XC_SET_INT("ram", &private_cfg.ram),
 	XC_SET_STRING("machine-cart", &private_cfg.machine_cart),
-	/* Backwards-compatibility options: */
+	XC_SET_INT1("nodos", &private_cfg.nodos),
+	/* Deliberately undocumented: */
+	XC_SET_STRING("machine-palette", &private_cfg.machine_palette),
+	/* Backwards-compatibility: */
 	XC_CALL_NULL("pal", &set_pal),
 	XC_CALL_NULL("ntsc", &set_ntsc),
 
-	/* Emulated cartridge */
+	/* Cartridges: */
 	XC_CALL_STRING("cart", &set_cart),
 	XC_SET_STRING("cart-desc", &private_cfg.cart_desc),
 	XC_SET_ENUM("cart-type", &private_cfg.cart_type, cart_type_list),
 	XC_SET_STRING("cart-rom", &private_cfg.cart_rom),
 	XC_SET_STRING("cart-rom2", &private_cfg.cart_rom2),
-	XC_SET_INT1("cart-becker", &private_cfg.cart_becker),
 	XC_SET_INT1("cart-autorun", &private_cfg.cart_autorun),
-	XC_SET_INT1("nodos", &private_cfg.nodos),
-	/* Backwards-compatibility options: */
+	XC_SET_INT1("cart-becker", &private_cfg.cart_becker),
+	/* Backwards compatibility: */
 	XC_SET_ENUM("dostype", &private_cfg.cart_type, cart_type_list),
 	XC_SET_STRING("dos", &private_cfg.cart_rom),
 
-	/* Attach files */
+	/* Becker port: */
+	XC_SET_BOOL("becker", &xroar_cfg.becker),
+	XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip),
+	XC_SET_STRING("becker-port", &xroar_cfg.becker_port),
+	/* Backwards-compatibility: */
+	XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip),
+	XC_SET_STRING("dw4-port", &xroar_cfg.becker_port),
+
+	/* Files: */
+	XC_CALL_STRING("load", &add_load),
+	XC_SET_STRING("run", &private_cfg.run),
+	/* Backwards-compatibility: */
+	XC_CALL_STRING("cartna", &add_load),
+	XC_CALL_STRING("snap", &add_load),
+
+	/* Cassettes: */
+	XC_SET_STRING("tape-write", &private_cfg.tape_write),
+	XC_SET_INT1("tape-fast", &private_cfg.tape_fast),
+	XC_SET_INT1("tape-pad", &private_cfg.tape_pad),
+	XC_SET_INT1("tape-pad-auto", &private_cfg.tape_pad_auto),
+	XC_SET_INT1("tape-rewrite", &private_cfg.tape_rewrite),
+	/* Backwards-compatibility: */
+	XC_SET_INT1("tapehack", &private_cfg.tape_rewrite),
+
+	/* Disks: */
+	XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back),
+	XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack),
+
+	/* Firmware ROM images: */
 	XC_SET_STRING("rompath", &xroar_rom_path),
 	XC_CALL_STRING("romlist", &romlist_assign),
 	XC_CALL_NULL("romlist-print", &romlist_print),
 	XC_CALL_STRING("crclist", &crclist_assign),
 	XC_CALL_NULL("crclist-print", &crclist_print),
 	XC_SET_BOOL("force-crc-match", &xroar_cfg.force_crc_match),
-	XC_CALL_STRING("load", &add_load),
-	XC_CALL_STRING("cartna", &add_load),
-	XC_CALL_STRING("snap", &add_load),
-	XC_SET_STRING("run", &private_cfg.run),
-	XC_SET_STRING("tape-write", &private_cfg.tape_write),
-	XC_SET_STRING("cart", &private_cfg.run),
-	XC_SET_STRING("lp-file", &private_cfg.lp_file),
-	XC_SET_STRING("lp-pipe", &private_cfg.lp_pipe),
-	XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip),
-	XC_SET_STRING("becker-port", &xroar_cfg.becker_port),
-	XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip),
-	XC_SET_STRING("dw4-port", &xroar_cfg.becker_port),
 
-	/* Automatic actions */
-	XC_CALL_STRING("type", &type_command),
-
-	/* Emulator interface */
+	/* User interface: */
 	XC_SET_STRING("ui", &private_cfg.ui),
+	/* Deliberately undocumented: */
 	XC_SET_STRING("filereq", &private_cfg.filereq),
+
+	/* Video: */
 	XC_SET_STRING("vo", &private_cfg.vo),
+	XC_SET_BOOL("fs", &xroar_cfg.fullscreen),
+	XC_SET_INT("fskip", &xroar_cfg.frameskip),
+	XC_SET_ENUM("ccr", &xroar_cfg.ccr, ccr_list),
+	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
 	XC_SET_STRING("geometry", &xroar_cfg.geometry),
 	XC_SET_STRING("g", &xroar_cfg.geometry),
-	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
+
+	/* Audio: */
 	XC_SET_STRING("ao", &private_cfg.ao),
 	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
 	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
@@ -301,11 +323,13 @@ static struct xconfig_option xroar_options[] = {
 #ifndef FAST_SOUND
 	XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound),
 #endif
-	XC_SET_BOOL("fs", &xroar_cfg.fullscreen),
-	XC_SET_ENUM("ccr", &xroar_cfg.ccr, ccr_list),
-	XC_SET_INT("fskip", &xroar_cfg.frameskip),
+
+	/* Keyboard: */
 	XC_SET_STRING("keymap", &xroar_cfg.keymap),
 	XC_SET_BOOL("kbd-translate", &xroar_cfg.kbd_translate),
+	XC_CALL_STRING("type", &type_command),
+
+	/* Joysticks: */
 	XC_CALL_STRING("joy", &set_joystick),
 	XC_SET_STRING("joy-desc", &private_cfg.joy_desc),
 	XC_CALL_STRING("joy-axis", &set_joystick_axis),
@@ -313,30 +337,25 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("joy-right", &private_cfg.joy_right),
 	XC_SET_STRING("joy-left", &private_cfg.joy_left),
 	XC_SET_STRING("joy-virtual", &private_cfg.joy_virtual),
-	XC_SET_INT1("tape-fast", &private_cfg.tape_fast),
-	XC_SET_INT1("tape-pad", &private_cfg.tape_pad),
-	XC_SET_INT1("tape-pad-auto", &private_cfg.tape_pad_auto),
-	XC_SET_INT1("tape-rewrite", &private_cfg.tape_rewrite),
-	XC_SET_INT1("tapehack", &private_cfg.tape_rewrite),
-	XC_SET_BOOL("becker", &xroar_cfg.becker),
-	XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack),
-	XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back),
-#ifdef TRACE
-	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
-#endif
 
+	/* Printing: */
+	XC_SET_STRING("lp-file", &private_cfg.lp_file),
+	XC_SET_STRING("lp-pipe", &private_cfg.lp_pipe),
+
+	/* Debugging: */
 #ifdef WANT_GDB_TARGET
-	// GDB target
 	XC_SET_BOOL("gdb", &private_cfg.gdb),
 	XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip),
 	XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port),
 #endif
-
-	// Debug options
+#ifdef TRACE
+	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
+#endif
 	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
 	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
 	XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb),
 
+	/* Other options: */
 	XC_CALL_NULL("help", &helptext),
 	XC_CALL_NULL("h", &helptext),
 	XC_CALL_NULL("version", &versiontext),
@@ -859,57 +878,75 @@ static void helptext(void) {
 
 "\n  -c CONFFILE   specify a configuration file\n"
 
-"\n Emulated machine:\n"
-"  -default-machine NAME   specify default machine\n"
-"  -machine NAME           select/configure machine (-machine help for list)\n"
-"  -machine-desc TEXT      machine description\n"
-"  -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
-"  -machine-cpu CPU        machine CPU (-machine-cpu help for list)\n"
-"  -machine-palette NAME   VDG palette (-machine-palette help for list)\n"
-"  -bas NAME               BASIC ROM to use (CoCo only)\n"
-"  -extbas NAME            Extended BASIC ROM to use\n"
-"  -altbas NAME            alternate BASIC ROM (Dragon 64)\n"
-"  -noextbas               disable Extended BASIC\n"
-"  -tv-type TYPE           set TV type (-tv-type help for list)\n"
-"  -vdg-type TYPE          set VDG type (6847 or 6847t1)\n"
-"  -ram KBYTES             specify amount of RAM in K\n"
-"  -machine-cart NAME      specify default cartridge for selected machine\n"
+"\n Machines:\n"
+"  -default-machine NAME   default machine on startup\n"
+"  -machine NAME           configure named machine (-machine help for list)\n"
+"    -machine-desc TEXT      machine description\n"
+"    -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
+"    -machine-cpu CPU        machine CPU (-machine-cpu help for list)\n"
+"    -bas NAME               BASIC ROM to use (CoCo only)\n"
+"    -extbas NAME            Extended BASIC ROM to use\n"
+"    -altbas NAME            64K mode Extended BASIC ROM (Dragon 64)\n"
+"    -nobas                  disable BASIC\n"
+"    -noextbas               disable Extended BASIC\n"
+"    -noaltbas               disable 64K mode Extended BASIC\n"
+"    -tv-type TYPE           TV type (-tv-type help for list)\n"
+"    -vdg-type TYPE          VDG type (6847 or 6847t1)\n"
+"    -ram KBYTES             amount of RAM in K\n"
+"    -machine-cart NAME      default cartridge for selected machine\n"
+"    -nodos                  don't automatically pick a DOS cartridge\n"
 
-"\n Emulated cartridge:\n"
-"  -cart NAME            select/configure cartridge (-cart help for list)\n"
-"  -cart-desc TEXT       set cartridge description\n"
-"  -cart-type TYPE       set cartridge type (-cart-type help for list)\n"
-"  -cart-rom NAME        ROM image to load ($C000-)\n"
-"  -cart-rom2 NAME       second ROM image to load ($E000-)\n"
-"  -cart-becker          enable becker port where supported\n"
-"  -cart-autorun         autorun cartridge\n"
-"  -nodos                don't automatically pick a DOS cartridge\n"
+"\n Cartridges:\n"
+"  -cart NAME            configure named cartridge (-cart help for list)\n"
+"    -cart-desc TEXT       cartridge description\n"
+"    -cart-type TYPE       cartridge base type (-cart-type help for list)\n"
+"    -cart-rom NAME        ROM image to load ($C000-)\n"
+"    -cart-rom2 NAME       second ROM image to load ($E000-)\n"
+"    -cart-autorun         autorun cartridge\n"
+"    -cart-becker          enable becker port where supported\n"
 
-"\n Attach files:\n"
-"  -rompath PATH         set ROM search path (colon-separated list)\n"
+"\n Becker port:\n"
+"  -becker               prefer becker-enabled DOS (when picked automatically)\n"
+"  -becker-ip ADDRESS    address or hostname of DriveWire server [127.0.0.1]\n"
+"  -becker-port PORT     port of DriveWire server [65504]\n"
+
+"\n Files:\n"
+"  -load FILENAME        load or attach FILENAME\n"
+"  -run FILENAME         load or attach FILENAME and attempt autorun\n"
+
+"\n Cassettes:\n"
+"  -tape-write FILENAME  open FILENAME for tape writing\n"
+"  -no-tape-fast         disable fast tape loading\n"
+"  -tape-pad             force tape leader padding\n"
+"  -no-tape-pad-auto     disable automatic leader padding\n"
+"  -tape-rewrite         enable tape rewriting\n"
+
+"\n Disks:\n"
+"  -disk-write-back      default to enabling write-back for disk images\n"
+"  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
+
+"\n Firmware ROM images:\n"
+"  -rompath PATH         ROM search path (colon-separated list)\n"
 "  -romlist NAME=LIST    define a ROM list\n"
 "  -romlist-print        print defined ROM lists\n"
 "  -crclist NAME=LIST    define a ROM CRC list\n"
 "  -crclist-print        print defined ROM CRC lists\n"
 "  -force-crc-match      force per-architecture CRC matches\n"
-"  -load FILENAME        load or attach FILENAME\n"
-"  -run FILENAME         load or attach FILENAME and attempt autorun\n"
-"  -tape-write FILENAME  open FILENAME for tape writing\n"
-"  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
-"  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
-"  -becker-ip ADDRESS    address or hostname of DriveWire server [127.0.0.1]\n"
-"  -becker-port PORT     port of DriveWire server [65504]\n"
 
-"\n Automatic actions:\n"
-"  -type STRING          intercept ROM calls to type STRING into BASIC\n"
-
-"\n Emulator interface:\n"
+"\n User interface:\n"
 "  -ui MODULE            user-interface module (-ui help for list)\n"
+
+"\n Video:\n"
 "  -vo MODULE            video module (-vo help for list)\n"
-"  -geometry WxH+X+Y     initial emulator geometry\n"
+"  -fs                   start emulator full-screen if possible\n"
+"  -fskip FRAMES         frameskip (default: 0)\n"
+"  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
 #ifdef HAVE_SDLGL
 "  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
 #endif
+"  -geometry WxH+X+Y     initial emulator geometry\n"
+
+"\n Audio:\n"
 "  -ao MODULE            audio module (-ao help for list)\n"
 "  -ao-device STRING     device to use for audio module\n"
 "  -ao-rate HZ           set audio sample rate (if supported by module)\n"
@@ -920,32 +957,37 @@ static void helptext(void) {
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
 #endif
-"  -fs                   start emulator full-screen if possible\n"
-"  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
-"  -fskip FRAMES         frameskip (default: 0)\n"
+
+"\n Keyboard:\n"
 "  -keymap CODE          host keyboard type (uk, us, fr, fr_CA, de)\n"
 "  -kbd-translate        enable keyboard translation\n"
-"  -joy NAME             select joystick to configure (-joy help for list)\n"
-"  -joy-axis AXIS=SPEC   configure joystick axis\n"
-"  -joy-button BTN=SPEC  configure joystick button\n"
+"  -type STRING          intercept ROM calls to type STRING into BASIC\n"
+
+"\n Joysticks:\n"
+"  -joy NAME             configure named joystick (-joy help for list)\n"
+"    -joy-desc TEXT        joystick description\n"
+"    -joy-axis AXIS=SPEC   configure joystick axis\n"
+"    -joy-button BTN=SPEC  configure joystick button\n"
 "  -joy-right NAME       map right joystick\n"
 "  -joy-left NAME        map left joystick\n"
 "  -joy-virtual NAME     specify the 'virtual' joystick to cycle [kjoy0]\n"
-"  -no-tape-fast         disable fast tape loading\n"
-"  -tape-pad             force tape leader padding\n"
-"  -no-tape-pad-auto     disable automatic leader padding\n"
-"  -tape-rewrite         enable tape rewriting\n"
-"  -becker               default to becker-enabled DOS\n"
-"  -disk-write-back      default to enabling write-back for disk images\n"
-"  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
+
+"\n Printing:\n"
+"  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
+"  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
+
+"\n Debugging:\n"
 #ifdef WANT_GDB_TARGET
-"  -gdb                  enable GDB target\n"
+"  -gdb                  disable GDB target\n"
 "  -gdb-ip               address of interface for GDB target [localhost]\n"
 "  -gdb-port             port for GDB target to listen on [65520]\n"
 #endif
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
+"  -debug-file FLAGS     file debugging (see manual, or -1 for all)\n"
+"  -debug-fdc FLAGS      FDC debugging (see manual, or -1 for all)\n"
+"  -debug-gdb FLAGS      GDB target debugging (see manual, or -1 for all)\n"
 
 "\n Other options:\n"
 "  -h, --help            display this help and exit\n"
