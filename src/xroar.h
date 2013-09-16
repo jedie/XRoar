@@ -82,6 +82,7 @@ struct xroar_cfg {
 	// Audio
 	char *ao_device;
 	int ao_rate;
+	int ao_channels;
 	int ao_buffer_ms;
 	int ao_buffer_samples;
 #ifndef FAST_SOUND

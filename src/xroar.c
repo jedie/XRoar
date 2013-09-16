@@ -294,6 +294,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("ao", &private_cfg.ao),
 	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
 	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
+	XC_SET_INT("ao-channels", &xroar_cfg.ao_channels),
 	XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms),
 	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_samples),
 	XC_SET_INT("volume", &private_cfg.volume),
@@ -912,6 +913,7 @@ static void helptext(void) {
 "  -ao MODULE            audio module (-ao help for list)\n"
 "  -ao-device STRING     device to use for audio module\n"
 "  -ao-rate HZ           set audio sample rate (if supported by module)\n"
+"  -ao-channels N        set number of audio channels, 1 or 2\n"
 "  -ao-buffer-ms MS      set audio buffer size in ms (if supported)\n"
 "  -ao-buffer-samples N  set audio buffer size in samples (if supported)\n"
 "  -volume VOLUME        audio volume (0 - 100)\n"
