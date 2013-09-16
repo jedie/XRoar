@@ -86,7 +86,7 @@ static _Bool init(void) {
 
 	unsigned int sample_rate;
 	/* Attempt to set sample_rate, but live with whatever we get */
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 	if (ioctl(sound_fd, SNDCTL_DSP_SPEED, &sample_rate) == -1)
 		goto failed;
 

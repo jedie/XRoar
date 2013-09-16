@@ -74,7 +74,7 @@ static _Bool init(void) {
 		LOG_ERROR("Failed to initialise SDL audio\n");
 		return 0;
 	}
-	desired.freq = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
+	desired.freq = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 	desired.format = AUDIO_S16;
 	if (xroar_cfg.ao_buffer_ms > 0) {
 		desired.samples = (desired.freq * xroar_cfg.ao_buffer_ms) / 1000;

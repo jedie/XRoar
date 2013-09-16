@@ -60,7 +60,7 @@ static _Bool init(void) {
 		LOG_ERROR("Couldn't open audio device %s: %s!\n", device, strerror(errno));
 		return 0;
 	}
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 	AUDIO_INITINFO(&device_info);
 	device_info.play.sample_rate = sample_rate;
 	device_info.play.channels = 1;

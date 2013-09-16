@@ -59,7 +59,7 @@ static _Bool init(void) {
 	snd_pcm_format_t format = SND_PCM_FORMAT_S16;
 	unsigned nchannels = 2;
 
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 
 	if ((err = snd_pcm_open(&pcm_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
 		goto failed;

@@ -63,7 +63,7 @@ static _Bool init(void) {
 	};
 	int error;
 
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 44100;
+	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 	nchannels = 2;
 	ss.rate = sample_rate;
 	ss.channels = nchannels;
