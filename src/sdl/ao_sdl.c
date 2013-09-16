@@ -83,7 +83,9 @@ static _Bool init(void) {
 	} else {
 		desired.samples = 1024;
 	}
-	desired.channels = 2;
+	desired.channels = xroar_cfg.ao_channels;
+	if (desired.channels < 1 || desired.channels > 2)
+		desired.channels = 2;
 	desired.callback = callback;
 	desired.userdata = NULL;
 	if (SDL_OpenAudio(&desired, &audiospec) < 0) {

@@ -79,10 +79,12 @@ static _Bool init(void) {
 	if (ioctl(sound_fd, SNDCTL_DSP_SETFMT, &format) == -1)
 		goto failed;
 	/* Set device to stereo if possible */
-	int channels = 1;
-	if (ioctl(sound_fd, SNDCTL_DSP_STEREO, &channels) == -1)
+	int nchannels = xroar_cfg.ao_channels - 1;
+	if (nchannels < 0 || nchannels > 1)
+		nchannels = 1;
+	if (ioctl(sound_fd, SNDCTL_DSP_STEREO, &nchannels) == -1)
 		goto failed;
-	channels++;
+	nchannels++;
 
 	unsigned int sample_rate;
 	/* Attempt to set sample_rate, but live with whatever we get */
@@ -100,7 +102,7 @@ static _Bool init(void) {
 		buffer_samples = 1024;
 	}
 	int fragment_samples = buffer_samples / fragments;
-	fragment_size = fragment_samples * bytes_per_sample * channels;
+	fragment_size = fragment_samples * bytes_per_sample * nchannels;
 	while (fragment_size > 65536) {
 		fragment_size >>= 1;
 		fragment_samples >>= 1;
@@ -124,12 +126,12 @@ static _Bool init(void) {
 
 	int delay = 0;
 	if (ioctl(sound_fd, SNDCTL_DSP_GETODELAY, &delay) != -1) {
-		delay /= (channels * bytes_per_sample);
+		delay /= (nchannels * bytes_per_sample);
 	}
 	if (delay <= 0) {
 		audio_buf_info bi;
 		if (ioctl(sound_fd, SNDCTL_DSP_GETOSPACE, &bi) != -1) {
-			delay = bi.bytes / (channels * bytes_per_sample);
+			delay = bi.bytes / (nchannels * bytes_per_sample);
 		}
 	}
 
@@ -143,7 +145,7 @@ static _Bool init(void) {
 		goto failed;
 	}
 	audio_buffer = g_malloc(fragment_size);
-	sound_init(audio_buffer, buffer_fmt, sample_rate, channels, fragment_samples);
+	sound_init(audio_buffer, buffer_fmt, sample_rate, nchannels, fragment_samples);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (delay * 1000) / sample_rate, delay);
 
 	if (tmp != fragment_param)

@@ -63,7 +63,9 @@ static _Bool init(void) {
 	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 	AUDIO_INITINFO(&device_info);
 	device_info.play.sample_rate = sample_rate;
-	device_info.play.channels = 1;
+	device_info.play.channels = xroar_cfg.ao_channels;
+	if (device_info.play.channels < 1 || device_info.play.channels > 2)
+		device_info.play.channels = 2;
 	device_info.play.precision = 8;
 	device_info.play.encoding = AUDIO_ENCODING_LINEAR;
 	if (ioctl(sound_fd, AUDIO_SETINFO, &device_info) < 0) {

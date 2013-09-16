@@ -61,16 +61,18 @@ static _Bool init(void) {
 		buffer_samples = (sample_rate * 23) / 1000;
 	}
 
-	int channels = 1;
+	int nchannels = xroar_cfg.ao_channels;
+	if (nchannels < 1 || nchannels > 2)
+		nchannels = 2;
 	int request_fmt = SOUND_FMT_U8;
 	int bytes_per_sample = 1;
-	buffer_size = channels * buffer_samples * bytes_per_sample;
+	buffer_size = nchannels * buffer_samples * bytes_per_sample;
 
 	WAVEFORMATEX format;
 	memset(&format, 0, sizeof(format));
 	format.cbSize = sizeof(format);
 	format.wFormatTag = WAVE_FORMAT_PCM;
-	format.nChannels = channels;
+	format.nChannels = nchannels;
 	format.nSamplesPerSec = sample_rate;
 	format.nAvgBytesPerSec = buffer_size;
 	format.nBlockAlign = 1;
@@ -99,7 +101,7 @@ static _Bool init(void) {
 	}
 
 	audio_buffer = g_malloc(buffer_size);
-	sound_init(audio_buffer, request_fmt, sample_rate, channels, buffer_samples);
+	sound_init(audio_buffer, request_fmt, sample_rate, nchannels, buffer_samples);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_samples * 1000) / sample_rate, buffer_samples);
 
 	cursor = 0;
