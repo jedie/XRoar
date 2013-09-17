@@ -16,6 +16,8 @@ void crclist_assign(const char *astring);
 int crclist_match(const char *name, uint32_t crc);
 
 /* Print a list of defined CRC lists to stdout */
+void crclist_print_all(void);
+/* Print list and exit */
 void crclist_print(void);
 
 #endif  /* XROAR_CRCLIST_H_ */

@@ -105,6 +105,23 @@ struct joystick_config *joystick_config_by_name(const char *name) {
 	return NULL;
 }
 
+void joystick_config_print_all(void) {
+	for (GSList *l = config_list; l; l = l->next) {
+		struct joystick_config *jc = l->data;
+		printf("joy %s\n", jc->name);
+		if (jc->description) printf("  joy-desc %s\n", jc->description);
+		for (int i = 0 ; i < JOYSTICK_NUM_AXES; i++) {
+			if (jc->axis_specs[i])
+				printf("  joy-axis %d=%s\n", i, jc->axis_specs[i]);
+		}
+		for (int i = 0 ; i < JOYSTICK_NUM_BUTTONS; i++) {
+			if (jc->button_specs[i])
+				printf("  joy-button %d=%s\n", i, jc->button_specs[i]);
+		}
+		printf("\n");
+	}
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static struct joystick_interface *find_if_in_mod(JoystickModule *module, const char *if_name) {

@@ -131,6 +131,7 @@ struct private_cfg {
 	char *joy_axis[JOYSTICK_NUM_AXES];
 	char *joy_button[JOYSTICK_NUM_BUTTONS];
 
+	_Bool config_print;
 };
 
 static struct private_cfg private_cfg = {
@@ -353,9 +354,12 @@ static struct xconfig_option xroar_options[] = {
 #endif
 	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
 	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
+#ifdef WANT_GDB_TARGET
 	XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb),
+#endif
 
 	/* Other options: */
+	XC_SET_BOOL("config-print", &private_cfg.config_print),
 	XC_CALL_NULL("help", &helptext),
 	XC_CALL_NULL("h", &helptext),
 	XC_CALL_NULL("version", &versiontext),
@@ -876,7 +880,7 @@ static void helptext(void) {
 "XRoar is a Dragon emulator.  Due to hardware similarities, XRoar also\n"
 "emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
 
-"\n  -c CONFFILE   specify a configuration file\n"
+"\n  -c CONFFILE     specify a configuration file\n"
 
 "\n Machines:\n"
 "  -default-machine NAME   default machine on startup\n"
@@ -990,6 +994,7 @@ static void helptext(void) {
 "  -debug-gdb FLAGS      GDB target debugging (see manual, or -1 for all)\n"
 
 "\n Other options:\n"
+"  -config-print         print full configuration to standard output\n"
 "  -h, --help            display this help and exit\n"
 "      --version         output version information and exit\n"
 
@@ -1090,6 +1095,110 @@ _Bool xroar_init(int argc, char **argv) {
 	set_machine(NULL);
 	set_cart(NULL);
 	set_joystick(NULL);
+
+	if (private_cfg.config_print) {
+		/* Machines: */
+		machine_config_print_all();
+		/* Cartridges: */
+		cart_config_print_all();
+		/* Becker port: */
+		if (xroar_cfg.becker) printf("becker\n");
+		if (xroar_cfg.becker_ip) printf("becker-ip %s\n", xroar_cfg.becker_ip);
+		if (xroar_cfg.becker_port) printf("becker-port %s\n", xroar_cfg.becker_port);
+		printf("\n");
+		/* Files: */
+		for (GSList *l = private_cfg.load_list; l; l = l->next) {
+			const char *s = l->data;
+			printf("load %s\n", s);
+		}
+		if (private_cfg.run) printf("run %s\n", private_cfg.run);
+		printf("\n");
+		/* Cassettes: */
+		if (private_cfg.tape_write) printf("tape-write %s\n", private_cfg.tape_write);
+		if (private_cfg.tape_fast == 0) printf("no-tape-fast\n");
+		if (private_cfg.tape_fast == 1) printf("tape-fast\n");
+		if (private_cfg.tape_pad == 0) printf("no-tape-pad\n");
+		if (private_cfg.tape_pad == 1) printf("tape-pad\n");
+		if (private_cfg.tape_pad_auto == 0) printf("no-tape-pad-auto\n");
+		if (private_cfg.tape_pad_auto == 1) printf("tape-pad-auto\n");
+		if (private_cfg.tape_rewrite == 0) printf("no-tape-rewrite\n");
+		if (private_cfg.tape_rewrite == 1) printf("tape-rewrite\n");
+		printf("\n");
+		/* Disks: */
+		if (xroar_cfg.disk_write_back) printf("disk-write-back\n");
+		if (xroar_cfg.disk_jvc_hack) printf("disk-jvc-hack\n");
+		printf("\n");
+		/* Firmware ROM images: */
+		if (xroar_rom_path) printf("rompath %s\n", xroar_rom_path);
+		romlist_print_all();
+		crclist_print_all();
+		if (xroar_cfg.force_crc_match) printf("force-crc-match\n");
+		printf("\n");
+		/* User interface: */
+		if (private_cfg.ui) printf("ui %s\n", private_cfg.ui);
+		if (private_cfg.filereq) printf("filereq %s\n", private_cfg.filereq);
+		printf("\n");
+		/* Video: */
+		if (private_cfg.vo) printf("vo %s\n", private_cfg.vo);
+		if (xroar_cfg.fullscreen) printf("fs\n");
+		if (xroar_frameskip > 0) printf("fskip %d\n", xroar_frameskip);
+		switch (xroar_cfg.ccr) {
+		case CROSS_COLOUR_SIMPLE: printf("ccr simple\n"); break;
+		// case CROSS_COLOUR_5BIT: printf("ccr 5bit\n"); break;
+		default: break;
+		}
+		switch (xroar_cfg.gl_filter) {
+		// case ANY_AUTO: printf("gl-filter auto\n"); break;
+		case XROAR_GL_FILTER_NEAREST: printf("gl-filter nearest\n"); break;
+		case XROAR_GL_FILTER_LINEAR: printf("gl-filter linear\n"); break;
+		default: break;
+		}
+		if (xroar_cfg.geometry) printf("geometry %s\n", xroar_cfg.geometry);
+		printf("\n");
+		/* Audio: */
+		if (private_cfg.ao) printf("ao %s\n", private_cfg.ao);
+		if (xroar_cfg.ao_device) printf("ao-device %s\n", xroar_cfg.ao_device);
+		if (xroar_cfg.ao_rate != 0) printf("ao-rate %d\n", xroar_cfg.ao_rate);
+		if (xroar_cfg.ao_channels != 0) printf("ao-channels %d\n", xroar_cfg.ao_channels);
+		if (xroar_cfg.ao_buffer_ms != 0) printf("ao-buffer-ms %d\n", xroar_cfg.ao_buffer_ms);
+		if (xroar_cfg.ao_buffer_samples != 0) printf("ao-buffer-samples %d\n", xroar_cfg.ao_buffer_samples);
+		if (private_cfg.volume != 100) printf("volume %d\n", private_cfg.volume);
+#ifndef FAST_SOUND
+		if (xroar_cfg.fast_sound) printf("fast-sound\n");
+#endif
+		printf("\n");
+		/* Keyboard: */
+		if (xroar_cfg.keymap) printf("keymap %s\n", xroar_cfg.keymap);
+		if (xroar_cfg.kbd_translate) printf("kbd-translate\n");
+		for (GSList *l = private_cfg.type_list; l; l = l->next) {
+			const char *s = l->data;
+			printf("type %s\n", s);
+		}
+		printf("\n");
+		/* Joysticks: */
+		joystick_config_print_all();
+		/* Printing: */
+		if (private_cfg.lp_file) printf("lp-file %s\n", private_cfg.lp_file);
+		if (private_cfg.lp_pipe) printf("lp-pipe %s\n", private_cfg.lp_pipe);
+		printf("\n");
+		/* Debugging: */
+#ifdef WANT_GDB_TARGET
+		if (private_cfg.gdb) printf("gdb\n");
+		if (xroar_cfg.gdb_ip) printf("gdb-ip %s\n", xroar_cfg.gdb_ip);
+		if (xroar_cfg.gdb_port) printf("gdb-port %s\n", xroar_cfg.gdb_port);
+#endif
+#ifdef TRACE
+		if (xroar_cfg.trace_enabled == 0) printf("no-trace\n");
+		if (xroar_cfg.trace_enabled == 1) printf("trace\n");
+#endif
+		if (xroar_cfg.debug_file != 0) printf("debug-file 0x%x\n", xroar_cfg.debug_file);
+		if (xroar_cfg.debug_fdc != 0) printf("debug-fdc 0x%x\n", xroar_cfg.debug_fdc);
+#ifdef WANT_GDB_TARGET
+		if (xroar_cfg.debug_gdb != 0) printf("debug-gdb 0x%x\n", xroar_cfg.debug_gdb);
+#endif
+		printf("\n");
+		exit(EXIT_SUCCESS);
+	}
 
 	// Select a UI module.
 	ui_module = (UIModule *)module_select_by_arg((struct module **)ui_module_list, private_cfg.ui);

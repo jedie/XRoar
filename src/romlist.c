@@ -159,11 +159,14 @@ char *romlist_find(const char *name) {
 
 static void print_romlist_entry(struct romlist *list, void *user_data) {
 	GSList *jter;
-	(void)user_data;
-	if (strlen(list->name) > 15) {
-		printf("\t%s\n\t%16s", list->name, "");
+	if (user_data) {
+		printf("romlist %s=", list->name);
 	} else {
-		printf("\t%-15s ", list->name);
+		if (strlen(list->name) > 15) {
+			printf("\t%s\n\t%16s", list->name, "");
+		} else {
+			printf("\t%-15s ", list->name);
+		}
 	}
 	for (jter = list->list; jter; jter = jter->next) {
 		printf("%s", (char *)jter->data);
@@ -175,6 +178,11 @@ static void print_romlist_entry(struct romlist *list, void *user_data) {
 }
 
 /* Print a list of defined ROM lists to stdout */
+void romlist_print_all(void) {
+	g_slist_foreach(romlist_list, (GFunc)print_romlist_entry, (void *)1);
+}
+
+/* Print list and exit */
 void romlist_print(void) {
 	printf("ROM lists:\n");
 	g_slist_foreach(romlist_list, (GFunc)print_romlist_entry, NULL);

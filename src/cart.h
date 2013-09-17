@@ -55,6 +55,7 @@ struct cart_config *cart_config_index(int i);
 struct cart_config *cart_config_by_name(const char *name);
 struct cart_config *cart_find_working_dos(struct machine_config *mc);
 void cart_config_complete(struct cart_config *cc);
+void cart_config_print_all(void);
 
 // c->config MUST point to a complete cart config before calling cart_init()
 void cart_init(struct cart *c);

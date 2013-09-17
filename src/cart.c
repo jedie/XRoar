@@ -161,6 +161,30 @@ void cart_config_complete(struct cart_config *cc) {
 	}
 }
 
+static const char *cart_type_string[] = {
+	"rom",
+	"dragondos",
+	"rsdos",
+	"delta",
+	"orch90",
+};
+
+void cart_config_print_all(void) {
+	for (GSList *l = config_list; l; l = l->next) {
+		struct cart_config *cc = l->data;
+		printf("cart %s\n", cc->name);
+		if (cc->description) printf("  cart-desc %s\n", cc->description);
+		if (cc->type >= 0 && cc->type < G_N_ELEMENTS(cart_type_string))
+			printf("  cart-type %s\n", cart_type_string[cc->type]);
+		if (cc->rom) printf("  cart-rom %s\n", cc->rom);
+		if (cc->rom2) printf("  cart-rom2 %s\n", cc->rom2);
+		if (cc->becker_port) printf("  cart-becker\n");
+		if (cc->type != CART_ROM && cc->autorun) printf("  cart-autorun\n");
+		if (cc->type == CART_ROM && !cc->autorun) printf("  no-cart-autorun\n");
+		printf("\n");
+	}
+}
+
 /* ---------------------------------------------------------------------- */
 
 struct cart *cart_new(struct cart_config *cc) {

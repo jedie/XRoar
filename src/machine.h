@@ -103,6 +103,7 @@ struct machine_config *machine_config_by_arch(int arch);
 struct machine_config *machine_config_first_working(void);
 /* Complete a config replacing ANY_AUTO entries: */
 void machine_config_complete(struct machine_config *mc);
+void machine_config_print_all(void);
 
 void machine_init(void);
 void machine_shutdown(void);

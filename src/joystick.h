@@ -81,6 +81,7 @@ struct joystick_config *joystick_config_new(void);
 unsigned joystick_config_count(void);
 struct joystick_config *joystick_config_index(unsigned i);
 struct joystick_config *joystick_config_by_name(const char *name);
+void joystick_config_print_all(void);
 
 void joystick_init(void);
 void joystick_shutdown(void);

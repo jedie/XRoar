@@ -239,6 +239,54 @@ void machine_config_complete(struct machine_config *mc) {
 	}
 }
 
+static const char *machine_arch_string[] = {
+	"dragon32",
+	"dragon64",
+	"coco",
+};
+
+static const char *machine_cpu_string[] = {
+	"6809",
+	"6309",
+};
+
+static const char *machine_tv_type_string[] = {
+	"pal",
+	"ntsc",
+};
+
+static const char *machine_vdg_type_string[] = {
+	"6847",
+	"6847t1",
+};
+
+void machine_config_print_all(void) {
+	for (GSList *l = config_list; l; l = l->next) {
+		struct machine_config *mc = l->data;
+		printf("machine %s\n", mc->name);
+		if (mc->description) printf("  machine-desc %s\n", mc->description);
+		if (mc->architecture >= 0 && mc->architecture < G_N_ELEMENTS(machine_arch_string))
+			printf("  machine-arch %s\n", machine_arch_string[mc->architecture]);
+		if (mc->cpu >= 0 && mc->cpu < G_N_ELEMENTS(machine_cpu_string))
+			printf("  machine-cpu %s\n", machine_cpu_string[mc->cpu]);
+		if (mc->vdg_palette) printf("  machine-palette %s\n", mc->vdg_palette);
+		if (mc->bas_rom) printf("  bas %s\n", mc->bas_rom);
+		if (mc->extbas_rom) printf("  extbas %s\n", mc->extbas_rom);
+		if (mc->altbas_rom) printf("  altbas %s\n", mc->altbas_rom);
+		if (mc->nobas) printf("  nobas\n");
+		if (mc->noextbas) printf("  noextbas\n");
+		if (mc->noaltbas) printf("  noaltbas\n");
+		if (mc->tv_standard >= 0 && mc->tv_standard < G_N_ELEMENTS(machine_tv_type_string))
+			printf("  tv-type %s\n", machine_tv_type_string[mc->tv_standard]);
+		if (mc->vdg_type >= 0 && mc->vdg_type < G_N_ELEMENTS(machine_vdg_type_string))
+			printf("  vdg-type %s\n", machine_vdg_type_string[mc->vdg_type]);
+		if (mc->ram >= 0) printf("  ram %d\n", mc->ram);
+		if (mc->default_cart) printf("  machine-cart %s\n", mc->default_cart);
+		if (mc->nodos) printf("  nodos\n");
+		printf("\n");
+	}
+}
+
 /* ---------------------------------------------------------------------- */
 
 static void keyboard_update(void) {

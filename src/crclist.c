@@ -144,11 +144,14 @@ int crclist_match(const char *name, uint32_t crc) {
 
 static void print_crclist_entry(struct crclist *list, void *user_data) {
 	GSList *jter;
-	(void)user_data;
-	if (strlen(list->name) > 15) {
-		printf("\t%s\n\t%16s", list->name, "");
+	if (user_data) {
+		printf("crclist %s=", list->name);
 	} else {
-		printf("\t%-15s ", list->name);
+		if (strlen(list->name) > 15) {
+			printf("\t%s\n\t%16s", list->name, "");
+		} else {
+			printf("\t%-15s ", list->name);
+		}
 	}
 	for (jter = list->list; jter; jter = jter->next) {
 		printf("%s", (char *)jter->data);
@@ -160,6 +163,11 @@ static void print_crclist_entry(struct crclist *list, void *user_data) {
 }
 
 /* Print a list of defined ROM lists to stdout */
+void crclist_print_all(void) {
+	g_slist_foreach(crclist_list, (GFunc)print_crclist_entry, (void *)1);
+}
+
+/* Print list and exit */
 void crclist_print(void) {
 	printf("CRC lists:\n");
 	g_slist_foreach(crclist_list, (GFunc)print_crclist_entry, NULL);

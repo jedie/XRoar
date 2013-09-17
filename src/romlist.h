@@ -14,6 +14,8 @@ void romlist_assign(const char *astring);
 char *romlist_find(const char *name);
 
 /* Print a list of defined ROM lists to stdout */
+void romlist_print_all(void);
+/* Print list and exit */
 void romlist_print(void);
 
 #endif  /* XROAR_ROMLIST_H_ */
