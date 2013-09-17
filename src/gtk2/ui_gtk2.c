@@ -230,17 +230,35 @@ static void zoom_2_1(void) {
 
 static void zoom_in(void) {
 	if (video_module && video_module->resize) {
-		int scale2 = (int)((video_module->scale * 2.) + 0.5) + 1;
-		if (scale2 < 1) scale2 = 1;
-		video_module->resize(160 * scale2, 120 * scale2);
+		int xscale = gtk2_window_w / 160;
+		int yscale = gtk2_window_h / 120;
+		int scale = 1;
+		if (xscale < yscale)
+			scale = yscale;
+		else if (xscale > yscale)
+			scale = xscale;
+		else
+			scale = xscale + 1;
+		if (scale < 1)
+			scale = 1;
+		video_module->resize(160 * scale, 120 * scale);
 	}
 }
 
 static void zoom_out(void) {
 	if (video_module && video_module->resize) {
-		int scale2 = (int)((video_module->scale * 2.) + 0.5) - 1;
-		if (scale2 < 1) scale2 = 1;
-		video_module->resize(160 * scale2, 120 * scale2);
+		int xscale = gtk2_window_w / 160;
+		int yscale = gtk2_window_h / 120;
+		int scale = 1;
+		if (xscale < yscale)
+			scale = xscale;
+		else if (xscale > yscale)
+			scale = yscale;
+		else
+			scale = xscale - 1;
+		if (scale < 1)
+			scale = 1;
+		video_module->resize(160 * scale, 120 * scale);
 	}
 }
 
