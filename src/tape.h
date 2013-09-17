@@ -81,8 +81,6 @@ void tape_free(struct tape *t);
 
 /**************************************************************************/
 
-extern float tape_audio;
-
 void tape_init(void);
 void tape_reset(void);
 void tape_shutdown(void);
