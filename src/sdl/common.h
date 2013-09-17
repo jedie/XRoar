@@ -30,4 +30,7 @@ void sdl_keypress(SDL_keysym *keysym);
 void sdl_keyrelease(SDL_keysym *keysym);
 void sdl_js_physical_shutdown(void);
 
+void sdl_zoom_in(void);
+void sdl_zoom_out(void);
+
 #endif  /* XROAR_SDL_COMMON_H_ */

@@ -213,3 +213,39 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 	button->data = &mouse_button[jbutton];
 	return button;
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void sdl_zoom_in(void) {
+	if (video_module && video_module->resize) {
+		int xscale = sdl_window_w / 160;
+		int yscale = sdl_window_h / 120;
+		int scale = 1;
+		if (xscale < yscale)
+			scale = yscale;
+		else if (xscale > yscale)
+			scale = xscale;
+		else
+			scale = xscale + 1;
+		if (scale < 1)
+			scale = 1;
+		video_module->resize(160 * scale, 120 * scale);
+	}
+}
+
+void sdl_zoom_out(void) {
+	if (video_module && video_module->resize) {
+		int xscale = sdl_window_w / 160;
+		int yscale = sdl_window_h / 120;
+		int scale = 1;
+		if (xscale < yscale)
+			scale = xscale;
+		else if (xscale > yscale)
+			scale = yscale;
+		else
+			scale = xscale - 1;
+		if (scale < 1)
+			scale = 1;
+		video_module->resize(160 * scale, 120 * scale);
+	}
+}
