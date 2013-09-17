@@ -31,7 +31,6 @@ typedef struct {
 	void (*resize)(unsigned int w, unsigned int h);
 	int (*set_fullscreen)(_Bool fullscreen);
 	_Bool is_fullscreen;
-	float scale;
 	void (*render_scanline)(uint8_t *scanline_data);
 	void (*vsync)(void);
 	void (*refresh)(void);
