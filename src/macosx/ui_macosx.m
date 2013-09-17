@@ -16,24 +16,54 @@
 
 #include "logging.h"
 #include "cart.h"
+#include "joystick.h"
 #include "keyboard.h"
 #include "machine.h"
 #include "module.h"
+#include "tape.h"
 #include "xroar.h"
 #include "sdl/common.h"
 
 #define TAG_TYPE_MASK (0x7f << 24)
 #define TAG_VALUE_MASK (0xffffff)
-#define TAG_MACHINE (1 << 24)
-#define TAG_CARTRIDGE (2 << 24)
-#define TAG_FULLSCREEN (3 << 24)
-#define TAG_KEYMAP (4 << 24)
-#define TAG_KBD_TRANSLATE (5 << 24)
-#define TAG_CC (6 << 24)
-#define TAG_FAST_SOUND (7 << 24)
-#define TAG_DRIVE (8 << 24)
-#define TAG_WRITE_ENABLE (9 << 24)
-#define TAG_WRITE_BACK (10 << 24)
+
+#define TAG_SIMPLE_ACTION (1 << 24)
+
+#define TAG_MACHINE (2 << 24)
+
+#define TAG_CARTRIDGE (3 << 24)
+
+#define TAG_TAPE_FLAGS (4 << 24)
+
+#define TAG_INSERT_DISK (5 << 24)
+#define TAG_NEW_DISK (6 << 24)
+#define TAG_WRITE_ENABLE (7 << 24)
+#define TAG_WRITE_BACK (8 << 24)
+
+#define TAG_FULLSCREEN (9 << 24)
+#define TAG_CROSS_COLOUR (10 << 24)
+
+#define TAG_FAST_SOUND (11 << 24)
+
+#define TAG_KEYMAP (12 << 24)
+#define TAG_KBD_TRANSLATE (13 << 24)
+#define TAG_JOY_RIGHT (14 << 24)
+#define TAG_JOY_LEFT (15 << 24)
+
+enum {
+	TAG_QUIT,
+	TAG_RESET_SOFT,
+	TAG_RESET_HARD,
+	TAG_FILE_LOAD,
+	TAG_FILE_RUN,
+	TAG_FILE_SAVE_SNAPSHOT,
+	TAG_TAPE_INPUT,
+	TAG_TAPE_OUTPUT,
+	TAG_TAPE_INPUT_REWIND,
+	TAG_ZOOM_IN,
+	TAG_ZOOM_OUT,
+	TAG_JOY_SWAP,
+};
 
 @interface SDLMain : NSObject
 @end
@@ -92,6 +122,33 @@ static _Bool is_fast_sound = 0;
 static _Bool disk_write_enable[4] = { 1, 1, 1, 1 };
 static _Bool disk_write_back[4] = { 0, 0, 0, 0 };
 
+static struct {
+	const char *name;
+	NSString *description;
+} joystick_names[] = {
+	{ NULL, @"None" },
+	{ "joy0", @"Joystick 0" },
+	{ "joy1", @"Joystick 1" },
+	{ "kjoy0", @"Keyboard" },
+	{ "mjoy0", @"Mouse" },
+};
+
+/* Hacky way to discover which joystick is mapped - for determining which radio
+ * button is visible in joystick menus. */
+static int selected_joystick(unsigned port) {
+	int i;
+	if (port > 1)
+		return 0;
+	if (!joystick_port_config[port])
+		return 0;
+	if (!joystick_port_config[port]->name)
+		return 0;
+	for (i = 1; i < 5; i++)
+		if (0 == strcmp(joystick_port_config[port]->name, joystick_names[i].name))
+			return i;
+	return 0;
+}
+
 /* Setting this to true is a massive hack so that cocoa file dialogues receive
  * keypresses.  Ideally, need to sort SDL out or turn this into a regular
  * OpenGL application. */
@@ -101,14 +158,6 @@ int cocoa_super_all_keys = 0;
 @end
 
 @implementation SDLApplication
-/* Invoked from the Quit menu item */
-- (void)terminate:(id)sender {
-	(void)sender;
-	/* Post a SDL_QUIT event */
-	SDL_Event event;
-	event.type = SDL_QUIT;
-	SDL_PushEvent(&event);
-}
 
 - (void)sendEvent:(NSEvent *)anEvent {
 	if (NSKeyDown == [anEvent type] || NSKeyUp == [anEvent type]) {
@@ -119,129 +168,195 @@ int cocoa_super_all_keys = 0;
 	}
 }
 
-- (void)do_run_file:(id)sender {
-	(void)sender;
-	xroar_run_file(NULL);
-}
+- (void)do_set_state:(id)sender {
+	int tag = [sender tag];
+	int tag_type = tag & TAG_TYPE_MASK;
+	int tag_value = tag & TAG_VALUE_MASK;
+	switch (tag_type) {
 
-- (void)do_load_file:(id)sender {
-	(void)sender;
-	xroar_load_file(NULL);
-}
+	/* Simple actions: */
+	case TAG_SIMPLE_ACTION:
+		switch (tag_value) {
+		case TAG_QUIT:
+			{
+				SDL_Event event;
+				event.type = SDL_QUIT;
+				SDL_PushEvent(&event);
+			}
+			break;
+		case TAG_RESET_SOFT:
+			xroar_soft_reset();
+			break;
+		case TAG_RESET_HARD:
+			xroar_hard_reset();
+			break;
+		case TAG_FILE_RUN:
+			xroar_run_file(NULL);
+			break;
+		case TAG_FILE_LOAD:
+			xroar_load_file(NULL);
+			break;
+		case TAG_FILE_SAVE_SNAPSHOT:
+			xroar_save_snapshot();
+			break;
+		case TAG_TAPE_INPUT:
+			xroar_select_tape_input();
+			break;
+		case TAG_TAPE_OUTPUT:
+			xroar_select_tape_output();
+			break;
+		case TAG_TAPE_INPUT_REWIND:
+			if (tape_input)
+				tape_rewind(tape_input);
+			break;
+		case TAG_ZOOM_IN:
+			sdl_zoom_in();
+			break;
+		case TAG_ZOOM_OUT:
+			sdl_zoom_out();
+			break;
+		case TAG_JOY_SWAP:
+			joystick_swap();
+			break;
+		default:
+			break;
+		}
+		break;
 
-- (void)do_insert_disk:(id)sender {
-	int drive = [sender tag] & TAG_VALUE_MASK;
-	xroar_insert_disk(drive);
-}
+	/* Machines: */
+	case TAG_MACHINE:
+		current_machine = tag;
+		xroar_set_machine(tag_value);
+		break;
 
-- (void)do_new_disk:(id)sender {
-	int drive = [sender tag] & TAG_VALUE_MASK;
-	xroar_new_disk(drive);
-}
+	/* Cartridges: */
+	case TAG_CARTRIDGE:
+		{
+			if (tag_value & (1 << 23))
+				tag_value = -1;
+			struct cart_config *cc = cart_config_index(tag_value);
+			xroar_set_cart(cc ? cc->name : NULL);
+		}
+		break;
 
-- (void)do_set_write_enable:(id)sender {
-	int drive = [sender tag] & TAG_VALUE_MASK;
-	disk_write_enable[drive] = !disk_write_enable[drive];
-	xroar_select_write_enable(drive, disk_write_enable[drive]);
-}
+	/* Cassettes: */
+	case TAG_TAPE_FLAGS:
+		tape_set_state(tape_get_state() ^ tag_value);
+		break;
 
-- (void)do_set_write_back:(id)sender {
-	int drive = [sender tag] & TAG_VALUE_MASK;
-	disk_write_back[drive] = !disk_write_back[drive];
-	xroar_select_write_back(drive, disk_write_back[drive]);
-}
+	/* Disks: */
+	case TAG_INSERT_DISK:
+		xroar_insert_disk(tag_value);
+		break;
+	case TAG_NEW_DISK:
+		xroar_new_disk(tag_value);
+		break;
+	case TAG_WRITE_ENABLE:
+		disk_write_enable[tag_value] = !disk_write_enable[tag_value];
+		xroar_select_write_enable(tag_value, disk_write_enable[tag_value]);
+		break;
+	case TAG_WRITE_BACK:
+		disk_write_back[tag_value] = !disk_write_back[tag_value];
+		xroar_select_write_back(tag_value, disk_write_back[tag_value]);
+		break;
 
-- (void)do_save_snapshot:(id)sender {
-	(void)sender;
-	xroar_save_snapshot();
-}
+	/* Video: */
+	case TAG_FULLSCREEN:
+		is_fullscreen = !is_fullscreen;
+		xroar_fullscreen(is_fullscreen);
+		break;
+	case TAG_CROSS_COLOUR:
+		current_cc = tag;
+		xroar_select_cross_colour(tag_value);
+		break;
 
-- (void)do_set_cc:(id)sender {
-	current_cc = [sender tag];
-	int set_to = current_cc & TAG_VALUE_MASK;
-	xroar_select_cross_colour(set_to);
-}
+	/* Audio: */
+	case TAG_FAST_SOUND:
+		is_fast_sound = !is_fast_sound;
+		machine_set_fast_sound(is_fast_sound);
+		break;
 
-- (void)do_soft_reset:(id)sender {
-	(void)sender;
-	xroar_soft_reset();
-}
+	/* Keyboard: */
+	case TAG_KEYMAP:
+		current_keymap = tag;
+		xroar_set_keymap(tag_value);
+		break;
+	case TAG_KBD_TRANSLATE:
+		is_kbd_translate = !is_kbd_translate;
+		xroar_set_kbd_translate(is_kbd_translate);
+		break;
 
-- (void)do_hard_reset:(id)sender {
-	(void)sender;
-	xroar_hard_reset();
-}
+	/* Joysticks: */
+	case TAG_JOY_RIGHT:
+		if (tag_value >= 1 && tag_value <= 4) {
+			joystick_map(joystick_config_by_name(joystick_names[tag_value].name), 0);
+		} else {
+			joystick_unmap(0);
+		}
+		break;
+	case TAG_JOY_LEFT:
+		if (tag_value >= 1 && tag_value <= 4) {
+			joystick_map(joystick_config_by_name(joystick_names[tag_value].name), 1);
+		} else {
+			joystick_unmap(1);
+		}
+		break;
 
-- (void)set_machine:(id)sender {
-	current_machine = [sender tag];
-	int set_to = current_machine & TAG_VALUE_MASK;
-	xroar_set_machine(set_to);
-}
-
-- (void)do_set_keymap:(id)sender {
-	current_keymap = [sender tag];
-	xroar_set_keymap(current_keymap & TAG_VALUE_MASK);
-}
-
-- (void)set_cartridge:(id)sender {
-	current_cartridge = [sender tag];
-	int set_to = current_cartridge & TAG_VALUE_MASK;
-	if (set_to & (1 << 23)) {
-		set_to = -1;
+	default:
+		break;
 	}
-	struct cart_config *cc = cart_config_index(set_to);
-	xroar_set_cart(cc ? cc->name : NULL);
-}
-
-
-- (void)do_fullscreen:(id)sender {
-	(void)sender;
-	is_fullscreen = !is_fullscreen;
-	xroar_fullscreen(is_fullscreen);
-}
-
-- (void)do_kbd_translate:(id)sender {
-	(void)sender;
-	is_kbd_translate = !is_kbd_translate;
-	xroar_set_kbd_translate(is_kbd_translate);
-}
-
-- (void)do_fast_sound:(id)sender {
-	(void)sender;
-	is_fast_sound = !is_fast_sound;
-	machine_set_fast_sound(is_fast_sound);
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
 	int tag = [item tag];
 	int tag_type = tag & TAG_TYPE_MASK;
 	int tag_value = tag & TAG_VALUE_MASK;
-	if (tag_type == TAG_MACHINE) {
+	switch (tag_type) {
+
+	case TAG_MACHINE:
 		[item setState:((tag == current_machine) ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_KEYMAP) {
-		[item setState:((tag == current_keymap) ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_CARTRIDGE) {
+		break;
+
+	case TAG_CARTRIDGE:
 		[item setState:((tag == current_cartridge) ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_FULLSCREEN) {
-		[item setState:(is_fullscreen ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_KBD_TRANSLATE) {
-		[item setState:(is_kbd_translate ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_FAST_SOUND) {
-		[item setState:(is_fast_sound ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_CC) {
-		[item setState:((tag == current_cc) ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_WRITE_ENABLE) {
+		break;
+
+	case TAG_TAPE_FLAGS:
+		[item setState:((tape_get_state() & tag_value) ? NSOnState : NSOffState)];
+		break;
+
+	case TAG_WRITE_ENABLE:
 		[item setState:(disk_write_enable[tag_value] ? NSOnState : NSOffState)];
-	}
-	if (tag_type == TAG_WRITE_BACK) {
+		break;
+	case TAG_WRITE_BACK:
 		[item setState:(disk_write_back[tag_value] ? NSOnState : NSOffState)];
+		break;
+
+	case TAG_FULLSCREEN:
+		[item setState:(is_fullscreen ? NSOnState : NSOffState)];
+		break;
+	case TAG_CROSS_COLOUR:
+		[item setState:((tag == current_cc) ? NSOnState : NSOffState)];
+		break;
+
+	case TAG_FAST_SOUND:
+		[item setState:(is_fast_sound ? NSOnState : NSOffState)];
+		break;
+
+	case TAG_KEYMAP:
+		[item setState:((tag == current_keymap) ? NSOnState : NSOffState)];
+		break;
+	case TAG_KBD_TRANSLATE:
+		[item setState:(is_kbd_translate ? NSOnState : NSOffState)];
+		break;
+
+	case TAG_JOY_RIGHT:
+		[item setState:((tag_value == selected_joystick(0)) ? NSOnState : NSOffState)];
+		break;
+	case TAG_JOY_LEFT:
+		[item setState:((tag_value == selected_joystick(1)) ? NSOnState : NSOffState)];
+		break;
+
 	}
 	return YES;
 }
@@ -292,8 +407,9 @@ static void setApplicationMenu(void) {
 	[apple_menu addItem:[NSMenuItem separatorItem]];
 
 	title = [@"Quit " stringByAppendingString:app_name];
-	[apple_menu addItemWithTitle:title action:@selector(terminate:) keyEquivalent:@"q"];
-
+	item = [[NSMenuItem alloc] initWithTitle:title action:@selector(do_set_state:) keyEquivalent:@"q"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_QUIT)];
+	[apple_menu addItem:item];
 
 	/* Put menu into the menubar */
 	item = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
@@ -314,148 +430,133 @@ static void setup_file_menu(void) {
 	NSMenuItem *file_menu_item;
 	NSMenuItem *item;
 	NSMenu *submenu;
+	NSString *tmp;
 
 	file_menu = [[NSMenu alloc] initWithTitle:@"File"];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Run" action:@selector(do_run_file:) keyEquivalent:@"L"];
+	tmp = [NSString stringWithFormat:@"Run%C", 0x2026];
+	item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:@"L"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_FILE_RUN)];
 	[file_menu addItem:item];
 	[item release];
+	[tmp release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Load" action:@selector(do_load_file:) keyEquivalent:@"l"];
+	tmp = [NSString stringWithFormat:@"Load%C", 0x2026];
+	item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:@"l"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_FILE_LOAD)];
 	[file_menu addItem:item];
 	[item release];
+	[tmp release];
 
 	[file_menu addItem:[NSMenuItem separatorItem]];
 
-	submenu = [[NSMenu alloc] initWithTitle:@"Drive 1"];
+	submenu = [[NSMenu alloc] initWithTitle:@"Cassette"];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"1"];
-	[item setTag:(TAG_DRIVE | 0)];
+	tmp = [NSString stringWithFormat:@"Input Tape%C", 0x2026];
+	item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:@""];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_TAPE_INPUT)];
 	[submenu addItem:item];
 	[item release];
+	[tmp release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"1"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_DRIVE | 0)];
+	tmp = [NSString stringWithFormat:@"Output Tape%C", 0x2026];
+	item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:@"w"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_TAPE_OUTPUT)];
+	[submenu addItem:item];
+	[item release];
+	[tmp release];
+
+	[submenu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Rewind Input Tape" action:@selector(do_set_state:) keyEquivalent:@""];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_TAPE_INPUT_REWIND)];
 	[submenu addItem:item];
 	[item release];
 
 	[submenu addItem:[NSMenuItem separatorItem]];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"5"];
-	[item setTag:(TAG_WRITE_ENABLE | 0)];
+	item = [[NSMenuItem alloc] initWithTitle:@"Fast Loading" action:@selector(do_set_state:) keyEquivalent:@""];
+	[item setTag:(TAG_TAPE_FLAGS | TAPE_FAST)];
 	[submenu addItem:item];
 	[item release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"5"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_WRITE_BACK | 0)];
+	item = [[NSMenuItem alloc] initWithTitle:@"Leader Padding" action:@selector(do_set_state:) keyEquivalent:@""];
+	[item setTag:(TAG_TAPE_FLAGS | TAPE_PAD)];
 	[submenu addItem:item];
 	[item release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Drive 1" action:nil keyEquivalent:@""];
-	[item setSubmenu:submenu];
-	[file_menu addItem:item];
-	[item release];
-
-	submenu = [[NSMenu alloc] initWithTitle:@"Drive 2"];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"2"];
-	[item setTag:(TAG_DRIVE | 1)];
+	item = [[NSMenuItem alloc] initWithTitle:@"Automatic Padding" action:@selector(do_set_state:) keyEquivalent:@""];
+	[item setTag:(TAG_TAPE_FLAGS | TAPE_PAD_AUTO)];
 	[submenu addItem:item];
 	[item release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"2"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_DRIVE | 1)];
+	item = [[NSMenuItem alloc] initWithTitle:@"Rewrite" action:@selector(do_set_state:) keyEquivalent:@""];
+	[item setTag:(TAG_TAPE_FLAGS | TAPE_REWRITE)];
 	[submenu addItem:item];
 	[item release];
 
-	[submenu addItem:[NSMenuItem separatorItem]];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"6"];
-	[item setTag:(TAG_WRITE_ENABLE | 1)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"6"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_WRITE_BACK | 1)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Drive 2" action:nil keyEquivalent:@""];
-	[item setSubmenu:submenu];
-	[file_menu addItem:item];
-	[item release];
-
-	submenu = [[NSMenu alloc] initWithTitle:@"Drive 3"];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"3"];
-	[item setTag:(TAG_DRIVE | 2)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"3"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_DRIVE | 2)];
-	[submenu addItem:item];
-	[item release];
-
-	[submenu addItem:[NSMenuItem separatorItem]];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"7"];
-	[item setTag:(TAG_WRITE_ENABLE | 2)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"7"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_WRITE_BACK | 2)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Drive 3" action:nil keyEquivalent:@""];
-	[item setSubmenu:submenu];
-	[file_menu addItem:item];
-	[item release];
-
-	submenu = [[NSMenu alloc] initWithTitle:@"Drive 4"];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Insert Disk…" action:@selector(do_insert_disk:) keyEquivalent:@"4"];
-	[item setTag:(TAG_DRIVE | 3)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"New Disk…" action:@selector(do_new_disk:) keyEquivalent:@"4"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_DRIVE | 3)];
-	[submenu addItem:item];
-	[item release];
-
-	[submenu addItem:[NSMenuItem separatorItem]];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_write_enable:) keyEquivalent:@"8"];
-	[item setTag:(TAG_WRITE_ENABLE | 3)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_write_back:) keyEquivalent:@"8"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
-	[item setTag:(TAG_WRITE_BACK | 3)];
-	[submenu addItem:item];
-	[item release];
-
-	item = [[NSMenuItem alloc] initWithTitle:@"Drive 4" action:nil keyEquivalent:@""];
+	item = [[NSMenuItem alloc] initWithTitle:@"Cassette" action:nil keyEquivalent:@""];
 	[item setSubmenu:submenu];
 	[file_menu addItem:item];
 	[item release];
 
 	[file_menu addItem:[NSMenuItem separatorItem]];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Save Snapshot" action:@selector(do_save_snapshot:) keyEquivalent:@"s"];
+	int drive;
+	for (drive = 0; drive < 4; drive++) {
+		NSString *title = [NSString stringWithFormat:@"Drive %d", drive+1];
+		NSString *key1 = [NSString stringWithFormat:@"%d", drive+1];
+		NSString *key2 = [NSString stringWithFormat:@"%d", drive+5];
+		NSString *tmp;
+
+		submenu = [[NSMenu alloc] initWithTitle:title];
+
+		tmp = [NSString stringWithFormat:@"Input Disk%C", 0x2026];
+		item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:key1];
+		[item setTag:(TAG_INSERT_DISK | drive)];
+		[submenu addItem:item];
+		[item release];
+		[tmp release];
+
+		tmp = [NSString stringWithFormat:@"New Disk%C", 0x2026];
+		item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:key1];
+		[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+		[item setTag:(TAG_NEW_DISK | drive)];
+		[submenu addItem:item];
+		[item release];
+		[tmp release];
+
+		[submenu addItem:[NSMenuItem separatorItem]];
+
+		item = [[NSMenuItem alloc] initWithTitle:@"Write Enable" action:@selector(do_set_state:) keyEquivalent:key2];
+		[item setTag:(TAG_WRITE_ENABLE | drive)];
+		[submenu addItem:item];
+		[item release];
+
+		item = [[NSMenuItem alloc] initWithTitle:@"Write Back" action:@selector(do_set_state:) keyEquivalent:key2];
+		[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+		[item setTag:(TAG_WRITE_BACK | drive)];
+		[submenu addItem:item];
+		[item release];
+
+		item = [[NSMenuItem alloc] initWithTitle:title action:nil keyEquivalent:@""];
+		[item setSubmenu:submenu];
+		[file_menu addItem:item];
+		[item release];
+
+		[key2 release];
+		[key1 release];
+		[title release];
+	}
+
+	[file_menu addItem:[NSMenuItem separatorItem]];
+
+	tmp = [NSString stringWithFormat:@"Save Snapshot%C", 0x2026];
+	item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:@"s"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_FILE_SAVE_SNAPSHOT)];
 	[file_menu addItem:item];
 	[item release];
+	[tmp release];
 
 	file_menu_item = [[NSMenuItem alloc] initWithTitle:@"File" action:nil keyEquivalent:@""];
 	[file_menu_item setSubmenu:file_menu];
@@ -474,7 +575,26 @@ static void setup_view_menu(void) {
 
 	view_menu = [[NSMenu alloc] initWithTitle:@"View"];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Full Screen" action:@selector(do_fullscreen:) keyEquivalent:@"f"];
+	submenu = [[NSMenu alloc] initWithTitle:@"Zoom"];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Zoom In" action:@selector(do_set_state:) keyEquivalent:@"+"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_ZOOM_IN)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Zoom Out" action:@selector(do_set_state:) keyEquivalent:@"-"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_ZOOM_OUT)];
+	[submenu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Zoom" action:nil keyEquivalent:@""];
+	[item setSubmenu:submenu];
+	[view_menu addItem:item];
+	[item release];
+
+	[view_menu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Full Screen" action:@selector(do_set_state:) keyEquivalent:@"f"];
 	[item setTag:TAG_FULLSCREEN];
 	[view_menu addItem:item];
 	[item release];
@@ -485,8 +605,8 @@ static void setup_view_menu(void) {
 
 	for (i = 0; xroar_cross_colour_list[i].name; i++) {
 		NSString *s = [[NSString alloc] initWithUTF8String:xroar_cross_colour_list[i].description];
-		item = [[NSMenuItem alloc] initWithTitle:s action:@selector(do_set_cc:) keyEquivalent:@""];
-		[item setTag:(TAG_CC | xroar_cross_colour_list[i].value)];
+		item = [[NSMenuItem alloc] initWithTitle:s action:@selector(do_set_state:) keyEquivalent:@""];
+		[item setTag:(TAG_CROSS_COLOUR | xroar_cross_colour_list[i].value)];
 		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
 		[submenu addItem:item];
 		[item release];
@@ -518,13 +638,13 @@ static void setup_machine_menu(void) {
 
 	submenu = [[NSMenu alloc] initWithTitle:@"Keyboard Map"];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Dragon Layout" action:@selector(do_set_keymap:) keyEquivalent:@""];
+	item = [[NSMenuItem alloc] initWithTitle:@"Dragon Layout" action:@selector(do_set_state:) keyEquivalent:@""];
 	[item setTag:(TAG_KEYMAP | KEYMAP_DRAGON)];
 	[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
 	[submenu addItem:item];
 	[item release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"CoCo Layout" action:@selector(do_set_keymap:) keyEquivalent:@""];
+	item = [[NSMenuItem alloc] initWithTitle:@"CoCo Layout" action:@selector(do_set_state:) keyEquivalent:@""];
 	[item setTag:(TAG_KEYMAP | KEYMAP_COCO)];
 	[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
 	[submenu addItem:item];
@@ -537,11 +657,51 @@ static void setup_machine_menu(void) {
 
 	[machine_menu addItem:[NSMenuItem separatorItem]];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Soft Reset" action:@selector(do_soft_reset:) keyEquivalent:@"r"];
+	submenu = [[NSMenu alloc] initWithTitle:@"Right Joystick"];
+
+	int joy;
+	for (joy = 0; joy < 5; joy++) {
+		item = [[NSMenuItem alloc] initWithTitle:joystick_names[joy].description action:@selector(do_set_state:) keyEquivalent:@""];
+		[item setTag:(TAG_JOY_RIGHT | joy)];
+		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
+		[submenu addItem:item];
+		[item release];
+	}
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Right Joystick" action:nil keyEquivalent:@""];
+	[item setSubmenu:submenu];
 	[machine_menu addItem:item];
 	[item release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Hard Reset" action:@selector(do_hard_reset:) keyEquivalent:@"R"];
+	submenu = [[NSMenu alloc] initWithTitle:@"Left Joystick"];
+
+	for (joy = 0; joy < 5; joy++) {
+		item = [[NSMenuItem alloc] initWithTitle:joystick_names[joy].description action:@selector(do_set_state:) keyEquivalent:@""];
+		[item setTag:(TAG_JOY_LEFT | joy)];
+		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
+		[submenu addItem:item];
+		[item release];
+	}
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Left Joystick" action:nil keyEquivalent:@""];
+	[item setSubmenu:submenu];
+	[machine_menu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Swap Joysticks" action:@selector(do_set_state:) keyEquivalent:@"J"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_JOY_SWAP)];
+	[machine_menu addItem:item];
+	[item release];
+
+	[machine_menu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Soft Reset" action:@selector(do_set_state:) keyEquivalent:@"r"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_RESET_SOFT)];
+	[machine_menu addItem:item];
+	[item release];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Hard Reset" action:@selector(do_set_state:) keyEquivalent:@"R"];
+	[item setTag:(TAG_SIMPLE_ACTION | TAG_RESET_HARD)];
 	[machine_menu addItem:item];
 	[item release];
 
@@ -573,12 +733,12 @@ static void setup_tool_menu(void) {
 
 	tool_menu = [[NSMenu alloc] initWithTitle:@"Tool"];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Keyboard Translation" action:@selector(do_kbd_translate:) keyEquivalent:@"z"];
+	item = [[NSMenuItem alloc] initWithTitle:@"Keyboard Translation" action:@selector(do_set_state:) keyEquivalent:@"z"];
 	[item setTag:TAG_KBD_TRANSLATE];
 	[tool_menu addItem:item];
 	[item release];
 
-	item = [[NSMenuItem alloc] initWithTitle:@"Fast Sound" action:@selector(do_fast_sound:) keyEquivalent:@""];
+	item = [[NSMenuItem alloc] initWithTitle:@"Fast Sound" action:@selector(do_set_state:) keyEquivalent:@""];
 	[item setTag:TAG_FAST_SOUND];
 	[tool_menu addItem:item];
 	[item release];
@@ -806,7 +966,7 @@ static void update_machine_menu(void) {
 	for (i = num_machines-1; i >= 0; i--) {
 		struct machine_config *mc = machine_config_index(i);
 		NSString *description = [[NSString alloc] initWithUTF8String:mc->description];
-		item = [[NSMenuItem alloc] initWithTitle:description action:@selector(set_machine:) keyEquivalent:@""];
+		item = [[NSMenuItem alloc] initWithTitle:description action:@selector(do_set_state:) keyEquivalent:@""];
 		[item setTag:(TAG_MACHINE | mc->index)];
 		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
 		[description release];
@@ -826,21 +986,21 @@ static void update_cartridge_menu(void) {
 	for (i = num_carts-1; i >= 0; i--) {
 		struct cart_config *cc = cart_config_index(i);
 		NSString *description = [[NSString alloc] initWithUTF8String:cc->description];
-		item = [[NSMenuItem alloc] initWithTitle:description action:@selector(set_cartridge:) keyEquivalent:@""];
+		item = [[NSMenuItem alloc] initWithTitle:description action:@selector(do_set_state:) keyEquivalent:@""];
 		[item setTag:(TAG_CARTRIDGE | cc->index)];
 		[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
 		[description release];
 		[cartridge_menu insertItem:item atIndex:0];
 		[item release];
 	}
-	item = [[NSMenuItem alloc] initWithTitle:@"None" action:@selector(set_cartridge:) keyEquivalent:@""];
+	item = [[NSMenuItem alloc] initWithTitle:@"None" action:@selector(do_set_state:) keyEquivalent:@""];
 	[item setTag:(TAG_CARTRIDGE | (-1 & TAG_VALUE_MASK))];
 	[cartridge_menu insertItem:item atIndex:0];
 	[item release];
 }
 
 static void cross_colour_changed_cb(int cc) {
-	current_cc = TAG_CC | (cc & TAG_VALUE_MASK);
+	current_cc = TAG_CROSS_COLOUR | (cc & TAG_VALUE_MASK);
 }
 
 static void machine_changed_cb(int machine_type) {
