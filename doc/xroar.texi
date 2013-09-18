@@ -1117,6 +1117,9 @@ Report on general queries.
 The special value argument of -1 parses as ``all bits set'', and so enables all
 corresponding debug options.
 
+XRoar can be told to exit after a number of (emulated) seconds with the
+@option{-timeout @var{seconds}} option.
+
 
 @node Troubleshooting
 @chapter Troubleshooting

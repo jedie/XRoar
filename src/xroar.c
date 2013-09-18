@@ -133,6 +133,7 @@ struct private_cfg {
 	char *joy_button[JOYSTICK_NUM_BUTTONS];
 
 	_Bool config_print;
+	char *timeout;
 };
 
 static struct private_cfg private_cfg = {
@@ -171,6 +172,9 @@ static void versiontext(void);
 static void config_print_all(void);
 
 static int load_disk_to_drive = 0;
+
+static int timeout_seconds;
+static int timeout_cycles;
 
 static struct joystick_config *cur_joy_config = NULL;
 
@@ -370,6 +374,9 @@ static struct event load_file_event;
 static void do_load_file(void *);
 //static char *load_file = NULL;
 static int autorun_loaded_file = 0;
+
+static struct event timeout_event;
+static void handle_timeout_event(void *);
 
 const char *xroar_disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
 const char *xroar_tape_exts[] = { "CAS", NULL };
@@ -726,6 +733,18 @@ _Bool xroar_init(int argc, char **argv) {
 		gdb_init();
 #endif
 
+	if (private_cfg.timeout) {
+		double t = strtod(private_cfg.timeout, NULL);
+		if (t >= 0.0) {
+			timeout_seconds = (int)t;
+			timeout_cycles = OSCILLATOR_RATE * (t - timeout_seconds);
+			event_init(&timeout_event, handle_timeout_event, NULL);
+			/* handler can set up the first call for us... */
+			timeout_seconds++;
+			handle_timeout_event(NULL);
+		}
+	}
+
 	while (private_cfg.type_list) {
 		keyboard_queue_basic(private_cfg.type_list->data);
 		private_cfg.type_list = g_slist_remove(private_cfg.type_list, private_cfg.type_list->data);
@@ -932,6 +951,25 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 static void do_load_file(void *data) {
 	char *load_file = data;
 	xroar_load_file_by_type(load_file, autorun_loaded_file);
+}
+
+static void handle_timeout_event(void *dptr) {
+	(void)dptr;
+	if (timeout_seconds == 0) {
+		xroar_quit();
+		return;
+	}
+	timeout_seconds--;
+	if (timeout_seconds) {
+		timeout_event.at_tick = event_current_tick + OSCILLATOR_RATE;
+	} else {
+		if (timeout_cycles == 0) {
+			xroar_quit();
+			return;
+		}
+		timeout_event.at_tick = event_current_tick + timeout_cycles;
+	}
+	event_queue(&MACHINE_EVENT_LIST, &timeout_event);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1759,6 +1797,7 @@ static struct xconfig_option xroar_options[] = {
 #ifdef WANT_GDB_TARGET
 	XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb),
 #endif
+	XC_SET_STRING("timeout", &private_cfg.timeout),
 
 	/* Other options: */
 	XC_SET_BOOL("config-print", &private_cfg.config_print),
@@ -1891,6 +1930,7 @@ static void helptext(void) {
 "  -debug-file FLAGS     file debugging (see manual, or -1 for all)\n"
 "  -debug-fdc FLAGS      FDC debugging (see manual, or -1 for all)\n"
 "  -debug-gdb FLAGS      GDB target debugging (see manual, or -1 for all)\n"
+"  -timeout SECONDS      run for SECONDS then quit\n"
 
 "\n Other options:\n"
 "  -config-print         print full configuration to standard output\n"
@@ -2049,5 +2089,6 @@ static void config_print_all(void) {
 #ifdef WANT_GDB_TARGET
 	if (xroar_cfg.debug_gdb != 0) printf("debug-gdb 0x%x\n", xroar_cfg.debug_gdb);
 #endif
+	if (private_cfg.timeout) printf("timeout %s\n", private_cfg.timeout);
 	putchar('\n');
 }
