@@ -67,15 +67,16 @@
 #include "windows32/common_windows32.h"
 #endif
 
-/**************************************************************************/
-/* Command line arguments */
+/* Configuration directives */
 
-/* Public arguments */
+// Public
 
 struct xroar_cfg xroar_cfg = {
 	.gl_filter = ANY_AUTO,
 	.ccr = CROSS_COLOUR_5BIT,
 };
+
+// Private
 
 struct private_cfg {
 	/* Emulated machine */
@@ -153,6 +154,7 @@ static struct private_cfg private_cfg = {
 	.gdb = 0,
 };
 
+/* Helper functions used by configuration */
 static void set_machine(const char *name);
 static void set_pal(void);
 static void set_ntsc(void);
@@ -163,208 +165,16 @@ static void set_joystick(const char *name);
 static void set_joystick_axis(const char *spec);
 static void set_joystick_button(const char *spec);
 
+/* Help texts */
+static void helptext(void);
+static void versiontext(void);
+static void config_print_all(void);
+
 static int load_disk_to_drive = 0;
 
 static struct joystick_config *cur_joy_config = NULL;
 
-/* Help text */
-static void helptext(void);
-static void versiontext(void);
-
-static struct xconfig_enum arch_list[] = {
-	{ .value = ARCH_DRAGON64, .name = "dragon64", .description = "Dragon 64" },
-	{ .value = ARCH_DRAGON32, .name = "dragon32", .description = "Dragon 32" },
-	{ .value = ARCH_COCO, .name = "coco", .description = "Tandy CoCo" },
-	XC_ENUM_END()
-};
-
-static struct xconfig_enum cpu_list[] = {
-	{ .value = CPU_MC6809, .name = "6809", .description = "Motorola 6809" },
-	{ .value = CPU_HD6309, .name = "6309", .description = "Hitachi 6309 - UNVERIFIED" },
-	XC_ENUM_END()
-};
-
-static struct xconfig_enum tv_type_list[] = {
-	{ .value = TV_PAL,  .name = "pal",  .description = "PAL (50Hz)" },
-	{ .value = TV_NTSC, .name = "ntsc", .description = "NTSC (60Hz)" },
-	{ .value = TV_NTSC, .name = "pal-m", .description = "PAL-M (60Hz)" },
-	XC_ENUM_END()
-};
-
-static struct xconfig_enum vdg_type_list[] = {
-	{ .value = VDG_6847, .name = "6847", .description = "Original 6847" },
-	{ .value = VDG_6847T1, .name = "6847t1", .description = "6847T1 with lowercase" },
-	XC_ENUM_END()
-};
-
-static struct xconfig_enum cart_type_list[] = {
-	{ .value = CART_ROM, .name = "rom", .description = "ROM cartridge" },
-	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
-	{ .value = CART_DELTADOS, .name = "delta", .description = "Delta System" },
-	{ .value = CART_RSDOS, .name = "rsdos", .description = "RS-DOS" },
-	{ .value = CART_ORCH90, .name = "orch90", .description = "Orchestra 90-CC" },
-	XC_ENUM_END()
-};
-
-static struct xconfig_enum gl_filter_list[] = {
-	{ .value = ANY_AUTO, .name = "auto", .description = "Automatic" },
-	{ .value = XROAR_GL_FILTER_NEAREST, .name = "nearest", .description = "Nearest-neighbour filtering" },
-	{ .value = XROAR_GL_FILTER_LINEAR, .name = "linear", .description = "Linear filter" },
-	XC_ENUM_END()
-};
-
-static struct xconfig_enum ccr_list[] = {
-	{ .value = CROSS_COLOUR_SIMPLE, .name = "simple", .description = "four colour palette" },
-	{ .value = CROSS_COLOUR_5BIT, .name = "5bit", .description = "5-bit lookup table" },
-	XC_ENUM_END()
-};
-
-struct xconfig_enum xroar_cross_colour_list[] = {
-	{ .value = CROSS_COLOUR_OFF, .name = "none", .description = "None" },
-	{ .value = CROSS_COLOUR_KBRW, .name = "blue-red", .description = "Blue-red" },
-	{ .value = CROSS_COLOUR_KRBW, .name = "red-blue", .description = "Red-blue" },
-	XC_ENUM_END()
-};
-
-/* CLI information to hand off to config reader */
-static struct xconfig_option xroar_options[] = {
-	/* Machines: */
-	XC_SET_STRING("default-machine", &private_cfg.default_machine),
-	XC_CALL_STRING("machine", &set_machine),
-	XC_SET_STRING("machine-desc", &private_cfg.machine_desc),
-	XC_SET_ENUM("machine-arch", &private_cfg.machine_arch, arch_list),
-	XC_SET_ENUM("machine-cpu", &private_cfg.machine_cpu, cpu_list),
-	XC_SET_STRING("bas", &private_cfg.bas),
-	XC_SET_STRING("extbas", &private_cfg.extbas),
-	XC_SET_STRING("altbas", &private_cfg.altbas),
-	XC_SET_INT1("nobas", &private_cfg.nobas),
-	XC_SET_INT1("noextbas", &private_cfg.noextbas),
-	XC_SET_INT1("noaltbas", &private_cfg.noaltbas),
-	XC_SET_ENUM("tv-type", &private_cfg.tv, tv_type_list),
-	XC_SET_ENUM("vdg-type", &private_cfg.vdg_type, vdg_type_list),
-	XC_SET_INT("ram", &private_cfg.ram),
-	XC_SET_STRING("machine-cart", &private_cfg.machine_cart),
-	XC_SET_INT1("nodos", &private_cfg.nodos),
-	/* Deliberately undocumented: */
-	XC_SET_STRING("machine-palette", &private_cfg.machine_palette),
-	/* Backwards-compatibility: */
-	XC_CALL_NULL("pal", &set_pal),
-	XC_CALL_NULL("ntsc", &set_ntsc),
-
-	/* Cartridges: */
-	XC_CALL_STRING("cart", &set_cart),
-	XC_SET_STRING("cart-desc", &private_cfg.cart_desc),
-	XC_SET_ENUM("cart-type", &private_cfg.cart_type, cart_type_list),
-	XC_SET_STRING("cart-rom", &private_cfg.cart_rom),
-	XC_SET_STRING("cart-rom2", &private_cfg.cart_rom2),
-	XC_SET_INT1("cart-autorun", &private_cfg.cart_autorun),
-	XC_SET_INT1("cart-becker", &private_cfg.cart_becker),
-	/* Backwards compatibility: */
-	XC_SET_ENUM("dostype", &private_cfg.cart_type, cart_type_list),
-	XC_SET_STRING("dos", &private_cfg.cart_rom),
-
-	/* Becker port: */
-	XC_SET_BOOL("becker", &xroar_cfg.becker),
-	XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip),
-	XC_SET_STRING("becker-port", &xroar_cfg.becker_port),
-	/* Backwards-compatibility: */
-	XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip),
-	XC_SET_STRING("dw4-port", &xroar_cfg.becker_port),
-
-	/* Files: */
-	XC_CALL_STRING("load", &add_load),
-	XC_SET_STRING("run", &private_cfg.run),
-	/* Backwards-compatibility: */
-	XC_CALL_STRING("cartna", &add_load),
-	XC_CALL_STRING("snap", &add_load),
-
-	/* Cassettes: */
-	XC_SET_STRING("tape-write", &private_cfg.tape_write),
-	XC_SET_INT1("tape-fast", &private_cfg.tape_fast),
-	XC_SET_INT1("tape-pad", &private_cfg.tape_pad),
-	XC_SET_INT1("tape-pad-auto", &private_cfg.tape_pad_auto),
-	XC_SET_INT1("tape-rewrite", &private_cfg.tape_rewrite),
-	/* Backwards-compatibility: */
-	XC_SET_INT1("tapehack", &private_cfg.tape_rewrite),
-
-	/* Disks: */
-	XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back),
-	XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack),
-
-	/* Firmware ROM images: */
-	XC_SET_STRING("rompath", &xroar_rom_path),
-	XC_CALL_STRING("romlist", &romlist_assign),
-	XC_CALL_NULL("romlist-print", &romlist_print),
-	XC_CALL_STRING("crclist", &crclist_assign),
-	XC_CALL_NULL("crclist-print", &crclist_print),
-	XC_SET_BOOL("force-crc-match", &xroar_cfg.force_crc_match),
-
-	/* User interface: */
-	XC_SET_STRING("ui", &private_cfg.ui),
-	/* Deliberately undocumented: */
-	XC_SET_STRING("filereq", &private_cfg.filereq),
-
-	/* Video: */
-	XC_SET_STRING("vo", &private_cfg.vo),
-	XC_SET_BOOL("fs", &xroar_cfg.fullscreen),
-	XC_SET_INT("fskip", &xroar_cfg.frameskip),
-	XC_SET_ENUM("ccr", &xroar_cfg.ccr, ccr_list),
-	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
-	XC_SET_STRING("geometry", &xroar_cfg.geometry),
-	XC_SET_STRING("g", &xroar_cfg.geometry),
-
-	/* Audio: */
-	XC_SET_STRING("ao", &private_cfg.ao),
-	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
-	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
-	XC_SET_INT("ao-channels", &xroar_cfg.ao_channels),
-	XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms),
-	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_samples),
-	XC_SET_INT("volume", &private_cfg.volume),
-#ifndef FAST_SOUND
-	XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound),
-#endif
-
-	/* Keyboard: */
-	XC_SET_STRING("keymap", &xroar_cfg.keymap),
-	XC_SET_BOOL("kbd-translate", &xroar_cfg.kbd_translate),
-	XC_CALL_STRING("type", &type_command),
-
-	/* Joysticks: */
-	XC_CALL_STRING("joy", &set_joystick),
-	XC_SET_STRING("joy-desc", &private_cfg.joy_desc),
-	XC_CALL_STRING("joy-axis", &set_joystick_axis),
-	XC_CALL_STRING("joy-button", &set_joystick_button),
-	XC_SET_STRING("joy-right", &private_cfg.joy_right),
-	XC_SET_STRING("joy-left", &private_cfg.joy_left),
-	XC_SET_STRING("joy-virtual", &private_cfg.joy_virtual),
-
-	/* Printing: */
-	XC_SET_STRING("lp-file", &private_cfg.lp_file),
-	XC_SET_STRING("lp-pipe", &private_cfg.lp_pipe),
-
-	/* Debugging: */
-#ifdef WANT_GDB_TARGET
-	XC_SET_BOOL("gdb", &private_cfg.gdb),
-	XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip),
-	XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port),
-#endif
-#ifdef TRACE
-	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
-#endif
-	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
-	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
-#ifdef WANT_GDB_TARGET
-	XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb),
-#endif
-
-	/* Other options: */
-	XC_SET_BOOL("config-print", &private_cfg.config_print),
-	XC_CALL_NULL("help", &helptext),
-	XC_CALL_NULL("h", &helptext),
-	XC_CALL_NULL("version", &versiontext),
-	XC_OPT_END()
-};
+static struct xconfig_option xroar_options[];
 
 /**************************************************************************/
 /* Global flags */
@@ -378,7 +188,8 @@ struct cart *xroar_cart;
 struct vdg_palette *xroar_vdg_palette;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Default configuration
+
+/* Default configuration */
 
 static const char *default_config[] = {
 	// Dragon 32
@@ -547,7 +358,7 @@ static const char *default_config[] = {
 	"joy-button 1=mouse:",
 };
 
-/**************************************************************************/
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 const char *xroar_conf_path = NULL;
 const char *xroar_rom_path = NULL;
@@ -600,419 +411,6 @@ enum xroar_run_state xroar_run_state = xroar_run_state_running;
 int xroar_last_signal;
 
 /**************************************************************************/
-
-static void set_pal(void) {
-	private_cfg.tv = TV_PAL;
-}
-
-static void set_ntsc(void) {
-	private_cfg.tv = TV_NTSC;
-}
-
-/* Called when a "-machine" option is encountered.  If an existing machine
- * config was in progress, copies any machine-related options into it and
- * clears those options.  Starts a new config. */
-static void set_machine(const char *name) {
-#ifdef LOGGING
-	if (name && 0 == strcmp(name, "help")) {
-		int count = machine_config_count();
-		int i;
-		for (i = 0; i < count; i++) {
-			struct machine_config *mc = machine_config_index(i);
-			printf("\t%-10s %s\n", mc->name, mc->description);
-		}
-		exit(EXIT_SUCCESS);
-	}
-#endif
-
-	if (xroar_machine_config) {
-		if (private_cfg.machine_arch != ANY_AUTO) {
-			xroar_machine_config->architecture = private_cfg.machine_arch;
-			private_cfg.machine_arch = ANY_AUTO;
-		}
-		xroar_machine_config->cpu = private_cfg.machine_cpu;
-		if (private_cfg.machine_cpu == CPU_HD6309) {
-			LOG_WARN("Hitachi HD6309 support is UNVERIFIED!\n");
-		}
-		if (private_cfg.machine_desc) {
-			xroar_machine_config->description = private_cfg.machine_desc;
-			private_cfg.machine_desc = NULL;
-		}
-#ifdef LOGGING
-		if (private_cfg.machine_palette && 0 == strcmp(private_cfg.machine_palette, "help")) {
-			int count = vdg_palette_count();
-			int i;
-			for (i = 0; i < count; i++) {
-				struct vdg_palette *vp = vdg_palette_index(i);
-				printf("\t%-10s %s\n", vp->name, vp->description);
-			}
-			exit(EXIT_SUCCESS);
-		}
-#endif
-		if (private_cfg.machine_palette) {
-			xroar_machine_config->vdg_palette = private_cfg.machine_palette;
-			private_cfg.machine_palette = NULL;
-		}
-		if (private_cfg.tv != ANY_AUTO) {
-			xroar_machine_config->tv_standard = private_cfg.tv;
-			private_cfg.tv = ANY_AUTO;
-		}
-		if (private_cfg.vdg_type != -1) {
-			xroar_machine_config->vdg_type = private_cfg.vdg_type;
-			private_cfg.vdg_type = -1;
-		}
-		if (private_cfg.ram > 0) {
-			xroar_machine_config->ram = private_cfg.ram;
-			private_cfg.ram = 0;
-		}
-		if (private_cfg.nobas != -1)
-			xroar_machine_config->nobas = private_cfg.nobas;
-		if (private_cfg.noextbas != -1)
-			xroar_machine_config->noextbas = private_cfg.noextbas;
-		if (private_cfg.noaltbas != -1)
-			xroar_machine_config->noaltbas = private_cfg.noaltbas;
-		private_cfg.nobas = private_cfg.noextbas = private_cfg.noaltbas = -1;
-		if (private_cfg.bas) {
-			xroar_machine_config->bas_rom = private_cfg.bas;
-			xroar_machine_config->nobas = 0;
-			private_cfg.bas = NULL;
-		}
-		if (private_cfg.extbas) {
-			xroar_machine_config->extbas_rom = private_cfg.extbas;
-			xroar_machine_config->noextbas = 0;
-			private_cfg.extbas = NULL;
-		}
-		if (private_cfg.altbas) {
-			xroar_machine_config->altbas_rom = private_cfg.altbas;
-			xroar_machine_config->noaltbas = 0;
-			private_cfg.altbas = NULL;
-		}
-		if (private_cfg.machine_cart) {
-			if (xroar_machine_config->default_cart)
-				g_free(xroar_machine_config->default_cart);
-			xroar_machine_config->default_cart = g_strdup(private_cfg.machine_cart);
-			private_cfg.machine_cart = NULL;
-		}
-		if (private_cfg.nodos != -1) {
-			xroar_machine_config->nodos = private_cfg.nodos;
-			private_cfg.nodos = -1;
-		}
-		machine_config_complete(xroar_machine_config);
-	}
-	if (name) {
-		xroar_machine_config = machine_config_by_name(name);
-		if (!xroar_machine_config) {
-			xroar_machine_config = machine_config_new();
-			xroar_machine_config->name = g_strdup(name);
-		}
-	}
-}
-
-/* Called when a "-cart" option is encountered.  If an existing cart config was
-* in progress, copies any cart-related options into it and clears those
-* options.  Starts a new config.  */
-static void set_cart(const char *name) {
-#ifdef LOGGING
-	if (name && 0 == strcmp(name, "help")) {
-		int count = cart_config_count();
-		int i;
-		for (i = 0; i < count; i++) {
-			struct cart_config *cc = cart_config_index(i);
-			printf("\t%-10s %s\n", cc->name, cc->description);
-		}
-		exit(EXIT_SUCCESS);
-	}
-#endif
-	// Apply any unassigned config to either the current cart config or the
-	// current machine's default cart config.
-	struct cart_config *cc = NULL;
-	if (selected_cart_config) {
-		cc = selected_cart_config;
-	} else if (xroar_machine_config) {
-		cc = cart_config_by_name(xroar_machine_config->default_cart);
-	}
-	if (cc) {
-		if (private_cfg.cart_desc) {
-			cc->description = private_cfg.cart_desc;
-			private_cfg.cart_desc = NULL;
-		}
-		if (private_cfg.cart_type != ANY_AUTO) {
-			cc->type = private_cfg.cart_type;
-			private_cfg.cart_type = ANY_AUTO;
-		}
-		if (private_cfg.cart_rom) {
-			cc->rom = private_cfg.cart_rom;
-			private_cfg.cart_rom = NULL;
-		}
-		if (private_cfg.cart_rom2) {
-			cc->rom2 = private_cfg.cart_rom2;
-			private_cfg.cart_rom2 = NULL;
-		}
-		if (private_cfg.cart_becker != ANY_AUTO) {
-			cc->becker_port = private_cfg.cart_becker;
-			private_cfg.cart_becker = ANY_AUTO;
-		}
-		if (private_cfg.cart_autorun != ANY_AUTO) {
-			cc->autorun = private_cfg.cart_autorun;
-			private_cfg.cart_autorun = ANY_AUTO;
-		}
-		cart_config_complete(cc);
-	}
-	if (name) {
-		selected_cart_config = cart_config_by_name(name);
-		if (!selected_cart_config) {
-			selected_cart_config = cart_config_new();
-			selected_cart_config->name = g_strdup(name);
-		}
-	}
-}
-
-/* Called when a "-joystick" option is encountered. */
-static void set_joystick(const char *name) {
-	// Apply any config to the current joystick config.
-	if (cur_joy_config) {
-		if (private_cfg.joy_desc) {
-			cur_joy_config->description = private_cfg.joy_desc;
-			private_cfg.joy_desc = NULL;
-		}
-		for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
-			if (private_cfg.joy_axis[i]) {
-				if (cur_joy_config->axis_specs[i])
-					g_free(cur_joy_config->axis_specs[i]);
-				cur_joy_config->axis_specs[i] = private_cfg.joy_axis[i];
-				private_cfg.joy_axis[i] = NULL;
-			}
-		}
-		for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
-			if (private_cfg.joy_button[i]) {
-				if (cur_joy_config->button_specs[i])
-					g_free(cur_joy_config->button_specs[i]);
-				cur_joy_config->button_specs[i] = private_cfg.joy_button[i];
-				private_cfg.joy_button[i] = NULL;
-			}
-		}
-	}
-#ifdef LOGGING
-	if (name && 0 == strcmp(name, "help")) {
-		int count = joystick_config_count();
-		int i;
-		for (i = 0; i < count; i++) {
-			struct joystick_config *jc = joystick_config_index(i);
-			printf("\t%-10s %s\n", jc->name, jc->description);
-		}
-		exit(EXIT_SUCCESS);
-	}
-#endif
-	if (name) {
-		cur_joy_config = joystick_config_by_name(name);
-		if (!cur_joy_config) {
-			cur_joy_config = joystick_config_new();
-			cur_joy_config->name = g_strdup(name);
-		}
-	}
-}
-
-static void set_joystick_axis(const char *spec) {
-	char *spec_copy = g_strdup(spec);
-	char *cspec = spec_copy;
-	unsigned axis = 0;
-	char *tmp = strsep(&cspec, "=");
-	if (cspec) {
-		if (toupper(*tmp) == 'X') {
-			axis = 0;
-		} else if (toupper(*tmp) == 'Y') {
-			axis = 1;
-		} else {
-			axis = strtol(tmp, NULL, 0);
-		}
-		if (axis > JOYSTICK_NUM_AXES) {
-			LOG_WARN("Invalid axis number '%d'\n", axis);
-			axis = 0;
-		}
-		tmp = cspec;
-	}
-	private_cfg.joy_axis[axis] = g_strdup(tmp);
-	g_free(spec_copy);
-}
-
-static void set_joystick_button(const char *spec) {
-	char *spec_copy = g_strdup(spec);
-	char *cspec = spec_copy;
-	unsigned button = 0;
-	char *tmp = strsep(&cspec, "=");
-	if (cspec) {
-		button = strtol(tmp, NULL, 0);
-		if (button > JOYSTICK_NUM_AXES) {
-			LOG_WARN("Invalid button number '%d'\n", button);
-			button = 0;
-		}
-		tmp = cspec;
-	}
-	private_cfg.joy_button[button] = g_strdup(tmp);
-	g_free(spec_copy);
-}
-
-static void type_command(char *string) {
-	private_cfg.type_list = g_slist_append(private_cfg.type_list, string);
-}
-
-static void add_load(char *string) {
-	private_cfg.load_list = g_slist_append(private_cfg.load_list, string);
-}
-
-static void versiontext(void) {
-#ifdef LOGGING
-	puts(
-"XRoar " VERSION "\n"
-"Copyright (C) 2003-2013 Ciaran Anscomb\n"
-"This is free software.  You may redistribute copies of it under the terms of\n"
-"the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
-"There is NO WARRANTY, to the extent permitted by law."
-	    );
-#endif
-	exit(EXIT_SUCCESS);
-}
-
-static void helptext(void) {
-#ifdef LOGGING
-	puts(
-"Usage: xroar [-c CONFFILE] [OPTION]...\n"
-"XRoar is a Dragon emulator.  Due to hardware similarities, XRoar also\n"
-"emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
-
-"\n  -c CONFFILE     specify a configuration file\n"
-
-"\n Machines:\n"
-"  -default-machine NAME   default machine on startup\n"
-"  -machine NAME           configure named machine (-machine help for list)\n"
-"    -machine-desc TEXT      machine description\n"
-"    -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
-"    -machine-cpu CPU        machine CPU (-machine-cpu help for list)\n"
-"    -bas NAME               BASIC ROM to use (CoCo only)\n"
-"    -extbas NAME            Extended BASIC ROM to use\n"
-"    -altbas NAME            64K mode Extended BASIC ROM (Dragon 64)\n"
-"    -nobas                  disable BASIC\n"
-"    -noextbas               disable Extended BASIC\n"
-"    -noaltbas               disable 64K mode Extended BASIC\n"
-"    -tv-type TYPE           TV type (-tv-type help for list)\n"
-"    -vdg-type TYPE          VDG type (6847 or 6847t1)\n"
-"    -ram KBYTES             amount of RAM in K\n"
-"    -machine-cart NAME      default cartridge for selected machine\n"
-"    -nodos                  don't automatically pick a DOS cartridge\n"
-
-"\n Cartridges:\n"
-"  -cart NAME            configure named cartridge (-cart help for list)\n"
-"    -cart-desc TEXT       cartridge description\n"
-"    -cart-type TYPE       cartridge base type (-cart-type help for list)\n"
-"    -cart-rom NAME        ROM image to load ($C000-)\n"
-"    -cart-rom2 NAME       second ROM image to load ($E000-)\n"
-"    -cart-autorun         autorun cartridge\n"
-"    -cart-becker          enable becker port where supported\n"
-
-"\n Becker port:\n"
-"  -becker               prefer becker-enabled DOS (when picked automatically)\n"
-"  -becker-ip ADDRESS    address or hostname of DriveWire server [127.0.0.1]\n"
-"  -becker-port PORT     port of DriveWire server [65504]\n"
-
-"\n Files:\n"
-"  -load FILENAME        load or attach FILENAME\n"
-"  -run FILENAME         load or attach FILENAME and attempt autorun\n"
-
-"\n Cassettes:\n"
-"  -tape-write FILENAME  open FILENAME for tape writing\n"
-"  -no-tape-fast         disable fast tape loading\n"
-"  -tape-pad             force tape leader padding\n"
-"  -no-tape-pad-auto     disable automatic leader padding\n"
-"  -tape-rewrite         enable tape rewriting\n"
-
-"\n Disks:\n"
-"  -disk-write-back      default to enabling write-back for disk images\n"
-"  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
-
-"\n Firmware ROM images:\n"
-"  -rompath PATH         ROM search path (colon-separated list)\n"
-"  -romlist NAME=LIST    define a ROM list\n"
-"  -romlist-print        print defined ROM lists\n"
-"  -crclist NAME=LIST    define a ROM CRC list\n"
-"  -crclist-print        print defined ROM CRC lists\n"
-"  -force-crc-match      force per-architecture CRC matches\n"
-
-"\n User interface:\n"
-"  -ui MODULE            user-interface module (-ui help for list)\n"
-
-"\n Video:\n"
-"  -vo MODULE            video module (-vo help for list)\n"
-"  -fs                   start emulator full-screen if possible\n"
-"  -fskip FRAMES         frameskip (default: 0)\n"
-"  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
-#ifdef HAVE_SDLGL
-"  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
-#endif
-"  -geometry WxH+X+Y     initial emulator geometry\n"
-
-"\n Audio:\n"
-"  -ao MODULE            audio module (-ao help for list)\n"
-"  -ao-device STRING     device to use for audio module\n"
-"  -ao-rate HZ           set audio sample rate (if supported by module)\n"
-"  -ao-channels N        set number of audio channels, 1 or 2\n"
-"  -ao-buffer-ms MS      set audio buffer size in ms (if supported)\n"
-"  -ao-buffer-samples N  set audio buffer size in samples (if supported)\n"
-"  -volume VOLUME        audio volume (0 - 100)\n"
-#ifndef FAST_SOUND
-"  -fast-sound           faster but less accurate sound\n"
-#endif
-
-"\n Keyboard:\n"
-"  -keymap CODE          host keyboard type (uk, us, fr, fr_CA, de)\n"
-"  -kbd-translate        enable keyboard translation\n"
-"  -type STRING          intercept ROM calls to type STRING into BASIC\n"
-
-"\n Joysticks:\n"
-"  -joy NAME             configure named joystick (-joy help for list)\n"
-"    -joy-desc TEXT        joystick description\n"
-"    -joy-axis AXIS=SPEC   configure joystick axis\n"
-"    -joy-button BTN=SPEC  configure joystick button\n"
-"  -joy-right NAME       map right joystick\n"
-"  -joy-left NAME        map left joystick\n"
-"  -joy-virtual NAME     specify the 'virtual' joystick to cycle [kjoy0]\n"
-
-"\n Printing:\n"
-"  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
-"  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
-
-"\n Debugging:\n"
-#ifdef WANT_GDB_TARGET
-"  -gdb                  disable GDB target\n"
-"  -gdb-ip               address of interface for GDB target [localhost]\n"
-"  -gdb-port             port for GDB target to listen on [65520]\n"
-#endif
-#ifdef TRACE
-"  -trace                start with trace mode on\n"
-#endif
-"  -debug-file FLAGS     file debugging (see manual, or -1 for all)\n"
-"  -debug-fdc FLAGS      FDC debugging (see manual, or -1 for all)\n"
-"  -debug-gdb FLAGS      GDB target debugging (see manual, or -1 for all)\n"
-
-"\n Other options:\n"
-"  -config-print         print full configuration to standard output\n"
-"  -h, --help            display this help and exit\n"
-"      --version         output version information and exit\n"
-
-"\nJoystick SPECs are of the form [INTERFACE:][ARG[,ARG]...], from:\n"
-
-"\nINTERFACE       Axis ARGs                       Button ARGs\n"
-"physical        joystick-index,[-]axis-index    joystick-index,button-index\n"
-"keyboard        key-name0,key-name1             key-name\n"
-"mouse           screen-offset0,screen-offset1   button-number\n"
-
-"\nFor physical joysticks a '-' before the axis index inverts the axis.  AXIS 0 is\n"
-"the X-axis, and AXIS 1 the Y-axis.  BTN 0 is the only one used so far, but in\n"
-"the future BTN 1 will be the second button on certain CoCo joysticks."
-
-	);
-#endif
-	exit(EXIT_SUCCESS);
-}
 
 #ifndef ROMPATH
 # define ROMPATH "."
@@ -1097,106 +495,7 @@ _Bool xroar_init(int argc, char **argv) {
 	set_joystick(NULL);
 
 	if (private_cfg.config_print) {
-		/* Machines: */
-		machine_config_print_all();
-		/* Cartridges: */
-		cart_config_print_all();
-		/* Becker port: */
-		if (xroar_cfg.becker) printf("becker\n");
-		if (xroar_cfg.becker_ip) printf("becker-ip %s\n", xroar_cfg.becker_ip);
-		if (xroar_cfg.becker_port) printf("becker-port %s\n", xroar_cfg.becker_port);
-		printf("\n");
-		/* Files: */
-		for (GSList *l = private_cfg.load_list; l; l = l->next) {
-			const char *s = l->data;
-			printf("load %s\n", s);
-		}
-		if (private_cfg.run) printf("run %s\n", private_cfg.run);
-		printf("\n");
-		/* Cassettes: */
-		if (private_cfg.tape_write) printf("tape-write %s\n", private_cfg.tape_write);
-		if (private_cfg.tape_fast == 0) printf("no-tape-fast\n");
-		if (private_cfg.tape_fast == 1) printf("tape-fast\n");
-		if (private_cfg.tape_pad == 0) printf("no-tape-pad\n");
-		if (private_cfg.tape_pad == 1) printf("tape-pad\n");
-		if (private_cfg.tape_pad_auto == 0) printf("no-tape-pad-auto\n");
-		if (private_cfg.tape_pad_auto == 1) printf("tape-pad-auto\n");
-		if (private_cfg.tape_rewrite == 0) printf("no-tape-rewrite\n");
-		if (private_cfg.tape_rewrite == 1) printf("tape-rewrite\n");
-		printf("\n");
-		/* Disks: */
-		if (xroar_cfg.disk_write_back) printf("disk-write-back\n");
-		if (xroar_cfg.disk_jvc_hack) printf("disk-jvc-hack\n");
-		printf("\n");
-		/* Firmware ROM images: */
-		if (xroar_rom_path) printf("rompath %s\n", xroar_rom_path);
-		romlist_print_all();
-		crclist_print_all();
-		if (xroar_cfg.force_crc_match) printf("force-crc-match\n");
-		printf("\n");
-		/* User interface: */
-		if (private_cfg.ui) printf("ui %s\n", private_cfg.ui);
-		if (private_cfg.filereq) printf("filereq %s\n", private_cfg.filereq);
-		printf("\n");
-		/* Video: */
-		if (private_cfg.vo) printf("vo %s\n", private_cfg.vo);
-		if (xroar_cfg.fullscreen) printf("fs\n");
-		if (xroar_frameskip > 0) printf("fskip %d\n", xroar_frameskip);
-		switch (xroar_cfg.ccr) {
-		case CROSS_COLOUR_SIMPLE: printf("ccr simple\n"); break;
-		// case CROSS_COLOUR_5BIT: printf("ccr 5bit\n"); break;
-		default: break;
-		}
-		switch (xroar_cfg.gl_filter) {
-		// case ANY_AUTO: printf("gl-filter auto\n"); break;
-		case XROAR_GL_FILTER_NEAREST: printf("gl-filter nearest\n"); break;
-		case XROAR_GL_FILTER_LINEAR: printf("gl-filter linear\n"); break;
-		default: break;
-		}
-		if (xroar_cfg.geometry) printf("geometry %s\n", xroar_cfg.geometry);
-		printf("\n");
-		/* Audio: */
-		if (private_cfg.ao) printf("ao %s\n", private_cfg.ao);
-		if (xroar_cfg.ao_device) printf("ao-device %s\n", xroar_cfg.ao_device);
-		if (xroar_cfg.ao_rate != 0) printf("ao-rate %d\n", xroar_cfg.ao_rate);
-		if (xroar_cfg.ao_channels != 0) printf("ao-channels %d\n", xroar_cfg.ao_channels);
-		if (xroar_cfg.ao_buffer_ms != 0) printf("ao-buffer-ms %d\n", xroar_cfg.ao_buffer_ms);
-		if (xroar_cfg.ao_buffer_samples != 0) printf("ao-buffer-samples %d\n", xroar_cfg.ao_buffer_samples);
-		if (private_cfg.volume != 100) printf("volume %d\n", private_cfg.volume);
-#ifndef FAST_SOUND
-		if (xroar_cfg.fast_sound) printf("fast-sound\n");
-#endif
-		printf("\n");
-		/* Keyboard: */
-		if (xroar_cfg.keymap) printf("keymap %s\n", xroar_cfg.keymap);
-		if (xroar_cfg.kbd_translate) printf("kbd-translate\n");
-		for (GSList *l = private_cfg.type_list; l; l = l->next) {
-			const char *s = l->data;
-			printf("type %s\n", s);
-		}
-		printf("\n");
-		/* Joysticks: */
-		joystick_config_print_all();
-		/* Printing: */
-		if (private_cfg.lp_file) printf("lp-file %s\n", private_cfg.lp_file);
-		if (private_cfg.lp_pipe) printf("lp-pipe %s\n", private_cfg.lp_pipe);
-		printf("\n");
-		/* Debugging: */
-#ifdef WANT_GDB_TARGET
-		if (private_cfg.gdb) printf("gdb\n");
-		if (xroar_cfg.gdb_ip) printf("gdb-ip %s\n", xroar_cfg.gdb_ip);
-		if (xroar_cfg.gdb_port) printf("gdb-port %s\n", xroar_cfg.gdb_port);
-#endif
-#ifdef TRACE
-		if (xroar_cfg.trace_enabled == 0) printf("no-trace\n");
-		if (xroar_cfg.trace_enabled == 1) printf("trace\n");
-#endif
-		if (xroar_cfg.debug_file != 0) printf("debug-file 0x%x\n", xroar_cfg.debug_file);
-		if (xroar_cfg.debug_fdc != 0) printf("debug-fdc 0x%x\n", xroar_cfg.debug_fdc);
-#ifdef WANT_GDB_TARGET
-		if (xroar_cfg.debug_gdb != 0) printf("debug-gdb 0x%x\n", xroar_cfg.debug_gdb);
-#endif
-		printf("\n");
+		config_print_all();
 		exit(EXIT_SUCCESS);
 	}
 
@@ -1473,6 +772,8 @@ static struct vdg_palette *get_machine_palette(void) {
 	return vp;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 /*
  * Called either by main() in a loop, or by a UI module's run() member.
  * Returns 1 for as long as the machine is active.
@@ -1631,6 +932,8 @@ static void do_load_file(void *data) {
 	char *load_file = data;
 	xroar_load_file_by_type(load_file, autorun_loaded_file);
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /* Helper functions */
 
@@ -2001,4 +1304,749 @@ void xroar_soft_reset(void) {
 
 void xroar_hard_reset(void) {
 	machine_reset(RESET_HARD);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/* Helper functions used by configuration */
+
+static void set_pal(void) {
+	private_cfg.tv = TV_PAL;
+}
+
+static void set_ntsc(void) {
+	private_cfg.tv = TV_NTSC;
+}
+
+/* Called when a "-machine" option is encountered.  If an existing machine
+ * config was in progress, copies any machine-related options into it and
+ * clears those options.  Starts a new config. */
+static void set_machine(const char *name) {
+#ifdef LOGGING
+	if (name && 0 == strcmp(name, "help")) {
+		int count = machine_config_count();
+		int i;
+		for (i = 0; i < count; i++) {
+			struct machine_config *mc = machine_config_index(i);
+			printf("\t%-10s %s\n", mc->name, mc->description);
+		}
+		exit(EXIT_SUCCESS);
+	}
+#endif
+
+	if (xroar_machine_config) {
+		if (private_cfg.machine_arch != ANY_AUTO) {
+			xroar_machine_config->architecture = private_cfg.machine_arch;
+			private_cfg.machine_arch = ANY_AUTO;
+		}
+		xroar_machine_config->cpu = private_cfg.machine_cpu;
+		if (private_cfg.machine_cpu == CPU_HD6309) {
+			LOG_WARN("Hitachi HD6309 support is UNVERIFIED!\n");
+		}
+		if (private_cfg.machine_desc) {
+			xroar_machine_config->description = private_cfg.machine_desc;
+			private_cfg.machine_desc = NULL;
+		}
+#ifdef LOGGING
+		if (private_cfg.machine_palette && 0 == strcmp(private_cfg.machine_palette, "help")) {
+			int count = vdg_palette_count();
+			int i;
+			for (i = 0; i < count; i++) {
+				struct vdg_palette *vp = vdg_palette_index(i);
+				printf("\t%-10s %s\n", vp->name, vp->description);
+			}
+			exit(EXIT_SUCCESS);
+		}
+#endif
+		if (private_cfg.machine_palette) {
+			xroar_machine_config->vdg_palette = private_cfg.machine_palette;
+			private_cfg.machine_palette = NULL;
+		}
+		if (private_cfg.tv != ANY_AUTO) {
+			xroar_machine_config->tv_standard = private_cfg.tv;
+			private_cfg.tv = ANY_AUTO;
+		}
+		if (private_cfg.vdg_type != -1) {
+			xroar_machine_config->vdg_type = private_cfg.vdg_type;
+			private_cfg.vdg_type = -1;
+		}
+		if (private_cfg.ram > 0) {
+			xroar_machine_config->ram = private_cfg.ram;
+			private_cfg.ram = 0;
+		}
+		if (private_cfg.nobas != -1)
+			xroar_machine_config->nobas = private_cfg.nobas;
+		if (private_cfg.noextbas != -1)
+			xroar_machine_config->noextbas = private_cfg.noextbas;
+		if (private_cfg.noaltbas != -1)
+			xroar_machine_config->noaltbas = private_cfg.noaltbas;
+		private_cfg.nobas = private_cfg.noextbas = private_cfg.noaltbas = -1;
+		if (private_cfg.bas) {
+			xroar_machine_config->bas_rom = private_cfg.bas;
+			xroar_machine_config->nobas = 0;
+			private_cfg.bas = NULL;
+		}
+		if (private_cfg.extbas) {
+			xroar_machine_config->extbas_rom = private_cfg.extbas;
+			xroar_machine_config->noextbas = 0;
+			private_cfg.extbas = NULL;
+		}
+		if (private_cfg.altbas) {
+			xroar_machine_config->altbas_rom = private_cfg.altbas;
+			xroar_machine_config->noaltbas = 0;
+			private_cfg.altbas = NULL;
+		}
+		if (private_cfg.machine_cart) {
+			if (xroar_machine_config->default_cart)
+				g_free(xroar_machine_config->default_cart);
+			xroar_machine_config->default_cart = g_strdup(private_cfg.machine_cart);
+			private_cfg.machine_cart = NULL;
+		}
+		if (private_cfg.nodos != -1) {
+			xroar_machine_config->nodos = private_cfg.nodos;
+			private_cfg.nodos = -1;
+		}
+		machine_config_complete(xroar_machine_config);
+	}
+	if (name) {
+		xroar_machine_config = machine_config_by_name(name);
+		if (!xroar_machine_config) {
+			xroar_machine_config = machine_config_new();
+			xroar_machine_config->name = g_strdup(name);
+		}
+	}
+}
+
+/* Called when a "-cart" option is encountered.  If an existing cart config was
+* in progress, copies any cart-related options into it and clears those
+* options.  Starts a new config.  */
+static void set_cart(const char *name) {
+#ifdef LOGGING
+	if (name && 0 == strcmp(name, "help")) {
+		int count = cart_config_count();
+		int i;
+		for (i = 0; i < count; i++) {
+			struct cart_config *cc = cart_config_index(i);
+			printf("\t%-10s %s\n", cc->name, cc->description);
+		}
+		exit(EXIT_SUCCESS);
+	}
+#endif
+	// Apply any unassigned config to either the current cart config or the
+	// current machine's default cart config.
+	struct cart_config *cc = NULL;
+	if (selected_cart_config) {
+		cc = selected_cart_config;
+	} else if (xroar_machine_config) {
+		cc = cart_config_by_name(xroar_machine_config->default_cart);
+	}
+	if (cc) {
+		if (private_cfg.cart_desc) {
+			cc->description = private_cfg.cart_desc;
+			private_cfg.cart_desc = NULL;
+		}
+		if (private_cfg.cart_type != ANY_AUTO) {
+			cc->type = private_cfg.cart_type;
+			private_cfg.cart_type = ANY_AUTO;
+		}
+		if (private_cfg.cart_rom) {
+			cc->rom = private_cfg.cart_rom;
+			private_cfg.cart_rom = NULL;
+		}
+		if (private_cfg.cart_rom2) {
+			cc->rom2 = private_cfg.cart_rom2;
+			private_cfg.cart_rom2 = NULL;
+		}
+		if (private_cfg.cart_becker != ANY_AUTO) {
+			cc->becker_port = private_cfg.cart_becker;
+			private_cfg.cart_becker = ANY_AUTO;
+		}
+		if (private_cfg.cart_autorun != ANY_AUTO) {
+			cc->autorun = private_cfg.cart_autorun;
+			private_cfg.cart_autorun = ANY_AUTO;
+		}
+		cart_config_complete(cc);
+	}
+	if (name) {
+		selected_cart_config = cart_config_by_name(name);
+		if (!selected_cart_config) {
+			selected_cart_config = cart_config_new();
+			selected_cart_config->name = g_strdup(name);
+		}
+	}
+}
+
+/* Called when a "-joystick" option is encountered. */
+static void set_joystick(const char *name) {
+	// Apply any config to the current joystick config.
+	if (cur_joy_config) {
+		if (private_cfg.joy_desc) {
+			cur_joy_config->description = private_cfg.joy_desc;
+			private_cfg.joy_desc = NULL;
+		}
+		for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
+			if (private_cfg.joy_axis[i]) {
+				if (cur_joy_config->axis_specs[i])
+					g_free(cur_joy_config->axis_specs[i]);
+				cur_joy_config->axis_specs[i] = private_cfg.joy_axis[i];
+				private_cfg.joy_axis[i] = NULL;
+			}
+		}
+		for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
+			if (private_cfg.joy_button[i]) {
+				if (cur_joy_config->button_specs[i])
+					g_free(cur_joy_config->button_specs[i]);
+				cur_joy_config->button_specs[i] = private_cfg.joy_button[i];
+				private_cfg.joy_button[i] = NULL;
+			}
+		}
+	}
+#ifdef LOGGING
+	if (name && 0 == strcmp(name, "help")) {
+		int count = joystick_config_count();
+		int i;
+		for (i = 0; i < count; i++) {
+			struct joystick_config *jc = joystick_config_index(i);
+			printf("\t%-10s %s\n", jc->name, jc->description);
+		}
+		exit(EXIT_SUCCESS);
+	}
+#endif
+	if (name) {
+		cur_joy_config = joystick_config_by_name(name);
+		if (!cur_joy_config) {
+			cur_joy_config = joystick_config_new();
+			cur_joy_config->name = g_strdup(name);
+		}
+	}
+}
+
+static void set_joystick_axis(const char *spec) {
+	char *spec_copy = g_strdup(spec);
+	char *cspec = spec_copy;
+	unsigned axis = 0;
+	char *tmp = strsep(&cspec, "=");
+	if (cspec) {
+		if (toupper(*tmp) == 'X') {
+			axis = 0;
+		} else if (toupper(*tmp) == 'Y') {
+			axis = 1;
+		} else {
+			axis = strtol(tmp, NULL, 0);
+		}
+		if (axis > JOYSTICK_NUM_AXES) {
+			LOG_WARN("Invalid axis number '%d'\n", axis);
+			axis = 0;
+		}
+		tmp = cspec;
+	}
+	private_cfg.joy_axis[axis] = g_strdup(tmp);
+	g_free(spec_copy);
+}
+
+static void set_joystick_button(const char *spec) {
+	char *spec_copy = g_strdup(spec);
+	char *cspec = spec_copy;
+	unsigned button = 0;
+	char *tmp = strsep(&cspec, "=");
+	if (cspec) {
+		button = strtol(tmp, NULL, 0);
+		if (button > JOYSTICK_NUM_AXES) {
+			LOG_WARN("Invalid button number '%d'\n", button);
+			button = 0;
+		}
+		tmp = cspec;
+	}
+	private_cfg.joy_button[button] = g_strdup(tmp);
+	g_free(spec_copy);
+}
+
+static void type_command(char *string) {
+	private_cfg.type_list = g_slist_append(private_cfg.type_list, string);
+}
+
+static void add_load(char *string) {
+	private_cfg.load_list = g_slist_append(private_cfg.load_list, string);
+}
+
+/* Enumeration lists used by configuration directives */
+
+static struct xconfig_enum arch_list[] = {
+	{ .value = ARCH_DRAGON64, .name = "dragon64", .description = "Dragon 64" },
+	{ .value = ARCH_DRAGON32, .name = "dragon32", .description = "Dragon 32" },
+	{ .value = ARCH_COCO, .name = "coco", .description = "Tandy CoCo" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum cpu_list[] = {
+	{ .value = CPU_MC6809, .name = "6809", .description = "Motorola 6809" },
+	{ .value = CPU_HD6309, .name = "6309", .description = "Hitachi 6309 - UNVERIFIED" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum tv_type_list[] = {
+	{ .value = TV_PAL,  .name = "pal",  .description = "PAL (50Hz)" },
+	{ .value = TV_NTSC, .name = "ntsc", .description = "NTSC (60Hz)" },
+	{ .value = TV_NTSC, .name = "pal-m", .description = "PAL-M (60Hz)" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum vdg_type_list[] = {
+	{ .value = VDG_6847, .name = "6847", .description = "Original 6847" },
+	{ .value = VDG_6847T1, .name = "6847t1", .description = "6847T1 with lowercase" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum cart_type_list[] = {
+	{ .value = CART_ROM, .name = "rom", .description = "ROM cartridge" },
+	{ .value = CART_DRAGONDOS, .name = "dragondos", .description = "DragonDOS" },
+	{ .value = CART_DELTADOS, .name = "delta", .description = "Delta System" },
+	{ .value = CART_RSDOS, .name = "rsdos", .description = "RS-DOS" },
+	{ .value = CART_ORCH90, .name = "orch90", .description = "Orchestra 90-CC" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum gl_filter_list[] = {
+	{ .value = ANY_AUTO, .name = "auto", .description = "Automatic" },
+	{ .value = XROAR_GL_FILTER_NEAREST, .name = "nearest", .description = "Nearest-neighbour filtering" },
+	{ .value = XROAR_GL_FILTER_LINEAR, .name = "linear", .description = "Linear filter" },
+	XC_ENUM_END()
+};
+
+static struct xconfig_enum ccr_list[] = {
+	{ .value = CROSS_COLOUR_SIMPLE, .name = "simple", .description = "four colour palette" },
+	{ .value = CROSS_COLOUR_5BIT, .name = "5bit", .description = "5-bit lookup table" },
+	XC_ENUM_END()
+};
+
+struct xconfig_enum xroar_cross_colour_list[] = {
+	{ .value = CROSS_COLOUR_OFF, .name = "none", .description = "None" },
+	{ .value = CROSS_COLOUR_KBRW, .name = "blue-red", .description = "Blue-red" },
+	{ .value = CROSS_COLOUR_KRBW, .name = "red-blue", .description = "Red-blue" },
+	XC_ENUM_END()
+};
+
+/* Configuration directives */
+
+static struct xconfig_option xroar_options[] = {
+	/* Machines: */
+	XC_SET_STRING("default-machine", &private_cfg.default_machine),
+	XC_CALL_STRING("machine", &set_machine),
+	XC_SET_STRING("machine-desc", &private_cfg.machine_desc),
+	XC_SET_ENUM("machine-arch", &private_cfg.machine_arch, arch_list),
+	XC_SET_ENUM("machine-cpu", &private_cfg.machine_cpu, cpu_list),
+	XC_SET_STRING("bas", &private_cfg.bas),
+	XC_SET_STRING("extbas", &private_cfg.extbas),
+	XC_SET_STRING("altbas", &private_cfg.altbas),
+	XC_SET_INT1("nobas", &private_cfg.nobas),
+	XC_SET_INT1("noextbas", &private_cfg.noextbas),
+	XC_SET_INT1("noaltbas", &private_cfg.noaltbas),
+	XC_SET_ENUM("tv-type", &private_cfg.tv, tv_type_list),
+	XC_SET_ENUM("vdg-type", &private_cfg.vdg_type, vdg_type_list),
+	XC_SET_INT("ram", &private_cfg.ram),
+	XC_SET_STRING("machine-cart", &private_cfg.machine_cart),
+	XC_SET_INT1("nodos", &private_cfg.nodos),
+	/* Deliberately undocumented: */
+	XC_SET_STRING("machine-palette", &private_cfg.machine_palette),
+	/* Backwards-compatibility: */
+	XC_CALL_NULL("pal", &set_pal),
+	XC_CALL_NULL("ntsc", &set_ntsc),
+
+	/* Cartridges: */
+	XC_CALL_STRING("cart", &set_cart),
+	XC_SET_STRING("cart-desc", &private_cfg.cart_desc),
+	XC_SET_ENUM("cart-type", &private_cfg.cart_type, cart_type_list),
+	XC_SET_STRING("cart-rom", &private_cfg.cart_rom),
+	XC_SET_STRING("cart-rom2", &private_cfg.cart_rom2),
+	XC_SET_INT1("cart-autorun", &private_cfg.cart_autorun),
+	XC_SET_INT1("cart-becker", &private_cfg.cart_becker),
+	/* Backwards compatibility: */
+	XC_SET_ENUM("dostype", &private_cfg.cart_type, cart_type_list),
+	XC_SET_STRING("dos", &private_cfg.cart_rom),
+
+	/* Becker port: */
+	XC_SET_BOOL("becker", &xroar_cfg.becker),
+	XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip),
+	XC_SET_STRING("becker-port", &xroar_cfg.becker_port),
+	/* Backwards-compatibility: */
+	XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip),
+	XC_SET_STRING("dw4-port", &xroar_cfg.becker_port),
+
+	/* Files: */
+	XC_CALL_STRING("load", &add_load),
+	XC_SET_STRING("run", &private_cfg.run),
+	/* Backwards-compatibility: */
+	XC_CALL_STRING("cartna", &add_load),
+	XC_CALL_STRING("snap", &add_load),
+
+	/* Cassettes: */
+	XC_SET_STRING("tape-write", &private_cfg.tape_write),
+	XC_SET_INT1("tape-fast", &private_cfg.tape_fast),
+	XC_SET_INT1("tape-pad", &private_cfg.tape_pad),
+	XC_SET_INT1("tape-pad-auto", &private_cfg.tape_pad_auto),
+	XC_SET_INT1("tape-rewrite", &private_cfg.tape_rewrite),
+	/* Backwards-compatibility: */
+	XC_SET_INT1("tapehack", &private_cfg.tape_rewrite),
+
+	/* Disks: */
+	XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back),
+	XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack),
+
+	/* Firmware ROM images: */
+	XC_SET_STRING("rompath", &xroar_rom_path),
+	XC_CALL_STRING("romlist", &romlist_assign),
+	XC_CALL_NULL("romlist-print", &romlist_print),
+	XC_CALL_STRING("crclist", &crclist_assign),
+	XC_CALL_NULL("crclist-print", &crclist_print),
+	XC_SET_BOOL("force-crc-match", &xroar_cfg.force_crc_match),
+
+	/* User interface: */
+	XC_SET_STRING("ui", &private_cfg.ui),
+	/* Deliberately undocumented: */
+	XC_SET_STRING("filereq", &private_cfg.filereq),
+
+	/* Video: */
+	XC_SET_STRING("vo", &private_cfg.vo),
+	XC_SET_BOOL("fs", &xroar_cfg.fullscreen),
+	XC_SET_INT("fskip", &xroar_cfg.frameskip),
+	XC_SET_ENUM("ccr", &xroar_cfg.ccr, ccr_list),
+	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
+	XC_SET_STRING("geometry", &xroar_cfg.geometry),
+	XC_SET_STRING("g", &xroar_cfg.geometry),
+
+	/* Audio: */
+	XC_SET_STRING("ao", &private_cfg.ao),
+	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
+	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
+	XC_SET_INT("ao-channels", &xroar_cfg.ao_channels),
+	XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms),
+	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_samples),
+	XC_SET_INT("volume", &private_cfg.volume),
+#ifndef FAST_SOUND
+	XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound),
+#endif
+
+	/* Keyboard: */
+	XC_SET_STRING("keymap", &xroar_cfg.keymap),
+	XC_SET_BOOL("kbd-translate", &xroar_cfg.kbd_translate),
+	XC_CALL_STRING("type", &type_command),
+
+	/* Joysticks: */
+	XC_CALL_STRING("joy", &set_joystick),
+	XC_SET_STRING("joy-desc", &private_cfg.joy_desc),
+	XC_CALL_STRING("joy-axis", &set_joystick_axis),
+	XC_CALL_STRING("joy-button", &set_joystick_button),
+	XC_SET_STRING("joy-right", &private_cfg.joy_right),
+	XC_SET_STRING("joy-left", &private_cfg.joy_left),
+	XC_SET_STRING("joy-virtual", &private_cfg.joy_virtual),
+
+	/* Printing: */
+	XC_SET_STRING("lp-file", &private_cfg.lp_file),
+	XC_SET_STRING("lp-pipe", &private_cfg.lp_pipe),
+
+	/* Debugging: */
+#ifdef WANT_GDB_TARGET
+	XC_SET_BOOL("gdb", &private_cfg.gdb),
+	XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip),
+	XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port),
+#endif
+#ifdef TRACE
+	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
+#endif
+	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
+	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
+#ifdef WANT_GDB_TARGET
+	XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb),
+#endif
+
+	/* Other options: */
+	XC_SET_BOOL("config-print", &private_cfg.config_print),
+	XC_CALL_NULL("help", &helptext),
+	XC_CALL_NULL("h", &helptext),
+	XC_CALL_NULL("version", &versiontext),
+	XC_OPT_END()
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+/* Help texts */
+
+static void helptext(void) {
+#ifdef LOGGING
+	puts(
+"Usage: xroar [-c CONFFILE] [OPTION]...\n"
+"XRoar is a Dragon emulator.  Due to hardware similarities, XRoar also\n"
+"emulates the Tandy Colour Computer (CoCo) models 1 & 2.\n"
+
+"\n  -c CONFFILE     specify a configuration file\n"
+
+"\n Machines:\n"
+"  -default-machine NAME   default machine on startup\n"
+"  -machine NAME           configure named machine (-machine help for list)\n"
+"    -machine-desc TEXT      machine description\n"
+"    -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
+"    -machine-cpu CPU        machine CPU (-machine-cpu help for list)\n"
+"    -bas NAME               BASIC ROM to use (CoCo only)\n"
+"    -extbas NAME            Extended BASIC ROM to use\n"
+"    -altbas NAME            64K mode Extended BASIC ROM (Dragon 64)\n"
+"    -nobas                  disable BASIC\n"
+"    -noextbas               disable Extended BASIC\n"
+"    -noaltbas               disable 64K mode Extended BASIC\n"
+"    -tv-type TYPE           TV type (-tv-type help for list)\n"
+"    -vdg-type TYPE          VDG type (6847 or 6847t1)\n"
+"    -ram KBYTES             amount of RAM in K\n"
+"    -machine-cart NAME      default cartridge for selected machine\n"
+"    -nodos                  don't automatically pick a DOS cartridge\n"
+
+"\n Cartridges:\n"
+"  -cart NAME            configure named cartridge (-cart help for list)\n"
+"    -cart-desc TEXT       cartridge description\n"
+"    -cart-type TYPE       cartridge base type (-cart-type help for list)\n"
+"    -cart-rom NAME        ROM image to load ($C000-)\n"
+"    -cart-rom2 NAME       second ROM image to load ($E000-)\n"
+"    -cart-autorun         autorun cartridge\n"
+"    -cart-becker          enable becker port where supported\n"
+
+"\n Becker port:\n"
+"  -becker               prefer becker-enabled DOS (when picked automatically)\n"
+"  -becker-ip ADDRESS    address or hostname of DriveWire server [127.0.0.1]\n"
+"  -becker-port PORT     port of DriveWire server [65504]\n"
+
+"\n Files:\n"
+"  -load FILENAME        load or attach FILENAME\n"
+"  -run FILENAME         load or attach FILENAME and attempt autorun\n"
+
+"\n Cassettes:\n"
+"  -tape-write FILENAME  open FILENAME for tape writing\n"
+"  -no-tape-fast         disable fast tape loading\n"
+"  -tape-pad             force tape leader padding\n"
+"  -no-tape-pad-auto     disable automatic leader padding\n"
+"  -tape-rewrite         enable tape rewriting\n"
+
+"\n Disks:\n"
+"  -disk-write-back      default to enabling write-back for disk images\n"
+"  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
+
+"\n Firmware ROM images:\n"
+"  -rompath PATH         ROM search path (colon-separated list)\n"
+"  -romlist NAME=LIST    define a ROM list\n"
+"  -romlist-print        print defined ROM lists\n"
+"  -crclist NAME=LIST    define a ROM CRC list\n"
+"  -crclist-print        print defined ROM CRC lists\n"
+"  -force-crc-match      force per-architecture CRC matches\n"
+
+"\n User interface:\n"
+"  -ui MODULE            user-interface module (-ui help for list)\n"
+
+"\n Video:\n"
+"  -vo MODULE            video module (-vo help for list)\n"
+"  -fs                   start emulator full-screen if possible\n"
+"  -fskip FRAMES         frameskip (default: 0)\n"
+"  -ccr RENDERER         cross-colour renderer (-ccr help for list)\n"
+#ifdef HAVE_SDLGL
+"  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
+#endif
+"  -geometry WxH+X+Y     initial emulator geometry\n"
+
+"\n Audio:\n"
+"  -ao MODULE            audio module (-ao help for list)\n"
+"  -ao-device STRING     device to use for audio module\n"
+"  -ao-rate HZ           set audio sample rate (if supported by module)\n"
+"  -ao-channels N        set number of audio channels, 1 or 2\n"
+"  -ao-buffer-ms MS      set audio buffer size in ms (if supported)\n"
+"  -ao-buffer-samples N  set audio buffer size in samples (if supported)\n"
+"  -volume VOLUME        audio volume (0 - 100)\n"
+#ifndef FAST_SOUND
+"  -fast-sound           faster but less accurate sound\n"
+#endif
+
+"\n Keyboard:\n"
+"  -keymap CODE          host keyboard type (uk, us, fr, fr_CA, de)\n"
+"  -kbd-translate        enable keyboard translation\n"
+"  -type STRING          intercept ROM calls to type STRING into BASIC\n"
+
+"\n Joysticks:\n"
+"  -joy NAME             configure named joystick (-joy help for list)\n"
+"    -joy-desc TEXT        joystick description\n"
+"    -joy-axis AXIS=SPEC   configure joystick axis\n"
+"    -joy-button BTN=SPEC  configure joystick button\n"
+"  -joy-right NAME       map right joystick\n"
+"  -joy-left NAME        map left joystick\n"
+"  -joy-virtual NAME     specify the 'virtual' joystick to cycle [kjoy0]\n"
+
+"\n Printing:\n"
+"  -lp-file FILENAME     append Dragon printer output to FILENAME\n"
+"  -lp-pipe COMMAND      pipe Dragon printer output to COMMAND\n"
+
+"\n Debugging:\n"
+#ifdef WANT_GDB_TARGET
+"  -gdb                  disable GDB target\n"
+"  -gdb-ip               address of interface for GDB target [localhost]\n"
+"  -gdb-port             port for GDB target to listen on [65520]\n"
+#endif
+#ifdef TRACE
+"  -trace                start with trace mode on\n"
+#endif
+"  -debug-file FLAGS     file debugging (see manual, or -1 for all)\n"
+"  -debug-fdc FLAGS      FDC debugging (see manual, or -1 for all)\n"
+"  -debug-gdb FLAGS      GDB target debugging (see manual, or -1 for all)\n"
+
+"\n Other options:\n"
+"  -config-print         print full configuration to standard output\n"
+"  -h, --help            display this help and exit\n"
+"      --version         output version information and exit\n"
+
+"\nJoystick SPECs are of the form [INTERFACE:][ARG[,ARG]...], from:\n"
+
+"\nINTERFACE       Axis ARGs                       Button ARGs\n"
+"physical        joystick-index,[-]axis-index    joystick-index,button-index\n"
+"keyboard        key-name0,key-name1             key-name\n"
+"mouse           screen-offset0,screen-offset1   button-number\n"
+
+"\nFor physical joysticks a '-' before the axis index inverts the axis.  AXIS 0 is\n"
+"the X-axis, and AXIS 1 the Y-axis.  BTN 0 is the only one used so far, but in\n"
+"the future BTN 1 will be the second button on certain CoCo joysticks."
+
+	);
+#endif
+	exit(EXIT_SUCCESS);
+}
+
+static void versiontext(void) {
+#ifdef LOGGING
+	puts(
+"XRoar " VERSION "\n"
+"Copyright (C) 2003-2013 Ciaran Anscomb\n"
+"This is free software.  You may redistribute copies of it under the terms of\n"
+"the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
+"There is NO WARRANTY, to the extent permitted by law."
+	    );
+#endif
+	exit(EXIT_SUCCESS);
+}
+
+/* Dump all known config to stdout */
+
+/*
+ * The plan is to have proper introspection of the configuration, allowing
+ * dynamic updates from a console or remotely.  Dumping of the current config
+ * would then become pretty easy.
+ *
+ * Until then, this is a pretty awful stopgap measure.  It's liable to break if
+ * a default changes or new options are added.  Be careful!
+ */
+
+static void config_print_all(void) {
+	puts("# Machines\n");
+	machine_config_print_all();
+
+	puts("# Cartridges\n");
+	cart_config_print_all();
+	puts("# Becker port");
+	if (xroar_cfg.becker) puts("becker");
+	if (xroar_cfg.becker_ip) printf("becker-ip %s\n", xroar_cfg.becker_ip);
+	if (xroar_cfg.becker_port) printf("becker-port %s\n", xroar_cfg.becker_port);
+	putchar('\n');
+
+	puts("# Files");
+	for (GSList *l = private_cfg.load_list; l; l = l->next) {
+		const char *s = l->data;
+		printf("load %s\n", s);
+	}
+	if (private_cfg.run) printf("run %s\n", private_cfg.run);
+	putchar('\n');
+
+	puts("# Cassettes");
+	if (private_cfg.tape_write) printf("tape-write %s\n", private_cfg.tape_write);
+	if (private_cfg.tape_fast == 0) puts("no-tape-fast");
+	if (private_cfg.tape_fast == 1) puts("tape-fast");
+	if (private_cfg.tape_pad == 0) puts("no-tape-pad");
+	if (private_cfg.tape_pad == 1) puts("tape-pad");
+	if (private_cfg.tape_pad_auto == 0) puts("no-tape-pad-auto");
+	if (private_cfg.tape_pad_auto == 1) puts("tape-pad-auto");
+	if (private_cfg.tape_rewrite == 0) puts("no-tape-rewrite");
+	if (private_cfg.tape_rewrite == 1) puts("tape-rewrite");
+	puts("");
+
+	puts("# Disks");
+	if (xroar_cfg.disk_write_back) puts("disk-write-back");
+	if (xroar_cfg.disk_jvc_hack) puts("disk-jvc-hack");
+	puts("");
+
+	puts("# Firmware ROM images");
+	if (xroar_rom_path) printf("rompath %s\n", xroar_rom_path);
+	romlist_print_all();
+	crclist_print_all();
+	if (xroar_cfg.force_crc_match) puts("force-crc-match");
+	putchar('\n');
+
+	puts("# User interface");
+	if (private_cfg.ui) printf("ui %s\n", private_cfg.ui);
+	if (private_cfg.filereq) printf("filereq %s\n", private_cfg.filereq);
+	putchar('\n');
+
+	puts("# Video");
+	if (private_cfg.vo) printf("vo %s\n", private_cfg.vo);
+	if (xroar_cfg.fullscreen) puts("fs");
+	if (xroar_frameskip > 0) printf("fskip %d\n", xroar_frameskip);
+	switch (xroar_cfg.ccr) {
+	case CROSS_COLOUR_SIMPLE: puts("ccr simple"); break;
+	// case CROSS_COLOUR_5BIT: puts("ccr 5bit"); break;
+	default: break;
+	}
+	switch (xroar_cfg.gl_filter) {
+	// case ANY_AUTO: puts("gl-filter auto"); break;
+	case XROAR_GL_FILTER_NEAREST: puts("gl-filter nearest"); break;
+	case XROAR_GL_FILTER_LINEAR: puts("gl-filter linear"); break;
+	default: break;
+	}
+	if (xroar_cfg.geometry) printf("geometry %s\n", xroar_cfg.geometry);
+	putchar('\n');
+
+	puts("# Audio");
+	if (private_cfg.ao) printf("ao %s\n", private_cfg.ao);
+	if (xroar_cfg.ao_device) printf("ao-device %s\n", xroar_cfg.ao_device);
+	if (xroar_cfg.ao_rate != 0) printf("ao-rate %d\n", xroar_cfg.ao_rate);
+	if (xroar_cfg.ao_channels != 0) printf("ao-channels %d\n", xroar_cfg.ao_channels);
+	if (xroar_cfg.ao_buffer_ms != 0) printf("ao-buffer-ms %d\n", xroar_cfg.ao_buffer_ms);
+	if (xroar_cfg.ao_buffer_samples != 0) printf("ao-buffer-samples %d\n", xroar_cfg.ao_buffer_samples);
+	if (private_cfg.volume != 100) printf("volume %d\n", private_cfg.volume);
+#ifndef FAST_SOUND
+	if (xroar_cfg.fast_sound) puts("fast-sound");
+#endif
+	putchar('\n');
+
+	puts("# Keyboard");
+	if (xroar_cfg.keymap) printf("keymap %s\n", xroar_cfg.keymap);
+	if (xroar_cfg.kbd_translate) puts("kbd-translate");
+	for (GSList *l = private_cfg.type_list; l; l = l->next) {
+		const char *s = l->data;
+		printf("type %s\n", s);
+	}
+	putchar('\n');
+
+	puts("# Joysticks");
+	joystick_config_print_all();
+
+	puts("# Printing");
+	if (private_cfg.lp_file) printf("lp-file %s\n", private_cfg.lp_file);
+	if (private_cfg.lp_pipe) printf("lp-pipe %s\n", private_cfg.lp_pipe);
+	putchar('\n');
+
+	puts("# Debugging");
+#ifdef WANT_GDB_TARGET
+	if (private_cfg.gdb) puts("gdb");
+	if (xroar_cfg.gdb_ip) printf("gdb-ip %s\n", xroar_cfg.gdb_ip);
+	if (xroar_cfg.gdb_port) printf("gdb-port %s\n", xroar_cfg.gdb_port);
+#endif
+#ifdef TRACE
+	if (xroar_cfg.trace_enabled == 0) puts("no-trace");
+	if (xroar_cfg.trace_enabled == 1) puts("trace");
+#endif
+	if (xroar_cfg.debug_file != 0) printf("debug-file 0x%x\n", xroar_cfg.debug_file);
+	if (xroar_cfg.debug_fdc != 0) printf("debug-fdc 0x%x\n", xroar_cfg.debug_fdc);
+#ifdef WANT_GDB_TARGET
+	if (xroar_cfg.debug_gdb != 0) printf("debug-gdb 0x%x\n", xroar_cfg.debug_gdb);
+#endif
+	putchar('\n');
 }
