@@ -1069,7 +1069,7 @@ information on how to use GDB, see the
 
 Enable the GDB remote target with @option{-gdb}.  The default IP and port for
 the target are @samp{localhost} and @samp{65520}.  These can be overridden with
-the @option{-gdb-ip} and @option{gdb-port} options.
+the @option{-gdb-ip} and @option{-gdb-port} options.
 
 XRoar also supports a simpler ``trace mode'', where it will dump a disassembly
 of every instruction it executes to the console.  Toggle trace mode on or off
