@@ -141,8 +141,8 @@ profile-clean:
 
 .PHONY: distclean
 distclean:
-	rm -f config.h config.mak config.log
 	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+	rm -f config.h config.mak config.log
 
 .PHONY: depend
 depend:
