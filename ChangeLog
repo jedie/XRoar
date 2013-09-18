@@ -1,4 +1,4 @@
-Version 0.30, unreleased
+Version 0.30, Wed Sep 18 2013
 
   * Minimal CoCo BASIC printing support using ROM intercept.
   * Fix SAM clock stretching on slow/fast transition.
