@@ -744,7 +744,8 @@ void xroar_shutdown(void) {
 		return;
 	shutting_down = 1;
 #ifdef WANT_GDB_TARGET
-	gdb_shutdown();
+	if (private_cfg.gdb)
+		gdb_shutdown();
 	pthread_mutex_destroy(&run_state_mt);
 	pthread_cond_destroy(&run_state_cv);
 #endif
