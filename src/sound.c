@@ -331,8 +331,8 @@ static void sound_update(void) {
 	/* Mix bus & external sound */
 	float level[2];
 	if (external_audio) {
-		level[0] = (external_level[0] + bus_level) / 2.0;
-		level[1] = (external_level[1] + bus_level) / 2.0;
+		level[0] = (external_level[0]*full_scale_v + bus_level) / 2.0;
+		level[1] = (external_level[1]*full_scale_v + bus_level) / 2.0;
 	} else {
 		level[0] = bus_level;
 		level[1] = bus_level;
