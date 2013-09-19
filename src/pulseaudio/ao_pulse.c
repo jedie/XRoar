@@ -103,7 +103,7 @@ static _Bool init(void) {
 		LOG_WARN("Unhandled audio format.");
 		goto failed;
 	}
-	unsigned buffer_size = fragment_size * sample_size;
+	unsigned buffer_size = fragment_size * sample_size * nchannels;
 	audio_buffer = g_malloc(buffer_size);
 	sound_init(audio_buffer, request_fmt, sample_rate, nchannels, fragment_size);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
