@@ -23,6 +23,7 @@
 #define BP_MACHINE_ARCH (1 << 0)
 #define BP_CRC_BAS (1 << 1)
 #define BP_CRC_EXT (1 << 2)
+#define BP_CRC_COMBINED (1 << 3)
 
 /* Match conditions. */
 
@@ -50,6 +51,7 @@ struct breakpoint {
 	// Conditions for bp_list_add to consider entry for adding
 	unsigned add_cond;
 	int cond_machine_arch;
+	const char *cond_crc_combined;
 	const char *cond_crc_bas;
 	const char *cond_crc_extbas;
 	const char *cond_crc_altbas;
@@ -63,11 +65,11 @@ struct breakpoint {
 /* Convenience macros for standard types of breakpoint. */
 
 #define BP_DRAGON64_ROM(...) \
-	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@d64_1", __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_COMBINED, .cond_crc_combined = "@d64_1", __VA_ARGS__ }
 #define BP_DRAGON32_ROM(...) \
-	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@d32", __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_COMBINED, .cond_crc_combined = "@d32", __VA_ARGS__ }
 #define BP_DRAGON_ROM(...) \
-	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@dragon", __VA_ARGS__ }
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_COMBINED, .cond_crc_combined = "@dragon", __VA_ARGS__ }
 
 #define BP_COCO_BAS10_ROM(...) \
 	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@bas10", __VA_ARGS__ }
@@ -77,11 +79,10 @@ struct breakpoint {
 	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@bas12", __VA_ARGS__ }
 #define BP_COCO_BAS13_ROM(...) \
 	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@bas13", __VA_ARGS__ }
+#define BP_MX1600_BAS_ROM(...) \
+	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@mx1600", __VA_ARGS__ }
 #define BP_COCO_ROM(...) \
 	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_BAS, .cond_crc_bas = "@coco", __VA_ARGS__ }
-
-#define BP_COCO_COMBO_ROM(...) \
-	{ .match_mask = BP_MASK_ROM, .match_cond = BP_COND_ROM, .add_cond = BP_CRC_EXT, .cond_crc_extbas = "@coco_combined", __VA_ARGS__ }
 
 #define bp_add_list(bp) bp_add_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))
 #define bp_remove_list(bp) bp_remove_n(bp, (sizeof(bp) / sizeof(struct breakpoint)))

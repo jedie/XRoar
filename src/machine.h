@@ -89,8 +89,8 @@ struct machine_config {
 extern unsigned int machine_ram_size;  /* RAM in bytes, up to 64K */
 extern uint8_t machine_ram[0x10000];
 extern struct cart *machine_cart;
-extern _Bool has_bas, has_extbas, has_altbas;
-extern uint32_t crc_bas, crc_extbas, crc_altbas;
+extern _Bool has_bas, has_extbas, has_altbas, has_combined;
+extern uint32_t crc_bas, crc_extbas, crc_altbas, crc_combined;
 
 /* Add a new machine config: */
 struct machine_config *machine_config_new(void);

@@ -62,8 +62,8 @@ static uint8_t rom1[0x4000];
 static struct MC6809 *CPU0 = NULL;
 static struct MC6821 *PIA0, *PIA1;
 struct cart *machine_cart = NULL;
-_Bool has_bas, has_extbas, has_altbas;
-uint32_t crc_bas, crc_extbas, crc_altbas;
+_Bool has_bas, has_extbas, has_altbas, has_combined;
+uint32_t crc_bas, crc_extbas, crc_altbas, crc_combined;
 
 /* Useful configuration side-effect tracking */
 static _Bool unexpanded_dragon32 = 0;
@@ -570,71 +570,113 @@ void machine_configure(struct machine_config *mc) {
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
 	memset(rom1, 0, sizeof(rom1));
-	/* ... BASIC */
-	has_bas = 0;
-	crc_bas = 0;
-	if (!mc->nobas && mc->bas_rom) {
-		char *tmp = romlist_find(mc->bas_rom);
-		if (tmp) {
-			int size = machine_load_rom(tmp, rom0 + 0x2000, sizeof(rom0) - 0x2000);
-			if (size > 0) {
-				has_bas = 1;
-				crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, size);
-				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_bas);
-				if (IS_COCO && xroar_cfg.force_crc_match) {
-					/* force Color BASIC 1.3 */
-					crc_bas = 0xd8f4d15e;
-				}
-			}
-			g_free(tmp);
-		}
-	}
+
+	/*
+	 * CoCo ROMs are always considered to be in two parts: BASIC and
+	 * Extended BASIC.
+	 *
+	 * Later CoCos and clones may have been distributed with only one ROM
+	 * containing the combined image.  If Extended BASIC is found to be
+	 * more than 8K, it's assumed to be one of these combined ROMs.
+	 *
+	 * Dragon ROMs are always Extended BASIC only, and even though (some?)
+	 * Dragon 32s split this across two pieces of hardware, it doesn't make
+	 * sense to consider the two regions separately.
+	 *
+	 * Draogn 64s also contain a separate 64K mode Extended BASIC.
+	 */
+
+	has_combined = has_extbas = has_bas = has_altbas = 0;
+	crc_combined = crc_extbas = crc_bas = crc_altbas = 0;
+
 	/* ... Extended BASIC */
-	has_extbas = 0;
-	crc_extbas = 0;
 	if (!mc->noextbas && mc->extbas_rom) {
 		char *tmp = romlist_find(mc->extbas_rom);
 		if (tmp) {
 			int size = machine_load_rom(tmp, rom0, sizeof(rom0));
 			if (size > 0) {
-				has_extbas = 1;
-				crc_extbas = crc32_block(CRC32_RESET, rom0, size);
-				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_extbas);
-				if (xroar_cfg.force_crc_match) {
-					if (IS_DRAGON64) {
-						/* force Dragon 64 BASIC */
-						crc_extbas = 0x84f68bf9;
-					} else if (IS_DRAGON32) {
-						/* force Dragon 32 BASIC */
-						crc_extbas = 0xe3879310;
-					}
-				}
+				if (IS_DRAGON)
+					has_combined = 1;
+				else
+					has_extbas = 1;
 			}
 			if (size > 0x2000) {
-				has_bas = 1;
-				crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, size - 0x2000);
+				if (!has_combined)
+					has_bas = 1;
+				has_combined = 1;
 			}
 			g_free(tmp);
 		}
 	}
-	/* ... Alternate BASIC ROM */
-	has_altbas = 0;
-	crc_altbas = 0;
+
+	/* ... BASIC */
+	if (!mc->nobas && mc->bas_rom) {
+		char *tmp = romlist_find(mc->bas_rom);
+		if (tmp) {
+			int size = machine_load_rom(tmp, rom0 + 0x2000, sizeof(rom0) - 0x2000);
+			if (size > 0)
+				has_bas = 1;
+			g_free(tmp);
+		}
+	}
+
+	/* ... 64K mode Extended BASIC */
 	if (!mc->noaltbas && mc->altbas_rom) {
 		char *tmp = romlist_find(mc->altbas_rom);
 		if (tmp) {
 			int size = machine_load_rom(tmp, rom1, sizeof(rom1));
-			if (size > 0) {
+			if (size > 0)
 				has_altbas = 1;
-				crc_altbas = crc32_block(CRC32_RESET, rom1, size);
-				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc_altbas);
-			}
 			g_free(tmp);
 		}
 	}
 	machine_ram_size = mc->ram * 1024;
 	/* This will be under PIA control on a Dragon 64 */
 	machine_rom = rom0;
+
+	/* CRCs */
+	if (has_combined) {
+		_Bool forced = 0;
+		if (IS_DRAGON64 && xroar_cfg.force_crc_match) {
+			crc_combined = 0x84f68bf9;  // Dragon 64 Extended BASIC
+			forced = 1;
+		} else if (IS_DRAGON32 && xroar_cfg.force_crc_match) {
+			crc_combined = 0xe3879310;  // Dragon 32 Extended BASIC
+			forced = 1;
+		} else {
+			crc_combined = crc32_block(CRC32_RESET, rom0, 0x4000);
+		}
+		LOG_DEBUG(2, "\tCombined BASIC CRC = 0x%08x%s\n", crc_combined, forced ? " (forced)" : "");
+	}
+	if (has_extbas) {
+		_Bool forced = 0;
+		if (IS_COCO && xroar_cfg.force_crc_match) {
+			crc_extbas = 0xa82a6254;  // CoCo Extended BASIC 1.1
+			forced = 1;
+		} else {
+			crc_extbas = crc32_block(CRC32_RESET, rom0, 0x2000);
+		}
+		LOG_DEBUG(2, "\tExtended BASIC CRC = 0x%08x%s\n", crc_extbas, forced ? " (forced)" : "");
+	}
+	if (has_bas) {
+		_Bool forced = 0;
+		if (IS_COCO && xroar_cfg.force_crc_match) {
+			crc_bas = 0xd8f4d15e;  // CoCo BASIC 1.3
+			forced = 1;
+		} else {
+			crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, 0x2000);
+		}
+		LOG_DEBUG(2, "\tBASIC CRC = 0x%08x%s\n", crc_bas, forced ? " (forced)" : "");
+	}
+	if (has_altbas) {
+		_Bool forced = 0;
+		if (IS_DRAGON64 && xroar_cfg.force_crc_match) {
+			crc_altbas = 0x17893a42;  // Dragon 64 64K mode Extended BASIC
+			forced = 1;
+		} else {
+			crc_altbas = crc32_block(CRC32_RESET, rom1, 0x4000);
+		}
+	}
 
 	/* Default all PIA connections to unconnected (no source, no sink) */
 	PIA0->b.in_source = 0;

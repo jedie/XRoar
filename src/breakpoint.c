@@ -66,9 +66,11 @@ void bp_add_n(struct breakpoint *bp, int n) {
 	for (int i = 0; i < n; i++) {
 		if ((bp[i].add_cond & BP_MACHINE_ARCH) && xroar_machine_config->architecture != bp[i].cond_machine_arch)
 			continue;
-		if ((bp[i].add_cond & BP_CRC_BAS) && (!has_bas || !crclist_match(bp[i].cond_crc_bas, crc_bas)))
+		if ((bp[i].add_cond & BP_CRC_COMBINED) && (!has_combined || !crclist_match(bp[i].cond_crc_combined, crc_combined)))
 			continue;
 		if ((bp[i].add_cond & BP_CRC_EXT) && (!has_extbas || !crclist_match(bp[i].cond_crc_extbas, crc_extbas)))
+			continue;
+		if ((bp[i].add_cond & BP_CRC_BAS) && (!has_bas || !crclist_match(bp[i].cond_crc_bas, crc_bas)))
 			continue;
 		if (!bp[i].handler_data) {
 			bp[i].handler_data = machine_get_cpu(0);

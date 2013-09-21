@@ -243,8 +243,8 @@ static const char *default_config[] = {
 	"machine mx1600",
 	"machine-desc Dynacom MX-1600",
 	"machine-arch coco",
-	"nobas",
-	"extbas @mx1600",
+	"bas @mx1600",
+	"extbas @mx1600ext",
 	"tv-type pal-m",
 	"ram 64",
 
@@ -297,7 +297,8 @@ static const char *default_config[] = {
 	"romlist coco2_ext=extbas11,@coco_ext",
 	"romlist coco2b=bas13,@coco",
 	// MX-1600 and zephyr-patched version
-	"romlist mx1600=mx1600,mx1600_zephyr",
+	"romlist mx1600=mx1600bas,mx1600bas_zephyr",
+	"romlist mx1600ext=mx1600extbas",
 	// DragonDOS
 	"romlist dragondos=ddos40,ddos15,ddos10,Dragon Data Ltd - DragonDOS 1.0",
 	"romlist dosplus=dplus49b,dplus48,dosplus-4.8,DOSPLUS",
@@ -326,13 +327,12 @@ static const char *default_config[] = {
 	"crclist bas11=0x6270955a",
 	"crclist bas12=0x54368805",
 	"crclist bas13=0xd8f4d15e",
-	"crclist coco=@bas13,@bas12,@bas11,@bas10",
-	// Latter of these is the corrupt extbas10 found in the Dragon Archive
-	"crclist extbas10=0xe031d076,0x6111a086",
+	"crclist mx1600=0xd918156e,0xd11b1c96",  // 2nd is zephyr-patched
+	"crclist coco=@bas13,@bas12,@bas11,@bas10,@mx1600",
+	"crclist extbas10=0xe031d076,0x6111a086",  // 2nd is corrupt dump
 	"crclist extbas11=0xa82a6254",
-	"crclist cocoext=@extbas11,@extbas10",
-	// MX-1600 (second is zephyr-patched version)
-	"crclist mx1600=0x2af2719f,0x22f17867",
+	"crclist mx1600ext=0x322a3d58",
+	"crclist cocoext=@extbas11,@extbas10,@mx1600ext",
 	"crclist coco_combined=@mx1600",
 
 	// Joysticks
