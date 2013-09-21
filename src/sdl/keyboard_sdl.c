@@ -210,7 +210,10 @@ static void emulator_command(SDLKey sym) {
 			printer_flush();
 		break;
 	case SDLK_r:
-		machine_reset(shift ? RESET_HARD : RESET_SOFT);
+		if (shift)
+			xroar_hard_reset();
+		else
+			xroar_soft_reset();
 		break;
 	case SDLK_s:
 		xroar_save_snapshot();

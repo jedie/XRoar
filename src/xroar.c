@@ -669,8 +669,7 @@ _Bool xroar_init(int argc, char **argv) {
 		xroar_set_cart(NULL);
 	}
 	/* Reset everything */
-	machine_reset(RESET_HARD);
-	printer_reset();
+	xroar_hard_reset();
 	tape_select_state(private_cfg.tape_fast | private_cfg.tape_pad | private_cfg.tape_pad_auto | private_cfg.tape_rewrite);
 
 	load_disk_to_drive = 0;
@@ -926,7 +925,7 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 				cc->autorun = autorun;
 				xroar_set_cart(cc->name);
 				if (autorun) {
-					machine_reset(RESET_HARD);
+					xroar_hard_reset();
 				}
 			}
 			}
@@ -1232,7 +1231,7 @@ void xroar_set_machine(int machine_type) {
 		if (video_module->update_palette) {
 			video_module->update_palette();
 		}
-		machine_reset(RESET_HARD);
+		xroar_hard_reset();
 		if (ui_module->machine_changed_cb) {
 			ui_module->machine_changed_cb(new);
 		}
@@ -1342,6 +1341,7 @@ void xroar_soft_reset(void) {
 }
 
 void xroar_hard_reset(void) {
+	printer_reset();
 	machine_reset(RESET_HARD);
 }
 
