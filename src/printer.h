@@ -16,7 +16,6 @@ typedef struct {
 } printer_line_delegate;
 
 extern printer_line_delegate printer_signal_ack;
-extern printer_line_delegate printer_signal_busy;
 
 void printer_open_file(const char *filename);
 void printer_open_pipe(const char *command);
@@ -24,5 +23,6 @@ void printer_close(void);
 
 void printer_flush(void);
 void printer_strobe(_Bool strobe, int data);
+_Bool printer_busy(void);
 
 #endif  /* XROAR_PRINTER_H_ */

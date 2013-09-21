@@ -39,12 +39,11 @@ static char *stream_dest;
 static int is_pipe;
 static struct event ack_clear_event;
 static int strobe_state;
+static _Bool busy;
 
 printer_line_delegate printer_signal_ack = { NULL, NULL };
-printer_line_delegate printer_signal_busy = { NULL, NULL };
 
 static void do_ack_clear(void *);
-static void set_busy(_Bool state);
 static void open_stream(void);
 
 static void coco_print_byte(struct MC6809 *cpu);
@@ -58,7 +57,8 @@ void printer_init(void) {
 	stream_dest = NULL;
 	is_pipe = 0;
 	event_init(&ack_clear_event, do_ack_clear, NULL);
-	strobe_state = 0;
+	strobe_state = 1;
+	busy = 0;
 }
 
 void printer_reset(void) {
@@ -74,7 +74,7 @@ void printer_open_file(const char *filename) {
 	if (stream_dest) g_free(stream_dest);
 	stream_dest = g_strdup(filename);
 	is_pipe = 0;
-	set_busy(0);
+	busy = 0;
 	bp_add_list(coco_print_breakpoint);
 }
 
@@ -83,7 +83,7 @@ void printer_open_pipe(const char *command) {
 	if (stream_dest) g_free(stream_dest);
 	stream_dest = g_strdup(command);
 	is_pipe = 1;
-	set_busy(0);
+	busy = 0;
 	bp_add_list(coco_print_breakpoint);
 }
 
@@ -93,7 +93,7 @@ void printer_close(void) {
 	if (stream_dest) g_free(stream_dest);
 	stream_dest = NULL;
 	is_pipe = 0;
-	set_busy(1);
+	busy = 1;
 	bp_remove_list(coco_print_breakpoint);
 }
 
@@ -148,7 +148,7 @@ static void open_stream(void) {
 		stream = fopen(stream_dest, "ab");
 	}
 	if (stream) {
-		set_busy(0);
+		busy = 0;
 	} else {
 		printer_close();
 	}
@@ -160,7 +160,6 @@ static void do_ack_clear(void *data) {
 		printer_signal_ack.delegate(printer_signal_ack.dptr, 0);
 }
 
-static void set_busy(_Bool state) {
-	if (printer_signal_busy.delegate)
-		printer_signal_busy.delegate(printer_signal_busy.dptr, state);
+_Bool printer_busy(void) {
+	return busy;
 }

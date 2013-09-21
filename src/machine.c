@@ -342,17 +342,6 @@ static void pia0b_data_preread_coco64k(void) {
 	}
 }
 
-static void pia1b_data_preread_coco64k(void) {
-	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
-	if (PIA_VALUE_B(PIA0) & (1<<6)) {
-		PIA1->b.in_source |= (1<<2);
-		PIA1->b.in_sink |= (1<<2);
-	} else {
-		PIA1->b.in_source &= ~(1<<2);
-		PIA1->b.in_sink &= ~(1<<2);
-	}
-}
-
 #define pia1a_data_preread NULL
 
 static void pia1a_data_postwrite(void) {
@@ -369,6 +358,24 @@ static void pia1a_control_postwrite(void) {
 }
 
 #define pia1b_data_preread NULL
+
+static void pia1b_data_preread_dragon(void) {
+	if (printer_busy())
+		PIA1->b.in_sink |= 0x01;
+	else
+		PIA1->b.in_sink &= ~0x01;
+}
+
+static void pia1b_data_preread_coco64k(void) {
+	/* PB6 of PIA0 is linked to PB2 of PIA1 on 64K CoCos */
+	if (PIA_VALUE_B(PIA0) & (1<<6)) {
+		PIA1->b.in_source |= (1<<2);
+		PIA1->b.in_sink |= (1<<2);
+	} else {
+		PIA1->b.in_source &= ~(1<<2);
+		PIA1->b.in_sink &= ~(1<<2);
+	}
+}
 
 static void pia1b_data_postwrite(void) {
 	if (IS_DRAGON64) {
@@ -445,15 +452,6 @@ static void printer_ack(void *dptr, _Bool ack) {
 		mc6821_reset_cx1(&PIA1->a);
 	else
 		mc6821_set_cx1(&PIA1->a);
-}
-
-// BUSY is active high
-static void printer_busy(void *dptr, _Bool busy) {
-	(void)dptr;
-	if (busy)
-		PIA1->b.in_sink |= 0x01;
-	else
-		PIA1->b.in_sink &= ~0x01;
 }
 
 /* Sound output can feed back into the single bit sound pin when it's
@@ -568,7 +566,6 @@ void machine_configure(struct machine_config *mc) {
 
 	// Printer
 	printer_signal_ack = (printer_line_delegate){printer_ack, NULL};
-	printer_signal_busy = (printer_line_delegate){printer_busy, NULL};
 
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
@@ -660,7 +657,10 @@ void machine_configure(struct machine_config *mc) {
 		PIA1->b.in_source |= (1<<2);
 	}
 	PIA0->b.data_preread = pia0b_data_preread;
-	PIA1->b.data_preread = pia1b_data_preread;
+	if (IS_DRAGON) {
+		/* Dragons need to poll printer BUSY state */
+		PIA1->b.data_preread = pia1b_data_preread_dragon;
+	}
 	if (IS_COCO && machine_ram_size > 0x4000) {
 		/* 64K CoCo connects PB6 of PIA0 to PB2 of PIA1->
 		 * Deal with this through a postwrite. */
