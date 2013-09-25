@@ -497,6 +497,11 @@ static uint8_t op_sub(struct MC6809 *cpu, uint8_t v1, uint8_t v2) {
 	return v;
 }
 
+#define BSR(f) do { pskip += 7; f(cpu); } while (0)
+#define CLR(a) do { pskip += 6; machine_write_byte((a), 0); } while (0)
+#define DEC(a) do { pskip += 6; machine_write_byte((a), machine_read_byte(a) - 1); } while (0)
+#define INC(a) do { pskip += 6; machine_write_byte((a), machine_read_byte(a) + 1); } while (0)
+
 static void motor_on(struct MC6809 *cpu) {
 	int delay = IS_DRAGON ? 0x95 : 0x8a;
 	pskip += 5;  /* LDX <$95 */
@@ -523,8 +528,7 @@ static uint8_t op_clr(struct MC6809 *cpu) {
 
 static void sample_cas(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
-	pskip += 6;  /* INC <$82 */
-	machine_write_byte(pwcount, machine_read_byte(pwcount) + 1);
+	INC(pwcount);
 	pskip += 5;  /* LDB >$FF20 (should this be split 4,1?) */
 	pulse_skip();
 	pskip += 2;  /* RORB */
@@ -538,8 +542,7 @@ static void sample_cas(struct MC6809 *cpu) {
 
 static void tape_wait_p0(struct MC6809 *cpu) {
 	do {
-		pskip += 7;  /* BSR sample_cas */
-		sample_cas(cpu);
+		BSR(sample_cas);
 		if (in_pulse < 0) return;
 		pskip += 3;  /* BCS tape_wait_p0 */
 	} while (cpu->reg_cc & 0x01);
@@ -548,8 +551,7 @@ static void tape_wait_p0(struct MC6809 *cpu) {
 
 static void tape_wait_p1(struct MC6809 *cpu) {
 	do {
-		pskip += 7;  /* BSR sample_cas */
-		sample_cas(cpu);
+		BSR(sample_cas);
 		if (in_pulse < 0) return;
 		pskip += 3;  /* BCC tape_wait_p1 */
 	} while (!(cpu->reg_cc & 0x01));
@@ -557,15 +559,13 @@ static void tape_wait_p1(struct MC6809 *cpu) {
 }
 
 static void tape_wait_p0_p1(struct MC6809 *cpu) {
-	pskip += 7;  /* BSR tape_wait_p0 */
-	tape_wait_p0(cpu);
+	BSR(tape_wait_p0);
 	if (in_pulse < 0) return;
 	tape_wait_p1(cpu);
 }
 
 static void tape_wait_p1_p0(struct MC6809 *cpu) {
-	pskip += 7;  /* BSR tape_wait_p1 */
-	tape_wait_p1(cpu);
+	BSR(tape_wait_p1);
 	if (in_pulse < 0) return;
 	tape_wait_p0(cpu);
 }
@@ -580,8 +580,7 @@ static void L_BDC3(struct MC6809 *cpu) {
 	op_sub(cpu, machine_read_byte(pwcount), machine_read_byte(maxpw1200));
 	pskip += 3;  /* BHI L_BDCC */
 	if (!(cpu->reg_cc & 0x05)) {
-		pskip += 6;  /* CLR <$83 */
-		machine_write_byte(bcount, 0);
+		CLR(bcount);
 		op_clr(cpu);
 		pskip += 5;  /* RTS */
 		return;
@@ -593,10 +592,8 @@ static void L_BDC3(struct MC6809 *cpu) {
 
 static void tape_cmp_p1_1200(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
-	pskip += 6;  /* CLR <$82 */
-	machine_write_byte(pwcount, 0);
-	pskip += 7;  /* BSR tape_wait_p0 */
-	tape_wait_p0(cpu);
+	CLR(pwcount);
+	BSR(tape_wait_p0);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BRA L_BDC3 */
 	L_BDC3(cpu);
@@ -604,10 +601,8 @@ static void tape_cmp_p1_1200(struct MC6809 *cpu) {
 
 static void tape_cmp_p0_1200(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
-	pskip += 6;  /* CLR <$82 */
-	machine_write_byte(pwcount, 0);
-	pskip += 7;  /* BSR tape_wait_p1 */
-	tape_wait_p1(cpu);
+	CLR(pwcount);
+	BSR(tape_wait_p1);
 	if (in_pulse < 0) return;
 	L_BDC3(cpu);
 }
@@ -616,49 +611,42 @@ static void sync_leader(struct MC6809 *cpu) {
 	int bcount = IS_DRAGON ? 0x83 : 0x82;
 	int store;
 L_BDED:
-	pskip += 7;  /* BSR tape_wait_p0_p1 */
-	tape_wait_p0_p1(cpu);
+	BSR(tape_wait_p0_p1);
 	if (in_pulse < 0) return;
 L_BDEF:
-	pskip += 7;  /* BSR tape_cmp_p1_1200 */
-	tape_cmp_p1_1200(cpu);
+	BSR(tape_cmp_p1_1200);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BHI L_BDFF */
 	if (!(cpu->reg_cc & 0x05))
 		goto L_BDFF;
 L_BDF3:
-	pskip += 7;  /* BSR tape_cmp_p0_1200 */
-	tape_cmp_p0_1200(cpu);
+	BSR(tape_cmp_p0_1200);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BCS L_BE03 */
 	if (cpu->reg_cc & 0x01)
 		goto L_BE03;
-	pskip += 6;  /* INC <$83 */
-	machine_write_byte(bcount, machine_read_byte(bcount) + 1);
+	INC(bcount);
 	pskip += 4;  /* LDA <$83 */
-	pskip += 4;  /* CMPA #$60 */
+	pskip += 2;  /* CMPA #$60 */
 	store = machine_read_byte(bcount);
 	op_sub(cpu, store, 0x60);
 	pskip += 3;  /* BRA L_BE0D */
 	goto L_BE0D;
 L_BDFF:
-	pskip += 7;  /* BSR tape_cmp_p0_1200 */
-	tape_cmp_p0_1200(cpu);
+	BSR(tape_cmp_p0_1200);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BHI L_BDEF */
 	if (!(cpu->reg_cc & 0x05))
 		goto L_BDEF;
 L_BE03:
-	pskip += 7;  /* BSR tape_cmp_p1_1200 */
-	tape_cmp_p1_1200(cpu);
+	BSR(tape_cmp_p1_1200);
 	if (in_pulse < 0) return;
 	pskip += 3;  /* BCS L_BDF3 */
 	if (cpu->reg_cc & 0x01)
 		goto L_BDF3;
-	pskip += 6;  /* DEC <$83 */
-	machine_write_byte(bcount, machine_read_byte(bcount) - 1);
+	DEC(bcount);
 	pskip += 4;  /* LDA <$83 */
-	pskip += 4;  /* ADDA #$60 */
+	pskip += 2;  /* ADDA #$60 */
 	store = op_add(cpu, machine_read_byte(bcount), 0x60);
 L_BE0D:
 	pskip += 3;  /* BNE L_BDED */
@@ -671,8 +659,7 @@ L_BE0D:
 
 static void tape_wait_2p(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
-	pskip += 6;  /* CLR <$82 */
-	machine_write_byte(pwcount, 0);
+	CLR(pwcount);
 	pskip += 6;  /* TST <$84 */
 	pskip += 3;  /* BNE tape_wait_p1_p0 */
 	if (machine_read_byte(0x84)) {
@@ -685,8 +672,7 @@ static void tape_wait_2p(struct MC6809 *cpu) {
 static void bitin(struct MC6809 *cpu) {
 	int pwcount = IS_DRAGON ? 0x82 : 0x83;
 	int mincw1200 = IS_DRAGON ? 0x92 : 0x8f;
-	pskip += 7;  /* BSR tape_wait_2p */
-	tape_wait_2p(cpu);
+	BSR(tape_wait_2p);
 	pskip += 4;  /* LDB <$82 */
 	pskip += 2;  /* DECB */
 	pskip += 4;  /* CMPB <$92 */
@@ -700,8 +686,7 @@ static void cbin(struct MC6809 *cpu) {
 	pskip += 2;  /* LDA #$08 */
 	pskip += 4;  /* STA <$83 */
 	for (i = 0; i < 8; i++) {
-		pskip += 7;  /* BSR BITIN */
-		bitin(cpu);
+		BSR(bitin);
 		pskip += 2;  /* RORA */
 		bin >>= 1;
 		bin |= (cpu->reg_cc & 0x01) ? 0x80 : 0;
