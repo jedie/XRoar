@@ -271,7 +271,7 @@ static const char *default_config[] = {
 	"cart-becker",
 	// Orchestra 90
 	"cart orch90",
-	"cart-desc Orchestra 90-CC",
+	"cart-desc Orchestra-90 CC",
 	"cart-type orch90",
 	"cart-rom orch90",
 
