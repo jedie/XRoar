@@ -179,7 +179,7 @@ static unsigned read_axis(struct control *c) {
 
 static _Bool read_button(struct control *c) {
 	poll_devices();
-	return c->device->axis_value[c->control];
+	return c->device->button_value[c->control];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
