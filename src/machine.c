@@ -316,6 +316,13 @@ static void update_sound_mux_source(void) {
 	sound_set_mux_source(source);
 }
 
+static void update_vdg_mode(void) {
+	unsigned vmode = (PIA1->b.out_source & PIA1->b.out_sink) & 0xf8;
+	// ¬INT/EXT = GM0
+	vmode |= (vmode & 0x10) << 4;
+	vdg_set_mode(vmode);
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static void pia0a_data_preread(void) {
@@ -393,7 +400,7 @@ static void pia1b_data_postwrite(void) {
 	_Bool sbs_level = PIA1->b.out_source & PIA1->b.out_sink & (1<<1);
 	sound_set_sbs(sbs_enabled, sbs_level);
 	// VDG mode
-	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
+	update_vdg_mode();
 }
 
 static void pia1b_control_postwrite(void) {
@@ -789,7 +796,7 @@ void machine_single_step(void) {
 	do {
 		CPU0->run(CPU0);
 	} while (single_step);
-	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
+	update_vdg_mode();
 	if (xroar_cfg.trace_enabled)
 		CPU0->instruction_posthook = NULL;
 }
@@ -799,7 +806,7 @@ void machine_single_step(void) {
  */
 
 void machine_signal(int sig) {
-	vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
+	update_vdg_mode();
 	stop_signal = sig;
 	CPU0->running = 0;
 }
@@ -977,7 +984,7 @@ static void write_cycle(uint16_t A, uint8_t D) {
 	// Changing the SAM VDG mode can affect its idea of the current VRAM
 	// address, so get the VDG output up to date:
 	if (A >= 0xffc0 && A < 0xffc6) {
-		vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
+		update_vdg_mode();
 	}
 	_Bool is_ram_access = do_cpu_cycle(A, 0, &S, &Z);
 	if ((S & 4) || unexpanded_dragon32) {
@@ -1031,8 +1038,12 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
 			if (valid) {
 				V = decode_Z(V);
 			}
-			memcpy(dest, machine_ram + V, n);
-			dest += n;
+			uint8_t *src = machine_ram + V;
+			/* duplicate data as attrs */
+			for (int i = n; i; i--) {
+				*(dest++) = *(src);
+				*(dest++) = *(src++);
+			}
 		}
 		nbytes -= n;
 	}
@@ -1111,7 +1122,7 @@ void machine_write_byte(uint16_t A, uint8_t D) {
 	// Changing the SAM VDG mode can affect its idea of the current VRAM
 	// address, so get the VDG output up to date:
 	if (A >= 0xffc0 && A < 0xffc6) {
-		vdg_set_mode(PIA1->b.out_source & PIA1->b.out_sink);
+		update_vdg_mode();
 	}
 	_Bool is_ram_access = debug_cpu_cycle(A, 0, &S, &Z);
 	if ((S & 4) || unexpanded_dragon32) {

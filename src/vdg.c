@@ -88,13 +88,13 @@ enum vdg_render_mode {
 
 static enum vdg_render_mode render_mode;
 
-static uint8_t vram[42];
+static uint8_t vram[84];
+static uint8_t *vram_ptr = vram;
 static unsigned vram_nbytes = 0;
 static unsigned lborder_remaining;
 static unsigned vram_remaining;
 static unsigned rborder_remaining;
 static int vram_bit = 0;
-static int vram_idx = 0;
 static uint8_t vram_g_data;
 static uint8_t vram_sg_data;
 
@@ -139,7 +139,7 @@ void vdg_reset(void) {
 	bright_orange = vdg_t1 ? VDG_ORANGE : VDG_BRIGHT_ORANGE;
 	vdg_set_mode(0);
 	beam_pos = 0;
-	vram_idx = 0;
+	vram_ptr = vram;
 	vram_bit = 0;
 	lborder_remaining = VDG_tLB;
 	vram_remaining = is_32byte ? 32 : 16;
@@ -209,7 +209,7 @@ static void do_hs_fall(void *data) {
 	scanline = SCANLINE(scanline + 1);
 	beam_pos = 0;
 	vram_nbytes = 0;
-	vram_idx = 0;
+	vram_ptr = vram;
 	vram_bit = 0;
 	lborder_remaining = VDG_tLB;
 	vram_remaining = is_32byte ? 32 : 16;
@@ -272,7 +272,7 @@ static void render_scanline(void) {
 		if (nbytes > 42)
 			nbytes = 42;
 		if (nbytes > vram_nbytes) {
-			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes);
+			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes*2);
 			vram_nbytes = nbytes;
 		}
 	} else if (!is_32byte && beam_to >= 102) {
@@ -280,7 +280,7 @@ static void render_scanline(void) {
 		if (nbytes > 22)
 			nbytes = 22;
 		if (nbytes > vram_nbytes) {
-			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes);
+			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes*2);
 			vram_nbytes = nbytes;
 		}
 	}
@@ -306,9 +306,10 @@ static void render_scanline(void) {
 
 	while (vram_remaining > 0) {
 		if (vram_bit == 0) {
-			vram_g_data = vram[vram_idx++];
+			vram_g_data = *(vram_ptr++);
+			uint8_t attr = *(vram_ptr++);
 			vram_bit = 8;
-			nA_S = vram_g_data & 0x80;
+			nA_S = attr & 0x80;
 
 			CSS = CSS_;
 			CSS_ = CSS__;
@@ -320,13 +321,13 @@ static void render_scanline(void) {
 			if (!nA_G && !nA_S) {
 				_Bool INV;
 				if (vdg_t1) {
-					INV = nINT_EXT || (vram_g_data & 0x40);
+					INV = nINT_EXT || (attr & 0x40);
 					INV ^= inverse_text;
 					if (!nINT_EXT)
 						vram_g_data |= 0x40;
 					vram_g_data = font_6847t1[(vram_g_data&0x7f)*12 + subline];
 				} else {
-					INV = vram_g_data & 0x40;
+					INV = attr & 0x40;
 					if (!nINT_EXT)
 						vram_g_data = font_6847[(vram_g_data&0x3f)*12 + subline];
 				}
@@ -443,7 +444,7 @@ void vdg_set_mode(unsigned mode) {
 	unsigned GM = (mode >> 4) & 7;
 	GM0 = mode & 0x10;
 	CSS__ = mode & 0x08;
-	nINT_EXT__ = mode & 0x10;
+	nINT_EXT__ = mode & 0x100;
 	_Bool new_nA_G = mode & 0x80;
 
 	inverse_text = vdg_t1 && (GM & 2);

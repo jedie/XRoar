@@ -76,10 +76,14 @@ extern _Bool vdg_t1;
 void vdg_init(void);
 void vdg_reset(void);
 
-/* Mode bits:
- * 7..5  GM2..GM0
- * 4    ¬INT/EXT
- * 3    CSS */
+/*
+ * Mode bits:
+ * 8    ¬INT/EXT
+ * 7    ¬A/G
+ * 6..4 GM2..GM0
+ * 3    CSS
+ * 2..0 ignored
+ */
 void vdg_set_mode(unsigned mode);
 
 #endif  /* XROAR_VDG_H_ */
