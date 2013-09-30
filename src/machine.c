@@ -646,17 +646,17 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_combined = crc32_block(CRC32_RESET, rom0, 0x4000);
 		}
-		LOG_DEBUG(2, "\tCombined BASIC CRC = 0x%08x%s\n", crc_combined, forced ? " (forced)" : "");
+		LOG_DEBUG(2, "\t32K mode BASIC CRC = 0x%08x%s\n", crc_combined, forced ? " (forced)" : "");
 	}
-	if (has_extbas) {
+	if (has_altbas) {
 		_Bool forced = 0;
-		if (IS_COCO && xroar_cfg.force_crc_match) {
-			crc_extbas = 0xa82a6254;  // CoCo Extended BASIC 1.1
+		if (IS_DRAGON64 && xroar_cfg.force_crc_match) {
+			crc_altbas = 0x17893a42;  // Dragon 64 64K mode Extended BASIC
 			forced = 1;
 		} else {
-			crc_extbas = crc32_block(CRC32_RESET, rom0, 0x2000);
+			crc_altbas = crc32_block(CRC32_RESET, rom1, 0x4000);
 		}
-		LOG_DEBUG(2, "\tExtended BASIC CRC = 0x%08x%s\n", crc_extbas, forced ? " (forced)" : "");
+		LOG_DEBUG(2, "\t64K mode BASIC CRC = 0x%08x%s\n", crc_altbas, forced ? " (forced)" : "");
 	}
 	if (has_bas) {
 		_Bool forced = 0;
@@ -668,14 +668,15 @@ void machine_configure(struct machine_config *mc) {
 		}
 		LOG_DEBUG(2, "\tBASIC CRC = 0x%08x%s\n", crc_bas, forced ? " (forced)" : "");
 	}
-	if (has_altbas) {
+	if (has_extbas) {
 		_Bool forced = 0;
-		if (IS_DRAGON64 && xroar_cfg.force_crc_match) {
-			crc_altbas = 0x17893a42;  // Dragon 64 64K mode Extended BASIC
+		if (IS_COCO && xroar_cfg.force_crc_match) {
+			crc_extbas = 0xa82a6254;  // CoCo Extended BASIC 1.1
 			forced = 1;
 		} else {
-			crc_altbas = crc32_block(CRC32_RESET, rom1, 0x4000);
+			crc_extbas = crc32_block(CRC32_RESET, rom0, 0x2000);
 		}
+		LOG_DEBUG(2, "\tExtended BASIC CRC = 0x%08x%s\n", crc_extbas, forced ? " (forced)" : "");
 	}
 
 	/* Default all PIA connections to unconnected (no source, no sink) */
