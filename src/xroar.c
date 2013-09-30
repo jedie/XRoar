@@ -430,6 +430,8 @@ _Bool xroar_init(int argc, char **argv) {
 	int argn = 1, ret;
 	char *conffile = NULL;
 
+	fprintf(stderr, "XRoar " VERSION "\n");
+
 	// If the very first argument is -c, override conffile.
 	if ((argn + 1) <= argc && 0 == strcmp(argv[argn], "-c")) {
 		conffile = g_strdup(argv[argn+1]);
