@@ -49,7 +49,7 @@ static unsigned int nchannels;
 static pa_simple *pa;
 static void *audio_buffer;
 
-static int fragment_bytes;
+static size_t fragment_bytes;
 
 static _Bool init(void) {
 	const char *device = xroar_cfg.ao_device;
@@ -79,7 +79,6 @@ static _Bool init(void) {
 		fragment_size = 512;
 	}
 	ba.tlength = fragment_size;
-	fragment_bytes = fragment_size;
 
 	pa = pa_simple_new(NULL, "XRoar", PA_STREAM_PLAYBACK, device,
 	                   "output", &ss, NULL, &ba, &error);
@@ -103,8 +102,8 @@ static _Bool init(void) {
 		LOG_WARN("Unhandled audio format.");
 		goto failed;
 	}
-	unsigned buffer_size = fragment_size * sample_size * nchannels;
-	audio_buffer = g_malloc(buffer_size);
+	fragment_bytes = fragment_size * sample_size * nchannels;
+	audio_buffer = g_malloc(fragment_bytes);
 	sound_init(audio_buffer, request_fmt, sample_rate, nchannels, fragment_size);
 	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
 	return 1;
