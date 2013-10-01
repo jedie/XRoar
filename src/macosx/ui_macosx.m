@@ -41,6 +41,7 @@
 #define TAG_WRITE_BACK (8 << 24)
 
 #define TAG_FULLSCREEN (9 << 24)
+#define TAG_VDG_INVERSE (16 << 24)
 #define TAG_CROSS_COLOUR (10 << 24)
 
 #define TAG_FAST_SOUND (11 << 24)
@@ -269,6 +270,9 @@ int cocoa_super_all_keys = 0;
 		current_cc = tag;
 		xroar_select_cross_colour(tag_value);
 		break;
+	case TAG_VDG_INVERSE:
+		xroar_set_vdg_inverted_text(0, XROAR_TOGGLE);
+		break;
 
 	/* Audio: */
 	case TAG_FAST_SOUND:
@@ -334,6 +338,9 @@ int cocoa_super_all_keys = 0;
 
 	case TAG_FULLSCREEN:
 		[item setState:(is_fullscreen ? NSOnState : NSOffState)];
+		break;
+	case TAG_VDG_INVERSE:
+		[item setState:(xroar_cfg.vdg_inverted_text ? NSOnState : NSOffState)];
 		break;
 	case TAG_CROSS_COLOUR:
 		[item setState:((tag == current_cc) ? NSOnState : NSOffState)];
@@ -600,6 +607,12 @@ static void setup_view_menu(void) {
 	[item release];
 
 	[view_menu addItem:[NSMenuItem separatorItem]];
+
+	item = [[NSMenuItem alloc] initWithTitle:@"Inverse Text" action:@selector(do_set_state:) keyEquivalent:@"i"];
+	[item setKeyEquivalentModifierMask:NSCommandKeyMask|NSShiftKeyMask];
+	[item setTag:TAG_VDG_INVERSE];
+	[view_menu addItem:item];
+	[item release];
 
 	submenu = [[NSMenu alloc] initWithTitle:@"Cross-colour"];
 
