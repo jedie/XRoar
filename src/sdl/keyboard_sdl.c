@@ -176,11 +176,10 @@ static void emulator_command(SDLKey sym) {
 		xroar_fullscreen(XROAR_TOGGLE);
 		break;
 	case SDLK_i:
-		if (shift) {
-			xroar_load_file(xroar_cart_exts);
-		} else {
+		if (shift)
+			xroar_set_vdg_inverted_text(1, XROAR_TOGGLE);
+		else
 			xroar_run_file(xroar_cart_exts);
-		}
 		break;
 	case SDLK_j:
 		if (shift) {

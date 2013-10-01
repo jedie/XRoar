@@ -1183,6 +1183,10 @@ void machine_select_fast_sound(_Bool fast) {
 }
 #endif
 
+void machine_set_inverted_text(_Bool invert) {
+	mc6847_set_inverted_text(VDG0, invert);
+}
+
 void machine_insert_cart(struct cart *c) {
 	machine_remove_cart();
 	if (c) {

@@ -1118,6 +1118,21 @@ void xroar_select_cross_colour(int action) {
 	}
 }
 
+void xroar_set_vdg_inverted_text(_Bool notify, int action) {
+	switch (action) {
+	case XROAR_TOGGLE:
+		xroar_cfg.vdg_inverted_text = !xroar_cfg.vdg_inverted_text;
+		break;
+	default:
+		xroar_cfg.vdg_inverted_text = action;
+		break;
+	}
+	machine_set_inverted_text(xroar_cfg.vdg_inverted_text);
+	if (notify && ui_module->vdg_inverse_cb) {
+		ui_module->vdg_inverse_cb(xroar_cfg.vdg_inverted_text);
+	}
+}
+
 void xroar_quit(void) {
 	xroar_shutdown();
 	exit(EXIT_SUCCESS);

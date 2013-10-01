@@ -69,6 +69,8 @@ void mc6847_set_signal_fs(struct MC6847 *, vdg_edge_delegate);
 
 void mc6847_reset(struct MC6847 *);
 
+void mc6847_set_inverted_text(struct MC6847 *, _Bool);
+
 /*
  * Mode bits:
  * 8    ¬INT/EXT

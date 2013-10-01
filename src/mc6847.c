@@ -53,6 +53,7 @@ struct MC6847_private {
 	_Bool GM0;
 	_Bool EXT, EXTa, EXTb;
 	_Bool CSS, CSSa, CSSb;
+	_Bool inverted_text;
 
 	/* Timing */
 	struct event hs_fall_event;
@@ -296,7 +297,7 @@ static void render_scanline(struct MC6847_private *vdg) {
 					if (!vdg->EXTb)
 						vdg->vram_g_data = font_6847[(vdg->vram_g_data&0x3f)*12 + vdg->row];
 				}
-				if (INV)
+				if (INV ^ vdg->inverted_text)
 					vdg->vram_g_data = ~vdg->vram_g_data;
 			}
 
@@ -466,6 +467,11 @@ void mc6847_reset(struct MC6847 *vdgp) {
 	vdg->lborder_remaining = VDG_tLB;
 	vdg->vram_remaining = vdg->is_32byte ? 32 : 16;
 	vdg->rborder_remaining = VDG_tRB;
+}
+
+void mc6847_set_inverted_text(struct MC6847 *vdgp, _Bool invert) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
+	vdg->inverted_text = invert;
 }
 
 void mc6847_set_mode(struct MC6847 *vdgp, unsigned mode) {

@@ -886,6 +886,9 @@ often prompt the user to ``Press Enter if the screen is red'', for example.
 You can press @kbd{Control}+@kbd{A}, to cycle through three modes: Off,
 Blue-red and Red-blue.
 
+The characters in text mode may be inverted by pressing
+@kbd{Control}+@kbd{Shift}+@kbd{I}.
+
 
 @node Audio output
 @section Audio output

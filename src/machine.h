@@ -133,6 +133,8 @@ void machine_set_fast_sound(_Bool fast);
 void machine_select_fast_sound(_Bool fast);
 void machine_update_sound(void);
 
+void machine_set_inverted_text(_Bool);
+
 void machine_insert_cart(struct cart *c);
 void machine_remove_cart(void);
 

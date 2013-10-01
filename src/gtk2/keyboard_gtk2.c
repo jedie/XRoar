@@ -199,6 +199,12 @@ static void emulator_command(guint keyval, int shift) {
 	case GDK_f:
 		xroar_fullscreen(XROAR_TOGGLE);
 		break;
+	case GDK_i:
+		if (shift)
+			xroar_set_vdg_inverted_text(1, XROAR_TOGGLE);
+		else
+			xroar_run_file(xroar_cart_exts);
+		break;
 	case GDK_j:
 		if (shift) {
 			joystick_swap();

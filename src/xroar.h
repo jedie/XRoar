@@ -79,6 +79,7 @@ struct xroar_cfg {
 	_Bool fullscreen;
 	int frameskip;
 	int ccr;
+	_Bool vdg_inverted_text;
 	// Audio
 	char *ao_device;
 	int ao_rate;
@@ -189,6 +190,7 @@ _Bool xroar_set_write_back(int drive, int action);
 void xroar_select_write_back(int drive, int action);
 void xroar_set_cross_colour(int action);
 void xroar_select_cross_colour(int action);
+void xroar_set_vdg_inverted_text(_Bool notify, int action);
 void xroar_quit(void);
 void xroar_fullscreen(int action);
 void xroar_load_file(const char **exts);
