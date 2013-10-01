@@ -55,7 +55,7 @@ hardware similarities, XRoar also emulates the Tandy Colour Computer (CoCo)
 models 1 & 2.  Some features are:
 
 @itemize @bullet
-@item Emulates Dragon 32, Dragon 64, Tandy CoCo 1 & 2, and compatibles.
+@item Emulates Dragon 32, Dragon 64, Dragon 200-E, Tandy CoCo 1 & 2, and compatibles.
 @item Emulates DragonDOS, Delta and RSDOS disk systems.
 @item Emulates the Orchestra 90-CC stereo sound cartridge.
 @item Supports both raw and translated keyboard modes.
@@ -345,6 +345,7 @@ for the following machines:
 @headitem Name @tab Description
 @item @samp{dragon32} @tab Dragon 32 (PAL).
 @item @samp{dragon64} @tab Dragon 64 (PAL).
+@item @samp{dragon200e} @tab Dragon 200-E (PAL).
 @item @samp{tano} @tab Tano Dragon (NTSC).
 @item @samp{coco} @tab Tandy Colour Computer (PAL).
 @item @samp{cocous} @tab Tandy Color Computer (NTSC).
@@ -373,7 +374,7 @@ ROM image to use for Colour BASIC (CoCo only).
 ROM image to use for Extended BASIC.
 
 @item -altbas @var{rom}
-64K-mode Extended BASIC for Dragon 64.
+64K-mode Extended BASIC for Dragon 64 & Dragon 200-E.
 
 @item -nobas
 @itemx -noextbas
@@ -704,6 +705,8 @@ seen ``in the wild'':
 @item Dragon 32 BASIC @tab @samp{@@dragon32} @tab @file{d32}
 @item Dragon 64 32K BASIC @tab @samp{@@dragon64} @tab @file{d64_1}
 @item Dragon 64 64K BASIC @tab @samp{@@dragon64_alt} @tab @file{d64_2}
+@item Dragon 200-E 32K BASIC @tab @samp{@@dragon200e} @tab @file{d200e_1}
+@item Dragon 200-E 64K BASIC @tab @samp{@@dragon200e_alt} @tab @file{d200e_2}
 @item Tandy Colour BASIC @tab @samp{@@coco} @tab @file{bas13}, @file{bas12}, @file{bas11}, @file{bas10}
 @item Tandy Extended BASIC @tab @samp{@@coco_ext} @tab @file{extbas11}, @file{extbas10}
 @item DragonDOS @tab @samp{@@dragondos_compat} @tab @file{dplus49b}, @file{sdose6}, @file{ddos40}, @file{cdos20}
