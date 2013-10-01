@@ -59,10 +59,9 @@ static _Bool CSS, CSS_, CSS__;
 static _Bool inverse_text;
 static _Bool text_border;
 
-// Enough space for borders and active area plus some extra in case mode
-// changes cause render_scanline() to overflow the buffer (max 4 pixels are
-// rendered before checking "beam position").
-static uint8_t pixel_data[VDG_tAVB + 4];
+// Enough space for an entire scanline is reserved, but only the borders and
+// active area are drawn into - the rest is initialised to black.
+static uint8_t pixel_data[VDG_LINE_DURATION];
 
 static uint8_t *pixel;
 static uint8_t s_fg_colour;
@@ -108,14 +107,6 @@ static unsigned pal_padding;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-// The default values here define a centred 320x240 window
-#define DEFAULT_X1 (VDG_tLB - 32)
-#define DEFAULT_Y1 (VDG_TOP_BORDER_START + 1)
-unsigned vdg_window_x1 = DEFAULT_X1;
-unsigned vdg_window_y1 = DEFAULT_Y1;
-unsigned vdg_window_x2 = DEFAULT_X1 + 320;
-unsigned vdg_window_y2 = DEFAULT_Y1 + 240;
-
 // Set to enable the extra stuff on a 6847T1
 _Bool vdg_t1 = 0;
 
@@ -128,7 +119,8 @@ void vdg_init(void) {
 
 void vdg_reset(void) {
 	video_module->vsync();
-	pixel = pixel_data;
+	memset(pixel_data, VDG_BLACK, sizeof(pixel_data));
+	pixel = pixel_data + VDG_LEFT_BORDER_START;
 	frame = 0;
 	scanline = 0;
 	subline = 0;
@@ -150,9 +142,9 @@ static void do_hs_fall(void *data) {
 	(void)data;
 	// Finish rendering previous scanline
 	if (frame == 0) {
-		if (scanline >= vdg_window_y1 && scanline < VDG_ACTIVE_AREA_START) {
-			if (scanline == vdg_window_y1) {
-				memset(pixel_data, border_colour, 372);
+		if (scanline < VDG_ACTIVE_AREA_START) {
+			if (scanline == 0) {
+				memset(pixel_data + VDG_LEFT_BORDER_START, border_colour, VDG_tAVB);
 			}
 			video_module->render_scanline(pixel_data);
 		} else if (scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
@@ -162,10 +154,10 @@ static void do_hs_fall(void *data) {
 			if (subline > 11)
 				subline = 0;
 			video_module->render_scanline(pixel_data);
-			pixel = pixel_data;
-		} else if (scanline >= VDG_ACTIVE_AREA_END && scanline < vdg_window_y2) {
+			pixel = pixel_data + VDG_LEFT_BORDER_START;
+		} else if (scanline >= VDG_ACTIVE_AREA_END) {
 			if (scanline == VDG_ACTIVE_AREA_END) {
-				memset(pixel_data, border_colour, 372);
+				memset(pixel_data + VDG_LEFT_BORDER_START, border_colour, VDG_tAVB);
 			}
 			video_module->render_scanline(pixel_data);
 		}
@@ -295,9 +287,7 @@ static void render_scanline(void) {
 			CSS_ = CSS__;
 			nINT_EXT_ = nINT_EXT__;
 		}
-		if (beam_pos >= vdg_window_x1) {
-			*(pixel++) = border_colour;
-		}
+		*(pixel++) = border_colour;
 		beam_pos++;
 		lborder_remaining--;
 		if (beam_pos >= beam_to)
@@ -418,9 +408,7 @@ static void render_scanline(void) {
 			text_border_colour = !CSS ? VDG_GREEN : bright_orange;
 		}
 		border_colour = nA_G ? cg_colours : (text_border ? text_border_colour : VDG_BLACK);
-		if (beam_pos < vdg_window_x2) {
-			*(pixel++) = border_colour;
-		}
+		*(pixel++) = border_colour;
 		beam_pos++;
 		rborder_remaining--;
 		if (beam_pos >= beam_to)
@@ -429,7 +417,7 @@ static void render_scanline(void) {
 
 	// If a program switches to 32 bytes per line mid-scanline, the whole
 	// scanline might not have been rendered:
-	while (beam_pos < vdg_window_x2) {
+	while (beam_pos < (VDG_RIGHT_BORDER_END - VDG_LEFT_BORDER_START)) {
 		*(pixel++) = VDG_BLACK;
 		beam_pos++;
 	}

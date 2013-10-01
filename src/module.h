@@ -27,6 +27,9 @@ typedef struct {
 
 typedef struct {
 	struct module common;
+	int scanline;
+	int window_x, window_y;
+	int window_w, window_h;
 	void (*update_palette)(void);
 	void (*resize)(unsigned int w, unsigned int h);
 	int (*set_fullscreen)(_Bool fullscreen);

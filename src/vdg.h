@@ -63,13 +63,6 @@ typedef struct {
 extern vdg_edge_delegate vdg_signal_hs;
 extern vdg_edge_delegate vdg_signal_fs;
 
-// Video module configures these window coordinates.  x1 = pixels from left
-// border, y1 = scanlines from top border.  x2 must be within the right border,
-// y2 within the bottom border.
-
-extern unsigned vdg_window_x1, vdg_window_y1;
-extern unsigned vdg_window_x2, vdg_window_y2;
-
 // Set to emulate 6847T1.
 extern _Bool vdg_t1;
 

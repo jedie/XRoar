@@ -128,58 +128,73 @@ static void alloc_colours(void) {
 
 /* Render colour line using palette */
 static void render_scanline(uint8_t *scanline_data) {
-	LOCK_SURFACE;
-	for (int i = (vdg_window_x2 - vdg_window_x1); i; i--) {
-		*pixel = vdg_colour[*(scanline_data++)];
-		pixel += XSTEP;
+	if (video_module->scanline >= video_module->window_y &&
+	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
+		LOCK_SURFACE;
+		scanline_data += video_module->window_x;
+		for (int i = video_module->window_w; i; i--) {
+			*pixel = vdg_colour[*(scanline_data++)];
+			pixel += XSTEP;
+		}
+		UNLOCK_SURFACE;
+		pixel += NEXTLINE;
 	}
-	UNLOCK_SURFACE;
-	pixel += NEXTLINE;
+	video_module->scanline++;
 }
 
 /* Render artifacted colours - simple 4-colour lookup */
 static void render_ccr_simple(uint8_t *scanline_data) {
-	int phase = xroar_machine_config->cross_colour_phase - 1;
-	LOCK_SURFACE;
-	for (int i = (vdg_window_x2 - vdg_window_x1) >> 1; i; i--) {
-		uint8_t c0 = *(scanline_data++);
-		uint8_t c1 = *(scanline_data++);
-		if (c0 == VDG_BLACK || c0 == VDG_WHITE) {
-			int aindex = ((c0 != VDG_BLACK) ? 2 : 0)
-			             | ((c1 != VDG_BLACK) ? 1 : 0);
-			*pixel = *(pixel + 1) = artifact_simple[phase][aindex];
-		} else {
-			*pixel = vdg_colour[c0];
-			*(pixel + 1) = vdg_colour[c1];
+	if (video_module->scanline >= video_module->window_y &&
+	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
+		int phase = xroar_machine_config->cross_colour_phase - 1;
+		LOCK_SURFACE;
+		scanline_data += video_module->window_x;
+		for (int i = video_module->window_w >> 1; i; i--) {
+			uint8_t c0 = *(scanline_data++);
+			uint8_t c1 = *(scanline_data++);
+			if (c0 == VDG_BLACK || c0 == VDG_WHITE) {
+				int aindex = ((c0 != VDG_BLACK) ? 2 : 0)
+					     | ((c1 != VDG_BLACK) ? 1 : 0);
+				*pixel = *(pixel + 1) = artifact_simple[phase][aindex];
+			} else {
+				*pixel = vdg_colour[c0];
+				*(pixel + 1) = vdg_colour[c1];
+			}
+			pixel += 2 * XSTEP;
 		}
-		pixel += 2 * XSTEP;
+		UNLOCK_SURFACE;
+		pixel += NEXTLINE;
 	}
-	UNLOCK_SURFACE;
-	pixel += NEXTLINE;
+	video_module->scanline++;
 }
 
 /* Render artifacted colours - 5-bit lookup table */
 static void render_ccr_5bit(uint8_t *scanline_data) {
-	int phase = xroar_machine_config->cross_colour_phase - 1;
-	LOCK_SURFACE;
-	unsigned aindex = 0;
-	aindex = (*(scanline_data) != VDG_BLACK) ? 14 : 0;
-	aindex |= (*(scanline_data + 1) != VDG_BLACK) ? 1 : 0;
-	for (int i = (vdg_window_x2 - vdg_window_x1); i; i--) {
-		aindex = (aindex << 1) & 31;
-		if (*(scanline_data + 2) != VDG_BLACK)
-			aindex |= 1;
-		uint8_t c = *(scanline_data++);
-		if (c == VDG_BLACK || c == VDG_WHITE) {
-			*pixel = artifact_5bit[phase][aindex];
-		} else {
-			*pixel = vdg_colour[c];
+	if (video_module->scanline >= video_module->window_y &&
+	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
+		int phase = xroar_machine_config->cross_colour_phase - 1;
+		LOCK_SURFACE;
+		unsigned aindex = 0;
+		aindex = (*(scanline_data) != VDG_BLACK) ? 14 : 0;
+		aindex |= (*(scanline_data + 1) != VDG_BLACK) ? 1 : 0;
+		scanline_data += video_module->window_x;
+		for (int i = video_module->window_w; i; i--) {
+			aindex = (aindex << 1) & 31;
+			if (*(scanline_data + 2) != VDG_BLACK)
+				aindex |= 1;
+			uint8_t c = *(scanline_data++);
+			if (c == VDG_BLACK || c == VDG_WHITE) {
+				*pixel = artifact_5bit[phase][aindex];
+			} else {
+				*pixel = vdg_colour[c];
+			}
+			pixel += XSTEP;
+			phase ^= 1;
 		}
-		pixel += XSTEP;
-		phase ^= 1;
+		UNLOCK_SURFACE;
+		pixel += NEXTLINE;
 	}
-	UNLOCK_SURFACE;
-	pixel += NEXTLINE;
+	video_module->scanline++;
 }
 
 static void update_cross_colour_phase(void) {

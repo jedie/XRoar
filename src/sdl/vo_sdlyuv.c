@@ -141,10 +141,11 @@ static _Bool init(void) {
 		LOG_WARN("Warning: SDL overlay is not hardware accelerated\n");
 	}
 	alloc_colours();
-	vdg_window_x1 = VDG_tLB - 32;
-	vdg_window_y1 = VDG_TOP_BORDER_START + 1;
-	vdg_window_x2 = vdg_window_x1 + 320;
-	vdg_window_y2 = vdg_window_y1 + 240;
+	video_module->scanline = 0;
+	video_module->window_x = VDG_ACTIVE_LINE_START - 32;
+	video_module->window_y = VDG_TOP_BORDER_START + 1;
+	video_module->window_w = 320;
+	video_module->window_h = 240;
 #ifdef WINDOWS32
 	{
 		SDL_version sdlver;
@@ -246,4 +247,5 @@ static int set_fullscreen(_Bool fullscreen) {
 static void vsync(void) {
 	SDL_DisplayYUVOverlay(overlay, &dstrect);
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
+	video_module->scanline = 0;
 }

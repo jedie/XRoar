@@ -108,10 +108,11 @@ _Bool vo_opengl_init(void) {
 	}
 
 	alloc_colours();
-	vdg_window_x1 = VDG_tLB - 32;
-	vdg_window_y1 = VDG_TOP_BORDER_START + 1;
-	vdg_window_x2 = vdg_window_x1 + 320;
-	vdg_window_y2 = vdg_window_y1 + 240;
+	video_module->scanline = 0;
+	video_module->window_x = VDG_ACTIVE_LINE_START - 32;
+	video_module->window_y = VDG_TOP_BORDER_START + 1;
+	video_module->window_w = 320;
+	video_module->window_h = 240;
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
 	return 1;
 }
@@ -209,6 +210,7 @@ void vo_opengl_refresh(void) {
 void vo_opengl_vsync(void) {
 	vo_opengl_refresh();
 	pixel = VIDEO_TOPLEFT + VIDEO_VIEWPORT_YOFFSET;
+	video_module->scanline = 0;
 }
 
 void vo_opengl_render_scanline(uint8_t *scanline_data) {
