@@ -111,6 +111,7 @@ static JoystickModule *gtk2_js_modlist[] = {
 
 /* Module callbacks */
 static void cross_colour_changed_cb(int cc);
+static void vdg_inverse_cb(_Bool inverse);
 static void machine_changed_cb(int machine_type);
 static void cart_changed_cb(int cart_index);
 static void keymap_changed_cb(int map);
@@ -124,6 +125,7 @@ UIModule ui_gtk2_module = {
 	.keyboard_module_list = gtk2_keyboard_module_list,
 	.joystick_module_list = gtk2_js_modlist,
 	.cross_colour_changed_cb = cross_colour_changed_cb,
+	.vdg_inverse_cb = vdg_inverse_cb,
 	.machine_changed_cb = machine_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
@@ -262,6 +264,12 @@ static void zoom_out(void) {
 	}
 }
 
+static void toggle_inverse_text(GtkToggleAction *current, gpointer user_data) {
+	gboolean val = gtk_toggle_action_get_active(current);
+	(void)user_data;
+	xroar_set_vdg_inverted_text(1, val);
+}
+
 static void set_cc(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
@@ -353,6 +361,7 @@ static const gchar *ui =
 	      "<menuitem name='Quit' action='QuitAction'/>"
 	    "</menu>"
 	    "<menu name='ViewMenu' action='ViewMenuAction'>"
+	      "<menuitem name='InverseText' action='InverseTextAction'/>"
 	      "<menu name='CrossColourMenu' action='CrossColourMenuAction'>"
 	        "<menuitem action='cc-none'/>"
 	        "<menuitem action='cc-blue-red'/>"
@@ -463,6 +472,9 @@ static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
 static GtkToggleActionEntry ui_toggles[] = {
 	/* View */
+	{ .name = "InverseTextAction", .label = "_Inverse Text",
+	  .accelerator = "<shift><control>I",
+	  .callback = G_CALLBACK(toggle_inverse_text) },
 	{ .name = "FullScreenAction", .label = "_Full Screen",
 	  .stock_id = GTK_STOCK_FULLSCREEN,
 	  .accelerator = "F11", .callback = G_CALLBACK(set_fullscreen) },
@@ -706,6 +718,11 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 static void fullscreen_changed_cb(_Bool fullscreen) {
 	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/FullScreen");
 	gtk_toggle_action_set_active(toggle, fullscreen ? TRUE : FALSE);
+}
+
+static void vdg_inverse_cb(_Bool inverse) {
+	GtkToggleAction *toggle = (GtkToggleAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/ViewMenu/InverseText");
+	gtk_toggle_action_set_active(toggle, inverse ? TRUE : FALSE);
 }
 
 static void cross_colour_changed_cb(int cc) {
