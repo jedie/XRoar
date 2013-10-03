@@ -34,8 +34,8 @@
 #include "joystick.h"
 #include "logging.h"
 #include "machine.h"
+#include "mc6847.h"
 #include "module.h"
-#include "vdg.h"
 #include "xroar.h"
 
 #include "sdl/common.h"

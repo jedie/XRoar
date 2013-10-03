@@ -36,8 +36,8 @@
 #include "keyboard.h"
 #include "logging.h"
 #include "machine.h"
+#include "mc6847.h"
 #include "module.h"
-#include "vdg.h"
 #include "vdrive.h"
 #include "xroar.h"
 

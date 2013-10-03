@@ -26,8 +26,8 @@
 #include <SDL_syswm.h>
 
 #include "logging.h"
+#include "mc6847.h"
 #include "module.h"
-#include "vdg.h"
 #include "xroar.h"
 
 #include "sdl/common.h"

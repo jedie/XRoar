@@ -69,6 +69,7 @@ xroar_BASE_C = \
 	machine.c \
 	mc6809.c \
 	mc6821.c \
+	mc6847.c \
 	module.c \
 	orch90.c \
 	path.c \
@@ -81,7 +82,6 @@ xroar_BASE_C = \
 	tape.c \
 	tape_cas.c \
 	ui_null.c \
-	vdg.c \
 	vdg_bitmaps.c \
 	vdg_palette.c \
 	vdisk.c \

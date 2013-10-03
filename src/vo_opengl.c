@@ -40,7 +40,7 @@
 #include <GL/glext.h>
 #endif
 
-#include "vdg.h"
+#include "mc6847.h"
 #include "vo_opengl.h"
 #include "xroar.h"
 

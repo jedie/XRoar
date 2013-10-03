@@ -27,9 +27,9 @@
 #include "logging.h"
 #include "machine.h"
 #include "mc6809.h"
+#include "mc6847.h"
 #include "module.h"
 #include "sam.h"
-#include "vdg.h"
 #include "vdg_bitmaps.h"
 #include "xroar.h"
 
