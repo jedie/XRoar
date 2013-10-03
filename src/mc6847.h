@@ -50,24 +50,24 @@ enum vdg_colour {
 	VDG_BLACK, VDG_DARK_GREEN, VDG_DARK_ORANGE, VDG_BRIGHT_ORANGE
 };
 
-/* External handler to fetch data for display.  First arg is number of bytes,
- * second a pointer to a buffer to receive them. */
-extern void (*vdg_fetch_bytes)(int, uint8_t *);
-
 /* Delegates for signalling HS/FS fall/rise */
 typedef struct {
 	void (*delegate)(void *, _Bool level);
 	void *dptr;
 } vdg_edge_delegate;
 
-extern vdg_edge_delegate vdg_signal_hs;
-extern vdg_edge_delegate vdg_signal_fs;
+/* Nothing in this struct yet, might expose some things in future. */
+struct MC6847 {
+};
 
-// Set to emulate 6847T1.
-extern _Bool vdg_t1;
+struct MC6847 *mc6847_new(_Bool t1);
+void mc6847_free(struct MC6847 *);
 
-void vdg_init(void);
-void vdg_reset(void);
+void mc6847_set_fetch_bytes(struct MC6847 *, void (*)(int, uint8_t *));
+void mc6847_set_signal_hs(struct MC6847 *, vdg_edge_delegate);
+void mc6847_set_signal_fs(struct MC6847 *, vdg_edge_delegate);
+
+void mc6847_reset(struct MC6847 *);
 
 /*
  * Mode bits:
@@ -77,6 +77,7 @@ void vdg_reset(void);
  * 3    CSS
  * 2..0 ignored
  */
-void vdg_set_mode(unsigned mode);
+
+void mc6847_set_mode(struct MC6847 *, unsigned mode);
 
 #endif  /* XROAR_VDG_H_ */

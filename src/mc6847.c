@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pl_glib.h"
+
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -36,141 +38,118 @@
 // Convert VDG timing to SAM cycles:
 #define VDG_CYCLES(c) ((c) * 2)
 
-/* External handler to fetch data for display.  First arg is number of bytes,
- * second a pointer to a buffer to receive them. */
-void (*vdg_fetch_bytes)(int, uint8_t *);
-
-/* Delegates to notify on signal edges */
-vdg_edge_delegate vdg_signal_hs = { NULL, NULL };
-vdg_edge_delegate vdg_signal_fs = { NULL, NULL };
-
-static event_ticks scanline_start;
-static _Bool is_32byte;
-static void render_scanline(void);
-
-static unsigned beam_pos;
-
-static _Bool nA_S;
-static _Bool nA_G;
-static _Bool nINT_EXT, nINT_EXT_, nINT_EXT__;
-static _Bool GM0;
-static _Bool CSS, CSS_, CSS__;
-// 6847T1-only:
-static _Bool inverse_text;
-static _Bool text_border;
-
-// Enough space for an entire scanline is reserved, but only the borders and
-// active area are drawn into - the rest is initialised to black.
-static uint8_t pixel_data[VDG_LINE_DURATION];
-
-static uint8_t *pixel;
-static uint8_t s_fg_colour;
-static uint8_t s_bg_colour;
-static uint8_t fg_colour;
-static uint8_t bg_colour;
-static uint8_t cg_colours;
-static uint8_t border_colour;
-// Colour to use in place of "bright orange":
-static uint8_t bright_orange;
-// 6847T1-only:
-static uint8_t text_border_colour;
-
-static unsigned scanline;
-static unsigned int subline;
-static int frame;
-
 enum vdg_render_mode {
 	VDG_RENDER_SG,
 	VDG_RENDER_CG,
 	VDG_RENDER_RG,
 };
 
-static enum vdg_render_mode render_mode;
+struct MC6847_private {
+	struct MC6847 public;
 
-static uint8_t vram[84];
-static uint8_t *vram_ptr = vram;
-static unsigned vram_nbytes = 0;
-static unsigned lborder_remaining;
-static unsigned vram_remaining;
-static unsigned rborder_remaining;
-static int vram_bit = 0;
-static uint8_t vram_g_data;
-static uint8_t vram_sg_data;
+	/* Control lines */
+	_Bool nA_S;
+	_Bool nA_G;
+	_Bool GM0;
+	_Bool EXT, EXTa, EXTb;
+	_Bool CSS, CSSa, CSSb;
 
-static struct event hs_fall_event, hs_rise_event;
+	/* Timing */
+	struct event hs_fall_event;
+	struct event hs_rise_event;
+	event_ticks scanline_start;
+	unsigned beam_pos;
+	unsigned scanline;
+
+	/* Data */
+	uint8_t vram_g_data;
+	uint8_t vram_sg_data;
+
+	/* Output */
+	uint8_t *pixel;
+	int frame;  // frameskip counter
+
+	/* Delegates to notify on signal edges */
+	vdg_edge_delegate signal_hs;
+	vdg_edge_delegate signal_fs;
+
+	/* External handler to fetch data for display.  First arg is number of bytes,
+	 * second a pointer to a buffer to receive them. */
+	void (*fetch_bytes)(int, uint8_t *);
+
+	/* Internal state */
+	_Bool is_32byte;
+	uint8_t s_fg_colour;
+	uint8_t s_bg_colour;
+	uint8_t fg_colour;
+	uint8_t bg_colour;
+	uint8_t cg_colours;
+	uint8_t border_colour;
+	uint8_t bright_orange;
+	int vram_bit;
+	enum vdg_render_mode render_mode;
+	unsigned pal_padding;
+	uint8_t pixel_data[VDG_LINE_DURATION];
+	unsigned row;
+
+	uint8_t vram[84];
+	uint8_t *vram_ptr;
+	unsigned vram_nbytes;
+
+	/* Counters */
+	unsigned lborder_remaining;
+	unsigned vram_remaining;
+	unsigned rborder_remaining;
+
+	/* 6847T1 state */
+	_Bool is_t1;
+	_Bool inverse_text;
+	_Bool text_border;
+	uint8_t text_border_colour;
+};
+
 static void do_hs_fall(void *);
 static void do_hs_rise(void *);
 static void do_hs_fall_pal_coco(void *);
-static unsigned pal_padding;
+
+static void render_scanline(struct MC6847_private *vdg);
 
 #define SCANLINE(s) ((s) % VDG_FRAME_DURATION)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-// Set to enable the extra stuff on a 6847T1
-_Bool vdg_t1 = 0;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-void vdg_init(void) {
-	event_init(&hs_fall_event, do_hs_fall, NULL);
-	event_init(&hs_rise_event, do_hs_rise, NULL);
-}
-
-void vdg_reset(void) {
-	video_module->vsync();
-	memset(pixel_data, VDG_BLACK, sizeof(pixel_data));
-	pixel = pixel_data + VDG_LEFT_BORDER_START;
-	frame = 0;
-	scanline = 0;
-	subline = 0;
-	scanline_start = event_current_tick;
-	hs_fall_event.at_tick = event_current_tick + VDG_CYCLES(VDG_LINE_DURATION);
-	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
-	// 6847T1 doesn't appear to do bright orange:
-	bright_orange = vdg_t1 ? VDG_ORANGE : VDG_BRIGHT_ORANGE;
-	vdg_set_mode(0);
-	beam_pos = 0;
-	vram_ptr = vram;
-	vram_bit = 0;
-	lborder_remaining = VDG_tLB;
-	vram_remaining = is_32byte ? 32 : 16;
-	rborder_remaining = VDG_tRB;
-}
-
 static void do_hs_fall(void *data) {
-	(void)data;
+	struct MC6847_private *vdg = data;
 	// Finish rendering previous scanline
-	if (frame == 0) {
-		if (scanline < VDG_ACTIVE_AREA_START) {
-			if (scanline == 0) {
-				memset(pixel_data + VDG_LEFT_BORDER_START, border_colour, VDG_tAVB);
+	if (vdg->frame == 0) {
+		if (vdg->scanline < VDG_ACTIVE_AREA_START) {
+			if (vdg->scanline == 0) {
+				memset(vdg->pixel_data + VDG_LEFT_BORDER_START, vdg->border_colour, VDG_tAVB);
 			}
-			video_module->render_scanline(pixel_data);
-		} else if (scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
-			render_scanline();
+			video_module->render_scanline(vdg->pixel_data);
+		} else if (vdg->scanline >= VDG_ACTIVE_AREA_START && vdg->scanline < VDG_ACTIVE_AREA_END) {
+			render_scanline(vdg);
 			sam_vdg_hsync();
-			subline++;
-			if (subline > 11)
-				subline = 0;
-			video_module->render_scanline(pixel_data);
-			pixel = pixel_data + VDG_LEFT_BORDER_START;
-		} else if (scanline >= VDG_ACTIVE_AREA_END) {
-			if (scanline == VDG_ACTIVE_AREA_END) {
-				memset(pixel_data + VDG_LEFT_BORDER_START, border_colour, VDG_tAVB);
+			vdg->row++;
+			if (vdg->row > 11)
+				vdg->row = 0;
+			video_module->render_scanline(vdg->pixel_data);
+			vdg->pixel = vdg->pixel_data + VDG_LEFT_BORDER_START;
+		} else if (vdg->scanline >= VDG_ACTIVE_AREA_END) {
+			if (vdg->scanline == VDG_ACTIVE_AREA_END) {
+				memset(vdg->pixel_data + VDG_LEFT_BORDER_START, vdg->border_colour, VDG_tAVB);
 			}
-			video_module->render_scanline(pixel_data);
+			video_module->render_scanline(vdg->pixel_data);
 		}
 	}
 
 	// HS falling edge.
-	if (vdg_signal_hs.delegate)
-		vdg_signal_hs.delegate(vdg_signal_hs.dptr, 0);
+	vdg->signal_hs.delegate(vdg->signal_hs.dptr, 0);
 
-	scanline_start = hs_fall_event.at_tick;
+	vdg->scanline_start = vdg->hs_fall_event.at_tick;
 	// Next HS rise and fall
-	hs_rise_event.at_tick = scanline_start + VDG_CYCLES(VDG_HS_RISING_EDGE);
-	hs_fall_event.at_tick = scanline_start + VDG_CYCLES(VDG_LINE_DURATION);
+	vdg->hs_rise_event.at_tick = vdg->scanline_start + VDG_CYCLES(VDG_HS_RISING_EDGE);
+	vdg->hs_fall_event.at_tick = vdg->scanline_start + VDG_CYCLES(VDG_LINE_DURATION);
 
 	/* On PAL machines, the clock to the VDG is interrupted at two points
 	 * in every frame to fake up some extra scanlines, padding the signal
@@ -179,291 +158,358 @@ static void do_hs_fall(void *data) {
 	 * duration of each interruption differs also. */
 
 	if (IS_PAL && IS_COCO) {
-		if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 25)) {
-			pal_padding = 26;
-			hs_fall_event.delegate = do_hs_fall_pal_coco;
-		} else if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 47)) {
-			pal_padding = 24;
-			hs_fall_event.delegate = do_hs_fall_pal_coco;
+		if (vdg->scanline == SCANLINE(VDG_ACTIVE_AREA_END + 25)) {
+			vdg->pal_padding = 26;
+			vdg->hs_fall_event.delegate = do_hs_fall_pal_coco;
+		} else if (vdg->scanline == SCANLINE(VDG_ACTIVE_AREA_END + 47)) {
+			vdg->pal_padding = 24;
+			vdg->hs_fall_event.delegate = do_hs_fall_pal_coco;
 		}
 	} else if (IS_PAL && IS_DRAGON) {
-		if (scanline == SCANLINE(VDG_ACTIVE_AREA_END + 24)
-		    || scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
-				hs_rise_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
-				hs_fall_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
+		if (vdg->scanline == SCANLINE(VDG_ACTIVE_AREA_END + 24)
+		    || vdg->scanline == SCANLINE(VDG_ACTIVE_AREA_END + 32)) {
+				vdg->hs_rise_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
+				vdg->hs_fall_event.at_tick += 25 * VDG_CYCLES(VDG_PAL_PADDING_LINE);
 		}
 	}
 
-	event_queue(&MACHINE_EVENT_LIST, &hs_rise_event);
-	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
+	event_queue(&MACHINE_EVENT_LIST, &vdg->hs_rise_event);
+	event_queue(&MACHINE_EVENT_LIST, &vdg->hs_fall_event);
 
 	// Next scanline
-	scanline = SCANLINE(scanline + 1);
-	beam_pos = 0;
-	vram_nbytes = 0;
-	vram_ptr = vram;
-	vram_bit = 0;
-	lborder_remaining = VDG_tLB;
-	vram_remaining = is_32byte ? 32 : 16;
-	rborder_remaining = VDG_tRB;
+	vdg->scanline = SCANLINE(vdg->scanline + 1);
+	vdg->beam_pos = 0;
+	vdg->vram_nbytes = 0;
+	vdg->vram_ptr = vdg->vram;
+	vdg->vram_bit = 0;
+	vdg->lborder_remaining = VDG_tLB;
+	vdg->vram_remaining = vdg->is_32byte ? 32 : 16;
+	vdg->rborder_remaining = VDG_tRB;
 
-	if (scanline == VDG_ACTIVE_AREA_START) {
-		subline = 0;
+	if (vdg->scanline == VDG_ACTIVE_AREA_START) {
+		vdg->row = 0;
 	}
 
-	if (scanline == VDG_ACTIVE_AREA_END) {
+	if (vdg->scanline == VDG_ACTIVE_AREA_END) {
 		// FS falling edge
-		if (vdg_signal_fs.delegate)
-			vdg_signal_fs.delegate(vdg_signal_fs.dptr, 0);
+		vdg->signal_fs.delegate(vdg->signal_fs.dptr, 0);
 	}
 
-	if (scanline == VDG_VBLANK_START) {
+	if (vdg->scanline == VDG_VBLANK_START) {
 		// FS rising edge
-		if (vdg_signal_fs.delegate)
-			vdg_signal_fs.delegate(vdg_signal_fs.dptr, 1);
+		vdg->signal_fs.delegate(vdg->signal_fs.dptr, 1);
 		sam_vdg_fsync();
-		frame--;
-		if (frame < 0)
-			frame = xroar_frameskip;
-		if (frame == 0)
+		vdg->frame--;
+		if (vdg->frame < 0)
+			vdg->frame = xroar_frameskip;
+		if (vdg->frame == 0)
 			video_module->vsync();
 	}
 
 }
 
 static void do_hs_rise(void *data) {
-	(void)data;
+	struct MC6847_private *vdg = data;
 	// HS rising edge.
-	if (vdg_signal_hs.delegate)
-		vdg_signal_hs.delegate(vdg_signal_hs.dptr, 1);
+	vdg->signal_hs.delegate(vdg->signal_hs.dptr, 1);
 }
 
 static void do_hs_fall_pal_coco(void *data) {
-	(void)data;
+	struct MC6847_private *vdg = data;
 	// HS falling edge
-	if (vdg_signal_hs.delegate)
-		vdg_signal_hs.delegate(vdg_signal_hs.dptr, 0);
+	vdg->signal_hs.delegate(vdg->signal_hs.dptr, 0);
 
-	scanline_start = hs_fall_event.at_tick;
+	vdg->scanline_start = vdg->hs_fall_event.at_tick;
 	// Next HS rise and fall
-	hs_rise_event.at_tick = scanline_start + VDG_CYCLES(VDG_HS_RISING_EDGE);
-	hs_fall_event.at_tick = scanline_start + VDG_CYCLES(VDG_LINE_DURATION);
+	vdg->hs_rise_event.at_tick = vdg->scanline_start + VDG_CYCLES(VDG_HS_RISING_EDGE);
+	vdg->hs_fall_event.at_tick = vdg->scanline_start + VDG_CYCLES(VDG_LINE_DURATION);
 
-	pal_padding--;
-	if (pal_padding == 0)
-		hs_fall_event.delegate = do_hs_fall;
+	vdg->pal_padding--;
+	if (vdg->pal_padding == 0)
+		vdg->hs_fall_event.delegate = do_hs_fall;
 
-	event_queue(&MACHINE_EVENT_LIST, &hs_rise_event);
-	event_queue(&MACHINE_EVENT_LIST, &hs_fall_event);
+	event_queue(&MACHINE_EVENT_LIST, &vdg->hs_rise_event);
+	event_queue(&MACHINE_EVENT_LIST, &vdg->hs_fall_event);
 }
 
-static void render_scanline(void) {
-	unsigned beam_to = (event_current_tick - scanline_start) >> 1;
-	if (is_32byte && beam_to >= 102) {
+static void render_scanline(struct MC6847_private *vdg) {
+	unsigned beam_to = (event_current_tick - vdg->scanline_start) >> 1;
+	if (vdg->is_32byte && beam_to >= 102) {
 		unsigned nbytes = (beam_to - 102) >> 3;
 		if (nbytes > 42)
 			nbytes = 42;
-		if (nbytes > vram_nbytes) {
-			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes*2);
-			vram_nbytes = nbytes;
+		if (nbytes > vdg->vram_nbytes) {
+			vdg->fetch_bytes(nbytes - vdg->vram_nbytes, vdg->vram + vdg->vram_nbytes*2);
+			vdg->vram_nbytes = nbytes;
 		}
-	} else if (!is_32byte && beam_to >= 102) {
+	} else if (!vdg->is_32byte && beam_to >= 102) {
 		unsigned nbytes = (beam_to - 102) >> 4;
 		if (nbytes > 22)
 			nbytes = 22;
-		if (nbytes > vram_nbytes) {
-			vdg_fetch_bytes(nbytes - vram_nbytes, vram + vram_nbytes*2);
-			vram_nbytes = nbytes;
+		if (nbytes > vdg->vram_nbytes) {
+			vdg->fetch_bytes(nbytes - vdg->vram_nbytes, vdg->vram + vdg->vram_nbytes*2);
+			vdg->vram_nbytes = nbytes;
 		}
 	}
 	beam_to -= VDG_LEFT_BORDER_START;
 	if (beam_to > (UINT_MAX/2))
 		return;
-	if (beam_pos >= beam_to)
+	if (vdg->beam_pos >= beam_to)
 		return;
 
-	while (lborder_remaining > 0) {
-		if ((beam_pos & 7) == 4) {
-			CSS_ = CSS__;
-			nINT_EXT_ = nINT_EXT__;
+	while (vdg->lborder_remaining > 0) {
+		if ((vdg->beam_pos & 7) == 4) {
+			vdg->CSSa = vdg->CSS;
+			vdg->EXTa = vdg->EXT;
 		}
-		*(pixel++) = border_colour;
-		beam_pos++;
-		lborder_remaining--;
-		if (beam_pos >= beam_to)
+		*(vdg->pixel++) = vdg->border_colour;
+		vdg->beam_pos++;
+		vdg->lborder_remaining--;
+		if (vdg->beam_pos >= beam_to)
 			return;
 	}
 
-	while (vram_remaining > 0) {
-		if (vram_bit == 0) {
-			vram_g_data = *(vram_ptr++);
-			uint8_t attr = *(vram_ptr++);
-			vram_bit = 8;
-			nA_S = attr & 0x80;
+	while (vdg->vram_remaining > 0) {
+		if (vdg->vram_bit == 0) {
+			vdg->vram_g_data = *(vdg->vram_ptr++);
+			uint8_t attr = *(vdg->vram_ptr++);
+			vdg->vram_bit = 8;
+			vdg->nA_S = attr & 0x80;
 
-			CSS = CSS_;
-			CSS_ = CSS__;
-			nINT_EXT = nINT_EXT_;
-			nINT_EXT_ = nINT_EXT__;
-			cg_colours = !CSS ? VDG_GREEN : VDG_WHITE;
-			text_border_colour = !CSS ? VDG_GREEN : bright_orange;
+			vdg->CSSb = vdg->CSSa;
+			vdg->CSSa = vdg->CSS;
+			vdg->EXTb = vdg->EXTa;
+			vdg->EXTa = vdg->EXT;
+			vdg->cg_colours = !vdg->CSSb ? VDG_GREEN : VDG_WHITE;
+			vdg->text_border_colour = !vdg->CSSb ? VDG_GREEN : vdg->bright_orange;
 
-			if (!nA_G && !nA_S) {
+			if (!vdg->nA_G && !vdg->nA_S) {
 				_Bool INV;
-				if (vdg_t1) {
-					INV = nINT_EXT || (attr & 0x40);
-					INV ^= inverse_text;
-					if (!nINT_EXT)
-						vram_g_data |= 0x40;
-					vram_g_data = font_6847t1[(vram_g_data&0x7f)*12 + subline];
+				if (vdg->is_t1) {
+					INV = vdg->EXTb || (attr & 0x40);
+					INV ^= vdg->inverse_text;
+					if (!vdg->EXTb)
+						vdg->vram_g_data |= 0x40;
+					vdg->vram_g_data = font_6847t1[(vdg->vram_g_data&0x7f)*12 + vdg->row];
 				} else {
 					INV = attr & 0x40;
-					if (!nINT_EXT)
-						vram_g_data = font_6847[(vram_g_data&0x3f)*12 + subline];
+					if (!vdg->EXTb)
+						vdg->vram_g_data = font_6847[(vdg->vram_g_data&0x3f)*12 + vdg->row];
 				}
 				if (INV)
-					vram_g_data = ~vram_g_data;
+					vdg->vram_g_data = ~vdg->vram_g_data;
 			}
 
-			if (!nA_G && nA_S) {
-				vram_sg_data = vram_g_data;
-				if (vdg_t1 || !nINT_EXT) {
-					if (subline < 6)
-						vram_sg_data >>= 2;
-					s_fg_colour = (vram_g_data >> 4) & 7;
+			if (!vdg->nA_G && vdg->nA_S) {
+				vdg->vram_sg_data = vdg->vram_g_data;
+				if (vdg->is_t1 || !vdg->EXTb) {
+					if (vdg->row < 6)
+						vdg->vram_sg_data >>= 2;
+					vdg->s_fg_colour = (vdg->vram_g_data >> 4) & 7;
 				} else {
-					if (subline < 4)
-						vram_sg_data >>= 4;
-					else if (subline < 8)
-						vram_sg_data >>= 2;
-					s_fg_colour = cg_colours + ((vram_g_data >> 6) & 3);
+					if (vdg->row < 4)
+						vdg->vram_sg_data >>= 4;
+					else if (vdg->row < 8)
+						vdg->vram_sg_data >>= 2;
+					vdg->s_fg_colour = vdg->cg_colours + ((vdg->vram_g_data >> 6) & 3);
 				}
-				s_bg_colour = !nA_G ? VDG_BLACK : VDG_GREEN;
-				vram_sg_data = ((vram_sg_data & 2) ? 0xf0 : 0) | ((vram_sg_data & 1) ? 0x0f : 0);
+				vdg->s_bg_colour = !vdg->nA_G ? VDG_BLACK : VDG_GREEN;
+				vdg->vram_sg_data = ((vdg->vram_sg_data & 2) ? 0xf0 : 0) | ((vdg->vram_sg_data & 1) ? 0x0f : 0);
 			}
 
-			if (!nA_G) {
-				render_mode = !nA_S ? VDG_RENDER_RG : VDG_RENDER_SG;
-				fg_colour = !CSS ? VDG_GREEN : bright_orange;
-				bg_colour = !CSS ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
+			if (!vdg->nA_G) {
+				vdg->render_mode = !vdg->nA_S ? VDG_RENDER_RG : VDG_RENDER_SG;
+				vdg->fg_colour = !vdg->CSSb ? VDG_GREEN : vdg->bright_orange;
+				vdg->bg_colour = !vdg->CSSb ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
 			} else {
-				render_mode = GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
-				fg_colour = !CSS ? VDG_GREEN : VDG_WHITE;
-				bg_colour = !CSS ? VDG_DARK_GREEN : VDG_BLACK;
+				vdg->render_mode = vdg->GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
+				vdg->fg_colour = !vdg->CSSb ? VDG_GREEN : VDG_WHITE;
+				vdg->bg_colour = !vdg->CSSb ? VDG_DARK_GREEN : VDG_BLACK;
 			}
 		}
 
-		if (is_32byte) {
-			switch (render_mode) {
+		if (vdg->is_32byte) {
+			switch (vdg->render_mode) {
 			case VDG_RENDER_SG:
-				*(pixel) = (vram_sg_data&0x80) ? s_fg_colour : s_bg_colour;
-				*(pixel+1) = (vram_sg_data&0x40) ? s_fg_colour : s_bg_colour;
+				*(vdg->pixel) = (vdg->vram_sg_data&0x80) ? vdg->s_fg_colour : vdg->s_bg_colour;
+				*(vdg->pixel+1) = (vdg->vram_sg_data&0x40) ? vdg->s_fg_colour : vdg->s_bg_colour;
 				break;
 			case VDG_RENDER_CG:
-				*(pixel) = *(pixel+1) = cg_colours + ((vram_g_data & 0xc0) >> 6);
+				*(vdg->pixel) = *(vdg->pixel+1) = vdg->cg_colours + ((vdg->vram_g_data & 0xc0) >> 6);
 				break;
 			case VDG_RENDER_RG:
-				*(pixel) = (vram_g_data&0x80) ? fg_colour : bg_colour;
-				*(pixel+1) = (vram_g_data&0x40) ? fg_colour : bg_colour;
+				*(vdg->pixel) = (vdg->vram_g_data&0x80) ? vdg->fg_colour : vdg->bg_colour;
+				*(vdg->pixel+1) = (vdg->vram_g_data&0x40) ? vdg->fg_colour : vdg->bg_colour;
 				break;
 			}
-			pixel += 2;
-			beam_pos += 2;
+			vdg->pixel += 2;
+			vdg->beam_pos += 2;
 		} else {
-			switch (render_mode) {
+			switch (vdg->render_mode) {
 			case VDG_RENDER_SG:
-				*(pixel) = *(pixel+1) = (vram_sg_data&0x80) ? s_fg_colour : s_bg_colour;
-				*(pixel+2) = *(pixel+3) = (vram_sg_data&0x40) ? s_fg_colour : s_bg_colour;
+				*(vdg->pixel) = *(vdg->pixel+1) = (vdg->vram_sg_data&0x80) ? vdg->s_fg_colour : vdg->s_bg_colour;
+				*(vdg->pixel+2) = *(vdg->pixel+3) = (vdg->vram_sg_data&0x40) ? vdg->s_fg_colour : vdg->s_bg_colour;
 				break;
 			case VDG_RENDER_CG:
-				*(pixel) = *(pixel+1) = *(pixel+2) = *(pixel+3) = cg_colours + ((vram_g_data & 0xc0) >> 6);
+				*(vdg->pixel) = *(vdg->pixel+1) = *(vdg->pixel+2) = *(vdg->pixel+3) = vdg->cg_colours + ((vdg->vram_g_data & 0xc0) >> 6);
 				break;
 			case VDG_RENDER_RG:
-				*(pixel) = *(pixel+1) = (vram_g_data&0x80) ? fg_colour : bg_colour;
-				*(pixel+2) = *(pixel+3) = (vram_g_data&0x40) ? fg_colour : bg_colour;
+				*(vdg->pixel) = *(vdg->pixel+1) = (vdg->vram_g_data&0x80) ? vdg->fg_colour : vdg->bg_colour;
+				*(vdg->pixel+2) = *(vdg->pixel+3) = (vdg->vram_g_data&0x40) ? vdg->fg_colour : vdg->bg_colour;
 				break;
 			}
-			pixel += 4;
-			beam_pos += 4;
+			vdg->pixel += 4;
+			vdg->beam_pos += 4;
 		}
 
-		vram_bit -= 2;
-		if (vram_bit == 0) {
-			vram_remaining--;
+		vdg->vram_bit -= 2;
+		if (vdg->vram_bit == 0) {
+			vdg->vram_remaining--;
 		}
-		vram_g_data <<= 2;
-		vram_sg_data <<= 2;
-		if (beam_pos >= beam_to)
+		vdg->vram_g_data <<= 2;
+		vdg->vram_sg_data <<= 2;
+		if (vdg->beam_pos >= beam_to)
 			return;
 	}
 
-	while (rborder_remaining > 0) {
-		if ((beam_pos & 7) == 4) {
-			CSS_ = CSS__;
-			nINT_EXT_ = nINT_EXT__;
+	while (vdg->rborder_remaining > 0) {
+		if ((vdg->beam_pos & 7) == 4) {
+			vdg->CSSa = vdg->CSS;
+			vdg->EXTa = vdg->EXT;
 		}
-		if (beam_pos == 316) {
-			CSS = CSS_;
-			nINT_EXT = nINT_EXT_;
-			text_border_colour = !CSS ? VDG_GREEN : bright_orange;
+		if (vdg->beam_pos == 316) {
+			vdg->CSSb = vdg->CSSa;
+			vdg->EXTb = vdg->EXTa;
+			vdg->text_border_colour = !vdg->CSSb ? VDG_GREEN : vdg->bright_orange;
 		}
-		border_colour = nA_G ? cg_colours : (text_border ? text_border_colour : VDG_BLACK);
-		*(pixel++) = border_colour;
-		beam_pos++;
-		rborder_remaining--;
-		if (beam_pos >= beam_to)
+		vdg->border_colour = vdg->nA_G ? vdg->cg_colours : (vdg->text_border ? vdg->text_border_colour : VDG_BLACK);
+		*(vdg->pixel++) = vdg->border_colour;
+		vdg->beam_pos++;
+		vdg->rborder_remaining--;
+		if (vdg->beam_pos >= beam_to)
 			return;
 	}
 
 	// If a program switches to 32 bytes per line mid-scanline, the whole
 	// scanline might not have been rendered:
-	while (beam_pos < (VDG_RIGHT_BORDER_END - VDG_LEFT_BORDER_START)) {
-		*(pixel++) = VDG_BLACK;
-		beam_pos++;
+	while (vdg->beam_pos < (VDG_RIGHT_BORDER_END - VDG_LEFT_BORDER_START)) {
+		*(vdg->pixel++) = VDG_BLACK;
+		vdg->beam_pos++;
 	}
 }
 
-void vdg_set_mode(unsigned mode) {
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+static void dummy_signal(void *data, _Bool level) {
+	(void)data;
+	(void)level;
+}
+
+static void dummy_fetch_bytes(int nbytes, uint8_t *dest) {
+	memset(dest, 0, nbytes * 2);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+struct MC6847 *mc6847_new(_Bool t1) {
+	struct MC6847_private *vdg = g_malloc0(sizeof(*vdg));
+	vdg->is_t1 = t1;
+	vdg->vram_ptr = vdg->vram;
+	vdg->pixel = vdg->pixel_data + VDG_LEFT_BORDER_START;
+	vdg->signal_hs = (vdg_edge_delegate){dummy_signal, NULL};
+	vdg->signal_hs = (vdg_edge_delegate){dummy_signal, NULL};
+	vdg->fetch_bytes = dummy_fetch_bytes;
+	event_init(&vdg->hs_fall_event, do_hs_fall, vdg);
+	event_init(&vdg->hs_rise_event, do_hs_rise, vdg);
+	return (struct MC6847 *)vdg;
+}
+
+void mc6847_free(struct MC6847 *vdgp) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
+	event_dequeue(&vdg->hs_fall_event);
+	event_dequeue(&vdg->hs_rise_event);
+	g_free(vdg);
+}
+
+void mc6847_set_fetch_bytes(struct MC6847 *vdgp, void (*d)(int, uint8_t *)) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
+	vdg->fetch_bytes = d;
+}
+
+void mc6847_set_signal_hs(struct MC6847 *vdgp, vdg_edge_delegate d) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
+	vdg->signal_hs = d;
+}
+
+void mc6847_set_signal_fs(struct MC6847 *vdgp, vdg_edge_delegate d) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
+	vdg->signal_fs = d;
+}
+
+void mc6847_reset(struct MC6847 *vdgp) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
+	video_module->vsync();
+	memset(vdg->pixel_data, VDG_BLACK, sizeof(vdg->pixel_data));
+	vdg->pixel = vdg->pixel_data + VDG_LEFT_BORDER_START;
+	vdg->frame = 0;
+	vdg->scanline = 0;
+	vdg->row = 0;
+	vdg->scanline_start = event_current_tick;
+	vdg->hs_fall_event.at_tick = event_current_tick + VDG_CYCLES(VDG_LINE_DURATION);
+	event_queue(&MACHINE_EVENT_LIST, &vdg->hs_fall_event);
+	// 6847T1 doesn't appear to do bright orange:
+	vdg->bright_orange = vdg->is_t1 ? VDG_ORANGE : VDG_BRIGHT_ORANGE;
+	mc6847_set_mode(vdgp, 0);
+	vdg->beam_pos = 0;
+	vdg->vram_ptr = vdg->vram;
+	vdg->vram_bit = 0;
+	vdg->lborder_remaining = VDG_tLB;
+	vdg->vram_remaining = vdg->is_32byte ? 32 : 16;
+	vdg->rborder_remaining = VDG_tRB;
+}
+
+void mc6847_set_mode(struct MC6847 *vdgp, unsigned mode) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
 	/* Render scanline so far before changing modes */
-	if (frame == 0 && scanline >= VDG_ACTIVE_AREA_START && scanline < VDG_ACTIVE_AREA_END) {
-		render_scanline();
+	if (vdg->frame == 0 && vdg->scanline >= VDG_ACTIVE_AREA_START && vdg->scanline < VDG_ACTIVE_AREA_END) {
+		render_scanline(vdg);
 	}
 
 	unsigned GM = (mode >> 4) & 7;
-	GM0 = mode & 0x10;
-	CSS__ = mode & 0x08;
-	nINT_EXT__ = mode & 0x100;
+	vdg->GM0 = mode & 0x10;
+	vdg->CSS = mode & 0x08;
+	vdg->EXT = mode & 0x100;
 	_Bool new_nA_G = mode & 0x80;
 
-	inverse_text = vdg_t1 && (GM & 2);
-	text_border = vdg_t1 && !inverse_text && (GM & 4);
-	text_border_colour = !CSS ? VDG_GREEN : bright_orange;
+	vdg->inverse_text = vdg->is_t1 && (GM & 2);
+	vdg->text_border = vdg->is_t1 && !vdg->inverse_text && (GM & 4);
+	vdg->text_border_colour = !vdg->CSSb ? VDG_GREEN : vdg->bright_orange;
 
 	/* If switching from graphics to alpha/semigraphics */
-	if (nA_G && !new_nA_G) {
-		subline = 0;
-		render_mode = VDG_RENDER_RG;
-		if (nA_S) {
-			vram_g_data = 0x3f;
-			fg_colour = VDG_GREEN;
-			bg_colour = VDG_DARK_GREEN;
+	if (vdg->nA_G && !new_nA_G) {
+		vdg->row = 0;
+		vdg->render_mode = VDG_RENDER_RG;
+		if (vdg->nA_S) {
+			vdg->vram_g_data = 0x3f;
+			vdg->fg_colour = VDG_GREEN;
+			vdg->bg_colour = VDG_DARK_GREEN;
 		} else {
-			fg_colour = !CSS ? VDG_GREEN : bright_orange;
-			bg_colour = !CSS ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
+			vdg->fg_colour = !vdg->CSSb ? VDG_GREEN : vdg->bright_orange;
+			vdg->bg_colour = !vdg->CSSb ? VDG_DARK_GREEN : VDG_DARK_ORANGE;
 		}
 	}
-	if (!nA_G && new_nA_G) {
-		border_colour = cg_colours;
-		fg_colour = !CSS ? VDG_GREEN : VDG_WHITE;
-		bg_colour = !CSS ? VDG_DARK_GREEN : VDG_BLACK;
+	if (!vdg->nA_G && new_nA_G) {
+		vdg->border_colour = vdg->cg_colours;
+		vdg->fg_colour = !vdg->CSSb ? VDG_GREEN : VDG_WHITE;
+		vdg->bg_colour = !vdg->CSSb ? VDG_DARK_GREEN : VDG_BLACK;
 	}
-	nA_G = new_nA_G;
+	vdg->nA_G = new_nA_G;
 
-	if (nA_G) {
-		render_mode = GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
+	if (vdg->nA_G) {
+		vdg->render_mode = vdg->GM0 ? VDG_RENDER_RG : VDG_RENDER_CG;
 	} else {
-		border_colour = text_border ? text_border_colour : VDG_BLACK;
+		vdg->border_colour = vdg->text_border ? vdg->text_border_colour : VDG_BLACK;
 	}
 
-	is_32byte = !nA_G || !(GM == 0 || (GM0 && GM != 7));
+	vdg->is_32byte = !vdg->nA_G || !(GM == 0 || (vdg->GM0 && GM != 7));
 }

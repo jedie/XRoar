@@ -61,6 +61,7 @@ static uint8_t rom0[0x4000];
 static uint8_t rom1[0x4000];
 static struct MC6809 *CPU0 = NULL;
 static struct MC6821 *PIA0, *PIA1;
+static struct MC6847 *VDG0;
 struct cart *machine_cart = NULL;
 _Bool has_bas, has_extbas, has_altbas, has_combined;
 uint32_t crc_bas, crc_extbas, crc_altbas, crc_combined;
@@ -320,7 +321,7 @@ static void update_vdg_mode(void) {
 	unsigned vmode = (PIA1->b.out_source & PIA1->b.out_sink) & 0xf8;
 	// ¬INT/EXT = GM0
 	vmode |= (vmode & 0x10) << 4;
-	vdg_set_mode(vmode);
+	mc6847_set_mode(VDG0, vmode);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -411,10 +412,7 @@ void machine_init(void) {
 	sam_init();
 
 	vdrive_init();
-	vdg_init();
 	tape_init();
-
-	vdg_fetch_bytes = vdg_fetch_handler;
 }
 
 void machine_shutdown(void) {
@@ -563,13 +561,17 @@ void machine_configure(struct machine_config *mc) {
 	tape_update_audio = (tape_audio_delegate){update_audio_from_tape, NULL};
 
 	// VDG
-	vdg_t1 = (mc->vdg_type == VDG_6847T1);
+	if (VDG0)
+		mc6847_free(VDG0);
+	VDG0 = mc6847_new(mc->vdg_type == VDG_6847T1);
+
 	if (IS_COCO && IS_PAL) {
-		vdg_signal_hs = (vdg_edge_delegate){vdg_hs_pal_coco, NULL};
+		mc6847_set_signal_hs(VDG0, (vdg_edge_delegate){vdg_hs_pal_coco, NULL});
 	} else {
-		vdg_signal_hs = (vdg_edge_delegate){vdg_hs, NULL};
+		mc6847_set_signal_hs(VDG0, (vdg_edge_delegate){vdg_hs, NULL});
 	}
-	vdg_signal_fs = (vdg_edge_delegate){vdg_fs, NULL};
+	mc6847_set_signal_fs(VDG0, (vdg_edge_delegate){vdg_fs, NULL});
+	mc6847_set_fetch_bytes(VDG0, vdg_fetch_handler);
 
 	// Printer
 	printer_signal_ack = (printer_line_delegate){printer_ack, NULL};
@@ -777,7 +779,7 @@ void machine_reset(_Bool hard) {
 	mc6809_trace_reset();
 	hd6309_trace_reset();
 #endif
-	vdg_reset();
+	mc6847_reset(VDG0);
 	tape_reset();
 }
 
