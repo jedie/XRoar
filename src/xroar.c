@@ -38,6 +38,7 @@
 
 #include "cart.h"
 #include "crclist.h"
+#include "dkbd.h"
 #include "events.h"
 #include "fs.h"
 #include "gdb.h"
@@ -83,6 +84,7 @@ struct private_cfg {
 	char *default_machine;
 	char *machine_desc;
 	int machine_arch;
+	int machine_keymap;
 	int machine_cpu;
 	char *machine_palette;
 	char *bas;
@@ -139,6 +141,7 @@ struct private_cfg {
 
 static struct private_cfg private_cfg = {
 	.machine_arch = ANY_AUTO,
+	.machine_keymap = ANY_AUTO,
 	.machine_cpu = CPU_MC6809,
 	.nobas = -1,
 	.noextbas = -1,
@@ -1408,6 +1411,10 @@ static void set_machine(const char *name) {
 			xroar_machine_config->architecture = private_cfg.machine_arch;
 			private_cfg.machine_arch = ANY_AUTO;
 		}
+		if (private_cfg.machine_keymap != ANY_AUTO) {
+			xroar_machine_config->keymap = private_cfg.machine_keymap;
+			private_cfg.machine_keymap = ANY_AUTO;
+		}
 		xroar_machine_config->cpu = private_cfg.machine_cpu;
 		if (private_cfg.machine_cpu == CPU_HD6309) {
 			LOG_WARN("Hitachi HD6309 support is UNVERIFIED!\n");
@@ -1651,6 +1658,13 @@ static struct xconfig_enum arch_list[] = {
 	XC_ENUM_END()
 };
 
+static struct xconfig_enum keyboard_list[] = {
+	{ .value = dkbd_layout_dragon, .name = "dragon", .description = "Dragon" },
+	{ .value = dkbd_layout_dragon200e, .name = "dragon200e", .description = "Dragon 200-E" },
+	{ .value = dkbd_layout_coco, .name = "coco", .description = "Tandy CoCo" },
+	XC_ENUM_END()
+};
+
 static struct xconfig_enum cpu_list[] = {
 	{ .value = CPU_MC6809, .name = "6809", .description = "Motorola 6809" },
 	{ .value = CPU_HD6309, .name = "6309", .description = "Hitachi 6309 - UNVERIFIED" },
@@ -1707,6 +1721,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_STRING("machine", &set_machine),
 	XC_SET_STRING("machine-desc", &private_cfg.machine_desc),
 	XC_SET_ENUM("machine-arch", &private_cfg.machine_arch, arch_list),
+	XC_SET_ENUM("machine-keyboard", &private_cfg.machine_keymap, keyboard_list),
 	XC_SET_ENUM("machine-cpu", &private_cfg.machine_cpu, cpu_list),
 	XC_SET_STRING("bas", &private_cfg.bas),
 	XC_SET_STRING("extbas", &private_cfg.extbas),
@@ -1861,6 +1876,8 @@ static void helptext(void) {
 "  -machine NAME           configure named machine (-machine help for list)\n"
 "    -machine-desc TEXT      machine description\n"
 "    -machine-arch ARCH      machine architecture (-machine-arch help for list)\n"
+"    -machine-keyboard LAYOUT\n"
+"                            keyboard layout (-machine-keyboard help for list)\n"
 "    -machine-cpu CPU        machine CPU (-machine-cpu help for list)\n"
 "    -bas NAME               BASIC ROM to use (CoCo only)\n"
 "    -extbas NAME            Extended BASIC ROM to use\n"
