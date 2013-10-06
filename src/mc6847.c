@@ -97,6 +97,8 @@ struct MC6847_private {
 	uint8_t *vram_ptr;
 	unsigned vram_nbytes;
 
+	uint8_t *ext_charset;
+
 	/* Counters */
 	unsigned lborder_remaining;
 	unsigned vram_remaining;
@@ -294,7 +296,9 @@ static void render_scanline(struct MC6847_private *vdg) {
 					vdg->vram_g_data = font_6847t1[(vdg->vram_g_data&0x7f)*12 + vdg->row];
 				} else {
 					INV = attr & 0x40;
-					if (!vdg->EXTb)
+					if (vdg->ext_charset)
+						vdg->vram_g_data = ~vdg->ext_charset[(vdg->row * 256) + vdg->vram_g_data];
+					else if (!vdg->EXTb)
 						vdg->vram_g_data = font_6847[(vdg->vram_g_data&0x3f)*12 + vdg->row];
 				}
 				if (INV ^ vdg->inverted_text)
@@ -518,4 +522,9 @@ void mc6847_set_mode(struct MC6847 *vdgp, unsigned mode) {
 	}
 
 	vdg->is_32byte = !vdg->nA_G || !(GM == 0 || (vdg->GM0 && GM != 7));
+}
+
+void mc6847_set_ext_charset(struct MC6847 *vdgp, uint8_t *rom) {
+	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
+	vdg->ext_charset = rom;
 }

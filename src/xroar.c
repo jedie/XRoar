@@ -91,6 +91,7 @@ struct private_cfg {
 	int nobas;
 	int noextbas;
 	int noaltbas;
+	char *ext_charset;
 	int tv;
 	int vdg_type;
 	char *machine_cart;
@@ -1452,6 +1453,10 @@ static void set_machine(const char *name) {
 			xroar_machine_config->noaltbas = 0;
 			private_cfg.altbas = NULL;
 		}
+		if (private_cfg.ext_charset) {
+			xroar_machine_config->ext_charset_rom = private_cfg.ext_charset;
+			private_cfg.ext_charset = NULL;
+		}
 		if (private_cfg.machine_cart) {
 			if (xroar_machine_config->default_cart)
 				g_free(xroar_machine_config->default_cart);
@@ -1697,6 +1702,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("nobas", &private_cfg.nobas),
 	XC_SET_INT1("noextbas", &private_cfg.noextbas),
 	XC_SET_INT1("noaltbas", &private_cfg.noaltbas),
+	XC_SET_STRING("ext-charset", &private_cfg.ext_charset),
 	XC_SET_ENUM("tv-type", &private_cfg.tv, tv_type_list),
 	XC_SET_ENUM("vdg-type", &private_cfg.vdg_type, vdg_type_list),
 	XC_SET_INT("ram", &private_cfg.ram),
@@ -1849,6 +1855,7 @@ static void helptext(void) {
 "    -nobas                  disable BASIC\n"
 "    -noextbas               disable Extended BASIC\n"
 "    -noaltbas               disable 64K mode Extended BASIC\n"
+"    -ext-charset NAME       external character generator ROM to use\n"
 "    -tv-type TYPE           TV type (-tv-type help for list)\n"
 "    -vdg-type TYPE          VDG type (6847 or 6847t1)\n"
 "    -ram KBYTES             amount of RAM in K\n"

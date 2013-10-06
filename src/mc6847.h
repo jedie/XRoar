@@ -82,4 +82,6 @@ void mc6847_set_inverted_text(struct MC6847 *, _Bool);
 
 void mc6847_set_mode(struct MC6847 *, unsigned mode);
 
+void mc6847_set_ext_charset(struct MC6847 *, uint8_t *);
+
 #endif  /* XROAR_VDG_H_ */

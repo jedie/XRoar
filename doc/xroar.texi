@@ -380,6 +380,9 @@ ROM image to use for Extended BASIC.
 @itemx -noaltbas
 Indicate the corresponding ROM is not fitted in this machine.
 
+@item -ext-charset @var{rom}
+ROM image to use for external character generator.
+
 @item -tv-type @var{type}
 One of @samp{pal}, @samp{ntsc} or @samp{pal-m}.  PAL-M support is not complete, and will
 instead be treated the same as NTSC.

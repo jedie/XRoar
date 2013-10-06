@@ -65,6 +65,9 @@ static struct MC6847 *VDG0;
 struct cart *machine_cart = NULL;
 _Bool has_bas, has_extbas, has_altbas, has_combined;
 uint32_t crc_bas, crc_extbas, crc_altbas, crc_combined;
+static uint8_t ext_charset[0x1000];
+_Bool has_ext_charset;
+uint32_t crc_ext_charset;
 
 /* Useful configuration side-effect tracking */
 static _Bool unexpanded_dragon32 = 0;
@@ -277,6 +280,7 @@ void machine_config_print_all(void) {
 		if (mc->nobas) printf("  nobas\n");
 		if (mc->noextbas) printf("  noextbas\n");
 		if (mc->noaltbas) printf("  noaltbas\n");
+		if (mc->ext_charset_rom) printf("  ext-charset %s\n", mc->ext_charset_rom);
 		if (mc->tv_standard >= 0 && mc->tv_standard < G_N_ELEMENTS(machine_tv_type_string))
 			printf("  tv-type %s\n", machine_tv_type_string[mc->tv_standard]);
 		if (mc->vdg_type >= 0 && mc->vdg_type < G_N_ELEMENTS(machine_vdg_type_string))
@@ -579,6 +583,7 @@ void machine_configure(struct machine_config *mc) {
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
 	memset(rom1, 0, sizeof(rom1));
+	memset(ext_charset, 0, sizeof(ext_charset));
 
 	/*
 	 * CoCo ROMs are always considered to be in two parts: BASIC and
@@ -597,6 +602,8 @@ void machine_configure(struct machine_config *mc) {
 
 	has_combined = has_extbas = has_bas = has_altbas = 0;
 	crc_combined = crc_extbas = crc_bas = crc_altbas = 0;
+	has_ext_charset = 0;
+	crc_ext_charset = 0;
 
 	/* ... Extended BASIC */
 	if (!mc->noextbas && mc->extbas_rom) {
@@ -643,6 +650,16 @@ void machine_configure(struct machine_config *mc) {
 	/* This will be under PIA control on a Dragon 64 */
 	machine_rom = rom0;
 
+	if (mc->ext_charset_rom) {
+		char *tmp = romlist_find(mc->ext_charset_rom);
+		if (tmp) {
+			int size = machine_load_rom(tmp, ext_charset, sizeof(ext_charset));
+			if (size > 0)
+				has_ext_charset = 1;
+			g_free(tmp);
+		}
+	}
+
 	/* CRCs */
 	if (has_combined) {
 		_Bool forced = 0;
@@ -687,6 +704,16 @@ void machine_configure(struct machine_config *mc) {
 		}
 		LOG_DEBUG(2, "\tExtended BASIC CRC = 0x%08x%s\n", crc_extbas, forced ? " (forced)" : "");
 	}
+	if (has_ext_charset) {
+		crc_ext_charset = crc32_block(CRC32_RESET, ext_charset, 0x1000);
+		LOG_DEBUG(2, "\tExternal charset CRC = 0x%08x\n", crc_ext_charset);
+	}
+
+	/* VDG external charset */
+	if (has_ext_charset)
+		mc6847_set_ext_charset(VDG0, ext_charset);
+	else
+		mc6847_set_ext_charset(VDG0, NULL);
 
 	/* Default all PIA connections to unconnected (no source, no sink) */
 	PIA0->b.in_source = 0;
@@ -1041,10 +1068,18 @@ static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
 				V = decode_Z(V);
 			}
 			uint8_t *src = machine_ram + V;
-			/* duplicate data as attrs */
-			for (int i = n; i; i--) {
-				*(dest++) = *(src);
-				*(dest++) = *(src++);
+			if (has_ext_charset) {
+				/* omit INV in attrs */
+				for (int i = n; i; i--) {
+					*(dest++) = *(src);
+					*(dest++) = *(src++) & 0x80;
+				}
+			} else {
+				/* duplicate data as attrs */
+				for (int i = n; i; i--) {
+					*(dest++) = *(src);
+					*(dest++) = *(src++);
+				}
 			}
 		}
 		nbytes -= n;
