@@ -1,3 +1,9 @@
+Development version, unreleased
+
+  * New option -timeout quits emulator after number of seconds.
+  * Differentiate between combined and concatenated ROMs.
+  * Control+Shift+I toggles Inverse Text.
+
 Version 0.30, Wed Sep 18 2013
 
   * Minimal CoCo BASIC printing support using ROM intercept.
