@@ -2,7 +2,14 @@ Development version, unreleased
 
   * New option -timeout quits emulator after number of seconds.
   * Differentiate between combined and concatenated ROMs.
-  * Control+Shift+I toggles Inverse Text.
+  * Ctrl+Shift+I toggles Inverse Text.
+  * New option -invert-text.
+  * Added external character generator support.
+  * Many new keymaps.  -keymap help for a list.
+  * New option -machine-keyboard selects layout for machine.
+  * New machine Dragon 200-E.
+  * Shift+Return presses Caps Lock combo in translated mode.
+  * Ctrl+Shift+H presses "Pause" button.
 
 Version 0.30, Wed Sep 18 2013
 
