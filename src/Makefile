@@ -48,7 +48,7 @@ xroar_OBJCFLAGS = $(OBJCFLAGS) $(CPPFLAGS) \
 	$(WARN) \
         -DVERSION=\"$(VERSION)\" \
         -DROMPATH=$(ROMPATH) -DCONFPATH=$(CONFPATH)
-xroar_LDFLAGS = $(LDFLAGS) $(LDLIBS)
+xroar_LDFLAGS = -lm $(LDFLAGS) $(LDLIBS)
 
 xroar_BASE_C = \
 	becker.c \
