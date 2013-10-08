@@ -384,6 +384,7 @@ static const gchar *ui =
 	      "<separator/>"
 	      "<menu name='KeymapMenu' action='KeymapMenuAction'>"
 	        "<menuitem action='keymap_dragon'/>"
+	        "<menuitem action='keymap_dragon200e'/>"
 	        "<menuitem action='keymap_coco'/>"
 	      "</menu>"
 	      "<separator/>"
@@ -501,6 +502,7 @@ static GtkRadioActionEntry cross_colour_radio_entries[] = {
 
 static GtkRadioActionEntry keymap_radio_entries[] = {
 	{ .name = "keymap_dragon", .label = "Dragon Layout", .value = KEYMAP_DRAGON },
+	{ .name = "keymap_dragon200e", .label = "Dragon 200-E Layout", .value = KEYMAP_DRAGON200E },
 	{ .name = "keymap_coco", .label = "CoCo Layout", .value = KEYMAP_COCO },
 };
 
@@ -545,7 +547,7 @@ static _Bool init(void) {
 	/* Set up main action group */
 	gtk_action_group_add_actions(main_action_group, ui_entries, ui_n_entries, NULL);
 	gtk_action_group_add_toggle_actions(main_action_group, ui_toggles, ui_n_toggles, NULL);
-	gtk_action_group_add_radio_actions(main_action_group, keymap_radio_entries, 2, 0, (GCallback)set_keymap, NULL);
+	gtk_action_group_add_radio_actions(main_action_group, keymap_radio_entries, 3, 0, (GCallback)set_keymap, NULL);
 	gtk_action_group_add_radio_actions(main_action_group, cross_colour_radio_entries, 3, 0, (GCallback)set_cc, NULL);
 
 	/* Menu merge points */
