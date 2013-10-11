@@ -657,6 +657,12 @@ static void setup_machine_menu(void) {
 	[submenu addItem:item];
 	[item release];
 
+	item = [[NSMenuItem alloc] initWithTitle:@"Dragon 200-E Layout" action:@selector(do_set_state:) keyEquivalent:@""];
+	[item setTag:(TAG_KEYMAP | KEYMAP_DRAGON200E)];
+	[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
+	[submenu addItem:item];
+	[item release];
+
 	item = [[NSMenuItem alloc] initWithTitle:@"CoCo Layout" action:@selector(do_set_state:) keyEquivalent:@""];
 	[item setTag:(TAG_KEYMAP | KEYMAP_COCO)];
 	[item setOnStateImage:[NSImage imageNamed:@"NSMenuRadio"]];
