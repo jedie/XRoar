@@ -834,6 +834,8 @@ Hard reset emulated machine.
 Save a snapshot.
 @item @kbd{Control}+@kbd{T}
 Open the tape control dialogue (GTK+ only).
+@item @kbd{Control}+@kbd{V}
+Toggle trace mode.
 @item @kbd{Control}+@kbd{W}
 Attach a virtual cassette file for writing.
 @item @kbd{Control}+@kbd{Z}
