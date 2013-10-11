@@ -58,6 +58,7 @@ xroar_BASE_C = \
 	crc32.c \
 	crclist.c \
 	deltados.c \
+	dkbd.c \
 	dragondos.c \
 	events.c \
 	fs.c \

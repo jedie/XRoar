@@ -24,6 +24,7 @@
 #include "pl_glib.h"
 
 #include "breakpoint.h"
+#include "dkbd.h"
 #include "events.h"
 #include "keyboard.h"
 #include "logging.h"
@@ -31,54 +32,16 @@
 #include "mc6809.h"
 #include "xroar.h"
 
-/* These map virtual scancodes to keyboard matrix points */
-static Keymap dragon_keymap = {
-	{7,6}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x00 - 0x07 */
-	{5,5}, {6,5}, {4,5}, {8,8}, {1,6}, {0,6}, {8,8}, {8,8}, /* 0x08 - 0x0f */
-	{8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x10 - 0x17 */
-	{8,8}, {8,8}, {8,8}, {2,6}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x18 - 0x1f */
-	{7,5}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x20 - 0x27 */
-	{8,8}, {8,8}, {8,8}, {8,8}, {4,1}, {5,1}, {6,1}, {7,1}, /* 0x28 - 0x2f */
-	{0,0}, {1,0}, {2,0}, {3,0}, {4,0}, {5,0}, {6,0}, {7,0}, /* 0x30 - 0x37 */
-	{0,1}, {1,1}, {2,1}, {3,1}, {8,8}, {8,8}, {8,8}, {8,8}, /* 0x38 - 0x3f */
-	{0,2}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 0x40 - 0x47 */
-	{0,3}, {1,3}, {2,3}, {3,3}, {4,3}, {5,3}, {6,3}, {7,3}, /* 0x48 - 0x4f */
-	{0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, /* 0x50 - 0x57 */
-	{0,5}, {1,5}, {2,5}, {8,8}, {8,8}, {8,8}, {3,5}, {8,8}, /* 0x58 - 0x5f */
-	{1,6}, {1,2}, {2,2}, {3,2}, {4,2}, {5,2}, {6,2}, {7,2}, /* 0x60 - 0x67 */
-	{0,3}, {1,3}, {2,3}, {3,3}, {4,3}, {5,3}, {6,3}, {7,3}, /* 0x68 - 0x6f */
-	{0,4}, {1,4}, {2,4}, {3,4}, {4,4}, {5,4}, {6,4}, {7,4}, /* 0x70 - 0x77 */
-	{0,5}, {1,5}, {2,5}, {8,8}, {8,8}, {8,8}, {8,8}, {5,5}, /* 0x78 - 0x7f */
-};
-/* CoCo keymap populated in keyboard_init() */
-static Keymap coco_keymap;
-/* Active keymap */
-Keymap keymap;
+/* Map of virtual scancodes to keyboard matrix points: */
+struct dkbd_map keymap_new;
 
+/* Current chording mode - only affects how backslash is typed: */
 static enum keyboard_chord_mode chord_mode = keyboard_chord_mode_dragon_32k_basic;
 
-static unsigned unicode_to_dragon[128] = {
-	0,       0,       0,       0,       0,       0,       0,       0,
-	8,       9,       10,      0,       12,      13,      0,       0,
-	0,       0,       0,       0,       0,       128+8,   0,       0,
-	0,       0,       0,       27,      0,       0,       0,       0,
-	' ',     128+'1', 128+'2', 128+'3', 128+'4', 128+'5', 128+'6', 128+'7',
-	128+'8', 128+'9', 128+':', 128+';', ',',     '-',     '.',     '/',
-	'0',     '1',     '2',     '3',     '4',     '5',     '6',     '7',
-	'8',     '9',     ':',     ';',     128+',', 128+'-', 128+'.', 128+'/',
-	'@',     128+'a', 128+'b', 128+'c', 128+'d', 128+'e', 128+'f', 128+'g',
-	128+'h', 128+'i', 128+'j', 128+'k', 128+'l', 128+'m', 128+'n', 128+'o',
-	128+'p', 128+'q', 128+'r', 128+'s', 128+'t', 128+'u', 128+'v', 128+'w',
-	128+'x', 128+'y', 128+'z', 128+10,  128+12,  128+9,   '^',     128+'^',
-	12,      'a',     'b',     'c',     'd',     'e',     'f',     'g',
-	'h',     'i',     'j',     'k',     'l',     'm',     'n',     'o',
-	'p',     'q',     'r',     's',     't',     'u',     'v',     'w',
-	'x',     'y',     'z',     0,       0,       0,       128+'@', 8
-};
+/* These contain masks to be applied when the corresponding row/column is held
+ * low.  e.g., if row 1 is outputting a 0, keyboard_column[1] will be applied
+ * on column reads: */
 
-/* These contain masks to be applied when the corresponding row/column is
- * held low.  eg, if row 1 is outputting a 0 , keyboard_column[1] will
- * be applied on column reads */
 unsigned keyboard_column[9];
 unsigned keyboard_row[9];
 
@@ -88,32 +51,23 @@ void keyboard_init(void) {
 		keyboard_column[i] = ~0;
 		keyboard_row[i] = ~0;
 	}
-	for (i = 0; i < 128; i++) {
-		coco_keymap[i].col = dragon_keymap[i].col;
-		if (dragon_keymap[i].row == 6) {
-			coco_keymap[i].row = 6;
-		} else {
-			coco_keymap[i].row = (dragon_keymap[i].row + 4) % 6;
-		}
-	}
 }
 
 void keyboard_set_keymap(int map) {
 	map %= NUM_KEYMAPS;
 	xroar_machine_config->keymap = map;
-	switch (map) {
-		default:
-		case KEYMAP_DRAGON:
-			memcpy(keymap, dragon_keymap, sizeof(keymap));
-			break;
-		case KEYMAP_COCO:
-			memcpy(keymap, coco_keymap, sizeof(keymap));
-			break;
-	}
+	dkbd_map_init(&keymap_new, map);
 }
 
 void keyboard_set_chord_mode(enum keyboard_chord_mode mode) {
 	chord_mode = mode;
+	if (keymap_new.layout == dkbd_layout_dragon) {
+		if (mode == keyboard_chord_mode_dragon_32k_basic) {
+			keymap_new.unicode_to_dkey['\\'].dk_key = DSCAN_COMMA;
+		} else {
+			keymap_new.unicode_to_dkey['\\'].dk_key = DSCAN_INVALID;
+		}
+	}
 }
 
 /* Compute which rows & columns are to act as sinks based on inputs to the
@@ -157,53 +111,29 @@ void keyboard_read_matrix(int row_in, int col_in, int *row_sink, int *col_sink) 
 }
 
 void keyboard_unicode_press(unsigned unicode) {
-	if (unicode == '\\') {
-		/* CoCo and Dragon 64 in 64K mode have a different way
-		 * of scanning for '\' */
-		if (chord_mode == keyboard_chord_mode_dragon_32k_basic) {
-			KEYBOARD_PRESS_SHIFT;
-			KEYBOARD_PRESS_CLEAR;
-			KEYBOARD_PRESS(',');
-		} else {
-			KEYBOARD_PRESS_SHIFT;
-			KEYBOARD_PRESS_CLEAR;
-		}
-	} else if (unicode == 163) {
-		/* Pound sign */
+	if (unicode >= DKBD_U_TABLE_SIZE)
+		return;
+	if (keymap_new.unicode_to_dkey[unicode].dk_mod & DK_MOD_SHIFT)
 		KEYBOARD_PRESS_SHIFT;
-		KEYBOARD_PRESS('3');
-	} else if (unicode < 128) {
-		unsigned code = unicode_to_dragon[unicode];
-		if (code & 128)
-			KEYBOARD_PRESS_SHIFT;
-		else
-			KEYBOARD_RELEASE_SHIFT;
-		KEYBOARD_PRESS(code & 0x7f);
-	}
+	if (keymap_new.unicode_to_dkey[unicode].dk_mod & DK_MOD_UNSHIFT)
+		KEYBOARD_RELEASE_SHIFT;
+	if (keymap_new.unicode_to_dkey[unicode].dk_mod & DK_MOD_CLEAR)
+		KEYBOARD_PRESS_CLEAR;
+	keyboard_press(keymap_new.unicode_to_dkey[unicode].dk_key);
+	return;
 }
 
 void keyboard_unicode_release(unsigned unicode) {
-	if (unicode == '\\') {
-		/* CoCo and Dragon 64 in 64K mode have a different way
-		 * of scanning for '\' */
-		if (chord_mode == keyboard_chord_mode_dragon_32k_basic) {
-			KEYBOARD_RELEASE_SHIFT;
-			KEYBOARD_RELEASE_CLEAR;
-			KEYBOARD_RELEASE(',');
-		} else {
-			KEYBOARD_RELEASE_SHIFT;
-			KEYBOARD_RELEASE_CLEAR;
-		}
-	} else if (unicode == 163) {
-		/* Pound sign */
+	if (unicode >= DKBD_U_TABLE_SIZE)
+		return;
+	if (keymap_new.unicode_to_dkey[unicode].dk_mod & DK_MOD_SHIFT)
 		KEYBOARD_RELEASE_SHIFT;
-		KEYBOARD_RELEASE('3');
-	} else if (unicode < 128) {
-		unsigned code = unicode_to_dragon[unicode];
-		if (code & 128)
-			KEYBOARD_RELEASE_SHIFT;
-		KEYBOARD_RELEASE(code & 0x7f);
-	}
+	if (keymap_new.unicode_to_dkey[unicode].dk_mod & DK_MOD_UNSHIFT)
+		KEYBOARD_PRESS_SHIFT;
+	if (keymap_new.unicode_to_dkey[unicode].dk_mod & DK_MOD_CLEAR)
+		KEYBOARD_RELEASE_CLEAR;
+	keyboard_release(keymap_new.unicode_to_dkey[unicode].dk_key);
+	return;
 }
 
 static GSList *basic_command_list = NULL;

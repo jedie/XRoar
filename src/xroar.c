@@ -1184,7 +1184,19 @@ void xroar_set_keymap(int map) {
 	int new;
 	switch (map) {
 		case XROAR_CYCLE:
-			new = (xroar_machine_config->keymap + 1) % NUM_KEYMAPS;
+			// fudge the cycle order...
+			switch (xroar_machine_config->keymap) {
+			case dkbd_layout_dragon:
+				new = dkbd_layout_dragon200e;
+				break;
+			case dkbd_layout_dragon200e:
+				new = dkbd_layout_coco;
+				break;
+			case dkbd_layout_coco:
+			default:
+				new = dkbd_layout_dragon;
+				break;
+			}
 			break;
 		default:
 			new = map;
@@ -1925,7 +1937,7 @@ static void helptext(void) {
 #endif
 
 "\n Keyboard:\n"
-"  -keymap CODE          host keyboard type (uk, us, fr, fr_CA, de)\n"
+"  -keymap CODE          host keyboard type (uk, us, es, fr, fr_CA, de)\n"
 "  -kbd-translate        enable keyboard translation\n"
 "  -type STRING          intercept ROM calls to type STRING into BASIC\n"
 

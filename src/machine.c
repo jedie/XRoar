@@ -218,10 +218,10 @@ void machine_config_complete(struct machine_config *mc) {
 	if (mc->keymap == ANY_AUTO) {
 		switch (mc->architecture) {
 		case ARCH_DRAGON64: case ARCH_DRAGON32: default:
-			mc->keymap = KEYMAP_DRAGON;
+			mc->keymap = dkbd_layout_dragon;
 			break;
 		case ARCH_COCO:
-			mc->keymap = KEYMAP_COCO;
+			mc->keymap = dkbd_layout_coco;
 			break;
 		}
 	}
