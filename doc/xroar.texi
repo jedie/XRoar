@@ -132,7 +132,7 @@ Name any configuration file you create @file{~/Library/XRoar/xroar.conf}.
 
 The Mac OS X build provides a menu for access to certain features, and often
 accepts the more familiar @kbd{Command}+@var{key} in place of the
-@kbd{Control}+@var{key} shortcuts listed in this manual.
+@kbd{Ctrl}+@var{key} shortcuts listed in this manual.
 
 
 @subsection Windows binary package
@@ -243,11 +243,11 @@ the details are beyond the scope of this manual.
 @section Running programs
 
 Images of ROM cartridges, cassettes and disks can all be attached by pressing
-@kbd{Control}+@kbd{L}.  Cassettes will be positioned at the beginning of the
+@kbd{Ctrl}+@kbd{L}.  Cassettes will be positioned at the beginning of the
 ``tape'' and disks will be inserted into @w{Drive 1}.
 
 To attach an image and try to automatically start it, press
-@kbd{Control}+@kbd{Shift}+@kbd{L} instead.  XRoar will try and start the
+@kbd{Ctrl}+@kbd{Shift}+@kbd{L} instead.  XRoar will try and start the
 program using the normal method for the type of image:
 
 @itemize @bullet
@@ -270,17 +270,17 @@ see @ref{Cartridges}, @ref{Cassettes}, or @ref{Disks}.
 The keyboard layout of modern machines is not identical to that of the Dragon,
 so XRoar provides two ways of working.  The default, ``untranslated'', is to
 map key @emph{positions} as closely as possible (e.g., the key to the right of
-@kbd{P} maps to @kbd{@@}).  Pressing @kbd{Control}+@kbd{Z} toggles
+@kbd{P} maps to @kbd{@@}).  Pressing @kbd{Ctrl}+@kbd{Z} toggles
 ``translated'' mode, which tries to map key @emph{symbols} closely instead
 (e.g., pressing @kbd{'} will press @kbd{Shift}+@kbd{7} in the emulated
 machine).
 
 In addition, a couple of keys aren't always available on modern keyboads, so
-@key{Escape} maps to the Dragon's @key{BREAK} key, and @key{Grave} (@kbd{`})
-maps to @key{CLEAR}.  @xref{Keyboard}.
+@key{Escape} maps to the Dragon's @key{BREAK} key, and @key{Home} maps to
+@key{CLEAR}.  @xref{Keyboard}.
 
 XRoar will make use of attached joysticks, but can also emulate them with the
-cursor keys and @key{Left Alt}.  Press @kbd{Control}+@kbd{J} to cycle through
+cursor keys and @key{Left Alt}.  Press @kbd{Ctrl}+@kbd{J} to cycle through
 three emulation modes: No joystick emulation (default), Right joystick, Left
 joystick.  @xref{Joysticks}.
 
@@ -452,7 +452,7 @@ following options to modify it:
 
 @item -cart-desc @var{text}
 
-Cartridge description (showed in @option{-cart help}).
+Cartridge description shown in @option{-cart help}.
 
 @item -cart-type @var{type}
 
@@ -498,12 +498,12 @@ with @option{-machine-cart}, or automatic selection is disabled with the
 @option{-nodos} option.
 
 Selecting a ROM image file with the @option{-load} or @option{-run} command
-line options, or with @kbd{Control}+@kbd{L} or
-@kbd{Control}+@kbd{Shift}+@kbd{L}, will attach a ROM cartridge.
+line options, or with @kbd{Ctrl}+@kbd{L} or
+@kbd{Ctrl}+@kbd{Shift}+@kbd{L}, will attach a ROM cartridge.
 
 Within the emulator, cartridges can be enabled or disabled by pressing
-@kbd{Control}+@kbd{E}.  You will almost certainly want to follow this with a
-hard reset (@kbd{Control}+@kbd{Shift}+@kbd{R}).
+@kbd{Ctrl}+@kbd{E}.  You will almost certainly want to follow this with a
+hard reset (@kbd{Ctrl}+@kbd{Shift}+@kbd{R}).
 
 @subsection Becker port
 
@@ -526,9 +526,9 @@ application used to provide such facilities.
 @chapter Files
 
 In general, files can be attached on the command line with @option{-load
-@var{filename}}, or by pressing @kbd{Control}+@kbd{L}.  XRoar judges the type
+@var{filename}}, or by pressing @kbd{Ctrl}+@kbd{L}.  XRoar judges the type
 of file based on its extension.  To attempt to intelligently autorun a file,
-use @option{-run @var{filename}} or press @kbd{Control}+@kbd{Shift}+@kbd{L}.
+use @option{-run @var{filename}} or press @kbd{Ctrl}+@kbd{Shift}+@kbd{L}.
 See @ref{Running programs} for the methods XRoar will use to autorun a file.
 
 @menu
@@ -561,7 +561,7 @@ for loading in ASCII mode.  Read-only.
 
 To create a cassette image for writing (with the @command{CSAVE} or
 @command{CSAVEM} BASIC commands, for example), use the @option{-tape-write
-@var{filename}} option, or press @kbd{Control}+@kbd{W}.  Created files will be
+@var{filename}} option, or press @kbd{Ctrl}+@kbd{W}.  Created files will be
 truncated to zero length, so be careful not to overwrite any existing files
 with this command.
 
@@ -608,14 +608,14 @@ header information.
 @tab Another disk image file format, used by PC-Dragon.
 @end multitable
 
-To insert a disk into a particular drive, press @kbd{Control}+@var{[1-4]}.
+To insert a disk into a particular drive, press @kbd{Ctrl}+@var{[1-4]}.
 
 When you attach a disk, it is read into memory, and subsequent disk operations
 are performed on this in-memory copy.  Write enable defaults to on (so write
 operations on the copy will work), but write back defaults to off, so updates
 will not be written to the disk image file.  To toggle write enable, press
-@kbd{Control}+@var{[5-8]}, where the number to press is the drive number plus
-4.  To toggle write back, press @kbd{Control}+@kbd{Shift}+@var{[5-8]}.  Even
+@kbd{Ctrl}+@var{[5-8]}, where the number to press is the drive number plus
+4.  To toggle write back, press @kbd{Ctrl}+@kbd{Shift}+@var{[5-8]}.  Even
 with write back enabled, image files will not be updated until the disk in a
 virtual drive is changed, or you quit the emulator.
 
@@ -631,7 +631,7 @@ disks, an option is provided to force the issue.  If you're having such
 problems, run with the @option{-disk-jvc-hack} option.
 
 You can create a new blank disk in a virtual drive by pressing
-@kbd{Control}+@kbd{Shift}+@var{[1-4]}.  You will be a prompted for a filename,
+@kbd{Ctrl}+@kbd{Shift}+@var{[1-4]}.  You will be a prompted for a filename,
 and the extension determines which type of file will be written.
 
 
@@ -647,8 +647,8 @@ creates a cartridge instance of type @samp{rom}.  @xref{Cartridges}.
 @section Snapshots
 
 XRoar can save out a snapshot of the emulated machine state and read the
-snapshots back in later.  To save a snapshot, press @kbd{Control}+@kbd{S}.
-When using @kbd{Control}+@kbd{L} to load a file, anything ending in @file{.sna}
+snapshots back in later.  To save a snapshot, press @kbd{Ctrl}+@kbd{S}.
+When using @kbd{Ctrl}+@kbd{L} to load a file, anything ending in @file{.sna}
 will be recognised as a snapshot.
 
 What is included in snapshots: Selected machine architecture, complete hardware
@@ -747,13 +747,13 @@ forces the CRCs to be as if an original ROM image were loaded.
 
 @menu
 * User interface module::
-* Keyboard shortcuts::
 * Video output::
 * Audio output::
 * Keyboard::
 * Joysticks::
 * Printing::
 * Debugging::
+* Keyboard shortcuts::
 @end menu
 
 @node User interface module
@@ -797,66 +797,9 @@ Select with @option{-ui macosx}.
 
 This is actually a special case of the SDL user interface.  A basic set of
 menus are created, and many operations are usable by pressing
-@kbd{Command}+@var{key} instead of @kbd{Control}+@var{key}.
+@kbd{Command}+@var{key} instead of @kbd{Ctrl}+@var{key}.
 
 This is the only available user interface in the Mac OS X binary distribution.
-
-
-@node Keyboard shortcuts
-@section Keyboard shortcuts
-
-A summary of commonly available shortcuts.
-
-@table @asis
-@item @kbd{Control}+@kbd{A}
-Cycle through cross-colour video modes (hi-res only).
-@item @kbd{Control}+@kbd{D}
-Open disk control dialogue (GTK+ only).
-@item @kbd{Control}+@kbd{E}
-Toggle DOS emulation on/off - reset to take effect.
-@item @kbd{Control}+@kbd{F}, @kbd{F11}
-Toggle full screen mode.
-@item @kbd{Control}+@kbd{J}
-Cycle through joystick emulation modes (None, Right, Left).
-@item @kbd{Control}+@kbd{Shift}+@kbd{J}
-Swap left and right joysticks.
-@item @kbd{Control}+@kbd{K}
-Toggle between Dragon and CoCo keyboard layout.
-@item @kbd{Control}+@kbd{L}
-Load a file (see below).
-@item @kbd{Control}+@kbd{Shift}+@kbd{L}
-Load a file and attempt to autorun it where appropriate.
-@item @kbd{Control}+@kbd{M}
-Cycle through emulated machine types (resets machine).
-@item @kbd{Control}+@kbd{Shift}+@kbd{P}
-Flush printer output.
-@item @kbd{Control}+@kbd{Q}
-Quit emulator.
-@item @kbd{Control}+@kbd{R}
-Soft reset emulated machine.
-@item @kbd{Control}+@kbd{Shift}+@kbd{R}
-Hard reset emulated machine.
-@item @kbd{Control}+@kbd{S}
-Save a snapshot.
-@item @kbd{Control}+@kbd{T}
-Open the tape control dialogue (GTK+ only).
-@item @kbd{Control}+@kbd{V}
-Toggle trace mode.
-@item @kbd{Control}+@kbd{W}
-Attach a virtual cassette file for writing.
-@item @kbd{Control}+@kbd{Z}
-Enable keyboard translation mode.
-@item @kbd{F12}
-While held, the emulator will run at the maximum possible speed.
-@item @kbd{Shift}+@kbd{F12}
-Toggle rate limiting.  Emulator will run at maximum speed until pressed again.
-@item @kbd{Pause}
-Toggles pause mode (HALTs the CPU).  As seen on the Dynacom MX-1600.
-@end table
-
-XRoar still supports the use of some old keyboard commands that were used to
-attach specific types of file.  @kbd{Control}+@kbd{B} and @kbd{Control}+@kbd{H}
-are synonymous with @kbd{Control}+@kbd{L}.
 
 
 @node Video output
@@ -871,7 +814,7 @@ user-interface module.  @option{-vo help} for a list.
 
 @item -fs
 
-Start full-screen.  Toggle full-screen with @kbd{Control}+@kbd{F} or @kbd{F11}.
+Start full-screen.  Toggle full-screen with @kbd{Ctrl}+@kbd{F} or @kbd{F11}.
 
 @item -fskip @var{frames}
 
@@ -882,6 +825,10 @@ Specify frameskip.  Default is @samp{0}.  For slower machines.
 Filtering method to use when scaling the screen.  One of @samp{linear},
 @samp{nearest} or @samp{auto} (the default).  OpenGL output modules only.
 
+@item -invert-text
+
+Start up with inverted text mode.
+
 @item -ccr @var{renderer}
 
 Cross-colour renderer.  Either @samp{simple} (very fast) or @samp{5bit} (fast,
@@ -891,11 +838,10 @@ more accurate).  Default is @samp{5bit}.
 
 Real NTSC machines start in one of two cross-colour states at random.  Games
 often prompt the user to ``Press Enter if the screen is red'', for example.
-You can press @kbd{Control}+@kbd{A}, to cycle through three modes: Off,
+You can press @kbd{Ctrl}+@kbd{A}, to cycle through three modes: Off,
 Blue-red and Red-blue.
 
-The characters in text mode may be inverted by pressing
-@kbd{Control}+@kbd{Shift}+@kbd{I}.
+Inverted text mode may be toggled by pressing @kbd{Ctrl}+@kbd{Shift}+@kbd{I}.
 
 
 @node Audio output
@@ -949,24 +895,29 @@ due to the need to mix in a stereo output.
 
 The default mapping of host keys to emulated keys is based on the original
 @emph{positions} of the keys, with certain exceptions: cursor keys are mapped
-directly, @key{Escape} maps to the Dragon's @key{BREAK} key, and @key{`} (grave
-or back-tick) maps to @key{CLEAR}.
+directly, @key{Escape} maps to the Dragon's @key{BREAK} key, and @key{Home}
+maps to @key{CLEAR}.  Other keys may also be mapped to @key{CLEAR} if there is
+a choice in your selected keymap that doesn't conflict with a regular character
+in translated mode.
 
 For position-based mapping, XRoar needs to be informed of the layout of the
-host's keyboard.  If it is not the default (UK or US), use the @option{-keymap
+host's keyboard.  If it is not the default (UK), use the @option{-keymap
 @var{code}} option.
 
 XRoar can also be put into ``translated'' keyboard mode, where characters typed
 on a PC keyboard are translated into the equivalent keystrokes on the Dragon.
 Use the @option{-kbd-translate} option to default to this mode.  Press
-@kbd{Control}+@kbd{Z} at any time to toggle between the two modes.
+@kbd{Ctrl}+@kbd{Z} at any time to toggle between the two modes.
+
+In translated mode, @kbd{Shift}+@kbd{Return} is mapped to the emulated
+machine's Caps Lock combination (@kbd{Shift}+@kbd{0} on most machines, but
+@kbd{Shift}+@kbd{Enter} on the Dragon 200-E).
 
 @table @option
 
 @item -keymap @var{code}
-Specify host keyboard layout.  One of @samp{uk} (British), @samp{us}
-(American), @samp{fr} (French AZERTY), @samp{fr_CA} (Canadian French QWERTY) or
-@samp{de} (German QWERTZ).  Default is @samp{uk}.
+Specify host keyboard layout.  @option{-keymap help} for a list.  Default is
+@samp{uk}.
 
 @item -kbd-translate
 Start up in ``translated'' keyboard mode.
@@ -977,10 +928,10 @@ Intercept ROM calls to type @var{string} into BASIC on startup.
 
 @end table
 
-The keyboards of the Dragon and Tandy CoCo operate in the same way, but the
-matrix is connected slightly differently.  When you select a machine (see
-@ref{Machines}), the appropriate matrix layout is selected for you, but you can
-toggle between the two configurations by pressing @kbd{Control}+@kbd{K}.
+The keyboards of the Dragon, Dragon 200-E and Tandy CoCo operate in the same
+way, but the matrix and/or key layouts differ.  When you select a machine (see
+@ref{Machines}), the appropriate layout is selected for you, but you can cycle
+between the three by pressing @kbd{Ctrl}+@kbd{K}.
 
 XRoar will simulate the ``ghosting'' effects inherent in a simple matrix
 design, but the accuracy of this simulation will depend very much on your host
@@ -1007,10 +958,10 @@ By default, @samp{joy0} (the first physical joystick) is mapped to the Dragon's
 right joystick port, and @samp{joy1} (the second physical joystick) to the left
 port.  Map different named joysticks with @option{-joy-right @var{name}} and
 @option{-joy-left @var{name}}.  Right and left joystick mapping can be easily
-swapped by pressing @kbd{Control}+@kbd{Shift}+@kbd{J}.
+swapped by pressing @kbd{Ctrl}+@kbd{Shift}+@kbd{J}.
 
 A configured ``virtual joystick'' can be used by pressing
-@kbd{Control}+@kbd{J}.  The first press substitutes it for the right joystick,
+@kbd{Ctrl}+@kbd{J}.  The first press substitutes it for the right joystick,
 the second press with the left joystick and a third press disables it again.
 The virtual joystick defaults to the keyboard-based @samp{kjoy0} described
 above, but can be reconfigured with @option{-joy-virtual @var{name}}.
@@ -1040,7 +991,7 @@ screen offsets for the mouse interface are @samp{X=2,254} and
 
 XRoar supports redirecting the Dragon parallel printer output to a file or pipe
 with the @option{-lp-file} or @option{-lp-pipe} option.  Printed data will be
-sent to the appropriate stream.  Pressing @kbd{Control}+@kbd{Shift}+@kbd{P}
+sent to the appropriate stream.  Pressing @kbd{Ctrl}+@kbd{Shift}+@kbd{P}
 will flush the current stream by closing it (so if the stream is a pipe, the
 filter will complete).  The stream will be re-opened when any new data is sent.
 
@@ -1048,7 +999,7 @@ The pipe feature allows you to use useful print filters such as
 @command{enscript}, e.g., @option{-lp-pipe "enscript -B -N r -d
 @emph{printer-name}"}.  This will send a job to your printer, using carriage
 returns as line feeds (the Dragon default), each time you press
-@kbd{Control}+@kbd{Shift}+@kbd{P} (or exit the emulator).
+@kbd{Ctrl}+@kbd{Shift}+@kbd{P} (or exit the emulator).
 
 @table @option
 
@@ -1084,8 +1035,16 @@ the @option{-gdb-ip} and @option{-gdb-port} options.
 
 XRoar also supports a simpler ``trace mode'', where it will dump a disassembly
 of every instruction it executes to the console.  Toggle trace mode on or off
-with @kbd{Control}+@kbd{V}.  Trace mode can be enabled from startup with the
+with @kbd{Ctrl}+@kbd{V}.  Trace mode can be enabled from startup with the
 @option{-trace} option.
+
+User-interface debugging flag can be enabled with @option{-debug-ui
+@var{value}}, where only one value is currently supported:
+
+@table @asis
+@item 0x0001
+Keyboard event debugging.
+@end table
 
 Hex & binary file debugging can be enabled with @option{-debug-file
 @var{value}}, where the value is a bitwise ORing of the following:
@@ -1132,6 +1091,61 @@ XRoar can be told to exit after a number of (emulated) seconds with the
 @option{-timeout @var{seconds}} option.
 
 
+@node Keyboard shortcuts
+@section Keyboard shortcuts
+
+A summary of commonly available shortcuts.
+
+@table @asis
+@item @kbd{Ctrl}+@kbd{A}
+Cycle through cross-colour video modes (hi-res only).
+@item @kbd{Ctrl}+@kbd{D}
+Open disk control dialogue (GTK+ only).
+@item @kbd{Ctrl}+@kbd{E}
+Toggle DOS emulation on/off - reset to take effect.
+@item @kbd{Ctrl}+@kbd{F}, @kbd{F11}
+Toggle full screen mode.
+@item @kbd{Ctrl}+@kbd{Shift}+@kbd{H}, @kbd{Pause}
+Toggles pause mode (HALTs the CPU).  As seen on the Dynacom MX-1600.
+@item @kbd{Ctrl}+@kbd{Shift}+@kbd{I}
+Toggle text mode inverse video.
+@item @kbd{Ctrl}+@kbd{J}
+Cycle through joystick emulation modes (None, Right, Left).
+@item @kbd{Ctrl}+@kbd{Shift}+@kbd{J}
+Swap left and right joysticks.
+@item @kbd{Ctrl}+@kbd{K}
+Cycle through Dragon, Dragon 200-E and CoCo keyboard layouts.
+@item @kbd{Ctrl}+@kbd{L}
+Load a file (see below).
+@item @kbd{Ctrl}+@kbd{Shift}+@kbd{L}
+Load a file and attempt to autorun it where appropriate.
+@item @kbd{Ctrl}+@kbd{M}
+Cycle through emulated machine types (resets machine).
+@item @kbd{Ctrl}+@kbd{Shift}+@kbd{P}
+Flush printer output.
+@item @kbd{Ctrl}+@kbd{Q}
+Quit emulator.
+@item @kbd{Ctrl}+@kbd{R}
+Soft reset emulated machine.
+@item @kbd{Ctrl}+@kbd{Shift}+@kbd{R}
+Hard reset emulated machine.
+@item @kbd{Ctrl}+@kbd{S}
+Save a snapshot.
+@item @kbd{Ctrl}+@kbd{T}
+Open the tape control dialogue (GTK+ only).
+@item @kbd{Ctrl}+@kbd{V}
+Toggle trace mode.
+@item @kbd{Ctrl}+@kbd{W}
+Attach a virtual cassette file for writing.
+@item @kbd{Ctrl}+@kbd{Z}
+Enable keyboard translation mode.
+@item @kbd{F12}
+While held, the emulator will run at the maximum possible speed.
+@item @kbd{Shift}+@kbd{F12}
+Toggle rate limiting.  Emulator will run at maximum speed until pressed again.
+@end table
+
+
 @node Troubleshooting
 @chapter Troubleshooting
 
@@ -1169,7 +1183,7 @@ output.
 @item This program is supposed to be in colour, but all I see is black & white.
 @end itemize
 
-Try pressing @kbd{Control}+@kbd{A} one or more times.  What this really means
+Try pressing @kbd{Ctrl}+@kbd{A} one or more times.  What this really means
 is that you're used to running the program on an NTSC machine, and it makes use
 of cross-colour, but XRoar is emulating a PAL machine.  Try starting with
 @option{-default-machine tano} or @option{-default-machine cocous}.
