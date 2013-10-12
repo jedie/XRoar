@@ -146,9 +146,9 @@ ifeq ($(opt_gtk2),yes)
 	xroar_C_O += $(xroar_gtk2_C_O)
 	xroar_CFLAGS += $(opt_gtk2_CFLAGS)
 	xroar_LDFLAGS += $(opt_gtk2_LDFLAGS)
-gtk2/drivecontrol.o: gtk2/drivecontrol_glade.h
-gtk2/tapecontrol.o: gtk2/tapecontrol_glade.h
-gtk2/ui_gtk2.o: gtk2/top_window_glade.h
+gtk2/drivecontrol.o: $(SRCROOT)/gtk2/drivecontrol_glade.h
+gtk2/tapecontrol.o: $(SRCROOT)/gtk2/tapecontrol_glade.h
+gtk2/ui_gtk2.o: $(SRCROOT)/gtk2/top_window_glade.h
 keyboard_gtk2.o: $(SRCROOT)/gtk2/keyboard_gtk2_mappings.c
 endif
 
