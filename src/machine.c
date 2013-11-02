@@ -433,6 +433,7 @@ static void vdg_hs(void *dptr, _Bool level) {
 		mc6821_set_cx1(&PIA0->a);
 	else
 		mc6821_reset_cx1(&PIA0->a);
+	sam_vdg_hsync(level);
 }
 
 // PAL CoCos invert HS
@@ -442,14 +443,17 @@ static void vdg_hs_pal_coco(void *dptr, _Bool level) {
 		mc6821_reset_cx1(&PIA0->a);
 	else
 		mc6821_set_cx1(&PIA0->a);
+	sam_vdg_hsync(level);
 }
 
 static void vdg_fs(void *dptr, _Bool level) {
 	(void)dptr;
-	if (level)
+	if (level) {
 		mc6821_set_cx1(&PIA0->b);
-	else
+	} else {
 		mc6821_reset_cx1(&PIA0->b);
+	}
+	sam_vdg_fsync(level);
 }
 
 /* Dragon parallel printer line delegate. */

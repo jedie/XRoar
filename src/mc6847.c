@@ -31,7 +31,6 @@
 #include "mc6809.h"
 #include "mc6847.h"
 #include "module.h"
-#include "sam.h"
 #include "vdg_bitmaps.h"
 #include "xroar.h"
 
@@ -132,7 +131,6 @@ static void do_hs_fall(void *data) {
 			video_module->render_scanline(vdg->pixel_data);
 		} else if (vdg->scanline >= VDG_ACTIVE_AREA_START && vdg->scanline < VDG_ACTIVE_AREA_END) {
 			render_scanline(vdg);
-			sam_vdg_hsync();
 			vdg->row++;
 			if (vdg->row > 11)
 				vdg->row = 0;
@@ -201,7 +199,6 @@ static void do_hs_fall(void *data) {
 	if (vdg->scanline == VDG_VBLANK_START) {
 		// FS rising edge
 		vdg->signal_fs.delegate(vdg->signal_fs.dptr, 1);
-		sam_vdg_fsync();
 		vdg->frame--;
 		if (vdg->frame < 0)
 			vdg->frame = xroar_frameskip;

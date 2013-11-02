@@ -14,8 +14,8 @@
 #define sam_init()
 void sam_reset(void);
 _Bool sam_run(uint16_t A, _Bool RnW, int *S, uint16_t *Z, int *ncycles);
-void sam_vdg_hsync(void);
-void sam_vdg_fsync(void);
+void sam_vdg_hsync(_Bool level);
+void sam_vdg_fsync(_Bool level);
 int sam_vdg_bytes(int nbytes, uint16_t *V, _Bool *valid);
 void sam_set_register(unsigned int value);
 unsigned int sam_get_register(void);

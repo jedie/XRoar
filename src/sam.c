@@ -75,7 +75,7 @@ static void update_from_register(void);
 
 void sam_reset(void) {
 	sam_set_register(0);
-	sam_vdg_fsync();
+	sam_vdg_fsync(1);
 	odd_cycle = 0;
 }
 
@@ -187,7 +187,9 @@ static void vdg_address_add(int n) {
 	vdg_address = new_B;
 }
 
-void sam_vdg_hsync(void) {
+void sam_vdg_hsync(_Bool level) {
+	if (level)
+		return;
 	/* The top cleared bit will, if a transition to low occurs, increment
 	 * the bits above it.  This dummy fetch will achieve the same effective
 	 * result. */
@@ -195,7 +197,9 @@ void sam_vdg_hsync(void) {
 	vdg_address &= vdg_mod_clear;
 }
 
-void sam_vdg_fsync(void) {
+void sam_vdg_fsync(_Bool level) {
+	if (!level)
+		return;
 	vdg_address = vdg_base;
 	vdg_xcount = 0;
 	vdg_ycount = 0;
