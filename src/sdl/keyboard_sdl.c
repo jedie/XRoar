@@ -21,6 +21,7 @@
 // For strsep()
 #define _BSD_SOURCE
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -362,6 +363,8 @@ void sdl_keypress(SDL_keysym *keysym) {
 	}
 
 	if (sym_priority[sym]) {
+		if (xroar_cfg.debug_ui & XROAR_DEBUG_UI_KBD_EVENT)
+			printf("sdl press   code %6d   sym %6d   %s\n", keysym->scancode, sym, SDL_GetKeyName(sym));
 		keyboard_press(sym_to_dkey[sym]);
 		return;
 	}
@@ -369,6 +372,8 @@ void sdl_keypress(SDL_keysym *keysym) {
 	if (xroar_cfg.kbd_translate) {
 		unsigned unicode;
 		unicode = keysym->unicode;
+		if (xroar_cfg.debug_ui & XROAR_DEBUG_UI_KBD_EVENT)
+			printf("sdl press   code %6d   sym %6d   unicode %08x   %s\n", keysym->scancode, sym, unicode, SDL_GetKeyName(sym));
 		/* shift + backspace -> erase line */
 		if (shift && (unicode == 0x08 || unicode == 0x7f))
 			unicode = DKBD_U_ERASE_LINE;
@@ -380,6 +385,8 @@ void sdl_keypress(SDL_keysym *keysym) {
 		return;
 	}
 
+	if (xroar_cfg.debug_ui & XROAR_DEBUG_UI_KBD_EVENT)
+		printf("sdl press   code %6d   sym %6d   %s\n", keysym->scancode, sym, SDL_GetKeyName(sym));
 	int8_t dkey = sym_to_dkey[sym];
 	keyboard_press(dkey);
 }
@@ -428,6 +435,8 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 	}
 
 	if (sym_priority[sym]) {
+		if (xroar_cfg.debug_ui & XROAR_DEBUG_UI_KBD_EVENT)
+			printf("sdl release code %6d   sym %6d   %s\n", keysym->scancode, sym, SDL_GetKeyName(sym));
 		keyboard_release(sym_to_dkey[sym]);
 		return;
 	}
@@ -437,6 +446,8 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 		if (sym >= SDLK_LAST)
 			return;
 		unicode = unicode_last_keysym[sym];
+		if (xroar_cfg.debug_ui & XROAR_DEBUG_UI_KBD_EVENT)
+			printf("sdl release code %6d   sym %6d   unicode %08x   %s\n", keysym->scancode, sym, unicode, SDL_GetKeyName(sym));
 		keyboard_unicode_release(unicode);
 		/* Put shift back the way it should be */
 		if (shift)
@@ -446,6 +457,8 @@ void sdl_keyrelease(SDL_keysym *keysym) {
 		return;
 	}
 
+	if (xroar_cfg.debug_ui & XROAR_DEBUG_UI_KBD_EVENT)
+		printf("sdl release code %6d   sym %6d   %s\n", keysym->scancode, sym, SDL_GetKeyName(sym));
 	int8_t dkey = sym_to_dkey[sym];
 	keyboard_release(dkey);
 }
