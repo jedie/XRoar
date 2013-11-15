@@ -238,6 +238,10 @@ static void emulator_command(SDLKey sym) {
 	case SDLK_f:
 		xroar_fullscreen(XROAR_TOGGLE);
 		break;
+	case SDLK_h:
+		if (shift)
+			machine_toggle_pause();
+		break;
 	case SDLK_i:
 		if (shift)
 			xroar_set_vdg_inverted_text(1, XROAR_TOGGLE);
@@ -254,9 +258,6 @@ static void emulator_command(SDLKey sym) {
 	case SDLK_k:
 		xroar_set_keymap(XROAR_CYCLE);
 		break;
-	case SDLK_b:
-	case SDLK_h:
-	case SDLK_t:
 	case SDLK_l:
 		if (shift) {
 			xroar_run_file(NULL);

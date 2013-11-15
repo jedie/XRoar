@@ -280,6 +280,10 @@ static void emulator_command(guint keyval, int shift) {
 	case GDK_KEY_f:
 		xroar_fullscreen(XROAR_TOGGLE);
 		break;
+	case GDK_KEY_h:
+		if (shift)
+			machine_toggle_pause();
+		break;
 	case GDK_KEY_i:
 		if (shift)
 			xroar_set_vdg_inverted_text(1, XROAR_TOGGLE);
