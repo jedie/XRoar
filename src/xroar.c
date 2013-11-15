@@ -745,6 +745,7 @@ _Bool xroar_init(int argc, char **argv) {
 	}
 
 	xroar_set_trace(xroar_cfg.trace_enabled);
+	xroar_set_vdg_inverted_text(1, xroar_cfg.vdg_inverted_text);
 
 #ifdef WANT_GDB_TARGET
 	pthread_mutex_init(&run_state_mt, NULL);
@@ -1817,6 +1818,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
 	XC_SET_STRING("geometry", &xroar_cfg.geometry),
 	XC_SET_STRING("g", &xroar_cfg.geometry),
+	XC_SET_BOOL("invert-text", &xroar_cfg.vdg_inverted_text),
 
 	/* Audio: */
 	XC_SET_STRING("ao", &private_cfg.ao),
@@ -1956,6 +1958,7 @@ static void helptext(void) {
 "  -gl-filter FILTER     OpenGL texture filter (-gl-filter help for list)\n"
 #endif
 "  -geometry WxH+X+Y     initial emulator geometry\n"
+"  -invert-text          start with text mode inverted\n"
 
 "\n Audio:\n"
 "  -ao MODULE            audio module (-ao help for list)\n"
@@ -2112,6 +2115,7 @@ static void config_print_all(void) {
 	default: break;
 	}
 	if (xroar_cfg.geometry) printf("geometry %s\n", xroar_cfg.geometry);
+	if (xroar_cfg.vdg_inverted_text) puts("invert-text");
 	putchar('\n');
 
 	puts("# Audio");
