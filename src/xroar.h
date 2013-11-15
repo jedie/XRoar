@@ -106,6 +106,7 @@ struct xroar_cfg {
 	char *gdb_port;
 	// Debugging
 	int trace_enabled;
+	unsigned debug_ui;
 	unsigned debug_file;
 	unsigned debug_fdc;
 	unsigned debug_gdb;
@@ -141,6 +142,9 @@ extern struct vdg_palette *xroar_vdg_palette;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Debug flags
+
+// UI: keyboard event debugging
+#define XROAR_DEBUG_UI_KBD_EVENT (1 << 0)
 
 // Files: binary files & hex record metadata
 #define XROAR_DEBUG_FILE_BIN (1 << 0)

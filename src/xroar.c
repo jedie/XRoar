@@ -1827,6 +1827,7 @@ static struct xconfig_option xroar_options[] = {
 #ifdef TRACE
 	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
 #endif
+	XC_SET_INT("debug-ui", &xroar_cfg.debug_ui),
 	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
 	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
 #ifdef WANT_GDB_TARGET
@@ -1963,6 +1964,7 @@ static void helptext(void) {
 #ifdef TRACE
 "  -trace                start with trace mode on\n"
 #endif
+"  -debug-ui FLAGS       UI debugging (see manual, or -1 for all)\n"
 "  -debug-file FLAGS     file debugging (see manual, or -1 for all)\n"
 "  -debug-fdc FLAGS      FDC debugging (see manual, or -1 for all)\n"
 "  -debug-gdb FLAGS      GDB target debugging (see manual, or -1 for all)\n"
@@ -2120,6 +2122,7 @@ static void config_print_all(void) {
 	if (xroar_cfg.trace_enabled == 0) puts("no-trace");
 	if (xroar_cfg.trace_enabled == 1) puts("trace");
 #endif
+	if (xroar_cfg.debug_ui != 0) printf("debug-ui 0x%x\n", xroar_cfg.debug_ui);
 	if (xroar_cfg.debug_file != 0) printf("debug-file 0x%x\n", xroar_cfg.debug_file);
 	if (xroar_cfg.debug_fdc != 0) printf("debug-fdc 0x%x\n", xroar_cfg.debug_fdc);
 #ifdef WANT_GDB_TARGET
