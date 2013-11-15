@@ -1937,7 +1937,7 @@ static void helptext(void) {
 #endif
 
 "\n Keyboard:\n"
-"  -keymap CODE          host keyboard type (uk, us, es, fr, fr_CA, de)\n"
+"  -keymap CODE          host keyboard type (-keymap help for list)\n"
 "  -kbd-translate        enable keyboard translation\n"
 "  -type STRING          intercept ROM calls to type STRING into BASIC\n"
 
