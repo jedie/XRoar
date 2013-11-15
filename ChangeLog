@@ -1,4 +1,4 @@
-Development version, unreleased
+Version 0.31, Thu Nov 28 2013
 
   * New option -timeout quits emulator after number of seconds.
   * Differentiate between combined and concatenated ROMs.
