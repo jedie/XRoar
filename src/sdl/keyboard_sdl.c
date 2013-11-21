@@ -117,7 +117,7 @@ static struct sym_dkey_mapping sym_dkey_default[] = {
 	{ SDLK_HOME, DSCAN_CLEAR, 1 },
 	{ SDLK_LSHIFT, DSCAN_SHIFT, 1 },
 	{ SDLK_RSHIFT, DSCAN_SHIFT, 1 },
-	{ SDLK_SPACE, DSCAN_SPACE, 1 },
+	{ SDLK_SPACE, DSCAN_SPACE, 0 },
 	{ SDLK_F1, DSCAN_F1, 1 },
 	{ SDLK_F2, DSCAN_F2, 1 },
 
@@ -379,8 +379,11 @@ void sdl_keypress(SDL_keysym *keysym) {
 		if (shift && (unicode == 0x08 || unicode == 0x7f))
 			unicode = DKBD_U_ERASE_LINE;
 		/* shift + enter -> caps lock */
-		if (shift && unicode == 0x0d)
-			unicode = DKBD_U_CAPS_LOCK;
+		if (sym_to_dkey[sym] == DSCAN_ENTER)
+			unicode = shift ? DKBD_U_CAPS_LOCK : 0x0d;
+		/* shift + clear -> pause output */
+		if (sym_to_dkey[sym] == DSCAN_SPACE)
+			unicode = shift ? DKBD_U_PAUSE_OUTPUT : 0x20;
 		unicode_last_keysym[sym] = unicode;
 		keyboard_unicode_press(unicode);
 		return;

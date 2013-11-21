@@ -84,6 +84,7 @@ enum {
 	DKBD_U_ALT = 0x0f,  // Shift In
 	DKBD_U_F1 = 0x11,  // Device Control 1
 	DKBD_U_F2 = 0x12,  // Device Control 2
+	DKBD_U_PAUSE_OUTPUT = 0x13,  // Device Control 3 (XOFF)
 	DKBD_U_ERASE_LINE = 0x15,  // Negative Acknowledgement
 	DKBD_U_BREAK = 0x1b,  // Escape
 };

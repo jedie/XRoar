@@ -909,9 +909,11 @@ on a PC keyboard are translated into the equivalent keystrokes on the Dragon.
 Use the @option{-kbd-translate} option to default to this mode.  Press
 @kbd{Ctrl}+@kbd{Z} at any time to toggle between the two modes.
 
-In translated mode, @kbd{Shift}+@kbd{Return} is mapped to the emulated
-machine's Caps Lock combination (@kbd{Shift}+@kbd{0} on most machines, but
-@kbd{Shift}+@kbd{Enter} on the Dragon 200-E).
+In translated mode, @kbd{Shift}+@kbd{Enter} is mapped to the Caps Lock
+combination (@kbd{Shift}+@kbd{0} usually, @kbd{Shift}+@kbd{Enter} on the Dragon
+200-E).  Similarly, @kbd{Shift}+@kbd{Space} is mapped to the ``pause output''
+combination (@kbd{Shift}+@kbd{@@} usually, @kbd{Shift}+@kbd{Space} on the
+Dragon 200-E).
 
 @table @option
 

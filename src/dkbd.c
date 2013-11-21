@@ -45,10 +45,12 @@ struct dkbd_layout_variant {
 
 static struct dkey_chord_mapping dragon_chord_mappings[] = {
 	{ DKBD_U_CAPS_LOCK, { DSCAN_0, DK_MOD_SHIFT } },
+	{ DKBD_U_PAUSE_OUTPUT, { DSCAN_AT, DK_MOD_SHIFT } },
 	{ '@', { DSCAN_AT, DK_MOD_UNSHIFT } },
 	{ '\\', { DSCAN_INVALID, DK_MOD_SHIFT|DK_MOD_CLEAR } },
 	{ '[', { DSCAN_DOWN, DK_MOD_SHIFT} },
 	{ ']', { DSCAN_RIGHT, DK_MOD_SHIFT} },
+	{ '~', { DSCAN_AT, DK_MOD_SHIFT } },
 };
 
 static struct dkey_chord_mapping dragon200e_chord_mappings[] = {
@@ -67,15 +69,19 @@ static struct dkey_chord_mapping dragon200e_chord_mappings[] = {
 	{ 0xf1, { DSCAN_SEMICOLON, DK_MOD_UNSHIFT } },  // 'ñ'
 	{ 0xd1, { DSCAN_SEMICOLON, DK_MOD_SHIFT } },  // 'Ñ'
 	{ DKBD_U_CAPS_LOCK, { DSCAN_ENTER, DK_MOD_SHIFT } },
+	{ DKBD_U_PAUSE_OUTPUT, { DSCAN_SPACE, DK_MOD_SHIFT } },
 	{ '@', { DSCAN_CLEAR, DK_MOD_SHIFT } },
 	{ 0xa7, { DSCAN_SPACE, DK_MOD_SHIFT } },  // '§'
+	{ '~', { DSCAN_SPACE, DK_MOD_SHIFT } },
 };
 
 static struct dkey_chord_mapping coco3_chord_mappings[] = {
 	{ DKBD_U_CAPS_LOCK, { DSCAN_0, DK_MOD_SHIFT } },
+	{ DKBD_U_PAUSE_OUTPUT, { DSCAN_AT, DK_MOD_SHIFT } },
 	// TODO: ALT
 	{ '@', { DSCAN_AT, DK_MOD_UNSHIFT } },
 	{ '\\', { DSCAN_INVALID, DK_MOD_SHIFT|DK_MOD_CLEAR } },
+	{ '~', { DSCAN_AT, DK_MOD_SHIFT } },
 	// TODO: CONTROL
 	{ DKBD_U_F1, { DSCAN_F1, 0 } },
 	{ DKBD_U_F2, { DSCAN_F2, 0 } },

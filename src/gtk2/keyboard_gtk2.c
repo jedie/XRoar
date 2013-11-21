@@ -132,7 +132,7 @@ static struct sym_dkey_mapping keyval_dkey_default[] = {
 	{ GDK_KEY_Home, DSCAN_CLEAR, 1 },
 	{ GDK_KEY_Shift_L, DSCAN_SHIFT, 1 },
 	{ GDK_KEY_Shift_R, DSCAN_SHIFT, 1 },
-	{ GDK_KEY_space, DSCAN_SPACE, 1 },
+	{ GDK_KEY_space, DSCAN_SPACE, 0 },
 	{ GDK_KEY_F1, DSCAN_F1, 1 },
 	{ GDK_KEY_F2, DSCAN_F2, 1 },
 
@@ -410,8 +410,11 @@ static gboolean keypress(GtkWidget *widget, GdkEventKey *event, gpointer user_da
 		if (shift && (unicode == 0x08 || unicode == 0x7f))
 			unicode = DKBD_U_ERASE_LINE;
 		/* shift + enter -> caps lock */
-		if (shift && unicode == 0x0d)
-			unicode = DKBD_U_CAPS_LOCK;
+		if (keyval_to_dkey[keyval_i] == DSCAN_ENTER)
+			unicode = shift ? DKBD_U_CAPS_LOCK : 0x0d;
+		/* shift + clear -> pause output */
+		if (keyval_to_dkey[keyval_i] == DSCAN_SPACE)
+			unicode = shift ? DKBD_U_PAUSE_OUTPUT : 0x20;
 		last_unicode[keycode] = unicode;
 		keyboard_unicode_press(unicode);
 		return FALSE;
