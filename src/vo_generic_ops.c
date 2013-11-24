@@ -130,8 +130,8 @@ static void alloc_colours(void) {
 static void render_scanline(uint8_t *scanline_data) {
 	if (video_module->scanline >= video_module->window_y &&
 	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
-		LOCK_SURFACE;
 		scanline_data += video_module->window_x;
+		LOCK_SURFACE;
 		for (int i = video_module->window_w; i; i--) {
 			*pixel = vdg_colour[*(scanline_data++)];
 			pixel += XSTEP;
@@ -147,8 +147,8 @@ static void render_ccr_simple(uint8_t *scanline_data) {
 	if (video_module->scanline >= video_module->window_y &&
 	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
 		int phase = xroar_machine_config->cross_colour_phase - 1;
-		LOCK_SURFACE;
 		scanline_data += video_module->window_x;
+		LOCK_SURFACE;
 		for (int i = video_module->window_w >> 1; i; i--) {
 			uint8_t c0 = *(scanline_data++);
 			uint8_t c1 = *(scanline_data++);
@@ -173,11 +173,11 @@ static void render_ccr_5bit(uint8_t *scanline_data) {
 	if (video_module->scanline >= video_module->window_y &&
 	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
 		int phase = xroar_machine_config->cross_colour_phase - 1;
-		LOCK_SURFACE;
 		unsigned aindex = 0;
-		aindex = (*(scanline_data) != VDG_BLACK) ? 14 : 0;
-		aindex |= (*(scanline_data + 1) != VDG_BLACK) ? 1 : 0;
 		scanline_data += video_module->window_x;
+		aindex = (*(scanline_data - 2) != VDG_BLACK) ? 14 : 0;
+		aindex |= (*(scanline_data - 1) != VDG_BLACK) ? 1 : 0;
+		LOCK_SURFACE;
 		for (int i = video_module->window_w; i; i--) {
 			aindex = (aindex << 1) & 31;
 			if (*(scanline_data + 2) != VDG_BLACK)
