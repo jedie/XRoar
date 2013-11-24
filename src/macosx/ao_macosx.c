@@ -47,12 +47,15 @@ static AudioObjectID device;
 #ifdef MAC_OS_X_VERSION_10_5
 static AudioDeviceIOProcID aprocid;
 #endif
+
 static float *audio_buffer;
-static unsigned buffer_nframes;
-static UInt32 buffer_size;
+static _Bool halt;
+static _Bool shutting_down;
+
+static pthread_mutex_t audio_buffer_mutex;
+static pthread_cond_t audio_buffer_cv;
 static pthread_mutex_t halt_mutex;
 static pthread_cond_t halt_cv;
-static _Bool ready;
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 		const AudioBufferList *inInputData,
@@ -85,38 +88,58 @@ static _Bool init(void) {
 	if (!(deviceFormat.mFormatFlags & kLinearPCMFormatFlagIsFloat))
 		goto failed;
 
-	unsigned int sample_rate = deviceFormat.mSampleRate;
-	unsigned int buffer_nchannels = deviceFormat.mChannelsPerFrame;
+	/* More than one fragment not currently supported. */
 
-	if (xroar_cfg.ao_buffer_ms > 0) {
-		buffer_nframes = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_samples > 0) {
-		buffer_nframes = xroar_cfg.ao_buffer_samples;
+	unsigned rate = deviceFormat.mSampleRate;
+	unsigned nchannels = deviceFormat.mChannelsPerFrame;
+	unsigned fragment_nframes = 1024;
+
+	if (xroar_cfg.ao_fragment_ms > 0) {
+		fragment_nframes = (rate * xroar_cfg.ao_fragment_ms) / 1000;
+	} else if (xroar_cfg.ao_fragment_nframes > 0) {
+		fragment_nframes = xroar_cfg.ao_fragment_nframes;
+	} else if (xroar_cfg.ao_buffer_ms > 0) {
+		fragment_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_nframes > 0) {
+		fragment_nframes = xroar_cfg.ao_buffer_nframes;
 	} else {
-		buffer_nframes = 1024;
+		fragment_nframes = 1024;
 	}
 
-	unsigned buffer_nsamples = buffer_nframes * buffer_nchannels;
-	buffer_size = buffer_nsamples * sizeof(float);
-	propertySize = sizeof(buffer_size);
+	unsigned buffer_nsamples = fragment_nframes * nchannels;
+	UInt32 buffer_nbytes = buffer_nsamples * sizeof(float);
+	propertySize = sizeof(buffer_nbytes);
 	propertyAddress.mSelector = kAudioDevicePropertyBufferSize;
-	if (AudioObjectSetPropertyData(device, &propertyAddress, 0, NULL, propertySize, &buffer_size) != kAudioHardwareNoError)
+	if (AudioObjectSetPropertyData(device, &propertyAddress, 0, NULL, propertySize, &buffer_nbytes) != kAudioHardwareNoError)
 		goto failed;
-	buffer_nsamples = buffer_size / sizeof(float);
-	buffer_nframes = buffer_nsamples / buffer_nchannels;
-	audio_buffer = g_malloc(buffer_size);
-	sound_init(audio_buffer, SOUND_FMT_FLOAT, sample_rate, buffer_nchannels, buffer_nframes);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / sample_rate, buffer_nframes);
+	buffer_nsamples = buffer_nbytes / sizeof(float);
+	fragment_nframes = buffer_nsamples / nchannels;
 
-	pthread_mutex_init(&halt_mutex, NULL);
-	pthread_cond_init(&halt_cv, NULL);
-	ready = 0;
 #ifdef MAC_OS_X_VERSION_10_5
 	AudioDeviceCreateIOProcID(device, callback, NULL, &aprocid);
 #else
 	AudioDeviceAddIOProc(device, callback, NULL);
 #endif
+
+	pthread_mutex_init(&audio_buffer_mutex, NULL);
+	pthread_cond_init(&audio_buffer_cv, NULL);
+	pthread_mutex_init(&halt_mutex, NULL);
+	pthread_cond_init(&halt_cv, NULL);
+
+	audio_buffer = NULL;
+	halt = 1;
+	shutting_down = 0;
+
+	pthread_mutex_lock(&audio_buffer_mutex);
 	AudioDeviceStart(device, callback);
+	// wait for initial buffer from audio thread
+	while (!audio_buffer)
+		pthread_cond_wait(&audio_buffer_cv, &audio_buffer_mutex);
+
+	sound_init(audio_buffer, SOUND_FMT_FLOAT, rate, nchannels, fragment_nframes);
+	audio_buffer = NULL;
+	pthread_mutex_unlock(&audio_buffer_mutex);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
 
 	return 1;
 failed:
@@ -124,27 +147,44 @@ failed:
 }
 
 static void shutdown(void) {
+	pthread_mutex_lock(&halt_mutex);
+	halt = 0;
+	shutting_down = 1;
+	pthread_cond_signal(&halt_cv);
+	pthread_mutex_unlock(&halt_mutex);
+
+	AudioDeviceStop(device, callback);
 #ifdef MAC_OS_X_VERSION_10_5
 	AudioDeviceDestroyIOProcID(device, aprocid);
 #else
 	AudioDeviceRemoveIOProc(device, callback);
 #endif
-	AudioDeviceStop(device, callback);
+
+	pthread_mutex_destroy(&audio_buffer_mutex);
+	pthread_cond_destroy(&audio_buffer_cv);
 	pthread_mutex_destroy(&halt_mutex);
 	pthread_cond_destroy(&halt_cv);
 }
 
 static void *write_buffer(void *buffer) {
 	(void)buffer;
-	if (xroar_noratelimit)
-		return audio_buffer;
+	// unblock audio thread
 	pthread_mutex_lock(&halt_mutex);
-	ready = 1;
-	while (ready) {
-		pthread_cond_wait(&halt_cv, &halt_mutex);
-	}
+	halt = 0;
+	pthread_cond_signal(&halt_cv);
 	pthread_mutex_unlock(&halt_mutex);
-	return audio_buffer;
+
+	if (xroar_noratelimit)
+		return NULL;
+
+	// wait for audio thread to pass a buffer pointer
+	pthread_mutex_lock(&audio_buffer_mutex);
+	while (!audio_buffer)
+		pthread_cond_wait(&audio_buffer_cv, &audio_buffer_mutex);
+	void *r = audio_buffer;
+	audio_buffer = NULL;
+	pthread_mutex_unlock(&audio_buffer_mutex);
+	return r;
 }
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
@@ -158,15 +198,20 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 	(void)inInputTime;   /* unused */
 	(void)inOutputTime;  /* unused */
 	(void)defptr;        /* unused */
-	float *dest = (float *)outOutputData->mBuffers[0].mData;
-	if (ready) {
-		memcpy(dest, audio_buffer, buffer_size);
-	} else {
-		sound_render_silence(dest, buffer_nframes);
+
+	// pass buffer pointer back to main thread
+	pthread_mutex_lock(&audio_buffer_mutex);
+	audio_buffer = (float *)outOutputData->mBuffers[0].mData;
+	pthread_cond_signal(&audio_buffer_cv);
+	pthread_mutex_unlock(&audio_buffer_mutex);
+
+	// wait for main thread to be done with buffer
+	if (!shutting_down) {
+		pthread_mutex_lock(&halt_mutex);
+		halt = 1;
+		while (halt)
+			pthread_cond_wait(&halt_cv, &halt_mutex);
+		pthread_mutex_unlock(&halt_mutex);
 	}
-	pthread_mutex_lock(&halt_mutex);
-	ready = 0;
-	pthread_cond_signal(&halt_cv);
-	pthread_mutex_unlock(&halt_mutex);
 	return kAudioHardwareNoError;
 }
