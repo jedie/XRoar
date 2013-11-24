@@ -567,14 +567,16 @@ with this command.
 
 The currently open tape files used for reading and writing are distinct.
 
-Four options affect how tapes are read:
-
 The @option{-tape-fast} option accelerates tape loading by intercepting ROM
 calls.  Disable with @option{-no-tape-fast}.  On by default.
 
 The @option{-tape-pad} option tries to make loading more reliable by
 intercepting ROM calls and inserting extra leader bytes where appropriate.
 Disable with @option{-no-tape-pad}.
+
+The remaining options affect how XRoar attempts to cope with bad tape images
+(images that, were they simply converted to audio files, would not load on a
+real Dragon):
 
 The @option{-tape-pad-auto} option will, for @file{.cas} files, automatically
 switch on leader padding when insufficient initial leader bytes are found at
