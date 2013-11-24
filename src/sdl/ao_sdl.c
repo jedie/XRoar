@@ -25,10 +25,6 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 
-#ifdef WINDOWS32
-#include <windows.h>
-#endif
-
 #include "pl_glib.h"
 
 #include "logging.h"
@@ -47,18 +43,16 @@ SoundModule sound_sdl_module = {
 	.write_buffer = write_buffer,
 };
 
-static int buffer_size;
-static int buffer_nframes;
-static Uint8 *audio_buffer;
-
 static SDL_AudioSpec audiospec;
-#ifndef WINDOWS32
- static SDL_mutex *halt_mutex;
- static SDL_cond *halt_cv;
-#else
- HANDLE hEvent;
-#endif
-static int haltflag;
+
+static Uint8 *audio_buffer;
+static _Bool halt;
+static _Bool shutting_down;
+
+static SDL_mutex *audio_buffer_mutex;
+static SDL_cond *audio_buffer_cv;
+static SDL_mutex *halt_mutex;
+static SDL_cond *halt_cv;
 
 static void callback(void *userdata, Uint8 *stream, int len);
 
@@ -76,10 +70,17 @@ static _Bool init(void) {
 	}
 	desired.freq = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 	desired.format = AUDIO_S16;
-	if (xroar_cfg.ao_buffer_ms > 0) {
+
+	/* More than one fragment not currently supported. */
+
+	if (xroar_cfg.ao_fragment_ms > 0) {
+		desired.samples = (desired.freq * xroar_cfg.ao_fragment_ms) / 1000;
+	} else if (xroar_cfg.ao_fragment_nframes > 0) {
+		desired.samples = xroar_cfg.ao_fragment_nframes;
+	} else if (xroar_cfg.ao_buffer_ms > 0) {
 		desired.samples = (desired.freq * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_samples > 0) {
-		desired.samples = xroar_cfg.ao_buffer_samples;
+	} else if (xroar_cfg.ao_buffer_nframes > 0) {
+		desired.samples = xroar_cfg.ao_buffer_nframes;
 	} else {
 		desired.samples = 1024;
 	}
@@ -104,19 +105,26 @@ static _Bool init(void) {
 			LOG_WARN("Unhandled audio format.");
 			goto failed;
 	}
-	buffer_nframes = audiospec.samples;
-	buffer_size = audiospec.size;
-	audio_buffer = g_malloc(buffer_size);
-	sound_init(audio_buffer, buffer_fmt, audiospec.freq, audiospec.channels, buffer_nframes);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / audiospec.freq, buffer_nframes);
+	int buffer_nframes = audiospec.samples;
 
-#ifndef WINDOWS32
+	audio_buffer_mutex = SDL_CreateMutex();
+	audio_buffer_cv = SDL_CreateCond();
 	halt_mutex = SDL_CreateMutex();
 	halt_cv = SDL_CreateCond();
-#else
-	hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-#endif
+
+	audio_buffer = NULL;
+	halt = 1;
+	shutting_down = 0;
+
+	SDL_LockMutex(audio_buffer_mutex);
 	SDL_PauseAudio(0);
+	while (!audio_buffer)
+		SDL_CondWait(audio_buffer_cv, audio_buffer_mutex);
+	sound_init(audio_buffer, buffer_fmt, audiospec.freq, audiospec.channels, buffer_nframes);
+	audio_buffer = NULL;
+	SDL_UnlockMutex(audio_buffer_mutex);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / audiospec.freq, buffer_nframes);
+
 	return 1;
 failed:
 	SDL_CloseAudio();
@@ -125,49 +133,61 @@ failed:
 }
 
 static void _shutdown(void) {
-#ifndef WINDOWS32
-	SDL_DestroyCond(halt_cv);
-	SDL_DestroyMutex(halt_mutex);
-#endif
+	// no more audio
+	SDL_PauseAudio(1);
+
+	// unblock audio thread
+	SDL_LockMutex(halt_mutex);
+	halt = 0;
+	shutting_down = 1;
+	SDL_CondSignal(halt_cv);
+	SDL_UnlockMutex(halt_mutex);
+
 	SDL_CloseAudio();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
-	g_free(audio_buffer);
+
+	SDL_DestroyCond(audio_buffer_cv);
+	SDL_DestroyMutex(audio_buffer_mutex);
+	SDL_DestroyCond(halt_cv);
+	SDL_DestroyMutex(halt_mutex);
 }
 
 static void *write_buffer(void *buffer) {
-	if (xroar_noratelimit)
-		return buffer;
-#ifndef WINDOWS32
+	(void)buffer;
+	// unblock audio thread
 	SDL_LockMutex(halt_mutex);
-	haltflag = 1;
-	while (haltflag)
-		SDL_CondWait(halt_cv, halt_mutex);
+	halt = 0;
+	SDL_CondSignal(halt_cv);
 	SDL_UnlockMutex(halt_mutex);
-#else
-	haltflag = 1;
-	WaitForSingleObject(hEvent, INFINITE);
-#endif
-	return buffer;
+
+	if (xroar_noratelimit)
+		return NULL;
+
+	// wait for audio thread to pass a buffer pointer
+	SDL_LockMutex(audio_buffer_mutex);
+	while (!audio_buffer)
+		SDL_CondWait(audio_buffer_cv, audio_buffer_mutex);
+	void *r = audio_buffer;
+	audio_buffer = NULL;
+	SDL_UnlockMutex(audio_buffer_mutex);
+	return r;
 }
 
 static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
-	if (len == buffer_size) {
-		if (haltflag == 1) {
-			/* Data is ready */
-			memcpy(stream, audio_buffer, buffer_size);
-		} else {
-			/* Not ready - provide a "padding" frame */
-			sound_render_silence(stream, buffer_nframes);
-		}
+
+	// pass buffer pointer back to main thread
+	SDL_LockMutex(audio_buffer_mutex);
+	audio_buffer = stream;
+	SDL_CondSignal(audio_buffer_cv);
+	SDL_UnlockMutex(audio_buffer_mutex);
+
+	// wait for main thread to be done with buffer
+	if (!shutting_down) {
+		SDL_LockMutex(halt_mutex);
+		halt = 1;
+		while (halt)
+			SDL_CondWait(halt_cv, halt_mutex);
+		SDL_UnlockMutex(halt_mutex);
 	}
-#ifndef WINDOWS32
-	SDL_LockMutex(halt_mutex);
-	haltflag = 0;
-	SDL_CondSignal(halt_cv);
-	SDL_UnlockMutex(halt_mutex);
-#else
-	haltflag = 0;
-	SetEvent(hEvent);
-#endif
 }
