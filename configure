@@ -1198,7 +1198,7 @@ EOF
 	pthreads_ldflags="-pthread"
 	target_cc_check "$pthreads_cflags" "$pthreads_ldflags" && _pthreads=yes
 	if test "$_pthreads" = "no"; then
-		pthreads_ldflags="-lpthreadGC2"
+		pthreads_ldflags="-Wl,-Bstatic -lpthread -Wl,-Bdynamic"
 		target_cc_check "$pthreads_cflags" "$pthreads_ldflags" && _pthreads=yes
 	fi
 	rm -f $TMPC
