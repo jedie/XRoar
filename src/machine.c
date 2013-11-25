@@ -68,6 +68,7 @@ uint32_t crc_bas, crc_extbas, crc_altbas, crc_combined;
 static uint8_t ext_charset[0x1000];
 _Bool has_ext_charset;
 uint32_t crc_ext_charset;
+static _Bool inverted_text = 0;
 
 /* Useful configuration side-effect tracking */
 static _Bool unexpanded_dragon32 = 0;
@@ -580,6 +581,7 @@ void machine_configure(struct machine_config *mc) {
 	}
 	mc6847_set_signal_fs(VDG0, (vdg_edge_delegate){vdg_fs, NULL});
 	mc6847_set_fetch_bytes(VDG0, vdg_fetch_handler);
+	mc6847_set_inverted_text(VDG0, inverted_text);
 
 	// Printer
 	printer_signal_ack = (printer_line_delegate){printer_ack, NULL};
@@ -1223,6 +1225,7 @@ void machine_select_fast_sound(_Bool fast) {
 #endif
 
 void machine_set_inverted_text(_Bool invert) {
+	inverted_text = invert;
 	mc6847_set_inverted_text(VDG0, invert);
 }
 
