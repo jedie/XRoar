@@ -10,6 +10,8 @@ Development version, unreleased
   * New machine Dragon 200-E.
   * Shift+Return presses Caps Lock combo in translated mode.
   * Ctrl+Shift+H presses "Pause" button.
+  * Shift+Space presses Pause Output combo in translated mode.
+  * Fix CoCo RAM select detection.
 
 Version 0.30, Wed Sep 18 2013
 
