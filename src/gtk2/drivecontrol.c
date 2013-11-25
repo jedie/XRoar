@@ -174,13 +174,13 @@ static void dc_eject(GtkButton *button, gpointer user_data) {
 static void dc_toggled_we(GtkToggleButton *togglebutton, gpointer user_data) {
 	int set = gtk_toggle_button_get_active(togglebutton) ? 1 : 0;
 	int drive = (char *)user_data - (char *)0;
-	xroar_set_write_enable(drive, set);
+	xroar_set_write_enable(0, drive, set);
 }
 
 static void dc_toggled_wb(GtkToggleButton *togglebutton, gpointer user_data) {
 	int set = gtk_toggle_button_get_active(togglebutton) ? 1 : 0;
 	int drive = (char *)user_data - (char *)0;
-	xroar_set_write_back(drive, set);
+	xroar_set_write_back(0, drive, set);
 }
 
 /* Drive Control - UI callbacks */

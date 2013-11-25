@@ -792,10 +792,10 @@ void machine_reset(_Bool hard) {
 	xroar_set_keymap(xroar_machine_config->keymap);
 	switch (xroar_machine_config->tv_standard) {
 	case TV_PAL: default:
-		xroar_select_cross_colour(CROSS_COLOUR_OFF);
+		xroar_set_cross_colour(1, CROSS_COLOUR_OFF);
 		break;
 	case TV_NTSC:
-		xroar_select_cross_colour(CROSS_COLOUR_KBRW);
+		xroar_set_cross_colour(1, CROSS_COLOUR_KBRW);
 		break;
 	}
 	if (hard) {

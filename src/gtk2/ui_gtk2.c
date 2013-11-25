@@ -267,14 +267,14 @@ static void zoom_out(void) {
 static void toggle_inverse_text(GtkToggleAction *current, gpointer user_data) {
 	gboolean val = gtk_toggle_action_get_active(current);
 	(void)user_data;
-	xroar_set_vdg_inverted_text(1, val);
+	xroar_set_vdg_inverted_text(0, val);
 }
 
 static void set_cc(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
 	gint val = gtk_radio_action_get_current_value(current);
 	(void)action;
 	(void)user_data;
-	xroar_set_cross_colour(val);
+	xroar_set_cross_colour(0, val);
 }
 
 static void set_machine(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {

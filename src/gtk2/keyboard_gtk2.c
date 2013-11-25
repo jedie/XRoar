@@ -266,13 +266,13 @@ static void emulator_command(guint keyval, int shift) {
 		break;
 	case GDK_KEY_5: case GDK_KEY_6: case GDK_KEY_7: case GDK_KEY_8:
 		if (shift) {
-			xroar_select_write_back(keyval - GDK_KEY_5, XROAR_TOGGLE);
+			xroar_set_write_back(1, keyval - GDK_KEY_5, XROAR_TOGGLE);
 		} else {
-			xroar_select_write_enable(keyval - GDK_KEY_5, XROAR_TOGGLE);
+			xroar_set_write_enable(1, keyval - GDK_KEY_5, XROAR_TOGGLE);
 		}
 		break;
 	case GDK_KEY_a:
-		xroar_select_cross_colour(XROAR_CYCLE);
+		xroar_set_cross_colour(1, XROAR_CYCLE);
 		break;
 	case GDK_KEY_e:
 		xroar_toggle_cart();

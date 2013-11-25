@@ -254,11 +254,11 @@ int cocoa_super_all_keys = 0;
 		break;
 	case TAG_WRITE_ENABLE:
 		disk_write_enable[tag_value] = !disk_write_enable[tag_value];
-		xroar_select_write_enable(tag_value, disk_write_enable[tag_value]);
+		xroar_set_write_enable(1, tag_value, disk_write_enable[tag_value]);
 		break;
 	case TAG_WRITE_BACK:
 		disk_write_back[tag_value] = !disk_write_back[tag_value];
-		xroar_select_write_back(tag_value, disk_write_back[tag_value]);
+		xroar_set_write_back(1, tag_value, disk_write_back[tag_value]);
 		break;
 
 	/* Video: */
@@ -268,7 +268,7 @@ int cocoa_super_all_keys = 0;
 		break;
 	case TAG_CROSS_COLOUR:
 		current_cc = tag;
-		xroar_select_cross_colour(tag_value);
+		xroar_set_cross_colour(0, tag_value);
 		break;
 	case TAG_VDG_INVERSE:
 		xroar_set_vdg_inverted_text(0, XROAR_TOGGLE);

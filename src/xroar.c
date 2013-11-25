@@ -1082,41 +1082,33 @@ void xroar_eject_disk(int drive) {
 	}
 }
 
-_Bool xroar_set_write_enable(int drive, int action) {
+_Bool xroar_set_write_enable(_Bool notify, int drive, int action) {
 	_Bool we = vdrive_set_write_enable(drive, action);
 	if (we) {
 		LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
 	} else {
 		LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
 	}
+	if (notify && ui_module && ui_module->update_drive_write_enable) {
+		ui_module->update_drive_write_enable(drive, we);
+	}
 	return we;
 }
 
-void xroar_select_write_enable(int drive, int action) {
-	_Bool we = xroar_set_write_enable(drive, action);
-	if (ui_module && ui_module->update_drive_write_enable) {
-		ui_module->update_drive_write_enable(drive, we);
-	}
-}
-
-_Bool xroar_set_write_back(int drive, int action) {
+_Bool xroar_set_write_back(_Bool notify, int drive, int action) {
 	_Bool wb = vdrive_set_write_back(drive, action);
 	if (wb) {
 		LOG_DEBUG(2, "Write back enabled for disk in drive %d.\n", drive);
 	} else {
 		LOG_DEBUG(2, "Write back disabled for disk in drive %d.\n", drive);
 	}
+	if (notify && ui_module && ui_module->update_drive_write_back) {
+		ui_module->update_drive_write_back(drive, wb);
+	}
 	return wb;
 }
 
-void xroar_select_write_back(int drive, int action) {
-	_Bool wb = xroar_set_write_back(drive, action);
-	if (ui_module && ui_module->update_drive_write_back) {
-		ui_module->update_drive_write_back(drive, wb);
-	}
-}
-
-void xroar_set_cross_colour(int action) {
+void xroar_set_cross_colour(_Bool notify, int action) {
 	switch (action) {
 	case XROAR_CYCLE:
 		xroar_machine_config->cross_colour_phase++;
@@ -1129,11 +1121,7 @@ void xroar_set_cross_colour(int action) {
 	if (video_module->update_cross_colour_phase) {
 		video_module->update_cross_colour_phase();
 	}
-}
-
-void xroar_select_cross_colour(int action) {
-	xroar_set_cross_colour(action);
-	if (ui_module->cross_colour_changed_cb) {
+	if (notify && ui_module->cross_colour_changed_cb) {
 		ui_module->cross_colour_changed_cb(xroar_machine_config->cross_colour_phase);
 	}
 }
