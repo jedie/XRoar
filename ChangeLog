@@ -12,6 +12,10 @@ Development version, unreleased
   * Ctrl+Shift+H presses "Pause" button.
   * Shift+Space presses Pause Output combo in translated mode.
   * Fix CoCo RAM select detection.
+  * More accurate sound timing.
+  * SDL, CoreAudio: render audio directly into callback buffer.
+  * New options -ao-fragments, -ao-fragment-ms, -ao-fragment-frames.
+  * Rename option -ao-buffer-samples to -ao-buffer-frames.
 
 Version 0.30, Wed Sep 18 2013
 
