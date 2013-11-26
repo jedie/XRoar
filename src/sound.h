@@ -43,7 +43,4 @@ void sound_set_cart_level(float level);
 void sound_set_external_left(float level);
 void sound_set_external_right(float level);
 
-void sound_silence(void);
-void sound_render_silence(void *buf, unsigned nframes);
-
 #endif  /* XROAR_SOUND_H_ */

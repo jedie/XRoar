@@ -47,10 +47,12 @@ static void *buffer = NULL;
 /* Current index into the buffer */
 static unsigned buffer_frame = 0;
 
+static float output_level[2];
 static union sample_t last_sample;
 static event_ticks last_cycle;
-static unsigned ticks_per_frame;
+static float ticks_per_frame;
 static unsigned ticks_per_buffer;
+static float error_f = 0.0;
 
 enum sound_source {
 	SOURCE_DAC,
@@ -115,8 +117,8 @@ sound_feedback_delegate sound_sbs_feedback = { NULL, NULL };
 
 void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes) {
 	uint16_t test = 0x0123;
-	int big_endian = (*(uint8_t *)(&test) == 0x01);
-	int fmt_big_endian = 1;
+	_Bool big_endian = (*(uint8_t *)(&test) == 0x01);
+	_Bool fmt_big_endian = 1;
 
 	if (nchannels < 1 || nchannels > 2) {
 		LOG_WARN("Invalid number of audio channels: disabling sound.");
@@ -148,20 +150,16 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 	LOG_DEBUG(2, "\t");
 	switch (fmt) {
 	case SOUND_FMT_U8:
-		last_sample.as_int8[0] = last_sample.as_int8[1] = 0x80;
 		LOG_DEBUG(2, "8-bit unsigned, ");
 		break;
 	case SOUND_FMT_S8:
-		last_sample.as_int8[0] = last_sample.as_int8[1] = 0x00;
 		LOG_DEBUG(2, "8-bit signed, ");
 		break;
 	case SOUND_FMT_S16_HE:
 	case SOUND_FMT_S16_SE:
-		last_sample.as_int16[0] = last_sample.as_int16[1] = 0x00;
 		LOG_DEBUG(2, "16-bit signed %s-endian, ", fmt_big_endian ? "big" : "little" );
 		break;
 	case SOUND_FMT_FLOAT:
-		last_sample.as_float[0] = last_sample.as_float[1] = 0.;
 		LOG_DEBUG(2, "Floating point, ");
 		break;
 	case SOUND_FMT_NULL:
@@ -178,17 +176,15 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 		}
 		LOG_DEBUG(2, "%dHz\n", rate);
 	}
+	output_level[0] = output_level[1] = 0.0;
 
 	buffer = buf;
 	buffer_nframes = nframes;
 	buffer_fmt = fmt;
 	buffer_nchannels = nchannels;
-	ticks_per_frame = OSCILLATOR_RATE / rate;
+	ticks_per_frame = (float)OSCILLATOR_RATE / (float)rate;
 	ticks_per_buffer = ticks_per_frame * nframes;
 	last_cycle = event_current_tick;
-
-	if (buffer)
-		sound_render_silence(buffer, buffer_nframes);
 
 	event_init(&flush_event, flush_frame, NULL);
 	flush_event.at_tick = event_current_tick + ticks_per_buffer;
@@ -201,63 +197,81 @@ void sound_set_volume(int v) {
 	scale = (unsigned)((327.67 * (float)v) / full_scale_v);
 }
 
-static int fill_int8(int nframes) {
-	if ((buffer_frame + nframes) > buffer_nframes)
-		nframes = buffer_nframes - buffer_frame;
+static void fill_int8(int nframes) {
 	uint8_t *ptr = (uint8_t *)buffer + buffer_frame * buffer_nchannels;
-	if (buffer_nchannels == 1) {
-		/* special case for single channel 8-bit */
-		memset(ptr, last_sample.as_int8[0], nframes);
-	} else {
-		for (int i = 0; i < nframes; i++) {
-			for (int j = 0; j < buffer_nchannels; j++) {
-				*(ptr++) = last_sample.as_int8[j];
+	while (nframes > 0) {
+		int count;
+		if ((buffer_frame + nframes) > buffer_nframes)
+			count = buffer_nframes - buffer_frame;
+		else
+			count = nframes;
+		nframes -= count;
+		if (buffer_nchannels == 1) {
+			/* special case for single channel 8-bit */
+			memset(ptr, last_sample.as_int8[0], count);
+		} else {
+			for (int i = 0; i < count; i++) {
+				for (int j = 0; j < buffer_nchannels; j++) {
+					*(ptr++) = last_sample.as_int8[j];
+				}
 			}
 		}
+		buffer_frame += count;
+		if (buffer_frame >= buffer_nframes) {
+			ptr = buffer = sound_module->write_buffer(buffer);
+			buffer_frame = 0;
+			if (!buffer)
+				return;
+		}
 	}
-	buffer_frame += nframes;
-	if (buffer_frame >= buffer_nframes) {
-		buffer = sound_module->write_buffer(buffer);
-		buffer_frame = 0;
-	}
-	last_cycle += nframes * ticks_per_frame;
-	return nframes;
 }
 
-static int fill_int16(int nframes) {
-	if ((buffer_frame + nframes) > buffer_nframes)
-		nframes = buffer_nframes - buffer_frame;
+static void fill_int16(int nframes) {
 	uint16_t *ptr = (uint16_t *)buffer + buffer_frame * buffer_nchannels;
-	for (int i = 0; i < nframes; i++) {
-		for (int j = 0; j < buffer_nchannels; j++) {
-			*(ptr++) = last_sample.as_int16[j];
+	while (nframes > 0) {
+		int count;
+		if ((buffer_frame + nframes) > buffer_nframes)
+			count = buffer_nframes - buffer_frame;
+		else
+			count = nframes;
+		nframes -= count;
+		for (int i = 0; i < count; i++) {
+			for (int j = 0; j < buffer_nchannels; j++) {
+				*(ptr++) = last_sample.as_int16[j];
+			}
+		}
+		buffer_frame += count;
+		if (buffer_frame >= buffer_nframes) {
+			ptr = buffer = sound_module->write_buffer(buffer);
+			buffer_frame = 0;
+			if (!buffer)
+				return;
 		}
 	}
-	buffer_frame += nframes;
-	if (buffer_frame >= buffer_nframes) {
-		buffer = sound_module->write_buffer(buffer);
-		buffer_frame = 0;
-	}
-	last_cycle += nframes * ticks_per_frame;
-	return nframes;
 }
 
-static int fill_float(int nframes) {
-	if ((buffer_frame + nframes) > buffer_nframes)
-		nframes = buffer_nframes - buffer_frame;
+static void fill_float(int nframes) {
 	float *ptr = (float *)buffer + buffer_frame * buffer_nchannels;
-	for (int i = 0; i < nframes; i++) {
-		for (int j = 0; j < buffer_nchannels; j++) {
-			*(ptr++) = last_sample.as_float[j];
+	while (nframes > 0) {
+		int count;
+		if ((buffer_frame + nframes) > buffer_nframes)
+			count = buffer_nframes - buffer_frame;
+		else
+			count = nframes;
+		nframes -= count;
+		for (int i = 0; i < count; i++) {
+			for (int j = 0; j < buffer_nchannels; j++) {
+				*(ptr++) = last_sample.as_float[j];
+			}
+		}
+		buffer_frame += count;
+		if (buffer_frame >= buffer_nframes) {
+			ptr = buffer = sound_module->write_buffer(buffer);
+			buffer_frame = 0;
+			if (!buffer)
+				return;
 		}
 	}
-	buffer_frame += nframes;
-	if (buffer_frame >= buffer_nframes) {
-		buffer = sound_module->write_buffer(buffer);
-		buffer_frame = 0;
-	}
-	last_cycle += nframes * ticks_per_frame;
-	return nframes;
 }
 
 /* Fill sound buffer to current point in time, call sound module's
@@ -266,23 +280,51 @@ static void sound_update(void) {
 	unsigned elapsed = (event_current_tick - last_cycle);
 	unsigned nframes = 0;
 	if (elapsed <= (UINT_MAX/2)) {
-		nframes = elapsed / ticks_per_frame;
+		float nframes_f = elapsed / ticks_per_frame;
+		nframes = nframes_f;
+		error_f += (nframes_f - nframes);
+		unsigned error = error_f;
+		nframes += error;
+		error_f -= error;
 	}
+
+	/* Update output samples */
+	for (int i = 0; i < buffer_nchannels; i++) {
+		unsigned output = output_level[i] * scale;
+		switch (buffer_fmt) {
+		case SOUND_FMT_U8:
+			last_sample.as_int8[i] = (output >> 8) + 0x80;
+			break;
+		case SOUND_FMT_S8:
+			last_sample.as_int8[i] = output >> 8;
+			break;
+		case SOUND_FMT_S16_HE:
+			last_sample.as_int16[i] = output;
+			break;
+		case SOUND_FMT_S16_SE:
+			last_sample.as_int16[i] = (output & 0xff) << 8 | ((output >> 8) & 0xff);
+			break;
+		case SOUND_FMT_FLOAT:
+			last_sample.as_float[i] = (float)output / 32767.;
+			break;
+		default:
+			break;
+		}
+	}
+
+	/* Fill buffer */
 	if (buffer) {
 		switch (buffer_fmt) {
 		case SOUND_FMT_U8:
 		case SOUND_FMT_S8:
-			while (nframes)
-				nframes -= fill_int8(nframes);
+			fill_int8(nframes);
 			break;
 		case SOUND_FMT_S16_HE:
 		case SOUND_FMT_S16_SE:
-			while (nframes)
-				nframes -= fill_int16(nframes);
+			fill_int16(nframes);
 			break;
 		case SOUND_FMT_FLOAT:
-			while (nframes)
-				nframes -= fill_float(nframes);
+			fill_float(nframes);
 			break;
 		default:
 			break;
@@ -290,10 +332,10 @@ static void sound_update(void) {
 	} else {
 		while (nframes >= buffer_nframes) {
 			buffer = sound_module->write_buffer(buffer);
-			last_cycle += ticks_per_buffer;
 			nframes -= buffer_nframes;
 		}
 	}
+	last_cycle = event_current_tick;
 
 	/* Mix internal sound sources to bus */
 	float bus_level = 0.0;
@@ -329,41 +371,17 @@ static void sound_update(void) {
 #endif
 
 	/* Mix bus & external sound */
-	float level[2];
 	if (external_audio) {
-		level[0] = (external_level[0]*full_scale_v + bus_level) / 2.0;
-		level[1] = (external_level[1]*full_scale_v + bus_level) / 2.0;
+		output_level[0] = (external_level[0]*full_scale_v + bus_level) / 2.0;
+		output_level[1] = (external_level[1]*full_scale_v + bus_level) / 2.0;
 	} else {
-		level[0] = bus_level;
-		level[1] = bus_level;
+		output_level[0] = bus_level;
+		output_level[1] = bus_level;
 	}
 	/* Downmix to mono */
 	if (buffer_nchannels == 1)
-		level[0] = (level[0] + level[1]) / 2.0;
+		output_level[0] = (output_level[0] + output_level[1]) / 2.0;
 
-	/* Update output samples */
-	for (int i = 0; i < buffer_nchannels; i++) {
-		unsigned output = level[i] * scale;
-		switch (buffer_fmt) {
-		case SOUND_FMT_U8:
-			last_sample.as_int8[i] = (output >> 8) + 0x80;
-			break;
-		case SOUND_FMT_S8:
-			last_sample.as_int8[i] = output >> 8;
-			break;
-		case SOUND_FMT_S16_HE:
-			last_sample.as_int16[i] = output;
-			break;
-		case SOUND_FMT_S16_SE:
-			last_sample.as_int16[i] = (output & 0xff) << 8 | ((output >> 8) & 0xff);
-			break;
-		case SOUND_FMT_FLOAT:
-			last_sample.as_float[i] = (float)output / 32767.;
-			break;
-		default:
-			break;
-		}
-	}
 }
 
 void sound_enable_external(void) {
@@ -434,39 +452,6 @@ void sound_set_external_right(float level) {
 	external_level[1] = level;
 	if (external_audio)
 		sound_update();
-}
-
-void sound_render_silence(void *buf, unsigned nframes) {
-	switch (buffer_fmt) {
-	case SOUND_FMT_U8:
-	case SOUND_FMT_S8:
-		/* special case for single channel 8-bit */
-		if (buffer_nchannels == 1) {
-			memset(buf, last_sample.as_int8[0], nframes);
-		} else {
-			uint8_t *ptr = buf;
-			for (; nframes; nframes--) {
-				*(ptr++) = last_sample.as_int8[0];
-				*(ptr++) = last_sample.as_int8[1];
-			}
-		}
-		break;
-	case SOUND_FMT_S16_HE:
-	case SOUND_FMT_S16_SE: {
-		uint16_t *ptr = buf;
-		for (; nframes; nframes--)
-			for (int j = 0; j < buffer_nchannels; j++)
-				*(ptr++) = last_sample.as_int16[j];
-	} break;
-	case SOUND_FMT_FLOAT: {
-		float *ptr = buf;
-		for (; nframes; nframes--)
-			for (int j = 0; j < buffer_nchannels; j++)
-				*(ptr++) = last_sample.as_float[j];
-	} break;
-	default:
-		break;
-	}
 }
 
 static void flush_frame(void *data) {
