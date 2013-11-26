@@ -1813,12 +1813,17 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
 	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
 	XC_SET_INT("ao-channels", &xroar_cfg.ao_channels),
+	XC_SET_INT("ao-fragments", &xroar_cfg.ao_fragments),
+	XC_SET_INT("ao-fragment-ms", &xroar_cfg.ao_fragment_ms),
+	XC_SET_INT("ao-fragment-frames", &xroar_cfg.ao_fragment_nframes),
 	XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms),
-	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_samples),
+	XC_SET_INT("ao-buffer-frames", &xroar_cfg.ao_buffer_nframes),
 	XC_SET_INT("volume", &private_cfg.volume),
 #ifndef FAST_SOUND
 	XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound),
 #endif
+	/* Backwards-compatibility: */
+	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_nframes),
 
 	/* Keyboard: */
 	XC_SET_STRING("keymap", &xroar_cfg.keymap),
@@ -1951,10 +1956,13 @@ static void helptext(void) {
 "\n Audio:\n"
 "  -ao MODULE            audio module (-ao help for list)\n"
 "  -ao-device STRING     device to use for audio module\n"
-"  -ao-rate HZ           set audio sample rate (if supported by module)\n"
+"  -ao-rate HZ           set audio frame rate (if supported by module)\n"
 "  -ao-channels N        set number of audio channels, 1 or 2\n"
-"  -ao-buffer-ms MS      set audio buffer size in ms (if supported)\n"
-"  -ao-buffer-samples N  set audio buffer size in samples (if supported)\n"
+"  -ao-fragments N       set number of audio fragments\n"
+"  -ao-fragment-ms MS    set audio fragment size in ms (if supported)\n"
+"  -ao-fragment-frames N set audio fragment size in samples (if supported)\n"
+"  -ao-buffer-ms MS      set total audio buffer size in ms (if supported)\n"
+"  -ao-buffer-frames N   set total audio buffer size in samples (if supported)\n"
 "  -volume VOLUME        audio volume (0 - 100)\n"
 #ifndef FAST_SOUND
 "  -fast-sound           faster but less accurate sound\n"
@@ -2111,8 +2119,11 @@ static void config_print_all(void) {
 	if (xroar_cfg.ao_device) printf("ao-device %s\n", xroar_cfg.ao_device);
 	if (xroar_cfg.ao_rate != 0) printf("ao-rate %d\n", xroar_cfg.ao_rate);
 	if (xroar_cfg.ao_channels != 0) printf("ao-channels %d\n", xroar_cfg.ao_channels);
+	if (xroar_cfg.ao_fragments != 0) printf("ao-fragments %d\n", xroar_cfg.ao_fragments);
+	if (xroar_cfg.ao_fragment_ms != 0) printf("ao-fragment-ms %d\n", xroar_cfg.ao_fragment_ms);
+	if (xroar_cfg.ao_fragment_nframes != 0) printf("ao-fragment-frames %d\n", xroar_cfg.ao_fragment_nframes);
 	if (xroar_cfg.ao_buffer_ms != 0) printf("ao-buffer-ms %d\n", xroar_cfg.ao_buffer_ms);
-	if (xroar_cfg.ao_buffer_samples != 0) printf("ao-buffer-samples %d\n", xroar_cfg.ao_buffer_samples);
+	if (xroar_cfg.ao_buffer_nframes != 0) printf("ao-buffer-frames %d\n", xroar_cfg.ao_buffer_nframes);
 	if (private_cfg.volume != 100) printf("volume %d\n", private_cfg.volume);
 #ifndef FAST_SOUND
 	if (xroar_cfg.fast_sound) puts("fast-sound");
