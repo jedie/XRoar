@@ -47,9 +47,9 @@ SoundModule sound_alsa_module = {
 	.write_buffer = write_buffer,
 };
 
-static unsigned int sample_rate;
+static unsigned rate;
 static snd_pcm_t *pcm_handle;
-static snd_pcm_uframes_t period_nframes;
+static snd_pcm_uframes_t fragment_nframes;
 static void *audio_buffer;
 
 static _Bool init(void) {
@@ -61,7 +61,7 @@ static _Bool init(void) {
 	if (nchannels < 1 || nchannels > 2)
 		nchannels = 2;
 
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
+	rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 
 	if ((err = snd_pcm_open(&pcm_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
 		goto failed;
@@ -78,63 +78,115 @@ static _Bool init(void) {
 	if ((err = snd_pcm_hw_params_set_format(pcm_handle, hw_params, format)) < 0)
 		goto failed;
 
-	if ((err = snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &sample_rate, 0)) < 0)
+	if ((err = snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &rate, 0)) < 0)
 		goto failed;
 
 	if ((err = snd_pcm_hw_params_set_channels_near(pcm_handle, hw_params, &nchannels)) < 0)
 		goto failed;
 
-	if ((err = snd_pcm_hw_params_get_period_size(hw_params, &period_nframes, NULL)) < 0)
-		goto failed;
-
-	snd_pcm_uframes_t buffer_nframes;
-	if (xroar_cfg.ao_buffer_ms > 0) {
-		buffer_nframes = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_samples > 0) {
-		buffer_nframes = xroar_cfg.ao_buffer_samples;
+	snd_pcm_uframes_t buffer_nframes = 0;
+	fragment_nframes = 0;
+	if (xroar_cfg.ao_fragment_ms > 0) {
+		fragment_nframes = (rate * xroar_cfg.ao_fragment_ms) / 1000;
+	} else if (xroar_cfg.ao_fragment_nframes > 0) {
+		fragment_nframes = xroar_cfg.ao_fragment_nframes;
+	}
+	if (fragment_nframes > 0) {
+		if ((err = snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params, &fragment_nframes, NULL)) < 0) {
+			LOG_ERROR("ALSA: snd_pcm_hw_params_set_period_size_near() failed\n");
+			goto failed;
+		}
 	} else {
-		buffer_nframes = period_nframes * 2;
+		buffer_nframes = 1024;
 	}
 
-	snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_nframes);
+	unsigned nfragments = 0;
+	int nfragments_dir;
+	if (xroar_cfg.ao_fragments > 0) {
+		nfragments = xroar_cfg.ao_fragments;
+	}
+	if (nfragments > 0) {
+		if ((err = snd_pcm_hw_params_set_periods_near(pcm_handle, hw_params, &nfragments, NULL)) < 0) {
+			LOG_ERROR("ALSA: snd_pcm_hw_params_set_periods_near() failed\n");
+			goto failed;
+		}
+	}
 
-	if ((err = snd_pcm_hw_params(pcm_handle, hw_params)) < 0)
+	if (xroar_cfg.ao_buffer_ms > 0) {
+		buffer_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_nframes > 0) {
+		buffer_nframes = xroar_cfg.ao_buffer_nframes;
+	}
+	if (buffer_nframes > 0) {
+		if ((err = snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_nframes)) < 0) {
+			LOG_ERROR("ALSA: snd_pcm_hw_params_set_buffer_size_near() failed\n");
+			goto failed;
+		}
+	}
+
+	if ((err = snd_pcm_hw_params(pcm_handle, hw_params)) < 0) {
+		LOG_ERROR("ALSA: snd_pcm_hw_params() failed\n");
 		goto failed;
+	}
+
+	if (nfragments == 0) {
+		if ((err = snd_pcm_hw_params_get_periods(hw_params, &nfragments, &nfragments_dir)) < 0) {
+			LOG_ERROR("ALSA: snd_pcm_hw_params_get_periods() failed\n");
+			goto failed;
+		}
+	}
+
+	if (fragment_nframes == 0) {
+		if ((err = snd_pcm_hw_params_get_period_size(hw_params, &fragment_nframes, NULL)) < 0) {
+			LOG_ERROR("ALSA: snd_pcm_hw_params_get_period_size() failed\n");
+			goto failed;
+		}
+	}
+
+	if (buffer_nframes == 0) {
+		if ((err = snd_pcm_hw_params_get_buffer_size(hw_params, &buffer_nframes)) < 0) {
+			LOG_ERROR("ALSA: snd_pcm_hw_params_get_buffer_size() failed\n");
+			goto failed;
+		}
+	}
 
 	snd_pcm_hw_params_free(hw_params);
 
-	if ((err = snd_pcm_prepare(pcm_handle)) < 0)
+	if ((err = snd_pcm_prepare(pcm_handle)) < 0) {
+		LOG_ERROR("ALSA: snd_pcm_prepare() failed\n");
 		goto failed;
+	}
 
 	enum sound_fmt buffer_fmt;
-	unsigned sample_size;
+	unsigned sample_nbytes;
 	switch (format) {
 		case SND_PCM_FORMAT_S8:
 			buffer_fmt = SOUND_FMT_S8;
-			sample_size = 1;
+			sample_nbytes = 1;
 			break;
 		case SND_PCM_FORMAT_U8:
 			buffer_fmt = SOUND_FMT_U8;
-			sample_size = 1;
+			sample_nbytes = 1;
 			break;
 		case SND_PCM_FORMAT_S16_LE:
 			buffer_fmt = SOUND_FMT_S16_LE;
-			sample_size = 2;
+			sample_nbytes = 2;
 			break;
 		case SND_PCM_FORMAT_S16_BE:
 			buffer_fmt = SOUND_FMT_S16_BE;
-			sample_size = 2;
+			sample_nbytes = 2;
 			break;
 		default:
-			LOG_WARN("Unhandled audio format.");
+			LOG_ERROR("Unhandled audio format.\n");
 			goto failed;
 	}
-	unsigned buffer_size = period_nframes * nchannels * sample_size;
-	audio_buffer = g_malloc(buffer_size);
-	sound_init(audio_buffer, buffer_fmt, sample_rate, nchannels, period_nframes);
-	LOG_DEBUG(2, "\t%ldms (%ld samples) buffer\n", (buffer_nframes * 1000) / sample_rate, buffer_nframes);
 
-	/* snd_pcm_writei(pcm_handle, buffer, period_nframes); */
+	unsigned buffer_size = fragment_nframes * nchannels * sample_nbytes;
+	audio_buffer = g_malloc(buffer_size);
+	sound_init(audio_buffer, buffer_fmt, rate, nchannels, fragment_nframes);
+	LOG_DEBUG(2, "\t%u frags * %ld frames/frag = %ld frames buffer (%ldms)\n", nfragments, fragment_nframes, buffer_nframes, (buffer_nframes * 1000) / rate);
+
+	/* snd_pcm_writei(pcm_handle, buffer, fragment_nframes); */
 	return 1;
 failed:
 	LOG_ERROR("Failed to initialise ALSA: %s\n", snd_strerror(err));
@@ -149,9 +201,9 @@ static void shutdown(void) {
 static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
 		return buffer;
-	if (snd_pcm_writei(pcm_handle, buffer, period_nframes) < 0) {
+	if (snd_pcm_writei(pcm_handle, buffer, fragment_nframes) < 0) {
 		snd_pcm_prepare(pcm_handle);
-		snd_pcm_writei(pcm_handle, buffer, period_nframes);
+		snd_pcm_writei(pcm_handle, buffer, fragment_nframes);
 	}
 	return buffer;
 }
