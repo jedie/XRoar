@@ -44,45 +44,45 @@ static HGLOBAL wavehdr_alloc[NUM_BUFFERS];
 static LPWAVEHDR wavehdr_p[NUM_BUFFERS];
 static HGLOBAL data_alloc[NUM_BUFFERS];
 static LPSTR data_p[NUM_BUFFERS];
-static int buffer_samples, buffer_size;
+static int buffer_nframes, buffer_nbytes;
 static DWORD cursor;
 static int buffer_num;
-static int sample_rate;
+static int rate;
 static uint8_t *audio_buffer;
 
 static _Bool init(void) {
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
+	rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 
 	if (xroar_cfg.ao_buffer_ms > 0) {
-		buffer_samples = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_samples > 0) {
-		buffer_samples = xroar_cfg.ao_buffer_samples;
+		buffer_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_nframes > 0) {
+		buffer_nframes = xroar_cfg.ao_buffer_nframes;
 	} else {
-		buffer_samples = (sample_rate * 23) / 1000;
+		buffer_nframes = (rate * 23) / 1000;
 	}
 
 	int nchannels = xroar_cfg.ao_channels;
 	if (nchannels < 1 || nchannels > 2)
 		nchannels = 2;
 	int request_fmt = SOUND_FMT_U8;
-	int bytes_per_sample = 1;
-	buffer_size = nchannels * buffer_samples * bytes_per_sample;
+	int sample_nbytes = 1;
+	buffer_nbytes = nchannels * buffer_nframes * sample_nbytes;
 
 	WAVEFORMATEX format;
 	memset(&format, 0, sizeof(format));
 	format.cbSize = sizeof(format);
 	format.wFormatTag = WAVE_FORMAT_PCM;
 	format.nChannels = nchannels;
-	format.nSamplesPerSec = sample_rate;
-	format.nAvgBytesPerSec = buffer_size;
+	format.nSamplesPerSec = rate;
+	format.nAvgBytesPerSec = rate * nchannels * sample_nbytes;
 	format.nBlockAlign = 1;
-	format.wBitsPerSample = bytes_per_sample * 8;
+	format.wBitsPerSample = sample_nbytes * 8;
 
 	if (waveOutOpen(&device, WAVE_MAPPER, &format, 0, 0, WAVE_ALLOWSYNC) != MMSYSERR_NOERROR)
 		return 0;
 
 	for (unsigned i = 0; i < NUM_BUFFERS; i++) {
-		data_alloc[i] = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, buffer_size);
+		data_alloc[i] = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, buffer_nbytes);
 		if (!data_alloc[i])
 			return 0;
 		data_p[i] = (LPSTR)GlobalLock(data_alloc[i]);
@@ -93,16 +93,16 @@ static _Bool init(void) {
 		wavehdr_p[i] = (WAVEHDR *)GlobalLock(wavehdr_alloc[i]);
 
 		wavehdr_p[i]->lpData = data_p[i];
-		wavehdr_p[i]->dwBufferLength = buffer_size;
+		wavehdr_p[i]->dwBufferLength = buffer_nbytes;
 		wavehdr_p[i]->dwFlags = 0;
 		wavehdr_p[i]->dwLoops = 0;
 
 		waveOutPrepareHeader(device, wavehdr_p[i], sizeof(WAVEHDR));
 	}
 
-	audio_buffer = g_malloc(buffer_size);
-	sound_init(audio_buffer, request_fmt, sample_rate, nchannels, buffer_samples);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_samples * 1000) / sample_rate, buffer_samples);
+	audio_buffer = g_malloc(buffer_nbytes);
+	sound_init(audio_buffer, request_fmt, rate, nchannels, buffer_nframes);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / rate, buffer_nframes);
 
 	cursor = 0;
 	buffer_num = 0;
@@ -125,21 +125,21 @@ static void _shutdown(void) {
 static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
 		return buffer;
-	memcpy(data_p[buffer_num], buffer, buffer_size);
+	memcpy(data_p[buffer_num], buffer, buffer_nbytes);
 	MMTIME mmtime;
 	mmtime.wType = TIME_SAMPLES;
 	MMRESULT rc = waveOutGetPosition(device, &mmtime, sizeof(mmtime));
 	if (rc == MMSYSERR_NOERROR) {
 		int delta = cursor - mmtime.u.sample;
-		if (delta > buffer_samples*2) {
-			int sleep_ms = (delta - buffer_samples*2) * 1000 / sample_rate;
+		if (delta > buffer_nframes*2) {
+			int sleep_ms = (delta - buffer_nframes*2) * 1000 / rate;
 			if (sleep_ms > 0) {
 				Sleep(sleep_ms);
 			}
 		}
 	}
 	waveOutWrite(device, wavehdr_p[buffer_num], sizeof(WAVEHDR));
-	cursor += buffer_samples;
+	cursor += buffer_nframes;
 	buffer_num = (buffer_num + 1) % NUM_BUFFERS;
 	return buffer;
 }
