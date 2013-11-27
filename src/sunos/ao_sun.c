@@ -16,6 +16,15 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* XXX
+ *
+ * This code is old and hasn't been tested for a while.  In particular, it
+ * looks like some parts of it depend on single-channel audio - or at least
+ * both channels being identical, which is not the case any more.
+ *
+ * Needs attention!
+ */
+
 #include "config.h"
 
 #include <errno.h>
@@ -47,7 +56,7 @@ SoundModule sound_sun_module = {
 
 typedef uint8_t Sample;  /* 8-bit mono */
 
-static unsigned int sample_rate;
+static unsigned int rate;
 static int sound_fd;
 static uint_t samples_written;
 
@@ -60,9 +69,9 @@ static _Bool init(void) {
 		LOG_ERROR("Couldn't open audio device %s: %s!\n", device, strerror(errno));
 		return 0;
 	}
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
+	rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
 	AUDIO_INITINFO(&device_info);
-	device_info.play.sample_rate = sample_rate;
+	device_info.play.sample_rate = rate;
 	device_info.play.channels = xroar_cfg.ao_channels;
 	if (device_info.play.channels < 1 || device_info.play.channels > 2)
 		device_info.play.channels = 2;
@@ -78,17 +87,17 @@ static _Bool init(void) {
 		return 0;
 	}
 
-	int frame_size;
+	int frame_nbytes;
 	if (xroar_cfg.ao_buffer_ms > 0) {
-		frame_size = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_samples > 0) {
-		frame_size = xroar_cfg.ao_buffer_samples;
+		frame_nbytes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_nframes > 0) {
+		frame_nbytes = xroar_cfg.ao_buffer_nframes;
 	} else {
-		frame_size = 1024;
+		frame_nbytes = 1024;
 	}
 
-	sound_init(device_info.play.sample_rate, device_info.play.channels, SOUND_FMT_U8, frame_size);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (frame_size * 1000) / device_info.play.sample_rate, frame_size);
+	sound_init(device_info.play.sample_rate, device_info.play.channels, SOUND_FMT_U8, frame_nbytes);
+	LOG_DEBUG(2, "\t%dms (%d frames) buffer\n", (frame_nbytes * 1000) / device_info.play.sample_rate, frame_nbytes);
 
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);
@@ -111,8 +120,8 @@ static void flush_frame(void *buffer) {
 		return;
 	}
 	samples_left = samples_written - device_info.play.samples;
-	if (samples_left > frame_size) {
-		int sleep_ms = ((samples_left - frame_size) * 1000)/sample_rate;
+	if (samples_left > frame_nbytes) {
+		int sleep_ms = ((samples_left - frame_nbytes) * 1000) / rate;
 		struct timespec elapsed, tv;
 		int errcode;
 		sleep_ms -= 10;
@@ -125,6 +134,6 @@ static void flush_frame(void *buffer) {
 			errcode = nanosleep(&tv, &elapsed);
 		} while ( errcode && (errno == EINTR) );
 	}
-	write(sound_fd, buffer, frame_size);
-	samples_written += frame_size;
+	write(sound_fd, buffer, frame_nbytes);
+	samples_written += frame_nbytes;
 }
