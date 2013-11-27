@@ -101,10 +101,13 @@ static void set_option(struct xconfig_option *option, char *arg) {
 			}
 			break;
 		case XCONFIG_STRING:
-			if (option->call)
+			if (option->call) {
 				option->dest.func_string(arg);
-			else
+			} else {
+				if (*(char **)option->dest.object)
+					g_free(*(char **)option->dest.object);
 				*(char **)option->dest.object = g_strdup(arg);
+			}
 			break;
 		case XCONFIG_NULL:
 			if (option->call)
