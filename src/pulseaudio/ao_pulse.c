@@ -44,12 +44,10 @@ SoundModule sound_pulse_module = {
 	.write_buffer = write_buffer,
 };
 
-static unsigned int sample_rate;
-static unsigned int nchannels;
 static pa_simple *pa;
 static void *audio_buffer;
 
-static size_t fragment_bytes;
+static size_t fragment_nbytes;
 
 static _Bool init(void) {
 	const char *device = xroar_cfg.ao_device;
@@ -63,22 +61,46 @@ static _Bool init(void) {
 	};
 	int error;
 
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
-	nchannels = xroar_cfg.ao_channels;
+	unsigned rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
+	unsigned nchannels = xroar_cfg.ao_channels;
 	if (nchannels < 1 || nchannels > 2)
 		nchannels = 2;
-	ss.rate = sample_rate;
+	ss.rate = rate;
 	ss.channels = nchannels;
 
-	int fragment_size;
-	if (xroar_cfg.ao_buffer_ms > 0) {
-		fragment_size = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_samples > 0) {
-		fragment_size = xroar_cfg.ao_buffer_samples;
+	enum sound_fmt request_fmt;
+	unsigned sample_nbytes;
+	if (ss.format == PA_SAMPLE_U8) {
+		request_fmt = SOUND_FMT_U8;
+		sample_nbytes = 1;
+	} else if (ss.format & PA_SAMPLE_S16LE) {
+		request_fmt = SOUND_FMT_S16_LE;
+		sample_nbytes = 2;
+	} else if (ss.format & PA_SAMPLE_S16BE) {
+		request_fmt = SOUND_FMT_S16_BE;
+		sample_nbytes = 2;
 	} else {
-		fragment_size = 512;
+		LOG_WARN("Unhandled audio format.");
+		goto failed;
 	}
-	ba.tlength = fragment_size;
+	unsigned frame_nbytes = sample_nbytes * nchannels;
+
+	/* PulseAudio abstracts a bit further, so fragments don't really come
+	 * into it.  Use any specified value as "tlength". */
+
+	int fragment_nframes;
+	if (xroar_cfg.ao_fragment_ms > 0) {
+		fragment_nframes = (rate * xroar_cfg.ao_fragment_ms) / 1000;
+	} else if (xroar_cfg.ao_fragment_nframes > 0) {
+		fragment_nframes = xroar_cfg.ao_fragment_nframes;
+	} else if (xroar_cfg.ao_buffer_ms > 0) {
+		fragment_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
+	} else if (xroar_cfg.ao_buffer_nframes > 0) {
+		fragment_nframes = xroar_cfg.ao_buffer_nframes;
+	} else {
+		fragment_nframes = 512;
+	}
+	ba.tlength = fragment_nframes * frame_nbytes;
 
 	pa = pa_simple_new(NULL, "XRoar", PA_STREAM_PLAYBACK, device,
 	                   "output", &ss, NULL, &ba, &error);
@@ -87,25 +109,10 @@ static _Bool init(void) {
 		goto failed;
 	}
 
-	enum sound_fmt request_fmt;
-	unsigned sample_size;
-	if (ss.format == PA_SAMPLE_U8) {
-		request_fmt = SOUND_FMT_U8;
-		sample_size = 1;
-	} else if (ss.format & PA_SAMPLE_S16LE) {
-		request_fmt = SOUND_FMT_S16_LE;
-		sample_size = 2;
-	} else if (ss.format & PA_SAMPLE_S16BE) {
-		request_fmt = SOUND_FMT_S16_BE;
-		sample_size = 2;
-	} else {
-		LOG_WARN("Unhandled audio format.");
-		goto failed;
-	}
-	fragment_bytes = fragment_size * sample_size * nchannels;
-	audio_buffer = g_malloc(fragment_bytes);
-	sound_init(audio_buffer, request_fmt, sample_rate, nchannels, fragment_size);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_size * 1000) / sample_rate, fragment_size);
+	fragment_nbytes = fragment_nframes * sample_nbytes * nchannels;
+	audio_buffer = g_malloc(fragment_nbytes);
+	sound_init(audio_buffer, request_fmt, rate, nchannels, fragment_nframes);
+	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
 	return 1;
 failed:
 	return 0;
@@ -122,6 +129,6 @@ static void *write_buffer(void *buffer) {
 	int error;
 	if (xroar_noratelimit)
 		return buffer;
-	pa_simple_write(pa, buffer, fragment_bytes, &error);
+	pa_simple_write(pa, buffer, fragment_nbytes, &error);
 	return buffer;
 }
