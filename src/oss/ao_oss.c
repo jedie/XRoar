@@ -46,114 +46,142 @@ SoundModule sound_oss_module = {
 };
 
 static int sound_fd;
-static int fragment_size;
+static int fragment_nbytes;
 static void *audio_buffer;
 
 static _Bool init(void) {
-	const char *device = xroar_cfg.ao_device ? xroar_cfg.ao_device : "/dev/dsp";
-	int fragment_param, tmp;
+	const char *device = "/dev/dsp";
+	if (xroar_cfg.ao_device)
+		device = xroar_cfg.ao_device;
 
 	sound_fd = open(device, O_WRONLY);
-	if (sound_fd == -1)
+	if (sound_fd == -1) {
+		LOG_ERROR("OSS: failed to open device\n");
 		goto failed;
-	/* The order these ioctls are tried (format, channels, sample rate)
-	 * is important: OSS docs say setting format can affect channels and
-	 * sample rate, and setting channels can affect sample rate. */
-	/* Set audio format.  Only support AFMT_S8 (signed 8-bit) and
-	 * AFMT_S16_NE (signed 16-bit, host-endian) */
+	}
+
+	/* The order these ioctls are tried (format, channels, rate) is
+	 * important: OSS docs say setting format can affect channels and
+	 * sample rate, and setting channels can affect rate. */
+
+	// Find a supported format
+	enum sound_fmt buffer_fmt;
 	int format;
 	int bytes_per_sample;
-	if (ioctl(sound_fd, SNDCTL_DSP_GETFMTS, &format) == -1)
+	if (ioctl(sound_fd, SNDCTL_DSP_GETFMTS, &format) == -1) {
+		LOG_ERROR("OSS: SNDCTL_DSP_GETFMTS failed\n");
 		goto failed;
-	if ((format & (AFMT_S8 | AFMT_S16_NE)) == 0) {
+	}
+	if ((format & (AFMT_U8 | AFMT_S8 | AFMT_S16_LE | AFMT_S16_BE)) == 0) {
 		LOG_ERROR("No desired audio formats supported by device\n");
 		goto failed;
 	}
 	if (format & AFMT_S16_NE) {
 		format = AFMT_S16_NE;
+		buffer_fmt = SOUND_FMT_S16_HE;
 		bytes_per_sample = 2;
-	} else {
+	} else if (format & AFMT_S16_BE) {
+		format = AFMT_S16_BE;
+		buffer_fmt = SOUND_FMT_S16_BE;
+		bytes_per_sample = 2;
+	} else if (format & AFMT_S16_LE) {
+		format = AFMT_S16_LE;
+		buffer_fmt = SOUND_FMT_S16_LE;
+		bytes_per_sample = 2;
+	} else if (format & AFMT_S8) {
 		format = AFMT_S8;
+		buffer_fmt = SOUND_FMT_S8;
+		bytes_per_sample = 1;
+	} else {
+		format = AFMT_U8;
+		buffer_fmt = SOUND_FMT_U8;
 		bytes_per_sample = 1;
 	}
-	if (ioctl(sound_fd, SNDCTL_DSP_SETFMT, &format) == -1)
+	if (ioctl(sound_fd, SNDCTL_DSP_SETFMT, &format) == -1) {
+		LOG_ERROR("OSS: SNDCTL_DSP_SETFMT failed\n");
 		goto failed;
-	/* Set device to stereo if possible */
+	}
+
+	// Set stereo if desired
 	int nchannels = xroar_cfg.ao_channels - 1;
 	if (nchannels < 0 || nchannels > 1)
 		nchannels = 1;
-	if (ioctl(sound_fd, SNDCTL_DSP_STEREO, &nchannels) == -1)
+	if (ioctl(sound_fd, SNDCTL_DSP_STEREO, &nchannels) == -1) {
+		LOG_ERROR("OSS: SNDCTL_DSP_STEREO failed\n");
 		goto failed;
+	}
 	nchannels++;
 
-	unsigned int sample_rate;
-	/* Attempt to set sample_rate, but live with whatever we get */
-	sample_rate = (xroar_cfg.ao_rate > 0) ? xroar_cfg.ao_rate : 48000;
-	if (ioctl(sound_fd, SNDCTL_DSP_SPEED, &sample_rate) == -1)
+	// Set rate
+	unsigned rate = 48000;
+	if (xroar_cfg.ao_rate > 0)
+		rate = xroar_cfg.ao_rate;
+	if (ioctl(sound_fd, SNDCTL_DSP_SPEED, &rate) == -1) {
+		LOG_ERROR("OSS: SNDCTL_DSP_SPEED failed\n");
 		goto failed;
+	}
 
-	int fragments = 2;
-	int buffer_samples;
-	if (xroar_cfg.ao_buffer_ms > 0) {
-		buffer_samples = (sample_rate * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_samples > 0) {
-		buffer_samples = xroar_cfg.ao_buffer_samples;
+	/* Now calculate and set the fragment parameter.  If fragment size args
+	 * not specified, calculate based on buffer size args. */
+
+	int nfragments = 2;
+	int buffer_nframes = 0;
+	int fragment_nframes = 0;
+
+	if (xroar_cfg.ao_fragments >= 2 && xroar_cfg.ao_fragments < 0x8000) {
+		nfragments = xroar_cfg.ao_fragments;
+	}
+
+	if (xroar_cfg.ao_fragment_ms > 0) {
+		fragment_nframes = (rate * xroar_cfg.ao_fragment_ms) / 1000;
+	} else if (xroar_cfg.ao_fragment_nframes > 0) {
+		fragment_nframes = xroar_cfg.ao_fragment_nframes;
 	} else {
-		buffer_samples = 1024;
-	}
-	int fragment_samples = buffer_samples / fragments;
-	fragment_size = fragment_samples * bytes_per_sample * nchannels;
-	while (fragment_size > 65536) {
-		fragment_size >>= 1;
-		fragment_samples >>= 1;
-		fragments *= 2;
-		if (fragment_samples < 1 || fragments > 0x7fff) {
-			LOG_ERROR("Couldn't determine buffer size\n");
-			goto failed;
+		if (xroar_cfg.ao_buffer_ms > 0) {
+			buffer_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
+		} else if (xroar_cfg.ao_buffer_nframes > 0) {
+			buffer_nframes = xroar_cfg.ao_buffer_nframes;
+		} else {
+			buffer_nframes = 1024;
 		}
+		fragment_nframes = buffer_nframes / nfragments;
 	}
 
-	tmp = fragment_size;
-	fragment_param = 0;
-	while (tmp > 1) {
-		tmp >>= 1;
-		fragment_param++;
-	}
-	fragment_param |= (fragments << 16);
-	tmp = fragment_param;
-	if (ioctl(sound_fd, SNDCTL_DSP_SETFRAGMENT, &fragment_param) == -1)
-		goto failed;
-
-	int delay = 0;
-	if (ioctl(sound_fd, SNDCTL_DSP_GETODELAY, &delay) != -1) {
-		delay /= (nchannels * bytes_per_sample);
-	}
-	if (delay <= 0) {
-		audio_buf_info bi;
-		if (ioctl(sound_fd, SNDCTL_DSP_GETOSPACE, &bi) != -1) {
-			delay = bi.bytes / (nchannels * bytes_per_sample);
-		}
+	// frag size selector is 2^N:
+	int fbytes = fragment_nframes * bytes_per_sample * nchannels;
+	fragment_nbytes = 16;
+	int frag_size_sel = 4;
+	while (fragment_nbytes < fbytes && frag_size_sel < 30) {
+		frag_size_sel++;
+		fragment_nbytes <<= 1;
 	}
 
-	enum sound_fmt buffer_fmt;
-	if (format & AFMT_U8) buffer_fmt = SOUND_FMT_U8;
-	else if (format & AFMT_S16_LE) buffer_fmt = SOUND_FMT_S16_LE;
-	else if (format & AFMT_S16_BE) buffer_fmt = SOUND_FMT_S16_BE;
-	else if (format & AFMT_S8) buffer_fmt = SOUND_FMT_S8;
-	else {
-		LOG_WARN("Unhandled audio format.");
+	// now piece together the ioctl:
+	int frag = (nfragments << 16) | frag_size_sel;
+	if (ioctl(sound_fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1) {
+		LOG_ERROR("OSS: SNDCTL_DSP_SETFRAGMENT failed\n");
 		goto failed;
 	}
-	audio_buffer = g_malloc(fragment_size);
-	sound_init(audio_buffer, buffer_fmt, sample_rate, nchannels, fragment_samples);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (delay * 1000) / sample_rate, delay);
+	// ioctl may have modified frag, so extract new values:
+	nfragments = (frag >> 16) & 0x7fff;
+	frag_size_sel = frag & 0xffff;
+	if (frag_size_sel > 30) {
+		LOG_ERROR("OSS: returned fragment size too large\n");
+		goto failed;
+	}
+	fragment_nbytes = 1 << frag_size_sel;
+	fragment_nframes = fragment_nbytes / (bytes_per_sample * nchannels);
+	buffer_nframes = fragment_nframes * nfragments;
 
-	if (tmp != fragment_param)
-		LOG_WARN("Couldn't set desired buffer parameters: sync to audio might not be ideal\n");
+	audio_buffer = g_malloc(fragment_nbytes);
+	sound_init(audio_buffer, buffer_fmt, rate, nchannels, fragment_nframes);
+	LOG_DEBUG(2, "\t%u frags * %d frames/frag = %d frames buffer (%.1fms)\n", nfragments, fragment_nframes, buffer_nframes, (float)(buffer_nframes * 1000) / rate);
 
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	return 1;
 failed:
+	if (sound_fd != -1)
+		close(sound_fd);
 	return 0;
 }
 
@@ -166,7 +194,7 @@ static void shutdown(void) {
 static void *write_buffer(void *buffer) {
 	if (xroar_noratelimit)
 		return buffer;
-	int r = write(sound_fd, buffer, fragment_size);
+	int r = write(sound_fd, buffer, fragment_nbytes);
 	(void)r;
 	return buffer;
 }
