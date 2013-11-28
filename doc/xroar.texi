@@ -868,15 +868,25 @@ system if possible, otherwise it will usually be @samp{48000}.
 
 Specify number of channels (1 or 2).  Default is usually 2.
 
+@item -ao-fragments @var{n}
+
+Specify number of audio fragments.
+
+@item -ao-fragment-ms @var{ms}
+
+Specify audio fragment size in milliseconds.
+
+@item -ao-fragment-frames @var{frames}
+
+Specify audio buffer size in frames.
+
 @item -ao-buffer-ms @var{ms}
 
-Specify audio buffer size in milliseconds, where supported.  Bigger buffers
-mean greater latency (the delay between what you see and what you hear), but
-may help alleviate glitchy audio on slow machines.
+Specify total audio buffer size in milliseconds.
 
-@item -ao-buffer-samples @var{samples}
+@item -ao-buffer-frames @var{frames}
 
-Specify audio buffer size in samples.
+Specify total audio buffer size in frames.
 
 @item -fast-sound
 
@@ -887,6 +897,14 @@ Slightly faster audio support by ignoring certain uncommon state changes.
 Specify audio volume (0 - 100).
 
 @end table
+
+Audio latency is a concern for emulators, so XRoar allows the buffering
+characteristics to be configured with the fragment and buffer options above.
+Not all audio modules support all options, but setting the total audio buffer
+size will usually have an effect.  ALSA and OSS modules allow very fine-grained
+control.  Bear in mind that any figures reported by XRoar reflect what it was
+able to request, and won't include any extra buffering introduced by the
+underlying sound system.
 
 When the Orchestra 90-CC cartridge is attached, audio levels will be reduced
 due to the need to mix in a stereo output.
