@@ -86,13 +86,13 @@ static _Bool init(void) {
 	}
 	free(ports);
 	num_output_ports = i;
-	jack_nframes_t sample_rate = jack_get_sample_rate(client);
+	jack_nframes_t rate = jack_get_sample_rate(client);
 	jack_nframes_t buffer_nframes = jack_get_buffer_size(client);
 
-	size_t buffer_size = buffer_nframes * sizeof(float);
-	audio_buffer = g_malloc(buffer_size);
-	sound_init(audio_buffer, SOUND_FMT_FLOAT, sample_rate, 1, buffer_nframes);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / sample_rate, buffer_nframes);
+	size_t buffer_nbytes = buffer_nframes * sizeof(float);
+	audio_buffer = g_malloc(buffer_nbytes);
+	sound_init(audio_buffer, SOUND_FMT_FLOAT, rate, 1, buffer_nframes);
+	LOG_DEBUG(2, "\t%dms (%d frames) buffer\n", (buffer_nframes * 1000) / rate, buffer_nframes);
 
 	pthread_mutex_init(&haltflag, NULL);
 
