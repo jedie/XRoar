@@ -167,6 +167,10 @@ int gdb_init(void) {
 		LOG_WARN("gdb: getaddrinfo %s:%s failed\n", hostname, portname);
 		goto failed;
 	}
+	if (!info) {
+		LOG_WARN("gdb: failed lookup %s:%s\n", hostname, portname);
+		goto failed;
+	}
 
 	// Create a socket...
 	listenfd = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
