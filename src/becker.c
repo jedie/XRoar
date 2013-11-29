@@ -84,6 +84,10 @@ _Bool becker_open(void) {
 		LOG_WARN("becker: getaddrinfo %s:%s failed\n", hostname, portname);
 		goto failed;
 	}
+	if (!info) {
+		LOG_WARN("becker: failed lookup %s:%s\n", hostname, portname);
+		goto failed;
+	}
 
 	// Create a socket...
 	sockfd = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
