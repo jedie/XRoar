@@ -180,7 +180,6 @@ void vo_opengl_set_window_size(unsigned w, unsigned h) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0,   0, 240, 512,   1,
 			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, screen_tex);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 
 	vertices[0][0] = vo_opengl_x;
@@ -199,6 +198,7 @@ void vo_opengl_set_window_size(unsigned w, unsigned h) {
 }
 
 void vo_opengl_refresh(void) {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	/* Draw main window */
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 			320, 240, GL_RGB,
