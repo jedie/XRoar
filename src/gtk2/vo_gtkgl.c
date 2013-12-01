@@ -158,7 +158,7 @@ static void refresh(void) {
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(gtk2_drawing_area);
 
 	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext)) {
-		g_assert_not_reached ();
+		g_assert_not_reached();
 	}
 
 	vo_opengl_refresh();
@@ -172,7 +172,7 @@ static void vsync(void) {
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(gtk2_drawing_area);
 
 	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext)) {
-		g_assert_not_reached ();
+		g_assert_not_reached();
 	}
 
 	vo_opengl_vsync();
