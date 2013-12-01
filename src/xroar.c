@@ -1863,6 +1863,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_CALL_NULL("help", &helptext),
 	XC_CALL_NULL("h", &helptext),
 	XC_CALL_NULL("version", &versiontext),
+	XC_CALL_NULL("V", &versiontext),
 	XC_OPT_END()
 };
 
@@ -2002,7 +2003,7 @@ static void helptext(void) {
 "\n Other options:\n"
 "  -config-print         print full configuration to standard output\n"
 "  -h, --help            display this help and exit\n"
-"      --version         output version information and exit\n"
+"  -V, --version         output version information and exit\n"
 
 "\nJoystick SPECs are of the form [INTERFACE:][ARG[,ARG]...], from:\n"
 
