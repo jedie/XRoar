@@ -186,14 +186,14 @@ struct module *module_init(struct module *module) {
 		return NULL;
 	int have_description = (module->description != NULL);
 	if (have_description) {
-		LOG_DEBUG(2, "Module init: %s\n", module->description);
+		LOG_DEBUG(1, "Module init: %s\n", module->description);
 	}
 	if (!module->init || module->init()) {
 		module->initialised = 1;
 		return module;
 	}
 	if (have_description) {
-		LOG_DEBUG(2, "Module init failed: %s\n", module->description);
+		LOG_DEBUG(1, "Module init failed: %s\n", module->description);
 	}
 	return NULL;
 }
@@ -217,7 +217,7 @@ void module_shutdown(struct module *module) {
 	if (!module || !module->initialised)
 		return;
 	if (module->description) {
-		LOG_DEBUG(2, "Module shutdown: %s\n", module->description);
+		LOG_DEBUG(1, "Module shutdown: %s\n", module->description);
 	}
 	if (module->shutdown)
 		module->shutdown();

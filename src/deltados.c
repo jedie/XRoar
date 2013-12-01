@@ -107,17 +107,17 @@ static void deltados_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D) {
 /* Delta cartridge circuitry */
 static void ff44_write(struct deltados *d, uint8_t octet) {
 	if (octet != d->ic1_old) {
-		LOG_DEBUG(4, "Delta: Write to FF44: ");
+		LOG_DEBUG(2, "Delta: Write to FF44: ");
 		if ((octet ^ d->ic1_old) & 0x03) {
-			LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
+			LOG_DEBUG(2, "DRIVE SELECT %01d, ", octet & 0x03);
 		}
 		if ((octet ^ d->ic1_old) & 0x04) {
-			LOG_DEBUG(4, "SIDE %s, ", (octet & 0x04)?"1":"0");
+			LOG_DEBUG(2, "SIDE %s, ", (octet & 0x04)?"1":"0");
 		}
 		if ((octet ^ d->ic1_old) & 0x08) {
-			LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x08)?"DOUBLE":"SINGLE");
+			LOG_DEBUG(2, "DENSITY %s, ", (octet & 0x08)?"DOUBLE":"SINGLE");
 		}
-		LOG_DEBUG(4, "\n");
+		LOG_DEBUG(2, "\n");
 		d->ic1_old = octet;
 	}
 	d->ic1_drive_select = octet & 0x03;

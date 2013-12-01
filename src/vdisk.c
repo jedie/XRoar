@@ -137,7 +137,7 @@ int vdisk_save(struct vdisk *disk, _Bool force) {
 	if (!disk)
 		return -1;
 	if (!force && !disk->write_back) {
-		LOG_DEBUG(2, "Not saving disk file: write-back is disabled.\n");
+		LOG_DEBUG(1, "Not saving disk file: write-back is disabled.\n");
 		// This is the requested behaviour, so success:
 		return 0;
 	}
@@ -241,7 +241,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		vdisk_destroy(disk);
 		return NULL;
 	}
-	LOG_DEBUG(2,"Loading VDK virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
+	LOG_DEBUG(1, "Loading VDK virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
 	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
 		for (unsigned head = 0; head < nheads; head++) {
 			for (unsigned sector = 0; sector < nsectors; sector++) {
@@ -261,7 +261,7 @@ static int vdisk_save_vdk(struct vdisk *disk) {
 		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
-	LOG_DEBUG(2,"Writing VDK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	LOG_DEBUG(1, "Writing VDK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
 	buf[0] = 'd';   // magic
 	buf[1] = 'k';   // magic
 	buf[2] = 12;    // header size LSB
@@ -387,7 +387,7 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 		vdisk_destroy(disk);
 		return NULL;
 	}
-	LOG_DEBUG(2,"Loading JVC virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
+	LOG_DEBUG(1, "Loading JVC virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
 	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
 		for (unsigned head = 0; head < nheads; head++) {
 			for (unsigned sector = 0; sector < nsectors; sector++) {
@@ -415,7 +415,7 @@ static int vdisk_save_jvc(struct vdisk *disk) {
 		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
-	LOG_DEBUG(2,"Writing JVC virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	LOG_DEBUG(1, "Writing JVC virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
 
 	// TODO: scan the disk to potentially correct these assumptions
 	buf[0] = nsectors;  // assumed
@@ -506,7 +506,7 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 		fclose(fd);
 		return NULL;
 	}
-	LOG_DEBUG(2,"Loading DMK virtual disk: %dC %dH (%d-byte)\n", ncyls, nheads, track_length);
+	LOG_DEBUG(1, "Loading DMK virtual disk: %dC %dH (%d-byte)\n", ncyls, nheads, track_length);
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = g_strdup(filename);
 	disk->write_back = header[0] ? 0 : 1;
@@ -541,7 +541,7 @@ static int vdisk_save_dmk(struct vdisk *disk) {
 		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
-	LOG_DEBUG(2,"Writing DMK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	LOG_DEBUG(1, "Writing DMK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
 	memset(header, 0, sizeof(header));
 	if (!disk->write_back)
 		header[0] = 0xff;

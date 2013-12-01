@@ -175,7 +175,7 @@ static _Bool init(void) {
 
 	audio_buffer = g_malloc(fragment_nbytes);
 	sound_init(audio_buffer, buffer_fmt, rate, nchannels, fragment_nframes);
-	LOG_DEBUG(2, "\t%u frags * %d frames/frag = %d frames buffer (%.1fms)\n", nfragments, fragment_nframes, buffer_nframes, (float)(buffer_nframes * 1000) / rate);
+	LOG_DEBUG(1, "\t%u frags * %d frames/frag = %d frames buffer (%.1fms)\n", nfragments, fragment_nframes, buffer_nframes, (float)(buffer_nframes * 1000) / rate);
 
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	return 1;

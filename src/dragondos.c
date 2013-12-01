@@ -163,23 +163,23 @@ static void dragondos_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D) {
 /* DragonDOS cartridge circuitry */
 static void ff48_write(struct dragondos *d, int octet) {
 	if (octet != d->ic1_old) {
-		LOG_DEBUG(4, "DragonDOS: Write to FF48: ");
+		LOG_DEBUG(2, "DragonDOS: Write to FF48: ");
 		if ((octet ^ d->ic1_old) & 0x03) {
-			LOG_DEBUG(4, "DRIVE SELECT %01d, ", octet & 0x03);
+			LOG_DEBUG(2, "DRIVE SELECT %01d, ", octet & 0x03);
 		}
 		if ((octet ^ d->ic1_old) & 0x04) {
-			LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x04)?"ON":"OFF");
+			LOG_DEBUG(2, "MOTOR %s, ", (octet & 0x04)?"ON":"OFF");
 		}
 		if ((octet ^ d->ic1_old) & 0x08) {
-			LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x08)?"SINGLE":"DOUBLE");
+			LOG_DEBUG(2, "DENSITY %s, ", (octet & 0x08)?"SINGLE":"DOUBLE");
 		}
 		if ((octet ^ d->ic1_old) & 0x10) {
-			LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
+			LOG_DEBUG(2, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
 		}
 		if ((octet ^ d->ic1_old) & 0x20) {
-			LOG_DEBUG(4, "NMI %s, ", (octet & 0x20)?"ENABLED":"DISABLED");
+			LOG_DEBUG(2, "NMI %s, ", (octet & 0x20)?"ENABLED":"DISABLED");
 		}
-		LOG_DEBUG(4, "\n");
+		LOG_DEBUG(2, "\n");
 		d->ic1_old = octet;
 	}
 	d->ic1_drive_select = octet & 0x03;

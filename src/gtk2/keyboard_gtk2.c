@@ -240,7 +240,7 @@ static _Bool init(void) {
 		for (int i = 0; i < G_N_ELEMENTS(keymaps); i++) {
 			if (0 == strcmp(keymap_option, keymaps[i].name)) {
 				selected_keymap = &keymaps[i];
-				LOG_DEBUG(2,"\tSelecting '%s' keymap\n",keymap_option);
+				LOG_DEBUG(1, "\tSelecting '%s' keymap\n", keymap_option);
 			}
 		}
 	}

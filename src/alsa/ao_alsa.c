@@ -184,7 +184,7 @@ static _Bool init(void) {
 	unsigned buffer_size = fragment_nframes * nchannels * sample_nbytes;
 	audio_buffer = g_malloc(buffer_size);
 	sound_init(audio_buffer, buffer_fmt, rate, nchannels, fragment_nframes);
-	LOG_DEBUG(2, "\t%u frags * %ld frames/frag = %ld frames buffer (%ldms)\n", nfragments, fragment_nframes, buffer_nframes, (buffer_nframes * 1000) / rate);
+	LOG_DEBUG(1, "\t%u frags * %ld frames/frag = %ld frames buffer (%ldms)\n", nfragments, fragment_nframes, buffer_nframes, (buffer_nframes * 1000) / rate);
 
 	/* snd_pcm_writei(pcm_handle, buffer, fragment_nframes); */
 	return 1;

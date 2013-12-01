@@ -194,7 +194,7 @@ int gdb_init(void) {
 	pthread_create(&sock_thread, NULL, handle_tcp_sock, NULL);
 	pthread_detach(sock_thread);
 
-	LOG_DEBUG(2, "gdb: target listening on %s:%s\n", hostname, portname);
+	LOG_DEBUG(1, "gdb: target listening on %s:%s\n", hostname, portname);
 
 	return 0;
 

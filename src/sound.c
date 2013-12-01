@@ -147,34 +147,34 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 		fmt_big_endian = !big_endian;
 	}
 
-	LOG_DEBUG(2, "\t");
+	LOG_DEBUG(1, "\t");
 	switch (fmt) {
 	case SOUND_FMT_U8:
-		LOG_DEBUG(2, "8-bit unsigned, ");
+		LOG_DEBUG(1, "8-bit unsigned, ");
 		break;
 	case SOUND_FMT_S8:
-		LOG_DEBUG(2, "8-bit signed, ");
+		LOG_DEBUG(1, "8-bit signed, ");
 		break;
 	case SOUND_FMT_S16_HE:
 	case SOUND_FMT_S16_SE:
-		LOG_DEBUG(2, "16-bit signed %s-endian, ", fmt_big_endian ? "big" : "little" );
+		LOG_DEBUG(1, "16-bit signed %s-endian, ", fmt_big_endian ? "big" : "little" );
 		break;
 	case SOUND_FMT_FLOAT:
-		LOG_DEBUG(2, "Floating point, ");
+		LOG_DEBUG(1, "Floating point, ");
 		break;
 	case SOUND_FMT_NULL:
 	default:
 		fmt = SOUND_FMT_NULL;
-		LOG_DEBUG(2, "No audio\n");
+		LOG_DEBUG(1, "No audio\n");
 		break;
 	}
 	if (fmt != SOUND_FMT_NULL) {
 		switch (nchannels) {
-		case 1: LOG_DEBUG(2, "mono, "); break;
-		case 2: LOG_DEBUG(2, "stereo, "); break;
-		default: LOG_DEBUG(2, "%d channel, ", nchannels); break;
+		case 1: LOG_DEBUG(1, "mono, "); break;
+		case 2: LOG_DEBUG(1, "stereo, "); break;
+		default: LOG_DEBUG(1, "%d channel, ", nchannels); break;
 		}
-		LOG_DEBUG(2, "%dHz\n", rate);
+		LOG_DEBUG(1, "%dHz\n", rate);
 	}
 	output_level[0] = output_level[1] = 0.0;
 

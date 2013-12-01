@@ -28,6 +28,8 @@
 #include "logging.h"
 #include "xroar.h"
 
+int log_level = 1;
+
 enum log_type {
 	LOG_HEXDUMP,
 };

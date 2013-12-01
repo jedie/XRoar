@@ -102,7 +102,7 @@ static _Bool init(void) {
 
 	audio_buffer = g_malloc(buffer_nbytes);
 	sound_init(audio_buffer, request_fmt, rate, nchannels, buffer_nframes);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / rate, buffer_nframes);
+	LOG_DEBUG(1, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / rate, buffer_nframes);
 
 	cursor = 0;
 	buffer_num = 0;

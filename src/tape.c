@@ -293,7 +293,7 @@ int tape_open_reading(const char *filename) {
 
 	tape_desync(256);
 	tape_update_motor(motor);
-	LOG_DEBUG(2,"Attached virtual cassette '%s'\n", filename);
+	LOG_DEBUG(1, "Tape: Attached '%s' for reading\n", filename);
 	return 0;
 }
 
@@ -330,7 +330,7 @@ int tape_open_writing(const char *filename) {
 
 	tape_update_motor(motor);
 	rewrite_bit_count = 0;
-	LOG_DEBUG(2,"Attached virtual cassette '%s' for writing.\n", filename);
+	LOG_DEBUG(1, "Tape: Attached '%s' for writing.\n", filename);
 	return 0;
 }
 
@@ -400,6 +400,9 @@ void tape_update_motor(_Bool state) {
 		if (tape_pad || tape_rewrite) {
 			tape_desync(256);
 		}
+	}
+	if (motor != state) {
+		LOG_DEBUG(2, "Tape: motor %s\n", state ? "ON" : "OFF");
 	}
 	motor = state;
 	set_breakpoints();

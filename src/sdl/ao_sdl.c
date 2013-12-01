@@ -125,7 +125,7 @@ static _Bool init(void) {
 	sound_init(audio_buffer, buffer_fmt, audiospec.freq, audiospec.channels, buffer_nframes);
 	audio_buffer = NULL;
 	SDL_UnlockMutex(audio_buffer_mutex);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / audiospec.freq, buffer_nframes);
+	LOG_DEBUG(1, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / audiospec.freq, buffer_nframes);
 
 	return 1;
 failed:

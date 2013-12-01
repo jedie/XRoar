@@ -139,7 +139,7 @@ static _Bool init(void) {
 	sound_init(audio_buffer, SOUND_FMT_FLOAT, rate, nchannels, fragment_nframes);
 	audio_buffer = NULL;
 	pthread_mutex_unlock(&audio_buffer_mutex);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
+	LOG_DEBUG(1, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
 
 	return 1;
 failed:

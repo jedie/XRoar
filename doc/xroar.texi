@@ -1109,6 +1109,22 @@ Report on general queries.
 The special value argument of -1 parses as ``all bits set'', and so enables all
 corresponding debug options.
 
+XRoar prints various other informational messages to standard output by
+default, including when the state of certain toggles is modified.  Verbosity
+can be changed with the @option{-verbose @var{level}} option.  @option{-quiet}
+is equivalent to @option{-verbose 0}.  Levels are:
+
+@table @asis
+@item 0
+Quiet.  Only warnings and errors printed.
+@item 1
+Print startup diagnostics and emulator state changes (default).
+@item 2
+Report some emulated machine state changes.
+@item 3
+Miscellaneous internal debugging.
+@end table
+
 XRoar can be told to exit after a number of (emulated) seconds with the
 @option{-timeout @var{seconds}} option.
 

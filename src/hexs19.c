@@ -75,7 +75,7 @@ int intel_hex_read(const char *filename, int autorun) {
 		return -1;
 	if (!(fd = fopen(filename, "rb")))
 		return -1;
-	LOG_DEBUG(2, "Reading Intel HEX record file\n");
+	LOG_DEBUG(1, "Reading Intel HEX record file\n");
 	if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN_DATA)
 		log_open_hexdump(&log_hex, "Intel HEX read: ");
 	while ((data = fs_read_uint8(fd)) >= 0) {
@@ -151,7 +151,7 @@ int bin_load(const char *filename, int autorun) {
 	default:
 		break;
 	}
-	LOG_DEBUG(2, "Unknown binary file type.\n");
+	LOG_DEBUG(1, "Unknown binary file type.\n");
 	fclose(fd);
 	return -1;
 }
@@ -159,7 +159,7 @@ int bin_load(const char *filename, int autorun) {
 static int dragon_bin_load(FILE *fd, int autorun) {
 	int filetype, load, exec;
 	size_t length;
-	LOG_DEBUG(2, "Reading Dragon BIN file\n");
+	LOG_DEBUG(1, "Reading Dragon BIN file\n");
 	filetype = fs_read_uint8(fd);
 	(void)filetype;  // XXX verify this makes sense
 	load = fs_read_uint16(fd);
@@ -194,7 +194,7 @@ static int dragon_bin_load(FILE *fd, int autorun) {
 static int coco_bin_load(FILE *fd, int autorun) {
 	size_t length;
 	int data, load, exec;
-	LOG_DEBUG(2, "Reading CoCo BIN file\n");
+	LOG_DEBUG(1, "Reading CoCo BIN file\n");
 	fseek(fd, 0, SEEK_SET);
 	while ((data = fs_read_uint8(fd)) >= 0) {
 		if (data == 0) {

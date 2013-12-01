@@ -190,7 +190,7 @@ void cart_config_print_all(void) {
 struct cart *cart_new(struct cart_config *cc) {
 	if (!cc) return NULL;
 	if (cc->description) {
-		LOG_DEBUG(2, "Cartridge: %s\n", cc->description);
+		LOG_DEBUG(1, "Cartridge: %s\n", cc->description);
 	}
 	cart_config_complete(cc);
 	struct cart *c;
@@ -239,7 +239,7 @@ void cart_rom_init(struct cart *c) {
 			int size = machine_load_rom(tmp, c->rom_data, 0x4000);
 			if (size > 0) {
 				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data, size);
-				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc);
+				LOG_DEBUG(1, "\tCRC = 0x%08x\n", crc);
 			}
 			g_free(tmp);
 		}
@@ -250,7 +250,7 @@ void cart_rom_init(struct cart *c) {
 			int size = machine_load_rom(tmp, c->rom_data + 0x2000, 0x2000);
 			if (size > 0) {
 				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data + 0x2000, size);
-				LOG_DEBUG(2, "\tCRC = 0x%08x\n", crc);
+				LOG_DEBUG(1, "\tCRC = 0x%08x\n", crc);
 			}
 			g_free(tmp);
 		}

@@ -125,7 +125,7 @@ static struct device *open_device(int joystick_index) {
 	char namebuf[128];
 	ioctl(fd, JSIOCGNAME(sizeof(namebuf)), namebuf);
 	LOG_DEBUG(1, "Opened joystick %d: %s\n", joystick_index, namebuf);
-	LOG_DEBUG(2, "\t%d axes, %d buttons\n", d->num_axes, d->num_buttons);
+	LOG_DEBUG(1, "\t%d axes, %d buttons\n", d->num_axes, d->num_buttons);
 	d->open_count = 1;
 	device_list = g_slist_prepend(device_list, d);
 	return d;

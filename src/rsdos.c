@@ -173,26 +173,26 @@ static void ff40_write(struct rsdos *r, int octet) {
 	}
 	vdrive_set_head(octet & 0x40 ? 1 : 0);
 	if (octet != r->ic1_old) {
-		LOG_DEBUG(4, "RSDOS: Write to FF40: ");
+		LOG_DEBUG(2, "RSDOS: Write to FF40: ");
 		if (new_drive_select != r->ic1_drive_select) {
-			LOG_DEBUG(4, "DRIVE SELECT %d, ", new_drive_select);
+			LOG_DEBUG(2, "DRIVE SELECT %d, ", new_drive_select);
 		}
 		if ((octet ^ r->ic1_old) & 0x08) {
-			LOG_DEBUG(4, "MOTOR %s, ", (octet & 0x08)?"ON":"OFF");
+			LOG_DEBUG(2, "MOTOR %s, ", (octet & 0x08)?"ON":"OFF");
 		}
 		if ((octet ^ r->ic1_old) & 0x20) {
-			LOG_DEBUG(4, "DENSITY %s, ", (octet & 0x20)?"SINGLE":"DOUBLE");
+			LOG_DEBUG(2, "DENSITY %s, ", (octet & 0x20)?"SINGLE":"DOUBLE");
 		}
 		if ((octet ^ r->ic1_old) & 0x10) {
-			LOG_DEBUG(4, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
+			LOG_DEBUG(2, "PRECOMP %s, ", (octet & 0x10)?"ON":"OFF");
 		}
 		if ((octet ^ r->ic1_old) & 0x40) {
-			LOG_DEBUG(4, "SIDE %d, ", (octet & 0x40) >> 6);
+			LOG_DEBUG(2, "SIDE %d, ", (octet & 0x40) >> 6);
 		}
 		if ((octet ^ r->ic1_old) & 0x80) {
-			LOG_DEBUG(4, "HALT %s, ", (octet & 0x80)?"ENABLED":"DISABLED");
+			LOG_DEBUG(2, "HALT %s, ", (octet & 0x80)?"ENABLED":"DISABLED");
 		}
-		LOG_DEBUG(4, "\n");
+		LOG_DEBUG(2, "\n");
 		r->ic1_old = octet;
 	}
 	r->ic1_drive_select = new_drive_select;

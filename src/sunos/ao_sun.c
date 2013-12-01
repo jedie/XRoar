@@ -97,7 +97,7 @@ static _Bool init(void) {
 	}
 
 	sound_init(device_info.play.sample_rate, device_info.play.channels, SOUND_FMT_U8, frame_nbytes);
-	LOG_DEBUG(2, "\t%dms (%d frames) buffer\n", (frame_nbytes * 1000) / device_info.play.sample_rate, frame_nbytes);
+	LOG_DEBUG(1, "\t%dms (%d frames) buffer\n", (frame_nbytes * 1000) / device_info.play.sample_rate, frame_nbytes);
 
 	ioctl(sound_fd, I_FLUSH, FLUSHW);
 	ioctl(sound_fd, AUDIO_GETINFO, &device_info);

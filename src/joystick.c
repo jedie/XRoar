@@ -220,19 +220,19 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 		g_free(j);
 		return;
 	}
-	LOG_DEBUG(2, "Joystick port %d = %s [ ", port, jc->name);
+	LOG_DEBUG(1, "Joystick port %d = %s [ ", port, jc->name);
 	for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
 		if (j->axes[i])
-			LOG_DEBUG(2, "%d=%s:", i, j->axes[i]->interface->name);
-		LOG_DEBUG(2, ", ");
+			LOG_DEBUG(1, "%d=%s:", i, j->axes[i]->interface->name);
+		LOG_DEBUG(1, ", ");
 	}
 	for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
 		if (j->buttons[i])
-			LOG_DEBUG(2, "%d=%s:", i, j->buttons[i]->interface->name);
+			LOG_DEBUG(1, "%d=%s:", i, j->buttons[i]->interface->name);
 		if ((i + 1) < JOYSTICK_NUM_BUTTONS)
-			LOG_DEBUG(2, ", ");
+			LOG_DEBUG(1, ", ");
 	}
-	LOG_DEBUG(2, " ]\n");
+	LOG_DEBUG(1, " ]\n");
 	joystick_port[port] = j;
 	joystick_port_config[port] = jc;
 }

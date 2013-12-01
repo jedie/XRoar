@@ -1040,7 +1040,7 @@ void xroar_new_disk(int drive) {
 	struct vdisk *new_disk = vdisk_blank_disk(34, 1, VDISK_LENGTH_5_25);
 	if (new_disk == NULL)
 		return;
-	LOG_DEBUG(4, "Creating blank disk in drive %d\n", 1 + drive);
+	LOG_DEBUG(1, "Creating blank disk in drive %d\n", 1 + drive);
 	switch (filetype) {
 		case FILETYPE_VDK:
 		case FILETYPE_JVC:
@@ -1083,9 +1083,9 @@ void xroar_eject_disk(int drive) {
 _Bool xroar_set_write_enable(_Bool notify, int drive, int action) {
 	_Bool we = vdrive_set_write_enable(drive, action);
 	if (we) {
-		LOG_DEBUG(2, "Disk in drive %d write enabled.\n", drive);
+		LOG_DEBUG(1, "Disk in drive %d write enabled.\n", drive);
 	} else {
-		LOG_DEBUG(2, "Disk in drive %d write protected.\n", drive);
+		LOG_DEBUG(1, "Disk in drive %d write protected.\n", drive);
 	}
 	if (notify && ui_module && ui_module->update_drive_write_enable) {
 		ui_module->update_drive_write_enable(drive, we);
@@ -1096,9 +1096,9 @@ _Bool xroar_set_write_enable(_Bool notify, int drive, int action) {
 _Bool xroar_set_write_back(_Bool notify, int drive, int action) {
 	_Bool wb = vdrive_set_write_back(drive, action);
 	if (wb) {
-		LOG_DEBUG(2, "Write back enabled for disk in drive %d.\n", drive);
+		LOG_DEBUG(1, "Write back enabled for disk in drive %d.\n", drive);
 	} else {
-		LOG_DEBUG(2, "Write back disabled for disk in drive %d.\n", drive);
+		LOG_DEBUG(1, "Write back disabled for disk in drive %d.\n", drive);
 	}
 	if (notify && ui_module && ui_module->update_drive_write_back) {
 		ui_module->update_drive_write_back(drive, wb);
@@ -1860,6 +1860,10 @@ static struct xconfig_option xroar_options[] = {
 
 	/* Other options: */
 	XC_SET_BOOL("config-print", &private_cfg.config_print),
+	XC_SET_INT0("quiet", &log_level),
+	XC_SET_INT0("q", &log_level),
+	XC_SET_INT("verbose", &log_level),
+	XC_SET_INT("v", &log_level),
 	XC_CALL_NULL("help", &helptext),
 	XC_CALL_NULL("h", &helptext),
 	XC_CALL_NULL("version", &versiontext),
@@ -1998,6 +2002,8 @@ static void helptext(void) {
 "  -debug-file FLAGS     file debugging (see manual, or -1 for all)\n"
 "  -debug-fdc FLAGS      FDC debugging (see manual, or -1 for all)\n"
 "  -debug-gdb FLAGS      GDB target debugging (see manual, or -1 for all)\n"
+"  -v, --verbose LEVEL   general debug verbosity (0-3) [1]\n"
+"  -q, --quiet           equivalent to --verbose 0\n"
 "  -timeout SECONDS      run for SECONDS then quit\n"
 
 "\n Other options:\n"

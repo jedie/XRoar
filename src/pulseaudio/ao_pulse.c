@@ -112,7 +112,7 @@ static _Bool init(void) {
 	fragment_nbytes = fragment_nframes * sample_nbytes * nchannels;
 	audio_buffer = g_malloc(fragment_nbytes);
 	sound_init(audio_buffer, request_fmt, rate, nchannels, fragment_nframes);
-	LOG_DEBUG(2, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
+	LOG_DEBUG(1, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
 	return 1;
 failed:
 	return 0;

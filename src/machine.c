@@ -519,7 +519,7 @@ void machine_configure(struct machine_config *mc) {
 	if (!mc) return;
 	machine_config_complete(mc);
 	if (mc->description) {
-		LOG_DEBUG(2, "Machine: %s\n", mc->description);
+		LOG_DEBUG(1, "Machine: %s\n", mc->description);
 	}
 	// CPU
 	if (CPU0) {
@@ -678,7 +678,7 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_combined = crc32_block(CRC32_RESET, rom0, 0x4000);
 		}
-		LOG_DEBUG(2, "\t32K mode BASIC CRC = 0x%08x%s\n", crc_combined, forced ? " (forced)" : "");
+		LOG_DEBUG(1, "\t32K mode BASIC CRC = 0x%08x%s\n", crc_combined, forced ? " (forced)" : "");
 	}
 	if (has_altbas) {
 		_Bool forced = 0;
@@ -688,7 +688,7 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_altbas = crc32_block(CRC32_RESET, rom1, 0x4000);
 		}
-		LOG_DEBUG(2, "\t64K mode BASIC CRC = 0x%08x%s\n", crc_altbas, forced ? " (forced)" : "");
+		LOG_DEBUG(1, "\t64K mode BASIC CRC = 0x%08x%s\n", crc_altbas, forced ? " (forced)" : "");
 	}
 	if (has_bas) {
 		_Bool forced = 0;
@@ -698,7 +698,7 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, 0x2000);
 		}
-		LOG_DEBUG(2, "\tBASIC CRC = 0x%08x%s\n", crc_bas, forced ? " (forced)" : "");
+		LOG_DEBUG(1, "\tBASIC CRC = 0x%08x%s\n", crc_bas, forced ? " (forced)" : "");
 	}
 	if (has_extbas) {
 		_Bool forced = 0;
@@ -708,11 +708,11 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_extbas = crc32_block(CRC32_RESET, rom0, 0x2000);
 		}
-		LOG_DEBUG(2, "\tExtended BASIC CRC = 0x%08x%s\n", crc_extbas, forced ? " (forced)" : "");
+		LOG_DEBUG(1, "\tExtended BASIC CRC = 0x%08x%s\n", crc_extbas, forced ? " (forced)" : "");
 	}
 	if (has_ext_charset) {
 		crc_ext_charset = crc32_block(CRC32_RESET, ext_charset, 0x1000);
-		LOG_DEBUG(2, "\tExternal charset CRC = 0x%08x\n", crc_ext_charset);
+		LOG_DEBUG(1, "\tExternal charset CRC = 0x%08x\n", crc_ext_charset);
 	}
 
 	/* VDG external charset */
@@ -1274,10 +1274,10 @@ int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 		return -1;
 	}
 	if (dot && g_ascii_strcasecmp(dot, ".dgn") == 0) {
-		LOG_DEBUG(2, "Loading DGN: %s\n", path);
+		LOG_DEBUG(1, "Loading DGN: %s\n", path);
 		fread(dest, 1, 16, fd);
 	} else {
-		LOG_DEBUG(2, "Loading ROM: %s\n", path);
+		LOG_DEBUG(1, "Loading ROM: %s\n", path);
 	}
 	size = fread(dest, 1, max_size, fd);
 	fclose(fd);

@@ -92,7 +92,7 @@ static _Bool init(void) {
 	size_t buffer_nbytes = buffer_nframes * sizeof(float);
 	audio_buffer = g_malloc(buffer_nbytes);
 	sound_init(audio_buffer, SOUND_FMT_FLOAT, rate, 1, buffer_nframes);
-	LOG_DEBUG(2, "\t%dms (%d frames) buffer\n", (buffer_nframes * 1000) / rate, buffer_nframes);
+	LOG_DEBUG(1, "\t%dms (%d frames) buffer\n", (buffer_nframes * 1000) / rate, buffer_nframes);
 
 	pthread_mutex_init(&haltflag, NULL);
 

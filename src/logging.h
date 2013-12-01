@@ -20,18 +20,17 @@
 
 #include <stdio.h>
 
-/* 0 - Silent, 1 - Title, 2 - Info, 3 - Details, 4 - Verbose, 5 - Silly */
-/* Normally 3 */
-#ifndef DEBUG_LEVEL
-# define DEBUG_LEVEL 2
-#endif
+/* Log levels:
+ * 0 - Quiet, 1 - Info, 2 - Events, 3 - Debug */
 
-#define LOG_DEBUG(l,...) do { if (DEBUG_LEVEL >= l) { fprintf(stderr, __VA_ARGS__); } } while (0)
+#define LOG_DEBUG(l,...) do { if (log_level >= l) { fprintf(stderr, __VA_ARGS__); } } while (0)
 #define LOG_PRINT(...) printf(__VA_ARGS__)
 #define LOG_WARN(...) fprintf(stderr, "WARNING: " __VA_ARGS__)
 #define LOG_ERROR(...) fprintf(stderr, "ERROR: " __VA_ARGS__)
 
 #endif
+
+extern int log_level;
 
 struct log_handle;
 
