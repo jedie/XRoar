@@ -425,10 +425,18 @@ build-bin: xroar$(EXEEXT)
 .PHONY: install
 install: install-bin
 
+.PHONY: uninstall
+uninstall: uninstall-bin
+
 .PHONY: install-bin
 install-bin: build-bin
 	$(INSTALL_DIR) $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) xroar$(EXEEXT) $(DESTDIR)$(bindir)
+
+.PHONY: uninstall-bin
+uninstall-bin:
+	rm -f $(DESTDIR)$(bindir)/xroar$(EXEEXT)
+	-rmdir $(DISTDIR)$(bindir)
 
 ############################################################################
 # Generated dependencies

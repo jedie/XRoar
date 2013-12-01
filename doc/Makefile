@@ -49,8 +49,14 @@ endif
 .PHONY: install
 install: install-doc
 
+.PHONY: uninstall
+uninstall: uninstall-doc
+
 .PHONY: install-doc
 install-doc: build-doc
+
+.PHONY: uninstall-doc
+uninstall-doc: uninstall-info
 
 ifneq ($(MAKEINFO),)
 install-doc: install-info
@@ -60,6 +66,11 @@ endif
 install-info: xroar.info
 	$(INSTALL_DIR) $(DESTDIR)$(infodir)
 	$(INSTALL_FILE) xroar.info $(DESTDIR)$(infodir)
+
+.PHONY: uninstall-info
+uninstall-info:
+	rm -f $(DESTDIR)$(infodir)/xroar.info
+	-rmdir $(DESTDIR)$(infodir)
 
 ############################################################################
 # Clean-up, etc.

@@ -27,6 +27,10 @@ include $(SRCROOT)/common.mak
 install:
 	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
 
+.PHONY: uninstall
+uninstall:
+	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+
 ############################################################################
 # Specific targets
 

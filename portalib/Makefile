@@ -81,6 +81,9 @@ build-lib: libporta.a
 .PHONY: install
 install:
 
+.PHONY: uninstall
+uninstall:
+
 ############################################################################
 # Clean-up, etc.
 
