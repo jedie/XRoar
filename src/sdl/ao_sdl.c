@@ -53,6 +53,7 @@ static SDL_mutex *audio_buffer_mutex;
 static SDL_cond *audio_buffer_cv;
 static SDL_mutex *halt_mutex;
 static SDL_cond *halt_cv;
+static Uint32 timeout_ms;
 
 static void callback(void *userdata, Uint8 *stream, int len);
 
@@ -106,6 +107,7 @@ static _Bool init(void) {
 			goto failed;
 	}
 	int buffer_nframes = audiospec.samples;
+	timeout_ms = (buffer_nframes * 1500) / audiospec.freq;
 
 	audio_buffer_mutex = SDL_CreateMutex();
 	audio_buffer_cv = SDL_CreateCond();
@@ -165,8 +167,13 @@ static void *write_buffer(void *buffer) {
 
 	// wait for audio thread to pass a buffer pointer
 	SDL_LockMutex(audio_buffer_mutex);
-	while (!audio_buffer)
-		SDL_CondWait(audio_buffer_cv, audio_buffer_mutex);
+	while (!audio_buffer) {
+		if (SDL_CondWaitTimeout(audio_buffer_cv, audio_buffer_mutex, timeout_ms) == SDL_MUTEX_TIMEDOUT) {
+			SDL_UnlockMutex(audio_buffer_mutex);
+			return NULL;
+		}
+	}
+
 	void *r = audio_buffer;
 	audio_buffer = NULL;
 	SDL_UnlockMutex(audio_buffer_mutex);
@@ -176,6 +183,11 @@ static void *write_buffer(void *buffer) {
 static void callback(void *userdata, Uint8 *stream, int len) {
 	(void)userdata;  /* unused */
 
+	if (!shutting_down) {
+		SDL_LockMutex(halt_mutex);
+		halt = 1;
+	}
+
 	// pass buffer pointer back to main thread
 	SDL_LockMutex(audio_buffer_mutex);
 	audio_buffer = stream;
@@ -184,8 +196,6 @@ static void callback(void *userdata, Uint8 *stream, int len) {
 
 	// wait for main thread to be done with buffer
 	if (!shutting_down) {
-		SDL_LockMutex(halt_mutex);
-		halt = 1;
 		while (halt)
 			SDL_CondWait(halt_cv, halt_mutex);
 		SDL_UnlockMutex(halt_mutex);
