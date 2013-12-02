@@ -274,6 +274,14 @@ static void fill_float(int nframes) {
 	}
 }
 
+static void null_frames(int nframes) {
+	buffer_frame += nframes;
+	while (buffer_frame >= buffer_nframes) {
+		buffer = sound_module->write_buffer(buffer);
+		buffer_frame -= buffer_nframes;
+	}
+}
+
 /* Fill sound buffer to current point in time, call sound module's
  * update() function if buffer is full. */
 static void sound_update(void) {
@@ -327,14 +335,13 @@ static void sound_update(void) {
 			fill_float(nframes);
 			break;
 		default:
+			null_frames(nframes);
 			break;
 		}
 	} else {
-		while (nframes >= buffer_nframes) {
-			buffer = sound_module->write_buffer(buffer);
-			nframes -= buffer_nframes;
-		}
+		null_frames(nframes);
 	}
+
 	last_cycle = event_current_tick;
 
 	/* Mix internal sound sources to bus */
