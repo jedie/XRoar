@@ -42,16 +42,16 @@ along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
 
 This README contains extracts from the manual.  Binary packages contain the
 full manual as a PDF, which is also available from the XRoar home page
-(http://www.6809.org.uk/dragon/xroar.shtml).
+(http://www.6809.org.uk/xroar/).
 
 
 Getting started
 ***************
 
 Pre-built binary packages are available from the XRoar home page
-(http://www.6809.org.uk/dragon/xroar.shtml).  If one is not available
-for your architecture, you will need to build from source.  XRoar should
-build and run on any POSIX-like system for which SDL is available.
+(http://www.6809.org.uk/xroar/).  If one is not available for your
+architecture, you will need to build from source.  XRoar should build
+and run on any POSIX-like system for which SDL is available.
 
    You will also need BASIC ROM images--binary dumps of the firmware
 from an original machine.  The originals were part-written by Microsoft,
