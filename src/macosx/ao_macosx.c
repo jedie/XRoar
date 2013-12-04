@@ -199,6 +199,11 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 	(void)inOutputTime;  /* unused */
 	(void)defptr;        /* unused */
 
+	if (!shutting_down) {
+		pthread_mutex_lock(&halt_mutex);
+		halt = 1;
+	}
+
 	// pass buffer pointer back to main thread
 	pthread_mutex_lock(&audio_buffer_mutex);
 	audio_buffer = (float *)outOutputData->mBuffers[0].mData;
@@ -207,8 +212,6 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 
 	// wait for main thread to be done with buffer
 	if (!shutting_down) {
-		pthread_mutex_lock(&halt_mutex);
-		halt = 1;
 		while (halt)
 			pthread_cond_wait(&halt_cv, &halt_mutex);
 		pthread_mutex_unlock(&halt_mutex);
