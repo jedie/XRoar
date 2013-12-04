@@ -70,44 +70,50 @@ void keyboard_set_chord_mode(enum keyboard_chord_mode mode) {
 	}
 }
 
-/* Compute which rows & columns are to act as sinks based on inputs to the
- * matrix and the current state of depressed keys. */
+/* Compute sources & sinks based on inputs to the matrix and the current state
+ * of depressed keys. */
 
-void keyboard_read_matrix(int row_in, int col_in, int *row_sink, int *col_sink) {
-	/* Pull low any directly connected rows & columns */
+void keyboard_read_matrix(struct keyboard_state *state) {
+	/* Ghosting: combine columns that share any pressed rows.  Repeat until
+	 * no change in the row mask. */
+	int old;
+	do {
+		old = state->row_sink;
+		for (int i = 0; i < 8; i++) {
+			if (~state->row_sink & ~keyboard_column[i]) {
+				state->col_sink &= ~(1 << i);
+				state->row_sink &= keyboard_column[i];
+			}
+		}
+	} while (old != state->row_sink);
+	/* Likewise combining rows. */
+	do {
+		old = state->col_sink;
+		for (int i = 0; i < 7; i++) {
+			if (~state->col_sink & ~keyboard_row[i]) {
+				state->row_sink &= ~(1 << i);
+				state->col_sink &= keyboard_row[i];
+			}
+		}
+	} while (old != state->col_sink);
+
+	/* Sink & source any directly connected rows & columns */
 	for (int i = 0; i < 8; i++) {
-		if (!(col_in & (1 << i))) {
-			*row_sink &= keyboard_column[i];
+		if (!(state->col_sink & (1 << i))) {
+			state->row_sink &= keyboard_column[i];
+		}
+		if (state->col_source & (1 << i)) {
+			state->row_source |= ~keyboard_column[i];
 		}
 	}
 	for (int i = 0; i < 7; i++) {
-		if (!(row_in & (1 << i))) {
-			*col_sink &= keyboard_row[i];
+		if (!(state->row_sink & (1 << i))) {
+			state->col_sink &= keyboard_row[i];
+		}
+		if (state->row_source & (1 << i)) {
+			state->col_source |= ~keyboard_row[i];
 		}
 	}
-	/* Ghosting: pull low column inputs that share any pulled low rows, and
-	 * merge that column's direct row connections.  Repeat until no change
-	 * in the row mask. */
-	int old;
-	do {
-		old = *row_sink;
-		for (int i = 0; i < 8; i++) {
-			if (~*row_sink & ~keyboard_column[i]) {
-				*col_sink &= ~(1 << i);
-				*row_sink &= keyboard_column[i];
-			}
-		}
-	} while (old != *row_sink);
-	/* Likewise the other way around. */
-	do {
-		old = *col_sink;
-		for (int i = 0; i < 7; i++) {
-			if (~*col_sink & ~keyboard_row[i]) {
-				*row_sink &= ~(1 << i);
-				*col_sink &= keyboard_row[i];
-			}
-		}
-	} while (old != *col_sink);
 }
 
 void keyboard_unicode_press(unsigned unicode) {

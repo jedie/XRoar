@@ -25,6 +25,13 @@ extern struct dkbd_map keymap_new;
 extern unsigned keyboard_column[9];
 extern unsigned keyboard_row[9];
 
+struct keyboard_state {
+	unsigned row_source;
+	unsigned row_sink;
+	unsigned col_source;
+	unsigned col_sink;
+};
+
 /* Press or release a key at the the matrix position (col,row). */
 
 static inline void keyboard_press_matrix(int col, int row) {
@@ -68,7 +75,7 @@ void keyboard_set_keymap(int map);
 
 void keyboard_set_chord_mode(enum keyboard_chord_mode mode);
 
-void keyboard_read_matrix(int row_out, int col_out, int *row_in, int *col_in);
+void keyboard_read_matrix(struct keyboard_state *);
 void keyboard_unicode_press(unsigned unicode);
 void keyboard_unicode_release(unsigned unicode);
 void keyboard_queue_basic(const uint8_t *s);

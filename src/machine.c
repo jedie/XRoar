@@ -296,12 +296,17 @@ void machine_config_print_all(void) {
 /* ---------------------------------------------------------------------- */
 
 static void keyboard_update(void) {
-	int row = PIA0->a.out_sink;
-	int col = PIA0->b.out_source & PIA0->b.out_sink;
-	int row_sink = 0xff, col_sink = 0xff;
-	keyboard_read_matrix(row, col, &row_sink, &col_sink);
-	PIA0->a.in_sink = (PIA0->a.in_sink & 0x80) | (row_sink & 0x7f);
-	PIA0->b.in_sink = col_sink;
+	unsigned buttons = ~(joystick_read_buttons() & 3);
+	struct keyboard_state state = {
+		.row_source = PIA0->a.out_sink,
+		.row_sink = PIA0->a.out_sink & buttons,
+		.col_source = PIA0->b.out_source,
+		.col_sink = PIA0->b.out_sink,
+	};
+	keyboard_read_matrix(&state);
+	PIA0->a.in_sink = state.row_sink;
+	PIA0->b.in_source = state.col_source;
+	PIA0->b.in_sink = state.col_sink;
 }
 
 static void joystick_update(void) {
@@ -313,7 +318,6 @@ static void joystick_update(void) {
 		PIA0->a.in_sink |= 0x80;
 	else
 		PIA0->a.in_sink &= 0x7f;
-	PIA0->a.in_sink &= ~(joystick_read_buttons() & 3);
 }
 
 static void update_sound_mux_source(void) {
