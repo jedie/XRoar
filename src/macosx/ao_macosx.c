@@ -16,6 +16,12 @@
  *  along with XRoar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Core Audio processes audio in a separate thread, using a callback to request
+ * more data.  When the configured number of audio fragments (nfragments) is 1,
+ * write directly into the buffer provided by Core Audio.  When nfragments > 1,
+ * maintain a queue of fragment buffers; the callback takes the next filled
+ * buffer from the queue and copies its data into place. */
+
 #include "config.h"
 
 #include <pthread.h>
@@ -48,20 +54,23 @@ static AudioObjectID device;
 static AudioDeviceIOProcID aprocid;
 #endif
 
-static float *audio_buffer;
-static _Bool halt;
+static void *callback_buffer;
 static _Bool shutting_down;
 
-static pthread_mutex_t audio_buffer_mutex;
-static pthread_cond_t audio_buffer_cv;
-static pthread_mutex_t halt_mutex;
-static pthread_cond_t halt_cv;
+static unsigned nfragments;
+static unsigned fragment_nbytes;
 
-static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
-		const AudioBufferList *inInputData,
-		const AudioTimeStamp *inInputTime,
-		AudioBufferList *outOutputData,
-		const AudioTimeStamp *inOutputTime, void *defptr);
+static pthread_mutex_t fragment_mutex;
+static pthread_cond_t fragment_cv;
+static void **fragment_buffer;
+static unsigned fragment_queue_length;
+static unsigned write_fragment;
+static unsigned play_fragment;
+
+static OSStatus callback(AudioDeviceID, const AudioTimeStamp *, const AudioBufferList *,
+		const AudioTimeStamp *, AudioBufferList *, const AudioTimeStamp *, void *);
+static OSStatus callback_1(AudioDeviceID, const AudioTimeStamp *, const AudioBufferList *,
+		const AudioTimeStamp *, AudioBufferList *, const AudioTimeStamp *, void *);
 
 static _Bool init(void) {
 	AudioObjectPropertyAddress propertyAddress;
@@ -88,58 +97,80 @@ static _Bool init(void) {
 	if (!(deviceFormat.mFormatFlags & kLinearPCMFormatFlagIsFloat))
 		goto failed;
 
-	/* More than one fragment not currently supported. */
+	nfragments = 2;
+	if (xroar_cfg.ao_fragments > 0 && xroar_cfg.ao_fragments <= 64)
+		nfragments = xroar_cfg.ao_fragments;
 
 	unsigned rate = deviceFormat.mSampleRate;
 	unsigned nchannels = deviceFormat.mChannelsPerFrame;
-	unsigned fragment_nframes = 1024;
+	unsigned fragment_nframes;
+	unsigned buffer_nframes;
+	enum sound_fmt sample_fmt = SOUND_FMT_FLOAT;
+	unsigned sample_nbytes = sizeof(float);
+	unsigned frame_nbytes = nchannels * sample_nbytes;
 
 	if (xroar_cfg.ao_fragment_ms > 0) {
 		fragment_nframes = (rate * xroar_cfg.ao_fragment_ms) / 1000;
 	} else if (xroar_cfg.ao_fragment_nframes > 0) {
 		fragment_nframes = xroar_cfg.ao_fragment_nframes;
-	} else if (xroar_cfg.ao_buffer_ms > 0) {
-		fragment_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
-	} else if (xroar_cfg.ao_buffer_nframes > 0) {
-		fragment_nframes = xroar_cfg.ao_buffer_nframes;
 	} else {
-		fragment_nframes = 1024;
+		if (xroar_cfg.ao_buffer_ms > 0) {
+			buffer_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
+		} else if (xroar_cfg.ao_buffer_nframes > 0) {
+			buffer_nframes = xroar_cfg.ao_buffer_nframes;
+		} else {
+			buffer_nframes = 1024;
+		}
+		fragment_nframes = buffer_nframes / nfragments;
 	}
 
-	unsigned buffer_nsamples = fragment_nframes * nchannels;
-	UInt32 buffer_nbytes = buffer_nsamples * sizeof(float);
-	propertySize = sizeof(buffer_nbytes);
+	UInt32 prop_buf_size = fragment_nframes * frame_nbytes;
+	propertySize = sizeof(prop_buf_size);
 	propertyAddress.mSelector = kAudioDevicePropertyBufferSize;
-	if (AudioObjectSetPropertyData(device, &propertyAddress, 0, NULL, propertySize, &buffer_nbytes) != kAudioHardwareNoError)
+	if (AudioObjectSetPropertyData(device, &propertyAddress, 0, NULL, propertySize, &prop_buf_size) != kAudioHardwareNoError)
 		goto failed;
-	buffer_nsamples = buffer_nbytes / sizeof(float);
-	fragment_nframes = buffer_nsamples / nchannels;
+	fragment_nframes = prop_buf_size / frame_nbytes;
 
 #ifdef MAC_OS_X_VERSION_10_5
-	AudioDeviceCreateIOProcID(device, callback, NULL, &aprocid);
+	AudioDeviceCreateIOProcID(device, (nfragments == 1) ? callback_1 : callback, NULL, &aprocid);
 #else
-	AudioDeviceAddIOProc(device, callback, NULL);
+	AudioDeviceAddIOProc(device, (nfragments == 1) ? callback_1 : callback, NULL);
 #endif
 
-	pthread_mutex_init(&audio_buffer_mutex, NULL);
-	pthread_cond_init(&audio_buffer_cv, NULL);
-	pthread_mutex_init(&halt_mutex, NULL);
-	pthread_cond_init(&halt_cv, NULL);
+	buffer_nframes = fragment_nframes * nfragments;
+	fragment_nbytes = fragment_nframes * nchannels * sample_nbytes;
 
-	audio_buffer = NULL;
-	halt = 1;
+	pthread_mutex_init(&fragment_mutex, NULL);
+	pthread_cond_init(&fragment_cv, NULL);
+
 	shutting_down = 0;
+	fragment_queue_length = 0;
+	write_fragment = 0;
+	play_fragment = 0;
+	callback_buffer = NULL;
 
-	pthread_mutex_lock(&audio_buffer_mutex);
-	AudioDeviceStart(device, callback);
-	// wait for initial buffer from audio thread
-	while (!audio_buffer)
-		pthread_cond_wait(&audio_buffer_cv, &audio_buffer_mutex);
+	// allocate fragment buffers
+	fragment_buffer = g_malloc(nfragments * sizeof(void *));
+	if (nfragments > 1) {
+		for (unsigned i = 0; i < nfragments; i++) {
+			fragment_buffer[i] = g_malloc0(fragment_nbytes);
+		}
+	}
 
-	sound_init(audio_buffer, SOUND_FMT_FLOAT, rate, nchannels, fragment_nframes);
-	audio_buffer = NULL;
-	pthread_mutex_unlock(&audio_buffer_mutex);
-	LOG_DEBUG(1, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
+	AudioDeviceStart(device, (nfragments == 1) ? callback_1 : callback);
+
+	if (nfragments == 1) {
+		pthread_mutex_lock(&fragment_mutex);
+		while (callback_buffer == NULL) {
+			pthread_cond_wait(&fragment_cv, &fragment_mutex);
+		}
+		fragment_buffer[0] = callback_buffer;
+		callback_buffer = NULL;
+		pthread_mutex_unlock(&fragment_mutex);
+	}
+
+	sound_init(fragment_buffer[0], sample_fmt, rate, nchannels, fragment_nframes);
+	LOG_DEBUG(1, "\t%u frags * %d frames/frag = %d frames buffer (%.1fms)\n", nfragments, fragment_nframes, buffer_nframes, (float)(buffer_nframes * 1000) / rate);
 
 	return 1;
 failed:
@@ -147,44 +178,68 @@ failed:
 }
 
 static void shutdown(void) {
-	pthread_mutex_lock(&halt_mutex);
-	halt = 0;
 	shutting_down = 1;
-	pthread_cond_signal(&halt_cv);
-	pthread_mutex_unlock(&halt_mutex);
 
-	AudioDeviceStop(device, callback);
+	// unblock audio thread
+	pthread_mutex_lock(&fragment_mutex);
+	fragment_queue_length = 1;
+	pthread_cond_signal(&fragment_cv);
+	pthread_mutex_unlock(&fragment_mutex);
+
+	AudioDeviceStop(device, (nfragments == 1) ? callback_1 : callback);
 #ifdef MAC_OS_X_VERSION_10_5
 	AudioDeviceDestroyIOProcID(device, aprocid);
 #else
-	AudioDeviceRemoveIOProc(device, callback);
+	AudioDeviceRemoveIOProc(device, (nfragments == 1) ? callback_1 : callback);
 #endif
 
-	pthread_mutex_destroy(&audio_buffer_mutex);
-	pthread_cond_destroy(&audio_buffer_cv);
-	pthread_mutex_destroy(&halt_mutex);
-	pthread_cond_destroy(&halt_cv);
+	pthread_mutex_destroy(&fragment_mutex);
+	pthread_cond_destroy(&fragment_cv);
+
+	if (nfragments > 1) {
+		for (unsigned i = 0; i < nfragments; i++) {
+			g_free(fragment_buffer[i]);
+		}
+	}
+
+	g_free(fragment_buffer);
 }
 
 static void *write_buffer(void *buffer) {
 	(void)buffer;
-	// unblock audio thread
-	pthread_mutex_lock(&halt_mutex);
-	halt = 0;
-	pthread_cond_signal(&halt_cv);
-	pthread_mutex_unlock(&halt_mutex);
 
-	if (xroar_noratelimit)
+	pthread_mutex_lock(&fragment_mutex);
+
+	/* For nfragments == 1, a non-NULL buffer means we've finished writing
+	 * to the buffer provided by the callback.  Otherwise, one fragment
+	 * buffer is now full.  Either way, signal the callback in case it is
+	 * waiting for data to be available. */
+
+	if (buffer) {
+		write_fragment = (write_fragment + 1) % nfragments;
+		fragment_queue_length++;
+		pthread_cond_signal(&fragment_cv);
+	}
+
+	if (xroar_noratelimit) {
+		pthread_mutex_unlock(&fragment_mutex);
 		return NULL;
+	}
 
-	// wait for audio thread to pass a buffer pointer
-	pthread_mutex_lock(&audio_buffer_mutex);
-	while (!audio_buffer)
-		pthread_cond_wait(&audio_buffer_cv, &audio_buffer_mutex);
-	void *r = audio_buffer;
-	audio_buffer = NULL;
-	pthread_mutex_unlock(&audio_buffer_mutex);
-	return r;
+	if (nfragments == 1) {
+		// for nfragments == 1, wait for callback to send buffer
+		while (callback_buffer == NULL)
+			pthread_cond_wait(&fragment_cv, &fragment_mutex);
+		fragment_buffer[0] = callback_buffer;
+		callback_buffer = NULL;
+	} else {
+		// for nfragments > 1, wait until a fragment buffer is available
+		while (fragment_queue_length == nfragments)
+			pthread_cond_wait(&fragment_cv, &fragment_mutex);
+	}
+
+	pthread_mutex_unlock(&fragment_mutex);
+	return fragment_buffer[write_fragment];
 }
 
 static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
@@ -199,22 +254,53 @@ static OSStatus callback(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
 	(void)inOutputTime;  /* unused */
 	(void)defptr;        /* unused */
 
-	if (!shutting_down) {
-		pthread_mutex_lock(&halt_mutex);
-		halt = 1;
-	}
+	if (shutting_down)
+		return kAudioHardwareNoError;
+	pthread_mutex_lock(&fragment_mutex);
 
-	// pass buffer pointer back to main thread
-	pthread_mutex_lock(&audio_buffer_mutex);
-	audio_buffer = (float *)outOutputData->mBuffers[0].mData;
-	pthread_cond_signal(&audio_buffer_cv);
-	pthread_mutex_unlock(&audio_buffer_mutex);
+	// wait until at least one fragment buffer is filled
+	while (fragment_queue_length == 0)
+		pthread_cond_wait(&fragment_cv, &fragment_mutex);
 
-	// wait for main thread to be done with buffer
-	if (!shutting_down) {
-		while (halt)
-			pthread_cond_wait(&halt_cv, &halt_mutex);
-		pthread_mutex_unlock(&halt_mutex);
-	}
+	// copy it to callback buffer
+	memcpy(outOutputData->mBuffers[0].mData, fragment_buffer[play_fragment], fragment_nbytes);
+	play_fragment = (play_fragment + 1) % nfragments;
+
+	// signal main thread that a fragment buffer is available
+	fragment_queue_length--;
+	pthread_cond_signal(&fragment_cv);
+
+	pthread_mutex_unlock(&fragment_mutex);
+	return kAudioHardwareNoError;
+}
+
+static OSStatus callback_1(AudioDeviceID inDevice, const AudioTimeStamp *inNow,
+		const AudioBufferList *inInputData,
+		const AudioTimeStamp *inInputTime,
+		AudioBufferList *outOutputData,
+		const AudioTimeStamp *inOutputTime, void *defptr) {
+	(void)inDevice;      /* unused */
+	(void)inNow;         /* unused */
+	(void)inInputData;   /* unused */
+	(void)inInputTime;   /* unused */
+	(void)inOutputTime;  /* unused */
+	(void)defptr;        /* unused */
+
+	if (shutting_down)
+		return kAudioHardwareNoError;
+	pthread_mutex_lock(&fragment_mutex);
+
+	// pass callback buffer to main thread
+	callback_buffer = outOutputData->mBuffers[0].mData;
+	pthread_cond_signal(&fragment_cv);
+
+	// wait until main thread signals filled buffer
+	while (fragment_queue_length == 0)
+		pthread_cond_wait(&fragment_cv, &fragment_mutex);
+
+	// set to 0 so next callback will wait
+	fragment_queue_length = 0;
+
+	pthread_mutex_unlock(&fragment_mutex);
 	return kAudioHardwareNoError;
 }
