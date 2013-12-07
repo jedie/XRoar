@@ -702,13 +702,14 @@ To make life easier, the default image for each type of machine or cartridge
 usually refers to a ROM list which contains all the corresponding filenames
 seen ``in the wild'':
 
-@multitable {RS-DOS with becker port} {Xdragondos_compat} {dplus49b, sdose6, ddos40, cdos20XXXXX}
+@multitable {RS-DOS with becker port} {Xdragondos_compatxx} {dplus49b, sdose6, ddos40, cdos20XXXXX}
 @headitem Firmware ROM @tab ROM list @tab Canonical image names
 @item Dragon 32 BASIC @tab @samp{@@dragon32} @tab @file{d32}
 @item Dragon 64 32K BASIC @tab @samp{@@dragon64} @tab @file{d64_1}
 @item Dragon 64 64K BASIC @tab @samp{@@dragon64_alt} @tab @file{d64_2}
 @item Dragon 200-E 32K BASIC @tab @samp{@@dragon200e} @tab @file{d200e_1}
 @item Dragon 200-E 64K BASIC @tab @samp{@@dragon200e_alt} @tab @file{d200e_2}
+@item Dragon 200-E Charset@tab @samp{@@dragon200e_charset} @tab @file{d200e_26}
 @item Tandy Colour BASIC @tab @samp{@@coco} @tab @file{bas13}, @file{bas12}, @file{bas11}, @file{bas10}
 @item Tandy Extended BASIC @tab @samp{@@coco_ext} @tab @file{extbas11}, @file{extbas10}
 @item DragonDOS @tab @samp{@@dragondos_compat} @tab @file{dplus49b}, @file{sdose6}, @file{ddos40}, @file{cdos20}

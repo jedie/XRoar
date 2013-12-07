@@ -225,7 +225,7 @@ static const char *default_config[] = {
 	"machine-keyboard dragon200e",
 	"extbas @dragon200e",
 	"altbas @dragon200e_alt",
-	"ext-charset d200e_26",
+	"ext-charset @dragon200e_charset",
 	"tv-type pal",
 	"ram 64",
 	// CoCo
@@ -296,14 +296,15 @@ static const char *default_config[] = {
 	"romlist d64_1=d64_1,d64rom1,Dragon Data Ltd - Dragon 64 - IC17,Dragon Data Ltd - TANO IC18,Eurohard S.A. - Dragon 200 IC18,dragrom",
 	"romlist d64_2=d64_2,d64rom2,Dragon Data Ltd - Dragon 64 - IC18,Dragon Data Ltd - TANO IC17,Eurohard S.A. - Dragon 200 IC17",
 	"romlist d32=d32,dragon32,d32rom,Dragon Data Ltd - Dragon 32 - IC17",
-	"romlist d200e_1=d200e_1,d200e_rom1",
-	"romlist d200e_2=d200e_2,d200e_rom2",
+	"romlist d200e_1=d200e_1,d200e_rom1,ic18_v1.4e.ic34",
+	"romlist d200e_2=d200e_2,d200e_rom2,ic17_v1.4e.ic37",
 	// Specific Dragon BASIC
 	"romlist dragon64=@d64_1,@dragon",
 	"romlist dragon64_alt=@d64_2",
 	"romlist dragon32=@d32,@dragon",
 	"romlist dragon200e=@d200e_1,@d64_1,@dragon",
 	"romlist dragon200e_alt=@d200e_2,@d64_2",
+	"romlist dragon200e_charset=d200e_26,rom26.ic1",
 	// Fallback CoCo BASIC
 	"romlist coco=bas13,bas12,bas11,bas10",
 	"romlist coco_ext=extbas11,extbas10",
