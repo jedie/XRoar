@@ -264,7 +264,7 @@ int cocoa_super_all_keys = 0;
 	/* Video: */
 	case TAG_FULLSCREEN:
 		is_fullscreen = !is_fullscreen;
-		xroar_fullscreen(is_fullscreen);
+		xroar_set_fullscreen(0, is_fullscreen);
 		break;
 	case TAG_CROSS_COLOUR:
 		current_cc = tag;
@@ -958,6 +958,7 @@ UIModule ui_macosx_module = {
 	.keyboard_module_list = sdl_keyboard_module_list,
 	.joystick_module_list = sdl_js_modlist,
 	.run = sdl_run,
+	.fullscreen_changed_cb = fullscreen_changed_cb,
 	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.machine_changed_cb = machine_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
@@ -971,7 +972,6 @@ UIModule ui_macosx_module = {
 static _Bool init(void) {
 	update_machine_menu();
 	update_cartridge_menu();
-	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
 	return 1;
 }
 

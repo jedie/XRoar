@@ -423,7 +423,6 @@ static struct {
 	{ NULL, FILETYPE_UNKNOWN }
 };
 
-void (*xroar_fullscreen_changed_cb)(_Bool fullscreen) = NULL;
 static struct vdg_palette *get_machine_palette(void);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1144,10 +1143,7 @@ void xroar_quit(void) {
 	exit(EXIT_SUCCESS);
 }
 
-void xroar_fullscreen(int action) {
-	static int lock = 0;
-	if (lock) return;
-	lock = 1;
+void xroar_set_fullscreen(_Bool notify, int action) {
 	_Bool set_to;
 	switch (action) {
 		case XROAR_OFF:
@@ -1161,11 +1157,12 @@ void xroar_fullscreen(int action) {
 			set_to = !video_module->is_fullscreen;
 			break;
 	}
-	video_module->set_fullscreen(set_to);
-	if (xroar_fullscreen_changed_cb) {
-		xroar_fullscreen_changed_cb(set_to);
+	if (video_module->set_fullscreen) {
+		video_module->set_fullscreen(set_to);
 	}
-	lock = 0;
+	if (notify && ui_module->fullscreen_changed_cb) {
+		ui_module->fullscreen_changed_cb(set_to);
+	}
 }
 
 void xroar_load_file(const char **exts) {

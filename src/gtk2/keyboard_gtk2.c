@@ -278,7 +278,7 @@ static void emulator_command(guint keyval, int shift) {
 		xroar_toggle_cart();
 		break;
 	case GDK_KEY_f:
-		xroar_fullscreen(XROAR_TOGGLE);
+		xroar_set_fullscreen(1, XROAR_TOGGLE);
 		break;
 	case GDK_KEY_h:
 		if (shift)

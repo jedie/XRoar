@@ -236,7 +236,7 @@ static void emulator_command(SDLKey sym) {
 		xroar_toggle_cart();
 		break;
 	case SDLK_f:
-		xroar_fullscreen(XROAR_TOGGLE);
+		xroar_set_fullscreen(1, XROAR_TOGGLE);
 		break;
 	case SDLK_h:
 		if (shift)
@@ -336,7 +336,7 @@ void sdl_keypress(SDL_keysym *keysym) {
 		return;
 	}
 	if (sym == SDLK_F11) {
-		xroar_fullscreen(XROAR_TOGGLE);
+		xroar_set_fullscreen(1, XROAR_TOGGLE);
 		return;
 	}
 	if (sym == SDLK_F12) {

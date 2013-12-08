@@ -45,8 +45,6 @@ extern const char *xroar_tape_exts[];
 extern const char *xroar_snap_exts[];
 extern const char *xroar_cart_exts[];
 
-extern void (*xroar_fullscreen_changed_cb)(_Bool fullscreen);
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 enum xroar_run_state {
@@ -195,7 +193,7 @@ _Bool xroar_set_write_back(_Bool notify, int drive, int action);
 void xroar_set_cross_colour(_Bool notify, int action);
 void xroar_set_vdg_inverted_text(_Bool notify, int action);
 void xroar_quit(void);
-void xroar_fullscreen(int action);
+void xroar_set_fullscreen(_Bool notify, int action);
 void xroar_load_file(const char **exts);
 void xroar_run_file(const char **exts);
 void xroar_set_keymap(int map);

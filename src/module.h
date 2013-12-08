@@ -63,6 +63,7 @@ typedef struct {
 	KeyboardModule **keyboard_module_list;
 	JoystickModule **joystick_module_list;
 	void (*run)(void);
+	void (*fullscreen_changed_cb)(_Bool fullscreen);
 	void (*cross_colour_changed_cb)(int cc);
 	void (*vdg_inverse_cb)(_Bool inverse);
 	void (*machine_changed_cb)(int machine_type);

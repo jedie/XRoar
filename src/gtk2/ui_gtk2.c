@@ -110,6 +110,7 @@ static JoystickModule *gtk2_js_modlist[] = {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /* Module callbacks */
+static void fullscreen_changed_cb(_Bool fullscreen);
 static void cross_colour_changed_cb(int cc);
 static void vdg_inverse_cb(_Bool inverse);
 static void machine_changed_cb(int machine_type);
@@ -125,6 +126,7 @@ UIModule ui_gtk2_module = {
 	.video_module_list = gtk2_video_module_list,
 	.keyboard_module_list = gtk2_keyboard_module_list,
 	.joystick_module_list = gtk2_js_modlist,
+	.fullscreen_changed_cb = fullscreen_changed_cb,
 	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.vdg_inverse_cb = vdg_inverse_cb,
 	.machine_changed_cb = machine_changed_cb,
@@ -159,9 +161,6 @@ static int cursor_hidden = 0;
 static GdkCursor *old_cursor, *blank_cursor;
 static gboolean hide_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data);
 static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer data);
-
-/* UI-specific callbacks */
-static void fullscreen_changed_cb(_Bool fullscreen);
 
 static gboolean run_cpu(gpointer data);
 
@@ -216,7 +215,7 @@ static void save_snapshot(void) {
 static void set_fullscreen(GtkToggleAction *current, gpointer user_data) {
 	gboolean val = gtk_toggle_action_get_active(current);
 	(void)user_data;
-	xroar_fullscreen(val);
+	xroar_set_fullscreen(0, val);
 }
 
 static void zoom_1_1(void) {
@@ -578,10 +577,6 @@ static _Bool init(void) {
 	if (xroar_cfg.geometry) {
 		gtk_window_parse_geometry(GTK_WINDOW(gtk2_top_window), xroar_cfg.geometry);
 	}
-
-	/* Now up to video module to do something with this drawing_area */
-
-	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
 
 	/* Cursor hiding */
 	blank_cursor = gdk_cursor_new(GDK_BLANK_CURSOR);
