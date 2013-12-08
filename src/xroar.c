@@ -424,7 +424,6 @@ static struct {
 };
 
 void (*xroar_fullscreen_changed_cb)(_Bool fullscreen) = NULL;
-void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate) = NULL;
 static struct vdg_palette *get_machine_palette(void);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -679,7 +678,7 @@ _Bool xroar_init(int argc, char **argv) {
 	}
 
 	/* Notify UI of starting options: */
-	xroar_set_kbd_translate(xroar_cfg.kbd_translate);
+	xroar_set_kbd_translate(1, xroar_cfg.kbd_translate);
 
 	/* Configure machine */
 	machine_configure(xroar_machine_config);
@@ -1217,10 +1216,7 @@ void xroar_set_keymap(int map) {
 	lock = 0;
 }
 
-void xroar_set_kbd_translate(int kbd_translate) {
-	static int lock = 0;
-	if (lock) return;
-	lock = 1;
+void xroar_set_kbd_translate(_Bool notify, int kbd_translate) {
 	switch (kbd_translate) {
 		case XROAR_TOGGLE: case XROAR_CYCLE:
 			xroar_cfg.kbd_translate = !xroar_cfg.kbd_translate;
@@ -1229,13 +1225,12 @@ void xroar_set_kbd_translate(int kbd_translate) {
 			xroar_cfg.kbd_translate = kbd_translate;
 			break;
 	}
-	if (xroar_kbd_translate_changed_cb) {
-		xroar_kbd_translate_changed_cb(xroar_cfg.kbd_translate);
-	}
 	if (keyboard_module->update_kbd_translate) {
 		keyboard_module->update_kbd_translate();
 	}
-	lock = 0;
+	if (notify && ui_module->kbd_translate_changed_cb) {
+		ui_module->kbd_translate_changed_cb(xroar_cfg.kbd_translate);
+	}
 }
 
 void xroar_set_machine(int machine_type) {

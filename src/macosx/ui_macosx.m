@@ -287,7 +287,7 @@ int cocoa_super_all_keys = 0;
 		break;
 	case TAG_KBD_TRANSLATE:
 		is_kbd_translate = !is_kbd_translate;
-		xroar_set_kbd_translate(is_kbd_translate);
+		xroar_set_kbd_translate(0, is_kbd_translate);
 		break;
 
 	/* Joysticks: */
@@ -941,9 +941,9 @@ static _Bool init(void);
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void keymap_changed_cb(int map);
+static void kbd_translate_changed_cb(_Bool kbd_translate);
 static void cart_changed_cb(int cart_index);
 static void fullscreen_changed_cb(_Bool fullscreen);
-static void kbd_translate_changed_cb(_Bool kbd_translate);
 static void fast_sound_changed_cb(_Bool fast_sound);
 static void update_drive_write_enable(int drive, _Bool write_enable);
 static void update_drive_write_back(int drive, _Bool write_back);
@@ -961,6 +961,7 @@ UIModule ui_macosx_module = {
 	.cross_colour_changed_cb = cross_colour_changed_cb,
 	.machine_changed_cb = machine_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
+	.kbd_translate_changed_cb = kbd_translate_changed_cb,
 	.fast_sound_changed_cb = fast_sound_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
 	.update_drive_write_enable = update_drive_write_enable,
@@ -971,7 +972,6 @@ static _Bool init(void) {
 	update_machine_menu();
 	update_cartridge_menu();
 	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
-	xroar_kbd_translate_changed_cb = kbd_translate_changed_cb;
 	return 1;
 }
 
@@ -1030,16 +1030,16 @@ static void keymap_changed_cb(int map) {
 	current_keymap = TAG_KEYMAP | (map & TAG_VALUE_MASK);
 }
 
+static void kbd_translate_changed_cb(_Bool kbd_translate) {
+	is_kbd_translate = kbd_translate;
+}
+
 static void cart_changed_cb(int cart_index) {
 	current_cartridge = TAG_CARTRIDGE | (cart_index & TAG_VALUE_MASK);
 }
 
 static void fullscreen_changed_cb(_Bool fullscreen) {
 	is_fullscreen = fullscreen;
-}
-
-static void kbd_translate_changed_cb(_Bool kbd_translate) {
-	is_kbd_translate = kbd_translate;
 }
 
 static void fast_sound_changed_cb(_Bool fast_sound) {

@@ -46,7 +46,6 @@ extern const char *xroar_snap_exts[];
 extern const char *xroar_cart_exts[];
 
 extern void (*xroar_fullscreen_changed_cb)(_Bool fullscreen);
-extern void (*xroar_kbd_translate_changed_cb)(_Bool kbd_translate);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -200,7 +199,7 @@ void xroar_fullscreen(int action);
 void xroar_load_file(const char **exts);
 void xroar_run_file(const char **exts);
 void xroar_set_keymap(int map);
-void xroar_set_kbd_translate(int kbd_translate);
+void xroar_set_kbd_translate(_Bool notify, int kbd_translate);
 void xroar_set_machine(int machine);
 void xroar_toggle_cart(void);
 void xroar_set_cart(const char *cc_name);

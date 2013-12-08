@@ -115,6 +115,7 @@ static void vdg_inverse_cb(_Bool inverse);
 static void machine_changed_cb(int machine_type);
 static void cart_changed_cb(int cart_index);
 static void keymap_changed_cb(int map);
+static void kbd_translate_changed_cb(_Bool kbd_translate);
 static void fast_sound_changed_cb(_Bool fast);
 
 UIModule ui_gtk2_module = {
@@ -129,6 +130,7 @@ UIModule ui_gtk2_module = {
 	.machine_changed_cb = machine_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
+	.kbd_translate_changed_cb = kbd_translate_changed_cb,
 	.fast_sound_changed_cb = fast_sound_changed_cb,
 	.input_tape_filename_cb = gtk2_input_tape_filename_cb,
 	.output_tape_filename_cb = gtk2_output_tape_filename_cb,
@@ -160,7 +162,6 @@ static gboolean show_cursor(GtkWidget *widget, GdkEventMotion *event, gpointer d
 
 /* UI-specific callbacks */
 static void fullscreen_changed_cb(_Bool fullscreen);
-static void kbd_translate_changed_cb(_Bool kbd_translate);
 
 static gboolean run_cpu(gpointer data);
 
@@ -302,7 +303,7 @@ static void set_keymap(GtkRadioAction *action, GtkRadioAction *current, gpointer
 static void toggle_keyboard_translation(GtkToggleAction *current, gpointer user_data) {
 	gboolean val = gtk_toggle_action_get_active(current);
 	(void)user_data;
-	xroar_set_kbd_translate(val);
+	xroar_set_kbd_translate(0, val);
 }
 
 static void toggle_fast_sound(GtkToggleAction *current, gpointer user_data) {
@@ -581,7 +582,6 @@ static _Bool init(void) {
 	/* Now up to video module to do something with this drawing_area */
 
 	xroar_fullscreen_changed_cb = fullscreen_changed_cb;
-	xroar_kbd_translate_changed_cb = kbd_translate_changed_cb;
 
 	/* Cursor hiding */
 	blank_cursor = gdk_cursor_new(GDK_BLANK_CURSOR);

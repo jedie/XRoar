@@ -68,6 +68,7 @@ typedef struct {
 	void (*machine_changed_cb)(int machine_type);
 	void (*cart_changed_cb)(int cart_index);
 	void (*keymap_changed_cb)(int map);
+	void (*kbd_translate_changed_cb)(_Bool translate);
 	void (*fast_sound_changed_cb)(_Bool fast);
 	void (*input_tape_filename_cb)(const char *filename);
 	void (*output_tape_filename_cb)(const char *filename);
