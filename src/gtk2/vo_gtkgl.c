@@ -79,11 +79,8 @@ static _Bool init(void) {
 	/* Show top window first so that drawing area is realised to the
 	 * right size even if we then fullscreen.  */
 	gtk_widget_show(gtk2_top_window);
-	/* Set fullscreen and update UI. */
+	/* Set fullscreen. */
 	set_fullscreen(xroar_cfg.fullscreen);
-	if (xroar_fullscreen_changed_cb) {
-		xroar_fullscreen_changed_cb(xroar_cfg.fullscreen);
-	}
 
 	vsync();
 

@@ -677,6 +677,9 @@ _Bool xroar_init(int argc, char **argv) {
 	}
 
 	/* Notify UI of starting options: */
+	if (ui_module->fullscreen_changed_cb) {
+		ui_module->fullscreen_changed_cb(xroar_cfg.fullscreen);
+	}
 	xroar_set_kbd_translate(1, xroar_cfg.kbd_translate);
 
 	/* Configure machine */
