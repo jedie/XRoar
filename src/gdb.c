@@ -156,7 +156,7 @@ static int hex16(char *s);
 int gdb_init(void) {
 
 	struct addrinfo hints;
-	const char *hostname = xroar_cfg.gdb_ip ? xroar_cfg.gdb_ip : "localhost";
+	const char *hostname = xroar_cfg.gdb_ip ? xroar_cfg.gdb_ip : "127.0.0.1";
 	const char *portname = xroar_cfg.gdb_port ? xroar_cfg.gdb_port : "65520";
 
 	// Find the interface

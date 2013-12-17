@@ -1988,7 +1988,7 @@ static void helptext(void) {
 "\n Debugging:\n"
 #ifdef WANT_GDB_TARGET
 "  -gdb                  disable GDB target\n"
-"  -gdb-ip               address of interface for GDB target [localhost]\n"
+"  -gdb-ip               address of interface for GDB target [127.0.0.1]\n"
 "  -gdb-port             port for GDB target to listen on [65520]\n"
 #endif
 #ifdef TRACE
