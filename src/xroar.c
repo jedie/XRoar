@@ -107,6 +107,8 @@ struct private_cfg {
 	char *cart_rom2;
 	int cart_becker;
 	int cart_autorun;
+	/* Deprecated */
+	char *dos_option;
 
 	/* Attach files */
 	char *run;
@@ -612,6 +614,24 @@ _Bool xroar_init(int argc, char **argv) {
 		}
 	}
 	if (definitely_dos) no_auto_dos = 0;
+
+	/* Deprecated option overrides -cart-rom, forces DOS based on machine
+	 * arch if not already chosen. */
+	if (private_cfg.dos_option) {
+		if (!selected_cart_config) {
+			if (xroar_machine_config->architecture == ARCH_COCO) {
+				selected_cart_config = cart_config_by_name("rsdos");
+			} else {
+				selected_cart_config = cart_config_by_name("dragondos");
+			}
+		}
+		if (selected_cart_config) {
+			if (selected_cart_config->rom)
+				g_free(selected_cart_config->rom);
+			selected_cart_config->rom = private_cfg.dos_option;
+			private_cfg.dos_option = NULL;
+		}
+	}
 
 	// Disable cart if necessary.
 	if (!selected_cart_config && no_auto_dos) {
@@ -1749,7 +1769,7 @@ static struct xconfig_option xroar_options[] = {
 	XC_SET_INT1("cart-becker", &private_cfg.cart_becker),
 	/* Backwards compatibility: */
 	XC_SET_ENUM("dostype", &private_cfg.cart_type, cart_type_list),
-	XC_SET_STRING("dos", &private_cfg.cart_rom),
+	XC_SET_STRING("dos", &private_cfg.dos_option),
 
 	/* Becker port: */
 	XC_SET_BOOL("becker", &xroar_cfg.becker),
