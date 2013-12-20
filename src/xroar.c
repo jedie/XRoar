@@ -618,6 +618,7 @@ _Bool xroar_init(int argc, char **argv) {
 	/* Deprecated option overrides -cart-rom, forces DOS based on machine
 	 * arch if not already chosen. */
 	if (private_cfg.dos_option) {
+		LOG_WARN("Deprecated option `-dos'\n");
 		if (!selected_cart_config) {
 			if (xroar_machine_config->architecture == ARCH_COCO) {
 				selected_cart_config = cart_config_by_name("rsdos");
