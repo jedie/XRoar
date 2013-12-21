@@ -210,6 +210,9 @@ enum xconfig_result xconfig_parse_line(struct xconfig_option *options, const cha
 		}
 		return XCONFIG_BAD_OPTION;
 	}
+	if (option->deprecated) {
+		LOG_WARN("Deprecated option `%s'\n", opt);
+	}
 	if (option->type == XCONFIG_STRING) {
 		/* preserve spaces */
 		arg = strtok(NULL, "\n\v\f\r");
@@ -273,6 +276,9 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 			if (argn) *argn = _argn;
 			LOG_ERROR("Unrecognised option `%s'\n", opt);
 			return XCONFIG_BAD_OPTION;
+		}
+		if (option->deprecated) {
+			LOG_WARN("Deprecated option `%s'\n", opt);
 		}
 		if (option->type == XCONFIG_BOOL ||
 		    option->type == XCONFIG_BOOL0 ||

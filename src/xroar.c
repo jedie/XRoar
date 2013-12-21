@@ -618,7 +618,6 @@ _Bool xroar_init(int argc, char **argv) {
 	/* Deprecated option overrides -cart-rom, forces DOS based on machine
 	 * arch if not already chosen. */
 	if (private_cfg.dos_option) {
-		LOG_WARN("Deprecated option `-dos'\n");
 		if (!selected_cart_config) {
 			if (xroar_machine_config->architecture == ARCH_COCO) {
 				selected_cart_config = cart_config_by_name("rsdos");
@@ -1674,33 +1673,33 @@ static struct xconfig_enum arch_list[] = {
 	{ .value = ARCH_DRAGON64, .name = "dragon64", .description = "Dragon 64" },
 	{ .value = ARCH_DRAGON32, .name = "dragon32", .description = "Dragon 32" },
 	{ .value = ARCH_COCO, .name = "coco", .description = "Tandy CoCo" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 static struct xconfig_enum keyboard_list[] = {
 	{ .value = dkbd_layout_dragon, .name = "dragon", .description = "Dragon" },
 	{ .value = dkbd_layout_dragon200e, .name = "dragon200e", .description = "Dragon 200-E" },
 	{ .value = dkbd_layout_coco, .name = "coco", .description = "Tandy CoCo" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 static struct xconfig_enum cpu_list[] = {
 	{ .value = CPU_MC6809, .name = "6809", .description = "Motorola 6809" },
 	{ .value = CPU_HD6309, .name = "6309", .description = "Hitachi 6309 - UNVERIFIED" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 static struct xconfig_enum tv_type_list[] = {
 	{ .value = TV_PAL,  .name = "pal",  .description = "PAL (50Hz)" },
 	{ .value = TV_NTSC, .name = "ntsc", .description = "NTSC (60Hz)" },
 	{ .value = TV_NTSC, .name = "pal-m", .description = "PAL-M (60Hz)" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 static struct xconfig_enum vdg_type_list[] = {
 	{ .value = VDG_6847, .name = "6847", .description = "Original 6847" },
 	{ .value = VDG_6847T1, .name = "6847t1", .description = "6847T1 with lowercase" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 static struct xconfig_enum cart_type_list[] = {
@@ -1709,183 +1708,183 @@ static struct xconfig_enum cart_type_list[] = {
 	{ .value = CART_DELTADOS, .name = "delta", .description = "Delta System" },
 	{ .value = CART_RSDOS, .name = "rsdos", .description = "RS-DOS" },
 	{ .value = CART_ORCH90, .name = "orch90", .description = "Orchestra 90-CC" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 static struct xconfig_enum gl_filter_list[] = {
 	{ .value = ANY_AUTO, .name = "auto", .description = "Automatic" },
 	{ .value = XROAR_GL_FILTER_NEAREST, .name = "nearest", .description = "Nearest-neighbour filtering" },
 	{ .value = XROAR_GL_FILTER_LINEAR, .name = "linear", .description = "Linear filter" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 static struct xconfig_enum ccr_list[] = {
 	{ .value = CROSS_COLOUR_SIMPLE, .name = "simple", .description = "four colour palette" },
 	{ .value = CROSS_COLOUR_5BIT, .name = "5bit", .description = "5-bit lookup table" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 struct xconfig_enum xroar_cross_colour_list[] = {
 	{ .value = CROSS_COLOUR_OFF, .name = "none", .description = "None" },
 	{ .value = CROSS_COLOUR_KBRW, .name = "blue-red", .description = "Blue-red" },
 	{ .value = CROSS_COLOUR_KRBW, .name = "red-blue", .description = "Red-blue" },
-	XC_ENUM_END()
+	{ XC_ENUM_END() }
 };
 
 /* Configuration directives */
 
 static struct xconfig_option xroar_options[] = {
 	/* Machines: */
-	XC_SET_STRING("default-machine", &private_cfg.default_machine),
-	XC_CALL_STRING("machine", &set_machine),
-	XC_SET_STRING("machine-desc", &private_cfg.machine_desc),
-	XC_SET_ENUM("machine-arch", &private_cfg.machine_arch, arch_list),
-	XC_SET_ENUM("machine-keyboard", &private_cfg.machine_keymap, keyboard_list),
-	XC_SET_ENUM("machine-cpu", &private_cfg.machine_cpu, cpu_list),
-	XC_SET_STRING("bas", &private_cfg.bas),
-	XC_SET_STRING("extbas", &private_cfg.extbas),
-	XC_SET_STRING("altbas", &private_cfg.altbas),
-	XC_SET_INT1("nobas", &private_cfg.nobas),
-	XC_SET_INT1("noextbas", &private_cfg.noextbas),
-	XC_SET_INT1("noaltbas", &private_cfg.noaltbas),
-	XC_SET_STRING("ext-charset", &private_cfg.ext_charset),
-	XC_SET_ENUM("tv-type", &private_cfg.tv, tv_type_list),
-	XC_SET_ENUM("vdg-type", &private_cfg.vdg_type, vdg_type_list),
-	XC_SET_INT("ram", &private_cfg.ram),
-	XC_SET_STRING("machine-cart", &private_cfg.machine_cart),
-	XC_SET_INT1("nodos", &private_cfg.nodos),
+	{ XC_SET_STRING("default-machine", &private_cfg.default_machine) },
+	{ XC_CALL_STRING("machine", &set_machine) },
+	{ XC_SET_STRING("machine-desc", &private_cfg.machine_desc) },
+	{ XC_SET_ENUM("machine-arch", &private_cfg.machine_arch, arch_list) },
+	{ XC_SET_ENUM("machine-keyboard", &private_cfg.machine_keymap, keyboard_list) },
+	{ XC_SET_ENUM("machine-cpu", &private_cfg.machine_cpu, cpu_list) },
+	{ XC_SET_STRING("bas", &private_cfg.bas) },
+	{ XC_SET_STRING("extbas", &private_cfg.extbas) },
+	{ XC_SET_STRING("altbas", &private_cfg.altbas) },
+	{ XC_SET_INT1("nobas", &private_cfg.nobas) },
+	{ XC_SET_INT1("noextbas", &private_cfg.noextbas) },
+	{ XC_SET_INT1("noaltbas", &private_cfg.noaltbas) },
+	{ XC_SET_STRING("ext-charset", &private_cfg.ext_charset) },
+	{ XC_SET_ENUM("tv-type", &private_cfg.tv, tv_type_list) },
+	{ XC_SET_ENUM("vdg-type", &private_cfg.vdg_type, vdg_type_list) },
+	{ XC_SET_INT("ram", &private_cfg.ram) },
+	{ XC_SET_STRING("machine-cart", &private_cfg.machine_cart) },
+	{ XC_SET_INT1("nodos", &private_cfg.nodos) },
+	/* Shorthand: */
+	{ XC_CALL_NULL("pal", &set_pal) },
+	{ XC_CALL_NULL("ntsc", &set_ntsc) },
 	/* Deliberately undocumented: */
-	XC_SET_STRING("machine-palette", &private_cfg.machine_palette),
-	/* Backwards-compatibility: */
-	XC_CALL_NULL("pal", &set_pal),
-	XC_CALL_NULL("ntsc", &set_ntsc),
+	{ XC_SET_STRING("machine-palette", &private_cfg.machine_palette) },
 
 	/* Cartridges: */
-	XC_CALL_STRING("cart", &set_cart),
-	XC_SET_STRING("cart-desc", &private_cfg.cart_desc),
-	XC_SET_ENUM("cart-type", &private_cfg.cart_type, cart_type_list),
-	XC_SET_STRING("cart-rom", &private_cfg.cart_rom),
-	XC_SET_STRING("cart-rom2", &private_cfg.cart_rom2),
-	XC_SET_INT1("cart-autorun", &private_cfg.cart_autorun),
-	XC_SET_INT1("cart-becker", &private_cfg.cart_becker),
+	{ XC_CALL_STRING("cart", &set_cart) },
+	{ XC_SET_STRING("cart-desc", &private_cfg.cart_desc) },
+	{ XC_SET_ENUM("cart-type", &private_cfg.cart_type, cart_type_list) },
+	{ XC_SET_STRING("cart-rom", &private_cfg.cart_rom) },
+	{ XC_SET_STRING("cart-rom2", &private_cfg.cart_rom2) },
+	{ XC_SET_INT1("cart-autorun", &private_cfg.cart_autorun) },
+	{ XC_SET_INT1("cart-becker", &private_cfg.cart_becker) },
 	/* Backwards compatibility: */
-	XC_SET_ENUM("dostype", &private_cfg.cart_type, cart_type_list),
-	XC_SET_STRING("dos", &private_cfg.dos_option),
+	{ XC_SET_ENUM("dostype", &private_cfg.cart_type, cart_type_list), .deprecated = 1 },
+	{ XC_SET_STRING("dos", &private_cfg.dos_option), .deprecated = 1 },
 
 	/* Becker port: */
-	XC_SET_BOOL("becker", &xroar_cfg.becker),
-	XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip),
-	XC_SET_STRING("becker-port", &xroar_cfg.becker_port),
+	{ XC_SET_BOOL("becker", &xroar_cfg.becker) },
+	{ XC_SET_STRING("becker-ip", &xroar_cfg.becker_ip) },
+	{ XC_SET_STRING("becker-port", &xroar_cfg.becker_port) },
 	/* Backwards-compatibility: */
-	XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip),
-	XC_SET_STRING("dw4-port", &xroar_cfg.becker_port),
+	{ XC_SET_STRING("dw4-ip", &xroar_cfg.becker_ip), .deprecated = 1 },
+	{ XC_SET_STRING("dw4-port", &xroar_cfg.becker_port), .deprecated = 1 },
 
 	/* Files: */
-	XC_CALL_STRING("load", &add_load),
-	XC_SET_STRING("run", &private_cfg.run),
+	{ XC_CALL_STRING("load", &add_load) },
+	{ XC_SET_STRING("run", &private_cfg.run) },
 	/* Backwards-compatibility: */
-	XC_CALL_STRING("cartna", &add_load),
-	XC_CALL_STRING("snap", &add_load),
+	{ XC_CALL_STRING("cartna", &add_load), .deprecated = 1 },
+	{ XC_CALL_STRING("snap", &add_load), .deprecated = 1 },
 
 	/* Cassettes: */
-	XC_SET_STRING("tape-write", &private_cfg.tape_write),
-	XC_SET_INT1("tape-fast", &private_cfg.tape_fast),
-	XC_SET_INT1("tape-pad", &private_cfg.tape_pad),
-	XC_SET_INT1("tape-pad-auto", &private_cfg.tape_pad_auto),
-	XC_SET_INT1("tape-rewrite", &private_cfg.tape_rewrite),
+	{ XC_SET_STRING("tape-write", &private_cfg.tape_write) },
+	{ XC_SET_INT1("tape-fast", &private_cfg.tape_fast) },
+	{ XC_SET_INT1("tape-pad", &private_cfg.tape_pad) },
+	{ XC_SET_INT1("tape-pad-auto", &private_cfg.tape_pad_auto) },
+	{ XC_SET_INT1("tape-rewrite", &private_cfg.tape_rewrite) },
 	/* Backwards-compatibility: */
-	XC_SET_INT1("tapehack", &private_cfg.tape_rewrite),
+	{ XC_SET_INT1("tapehack", &private_cfg.tape_rewrite), .deprecated = 1 },
 
 	/* Disks: */
-	XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back),
-	XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack),
+	{ XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back) },
+	{ XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack) },
 
 	/* Firmware ROM images: */
-	XC_SET_STRING("rompath", &xroar_rom_path),
-	XC_CALL_STRING("romlist", &romlist_assign),
-	XC_CALL_NULL("romlist-print", &romlist_print),
-	XC_CALL_STRING("crclist", &crclist_assign),
-	XC_CALL_NULL("crclist-print", &crclist_print),
-	XC_SET_BOOL("force-crc-match", &xroar_cfg.force_crc_match),
+	{ XC_SET_STRING("rompath", &xroar_rom_path) },
+	{ XC_CALL_STRING("romlist", &romlist_assign) },
+	{ XC_CALL_NULL("romlist-print", &romlist_print) },
+	{ XC_CALL_STRING("crclist", &crclist_assign) },
+	{ XC_CALL_NULL("crclist-print", &crclist_print) },
+	{ XC_SET_BOOL("force-crc-match", &xroar_cfg.force_crc_match) },
 
 	/* User interface: */
-	XC_SET_STRING("ui", &private_cfg.ui),
+	{ XC_SET_STRING("ui", &private_cfg.ui) },
 	/* Deliberately undocumented: */
-	XC_SET_STRING("filereq", &private_cfg.filereq),
+	{ XC_SET_STRING("filereq", &private_cfg.filereq) },
 
 	/* Video: */
-	XC_SET_STRING("vo", &private_cfg.vo),
-	XC_SET_BOOL("fs", &xroar_cfg.fullscreen),
-	XC_SET_INT("fskip", &xroar_cfg.frameskip),
-	XC_SET_ENUM("ccr", &xroar_cfg.ccr, ccr_list),
-	XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list),
-	XC_SET_STRING("geometry", &xroar_cfg.geometry),
-	XC_SET_STRING("g", &xroar_cfg.geometry),
-	XC_SET_BOOL("invert-text", &xroar_cfg.vdg_inverted_text),
+	{ XC_SET_STRING("vo", &private_cfg.vo) },
+	{ XC_SET_BOOL("fs", &xroar_cfg.fullscreen) },
+	{ XC_SET_INT("fskip", &xroar_cfg.frameskip) },
+	{ XC_SET_ENUM("ccr", &xroar_cfg.ccr, ccr_list) },
+	{ XC_SET_ENUM("gl-filter", &xroar_cfg.gl_filter, gl_filter_list) },
+	{ XC_SET_STRING("geometry", &xroar_cfg.geometry) },
+	{ XC_SET_STRING("g", &xroar_cfg.geometry) },
+	{ XC_SET_BOOL("invert-text", &xroar_cfg.vdg_inverted_text) },
 
 	/* Audio: */
-	XC_SET_STRING("ao", &private_cfg.ao),
-	XC_SET_STRING("ao-device", &xroar_cfg.ao_device),
-	XC_SET_INT("ao-rate", &xroar_cfg.ao_rate),
-	XC_SET_INT("ao-channels", &xroar_cfg.ao_channels),
-	XC_SET_INT("ao-fragments", &xroar_cfg.ao_fragments),
-	XC_SET_INT("ao-fragment-ms", &xroar_cfg.ao_fragment_ms),
-	XC_SET_INT("ao-fragment-frames", &xroar_cfg.ao_fragment_nframes),
-	XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms),
-	XC_SET_INT("ao-buffer-frames", &xroar_cfg.ao_buffer_nframes),
-	XC_SET_INT("volume", &private_cfg.volume),
+	{ XC_SET_STRING("ao", &private_cfg.ao) },
+	{ XC_SET_STRING("ao-device", &xroar_cfg.ao_device) },
+	{ XC_SET_INT("ao-rate", &xroar_cfg.ao_rate) },
+	{ XC_SET_INT("ao-channels", &xroar_cfg.ao_channels) },
+	{ XC_SET_INT("ao-fragments", &xroar_cfg.ao_fragments) },
+	{ XC_SET_INT("ao-fragment-ms", &xroar_cfg.ao_fragment_ms) },
+	{ XC_SET_INT("ao-fragment-frames", &xroar_cfg.ao_fragment_nframes) },
+	{ XC_SET_INT("ao-buffer-ms", &xroar_cfg.ao_buffer_ms) },
+	{ XC_SET_INT("ao-buffer-frames", &xroar_cfg.ao_buffer_nframes) },
+	{ XC_SET_INT("volume", &private_cfg.volume) },
 #ifndef FAST_SOUND
-	XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound),
+	{ XC_SET_BOOL("fast-sound", &xroar_cfg.fast_sound) },
 #endif
 	/* Backwards-compatibility: */
-	XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_nframes),
+	{ XC_SET_INT("ao-buffer-samples", &xroar_cfg.ao_buffer_nframes), .deprecated = 1 },
 
 	/* Keyboard: */
-	XC_SET_STRING("keymap", &xroar_cfg.keymap),
-	XC_SET_BOOL("kbd-translate", &xroar_cfg.kbd_translate),
-	XC_CALL_STRING("type", &type_command),
+	{ XC_SET_STRING("keymap", &xroar_cfg.keymap) },
+	{ XC_SET_BOOL("kbd-translate", &xroar_cfg.kbd_translate) },
+	{ XC_CALL_STRING("type", &type_command) },
 
 	/* Joysticks: */
-	XC_CALL_STRING("joy", &set_joystick),
-	XC_SET_STRING("joy-desc", &private_cfg.joy_desc),
-	XC_CALL_STRING("joy-axis", &set_joystick_axis),
-	XC_CALL_STRING("joy-button", &set_joystick_button),
-	XC_SET_STRING("joy-right", &private_cfg.joy_right),
-	XC_SET_STRING("joy-left", &private_cfg.joy_left),
-	XC_SET_STRING("joy-virtual", &private_cfg.joy_virtual),
+	{ XC_CALL_STRING("joy", &set_joystick) },
+	{ XC_SET_STRING("joy-desc", &private_cfg.joy_desc) },
+	{ XC_CALL_STRING("joy-axis", &set_joystick_axis) },
+	{ XC_CALL_STRING("joy-button", &set_joystick_button) },
+	{ XC_SET_STRING("joy-right", &private_cfg.joy_right) },
+	{ XC_SET_STRING("joy-left", &private_cfg.joy_left) },
+	{ XC_SET_STRING("joy-virtual", &private_cfg.joy_virtual) },
 
 	/* Printing: */
-	XC_SET_STRING("lp-file", &private_cfg.lp_file),
-	XC_SET_STRING("lp-pipe", &private_cfg.lp_pipe),
+	{ XC_SET_STRING("lp-file", &private_cfg.lp_file) },
+	{ XC_SET_STRING("lp-pipe", &private_cfg.lp_pipe) },
 
 	/* Debugging: */
 #ifdef WANT_GDB_TARGET
-	XC_SET_BOOL("gdb", &private_cfg.gdb),
-	XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip),
-	XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port),
+	{ XC_SET_BOOL("gdb", &private_cfg.gdb) },
+	{ XC_SET_STRING("gdb-ip", &xroar_cfg.gdb_ip) },
+	{ XC_SET_STRING("gdb-port", &xroar_cfg.gdb_port) },
 #endif
 #ifdef TRACE
-	XC_SET_INT1("trace", &xroar_cfg.trace_enabled),
+	{ XC_SET_INT1("trace", &xroar_cfg.trace_enabled) },
 #endif
-	XC_SET_INT("debug-ui", &xroar_cfg.debug_ui),
-	XC_SET_INT("debug-file", &xroar_cfg.debug_file),
-	XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc),
+	{ XC_SET_INT("debug-ui", &xroar_cfg.debug_ui) },
+	{ XC_SET_INT("debug-file", &xroar_cfg.debug_file) },
+	{ XC_SET_INT("debug-fdc", &xroar_cfg.debug_fdc) },
 #ifdef WANT_GDB_TARGET
-	XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb),
+	{ XC_SET_INT("debug-gdb", &xroar_cfg.debug_gdb) },
 #endif
-	XC_SET_STRING("timeout", &private_cfg.timeout),
+	{ XC_SET_STRING("timeout", &private_cfg.timeout) },
 
 	/* Other options: */
-	XC_SET_BOOL("config-print", &private_cfg.config_print),
-	XC_SET_INT0("quiet", &log_level),
-	XC_SET_INT0("q", &log_level),
-	XC_SET_INT("verbose", &log_level),
-	XC_SET_INT("v", &log_level),
-	XC_CALL_NULL("help", &helptext),
-	XC_CALL_NULL("h", &helptext),
-	XC_CALL_NULL("version", &versiontext),
-	XC_CALL_NULL("V", &versiontext),
-	XC_OPT_END()
+	{ XC_SET_BOOL("config-print", &private_cfg.config_print) },
+	{ XC_SET_INT0("quiet", &log_level) },
+	{ XC_SET_INT0("q", &log_level) },
+	{ XC_SET_INT("verbose", &log_level) },
+	{ XC_SET_INT("v", &log_level) },
+	{ XC_CALL_NULL("help", &helptext) },
+	{ XC_CALL_NULL("h", &helptext) },
+	{ XC_CALL_NULL("version", &versiontext) },
+	{ XC_CALL_NULL("V", &versiontext) },
+	{ XC_OPT_END() }
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
