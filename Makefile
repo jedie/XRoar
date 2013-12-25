@@ -8,11 +8,11 @@ DIST_SUBDIRS = portalib src doc tools
 
 .PHONY: all
 all:
-	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
 
 .PHONY: profile-generate profile-use
 profile-generate profile-use:
-	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
 
 -include config.mak
 
@@ -25,11 +25,11 @@ include $(SRCROOT)/common.mak
 
 .PHONY: install
 install:
-	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
 
 .PHONY: uninstall
 uninstall:
-	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
 
 ############################################################################
 # Specific targets
@@ -129,17 +129,17 @@ debuild: dist
 
 .PHONY: clean
 clean:
-	@for dir in $(DIST_SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(DIST_SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
 
 .PHONY: profile-clean
 profile-clean:
-	@for dir in $(DIST_SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(DIST_SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
 
 .PHONY: distclean
 distclean:
-	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
 	rm -f config.h config.mak config.log
 
 .PHONY: depend
 depend:
-	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+	@$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir) $@ && ) true
