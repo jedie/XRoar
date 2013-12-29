@@ -265,7 +265,11 @@ int read_snapshot(const char *filename) {
 		return -1;
 	if (!(fd = fopen(filename, "rb")))
 		return -1;
-	fread(buffer, 17, 1, fd);
+	if (fread(buffer, 17, 1, fd) < 1) {
+		LOG_WARN("Snapshot format not recognised.\n");
+		fclose(fd);
+		return -1;
+	}
 	if (strncmp((char *)buffer, "XRoar snapshot.\012\000", 17)) {
 		// Very old-style snapshot.  Register dump always came first.
 		// Also, it used to be written out as only taking 12 bytes.
@@ -284,7 +288,6 @@ int read_snapshot(const char *filename) {
 	if (buffer[0] != 'X') {
 		old_set_registers(buffer + 3);
 	}
-	struct HD6309 *hcpu = NULL;
 	while ((section = fs_read_uint8(fd)) >= 0) {
 		size = fs_read_uint16(fd);
 		if (size == 0) size = 0x10000;
@@ -371,7 +374,7 @@ int read_snapshot(const char *filename) {
 						break;
 					}
 					struct MC6809 *cpu = machine_get_cpu(0);
-					hcpu = (struct HD6309 *)cpu;
+					struct HD6309 *hcpu = (struct HD6309 *)cpu;
 					cpu->reg_cc = fs_read_uint8(fd);
 					MC6809_REG_A(cpu) = fs_read_uint8(fd);
 					MC6809_REG_B(cpu) = fs_read_uint8(fd);
