@@ -198,7 +198,6 @@ void sound_set_volume(int v) {
 }
 
 static void fill_int8(int nframes) {
-	uint8_t *ptr = (uint8_t *)buffer + buffer_frame * buffer_nchannels;
 	while (nframes > 0) {
 		int count;
 		if ((buffer_frame + nframes) > buffer_nframes)
@@ -206,28 +205,28 @@ static void fill_int8(int nframes) {
 		else
 			count = nframes;
 		nframes -= count;
-		if (buffer_nchannels == 1) {
-			/* special case for single channel 8-bit */
-			memset(ptr, last_sample.as_int8[0], count);
-		} else {
-			for (int i = 0; i < count; i++) {
-				for (int j = 0; j < buffer_nchannels; j++) {
-					*(ptr++) = last_sample.as_int8[j];
+		if (buffer) {
+			uint8_t *ptr = (uint8_t *)buffer + buffer_frame * buffer_nchannels;
+			if (buffer_nchannels == 1) {
+				/* special case for single channel 8-bit */
+				memset(ptr, last_sample.as_int8[0], count);
+			} else {
+				for (int i = 0; i < count; i++) {
+					for (int j = 0; j < buffer_nchannels; j++) {
+						*(ptr++) = last_sample.as_int8[j];
+					}
 				}
 			}
 		}
 		buffer_frame += count;
 		if (buffer_frame >= buffer_nframes) {
-			ptr = buffer = sound_module->write_buffer(buffer);
+			buffer = sound_module->write_buffer(buffer);
 			buffer_frame = 0;
-			if (!buffer)
-				return;
 		}
 	}
 }
 
 static void fill_int16(int nframes) {
-	uint16_t *ptr = (uint16_t *)buffer + buffer_frame * buffer_nchannels;
 	while (nframes > 0) {
 		int count;
 		if ((buffer_frame + nframes) > buffer_nframes)
@@ -235,23 +234,23 @@ static void fill_int16(int nframes) {
 		else
 			count = nframes;
 		nframes -= count;
-		for (int i = 0; i < count; i++) {
-			for (int j = 0; j < buffer_nchannels; j++) {
-				*(ptr++) = last_sample.as_int16[j];
+		if (buffer) {
+			uint16_t *ptr = (uint16_t *)buffer + buffer_frame * buffer_nchannels;
+			for (int i = 0; i < count; i++) {
+				for (int j = 0; j < buffer_nchannels; j++) {
+					*(ptr++) = last_sample.as_int16[j];
+				}
 			}
 		}
 		buffer_frame += count;
 		if (buffer_frame >= buffer_nframes) {
-			ptr = buffer = sound_module->write_buffer(buffer);
+			buffer = sound_module->write_buffer(buffer);
 			buffer_frame = 0;
-			if (!buffer)
-				return;
 		}
 	}
 }
 
 static void fill_float(int nframes) {
-	float *ptr = (float *)buffer + buffer_frame * buffer_nchannels;
 	while (nframes > 0) {
 		int count;
 		if ((buffer_frame + nframes) > buffer_nframes)
@@ -259,17 +258,18 @@ static void fill_float(int nframes) {
 		else
 			count = nframes;
 		nframes -= count;
-		for (int i = 0; i < count; i++) {
-			for (int j = 0; j < buffer_nchannels; j++) {
-				*(ptr++) = last_sample.as_float[j];
+		if (buffer) {
+			float *ptr = (float *)buffer + buffer_frame * buffer_nchannels;
+			for (int i = 0; i < count; i++) {
+				for (int j = 0; j < buffer_nchannels; j++) {
+					*(ptr++) = last_sample.as_float[j];
+				}
 			}
 		}
 		buffer_frame += count;
 		if (buffer_frame >= buffer_nframes) {
-			ptr = buffer = sound_module->write_buffer(buffer);
+			buffer = sound_module->write_buffer(buffer);
 			buffer_frame = 0;
-			if (!buffer)
-				return;
 		}
 	}
 }
@@ -321,25 +321,21 @@ static void sound_update(void) {
 	}
 
 	/* Fill buffer */
-	if (buffer) {
-		switch (buffer_fmt) {
-		case SOUND_FMT_U8:
-		case SOUND_FMT_S8:
-			fill_int8(nframes);
-			break;
-		case SOUND_FMT_S16_HE:
-		case SOUND_FMT_S16_SE:
-			fill_int16(nframes);
-			break;
-		case SOUND_FMT_FLOAT:
-			fill_float(nframes);
-			break;
-		default:
-			null_frames(nframes);
-			break;
-		}
-	} else {
+	switch (buffer_fmt) {
+	case SOUND_FMT_U8:
+	case SOUND_FMT_S8:
+		fill_int8(nframes);
+		break;
+	case SOUND_FMT_S16_HE:
+	case SOUND_FMT_S16_SE:
+		fill_int16(nframes);
+		break;
+	case SOUND_FMT_FLOAT:
+		fill_float(nframes);
+		break;
+	default:
 		null_frames(nframes);
+		break;
 	}
 
 	last_cycle = event_current_tick;
