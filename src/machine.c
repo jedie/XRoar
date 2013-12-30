@@ -1279,7 +1279,11 @@ int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	}
 	if (dot && g_ascii_strcasecmp(dot, ".dgn") == 0) {
 		LOG_DEBUG(1, "Loading DGN: %s\n", path);
-		fread(dest, 1, 16, fd);
+		if (fread(dest, 16, 1, fd) < 1) {
+			LOG_WARN("Failed to read DGN header in '%s'\n", path);
+			fclose(fd);
+			return -1;
+		}
 	} else {
 		LOG_DEBUG(1, "Loading ROM: %s\n", path);
 	}
