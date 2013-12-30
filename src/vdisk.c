@@ -208,7 +208,11 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	file_size = statbuf.st_size;
 	if (!(fd = fopen(filename, "rb")))
 		return NULL;
-	fread(buf, 12, 1, fd);
+	if (fread(buf, 12, 1, fd) < 1) {
+		LOG_WARN("Failed to read VDK header in '%s'\n", filename);
+		fclose(fd);
+		return NULL;
+	}
 	file_size -= 12;
 	(void)file_size;  // TODO: check this matches what's going to be read
 	if (buf[0] != 'd' || buf[1] != 'k') {
@@ -224,7 +228,11 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 			fclose(fd);
 			return NULL;
 		}
-		fread(buf, header_size, 1, fd);
+		if (fread(buf, header_size, 1, fd) < 1) {
+			LOG_WARN("Failed to read VDK header in '%s'\n", filename);
+			fclose(fd);
+			return NULL;
+		}
 	}
 	ssize = 128 << ssize_code;
 	disk = vdisk_blank_disk(ncyls, nheads, VDISK_LENGTH_5_25);
@@ -245,7 +253,9 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
 		for (unsigned head = 0; head < nheads; head++) {
 			for (unsigned sector = 0; sector < nsectors; sector++) {
-				fread(buf, ssize, 1, fd);
+				if (fread(buf, ssize, 1, fd) < 1) {
+					memset(buf, 0, ssize);
+				}
 				vdisk_update_sector(disk, cyl, head, sector + 1, ssize, buf);
 			}
 		}
@@ -358,8 +368,13 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 	memcpy(buf, jvc_defaults, sizeof(jvc_defaults));
 	if (xroar_cfg.disk_jvc_hack && file_size > 198144)
 		buf[1] = 2;
-	if (header_size > 0)
-		fread(buf, header_size, 1, fd);
+	if (header_size > 0) {
+		if (fread(buf, header_size, 1, fd) < 1) {
+			LOG_WARN("Failed to read JVC header in '%s'\n", filename);
+			fclose(fd);
+			return NULL;
+		}
+	}
 	nsectors = buf[0];
 	nheads = buf[1];
 	ssize_code = buf[2] & 3;
@@ -491,7 +506,11 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	if (!(fd = fopen(filename, "rb")))
 		return NULL;
 
-	fread(header, 16, 1, fd);
+	if (fread(header, 16, 1, fd) < 1) {
+		LOG_WARN("Failed to read DMK header in '%s'\n", filename);
+		fclose(fd);
+		return NULL;
+	}
 	ncyls = header[1];
 	track_length = (header[3] << 8) | header[2];  // yes, little-endian!
 	nheads = (header[4] & 0x10) ? 1 : 2;
@@ -527,7 +546,9 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 			for (unsigned i = 0; i < 64; i++) {
 				idams[i] = fs_read_uint16_le(fd);
 			}
-			fread(buf, track_length - 128, 1, fd);
+			if (fread(buf, track_length - 128, 1, fd) < 1) {
+				memset(buf, 0, track_length - 128);
+			}
 		}
 	}
 	fclose(fd);
