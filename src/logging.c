@@ -81,7 +81,8 @@ void log_close(struct log_handle **lp) {
 }
 
 void log_hexdump_set_addr(struct log_handle *l, unsigned addr) {
-	assert(l != NULL);
+	if (!l)
+		return;
 	if (l->ctx.hexdump.address != addr) {
 		log_hexdump_line(l);
 		l->ctx.hexdump.address = addr;
@@ -89,7 +90,8 @@ void log_hexdump_set_addr(struct log_handle *l, unsigned addr) {
 }
 
 void log_hexdump_line(struct log_handle *l) {
-	assert(l != NULL);
+	if (!l)
+		return;
 	assert(l->prefix != NULL);
 	assert(l->type == LOG_HEXDUMP);
 	if (l->ctx.hexdump.nbytes == 0)
@@ -119,7 +121,8 @@ void log_hexdump_line(struct log_handle *l) {
 }
 
 void log_hexdump_byte(struct log_handle *l, uint8_t b) {
-	assert(l != NULL);
+	if (!l)
+		return;
 	assert(l->type == LOG_HEXDUMP);
 	if (l->ctx.hexdump.nbytes >= 16)
 		log_hexdump_line(l);
@@ -127,7 +130,8 @@ void log_hexdump_byte(struct log_handle *l, uint8_t b) {
 }
 
 void log_hexdump_flag(struct log_handle *l) {
-	assert(l != NULL);
+	if (!l)
+		return;
 	assert(l->type == LOG_HEXDUMP);
 	l->ctx.hexdump.flag = l->ctx.hexdump.nbytes;
 }
