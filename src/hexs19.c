@@ -168,16 +168,23 @@ static int dragon_bin_load(FILE *fd, int autorun) {
 	(void)fs_read_uint8(fd);
 	if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 		LOG_PRINT("Dragon BIN: LOAD $%04zx bytes to $%04x, EXEC $%04x\n", length, load, exec);
-	fread(&machine_ram[load], length, 1, fd);
+	struct log_handle *log_bin = NULL;
 	if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN_DATA) {
-		struct log_handle *log_bin = NULL;
 		log_open_hexdump(&log_bin, "Dragon BIN read: ");
 		log_hexdump_set_addr(log_bin, load);
-		for (size_t i = 0; i < length; i++) {
-			log_hexdump_byte(log_bin, machine_ram[load + i]);
-		}
-		log_close(&log_bin);
 	}
+	for (size_t i = 0; i < length; i++) {
+		int data = fs_read_uint8(fd);
+		if (data < 0) {
+			log_hexdump_flag(log_bin);
+			log_close(&log_bin);
+			LOG_WARN("Dragon BIN: short read\n");
+			break;
+		}
+		machine_write_byte((load + i) & 0xffff, data);
+		log_hexdump_byte(log_bin, data);
+	}
+	log_close(&log_bin);
 	if (autorun) {
 		struct MC6809 *cpu = machine_get_cpu(0);
 		if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
@@ -193,35 +200,41 @@ static int dragon_bin_load(FILE *fd, int autorun) {
 
 static int coco_bin_load(FILE *fd, int autorun) {
 	size_t length;
-	int data, load, exec;
+	int chunk, load, exec;
 	LOG_DEBUG(1, "Reading CoCo BIN file\n");
 	fseek(fd, 0, SEEK_SET);
-	while ((data = fs_read_uint8(fd)) >= 0) {
-		if (data == 0) {
+	while ((chunk = fs_read_uint8(fd)) >= 0) {
+		if (chunk == 0) {
 			length = fs_read_uint16(fd);
 			load = fs_read_uint16(fd);
 			if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 				LOG_PRINT("CoCo BIN: LOAD $%04zx bytes to $%04x\n", length, load);
-			size_t nread = fread(&machine_ram[load], 1, length, fd);
-			if (nread < length)
-				LOG_WARN("CoCo BIN: short read in chunk data\n");
 			// Generate a hex dump per chunk
+			struct log_handle *log_bin = NULL;
 			if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN_DATA) {
-				struct log_handle *log_bin = NULL;
 				log_open_hexdump(&log_bin, "CoCo BIN: read: ");
 				log_hexdump_set_addr(log_bin, load);
-				for (size_t i = 0; i < nread; i++) {
-					log_hexdump_byte(log_bin, machine_ram[load + i]);
-				}
-				if (nread < length)
-					log_hexdump_flag(log_bin);
-				log_close(&log_bin);
 			}
+			for (size_t i = 0; i < length; i++) {
+				int data = fs_read_uint8(fd);
+				if (data < 0) {
+					log_hexdump_flag(log_bin);
+					log_close(&log_bin);
+					LOG_WARN("CoCo BIN: short read in data chunk\n");
+					break;
+				}
+				machine_write_byte((load + i) & 0xffff, data);
+				log_hexdump_byte(log_bin, data);
+			}
+			log_close(&log_bin);
 			continue;
-		}
-		if (data == 0xff) {
+		} else if (chunk == 0xff) {
 			(void)fs_read_uint16(fd);  // skip 0
 			exec = fs_read_uint16(fd);
+			if (exec < 0) {
+				LOG_WARN("CoCo BIN: short read in exec chunk\n");
+				break;
+			}
 			if (autorun) {
 				struct MC6809 *cpu = machine_get_cpu(0);
 				if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
@@ -231,6 +244,9 @@ static int coco_bin_load(FILE *fd, int autorun) {
 				if (xroar_cfg.debug_file & XROAR_DEBUG_FILE_BIN)
 					LOG_PRINT("CoCo BIN: EXEC $%04x - not autorunning\n", exec);
 			}
+			break;
+		} else {
+			LOG_WARN("CoCo BIN: unknown chunk type 0x%02x\n", chunk);
 			break;
 		}
 	}
