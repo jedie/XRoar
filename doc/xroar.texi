@@ -517,9 +517,9 @@ Enable this port when configuring a cartridge with @option{-cart-becker}.  The
 automatically selecting one.
 
 The IP and port to connect to can be specified with the @option{-becker-ip} and
-@option{-becker-port} options.  These default to ``localhost'' and ``65504''
-respectively, matching the defaults for DriveWire 4, the most popular server
-application used to provide such facilities.
+@option{-becker-port} options.  These default to @samp{127.0.0.1} and
+@samp{65504} respectively, matching the defaults for DriveWire 4, the most
+popular server application used to provide such facilities.
 
 
 @node Files
@@ -570,22 +570,22 @@ The currently open tape files used for reading and writing are distinct.
 The @option{-tape-fast} option accelerates tape loading by intercepting ROM
 calls.  Disable with @option{-no-tape-fast}.  On by default.
 
-The @option{-tape-pad} option tries to make loading more reliable by
-intercepting ROM calls and inserting extra leader bytes where appropriate.
-Disable with @option{-no-tape-pad}.
+The @option{-tape-rewrite} option enables rewriting of anything read from the
+input tape to the output tape.  This is useful for creating ``well formed''
+@file{.cas} files.
 
 The remaining options affect how XRoar attempts to cope with bad tape images
 (images that, were they simply converted to audio files, would not load on a
 real Dragon):
 
+The @option{-tape-pad} option tries to make loading more reliable by
+intercepting ROM calls and assuming extra leader bytes where appropriate.
+Disable with @option{-no-tape-pad}.
+
 The @option{-tape-pad-auto} option will, for @file{.cas} files, automatically
 switch on leader padding when insufficient initial leader bytes are found at
 the beginning of the file, otherwise it is left alone.  Disable with
 @option{-no-tape-pad-auto}.  On by default.
-
-The @option{-tape-rewrite} option enables rewriting of anything read from the
-input tape to the output tape.  This is useful for creating ``well formed''
-@file{.cas} files.
 
 Where available, these options can be changed on the fly in the GUI.
 
@@ -860,10 +860,14 @@ Select audio output module.  @option{-ao help} for a list.
 
 Module-specific device specifier.  e.g., @file{/dev/dsp} for OSS.
 
+@item -ao-format @var{format}
+
+Specify audio sample format.  @option{-ao-format help} for a list.
+
 @item -ao-rate @var{hz}
 
-Specify sample rate, where supported.  The default is taken from the operating
-system if possible, otherwise it will usually be @samp{48000}.
+Specify audio frame rate, where supported.  The default is taken from the
+operating system if possible, otherwise it will usually be @samp{48000}.
 
 @item -ao-channels @var{n}
 
@@ -902,10 +906,9 @@ Specify audio volume (0 - 100).
 Audio latency is a concern for emulators, so XRoar allows the buffering
 characteristics to be configured with the fragment and buffer options above.
 Not all audio modules support all options, but setting the total audio buffer
-size will usually have an effect.  ALSA and OSS modules allow very fine-grained
-control.  Bear in mind that any figures reported by XRoar reflect what it was
-able to request, and won't include any extra buffering introduced by the
-underlying sound system.
+size will usually have an effect.  Bear in mind that any figures reported by
+XRoar reflect what it was able to request, and won't include any extra
+buffering introduced by the underlying sound system.
 
 When the Orchestra 90-CC cartridge is attached, audio levels will be reduced
 due to the need to mix in a stereo output.
@@ -1053,7 +1056,7 @@ information on how to use GDB, see the
 @myuref{http://www.gnu.org/software/gdb/documentation/, GDB Documentation}.
 
 Enable the GDB remote target with @option{-gdb}.  The default IP and port for
-the target are @samp{localhost} and @samp{65520}.  These can be overridden with
+the target are @samp{127.0.0.1} and @samp{65520}.  These can be overridden with
 the @option{-gdb-ip} and @option{-gdb-port} options.
 
 XRoar also supports a simpler ``trace mode'', where it will dump a disassembly
