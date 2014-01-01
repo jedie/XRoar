@@ -116,6 +116,7 @@ static void vdg_inverse_cb(_Bool inverse);
 static void machine_changed_cb(int machine_type);
 static void cart_changed_cb(int cart_index);
 static void keymap_changed_cb(int map);
+static void joystick_changed_cb(int port, const char *name);
 static void kbd_translate_changed_cb(_Bool kbd_translate);
 static void fast_sound_changed_cb(_Bool fast);
 
@@ -132,6 +133,7 @@ UIModule ui_gtk2_module = {
 	.machine_changed_cb = machine_changed_cb,
 	.cart_changed_cb = cart_changed_cb,
 	.keymap_changed_cb = keymap_changed_cb,
+	.joystick_changed_cb = joystick_changed_cb,
 	.kbd_translate_changed_cb = kbd_translate_changed_cb,
 	.fast_sound_changed_cb = fast_sound_changed_cb,
 	.input_tape_filename_cb = gtk2_input_tape_filename_cb,
@@ -299,6 +301,30 @@ static void set_keymap(GtkRadioAction *action, GtkRadioAction *current, gpointer
 	xroar_set_keymap(val);
 }
 
+static const char *joystick_name[] = {
+	NULL, "joy0", "joy1", "kjoy0", "mjoy0"
+};
+
+static void set_joy_right(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	if (val >= 0 && val <= 4)
+		xroar_set_joystick(0, 0, joystick_name[val]);
+}
+
+static void set_joy_left(GtkRadioAction *action, GtkRadioAction *current, gpointer user_data) {
+	gint val = gtk_radio_action_get_current_value(current);
+	(void)action;
+	(void)user_data;
+	if (val >= 0 && val <= 4)
+		xroar_set_joystick(0, 1, joystick_name[val]);
+}
+
+static void swap_joysticks(void) {
+	xroar_swap_joysticks(1);
+}
+
 static void toggle_keyboard_translation(GtkToggleAction *current, gpointer user_data) {
 	gboolean val = gtk_toggle_action_get_active(current);
 	(void)user_data;
@@ -388,6 +414,22 @@ static const gchar *ui =
 	        "<menuitem action='keymap_coco'/>"
 	      "</menu>"
 	      "<separator/>"
+	      "<menu name='JoyRightMenu' action='JoyRightMenuAction'>"
+	        "<menuitem action='joy_right_none'/>"
+	        "<menuitem action='joy_right_joy0'/>"
+	        "<menuitem action='joy_right_joy1'/>"
+	        "<menuitem action='joy_right_kjoy0'/>"
+	        "<menuitem action='joy_right_mjoy0'/>"
+	      "</menu>"
+	      "<menu name='JoyLeftMenu' action='JoyLeftMenuAction'>"
+	        "<menuitem action='joy_left_none'/>"
+	        "<menuitem action='joy_left_joy0'/>"
+	        "<menuitem action='joy_left_joy1'/>"
+	        "<menuitem action='joy_left_kjoy0'/>"
+	        "<menuitem action='joy_left_mjoy0'/>"
+	      "</menu>"
+	      "<menuitem name='JoySwap' action='JoySwapAction'/>"
+	      "<separator/>"
 	      "<menuitem name='SoftReset' action='SoftResetAction'/>"
 	      "<menuitem name='HardReset' action='HardResetAction'/>"
 	    "</menu>"
@@ -455,6 +497,11 @@ static GtkActionEntry ui_entries[] = {
 	  .callback = G_CALLBACK(zoom_2_1) },
 	/* Machine */
 	{ .name = "KeymapMenuAction", .label = "_Keyboard Map" },
+	{ .name = "JoyRightMenuAction", .label = "_Right Joystick" },
+	{ .name = "JoyLeftMenuAction", .label = "_Left Joystick" },
+	{ .name = "JoySwapAction", .label = "Swap _Joysticks",
+	  .accelerator = "<control><shift>J",
+	  .callback = G_CALLBACK(swap_joysticks) },
 	{ .name = "SoftResetAction", .label = "_Soft Reset",
 	  .accelerator = "<control>R",
 	  .tooltip = "Soft Reset",
@@ -506,6 +553,22 @@ static GtkRadioActionEntry keymap_radio_entries[] = {
 	{ .name = "keymap_coco", .label = "CoCo Layout", .value = KEYMAP_COCO },
 };
 
+static GtkRadioActionEntry joy_right_radio_entries[] = {
+	{ .name = "joy_right_none", .label = "None", .value = 0 },
+	{ .name = "joy_right_joy0", .label = "Joystick 0", .value = 1 },
+	{ .name = "joy_right_joy1", .label = "Joystick 1", .value = 2 },
+	{ .name = "joy_right_kjoy0", .label = "Keyboard", .value = 3 },
+	{ .name = "joy_right_mjoy0", .label = "Mouse", .value = 4 },
+};
+
+static GtkRadioActionEntry joy_left_radio_entries[] = {
+	{ .name = "joy_left_none", .label = "None", .value = 0 },
+	{ .name = "joy_left_joy0", .label = "Joystick 0", .value = 1 },
+	{ .name = "joy_left_joy1", .label = "Joystick 1", .value = 2 },
+	{ .name = "joy_left_kjoy0", .label = "Keyboard", .value = 3 },
+	{ .name = "joy_left_mjoy0", .label = "Mouse", .value = 4 },
+};
+
 static _Bool init(void) {
 
 	gtk_init(NULL, NULL);
@@ -548,6 +611,8 @@ static _Bool init(void) {
 	gtk_action_group_add_actions(main_action_group, ui_entries, ui_n_entries, NULL);
 	gtk_action_group_add_toggle_actions(main_action_group, ui_toggles, ui_n_toggles, NULL);
 	gtk_action_group_add_radio_actions(main_action_group, keymap_radio_entries, 3, 0, (GCallback)set_keymap, NULL);
+	gtk_action_group_add_radio_actions(main_action_group, joy_right_radio_entries, 5, 0, (GCallback)set_joy_right, NULL);
+	gtk_action_group_add_radio_actions(main_action_group, joy_left_radio_entries, 5, 0, (GCallback)set_joy_left, NULL);
 	gtk_action_group_add_radio_actions(main_action_group, cross_colour_radio_entries, 3, 0, (GCallback)set_cc, NULL);
 
 	/* Menu merge points */
@@ -742,6 +807,25 @@ static void cart_changed_cb(int cart_index) {
 static void keymap_changed_cb(int map) {
 	GtkRadioAction *radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/KeymapMenu/keymap_dragon");
 	gtk_radio_action_set_current_value(radio, map);
+}
+
+static void joystick_changed_cb(int port, const char *name) {
+	GtkRadioAction *radio;
+	if (port == 0) {
+		radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/JoyRightMenu/joy_right_none");
+	} else {
+		radio = (GtkRadioAction *)gtk_ui_manager_get_action(gtk2_menu_manager, "/MainMenu/MachineMenu/JoyLeftMenu/joy_left_none");
+	}
+	int joy = 0;
+	if (name) {
+		for (int i = 1; i < 5; i++) {
+			if (0 == strcmp(name, joystick_name[i])) {
+				joy = i;
+				break;
+			}
+		}
+	}
+	gtk_radio_action_set_current_value(radio, joy);
 }
 
 /* Tool callbacks */

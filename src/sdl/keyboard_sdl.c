@@ -250,9 +250,9 @@ static void emulator_command(SDLKey sym) {
 		break;
 	case SDLK_j:
 		if (shift) {
-			joystick_swap();
+			xroar_swap_joysticks(1);
 		} else {
-			joystick_cycle();
+			xroar_cycle_joysticks(1);
 		}
 		break;
 	case SDLK_k:

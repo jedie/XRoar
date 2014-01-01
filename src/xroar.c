@@ -681,14 +681,14 @@ _Bool xroar_init(int argc, char **argv) {
 
 	// Default joystick mapping
 	if (private_cfg.joy_right) {
-		joystick_map(joystick_config_by_name(private_cfg.joy_right), 0);
+		xroar_set_joystick(1, 0, private_cfg.joy_right);
 	} else {
-		joystick_map(joystick_config_by_name("joy0"), 0);
+		xroar_set_joystick(1, 0, "joy0");
 	}
 	if (private_cfg.joy_left) {
-		joystick_map(joystick_config_by_name(private_cfg.joy_left), 1);
+		xroar_set_joystick(1, 1, private_cfg.joy_left);
 	} else {
-		joystick_map(joystick_config_by_name("joy1"), 1);
+		xroar_set_joystick(1, 1, "joy1");
 	}
 	if (private_cfg.joy_virtual) {
 		joystick_set_virtual(joystick_config_by_name(private_cfg.joy_virtual));
@@ -1250,6 +1250,44 @@ void xroar_set_kbd_translate(_Bool notify, int kbd_translate) {
 	}
 	if (notify && ui_module->kbd_translate_changed_cb) {
 		ui_module->kbd_translate_changed_cb(xroar_cfg.kbd_translate);
+	}
+}
+
+static void update_ui_joysticks(int port) {
+	if (!ui_module->joystick_changed_cb)
+		return;
+	const char *name = NULL;
+	if (joystick_port_config[port] && joystick_port_config[port]->name) {
+		name = joystick_port_config[port]->name;
+	}
+	ui_module->joystick_changed_cb(port, name);
+}
+
+void xroar_set_joystick(_Bool notify, int port, const char *name) {
+	if (port < 0 || port > 1)
+		return;
+	if (name) {
+		joystick_map(joystick_config_by_name(name), port);
+	} else {
+		joystick_unmap(port);
+	}
+	if (notify)
+		update_ui_joysticks(port);
+}
+
+void xroar_swap_joysticks(_Bool notify) {
+	joystick_swap();
+	if (notify) {
+		update_ui_joysticks(0);
+		update_ui_joysticks(1);
+	}
+}
+
+void xroar_cycle_joysticks(_Bool notify) {
+	joystick_cycle();
+	if (notify) {
+		update_ui_joysticks(0);
+		update_ui_joysticks(1);
 	}
 }
 
