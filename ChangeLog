@@ -2,6 +2,12 @@ Development version, unreleased
 
   * Fix keyboard handling - CoCo Tetris now playable again.
   * SDL, CoreAudio: allow -ao-fragments more than 1.
+  * Binary file loading no longer assumes 64K RAM organisation.
+  * Warn about use of deprecated options.
+  * Add joystick menus to GTK+ interface.
+  * New option -ao-format to select audio sample format.
+  * Fix 6309 timing issue (CMPU, CMPS).
+  * Fix issue with 6309 STBT instruction.
 
 Version 0.31, Thu Nov 28 2013
 
