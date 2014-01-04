@@ -65,6 +65,31 @@ static _Bool init(void) {
 	 * sample rate, and setting channels can affect rate. */
 
 	// Find a supported format
+	int desired_format;
+	switch (xroar_cfg.ao_format) {
+	case SOUND_FMT_U8:
+		desired_format = AFMT_U8;
+		break;
+	case SOUND_FMT_S8:
+		desired_format = AFMT_S8;
+		break;
+	case SOUND_FMT_S16_BE:
+		desired_format = AFMT_S16_BE;
+		break;
+	case SOUND_FMT_S16_LE:
+		desired_format = AFMT_S16_LE;
+		break;
+	case SOUND_FMT_S16_HE:
+	default:
+		desired_format = AFMT_S16_NE;
+		break;
+	case SOUND_FMT_S16_SE:
+		if (AFMT_S16_NE == AFMT_S16_LE)
+			desired_format = AFMT_S16_BE;
+		else
+			desired_format = AFMT_S16_LE;
+		break;
+	}
 	enum sound_fmt buffer_fmt;
 	int format;
 	int bytes_per_sample;
@@ -75,6 +100,10 @@ static _Bool init(void) {
 	if ((format & (AFMT_U8 | AFMT_S8 | AFMT_S16_LE | AFMT_S16_BE)) == 0) {
 		LOG_ERROR("No desired audio formats supported by device\n");
 		goto failed;
+	}
+	// if desired_format is one of those returned, use it:
+	if (format & desired_format) {
+		format = desired_format;
 	}
 	if (format & AFMT_S16_NE) {
 		format = AFMT_S16_NE;
