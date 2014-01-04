@@ -116,11 +116,35 @@ static _Bool init(void) {
 	}
 
 	desired.freq = rate;
-	desired.format = AUDIO_S16;
 	desired.channels = nchannels;
 	desired.samples = fragment_nframes;
 	desired.callback = (nfragments == 1) ? callback_1 : callback;
 	desired.userdata = NULL;
+
+	switch (xroar_cfg.ao_format) {
+	case SOUND_FMT_U8:
+		desired.format = AUDIO_U8;
+		break;
+	case SOUND_FMT_S8:
+		desired.format = AUDIO_S8;
+		break;
+	case SOUND_FMT_S16_BE:
+		desired.format = AUDIO_S16MSB;
+		break;
+	case SOUND_FMT_S16_LE:
+		desired.format = AUDIO_S16LSB;
+		break;
+	case SOUND_FMT_S16_HE:
+	default:
+		desired.format = AUDIO_S16SYS;
+		break;
+	case SOUND_FMT_S16_SE:
+		if (AUDIO_S16SYS == AUDIO_S16LSB)
+			desired.format = AUDIO_S16MSB;
+		else
+			desired.format = AUDIO_S16LSB;
+		break;
+	}
 
 	if (SDL_OpenAudio(&desired, &audiospec) < 0) {
 		LOG_ERROR("Couldn't open audio: %s\n", SDL_GetError());
