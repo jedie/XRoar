@@ -1769,6 +1769,17 @@ struct xconfig_enum xroar_cross_colour_list[] = {
 	{ XC_ENUM_END() }
 };
 
+static struct xconfig_enum ao_format_list[] = {
+	{ .value = SOUND_FMT_U8, .name = "u8", .description = "8-bit unsigned" },
+	{ .value = SOUND_FMT_S8, .name = "s8", .description = "8-bit signed" },
+	{ .value = SOUND_FMT_S16_HE, .name = "s16", .description = "16-bit signed host-endian" },
+	{ .value = SOUND_FMT_S16_SE, .name = "s16se", .description = "16-bit signed swapped-endian" },
+	{ .value = SOUND_FMT_S16_BE, .name = "s16be", .description = "16-bit signed big-endian" },
+	{ .value = SOUND_FMT_S16_LE, .name = "s16le", .description = "16-bit signed little-endian" },
+	{ .value = SOUND_FMT_FLOAT, .name = "float", .description = "Floating point" },
+	{ XC_ENUM_END() }
+};
+
 /* Configuration directives */
 
 static struct xconfig_option xroar_options[] = {
@@ -1863,6 +1874,7 @@ static struct xconfig_option xroar_options[] = {
 	/* Audio: */
 	{ XC_SET_STRING("ao", &private_cfg.ao) },
 	{ XC_SET_STRING("ao-device", &xroar_cfg.ao_device) },
+	{ XC_SET_ENUM("ao-format", &xroar_cfg.ao_format, ao_format_list) },
 	{ XC_SET_INT("ao-rate", &xroar_cfg.ao_rate) },
 	{ XC_SET_INT("ao-channels", &xroar_cfg.ao_channels) },
 	{ XC_SET_INT("ao-fragments", &xroar_cfg.ao_fragments) },
@@ -2013,6 +2025,7 @@ static void helptext(void) {
 "\n Audio:\n"
 "  -ao MODULE            audio module (-ao help for list)\n"
 "  -ao-device STRING     device to use for audio module\n"
+"  -ao-format FMT        set audio sample format (-ao-format help for list)\n"
 "  -ao-rate HZ           set audio frame rate (if supported by module)\n"
 "  -ao-channels N        set number of audio channels, 1 or 2\n"
 "  -ao-fragments N       set number of audio fragments\n"
@@ -2176,6 +2189,16 @@ static void config_print_all(void) {
 	puts("# Audio");
 	if (private_cfg.ao) printf("ao %s\n", private_cfg.ao);
 	if (xroar_cfg.ao_device) printf("ao-device %s\n", xroar_cfg.ao_device);
+	switch (xroar_cfg.ao_format) {
+	case SOUND_FMT_U8: puts("ao-format u8"); break;
+	case SOUND_FMT_S8: puts("ao-format u8"); break;
+	case SOUND_FMT_S16_HE: puts("ao-format s16"); break;
+	case SOUND_FMT_S16_SE: puts("ao-format s16se"); break;
+	case SOUND_FMT_S16_BE: puts("ao-format s16be"); break;
+	case SOUND_FMT_S16_LE: puts("ao-format s16le"); break;
+	case SOUND_FMT_FLOAT: puts("ao-format float"); break;
+	default: break;
+	}
 	if (xroar_cfg.ao_rate != 0) printf("ao-rate %d\n", xroar_cfg.ao_rate);
 	if (xroar_cfg.ao_channels != 0) printf("ao-channels %d\n", xroar_cfg.ao_channels);
 	if (xroar_cfg.ao_fragments != 0) printf("ao-fragments %d\n", xroar_cfg.ao_fragments);

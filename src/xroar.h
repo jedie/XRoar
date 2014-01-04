@@ -79,6 +79,7 @@ struct xroar_cfg {
 	_Bool vdg_inverted_text;
 	// Audio
 	char *ao_device;
+	int ao_format;
 	int ao_rate;
 	int ao_channels;
 	int ao_fragments;
