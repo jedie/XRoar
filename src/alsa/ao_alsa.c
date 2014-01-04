@@ -56,7 +56,34 @@ static _Bool init(void) {
 	const char *device = xroar_cfg.ao_device ? xroar_cfg.ao_device : "default";
 	int err;
 	snd_pcm_hw_params_t *hw_params;
-	snd_pcm_format_t format = SND_PCM_FORMAT_S16;
+	snd_pcm_format_t format;
+
+	switch (xroar_cfg.ao_format) {
+	case SOUND_FMT_U8:
+		format = SND_PCM_FORMAT_U8;
+		break;
+	case SOUND_FMT_S8:
+		format = SND_PCM_FORMAT_S8;
+		break;
+	case SOUND_FMT_S16_BE:
+		format = SND_PCM_FORMAT_S16_BE;
+		break;
+	case SOUND_FMT_S16_LE:
+		format = SND_PCM_FORMAT_S16_LE;
+		break;
+	case SOUND_FMT_S16_HE:
+		format = SND_PCM_FORMAT_S16;
+		break;
+	case SOUND_FMT_S16_SE:
+		if (SND_PCM_FORMAT_S16 == SND_PCM_FORMAT_S16_LE)
+			format = SND_PCM_FORMAT_S16_BE;
+		else
+			format = SND_PCM_FORMAT_S16_LE;
+		break;
+	case SOUND_FMT_FLOAT: default:
+		format = SND_PCM_FORMAT_FLOAT;
+		break;
+	}
 	unsigned nchannels = xroar_cfg.ao_channels;
 	if (nchannels < 1 || nchannels > 2)
 		nchannels = 2;
@@ -175,6 +202,10 @@ static _Bool init(void) {
 		case SND_PCM_FORMAT_S16_BE:
 			buffer_fmt = SOUND_FMT_S16_BE;
 			sample_nbytes = 2;
+			break;
+		case SND_PCM_FORMAT_FLOAT:
+			buffer_fmt = SOUND_FMT_FLOAT;
+			sample_nbytes = sizeof(float);
 			break;
 		default:
 			LOG_ERROR("Unhandled audio format.\n");
