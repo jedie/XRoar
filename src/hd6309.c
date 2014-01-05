@@ -36,6 +36,7 @@
 
 #include "pl_glib.h"
 
+#include "delegate.h"
 #include "hd6309.h"
 #include "mc6809.h"
 
@@ -297,9 +298,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 			hcpu->state = hd6309_state_next_instruction;
 			// Instruction fetch hook called here so that machine
 			// can be stopped beforehand.
-			if (cpu->instruction_hook) {
-				cpu->instruction_hook(cpu->instr_hook_dptr);
-			}
+			DELEGATE_SAFE_CALL0(cpu->instruction_hook);
 			continue;
 
 		case hd6309_state_dispatch_irq:
@@ -2056,8 +2055,7 @@ static void stack_irq_registers(struct MC6809 *cpu, _Bool entire) {
 static void take_interrupt(struct MC6809 *cpu, uint8_t mask, uint16_t vec) {
 	REG_CC |= mask;
 	NVMA_CYCLE;
-	if (cpu->interrupt_hook)
-		cpu->interrupt_hook(cpu->intr_dptr, vec);
+	DELEGATE_SAFE_CALL1(cpu->interrupt_hook, vec);
 	unsigned new_pc = fetch_byte(cpu, vec) << 8;
 	new_pc |= fetch_byte(cpu, vec+1);
 	REG_PC = new_pc;
@@ -2065,8 +2063,7 @@ static void take_interrupt(struct MC6809 *cpu, uint8_t mask, uint16_t vec) {
 }
 
 static void instruction_posthook(struct MC6809 *cpu) {
-	if (cpu->instruction_posthook)
-		cpu->instruction_posthook(cpu->instr_posthook_dptr);
+	DELEGATE_SAFE_CALL0(cpu->instruction_posthook);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

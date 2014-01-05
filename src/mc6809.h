@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "config.h"
+#include "delegate.h"
 
 #define MC6809_INT_VEC_RESET (0xfffe)
 #define MC6809_INT_VEC_NMI (0xfffc)
@@ -61,14 +62,11 @@ struct MC6809 {
 	/* Perform a byte write cycle */
 	void (*write_cycle)(uint16_t addr, uint8_t value);
 	/* Called just before instruction fetch if non-NULL */
-	void (*instruction_hook)(void *);
-	void *instr_hook_dptr;
+	delegate_null instruction_hook;
 	/* Called after instruction is executed */
-	void (*instruction_posthook)(void *);
-	void *instr_posthook_dptr;
+	delegate_null instruction_posthook;
 	/* Called just before an interrupt vector is read */
-	void (*interrupt_hook)(void *, uint16_t vector);
-	void *intr_dptr;
+	delegate_int interrupt_hook;
 
 	/* Internal state */
 

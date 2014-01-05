@@ -1223,8 +1223,8 @@ void mc6809_trace_byte(uint8_t byte, uint16_t pc) {
 
 /* Called just before an IRQ vector fetch */
 
-void mc6809_trace_irq(void *dptr, uint16_t vector) {
-	(void)dptr;
+void mc6809_trace_irq(void *sptr, int vector) {
+	(void)sptr;
 	reset_state();
 	state = WANT_IRQ_VECTOR;
 	bytes_count = 0;

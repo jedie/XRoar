@@ -100,7 +100,7 @@ static uint8_t read_cycle(uint16_t A);
 static void write_cycle(uint16_t A, uint8_t D);
 static void vdg_fetch_handler(int nbytes, uint8_t *dest);
 
-static void machine_instruction_posthook(void *dptr);
+static void machine_instruction_posthook(void *);
 static _Bool single_step = 0;
 static int stop_signal = 0;
 
@@ -540,7 +540,6 @@ void machine_configure(struct machine_config *mc) {
 	}
 	CPU0->read_cycle = read_cycle;
 	CPU0->write_cycle = write_cycle;
-	CPU0->instr_posthook_dptr = CPU0;
 	// PIAs
 	if (PIA0) {
 		mc6821_free(PIA0);
@@ -831,13 +830,13 @@ int machine_run(int ncycles) {
 void machine_single_step(void) {
 	single_step = 1;
 	CPU0->running = 0;
-	CPU0->instruction_posthook = machine_instruction_posthook;
+	CPU0->instruction_posthook = (delegate_null){machine_instruction_posthook, CPU0};
 	do {
 		CPU0->run(CPU0);
 	} while (single_step);
 	update_vdg_mode();
 	if (xroar_cfg.trace_enabled)
-		CPU0->instruction_posthook = NULL;
+		CPU0->instruction_posthook.func = NULL;
 }
 
 /*
@@ -852,9 +851,9 @@ void machine_signal(int sig) {
 
 void machine_set_trace(_Bool trace_on) {
 	if (trace_on || single_step)
-		CPU0->instruction_posthook = machine_instruction_posthook;
+		CPU0->instruction_posthook = (delegate_null){machine_instruction_posthook, CPU0};
 	else
-		CPU0->instruction_posthook = NULL;
+		CPU0->instruction_posthook.func = NULL;
 }
 
 /*
@@ -887,8 +886,8 @@ struct MC6821 *machine_get_pia(int n) {
  * Used when single-stepping or tracing.
  */
 
-static void machine_instruction_posthook(void *dptr) {
-	struct MC6809 *cpu = dptr;
+static void machine_instruction_posthook(void *sptr) {
+	struct MC6809 *cpu = sptr;
 	if (xroar_cfg.trace_enabled) {
 		switch (xroar_machine_config->cpu) {
 		case CPU_MC6809: default:
