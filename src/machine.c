@@ -475,8 +475,8 @@ static void printer_ack(void *sptr, _Bool ack) {
 /* Sound output can feed back into the single bit sound pin when it's
  * configured as an input. */
 
-static void single_bit_feedback(void *dptr, _Bool level) {
-	(void)dptr;
+static void single_bit_feedback(void *sptr, _Bool level) {
+	(void)sptr;
 	if (level) {
 		PIA1->b.in_source &= ~(1<<1);
 		PIA1->b.in_sink &= ~(1<<1);
@@ -567,7 +567,7 @@ void machine_configure(struct machine_config *mc) {
 
 	// Single-bit sound feedback
 #ifndef FAST_SOUND
-	sound_sbs_feedback = (sound_feedback_delegate){single_bit_feedback, NULL};
+	sound_sbs_feedback = (delegate_bool){single_bit_feedback, NULL};
 #endif
 
 	// Tape

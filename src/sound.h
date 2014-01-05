@@ -6,6 +6,8 @@
 #ifndef XROAR_SOUND_H_
 #define XROAR_SOUND_H_
 
+#include "delegate.h"
+
 enum sound_fmt {
 	SOUND_FMT_NULL,
 	SOUND_FMT_U8,
@@ -20,13 +22,7 @@ enum sound_fmt {
 // Input from tape
 extern float sound_tape_level;
 
-// Feedback to the single-bit audio pin
-typedef struct {
-	void (*delegate)(void *, _Bool level);
-	void *dptr;
-} sound_feedback_delegate;
-
-extern sound_feedback_delegate sound_sbs_feedback;
+extern delegate_bool sound_sbs_feedback;
 
 void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes);
 void sound_set_volume(int v);

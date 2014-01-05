@@ -25,6 +25,7 @@
 
 #include "pl_glib.h"
 
+#include "delegate.h"
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -113,7 +114,7 @@ static float cart_level = 0.0;
 static float external_level[2] = { 0.0, 0.0 };
 
 // Feedback to the single-bit audio pin
-sound_feedback_delegate sound_sbs_feedback = { NULL, NULL };
+delegate_bool sound_sbs_feedback = { NULL, NULL };
 
 void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes) {
 	uint16_t test = 0x0123;
@@ -368,9 +369,7 @@ static void sound_update(void) {
 
 	/* Feed back bus level to single bit pin */
 #ifndef FAST_SOUND
-	if (sound_sbs_feedback.delegate)
-		sound_sbs_feedback.delegate(sound_sbs_feedback.dptr,
-		                            sbs_enabled || bus_level >= 1.414);
+	DELEGATE_SAFE_CALL1(sound_sbs_feedback, sbs_enabled || bus_level >= 1.414);
 #endif
 
 	/* Mix bus & external sound */
