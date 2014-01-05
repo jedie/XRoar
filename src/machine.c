@@ -432,8 +432,8 @@ void machine_shutdown(void) {
 
 /* VDG edge delegates */
 
-static void vdg_hs(void *dptr, _Bool level) {
-	(void)dptr;
+static void vdg_hs(void *sptr, _Bool level) {
+	(void)sptr;
 	if (level)
 		mc6821_set_cx1(&PIA0->a);
 	else
@@ -442,8 +442,8 @@ static void vdg_hs(void *dptr, _Bool level) {
 }
 
 // PAL CoCos invert HS
-static void vdg_hs_pal_coco(void *dptr, _Bool level) {
-	(void)dptr;
+static void vdg_hs_pal_coco(void *sptr, _Bool level) {
+	(void)sptr;
 	if (level)
 		mc6821_reset_cx1(&PIA0->a);
 	else
@@ -451,8 +451,8 @@ static void vdg_hs_pal_coco(void *dptr, _Bool level) {
 	sam_vdg_hsync(level);
 }
 
-static void vdg_fs(void *dptr, _Bool level) {
-	(void)dptr;
+static void vdg_fs(void *sptr, _Bool level) {
+	(void)sptr;
 	if (level) {
 		mc6821_set_cx1(&PIA0->b);
 	} else {
@@ -579,11 +579,11 @@ void machine_configure(struct machine_config *mc) {
 	VDG0 = mc6847_new(mc->vdg_type == VDG_6847T1);
 
 	if (IS_COCO && IS_PAL) {
-		mc6847_set_signal_hs(VDG0, (vdg_edge_delegate){vdg_hs_pal_coco, NULL});
+		mc6847_set_signal_hs(VDG0, (delegate_bool){vdg_hs_pal_coco, NULL});
 	} else {
-		mc6847_set_signal_hs(VDG0, (vdg_edge_delegate){vdg_hs, NULL});
+		mc6847_set_signal_hs(VDG0, (delegate_bool){vdg_hs, NULL});
 	}
-	mc6847_set_signal_fs(VDG0, (vdg_edge_delegate){vdg_fs, NULL});
+	mc6847_set_signal_fs(VDG0, (delegate_bool){vdg_fs, NULL});
 	mc6847_set_fetch_bytes(VDG0, vdg_fetch_handler);
 	mc6847_set_inverted_text(VDG0, inverted_text);
 

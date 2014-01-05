@@ -25,6 +25,7 @@
 
 #include "pl_glib.h"
 
+#include "delegate.h"
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -70,8 +71,8 @@ struct MC6847_private {
 	int frame;  // frameskip counter
 
 	/* Delegates to notify on signal edges */
-	vdg_edge_delegate signal_hs;
-	vdg_edge_delegate signal_fs;
+	delegate_bool signal_hs;
+	delegate_bool signal_fs;
 
 	/* External handler to fetch data for display.  First arg is number of bytes,
 	 * second a pointer to a buffer to receive them. */
@@ -145,7 +146,7 @@ static void do_hs_fall(void *data) {
 	}
 
 	// HS falling edge.
-	vdg->signal_hs.delegate(vdg->signal_hs.dptr, 0);
+	DELEGATE_CALL1(vdg->signal_hs, 0);
 
 	vdg->scanline_start = vdg->hs_fall_event.at_tick;
 	// Next HS rise and fall
@@ -193,12 +194,12 @@ static void do_hs_fall(void *data) {
 
 	if (vdg->scanline == VDG_ACTIVE_AREA_END) {
 		// FS falling edge
-		vdg->signal_fs.delegate(vdg->signal_fs.dptr, 0);
+		DELEGATE_CALL1(vdg->signal_fs, 0);
 	}
 
 	if (vdg->scanline == VDG_VBLANK_START) {
 		// FS rising edge
-		vdg->signal_fs.delegate(vdg->signal_fs.dptr, 1);
+		DELEGATE_CALL1(vdg->signal_fs, 1);
 		vdg->frame--;
 		if (vdg->frame < 0)
 			vdg->frame = xroar_frameskip;
@@ -211,13 +212,13 @@ static void do_hs_fall(void *data) {
 static void do_hs_rise(void *data) {
 	struct MC6847_private *vdg = data;
 	// HS rising edge.
-	vdg->signal_hs.delegate(vdg->signal_hs.dptr, 1);
+	DELEGATE_CALL1(vdg->signal_hs, 1);
 }
 
 static void do_hs_fall_pal_coco(void *data) {
 	struct MC6847_private *vdg = data;
 	// HS falling edge
-	vdg->signal_hs.delegate(vdg->signal_hs.dptr, 0);
+	DELEGATE_CALL1(vdg->signal_hs, 0);
 
 	vdg->scanline_start = vdg->hs_fall_event.at_tick;
 	// Next HS rise and fall
@@ -418,8 +419,8 @@ struct MC6847 *mc6847_new(_Bool t1) {
 	vdg->is_t1 = t1;
 	vdg->vram_ptr = vdg->vram;
 	vdg->pixel = vdg->pixel_data + VDG_LEFT_BORDER_START;
-	vdg->signal_hs = (vdg_edge_delegate){dummy_signal, NULL};
-	vdg->signal_hs = (vdg_edge_delegate){dummy_signal, NULL};
+	vdg->signal_hs = (delegate_bool){dummy_signal, NULL};
+	vdg->signal_hs = (delegate_bool){dummy_signal, NULL};
 	vdg->fetch_bytes = dummy_fetch_bytes;
 	event_init(&vdg->hs_fall_event, (delegate_null){do_hs_fall, vdg});
 	event_init(&vdg->hs_rise_event, (delegate_null){do_hs_rise, vdg});
@@ -438,12 +439,12 @@ void mc6847_set_fetch_bytes(struct MC6847 *vdgp, void (*d)(int, uint8_t *)) {
 	vdg->fetch_bytes = d;
 }
 
-void mc6847_set_signal_hs(struct MC6847 *vdgp, vdg_edge_delegate d) {
+void mc6847_set_signal_hs(struct MC6847 *vdgp, delegate_bool d) {
 	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
 	vdg->signal_hs = d;
 }
 
-void mc6847_set_signal_fs(struct MC6847 *vdgp, vdg_edge_delegate d) {
+void mc6847_set_signal_fs(struct MC6847 *vdgp, delegate_bool d) {
 	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
 	vdg->signal_fs = d;
 }

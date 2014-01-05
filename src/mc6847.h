@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#include "delegate.h"
+
 // Horizontal timing, all measured in half-VDG-clocks (i.e., pixels)
 
 #define VDG_tFP   (17)  // 14
@@ -50,12 +52,6 @@ enum vdg_colour {
 	VDG_BLACK, VDG_DARK_GREEN, VDG_DARK_ORANGE, VDG_BRIGHT_ORANGE
 };
 
-/* Delegates for signalling HS/FS fall/rise */
-typedef struct {
-	void (*delegate)(void *, _Bool level);
-	void *dptr;
-} vdg_edge_delegate;
-
 /* Nothing in this struct yet, might expose some things in future. */
 struct MC6847 {
 };
@@ -64,8 +60,8 @@ struct MC6847 *mc6847_new(_Bool t1);
 void mc6847_free(struct MC6847 *);
 
 void mc6847_set_fetch_bytes(struct MC6847 *, void (*)(int, uint8_t *));
-void mc6847_set_signal_hs(struct MC6847 *, vdg_edge_delegate);
-void mc6847_set_signal_fs(struct MC6847 *, vdg_edge_delegate);
+void mc6847_set_signal_hs(struct MC6847 *, delegate_bool);
+void mc6847_set_signal_fs(struct MC6847 *, delegate_bool);
 
 void mc6847_reset(struct MC6847 *);
 
