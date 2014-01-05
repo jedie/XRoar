@@ -464,8 +464,8 @@ static void vdg_fs(void *sptr, _Bool level) {
 /* Dragon parallel printer line delegate. */
 
 //ACK is active low
-static void printer_ack(void *dptr, _Bool ack) {
-	(void)dptr;
+static void printer_ack(void *sptr, _Bool ack) {
+	(void)sptr;
 	if (ack)
 		mc6821_reset_cx1(&PIA1->a);
 	else
@@ -588,7 +588,7 @@ void machine_configure(struct machine_config *mc) {
 	mc6847_set_inverted_text(VDG0, inverted_text);
 
 	// Printer
-	printer_signal_ack = (printer_line_delegate){printer_ack, NULL};
+	printer_signal_ack = (delegate_bool){printer_ack, NULL};
 
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));

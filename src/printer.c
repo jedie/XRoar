@@ -27,6 +27,7 @@
 #include "pl_glib.h"
 
 #include "breakpoint.h"
+#include "delegate.h"
 #include "events.h"
 #include "logging.h"
 #include "machine.h"
@@ -41,7 +42,7 @@ static struct event ack_clear_event;
 static int strobe_state;
 static _Bool busy;
 
-printer_line_delegate printer_signal_ack = { NULL, NULL };
+delegate_bool printer_signal_ack = { NULL, NULL };
 
 static void do_ack_clear(void *);
 static void open_stream(void);
@@ -122,8 +123,7 @@ void printer_strobe(_Bool strobe, int data) {
 		fputc(data, stream);
 	}
 	/* ACK, and schedule !ACK */
-	if (printer_signal_ack.delegate)
-		printer_signal_ack.delegate(printer_signal_ack.dptr, 1);
+	DELEGATE_SAFE_CALL1(printer_signal_ack, 1);
 	ack_clear_event.at_tick = event_current_tick + (OSCILLATOR_RATE / 150000);
 	event_queue(&MACHINE_EVENT_LIST, &ack_clear_event);
 }
@@ -156,8 +156,7 @@ static void open_stream(void) {
 
 static void do_ack_clear(void *data) {
 	(void)data;
-	if (printer_signal_ack.delegate)
-		printer_signal_ack.delegate(printer_signal_ack.dptr, 0);
+	DELEGATE_SAFE_CALL1(printer_signal_ack, 0);
 }
 
 _Bool printer_busy(void) {

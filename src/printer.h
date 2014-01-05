@@ -6,16 +6,12 @@
 #ifndef XROAR_PRINTER_H_
 #define XROAR_PRINTER_H_
 
+#include "delegate.h"
+
 void printer_init(void);
 void printer_reset(void);
 
-/* Printer ACK delegate is passed its data pointer and ACK state as _Bool */
-typedef struct {
-	void (*delegate)(void *, _Bool);
-	void *dptr;
-} printer_line_delegate;
-
-extern printer_line_delegate printer_signal_ack;
+extern delegate_bool printer_signal_ack;
 
 void printer_open_file(const char *filename);
 void printer_open_pipe(const char *command);
