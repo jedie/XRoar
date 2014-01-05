@@ -488,8 +488,8 @@ static void single_bit_feedback(void *sptr, _Bool level) {
 
 /* Tape audio delegate */
 
-static void update_audio_from_tape(void *dptr, float value) {
-	(void)dptr;
+static void update_audio_from_tape(void *sptr, float value) {
+	(void)sptr;
 	sound_set_tape_level(value);
 	if (value >= 0.5)
 		PIA1->a.in_sink &= ~(1<<0);
@@ -571,7 +571,7 @@ void machine_configure(struct machine_config *mc) {
 #endif
 
 	// Tape
-	tape_update_audio = (tape_audio_delegate){update_audio_from_tape, NULL};
+	tape_update_audio = (delegate_float){update_audio_from_tape, NULL};
 
 	// VDG
 	if (VDG0)

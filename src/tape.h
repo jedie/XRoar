@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 
+#include "delegate.h"
 #include "events.h"
 #include "sam.h"
 
@@ -86,12 +87,7 @@ void tape_reset(void);
 void tape_shutdown(void);
 
 /* Delegate for tape output updates */
-typedef struct {
-	void (*delegate)(void *, float value);
-	void *dptr;
-} tape_audio_delegate;
-
-extern tape_audio_delegate tape_update_audio;
+extern delegate_float tape_update_audio;
 
 int tape_open_reading(const char *filename);
 void tape_close_reading(void);

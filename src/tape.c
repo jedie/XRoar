@@ -26,6 +26,7 @@
 #include "pl_glib.h"
 
 #include "breakpoint.h"
+#include "delegate.h"
 #include "events.h"
 #include "fs.h"
 #include "keyboard.h"
@@ -39,7 +40,7 @@
 
 /* Tape output delegate.  Called when the output from the tape unit (i.e., the
  * input to the machine) changes. */
-tape_audio_delegate tape_update_audio = { NULL, NULL };
+delegate_float tape_update_audio = { NULL, NULL };
 
 struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
@@ -232,8 +233,7 @@ void tape_free(struct tape *t) {
 /**************************************************************************/
 
 void tape_init(void) {
-	if (tape_update_audio.delegate)
-		tape_update_audio.delegate(tape_update_audio.dptr, 0.5);
+	DELEGATE_SAFE_CALL1(tape_update_audio, 0.5);
 	event_init(&waggle_event, (delegate_null){waggle_bit, NULL});
 	event_init(&flush_event, (delegate_null){flush_output, NULL});
 }
@@ -425,17 +425,14 @@ static void waggle_bit(void *data) {
 	switch (in_pulse) {
 	default:
 	case -1:
-		if (tape_update_audio.delegate)
-			tape_update_audio.delegate(tape_update_audio.dptr, 0.5);
+		DELEGATE_SAFE_CALL1(tape_update_audio, 0.5);
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
-		if (tape_update_audio.delegate)
-			tape_update_audio.delegate(tape_update_audio.dptr, 0.0);
+		DELEGATE_SAFE_CALL1(tape_update_audio, 0.0);
 		break;
 	case 1:
-		if (tape_update_audio.delegate)
-			tape_update_audio.delegate(tape_update_audio.dptr, 1.0);
+		DELEGATE_SAFE_CALL1(tape_update_audio, 1.0);
 		break;
 	}
 	waggle_event.at_tick += in_pulse_width;
@@ -465,8 +462,7 @@ static int pulse_skip(void) {
 			pskip = 0;
 			waggle_event.at_tick = event_current_tick + in_pulse_width;
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
-			if (tape_update_audio.delegate)
-				tape_update_audio.delegate(tape_update_audio.dptr, in_pulse ? 1.0 : 0.0);
+			DELEGATE_SAFE_CALL1(tape_update_audio, in_pulse ? 1.0 : 0.0);
 			return in_pulse;
 		}
 		pskip -= in_pulse_width;
