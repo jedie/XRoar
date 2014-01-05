@@ -499,21 +499,21 @@ static void update_audio_from_tape(void *dptr, float value) {
 
 /* Catridge signalling */
 
-static void cart_firq(void *dptr, _Bool level) {
-	(void)dptr;
+static void cart_firq(void *sptr, _Bool level) {
+	(void)sptr;
 	if (level)
 		mc6821_set_cx1(&PIA1->b);
 	else
 		mc6821_reset_cx1(&PIA1->b);
 }
 
-static void cart_nmi(void *dptr, _Bool level) {
-	(void)dptr;
+static void cart_nmi(void *sptr, _Bool level) {
+	(void)sptr;
 	MC6809_NMI_SET(CPU0, level);
 }
 
-static void cart_halt(void *dptr, _Bool level) {
-	(void)dptr;
+static void cart_halt(void *sptr, _Bool level) {
+	(void)sptr;
 	MC6809_HALT_SET(CPU0, level);
 }
 
@@ -1239,9 +1239,9 @@ void machine_insert_cart(struct cart *c) {
 		assert(c->read != NULL);
 		assert(c->write != NULL);
 		machine_cart = c;
-		c->signal_firq = (cart_signal_delegate){cart_firq, NULL};
-		c->signal_nmi = (cart_signal_delegate){cart_nmi, NULL};
-		c->signal_halt = (cart_signal_delegate){cart_halt, NULL};
+		c->signal_firq = (delegate_bool){cart_firq, NULL};
+		c->signal_nmi = (delegate_bool){cart_nmi, NULL};
+		c->signal_halt = (delegate_bool){cart_halt, NULL};
 	}
 }
 

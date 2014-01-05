@@ -31,6 +31,7 @@
 
 #include "becker.h"
 #include "cart.h"
+#include "delegate.h"
 #include "logging.h"
 #include "machine.h"
 #include "rsdos.h"
@@ -56,10 +57,10 @@ static void rsdos_reset(struct cart *c);
 static void rsdos_detach(struct cart *c);
 
 /* Handle signals from WD2793 */
-static void set_drq_handler(void *dptr);
-static void reset_drq_handler(void *dptr);
-static void set_intrq_handler(void *dptr);
-static void reset_intrq_handler(void *dptr);
+static void set_drq_handler(void *);
+static void reset_drq_handler(void *);
+static void set_intrq_handler(void *);
+static void reset_intrq_handler(void *);
 
 static void ff40_write(struct rsdos *r, int octet);
 
@@ -200,50 +201,43 @@ static void ff40_write(struct rsdos *r, int octet) {
 	r->ic1_density = octet & 0x20;
 	wd279x_set_dden(r->fdc, !r->ic1_density);
 	if (r->ic1_density && r->intrq_flag) {
-		if (c->signal_nmi.delegate)
-			c->signal_nmi.delegate(c->signal_nmi.dptr, 1);
+		DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
 	}
 	r->halt_enable = octet & 0x80;
 	if (r->intrq_flag) r->halt_enable = 0;
-	if (c->signal_halt.delegate)
-		c->signal_halt.delegate(c->signal_halt.dptr, r->halt_enable && !r->drq_flag);
+	DELEGATE_SAFE_CALL1(c->signal_halt, r->halt_enable && !r->drq_flag);
 }
 
-static void set_drq_handler(void *dptr) {
-	struct cart *c = dptr;
-	struct rsdos *r = dptr;
+static void set_drq_handler(void *sptr) {
+	struct cart *c = sptr;
+	struct rsdos *r = sptr;
 	r->drq_flag = 1;
-	if (c->signal_halt.delegate)
-		c->signal_halt.delegate(c->signal_halt.dptr, 0);
+	DELEGATE_SAFE_CALL1(c->signal_halt, 0);
 }
 
-static void reset_drq_handler(void *dptr) {
-	struct cart *c = dptr;
-	struct rsdos *r = dptr;
+static void reset_drq_handler(void *sptr) {
+	struct cart *c = sptr;
+	struct rsdos *r = sptr;
 	r->drq_flag = 0;
 	if (r->halt_enable) {
-		if (c->signal_halt.delegate)
-			c->signal_halt.delegate(c->signal_halt.dptr, 1);
+		DELEGATE_SAFE_CALL1(c->signal_halt, 1);
 	}
 }
 
-static void set_intrq_handler(void *dptr) {
-	struct cart *c = dptr;
-	struct rsdos *r = dptr;
+static void set_intrq_handler(void *sptr) {
+	struct cart *c = sptr;
+	struct rsdos *r = sptr;
 	r->intrq_flag = 1;
 	r->halt_enable = 0;
-	if (c->signal_halt.delegate)
-		c->signal_halt.delegate(c->signal_halt.dptr, 0);
+	DELEGATE_SAFE_CALL1(c->signal_halt, 0);
 	if (!r->ic1_density && r->intrq_flag) {
-		if (c->signal_nmi.delegate)
-			c->signal_nmi.delegate(c->signal_nmi.dptr, 1);
+		DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
 	}
 }
 
-static void reset_intrq_handler(void *dptr) {
-	struct cart *c = dptr;
-	struct rsdos *r = dptr;
+static void reset_intrq_handler(void *sptr) {
+	struct cart *c = sptr;
+	struct rsdos *r = sptr;
 	r->intrq_flag = 0;
-	if (c->signal_nmi.delegate)
-		c->signal_nmi.delegate(c->signal_nmi.dptr, 0);
+	DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
 }

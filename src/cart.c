@@ -28,6 +28,7 @@
 
 #include "cart.h"
 #include "crc32.h"
+#include "delegate.h"
 #include "deltados.h"
 #include "dragondos.h"
 #include "events.h"
@@ -255,9 +256,9 @@ void cart_rom_init(struct cart *c) {
 			g_free(tmp);
 		}
 	}
-	c->signal_firq = (cart_signal_delegate){ NULL, NULL };
-	c->signal_nmi = (cart_signal_delegate){ NULL, NULL };
-	c->signal_halt = (cart_signal_delegate){ NULL, NULL };
+	c->signal_firq = (delegate_bool){ NULL, NULL };
+	c->signal_nmi = (delegate_bool){ NULL, NULL };
+	c->signal_halt = (delegate_bool){ NULL, NULL };
 }
 
 struct cart *cart_rom_new(struct cart_config *cc) {
@@ -305,8 +306,7 @@ void cart_rom_detach(struct cart *c) {
 
 static void do_firq(void *data) {
 	struct cart *c = data;
-	if (c->signal_firq.delegate)
-		c->signal_firq.delegate(c->signal_firq.dptr, 1);
+	DELEGATE_SAFE_CALL1(c->signal_firq, 1);
 	c->firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
 	event_queue(&MACHINE_EVENT_LIST, c->firq_event);
 }

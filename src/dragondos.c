@@ -34,6 +34,7 @@
 
 #include "becker.h"
 #include "cart.h"
+#include "delegate.h"
 #include "dragondos.h"
 #include "logging.h"
 #include "machine.h"
@@ -54,10 +55,10 @@ struct dragondos {
 };
 
 /* Handle signals from WD2797 */
-static void set_drq_handler(void *dptr);
-static void reset_drq_handler(void *dptr);
-static void set_intrq_handler(void *dptr);
-static void reset_intrq_handler(void *dptr);
+static void set_drq_handler(void *);
+static void reset_drq_handler(void *);
+static void set_intrq_handler(void *);
+static void reset_intrq_handler(void *);
 
 static void dragondos_read(struct cart *c, uint16_t A, _Bool P2, uint8_t *D);
 static void dragondos_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D);
@@ -191,29 +192,25 @@ static void ff48_write(struct dragondos *d, int octet) {
 	d->ic1_nmi_enable = octet & 0x20;
 }
 
-static void set_drq_handler(void *dptr) {
-	struct cart *c = dptr;
-	if (c->signal_firq.delegate)
-		c->signal_firq.delegate(c->signal_firq.dptr, 1);
+static void set_drq_handler(void *sptr) {
+	struct cart *c = sptr;
+	DELEGATE_SAFE_CALL1(c->signal_firq, 1);
 }
 
-static void reset_drq_handler(void *dptr) {
-	struct cart *c = dptr;
-	if (c->signal_firq.delegate)
-		c->signal_firq.delegate(c->signal_firq.dptr, 0);
+static void reset_drq_handler(void *sptr) {
+	struct cart *c = sptr;
+	DELEGATE_SAFE_CALL1(c->signal_firq, 0);
 }
 
-static void set_intrq_handler(void *dptr) {
-	struct cart *c = dptr;
-	struct dragondos *d = dptr;
+static void set_intrq_handler(void *sptr) {
+	struct cart *c = sptr;
+	struct dragondos *d = sptr;
 	if (d->ic1_nmi_enable) {
-		if (c->signal_nmi.delegate)
-			c->signal_nmi.delegate(c->signal_nmi.dptr, 1);
+		DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
 	}
 }
 
-static void reset_intrq_handler(void *dptr) {
-	struct cart *c = dptr;
-	if (c->signal_nmi.delegate)
-		c->signal_nmi.delegate(c->signal_nmi.dptr, 0);
+static void reset_intrq_handler(void *sptr) {
+	struct cart *c = sptr;
+	DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
 }

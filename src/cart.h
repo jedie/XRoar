@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#include "delegate.h"
+
 struct machine_config;
 struct event;
 
@@ -30,11 +32,6 @@ struct cart_config {
 	int autorun;
 };
 
-typedef struct {
-	void (*delegate)(void *, _Bool);
-	void *dptr;
-} cart_signal_delegate;
-
 struct cart {
 	struct cart_config *config;
 	void (*read)(struct cart *c, uint16_t A, _Bool P2, uint8_t *D);
@@ -43,9 +40,9 @@ struct cart {
 	void (*attach)(struct cart *c);
 	void (*detach)(struct cart *c);
 	uint8_t *rom_data;
-	cart_signal_delegate signal_firq;
-	cart_signal_delegate signal_nmi;
-	cart_signal_delegate signal_halt;
+	delegate_bool signal_firq;
+	delegate_bool signal_nmi;
+	delegate_bool signal_halt;
 	struct event *firq_event;
 };
 
