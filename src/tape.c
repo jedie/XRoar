@@ -234,8 +234,8 @@ void tape_free(struct tape *t) {
 void tape_init(void) {
 	if (tape_update_audio.delegate)
 		tape_update_audio.delegate(tape_update_audio.dptr, 0.5);
-	event_init(&waggle_event, waggle_bit, NULL);
-	event_init(&flush_event, flush_output, NULL);
+	event_init(&waggle_event, (delegate_null){waggle_bit, NULL});
+	event_init(&flush_event, (delegate_null){flush_output, NULL});
 }
 
 void tape_reset(void) {

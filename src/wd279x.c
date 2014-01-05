@@ -95,7 +95,7 @@
 			vdrive_set_head(fdc->side); \
 	} while (0)
 
-static void state_machine(WD279X *fdc);
+static void state_machine(void *);
 
 static int stepping_rate[4] = { 6, 12, 20, 30 };
 static int sector_size[2][4] = {
@@ -141,7 +141,7 @@ static void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	fdc->set_intrq_handler = NULL;
 	fdc->reset_intrq_handler = NULL;
 	fdc->state = WD279X_state_accept_command;
-	event_init(&fdc->state_event, (event_delegate)state_machine, fdc);
+	event_init(&fdc->state_event, (delegate_null){state_machine, fdc});
 }
 
 WD279X *wd279x_new(enum WD279X_type type) {
@@ -265,7 +265,8 @@ void wd279x_write(WD279X *fdc, uint16_t A, uint8_t D) {
 /* One big state machine.  This is called from an event dispatch and from the
  * write command function. */
 
-static void state_machine(WD279X *fdc) {
+static void state_machine(void *sptr) {
+	WD279X *fdc = (WD279X *)sptr;
 	uint8_t *idam;
 	uint8_t data;
 	int i;

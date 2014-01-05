@@ -27,17 +27,16 @@
 
 event_ticks event_current_tick = 0;
 
-struct event *event_new(event_delegate delegate, void *delegate_data) {
+struct event *event_new(delegate_null delegate) {
 	struct event *new = g_malloc(sizeof(*new));
-	event_init(new, delegate, delegate_data);
+	event_init(new, delegate);
 	return new;
 }
 
-void event_init(struct event *event, event_delegate delegate, void *delegate_data) {
+void event_init(struct event *event, delegate_null delegate) {
 	if (event == NULL) return;
 	event->at_tick = event_current_tick;
 	event->delegate = delegate;
-	event->delegate_data = delegate_data;
 	event->queued = 0;
 	event->list = NULL;
 	event->next = NULL;

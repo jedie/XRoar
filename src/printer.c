@@ -56,7 +56,7 @@ void printer_init(void) {
 	stream = NULL;
 	stream_dest = NULL;
 	is_pipe = 0;
-	event_init(&ack_clear_event, do_ack_clear, NULL);
+	event_init(&ack_clear_event, (delegate_null){do_ack_clear, NULL});
 	strobe_state = 1;
 	busy = 0;
 }

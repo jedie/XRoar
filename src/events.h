@@ -8,6 +8,8 @@
 
 #include <limits.h>
 
+#include "delegate.h"
+
 /* Maintains queues of events.  Each event has a tick number at which its
  * delegate is scheduled to run.  */
 
@@ -16,19 +18,16 @@ typedef unsigned event_ticks;
 /* Current "time". */
 extern event_ticks event_current_tick;
 
-typedef void (*event_delegate)(void *);
-
 struct event {
 	event_ticks at_tick;
-	event_delegate delegate;
-	void *delegate_data;
+	delegate_null delegate;
 	_Bool queued;
 	struct event **list;
 	struct event *next;
 };
 
-struct event *event_new(event_delegate delegate, void *delegate_data);
-void event_init(struct event *event, event_delegate delegate, void *delegate_data);
+struct event *event_new(delegate_null delegate);
+void event_init(struct event *event, delegate_null delegate);
 
 void event_free(struct event *event);
 void event_queue(struct event **list, struct event *event);
@@ -42,7 +41,7 @@ static inline void event_dispatch_next(struct event **list) {
 	struct event *e = *list;
 	*list = e->next;
 	e->queued = 0;
-	e->delegate(e->delegate_data);
+	DELEGATE_CALL0(e->delegate);
 }
 
 static inline void event_run_queue(struct event **list) {

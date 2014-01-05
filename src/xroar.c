@@ -726,7 +726,7 @@ _Bool xroar_init(int argc, char **argv) {
 		// delay loading binary files by 2s
 		case FILETYPE_BIN:
 		case FILETYPE_HEX:
-			event_init(&load_file_event, do_load_file, load_file);
+			event_init(&load_file_event, (delegate_null){do_load_file, load_file});
 			load_file_event.at_tick = event_current_tick + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 			autorun_loaded_file = autorun;
@@ -779,7 +779,7 @@ _Bool xroar_init(int argc, char **argv) {
 		if (t >= 0.0) {
 			timeout_seconds = (int)t;
 			timeout_cycles = OSCILLATOR_RATE * (t - timeout_seconds);
-			event_init(&timeout_event, handle_timeout_event, NULL);
+			event_init(&timeout_event, (delegate_null){handle_timeout_event, NULL});
 			/* handler can set up the first call for us... */
 			timeout_seconds++;
 			handle_timeout_event(NULL);
@@ -994,8 +994,8 @@ static void do_load_file(void *data) {
 	xroar_load_file_by_type(load_file, autorun_loaded_file);
 }
 
-static void handle_timeout_event(void *dptr) {
-	(void)dptr;
+static void handle_timeout_event(void *sptr) {
+	(void)sptr;
 	if (timeout_seconds == 0) {
 		xroar_quit();
 		return;

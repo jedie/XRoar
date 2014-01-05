@@ -283,7 +283,7 @@ static void cart_rom_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D) {
 void cart_rom_attach(struct cart *c) {
 	struct cart_config *cc = c->config;
 	if (cc->autorun) {
-		c->firq_event = event_new(do_firq, c);
+		c->firq_event = event_new((delegate_null){do_firq, c});
 		c->firq_event->at_tick = event_current_tick + (OSCILLATOR_RATE/10);
 		event_queue(&MACHINE_EVENT_LIST, c->firq_event);
 	} else {

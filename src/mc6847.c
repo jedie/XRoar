@@ -161,10 +161,10 @@ static void do_hs_fall(void *data) {
 	if (IS_PAL && IS_COCO) {
 		if (vdg->scanline == SCANLINE(VDG_ACTIVE_AREA_END + 25)) {
 			vdg->pal_padding = 26;
-			vdg->hs_fall_event.delegate = do_hs_fall_pal_coco;
+			vdg->hs_fall_event.delegate.func = do_hs_fall_pal_coco;
 		} else if (vdg->scanline == SCANLINE(VDG_ACTIVE_AREA_END + 47)) {
 			vdg->pal_padding = 24;
-			vdg->hs_fall_event.delegate = do_hs_fall_pal_coco;
+			vdg->hs_fall_event.delegate.func = do_hs_fall_pal_coco;
 		}
 	} else if (IS_PAL && IS_DRAGON) {
 		if (vdg->scanline == SCANLINE(VDG_ACTIVE_AREA_END + 24)
@@ -226,7 +226,7 @@ static void do_hs_fall_pal_coco(void *data) {
 
 	vdg->pal_padding--;
 	if (vdg->pal_padding == 0)
-		vdg->hs_fall_event.delegate = do_hs_fall;
+		vdg->hs_fall_event.delegate.func = do_hs_fall;
 
 	event_queue(&MACHINE_EVENT_LIST, &vdg->hs_rise_event);
 	event_queue(&MACHINE_EVENT_LIST, &vdg->hs_fall_event);
@@ -421,8 +421,8 @@ struct MC6847 *mc6847_new(_Bool t1) {
 	vdg->signal_hs = (vdg_edge_delegate){dummy_signal, NULL};
 	vdg->signal_hs = (vdg_edge_delegate){dummy_signal, NULL};
 	vdg->fetch_bytes = dummy_fetch_bytes;
-	event_init(&vdg->hs_fall_event, do_hs_fall, vdg);
-	event_init(&vdg->hs_rise_event, do_hs_rise, vdg);
+	event_init(&vdg->hs_fall_event, (delegate_null){do_hs_fall, vdg});
+	event_init(&vdg->hs_rise_event, (delegate_null){do_hs_rise, vdg});
 	return (struct MC6847 *)vdg;
 }
 
