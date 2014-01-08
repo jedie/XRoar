@@ -125,8 +125,8 @@ static struct tape *do_tape_cas_open(const char *filename, const char *mode,
 	 * based on this */
 	if (!is_ascii) {
 		int lb = fs_read_uint8(cas->fd);
-		int nb;
 		if (lb == 0x55 || lb == 0xaa) {
+			int nb;
 			do {
 				t->leader_count++;
 				nb = fs_read_uint8(cas->fd);

@@ -193,9 +193,8 @@ int write_snapshot(const char *filename) {
 	fs_write_uint16(fd, sam_get_register());
 	// Attached virtual disk filenames
 	{
-		struct vdisk *disk;
 		for (unsigned drive = 0; drive < VDRIVE_MAX_DRIVES; drive++) {
-			disk = vdrive_disk_in_drive(drive);
+			struct vdisk *disk = vdrive_disk_in_drive(drive);
 			if (disk != NULL && disk->filename != NULL) {
 				int length = strlen(disk->filename) + 1;
 				write_chunk_header(fd, ID_VDISK_FILE, 1 + length);
@@ -259,7 +258,7 @@ static uint16_t *tfm_reg_ptr(struct HD6309 *hcpu, unsigned reg) {
 int read_snapshot(const char *filename) {
 	FILE *fd;
 	uint8_t buffer[17];
-	int section, size, tmp;
+	int section, tmp;
 	int version_major = 1, version_minor = 0;
 	if (filename == NULL)
 		return -1;
@@ -289,7 +288,7 @@ int read_snapshot(const char *filename) {
 		old_set_registers(buffer + 3);
 	}
 	while ((section = fs_read_uint8(fd)) >= 0) {
-		size = fs_read_uint16(fd);
+		int size = fs_read_uint16(fd);
 		if (size == 0) size = 0x10000;
 		switch (section) {
 			case ID_ARCHITECTURE:

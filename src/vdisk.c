@@ -271,7 +271,7 @@ static int vdisk_save_vdk(struct vdisk *disk) {
 		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
-	LOG_DEBUG(1, "Writing VDK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	LOG_DEBUG(1, "Writing VDK virtual disk: %uC %uH (%u-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
 	buf[0] = 'd';   // magic
 	buf[1] = 'k';   // magic
 	buf[2] = 12;    // header size LSB
@@ -430,7 +430,7 @@ static int vdisk_save_jvc(struct vdisk *disk) {
 		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
-	LOG_DEBUG(1, "Writing JVC virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	LOG_DEBUG(1, "Writing JVC virtual disk: %uC %uH (%u-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
 
 	// TODO: scan the disk to potentially correct these assumptions
 	buf[0] = nsectors;  // assumed
@@ -562,7 +562,7 @@ static int vdisk_save_dmk(struct vdisk *disk) {
 		return -1;
 	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
-	LOG_DEBUG(1, "Writing DMK virtual disk: %dC %dH (%d-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	LOG_DEBUG(1, "Writing DMK virtual disk: %uC %uH (%u-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
 	memset(header, 0, sizeof(header));
 	if (!disk->write_back)
 		header[0] = 0xff;

@@ -92,11 +92,11 @@ static int tape_pulse_in(struct tape *t, int *pulse_width) {
 
 static int tape_bit_in(struct tape *t) {
 	if (!t) return -1;
-	int phase, pulse0_width, pulse1_width, cycle_width;
+	int phase, pulse1_width, cycle_width;
 	if (tape_pulse_in(t, &pulse1_width) == -1)
 		return -1;
 	do {
-		pulse0_width = pulse1_width;
+		int pulse0_width = pulse1_width;
 		if ((phase = tape_pulse_in(t, &pulse1_width)) == -1)
 			return -1;
 		cycle_width = pulse0_width + pulse1_width;
@@ -745,10 +745,9 @@ static void tape_desync(int leader) {
 static void rewrite_sync(struct MC6809 *cpu) {
 	/* BLKIN, having read sync byte $3C */
 	(void)cpu;
-	int i;
 	if (rewrite_have_sync) return;
 	if (tape_rewrite) {
-		for (i = 0; i < rewrite_leader_count; i++)
+		for (int i = 0; i < rewrite_leader_count; i++)
 			tape_byte_out(tape_output, 0x55);
 		tape_byte_out(tape_output, 0x3c);
 		rewrite_have_sync = 1;

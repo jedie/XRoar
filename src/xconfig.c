@@ -249,11 +249,7 @@ enum xconfig_result xconfig_parse_line(struct xconfig_option *options, const cha
 
 enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		int argc, char **argv, int *argn) {
-	struct xconfig_option *option;
-	int _argn;
-	char *opt;
-
-	_argn = argn ? *argn : 1;
+	int _argn = argn ? *argn : 1;
 	while (_argn < argc) {
 		if (argv[_argn][0] != '-') {
 			break;
@@ -262,9 +258,9 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 			_argn++;
 			break;
 		}
-		opt = argv[_argn]+1;
+		char *opt = argv[_argn]+1;
 		if (*opt == '-') opt++;
-		option = find_option(options, opt);
+		struct xconfig_option *option = find_option(options, opt);
 		if (option == NULL) {
 			if (0 == strncmp(opt, "no-", 3)) {
 				option = find_option(options, opt + 3);

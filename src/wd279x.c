@@ -517,7 +517,7 @@ static void state_machine(void *sptr) {
 			}
 
 			if ((fdc->command_register & 0x20) == 0) {
-				int bytes_to_scan, j, tmp;
+				int bytes_to_scan, j;
 				if (IS_SINGLE_DENSITY)
 					bytes_to_scan = 30;
 				else
@@ -531,7 +531,7 @@ static void state_machine(void *sptr) {
 						fdc->crc = crc16_byte(fdc->crc, 0xa1);
 						fdc->crc = crc16_byte(fdc->crc, 0xa1);
 					}
-					tmp = _vdrive_read(fdc);
+					int tmp = _vdrive_read(fdc);
 					if (tmp == 0xfb || tmp == 0xf8)
 						fdc->dam = tmp;
 					j++;

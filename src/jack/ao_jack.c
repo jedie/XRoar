@@ -76,7 +76,7 @@ static _Bool init(void) {
 		return 0;
 	}
 	/* connect up to 2 ports (stereo output) */
-	for (i = 0; ports[i] && i < 2; i++) {
+	for (i = 0; i < 2 && ports[i]; i++) {
 		if (jack_connect(client, jack_port_name(output_port[i]), ports[i])) {
 			LOG_ERROR("Cannot connect output ports\n");
 			free(ports);
@@ -117,9 +117,9 @@ static void *write_buffer(void *buffer) {
 
 static int jack_callback(jack_nframes_t nframes, void *arg) {
 	int i;
-	jack_default_audio_sample_t *out;
 	(void)arg;  /* unused */
 	for (i = 0; i < num_output_ports; i++) {
+		jack_default_audio_sample_t *out;
 		out = (float *)jack_port_get_buffer(output_port[i], nframes);
 		memcpy(out, audio_buffer, nframes * sizeof(float));
 	}
