@@ -1528,7 +1528,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 					break;
 				default: out = 0; break;
 				}
-				if ((op & 3) == 7) {
+				if ((op & 7) == 7) {
 					// STBT
 					out |= (mem_byte & ~dst_mask);
 					store_byte(cpu, ea, out);
