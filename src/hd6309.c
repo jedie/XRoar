@@ -1709,7 +1709,7 @@ static void hd6309_run(struct MC6809 *cpu) {
 				case 3: tmp2 = word_extended(cpu); break;
 				default: tmp2 = 0; break;
 				}
-				(void)op_sub16(cpu, tmp1, tmp2); break; // CMPU, CMPS
+				(void)op_sub16(cpu, tmp1, tmp2); // CMPU, CMPS
 				if (!NATIVE_MODE)
 					NVMA_CYCLE;
 			} break;
