@@ -184,7 +184,6 @@ static uint16_t op_or16(struct MC6809 *cpu, uint16_t a, uint16_t b);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-#define QUAD_IMMEDIATE(a,v1,v2) { (void)a; v1 = fetch_byte(cpu, REG_PC) << 8; v1 |= fetch_byte(cpu, REG_PC+1); v2 = fetch_byte(cpu, REG_PC+2) << 8; v2 |= fetch_byte(cpu, REG_PC+3); REG_PC += 4; }
 #define QUAD_DIRECT(a,v1,v2)    { a = ea_direct(cpu); v1 = fetch_byte(cpu, a) << 8; v1 |= fetch_byte(cpu, a+1); v2 = fetch_byte(cpu, a+2) << 8; v2 |= fetch_byte(cpu, a+3); }
 #define QUAD_INDEXED(a,v1,v2)   { a = ea_indexed(cpu); v1 = fetch_byte(cpu, a) << 8; v1 |= fetch_byte(cpu, a+1); v2 = fetch_byte(cpu, a+2) << 8; v2 |= fetch_byte(cpu, a+3); }
 #define QUAD_EXTENDED(a,v1,v2)  { a = ea_extended(cpu); v1 = fetch_byte(cpu, a) << 8; v1 |= fetch_byte(cpu, a+1); v2 = fetch_byte(cpu, a+2) << 8; v2 |= fetch_byte(cpu, a+3); }
@@ -1015,8 +1014,11 @@ static void hd6309_run(struct MC6809 *cpu) {
 
 			// 0xcd LDQ immediate
 			case 0xcd: {
-				unsigned ea;
-				QUAD_IMMEDIATE(ea, REG_D, REG_W);
+				REG_D = fetch_byte(cpu, REG_PC) << 8;
+				REG_D |= fetch_byte(cpu, REG_PC+1);
+				REG_W = fetch_byte(cpu, REG_PC+2) << 8;
+				REG_W |= fetch_byte(cpu, REG_PC+3);
+				REG_PC += 4;
 				CLR_NZV;
 				SET_N16(REG_D);
 				if (REG_D == 0 && REG_W == 0)
