@@ -249,7 +249,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		vdisk_destroy(disk);
 		return NULL;
 	}
-	LOG_DEBUG(1, "Loading VDK virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
+	LOG_DEBUG(1, "Loading VDK virtual disk: %uC %uH %uS (%u-byte)\n", ncyls, nheads, nsectors, ssize);
 	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
 		for (unsigned head = 0; head < nheads; head++) {
 			for (unsigned sector = 0; sector < nsectors; sector++) {
@@ -402,7 +402,7 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 		vdisk_destroy(disk);
 		return NULL;
 	}
-	LOG_DEBUG(1, "Loading JVC virtual disk: %dC %dH %dS (%d-byte)\n", ncyls, nheads, nsectors, ssize);
+	LOG_DEBUG(1, "Loading JVC virtual disk: %uC %uH %uS (%u-byte)\n", ncyls, nheads, nsectors, ssize);
 	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
 		for (unsigned head = 0; head < nheads; head++) {
 			for (unsigned sector = 0; sector < nsectors; sector++) {
@@ -525,7 +525,7 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 		fclose(fd);
 		return NULL;
 	}
-	LOG_DEBUG(1, "Loading DMK virtual disk: %dC %dH (%d-byte)\n", ncyls, nheads, track_length);
+	LOG_DEBUG(1, "Loading DMK virtual disk: %uC %uH (%u-byte)\n", ncyls, nheads, track_length);
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = g_strdup(filename);
 	disk->write_back = header[0] ? 0 : 1;

@@ -1671,7 +1671,7 @@ static void set_joystick_axis(const char *spec) {
 			axis = strtol(tmp, NULL, 0);
 		}
 		if (axis > JOYSTICK_NUM_AXES) {
-			LOG_WARN("Invalid axis number '%d'\n", axis);
+			LOG_WARN("Invalid axis number '%u'\n", axis);
 			axis = 0;
 		}
 		tmp = cspec;
@@ -1688,7 +1688,7 @@ static void set_joystick_button(const char *spec) {
 	if (cspec) {
 		button = strtol(tmp, NULL, 0);
 		if (button > JOYSTICK_NUM_AXES) {
-			LOG_WARN("Invalid button number '%d'\n", button);
+			LOG_WARN("Invalid button number '%u'\n", button);
 			button = 0;
 		}
 		tmp = cspec;

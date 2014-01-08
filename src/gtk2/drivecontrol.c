@@ -214,6 +214,6 @@ void gtk2_update_drive_disk(int drive, struct vdisk *disk) {
 
 static void update_drive_cyl_head(unsigned drive, unsigned cyl, unsigned head) {
 	char string[16];
-	snprintf(string, sizeof(string), "Dr %01d Tr %02d He %01d", drive + 1, cyl, head);
+	snprintf(string, sizeof(string), "Dr %01u Tr %02u He %01u", drive + 1, cyl, head);
 	gtk_label_set_text(GTK_LABEL(dc_drive_cyl_head), string);
 }

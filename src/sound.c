@@ -173,9 +173,9 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 		switch (nchannels) {
 		case 1: LOG_DEBUG(1, "mono, "); break;
 		case 2: LOG_DEBUG(1, "stereo, "); break;
-		default: LOG_DEBUG(1, "%d channel, ", nchannels); break;
+		default: LOG_DEBUG(1, "%u channel, ", nchannels); break;
 		}
-		LOG_DEBUG(1, "%dHz\n", rate);
+		LOG_DEBUG(1, "%uHz\n", rate);
 	}
 	output_level[0] = output_level[1] = 0.0;
 

@@ -39,7 +39,7 @@ static FILE *stream;
 static char *stream_dest;
 static int is_pipe;
 static struct event ack_clear_event;
-static int strobe_state;
+static _Bool strobe_state = 1;
 static _Bool busy;
 
 delegate_bool printer_signal_ack = { NULL, NULL };
