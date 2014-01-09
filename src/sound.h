@@ -19,9 +19,6 @@ enum sound_fmt {
 	SOUND_FMT_FLOAT,
 };
 
-// Input from tape
-extern float sound_tape_level;
-
 extern delegate_bool sound_sbs_feedback;
 
 void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes);
