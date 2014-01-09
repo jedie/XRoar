@@ -186,6 +186,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 	long offset;
 
 	for (;;) {
+		long start = tape_tell(t);
 		int type = block_in(t, &sum, &offset, block);
 		if (type == -1)
 			return NULL;
@@ -198,7 +199,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 		if (type != 0 || block[1] < 15)
 			continue;
 		f = g_malloc(sizeof(*f));
-		f->offset = offset;
+		f->offset = start;
 		memcpy(f->name, &block[2], 8);
 		int i = 8;
 		do {
