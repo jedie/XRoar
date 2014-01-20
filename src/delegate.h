@@ -31,6 +31,14 @@ typedef struct {
 	void *sptr;
 } delegate_float;
 
+void delegate_default_null(void *);
+void delegate_default_bool(void *, _Bool);
+void delegate_default_int(void *, int);
+void delegate_default_unsigned(void *, unsigned);
+void delegate_default_float(void *, float);
+
+#define DELEGATE_DEFAULT(t) (delegate_##t){delegate_default_##t, NULL}
+
 #define DELEGATE_CALL0(d) ((d).func((d).sptr))
 #define DELEGATE_CALL1(d,v) ((d).func((d).sptr, (v)))
 #define DELEGATE_SAFE_CALL0(d) do { if ((d).func) { DELEGATE_CALL0((d)); } } while (0)
