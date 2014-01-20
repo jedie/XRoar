@@ -57,10 +57,8 @@ static void rsdos_reset(struct cart *c);
 static void rsdos_detach(struct cart *c);
 
 /* Handle signals from WD2793 */
-static void set_drq_handler(void *);
-static void reset_drq_handler(void *);
-static void set_intrq_handler(void *);
-static void reset_intrq_handler(void *);
+static void set_drq(void *, _Bool);
+static void set_intrq(void *, _Bool);
 
 static void ff40_write(struct rsdos *r, int octet);
 
@@ -74,12 +72,8 @@ static void rsdos_init(struct rsdos *r) {
 	c->detach = rsdos_detach;
 	r->have_becker = (cc->becker_port && becker_open());
 	r->fdc = wd279x_new(WD2793);
-	r->fdc->set_drq_handler = set_drq_handler;
-	r->fdc->reset_drq_handler = reset_drq_handler;
-	r->fdc->drq_data = c;
-	r->fdc->set_intrq_handler = set_intrq_handler;
-	r->fdc->reset_intrq_handler = reset_intrq_handler;
-	r->fdc->intrq_data = c;
+	r->fdc->set_drq = (delegate_bool){set_drq, c};
+	r->fdc->set_intrq = (delegate_bool){set_intrq, c};
 }
 
 struct cart *rsdos_new(struct cart_config *cc) {
@@ -208,36 +202,30 @@ static void ff40_write(struct rsdos *r, int octet) {
 	DELEGATE_SAFE_CALL1(c->signal_halt, r->halt_enable && !r->drq_flag);
 }
 
-static void set_drq_handler(void *sptr) {
+static void set_drq(void *sptr, _Bool value) {
 	struct cart *c = sptr;
 	struct rsdos *r = sptr;
-	r->drq_flag = 1;
-	DELEGATE_SAFE_CALL1(c->signal_halt, 0);
-}
-
-static void reset_drq_handler(void *sptr) {
-	struct cart *c = sptr;
-	struct rsdos *r = sptr;
-	r->drq_flag = 0;
-	if (r->halt_enable) {
-		DELEGATE_SAFE_CALL1(c->signal_halt, 1);
+	r->drq_flag = value;
+	if (value) {
+		DELEGATE_SAFE_CALL1(c->signal_halt, 0);
+	} else {
+		if (r->halt_enable) {
+			DELEGATE_SAFE_CALL1(c->signal_halt, 1);
+		}
 	}
 }
 
-static void set_intrq_handler(void *sptr) {
+static void set_intrq(void *sptr, _Bool value) {
 	struct cart *c = sptr;
 	struct rsdos *r = sptr;
-	r->intrq_flag = 1;
-	r->halt_enable = 0;
-	DELEGATE_SAFE_CALL1(c->signal_halt, 0);
-	if (!r->ic1_density && r->intrq_flag) {
-		DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
+	r->intrq_flag = value;
+	if (value) {
+		r->halt_enable = 0;
+		DELEGATE_SAFE_CALL1(c->signal_halt, 0);
+		if (!r->ic1_density && r->intrq_flag) {
+			DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
+		}
+	} else {
+		DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
 	}
-}
-
-static void reset_intrq_handler(void *sptr) {
-	struct cart *c = sptr;
-	struct rsdos *r = sptr;
-	r->intrq_flag = 0;
-	DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
 }

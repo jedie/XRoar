@@ -58,21 +58,17 @@
 
 #define SET_DRQ do { \
 		fdc->status_register |= STATUS_DRQ; \
-		if (fdc->set_drq_handler) \
-			fdc->set_drq_handler(fdc->drq_data); \
+		DELEGATE_CALL1(fdc->set_drq, 1); \
 	} while (0)
 #define RESET_DRQ do { \
 		fdc->status_register &= ~(STATUS_DRQ); \
-		if (fdc->reset_drq_handler) \
-			fdc->reset_drq_handler(fdc->drq_data); \
+		DELEGATE_CALL1(fdc->set_drq, 0); \
 	} while (0)
 #define SET_INTRQ do { \
-		if (fdc->set_intrq_handler) \
-			fdc->set_intrq_handler(fdc->intrq_data); \
+		DELEGATE_CALL1(fdc->set_intrq, 1); \
 	} while (0)
 #define RESET_INTRQ do { \
-		if (fdc->reset_intrq_handler) \
-			fdc->reset_intrq_handler(fdc->intrq_data); \
+		DELEGATE_CALL1(fdc->set_intrq, 0); \
 	} while (0)
 
 #define NEXT_STATE(f,t) do { \
@@ -125,6 +121,11 @@ static void _vdrive_write(WD279X *fdc, uint8_t b) {
 	fdc->crc = crc16_byte(fdc->crc, b);
 }
 
+static void dummy_set_irq(void *sptr, _Bool value) {
+	(void)sptr;
+	(void)value;
+}
+
 #define VDRIVE_WRITE_CRC16 do { \
 		uint16_t tmp = fdc->crc; \
 		_vdrive_write(fdc, tmp >> 8); \
@@ -136,10 +137,8 @@ static void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	fdc->has_sso = (type == WD2795 || type == WD2797);
 	fdc->has_length_flag = (type == WD2795 || type == WD2797);
 	fdc->has_inverted_data = (type == WD2791 || type == WD2795);
-	fdc->set_drq_handler = NULL;
-	fdc->reset_drq_handler = NULL;
-	fdc->set_intrq_handler = NULL;
-	fdc->reset_intrq_handler = NULL;
+	fdc->set_drq = (delegate_bool){dummy_set_irq, NULL};
+	fdc->set_intrq = (delegate_bool){dummy_set_irq, NULL};
 	fdc->state = WD279X_state_accept_command;
 	event_init(&fdc->state_event, (delegate_null){state_machine, fdc});
 }

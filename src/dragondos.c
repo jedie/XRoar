@@ -55,10 +55,8 @@ struct dragondos {
 };
 
 /* Handle signals from WD2797 */
-static void set_drq_handler(void *);
-static void reset_drq_handler(void *);
-static void set_intrq_handler(void *);
-static void reset_intrq_handler(void *);
+static void set_drq(void *, _Bool);
+static void set_intrq(void *, _Bool);
 
 static void dragondos_read(struct cart *c, uint16_t A, _Bool P2, uint8_t *D);
 static void dragondos_write(struct cart *c, uint16_t A, _Bool P2, uint8_t D);
@@ -76,12 +74,8 @@ static void dragondos_init(struct dragondos *d) {
 	c->detach = dragondos_detach;
 	d->have_becker = (cc->becker_port && becker_open());
 	d->fdc = wd279x_new(WD2797);
-	d->fdc->set_drq_handler = set_drq_handler;
-	d->fdc->reset_drq_handler = reset_drq_handler;
-	d->fdc->drq_data = c;
-	d->fdc->set_intrq_handler = set_intrq_handler;
-	d->fdc->reset_intrq_handler = reset_intrq_handler;
-	d->fdc->intrq_data = c;
+	d->fdc->set_drq = (delegate_bool){set_drq, c};
+	d->fdc->set_intrq = (delegate_bool){set_intrq, c};
 }
 
 struct cart *dragondos_new(struct cart_config *cc) {
@@ -192,25 +186,19 @@ static void ff48_write(struct dragondos *d, int octet) {
 	d->ic1_nmi_enable = octet & 0x20;
 }
 
-static void set_drq_handler(void *sptr) {
+static void set_drq(void *sptr, _Bool value) {
 	struct cart *c = sptr;
-	DELEGATE_SAFE_CALL1(c->signal_firq, 1);
+	DELEGATE_SAFE_CALL1(c->signal_firq, value);
 }
 
-static void reset_drq_handler(void *sptr) {
-	struct cart *c = sptr;
-	DELEGATE_SAFE_CALL1(c->signal_firq, 0);
-}
-
-static void set_intrq_handler(void *sptr) {
+static void set_intrq(void *sptr, _Bool value) {
 	struct cart *c = sptr;
 	struct dragondos *d = sptr;
-	if (d->ic1_nmi_enable) {
-		DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
+	if (value) {
+		if (d->ic1_nmi_enable) {
+			DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
+		}
+	} else {
+		DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
 	}
-}
-
-static void reset_intrq_handler(void *sptr) {
-	struct cart *c = sptr;
-	DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
 }

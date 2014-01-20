@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 
+#include "delegate.h"
 #include "events.h"
 
 enum WD279X_type {
@@ -56,12 +57,8 @@ struct WD279X {
 	uint8_t command_register;
 
 	/* External handlers */
-	void (*set_drq_handler)(void *);
-	void (*reset_drq_handler)(void *);
-	void *drq_data;
-	void (*set_intrq_handler)(void *);
-	void (*reset_intrq_handler)(void *);
-	void *intrq_data;
+	delegate_bool set_drq;
+	delegate_bool set_intrq;
 
 	/* WD279X internal state */
 	enum WD279X_state state;
