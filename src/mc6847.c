@@ -403,11 +403,6 @@ static void render_scanline(struct MC6847_private *vdg) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-static void dummy_signal(void *data, _Bool level) {
-	(void)data;
-	(void)level;
-}
-
 static void dummy_fetch_bytes(int nbytes, uint8_t *dest) {
 	memset(dest, 0, nbytes * 2);
 }
@@ -419,8 +414,8 @@ struct MC6847 *mc6847_new(_Bool t1) {
 	vdg->is_t1 = t1;
 	vdg->vram_ptr = vdg->vram;
 	vdg->pixel = vdg->pixel_data + VDG_LEFT_BORDER_START;
-	vdg->signal_hs = (delegate_bool){dummy_signal, NULL};
-	vdg->signal_hs = (delegate_bool){dummy_signal, NULL};
+	vdg->signal_hs = DELEGATE_DEFAULT(bool);
+	vdg->signal_fs = DELEGATE_DEFAULT(bool);
 	vdg->fetch_bytes = dummy_fetch_bytes;
 	event_init(&vdg->hs_fall_event, (delegate_null){do_hs_fall, vdg});
 	event_init(&vdg->hs_rise_event, (delegate_null){do_hs_rise, vdg});
