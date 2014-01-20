@@ -256,9 +256,9 @@ void cart_rom_init(struct cart *c) {
 			g_free(tmp);
 		}
 	}
-	c->signal_firq = (delegate_bool){ NULL, NULL };
-	c->signal_nmi = (delegate_bool){ NULL, NULL };
-	c->signal_halt = (delegate_bool){ NULL, NULL };
+	c->signal_firq = DELEGATE_DEFAULT(bool);
+	c->signal_nmi = DELEGATE_DEFAULT(bool);
+	c->signal_halt = DELEGATE_DEFAULT(bool);
 }
 
 struct cart *cart_rom_new(struct cart_config *cc) {

@@ -188,7 +188,7 @@ static void ff48_write(struct dragondos *d, int octet) {
 
 static void set_drq(void *sptr, _Bool value) {
 	struct cart *c = sptr;
-	DELEGATE_SAFE_CALL1(c->signal_firq, value);
+	DELEGATE_CALL1(c->signal_firq, value);
 }
 
 static void set_intrq(void *sptr, _Bool value) {
@@ -196,9 +196,9 @@ static void set_intrq(void *sptr, _Bool value) {
 	struct dragondos *d = sptr;
 	if (value) {
 		if (d->ic1_nmi_enable) {
-			DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
+			DELEGATE_CALL1(c->signal_nmi, 1);
 		}
 	} else {
-		DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
+		DELEGATE_CALL1(c->signal_nmi, 0);
 	}
 }

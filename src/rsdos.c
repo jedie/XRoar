@@ -195,11 +195,11 @@ static void ff40_write(struct rsdos *r, int octet) {
 	r->ic1_density = octet & 0x20;
 	wd279x_set_dden(r->fdc, !r->ic1_density);
 	if (r->ic1_density && r->intrq_flag) {
-		DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
+		DELEGATE_CALL1(c->signal_nmi, 1);
 	}
 	r->halt_enable = octet & 0x80;
 	if (r->intrq_flag) r->halt_enable = 0;
-	DELEGATE_SAFE_CALL1(c->signal_halt, r->halt_enable && !r->drq_flag);
+	DELEGATE_CALL1(c->signal_halt, r->halt_enable && !r->drq_flag);
 }
 
 static void set_drq(void *sptr, _Bool value) {
@@ -207,10 +207,10 @@ static void set_drq(void *sptr, _Bool value) {
 	struct rsdos *r = sptr;
 	r->drq_flag = value;
 	if (value) {
-		DELEGATE_SAFE_CALL1(c->signal_halt, 0);
+		DELEGATE_CALL1(c->signal_halt, 0);
 	} else {
 		if (r->halt_enable) {
-			DELEGATE_SAFE_CALL1(c->signal_halt, 1);
+			DELEGATE_CALL1(c->signal_halt, 1);
 		}
 	}
 }
@@ -221,11 +221,11 @@ static void set_intrq(void *sptr, _Bool value) {
 	r->intrq_flag = value;
 	if (value) {
 		r->halt_enable = 0;
-		DELEGATE_SAFE_CALL1(c->signal_halt, 0);
+		DELEGATE_CALL1(c->signal_halt, 0);
 		if (!r->ic1_density && r->intrq_flag) {
-			DELEGATE_SAFE_CALL1(c->signal_nmi, 1);
+			DELEGATE_CALL1(c->signal_nmi, 1);
 		}
 	} else {
-		DELEGATE_SAFE_CALL1(c->signal_nmi, 0);
+		DELEGATE_CALL1(c->signal_nmi, 0);
 	}
 }
