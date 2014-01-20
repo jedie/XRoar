@@ -81,14 +81,14 @@
 #define IS_DOUBLE_DENSITY (fdc->double_density)
 #define IS_SINGLE_DENSITY (!fdc->double_density)
 
-#define SET_DIRECTION do { fdc->direction = 1; vdrive_set_direction(1); } while (0)
+#define SET_DIRECTION do { fdc->direction = 1; DELEGATE_CALL1(fdc->set_dirc, 1); } while (0)
 #define RESET_DIRECTION do { \
-		fdc->direction = -1; vdrive_set_direction(-1); \
+		fdc->direction = -1; DELEGATE_CALL1(fdc->set_dirc, -1); \
 	} while (0)
 #define SET_SIDE(s) do { \
 		fdc->side = (s) ? 1 : 0; \
 		if (fdc->has_sso) \
-			vdrive_set_head(fdc->side); \
+			DELEGATE_CALL1(fdc->set_sso, fdc->side); \
 	} while (0)
 
 static void state_machine(void *);
@@ -121,11 +121,6 @@ static void _vdrive_write(WD279X *fdc, uint8_t b) {
 	fdc->crc = crc16_byte(fdc->crc, b);
 }
 
-static void dummy_set_irq(void *sptr, _Bool value) {
-	(void)sptr;
-	(void)value;
-}
-
 #define VDRIVE_WRITE_CRC16 do { \
 		uint16_t tmp = fdc->crc; \
 		_vdrive_write(fdc, tmp >> 8); \
@@ -137,8 +132,11 @@ static void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	fdc->has_sso = (type == WD2795 || type == WD2797);
 	fdc->has_length_flag = (type == WD2795 || type == WD2797);
 	fdc->has_inverted_data = (type == WD2791 || type == WD2795);
-	fdc->set_drq = (delegate_bool){dummy_set_irq, NULL};
-	fdc->set_intrq = (delegate_bool){dummy_set_irq, NULL};
+	fdc->set_dirc = DELEGATE_DEFAULT(int);
+	fdc->set_dden = DELEGATE_DEFAULT(bool);
+	fdc->set_sso = DELEGATE_DEFAULT(unsigned);
+	fdc->set_drq = DELEGATE_DEFAULT(bool);
+	fdc->set_intrq = DELEGATE_DEFAULT(bool);
 	fdc->state = WD279X_state_accept_command;
 	event_init(&fdc->state_event, (delegate_null){state_machine, fdc});
 }
@@ -173,7 +171,7 @@ void wd279x_reset(WD279X *fdc) {
 
 void wd279x_set_dden(WD279X *fdc, _Bool dden) {
 	fdc->double_density = dden;
-	vdrive_set_dden(dden);
+	DELEGATE_CALL1(fdc->set_dden, dden);
 }
 
 uint8_t wd279x_read(WD279X *fdc, uint16_t A) {

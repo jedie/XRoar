@@ -56,7 +56,10 @@ struct WD279X {
 	uint8_t data_register;
 	uint8_t command_register;
 
-	/* External handlers */
+	/* External interface */
+	delegate_int set_dirc;
+	delegate_bool set_dden;
+	delegate_unsigned set_sso;
 	delegate_bool set_drq;
 	delegate_bool set_intrq;
 

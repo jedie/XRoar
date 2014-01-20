@@ -73,7 +73,7 @@ void vdrive_init(void) {
 		drives[i].disk_present = 0;
 		drives[i].current_cyl = 0;
 	}
-	vdrive_set_dden(1);
+	vdrive_set_dden(NULL, 1);
 	vdrive_set_drive(0);
 	event_init(&index_pulse_event, (delegate_null){do_index_pulse, NULL});
 	event_init(&reset_index_pulse_event, (delegate_null){do_reset_index_pulse, NULL});
@@ -150,19 +150,23 @@ unsigned vdrive_head_pos(void) {
 }
 
 /* Lines from controller sent to all drives */
-void vdrive_set_direction(int direction) {
+void vdrive_set_dirc(void *sptr, int direction) {
+	(void)sptr;
 	cur_direction = (direction > 0) ? 1 : -1;
 }
 
-void vdrive_set_head(unsigned head) {
-	if (head >= MAX_SIDES) return;
-	cur_head = head;
-	update_signals();
-}
-
-void vdrive_set_dden(_Bool dden) {
+void vdrive_set_dden(void *sptr, _Bool dden) {
+	(void)sptr;
 	cur_density = dden ? VDISK_DOUBLE_DENSITY : VDISK_SINGLE_DENSITY;
 	head_incr = dden ? 1 : 2;
+}
+
+void vdrive_set_sso(void *sptr, unsigned head) {
+	(void)sptr;
+	if (head >= MAX_SIDES)
+		return;
+	cur_head = head;
+	update_signals();
 }
 
 static void update_signals(void) {

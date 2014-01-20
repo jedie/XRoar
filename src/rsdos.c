@@ -72,6 +72,8 @@ static void rsdos_init(struct rsdos *r) {
 	c->detach = rsdos_detach;
 	r->have_becker = (cc->becker_port && becker_open());
 	r->fdc = wd279x_new(WD2793);
+	r->fdc->set_dirc = (delegate_int){vdrive_set_dirc, NULL};
+	r->fdc->set_dden = (delegate_bool){vdrive_set_dden, NULL};
 	r->fdc->set_drq = (delegate_bool){set_drq, c};
 	r->fdc->set_intrq = (delegate_bool){set_intrq, c};
 }
@@ -166,7 +168,7 @@ static void ff40_write(struct rsdos *r, int octet) {
 	} else if (octet & 0x04) {
 		new_drive_select = 2;
 	}
-	vdrive_set_head(octet & 0x40 ? 1 : 0);
+	vdrive_set_sso(NULL, octet & 0x40 ? 1 : 0);
 	if (octet != r->ic1_old) {
 		LOG_DEBUG(2, "RSDOS: Write to FF40: ");
 		if (new_drive_select != r->ic1_drive_select) {

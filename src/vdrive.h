@@ -32,9 +32,9 @@ _Bool vdrive_set_write_back(unsigned drive, int action);
 unsigned vdrive_head_pos(void);
 
 /* Lines from controller sent to all drives */
-void vdrive_set_direction(int direction);
-void vdrive_set_head(unsigned head);
-void vdrive_set_dden(_Bool dden);
+void vdrive_set_dirc(void *, int);
+void vdrive_set_dden(void *, _Bool);
+void vdrive_set_sso(void *, unsigned);
 
 /* Drive select */
 void vdrive_set_drive(unsigned drive);
