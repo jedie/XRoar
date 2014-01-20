@@ -22,6 +22,11 @@ typedef struct {
 } delegate_int;
 
 typedef struct {
+	void (*func)(void *, unsigned value);
+	void *sptr;
+} delegate_unsigned;
+
+typedef struct {
 	void (*func)(void *, float value);
 	void *sptr;
 } delegate_float;
