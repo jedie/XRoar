@@ -40,7 +40,7 @@
 
 /* Tape output delegate.  Called when the output from the tape unit (i.e., the
  * input to the machine) changes. */
-delegate_float tape_update_audio = { NULL, NULL };
+delegate_float tape_update_audio = { delegate_default_float, NULL };
 
 struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
@@ -234,7 +234,7 @@ void tape_free(struct tape *t) {
 /**************************************************************************/
 
 void tape_init(void) {
-	DELEGATE_SAFE_CALL1(tape_update_audio, 0.5);
+	DELEGATE_CALL1(tape_update_audio, 0.5);
 	event_init(&waggle_event, (delegate_null){waggle_bit, NULL});
 	event_init(&flush_event, (delegate_null){flush_output, NULL});
 }
@@ -426,14 +426,14 @@ static void waggle_bit(void *data) {
 	switch (in_pulse) {
 	default:
 	case -1:
-		DELEGATE_SAFE_CALL1(tape_update_audio, 0.5);
+		DELEGATE_CALL1(tape_update_audio, 0.5);
 		event_dequeue(&waggle_event);
 		return;
 	case 0:
-		DELEGATE_SAFE_CALL1(tape_update_audio, 0.0);
+		DELEGATE_CALL1(tape_update_audio, 0.0);
 		break;
 	case 1:
-		DELEGATE_SAFE_CALL1(tape_update_audio, 1.0);
+		DELEGATE_CALL1(tape_update_audio, 1.0);
 		break;
 	}
 	waggle_event.at_tick += in_pulse_width;
@@ -463,7 +463,7 @@ static int pulse_skip(void) {
 			pskip = 0;
 			waggle_event.at_tick = event_current_tick + in_pulse_width;
 			event_queue(&MACHINE_EVENT_LIST, &waggle_event);
-			DELEGATE_SAFE_CALL1(tape_update_audio, in_pulse ? 1.0 : 0.0);
+			DELEGATE_CALL1(tape_update_audio, in_pulse ? 1.0 : 0.0);
 			return in_pulse;
 		}
 		pskip -= in_pulse_width;
