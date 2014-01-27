@@ -1231,7 +1231,7 @@ of cross-colour, but XRoar is emulating a PAL machine.  Try starting with
 @option{-default-machine tano} or @option{-default-machine cocous}.
 
 @float Figure,fig:artifacts
-@image{timebandit-af, 6.25in,, @cite{Time Bandit, Dunlevy & Lafnear, 1983} in different artifact modes, png}
+@image{xroar-timebandit-af, 6.25in,, @cite{Time Bandit, Dunlevy & Lafnear, 1983} in different artifact modes, png}
 @caption{@cite{Time Bandit, Dunlevy & Lafnear, 1983} in different artifact modes}
 @end float
 

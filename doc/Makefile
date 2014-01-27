@@ -66,6 +66,8 @@ endif
 install-info: xroar.info
 	$(INSTALL_DIR) $(DESTDIR)$(infodir)
 	$(INSTALL_FILE) xroar.info $(DESTDIR)$(infodir)
+	$(INSTALL_FILE) xroar-screens.png $(DESTDIR)$(infodir)
+	$(INSTALL_FILE) xroar-timebandit-af.png $(DESTDIR)$(infodir)
 
 .PHONY: uninstall-info
 uninstall-info:
