@@ -8,7 +8,7 @@ all: build-lib
 
 -include ../config.mak
 
-SRCROOT ?= $(dir $(lastword $(MAKEFILE_LIST)))
+SRCROOT ?= ..
 include $(SRCROOT)/common.mak
 SRCROOT := $(SRCROOT)/portalib
 
