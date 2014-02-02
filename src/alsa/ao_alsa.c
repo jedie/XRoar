@@ -71,7 +71,7 @@ static _Bool init(void) {
 	case SOUND_FMT_S16_LE:
 		format = SND_PCM_FORMAT_S16_LE;
 		break;
-	case SOUND_FMT_S16_HE:
+	case SOUND_FMT_S16_HE: default:
 		format = SND_PCM_FORMAT_S16;
 		break;
 	case SOUND_FMT_S16_SE:
@@ -80,7 +80,7 @@ static _Bool init(void) {
 		else
 			format = SND_PCM_FORMAT_S16_LE;
 		break;
-	case SOUND_FMT_FLOAT: default:
+	case SOUND_FMT_FLOAT:
 		format = SND_PCM_FORMAT_FLOAT;
 		break;
 	}
