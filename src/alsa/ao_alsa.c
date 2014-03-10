@@ -111,7 +111,6 @@ static _Bool init(void) {
 	if ((err = snd_pcm_hw_params_set_channels_near(pcm_handle, hw_params, &nchannels)) < 0)
 		goto failed;
 
-	snd_pcm_uframes_t buffer_nframes = 0;
 	fragment_nframes = 0;
 	if (xroar_cfg.ao_fragment_ms > 0) {
 		fragment_nframes = (rate * xroar_cfg.ao_fragment_ms) / 1000;
@@ -123,8 +122,6 @@ static _Bool init(void) {
 			LOG_ERROR("ALSA: snd_pcm_hw_params_set_period_size_near() failed\n");
 			goto failed;
 		}
-	} else {
-		buffer_nframes = 1024;
 	}
 
 	unsigned nfragments = 0;
@@ -139,6 +136,7 @@ static _Bool init(void) {
 		}
 	}
 
+	snd_pcm_uframes_t buffer_nframes = 0;
 	if (xroar_cfg.ao_buffer_ms > 0) {
 		buffer_nframes = (rate * xroar_cfg.ao_buffer_ms) / 1000;
 	} else if (xroar_cfg.ao_buffer_nframes > 0) {
