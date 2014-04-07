@@ -28,7 +28,7 @@
 
 #include <alsa/asoundlib.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "events.h"
 #include "logging.h"
@@ -211,7 +211,7 @@ static _Bool init(void) {
 	}
 
 	unsigned buffer_size = fragment_nframes * nchannels * sample_nbytes;
-	audio_buffer = g_malloc(buffer_size);
+	audio_buffer = xmalloc(buffer_size);
 	sound_init(audio_buffer, buffer_fmt, rate, nchannels, fragment_nframes);
 	LOG_DEBUG(1, "\t%u frags * %ld frames/frag = %ld frames buffer (%ldms)\n", nfragments, fragment_nframes, buffer_nframes, (buffer_nframes * 1000) / rate);
 
@@ -224,7 +224,7 @@ failed:
 
 static void shutdown(void) {
 	snd_pcm_close(pcm_handle);
-	g_free(audio_buffer);
+	free(audio_buffer);
 }
 
 static void *write_buffer(void *buffer) {

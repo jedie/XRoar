@@ -21,12 +21,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "mc6821.h"
 
 struct MC6821 *mc6821_new(void) {
-	struct MC6821 *new = g_malloc(sizeof(*new));
+	struct MC6821 *new = xmalloc(sizeof(*new));
 	mc6821_init(new);
 	return new;
 }
@@ -39,7 +39,7 @@ void mc6821_init(struct MC6821 *pia) {
 
 void mc6821_free(struct MC6821 *pia) {
 	if (pia == NULL) return;
-	g_free(pia);
+	free(pia);
 }
 
 #define INTERRUPT_ENABLED(p) (p.control_register & 0x01)

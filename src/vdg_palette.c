@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "array.h"
 
 #include "vdg_palette.h"
 
@@ -80,7 +80,7 @@ static struct vdg_palette palette_templates[] = {
 
 };
 
-static int num_palettes = G_N_ELEMENTS(palette_templates);
+static int num_palettes = ARRAY_N_ELEMENTS(palette_templates);
 
 /**************************************************************************/
 

@@ -26,7 +26,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "path.h"
 
@@ -60,7 +60,7 @@ char *find_in_path(const char *path, const char *filename) {
 				 * access.  This is NOT a security check, it's
 				 * purely for usability. */
 				if (access(filename, R_OK) == 0) {
-					return g_strdup(filename);
+					return xstrdup(filename);
 				}
 			}
 		}
@@ -77,7 +77,7 @@ char *find_in_path(const char *path, const char *filename) {
 	if (home) {
 		buf_size += strlen(home) - 1;
 	}
-	buf = g_try_malloc(buf_size);
+	buf = malloc(buf_size);
 	if (buf == NULL)
 		return NULL;
 	for (;;) {
@@ -113,7 +113,7 @@ char *find_in_path(const char *path, const char *filename) {
 			break;
 		path++;
 	}
-	g_free(buf);
+	free(buf);
 	return NULL;
 }
 

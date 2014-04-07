@@ -25,8 +25,9 @@
 
 #include <SDL.h>
 
-#include "pl_glib.h"
-#include "pl_string.h"
+#include "pl-string.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "joystick.h"
 #include "logging.h"
@@ -77,7 +78,7 @@ struct device {
 	unsigned open_count;
 };
 
-static GSList *device_list = NULL;
+static struct slist *device_list = NULL;
 
 struct control {
 	struct device *device;
@@ -111,7 +112,7 @@ void sdl_js_physical_shutdown(void) {
 
 static struct device *open_device(int joystick_index) {
 	// If the device is already open, just up its count and return it
-	for (GSList *iter = device_list; iter; iter = iter->next) {
+	for (struct slist *iter = device_list; iter; iter = iter->next) {
 		struct device *d = iter->data;
 		if (d->joystick_index == joystick_index) {
 			d->open_count++;
@@ -122,13 +123,13 @@ static struct device *open_device(int joystick_index) {
 	SDL_Joystick *j = SDL_JoystickOpen(joystick_index);
 	if (!j)
 		return NULL;
-	struct device *d = g_malloc(sizeof(*d));
+	struct device *d = xmalloc(sizeof(*d));
 	d->joystick_index = joystick_index;
 	d->joystick = j;
 	d->num_axes = SDL_JoystickNumAxes(j);
 	d->num_buttons = SDL_JoystickNumButtons(j);
 	d->open_count = 1;
-	device_list = g_slist_prepend(device_list, d);
+	device_list = slist_prepend(device_list, d);
 	return d;
 }
 
@@ -136,8 +137,8 @@ static void close_device(struct device *d) {
 	d->open_count--;
 	if (d->open_count == 0) {
 		SDL_JoystickClose(d->joystick);
-		device_list = g_slist_remove(device_list, d);
-		g_free(d);
+		device_list = slist_remove(device_list, d);
+		free(d);
 	}
 }
 
@@ -180,7 +181,7 @@ static struct control *configure_control(char *spec, unsigned control) {
 	struct device *d = open_device(joystick);
 	if (!d)
 		return NULL;
-	struct control *c = g_malloc(sizeof(*c));
+	struct control *c = xmalloc(sizeof(*c));
 	c->device = d;
 	c->control = control;
 	c->inverted = inverted;
@@ -194,10 +195,10 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		return NULL;
 	if (c->control >= c->device->num_axes) {
 		close_device(c->device);
-		g_free(c);
+		free(c);
 		return NULL;
 	}
-	struct joystick_axis *axis = g_malloc(sizeof(*axis));
+	struct joystick_axis *axis = xmalloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = c;
 	return axis;
@@ -210,10 +211,10 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 		return NULL;
 	if (c->control >= c->device->num_buttons) {
 		close_device(c->device);
-		g_free(c);
+		free(c);
 		return NULL;
 	}
-	struct joystick_button *button = g_malloc(sizeof(*button));
+	struct joystick_button *button = xmalloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = c;
 	return button;
@@ -224,8 +225,8 @@ static void unmap_axis(struct joystick_axis *axis) {
 		return;
 	struct control *c = axis->data;
 	close_device(c->device);
-	g_free(c);
-	g_free(axis);
+	free(c);
+	free(axis);
 }
 
 static void unmap_button(struct joystick_button *button) {
@@ -233,6 +234,6 @@ static void unmap_button(struct joystick_button *button) {
 		return;
 	struct control *c = button->data;
 	close_device(c->device);
-	g_free(c);
-	g_free(button);
+	free(c);
+	free(button);
 }

@@ -22,8 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
-
 #include "cart.h"
 #include "fs.h"
 #include "keyboard.h"
@@ -492,7 +490,7 @@ int read_snapshot(const char *filename) {
 					drive = fs_read_uint8(fd);
 					vdrive_eject_disk(drive);
 					if (size > 0) {
-						char *name = g_try_malloc(size);
+						char *name = malloc(size);
 						if (name != NULL) {
 							size -= fread(name, 1, size, fd);
 							vdrive_insert_disk(drive, vdisk_load(name));

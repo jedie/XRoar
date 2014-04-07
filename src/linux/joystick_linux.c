@@ -30,8 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "pl_glib.h"
-#include "pl_string.h"
+#include "pl-string.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "events.h"
 #include "joystick.h"
@@ -80,7 +81,7 @@ struct device {
 	_Bool *button_value;
 };
 
-static GSList *device_list = NULL;
+static struct slist *device_list = NULL;
 
 struct control {
 	struct device *device;
@@ -92,7 +93,7 @@ struct control {
 
 static struct device *open_device(int joystick_index) {
 	// If the device is already open, just up its count and return it
-	for (GSList *iter = device_list; iter; iter = iter->next) {
+	for (struct slist *iter = device_list; iter; iter = iter->next) {
 		struct device *d = iter->data;
 		if (d->joystick_index == joystick_index) {
 			d->open_count++;
@@ -110,7 +111,7 @@ static struct device *open_device(int joystick_index) {
 	}
 	if (fd < 0)
 		return NULL;
-	struct device *d = g_malloc(sizeof(*d));
+	struct device *d = xmalloc(sizeof(*d));
 	d->joystick_index = joystick_index;
 	d->fd = fd;
 	char tmp;
@@ -119,15 +120,15 @@ static struct device *open_device(int joystick_index) {
 	ioctl(fd, JSIOCGBUTTONS, &tmp);
 	d->num_buttons = tmp;
 	if (d->num_axes > 0)
-		d->axis_value = g_malloc0(d->num_axes * sizeof(*d->axis_value));
+		d->axis_value = xzalloc(d->num_axes * sizeof(*d->axis_value));
 	if (d->num_buttons > 0)
-		d->button_value = g_malloc0(d->num_buttons * sizeof(*d->button_value));
+		d->button_value = xzalloc(d->num_buttons * sizeof(*d->button_value));
 	char namebuf[128];
 	ioctl(fd, JSIOCGNAME(sizeof(namebuf)), namebuf);
 	LOG_DEBUG(1, "Opened joystick %d: %s\n", joystick_index, namebuf);
 	LOG_DEBUG(1, "\t%d axes, %d buttons\n", d->num_axes, d->num_buttons);
 	d->open_count = 1;
-	device_list = g_slist_prepend(device_list, d);
+	device_list = slist_prepend(device_list, d);
 	return d;
 }
 
@@ -135,17 +136,17 @@ static void close_device(struct device *d) {
 	d->open_count--;
 	if (d->open_count == 0) {
 		close(d->fd);
-		g_free(d->axis_value);
-		g_free(d->button_value);
-		device_list = g_slist_remove(device_list, d);
-		g_free(d);
+		free(d->axis_value);
+		free(d->button_value);
+		device_list = slist_remove(device_list, d);
+		free(d);
 	}
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static void poll_devices(void) {
-	for (GSList *iter = device_list; iter; iter = iter->next) {
+	for (struct slist *iter = device_list; iter; iter = iter->next) {
 		struct device *d = iter->data;
 		struct js_event e;
 		while (read(d->fd, &e, sizeof(e)) == sizeof(e)) {
@@ -208,7 +209,7 @@ static struct control *configure_control(char *spec, unsigned control) {
 	struct device *d = open_device(joystick);
 	if (!d)
 		return NULL;
-	struct control *c = g_malloc(sizeof(*c));
+	struct control *c = xmalloc(sizeof(*c));
 	c->device = d;
 	c->control = control;
 	c->inverted = inverted;
@@ -221,10 +222,10 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		return NULL;
 	if (c->control >= c->device->num_axes) {
 		close_device(c->device);
-		g_free(c);
+		free(c);
 		return NULL;
 	}
-	struct joystick_axis *axis = g_malloc(sizeof(*axis));
+	struct joystick_axis *axis = xmalloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = c;
 	return axis;
@@ -236,10 +237,10 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 		return NULL;
 	if (c->control >= c->device->num_buttons) {
 		close_device(c->device);
-		g_free(c);
+		free(c);
 		return NULL;
 	}
-	struct joystick_button *button = g_malloc(sizeof(*button));
+	struct joystick_button *button = xmalloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = c;
 	return button;
@@ -250,8 +251,8 @@ static void unmap_axis(struct joystick_axis *axis) {
 		return;
 	struct control *c = axis->data;
 	close_device(c->device);
-	g_free(c);
-	g_free(axis);
+	free(c);
+	free(axis);
 }
 
 static void unmap_button(struct joystick_button *button) {
@@ -259,6 +260,6 @@ static void unmap_button(struct joystick_button *button) {
 		return;
 	struct control *c = button->data;
 	close_device(c->device);
-	g_free(c);
-	g_free(button);
+	free(c);
+	free(button);
 }

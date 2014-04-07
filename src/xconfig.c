@@ -18,12 +18,13 @@
 
 #include "config.h"
 
+#include <alloca.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "logging.h"
 #include "xconfig.h"
@@ -105,8 +106,8 @@ static void set_option(struct xconfig_option *option, char *arg) {
 				option->dest.func_string(arg);
 			} else {
 				if (*(char **)option->dest.object)
-					g_free(*(char **)option->dest.object);
-				*(char **)option->dest.object = g_strdup(arg);
+					free(*(char **)option->dest.object);
+				*(char **)option->dest.object = xstrdup(arg);
 			}
 			break;
 		case XCONFIG_NULL:
@@ -157,7 +158,7 @@ static int unset_option(struct xconfig_option *option) {
 		if (option->call) {
 			option->dest.func_string(NULL);
 		} else if (*(char **)option->dest.object) {
-			g_free(*(char **)option->dest.object);
+			free(*(char **)option->dest.object);
 			*(char **)option->dest.object = NULL;
 		}
 		return 0;
@@ -189,8 +190,8 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 enum xconfig_result xconfig_parse_line(struct xconfig_option *options, const char *line) {
 	struct xconfig_option *option;
 	char *opt, *arg;
-	gsize line_len = strlen(line) + 1;
-	char *cline = g_alloca(line_len);
+	size_t line_len = strlen(line) + 1;
+	char *cline = alloca(line_len);
 	strncpy(cline, line, line_len);
 	cline[line_len-1] = 0;
 	while (isspace((int)*cline))

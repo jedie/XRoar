@@ -23,8 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
-
 #include "delegate.h"
 #include "events.h"
 #include "logging.h"

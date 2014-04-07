@@ -18,11 +18,14 @@
 
 #include "config.h"
 
+#include <alloca.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "array.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "path.h"
 #include "romlist.h"
@@ -31,12 +34,12 @@
 /* User defined rom lists */
 struct romlist {
 	char *name;
-	GSList *list;
+	struct slist *list;
 	_Bool flag;
 };
 
 /* List containing all defined rom lists */
-static GSList *romlist_list = NULL;
+static struct slist *romlist_list = NULL;
 
 static const char *rom_extensions[] = {
 	"", ".rom", ".ROM", ".dgn", ".DGN"
@@ -49,8 +52,8 @@ static int compare_entry(struct romlist *a, char *b) {
 /**************************************************************************/
 
 static struct romlist *new_romlist(const char *name) {
-	struct romlist *new = g_malloc(sizeof(*new));
-	new->name = g_strdup(name);
+	struct romlist *new = xmalloc(sizeof(*new));
+	new->name = xstrdup(name);
 	new->list = NULL;
 	new->flag = 0;
 	return new;
@@ -58,18 +61,18 @@ static struct romlist *new_romlist(const char *name) {
 
 static void free_romlist(struct romlist *romlist) {
 	if (!romlist) return;
-	GSList *list = romlist->list;
+	struct slist *list = romlist->list;
 	while (list) {
-		gpointer data = list->data;
-		list = g_slist_remove(list, data);
-		g_free(data);
+		void *data = list->data;
+		list = slist_remove(list, data);
+		free(data);
 	}
-	g_free(romlist->name);
-	g_free(romlist);
+	free(romlist->name);
+	free(romlist);
 }
 
 static struct romlist *find_romlist(const char *name) {
-	GSList *entry = g_slist_find_custom(romlist_list, name, (GCompareFunc)compare_entry);
+	struct slist *entry = slist_find_custom(romlist_list, name, (slist_cmp_func)compare_entry);
 	if (!entry) return NULL;
 	return entry->data;
 }
@@ -78,7 +81,7 @@ static struct romlist *find_romlist(const char *name) {
  * Overwrites any existing list with name LIST. */
 void romlist_assign(const char *astring) {
 	if (!astring) return;
-	char *tmp = g_alloca(strlen(astring) + 1);
+	char *tmp = alloca(strlen(astring) + 1);
 	strcpy(tmp, astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;
@@ -87,26 +90,26 @@ void romlist_assign(const char *astring) {
 	struct romlist *old_list = find_romlist(name);
 	if (old_list) {
 		/* if so, remove its reference in romlist_list */
-		romlist_list = g_slist_remove(romlist_list, old_list);
+		romlist_list = slist_remove(romlist_list, old_list);
 	}
 	char *value;
 	while ((value = strtok(NULL, "\n\v\f\r,"))) {
 		if (value[0] == '@' && 0 == strcmp(value+1, name)) {
 			/* reference to this list - append current contents */
 			if (old_list) {
-				new_list->list = g_slist_concat(new_list->list, old_list->list);
+				new_list->list = slist_concat(new_list->list, old_list->list);
 				old_list->list = NULL;
 			}
 		} else {
 			/* otherwise just add a new entry */
-			new_list->list = g_slist_append(new_list->list, g_strdup(value));
+			new_list->list = slist_append(new_list->list, xstrdup(value));
 		}
 	}
 	if (old_list) {
 		free_romlist(old_list);
 	}
 	/* add new list to romlist_list */
-	romlist_list = g_slist_append(romlist_list, new_list);
+	romlist_list = slist_append(romlist_list, new_list);
 }
 
 /* Find a ROM within ROMPATH */
@@ -114,8 +117,8 @@ static char *find_rom(const char *romname) {
 	char *filename;
 	char *path = NULL;
 	if (!romname) return NULL;
-	filename = g_alloca(strlen(romname) + 5);
-	for (unsigned i = 0; i < G_N_ELEMENTS(rom_extensions); i++) {
+	filename = alloca(strlen(romname) + 5);
+	for (unsigned i = 0; i < ARRAY_N_ELEMENTS(rom_extensions); i++) {
 		strcpy(filename, romname);
 		strcat(filename, rom_extensions[i]);
 		path = find_in_path(xroar_rom_path, filename);
@@ -137,7 +140,7 @@ char *romlist_find(const char *name) {
 	/* found an appropriate list?  flag it and start scanning it */
 	if (!romlist)
 		return NULL;
-	GSList *iter;
+	struct slist *iter;
 	if (romlist->flag)
 		return NULL;
 	romlist->flag = 1;
@@ -158,7 +161,7 @@ char *romlist_find(const char *name) {
 }
 
 static void print_romlist_entry(struct romlist *list, void *user_data) {
-	GSList *jter;
+	struct slist *jter;
 	if (user_data) {
 		printf("romlist %s=", list->name);
 	} else {
@@ -179,12 +182,12 @@ static void print_romlist_entry(struct romlist *list, void *user_data) {
 
 /* Print a list of defined ROM lists to stdout */
 void romlist_print_all(void) {
-	g_slist_foreach(romlist_list, (GFunc)print_romlist_entry, (void *)1);
+	slist_foreach(romlist_list, (slist_iter_func)print_romlist_entry, (void *)1);
 }
 
 /* Print list and exit */
 void romlist_print(void) {
 	printf("ROM lists:\n");
-	g_slist_foreach(romlist_list, (GFunc)print_romlist_entry, NULL);
+	slist_foreach(romlist_list, (slist_iter_func)print_romlist_entry, NULL);
 	exit(EXIT_SUCCESS);
 }

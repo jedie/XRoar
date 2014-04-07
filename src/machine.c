@@ -27,7 +27,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "pl_glib.h"
+#include "array.h"
+#include "c-strcase.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "breakpoint.h"
 #include "cart.h"
@@ -90,7 +93,7 @@ static struct {
 	{ "@coco", "@coco_ext", NULL }
 };
 
-static GSList *config_list = NULL;
+static struct slist *config_list = NULL;
 static int num_configs = 0;
 
 static void initialise_ram(void);
@@ -108,7 +111,7 @@ static int stop_signal = 0;
 
 struct machine_config *machine_config_new(void) {
 	struct machine_config *new;
-	new = g_malloc0(sizeof(*new));
+	new = xzalloc(sizeof(*new));
 	new->index = num_configs;
 	new->architecture = ANY_AUTO;
 	new->cpu = CPU_MC6809;
@@ -117,7 +120,7 @@ struct machine_config *machine_config_new(void) {
 	new->vdg_type = ANY_AUTO;
 	new->ram = ANY_AUTO;
 	new->cart_enabled = 1;
-	config_list = g_slist_append(config_list, new);
+	config_list = slist_append(config_list, new);
 	num_configs++;
 	return new;
 }
@@ -127,7 +130,7 @@ int machine_config_count(void) {
 }
 
 struct machine_config *machine_config_index(int i) {
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct machine_config *mc = l->data;
 		if (mc->index == i)
 			return mc;
@@ -137,7 +140,7 @@ struct machine_config *machine_config_index(int i) {
 
 struct machine_config *machine_config_by_name(const char *name) {
 	if (!name) return NULL;
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct machine_config *mc = l->data;
 		if (0 == strcmp(mc->name, name)) {
 			return mc;
@@ -147,7 +150,7 @@ struct machine_config *machine_config_by_name(const char *name) {
 }
 
 struct machine_config *machine_config_by_arch(int arch) {
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct machine_config *mc = l->data;
 		if (mc->architecture == arch) {
 			return mc;
@@ -171,7 +174,7 @@ static int find_working_arch(void) {
 		arch = ARCH_DRAGON64;
 	}
 	if (tmp)
-		g_free(tmp);
+		free(tmp);
 	return arch;
 }
 
@@ -181,7 +184,7 @@ struct machine_config *machine_config_first_working(void) {
 
 void machine_config_complete(struct machine_config *mc) {
 	if (!mc->description) {
-		mc->description = g_strdup(mc->name);
+		mc->description = xstrdup(mc->name);
 	}
 	if (mc->tv_standard == ANY_AUTO)
 		mc->tv_standard = TV_PAL;
@@ -228,19 +231,19 @@ void machine_config_complete(struct machine_config *mc) {
 	}
 	/* Now find which ROMs we're actually going to use */
 	if (!mc->nobas && !mc->bas_rom && rom_list[mc->architecture].bas) {
-		mc->bas_rom = g_strdup(rom_list[mc->architecture].bas);
+		mc->bas_rom = xstrdup(rom_list[mc->architecture].bas);
 	}
 	if (!mc->noextbas && !mc->extbas_rom && rom_list[mc->architecture].extbas) {
-		mc->extbas_rom = g_strdup(rom_list[mc->architecture].extbas);
+		mc->extbas_rom = xstrdup(rom_list[mc->architecture].extbas);
 	}
 	if (!mc->noaltbas && !mc->altbas_rom && rom_list[mc->architecture].altbas) {
-		mc->altbas_rom = g_strdup(rom_list[mc->architecture].altbas);
+		mc->altbas_rom = xstrdup(rom_list[mc->architecture].altbas);
 	}
 	// Determine a default DOS cartridge if necessary
 	if (!mc->default_cart) {
 		struct cart_config *cc = cart_find_working_dos(mc);
 		if (cc)
-			mc->default_cart = g_strdup(cc->name);
+			mc->default_cart = xstrdup(cc->name);
 	}
 }
 
@@ -266,13 +269,13 @@ static const char *machine_vdg_type_string[] = {
 };
 
 void machine_config_print_all(void) {
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct machine_config *mc = l->data;
 		printf("machine %s\n", mc->name);
 		if (mc->description) printf("  machine-desc %s\n", mc->description);
-		if (mc->architecture >= 0 && mc->architecture < G_N_ELEMENTS(machine_arch_string))
+		if (mc->architecture >= 0 && mc->architecture < ARRAY_N_ELEMENTS(machine_arch_string))
 			printf("  machine-arch %s\n", machine_arch_string[mc->architecture]);
-		if (mc->cpu >= 0 && mc->cpu < G_N_ELEMENTS(machine_cpu_string))
+		if (mc->cpu >= 0 && mc->cpu < ARRAY_N_ELEMENTS(machine_cpu_string))
 			printf("  machine-cpu %s\n", machine_cpu_string[mc->cpu]);
 		if (mc->vdg_palette) printf("  machine-palette %s\n", mc->vdg_palette);
 		if (mc->bas_rom) printf("  bas %s\n", mc->bas_rom);
@@ -282,9 +285,9 @@ void machine_config_print_all(void) {
 		if (mc->noextbas) printf("  noextbas\n");
 		if (mc->noaltbas) printf("  noaltbas\n");
 		if (mc->ext_charset_rom) printf("  ext-charset %s\n", mc->ext_charset_rom);
-		if (mc->tv_standard >= 0 && mc->tv_standard < G_N_ELEMENTS(machine_tv_type_string))
+		if (mc->tv_standard >= 0 && mc->tv_standard < ARRAY_N_ELEMENTS(machine_tv_type_string))
 			printf("  tv-type %s\n", machine_tv_type_string[mc->tv_standard]);
-		if (mc->vdg_type >= 0 && mc->vdg_type < G_N_ELEMENTS(machine_vdg_type_string))
+		if (mc->vdg_type >= 0 && mc->vdg_type < ARRAY_N_ELEMENTS(machine_vdg_type_string))
 			printf("  vdg-type %s\n", machine_vdg_type_string[mc->vdg_type]);
 		if (mc->ram >= 0) printf("  ram %d\n", mc->ram);
 		if (mc->default_cart) printf("  machine-cart %s\n", mc->default_cart);
@@ -630,7 +633,7 @@ void machine_configure(struct machine_config *mc) {
 					has_bas = 1;
 				has_combined = 1;
 			}
-			g_free(tmp);
+			free(tmp);
 		}
 	}
 
@@ -641,7 +644,7 @@ void machine_configure(struct machine_config *mc) {
 			int size = machine_load_rom(tmp, rom0 + 0x2000, sizeof(rom0) - 0x2000);
 			if (size > 0)
 				has_bas = 1;
-			g_free(tmp);
+			free(tmp);
 		}
 	}
 
@@ -652,7 +655,7 @@ void machine_configure(struct machine_config *mc) {
 			int size = machine_load_rom(tmp, rom1, sizeof(rom1));
 			if (size > 0)
 				has_altbas = 1;
-			g_free(tmp);
+			free(tmp);
 		}
 	}
 	machine_ram_size = mc->ram * 1024;
@@ -665,7 +668,7 @@ void machine_configure(struct machine_config *mc) {
 			int size = machine_load_rom(tmp, ext_charset, sizeof(ext_charset));
 			if (size > 0)
 				has_ext_charset = 1;
-			g_free(tmp);
+			free(tmp);
 		}
 	}
 
@@ -1276,7 +1279,7 @@ int machine_load_rom(const char *path, uint8_t *dest, size_t max_size) {
 	if (!(fd = fopen(path, "rb"))) {
 		return -1;
 	}
-	if (dot && g_ascii_strcasecmp(dot, ".dgn") == 0) {
+	if (dot && c_strcasecmp(dot, ".dgn") == 0) {
 		LOG_DEBUG(1, "Loading DGN: %s\n", path);
 		if (fread(dest, 16, 1, fd) < 1) {
 			LOG_WARN("Failed to read DGN header in '%s'\n", path);

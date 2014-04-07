@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 /* Windows has a habit of making include order important: */
 #include <windows.h>
@@ -72,10 +72,10 @@ static char *load_filename(const char **extensions) {
 		| OFN_HIDEREADONLY;
 
 	if (filename)
-		g_free(filename);
+		free(filename);
 	filename = NULL;
 	if (GetOpenFileName(&ofn)==TRUE) {
-		filename = g_strdup(ofn.lpstrFile);
+		filename = xstrdup(ofn.lpstrFile);
 	}
 	if (video_module->set_fullscreen && was_fullscreen)
 		video_module->set_fullscreen(1);
@@ -107,10 +107,10 @@ static char *save_filename(const char **extensions) {
 		| OFN_OVERWRITEPROMPT;
 
 	if (filename)
-		g_free(filename);
+		free(filename);
 	filename = NULL;
 	if (GetSaveFileName(&ofn)==TRUE) {
-		filename = g_strdup(ofn.lpstrFile);
+		filename = xstrdup(ofn.lpstrFile);
 	}
 	if (video_module->set_fullscreen && was_fullscreen)
 		video_module->set_fullscreen(1);

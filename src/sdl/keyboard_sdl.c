@@ -27,8 +27,10 @@
 
 #include <SDL.h>
 
-#include "pl_glib.h"
-#include "pl_string.h"
+#include "array.h"
+#include "c-strcase.h"
+#include "pl-string.h"
+#include "xalloc.h"
 
 #include "dkbd.h"
 #include "joystick.h"
@@ -151,7 +153,7 @@ static void map_keyboard(struct keymap *keymap) {
 		sym_to_dkey[i] = DSCAN_INVALID;
 		sym_priority[i] = 0;
 	}
-	for (int i = 0; i < G_N_ELEMENTS(sym_dkey_default); i++) {
+	for (int i = 0; i < ARRAY_N_ELEMENTS(sym_dkey_default); i++) {
 		sym_to_dkey[sym_dkey_default[i].sym] = sym_dkey_default[i].dkey;
 		sym_priority[sym_dkey_default[i].sym] = sym_dkey_default[i].priority;
 	}
@@ -181,13 +183,13 @@ static _Bool init(void) {
 	struct keymap *selected_keymap = &keymaps[0];
 	if (keymap_option) {
 		if (0 == strcmp(keymap_option, "help")) {
-			for (int i = 0; i < G_N_ELEMENTS(keymaps); i++) {
+			for (int i = 0; i < ARRAY_N_ELEMENTS(keymaps); i++) {
 				if (keymaps[i].description)
 					printf("\t%-10s %s\n", keymaps[i].name, keymaps[i].description);
 			}
 			exit(EXIT_SUCCESS);
 		}
-		for (int i = 0; i < G_N_ELEMENTS(keymaps); i++) {
+		for (int i = 0; i < ARRAY_N_ELEMENTS(keymaps); i++) {
 			if (0 == strcmp(keymap_option, keymaps[i].name)) {
 				selected_keymap = &keymaps[i];
 				LOG_DEBUG(1, "\tSelecting '%s' keymap\n",keymap_option);
@@ -483,7 +485,7 @@ static SDLKey get_key_by_name(const char *name) {
 	if (isdigit(name[0]))
 		return strtol(name, NULL, 0);
 	for (SDLKey i = SDLK_FIRST; i < SDLK_LAST; i++) {
-		if (0 == g_ascii_strcasecmp(name, SDL_GetKeyName(i)))
+		if (0 == c_strcasecmp(name, SDL_GetKeyName(i)))
 			return i;
 	}
 	return SDLK_UNKNOWN;
@@ -509,11 +511,11 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		key0 = get_key_by_name(a0);
 	if (a1 && *a1)
 		key1 = get_key_by_name(a1);
-	struct axis *axis_data = g_malloc(sizeof(*axis_data));
+	struct axis *axis_data = xmalloc(sizeof(*axis_data));
 	axis_data->key0 = key0;
 	axis_data->key1 = key1;
 	axis_data->value = 127;
-	struct joystick_axis *axis = g_malloc(sizeof(*axis));
+	struct joystick_axis *axis = xmalloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = axis_data;
 	for (unsigned i = 0; i < MAX_AXES; i++) {
@@ -529,10 +531,10 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 	SDLKey key = (jbutton == 0) ? SDLK_LALT : SDLK_UNKNOWN;
 	if (spec && *spec)
 		key = get_key_by_name(spec);
-	struct button *button_data = g_malloc(sizeof(*button_data));
+	struct button *button_data = xmalloc(sizeof(*button_data));
 	button_data->key = key;
 	button_data->value = 0;
-	struct joystick_button *button = g_malloc(sizeof(*button));
+	struct joystick_button *button = xmalloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = button_data;
 	for (unsigned i = 0; i < MAX_BUTTONS; i++) {
@@ -552,8 +554,8 @@ static void unmap_axis(struct joystick_axis *axis) {
 			enabled_axis[i] = NULL;
 		}
 	}
-	g_free(axis->data);
-	g_free(axis);
+	free(axis->data);
+	free(axis);
 }
 
 static void unmap_button(struct joystick_button *button) {
@@ -564,6 +566,6 @@ static void unmap_button(struct joystick_button *button) {
 			enabled_button[i] = NULL;
 		}
 	}
-	g_free(button->data);
-	g_free(button);
+	free(button->data);
+	free(button);
 }

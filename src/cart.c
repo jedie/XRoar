@@ -18,13 +18,16 @@
 
 #include "config.h"
 
+#include <alloca.h>
 #include <assert.h>
 #include <ctype.h>
 #include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "array.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "cart.h"
 #include "crc32.h"
@@ -39,7 +42,7 @@
 #include "rsdos.h"
 #include "xroar.h"
 
-static GSList *config_list = NULL;
+static struct slist *config_list = NULL;
 static int num_configs = 0;
 
 /* Single config for auto-defined ROM carts */
@@ -55,11 +58,11 @@ static void do_firq(void *);
 
 struct cart_config *cart_config_new(void) {
 	struct cart_config *new;
-	new = g_malloc0(sizeof(*new));
+	new = xzalloc(sizeof(*new));
 	new->index = num_configs;
 	new->type = CART_ROM;
 	new->autorun = ANY_AUTO;
-	config_list = g_slist_append(config_list, new);
+	config_list = slist_append(config_list, new);
 	num_configs++;
 	return new;
 }
@@ -69,7 +72,7 @@ int cart_config_count(void) {
 }
 
 struct cart_config *cart_config_index(int i) {
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct cart_config *cc = l->data;
 		if (cc->index == i)
 			return cc;
@@ -79,7 +82,7 @@ struct cart_config *cart_config_index(int i) {
 
 struct cart_config *cart_config_by_name(const char *name) {
 	if (!name) return NULL;
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct cart_config *cc = l->data;
 		if (0 == strcmp(cc->name, name)) {
 			return cc;
@@ -92,13 +95,13 @@ struct cart_config *cart_config_by_name(const char *name) {
 			if (!(rom_cart_config = cart_config_new())) {
 				return NULL;
 			}
-			rom_cart_config->name = g_strdup("romcart");
+			rom_cart_config->name = xstrdup("romcart");
 		}
 		if (rom_cart_config->description) {
-			g_free(rom_cart_config->description);
+			free(rom_cart_config->description);
 		}
 		/* Make up a description from filename */
-		char *tmp_name = g_alloca(strlen(name) + 1);
+		char *tmp_name = alloca(strlen(name) + 1);
 		strcpy(tmp_name, name);
 		char *bname = basename(tmp_name);
 		if (bname && *bname) {
@@ -113,13 +116,13 @@ struct cart_config *cart_config_by_name(const char *name) {
 					break;
 				}
 			}
-			rom_cart_config->description = g_strdup(bname);
+			rom_cart_config->description = xstrdup(bname);
 		} else {
-			rom_cart_config->description = g_strdup("ROM cartridge");
+			rom_cart_config->description = xstrdup("ROM cartridge");
 		}
 		rom_cart_config->type = CART_ROM;
-		if (rom_cart_config->rom) g_free(rom_cart_config->rom);
-		rom_cart_config->rom = g_strdup(name);
+		if (rom_cart_config->rom) free(rom_cart_config->rom);
+		rom_cart_config->rom = xstrdup(name);
 		rom_cart_config->autorun = 1;
 		return rom_cart_config;
 	}
@@ -145,13 +148,13 @@ struct cart_config *cart_find_working_dos(struct machine_config *mc) {
 		}
 	}
 	if (tmp)
-		g_free(tmp);
+		free(tmp);
 	return cc;
 }
 
 void cart_config_complete(struct cart_config *cc) {
 	if (!cc->description) {
-		cc->description = g_strdup(cc->name);
+		cc->description = xstrdup(cc->name);
 	}
 	if (cc->autorun == ANY_AUTO) {
 		if (cc->type == CART_ROM) {
@@ -171,11 +174,11 @@ static const char *cart_type_string[] = {
 };
 
 void cart_config_print_all(void) {
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct cart_config *cc = l->data;
 		printf("cart %s\n", cc->name);
 		if (cc->description) printf("  cart-desc %s\n", cc->description);
-		if (cc->type >= 0 && cc->type < G_N_ELEMENTS(cart_type_string))
+		if (cc->type >= 0 && cc->type < ARRAY_N_ELEMENTS(cart_type_string))
 			printf("  cart-type %s\n", cart_type_string[cc->type]);
 		if (cc->rom) printf("  cart-rom %s\n", cc->rom);
 		if (cc->rom2) printf("  cart-rom2 %s\n", cc->rom2);
@@ -217,7 +220,7 @@ void cart_free(struct cart *c) {
 	if (!c) return;
 	if (c->detach)
 		c->detach(c);
-	g_free(c);
+	free(c);
 }
 
 /* ROM cart routines */
@@ -233,7 +236,7 @@ void cart_rom_init(struct cart *c) {
 	c->attach = dummy_cart;
 	c->detach = cart_rom_detach;
 	c->attach = cart_rom_attach;
-	c->rom_data = g_malloc0(0x4000);
+	c->rom_data = xzalloc(0x4000);
 	if (cc->rom) {
 		char *tmp = romlist_find(cc->rom);
 		if (tmp) {
@@ -242,7 +245,7 @@ void cart_rom_init(struct cart *c) {
 				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data, size);
 				LOG_DEBUG(1, "\tCRC = 0x%08x\n", crc);
 			}
-			g_free(tmp);
+			free(tmp);
 		}
 	}
 	if (cc->rom2) {
@@ -253,7 +256,7 @@ void cart_rom_init(struct cart *c) {
 				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data + 0x2000, size);
 				LOG_DEBUG(1, "\tCRC = 0x%08x\n", crc);
 			}
-			g_free(tmp);
+			free(tmp);
 		}
 	}
 	c->signal_firq = DELEGATE_DEFAULT(bool);
@@ -263,7 +266,7 @@ void cart_rom_init(struct cart *c) {
 
 struct cart *cart_rom_new(struct cart_config *cc) {
 	if (!cc) return NULL;
-	struct cart *c = g_malloc(sizeof(*c));
+	struct cart *c = xmalloc(sizeof(*c));
 	c->config = cc;
 	cart_rom_init(c);
 	return c;
@@ -299,7 +302,7 @@ void cart_rom_detach(struct cart *c) {
 		c->firq_event = NULL;
 	}
 	if (c->rom_data) {
-		g_free(c->rom_data);
+		free(c->rom_data);
 		c->rom_data = NULL;
 	}
 }

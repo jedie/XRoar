@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <alloca.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +33,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "crc16.h"
 #include "fs.h"
@@ -75,13 +76,13 @@ struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
 			|| track_length < 129 || track_length > 0x2940) {
 		return NULL;
 	}
-	if (!(disk = g_try_malloc(sizeof(*disk))))
+	if (!(disk = malloc(sizeof(*disk))))
 		return NULL;
-	if (!(side_data = g_try_malloc0(nheads * sizeof(*side_data))))
+	if (!(side_data = calloc(nheads, sizeof(*side_data))))
 		goto cleanup;
 	unsigned side_length = ncyls * track_length;
 	for (unsigned i = 0; i < nheads; i++) {
-		if (!(side_data[i] = g_try_malloc0(side_length)))
+		if (!(side_data[i] = calloc(side_length, 1)))
 			goto cleanup_sides;
 	}
 	disk->filetype = FILETYPE_DMK;
@@ -96,26 +97,26 @@ struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
 cleanup_sides:
 	for (unsigned i = 0; i < nheads; i++) {
 		if (side_data[i])
-			g_free(side_data[i]);
+			free(side_data[i]);
 	}
-	g_free(side_data);
+	free(side_data);
 cleanup:
-	g_free(disk);
+	free(disk);
 	return NULL;
 }
 
 void vdisk_destroy(struct vdisk *disk) {
 	if (disk == NULL) return;
 	if (disk->filename) {
-		g_free(disk->filename);
+		free(disk->filename);
 		disk->filename = NULL;
 	}
 	for (unsigned i = 0; i < disk->num_heads; i++) {
 		if (disk->side_data[i])
-			g_free(disk->side_data[i]);
+			free(disk->side_data[i]);
 	}
-	g_free(disk->side_data);
-	g_free(disk);
+	free(disk->side_data);
+	free(disk);
 }
 
 struct vdisk *vdisk_load(const char *filename) {
@@ -155,7 +156,7 @@ int vdisk_save(struct vdisk *disk, _Bool force) {
 		return -1;
 	}
 	int bf_len = strlen(disk->filename) + 5;
-	backup_filename = g_alloca(bf_len);
+	backup_filename = alloca(bf_len);
 	// Rename old file to filename.bak if that .bak does not already exist
 	if (backup_filename != NULL) {
 		snprintf(backup_filename, bf_len, "%s.bak", disk->filename);
@@ -241,7 +242,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		return NULL;
 	}
 	disk->filetype = FILETYPE_VDK;
-	disk->filename = g_strdup(filename);
+	disk->filename = xstrdup(filename);
 	disk->write_protect = write_protect;
 
 	if (vdisk_format_disk(disk, 1, nsectors, 1, ssize_code) != 0) {
@@ -396,7 +397,7 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 		return NULL;
 	}
 	disk->filetype = FILETYPE_JVC;
-	disk->filename = g_strdup(filename);
+	disk->filename = xstrdup(filename);
 	if (vdisk_format_disk(disk, 1, nsectors, first_sector, ssize_code) != 0) {
 		fclose(fd);
 		vdisk_destroy(disk);
@@ -527,7 +528,7 @@ static struct vdisk *vdisk_load_dmk(const char *filename) {
 	}
 	LOG_DEBUG(1, "Loading DMK virtual disk: %uC %uH (%u-byte)\n", ncyls, nheads, track_length);
 	disk->filetype = FILETYPE_DMK;
-	disk->filename = g_strdup(filename);
+	disk->filename = xstrdup(filename);
 	disk->write_back = header[0] ? 0 : 1;
 	if (header[11] == 0 || header[11] == 0xff) {
 		disk->write_protect = header[11] ? 1 : 0;
@@ -644,7 +645,7 @@ void *vdisk_extend_disk(struct vdisk *disk, unsigned cyl, unsigned head) {
 		if (ncyls > disk->num_cylinders) {
 			// Allocate and clear new tracks
 			for (unsigned s = 0; s < disk->num_heads; s++) {
-				uint8_t *new_side = g_realloc(side_data[s], ncyls * tlength);
+				uint8_t *new_side = xrealloc(side_data[s], ncyls * tlength);
 				if (!new_side)
 					return NULL;
 				side_data[s] = new_side;
@@ -657,13 +658,13 @@ void *vdisk_extend_disk(struct vdisk *disk, unsigned cyl, unsigned head) {
 		}
 		if (nheads > disk->num_heads) {
 			// Increase size of side_data array
-			side_data = g_realloc(side_data, nheads * sizeof(*side_data));
+			side_data = xrealloc(side_data, nheads * sizeof(*side_data));
 			if (!side_data)
 				return NULL;
 			disk->side_data = side_data;
 			// Allocate new empty side data
 			for (unsigned s = disk->num_heads; s < nheads; s++) {
-				side_data[s] = g_try_malloc0(ncyls * tlength);
+				side_data[s] = calloc(ncyls, tlength);
 				if (!side_data[s])
 					return NULL;
 			}

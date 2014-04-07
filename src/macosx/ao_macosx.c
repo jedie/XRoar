@@ -31,7 +31,7 @@
 
 #include <CoreAudio/AudioHardware.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "logging.h"
 #include "machine.h"
@@ -150,10 +150,10 @@ static _Bool init(void) {
 	callback_buffer = NULL;
 
 	// allocate fragment buffers
-	fragment_buffer = g_malloc(nfragments * sizeof(void *));
+	fragment_buffer = xmalloc(nfragments * sizeof(void *));
 	if (nfragments > 1) {
 		for (unsigned i = 0; i < nfragments; i++) {
-			fragment_buffer[i] = g_malloc0(fragment_nbytes);
+			fragment_buffer[i] = xzalloc(fragment_nbytes);
 		}
 	}
 
@@ -198,11 +198,11 @@ static void shutdown(void) {
 
 	if (nfragments > 1) {
 		for (unsigned i = 0; i < nfragments; i++) {
-			g_free(fragment_buffer[i]);
+			free(fragment_buffer[i]);
 		}
 	}
 
-	g_free(fragment_buffer);
+	free(fragment_buffer);
 }
 
 static void *write_buffer(void *buffer) {

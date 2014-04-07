@@ -21,7 +21,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "module.h"
 
@@ -44,11 +44,11 @@ static char *load_filename(const char **extensions) {
 	(void)extensions;
 	cocoa_super_all_keys = 1;
 	if (filename) {
-		g_free(filename);
+		free(filename);
 		filename = NULL;
 	}
 	if ([dialog runModal] == NSFileHandlingPanelOKButton) {
-		filename = g_strdup([[[[dialog URLs] objectAtIndex:0] path] UTF8String]);
+		filename = xstrdup([[[[dialog URLs] objectAtIndex:0] path] UTF8String]);
 	}
 	cocoa_super_all_keys = 0;
 	return filename;
@@ -59,11 +59,11 @@ static char *save_filename(const char **extensions) {
 	(void)extensions;
 	cocoa_super_all_keys = 1;
 	if (filename) {
-		g_free(filename);
+		free(filename);
 		filename = NULL;
 	}
 	if ([dialog runModal] == NSFileHandlingPanelOKButton) {
-		filename = g_strdup([[[dialog URL] path] UTF8String]);
+		filename = xstrdup([[[dialog URL] path] UTF8String]);
 	}
 	cocoa_super_all_keys = 0;
 	return filename;

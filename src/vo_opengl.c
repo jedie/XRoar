@@ -33,7 +33,7 @@
 # include <GL/gl.h>
 #endif
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #ifdef WINDOWS32
 #include "windows32/common_windows32.h"
@@ -90,7 +90,7 @@ static GLfloat vertices[][2] = {
 };
 
 _Bool vo_opengl_init(void) {
-	screen_tex = g_malloc(320 * 240 * sizeof(Pixel));
+	screen_tex = xmalloc(320 * 240 * sizeof(Pixel));
 	window_width = 640;
 	window_height = 480;
 	vo_opengl_x = vo_opengl_y = 0;
@@ -119,7 +119,7 @@ _Bool vo_opengl_init(void) {
 
 void vo_opengl_shutdown(void) {
 	glDeleteTextures(1, &texnum);
-	g_free(screen_tex);
+	free(screen_tex);
 }
 
 void vo_opengl_alloc_colours(void) {

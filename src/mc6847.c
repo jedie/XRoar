@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "delegate.h"
 #include "events.h"
@@ -410,7 +410,7 @@ static void dummy_fetch_bytes(int nbytes, uint8_t *dest) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 struct MC6847 *mc6847_new(_Bool t1) {
-	struct MC6847_private *vdg = g_malloc0(sizeof(*vdg));
+	struct MC6847_private *vdg = xzalloc(sizeof(*vdg));
 	vdg->is_t1 = t1;
 	vdg->vram_ptr = vdg->vram;
 	vdg->pixel = vdg->pixel_data + VDG_LEFT_BORDER_START;
@@ -426,7 +426,7 @@ void mc6847_free(struct MC6847 *vdgp) {
 	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
 	event_dequeue(&vdg->hs_fall_event);
 	event_dequeue(&vdg->hs_rise_event);
-	g_free(vdg);
+	free(vdg);
 }
 
 void mc6847_set_fetch_bytes(struct MC6847 *vdgp, void (*d)(int, uint8_t *)) {

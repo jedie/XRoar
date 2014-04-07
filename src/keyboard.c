@@ -21,7 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "breakpoint.h"
 #include "dkbd.h"
@@ -142,7 +143,7 @@ void keyboard_unicode_release(unsigned unicode) {
 	return;
 }
 
-static GSList *basic_command_list = NULL;
+static struct slist *basic_command_list = NULL;
 static const uint8_t *basic_command = NULL;
 
 static void type_command(struct MC6809 *cpu);
@@ -237,8 +238,8 @@ static void type_command(struct MC6809 *cpu) {
 	if (!basic_command) {
 		if (basic_command_list) {
 			void *data = basic_command_list->data;
-			basic_command_list = g_slist_remove(basic_command_list, data);
-			g_free(data);
+			basic_command_list = slist_remove(basic_command_list, data);
+			free(data);
 		}
 		if (basic_command_list) {
 			basic_command = basic_command_list->data;
@@ -254,8 +255,8 @@ void keyboard_queue_basic(const uint8_t *s) {
 	char *data = NULL;
 	bp_remove_list(basic_command_breakpoint);
 	if (s) {
-		data = g_strdup(s);
-		basic_command_list = g_slist_append(basic_command_list, data);
+		data = xstrdup(s);
+		basic_command_list = slist_append(basic_command_list, data);
 	}
 	if (!basic_command) {
 		basic_command = data;

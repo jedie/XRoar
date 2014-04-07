@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "events.h"
 #include "logging.h"
@@ -28,7 +28,7 @@
 event_ticks event_current_tick = 0;
 
 struct event *event_new(delegate_null delegate) {
-	struct event *new = g_malloc(sizeof(*new));
+	struct event *new = xmalloc(sizeof(*new));
 	event_init(new, delegate);
 	return new;
 }
@@ -44,7 +44,7 @@ void event_init(struct event *event, delegate_null delegate) {
 
 void event_free(struct event *event) {
 	event_dequeue(event);
-	g_free(event);
+	free(event);
 }
 
 void event_queue(struct event **list, struct event *event) {

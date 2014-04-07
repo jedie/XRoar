@@ -27,7 +27,7 @@
 #include <sys/soundcard.h>
 #include <unistd.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "logging.h"
 #include "machine.h"
@@ -202,7 +202,7 @@ static _Bool init(void) {
 	fragment_nframes = fragment_nbytes / (bytes_per_sample * nchannels);
 	buffer_nframes = fragment_nframes * nfragments;
 
-	audio_buffer = g_malloc(fragment_nbytes);
+	audio_buffer = xmalloc(fragment_nbytes);
 	sound_init(audio_buffer, buffer_fmt, rate, nchannels, fragment_nframes);
 	LOG_DEBUG(1, "\t%u frags * %d frames/frag = %d frames buffer (%.1fms)\n", nfragments, fragment_nframes, buffer_nframes, (float)(buffer_nframes * 1000) / rate);
 
@@ -217,7 +217,7 @@ failed:
 static void shutdown(void) {
 	ioctl(sound_fd, SNDCTL_DSP_RESET, 0);
 	close(sound_fd);
-	g_free(audio_buffer);
+	free(audio_buffer);
 }
 
 static void *write_buffer(void *buffer) {

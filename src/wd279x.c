@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "crc16.h"
 #include "events.h"
@@ -142,7 +142,7 @@ static void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 }
 
 WD279X *wd279x_new(enum WD279X_type type) {
-	WD279X *new = g_malloc(sizeof(WD279X));
+	WD279X *new = xmalloc(sizeof(WD279X));
 	wd279x_init(new, type);
 	return new;
 }
@@ -154,7 +154,7 @@ static void wd279x_deinit(WD279X *fdc) {
 void wd279x_free(WD279X *fdc) {
 	assert(fdc != NULL);
 	wd279x_deinit(fdc);
-	g_free(fdc);
+	free(fdc);
 }
 
 void wd279x_reset(WD279X *fdc) {

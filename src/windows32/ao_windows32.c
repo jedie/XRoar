@@ -20,7 +20,7 @@
 
 #include <windows.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "logging.h"
 #include "module.h"
@@ -100,7 +100,7 @@ static _Bool init(void) {
 		waveOutPrepareHeader(device, wavehdr_p[i], sizeof(WAVEHDR));
 	}
 
-	audio_buffer = g_malloc(buffer_nbytes);
+	audio_buffer = xmalloc(buffer_nbytes);
 	sound_init(audio_buffer, request_fmt, rate, nchannels, buffer_nframes);
 	LOG_DEBUG(1, "\t%dms (%d samples) buffer\n", (buffer_nframes * 1000) / rate, buffer_nframes);
 
@@ -119,7 +119,7 @@ static void _shutdown(void) {
 		GlobalUnlock(data_alloc[i]);
 		GlobalFree(data_alloc[i]);
 	}
-	g_free(audio_buffer);
+	free(audio_buffer);
 }
 
 static void *write_buffer(void *buffer) {

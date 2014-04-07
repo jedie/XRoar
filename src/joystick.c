@@ -21,10 +21,12 @@
 // For strsep()
 #define _BSD_SOURCE
 
+#include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
-#include "pl_string.h"
+#include "pl-string.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "joystick.h"
 #include "logging.h"
@@ -33,7 +35,7 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-static GSList *config_list = NULL;
+static struct slist *config_list = NULL;
 static unsigned num_configs = 0;
 
 // Current configuration, per-port:
@@ -74,9 +76,9 @@ void joystick_shutdown(void) {
 
 struct joystick_config *joystick_config_new(void) {
 	struct joystick_config *new;
-	new = g_malloc0(sizeof(*new));
+	new = xzalloc(sizeof(*new));
 	new->index = num_configs;
-	config_list = g_slist_append(config_list, new);
+	config_list = slist_append(config_list, new);
 	num_configs++;
 	return new;
 }
@@ -86,7 +88,7 @@ unsigned joystick_config_count(void) {
 }
 
 struct joystick_config *joystick_config_index(unsigned i) {
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct joystick_config *jc = l->data;
 		if (jc->index == i)
 			return jc;
@@ -96,7 +98,7 @@ struct joystick_config *joystick_config_index(unsigned i) {
 
 struct joystick_config *joystick_config_by_name(const char *name) {
 	if (!name) return NULL;
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct joystick_config *jc = l->data;
 		if (0 == strcmp(jc->name, name)) {
 			return jc;
@@ -106,7 +108,7 @@ struct joystick_config *joystick_config_by_name(const char *name) {
 }
 
 void joystick_config_print_all(void) {
-	for (GSList *l = config_list; l; l = l->next) {
+	for (struct slist *l = config_list; l; l = l->next) {
 		struct joystick_config *jc = l->data;
 		printf("joy %s\n", jc->name);
 		if (jc->description) printf("  joy-desc %s\n", jc->description);
@@ -182,14 +184,14 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 	joystick_unmap(port);
 	if (!jc)
 		return;
-	struct joystick *j = g_malloc0(sizeof(*j));
+	struct joystick *j = xzalloc(sizeof(*j));
 	_Bool valid_joystick = 0;
 	for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
-		char *spec_copy = g_strdup(jc->axis_specs[i]);
+		char *spec_copy = xstrdup(jc->axis_specs[i]);
 		char *spec = spec_copy;
 		select_interface(&spec);
 		if (!selected_interface) {
-			g_free(spec_copy);
+			free(spec_copy);
 			return;
 		}
 		struct joystick_axis *axis = selected_interface->configure_axis(spec, i);
@@ -198,14 +200,14 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 			axis->interface = selected_interface;
 			valid_joystick = 1;
 		}
-		g_free(spec_copy);
+		free(spec_copy);
 	}
 	for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
-		char *spec_copy = g_strdup(jc->button_specs[i]);
+		char *spec_copy = xstrdup(jc->button_specs[i]);
 		char *spec = spec_copy;
 		select_interface(&spec);
 		if (!selected_interface) {
-			g_free(spec_copy);
+			free(spec_copy);
 			return;
 		}
 		struct joystick_button *button = selected_interface->configure_button(spec, i);
@@ -214,10 +216,10 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 			button->interface = selected_interface;
 			valid_joystick = 1;
 		}
-		g_free(spec_copy);
+		free(spec_copy);
 	}
 	if (!valid_joystick) {
-		g_free(j);
+		free(j);
 		return;
 	}
 	LOG_DEBUG(1, "Joystick port %u = %s [ ", port, jc->name);
@@ -252,7 +254,7 @@ void joystick_unmap(unsigned port) {
 			if (interface->unmap_axis) {
 				interface->unmap_axis(axis);
 			} else {
-				g_free(j->axes[a]);
+				free(j->axes[a]);
 			}
 		}
 	}
@@ -263,11 +265,11 @@ void joystick_unmap(unsigned port) {
 			if (interface->unmap_button) {
 				interface->unmap_button(button);
 			} else {
-				g_free(j->buttons[b]);
+				free(j->buttons[b]);
 			}
 		}
 	}
-	g_free(j);
+	free(j);
 }
 
 void joystick_set_virtual(struct joystick_config *jc) {

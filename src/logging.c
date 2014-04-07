@@ -22,8 +22,9 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "logging.h"
 #include "xroar.h"
@@ -50,7 +51,7 @@ struct log_handle {
 static void log_open(struct log_handle **lp, const char *prefix, enum log_type type) {
 	assert(lp != NULL);
 	log_close(lp);
-	struct log_handle *l = g_malloc0(sizeof(*l));
+	struct log_handle *l = xzalloc(sizeof(*l));
 	l->type = type;
 	l->prefix = prefix;
 	*lp = l;
@@ -76,7 +77,7 @@ void log_close(struct log_handle **lp) {
 	default:
 		break;
 	}
-	g_free(l);
+	free(l);
 	*lp = NULL;
 }
 

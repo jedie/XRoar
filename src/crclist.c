@@ -18,12 +18,14 @@
 
 #include "config.h"
 
+#include <alloca.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "crclist.h"
 #include "xroar.h"
@@ -31,12 +33,12 @@
 /* User defined CRC lists */
 struct crclist {
 	char *name;
-	GSList *list;
+	struct slist *list;
 	_Bool flag;
 };
 
 /* List containing all defined CRC lists */
-static GSList *crclist_list = NULL;
+static struct slist *crclist_list = NULL;
 
 static int compare_entry(struct crclist *a, char *b) {
 	return strcmp(a->name, b);
@@ -45,8 +47,8 @@ static int compare_entry(struct crclist *a, char *b) {
 /**************************************************************************/
 
 static struct crclist *new_crclist(const char *name) {
-	struct crclist *new = g_malloc(sizeof(*new));
-	new->name = g_strdup(name);
+	struct crclist *new = xmalloc(sizeof(*new));
+	new->name = xstrdup(name);
 	new->list = NULL;
 	new->flag = 0;
 	return new;
@@ -54,18 +56,18 @@ static struct crclist *new_crclist(const char *name) {
 
 static void free_crclist(struct crclist *crclist) {
 	if (!crclist) return;
-	GSList *list = crclist->list;
+	struct slist *list = crclist->list;
 	while (list) {
-		gpointer data = list->data;
-		list = g_slist_remove(list, data);
-		g_free(data);
+		void *data = list->data;
+		list = slist_remove(list, data);
+		free(data);
 	}
-	g_free(crclist->name);
-	g_free(crclist);
+	free(crclist->name);
+	free(crclist);
 }
 
 static struct crclist *find_crclist(const char *name) {
-	GSList *entry = g_slist_find_custom(crclist_list, name, (GCompareFunc)compare_entry);
+	struct slist *entry = slist_find_custom(crclist_list, name, (slist_cmp_func)compare_entry);
 	if (!entry) return NULL;
 	return entry->data;
 }
@@ -74,7 +76,7 @@ static struct crclist *find_crclist(const char *name) {
  * Overwrites any existing list with name LIST. */
 void crclist_assign(const char *astring) {
 	if (!astring) return;
-	char *tmp = g_alloca(strlen(astring) + 1);
+	char *tmp = alloca(strlen(astring) + 1);
 	strcpy(tmp, astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;
@@ -83,26 +85,26 @@ void crclist_assign(const char *astring) {
 	struct crclist *old_list = find_crclist(name);
 	if (old_list) {
 		/* if so, remove its reference in crclist_list */
-		crclist_list = g_slist_remove(crclist_list, old_list);
+		crclist_list = slist_remove(crclist_list, old_list);
 	}
 	char *value;
 	while ((value = strtok(NULL, "\n\v\f\r,"))) {
 		if (value[0] == '@' && 0 == strcmp(value+1, name)) {
 			/* reference to this list - append current contents */
 			if (old_list) {
-				new_list->list = g_slist_concat(new_list->list, old_list->list);
+				new_list->list = slist_concat(new_list->list, old_list->list);
 				old_list->list = NULL;
 			}
 		} else {
 			/* otherwise just add a new entry */
-			new_list->list = g_slist_append(new_list->list, g_strdup(value));
+			new_list->list = slist_append(new_list->list, xstrdup(value));
 		}
 	}
 	if (old_list) {
 		free_crclist(old_list);
 	}
 	/* add new list to crclist_list */
-	crclist_list = g_slist_append(crclist_list, new_list);
+	crclist_list = slist_append(crclist_list, new_list);
 }
 
 /* convert a string to integer and compare against CRC */
@@ -122,7 +124,7 @@ int crclist_match(const char *name, uint32_t crc) {
 	/* found an appropriate list?  flag it and start scanning it */
 	if (!crclist)
 		return 0;
-	GSList *iter;
+	struct slist *iter;
 	if (crclist->flag)
 		return 0;
 	crclist->flag = 1;
@@ -143,7 +145,7 @@ int crclist_match(const char *name, uint32_t crc) {
 }
 
 static void print_crclist_entry(struct crclist *list, void *user_data) {
-	GSList *jter;
+	struct slist *jter;
 	if (user_data) {
 		printf("crclist %s=", list->name);
 	} else {
@@ -164,12 +166,12 @@ static void print_crclist_entry(struct crclist *list, void *user_data) {
 
 /* Print a list of defined ROM lists to stdout */
 void crclist_print_all(void) {
-	g_slist_foreach(crclist_list, (GFunc)print_crclist_entry, (void *)1);
+	slist_foreach(crclist_list, (slist_iter_func)print_crclist_entry, (void *)1);
 }
 
 /* Print list and exit */
 void crclist_print(void) {
 	printf("CRC lists:\n");
-	g_slist_foreach(crclist_list, (GFunc)print_crclist_entry, NULL);
+	slist_foreach(crclist_list, (slist_iter_func)print_crclist_entry, NULL);
 	exit(EXIT_SUCCESS);
 }

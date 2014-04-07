@@ -33,8 +33,11 @@
 #include <pthread.h>
 #endif
 
-#include "pl_glib.h"
-#include "pl_string.h"
+#include "array.h"
+#include "c-strcase.h"
+#include "pl-string.h"
+#include "slist.h"
+#include "xalloc.h"
 
 #include "cart.h"
 #include "crclist.h"
@@ -115,8 +118,8 @@ struct private_cfg {
 	char *tape_write;
 	char *lp_file;
 	char *lp_pipe;
-	GSList *load_list;
-	GSList *type_list;
+	struct slist *load_list;
+	struct slist *type_list;
 
 	/* Emulator interface */
 	char *ui;
@@ -452,7 +455,7 @@ _Bool xroar_init(int argc, char **argv) {
 
 	// If the very first argument is -c, override conffile.
 	if ((argn + 1) <= argc && 0 == strcmp(argv[argn], "-c")) {
-		conffile = g_strdup(argv[argn+1]);
+		conffile = xstrdup(argv[argn+1]);
 		argn += 2;
 	}
 
@@ -470,7 +473,7 @@ _Bool xroar_init(int argc, char **argv) {
 		private_cfg.joy_button[i] = NULL;
 
 	// Default configuration.
-	for (unsigned i = 0; i < G_N_ELEMENTS(default_config); i++) {
+	for (unsigned i = 0; i < ARRAY_N_ELEMENTS(default_config); i++) {
 		xconfig_parse_line(xroar_options, default_config[i]);
 	}
 	// Finish any machine or cart config in defaults.
@@ -486,7 +489,7 @@ _Bool xroar_init(int argc, char **argv) {
 		conffile = find_in_path(xroar_conf_path, "xroar.conf");
 	if (conffile) {
 		(void)xconfig_parse_file(xroar_options, conffile);
-		g_free(conffile);
+		free(conffile);
 	}
 	// Finish any machine or cart config in config file.
 	set_machine(NULL);
@@ -583,7 +586,7 @@ _Bool xroar_init(int argc, char **argv) {
 
 	_Bool no_auto_dos = xroar_machine_config->nodos;
 	_Bool definitely_dos = 0;
-	for (GSList *tmp_list = private_cfg.load_list; tmp_list; tmp_list = tmp_list->next) {
+	for (struct slist *tmp_list = private_cfg.load_list; tmp_list; tmp_list = tmp_list->next) {
 		char *load_file = tmp_list->data;
 		int load_file_type = xroar_filetype_by_ext(load_file);
 		_Bool autorun = (load_file == private_cfg.run);
@@ -627,7 +630,7 @@ _Bool xroar_init(int argc, char **argv) {
 		}
 		if (selected_cart_config) {
 			if (selected_cart_config->rom)
-				g_free(selected_cart_config->rom);
+				free(selected_cart_config->rom);
 			selected_cart_config->rom = private_cfg.dos_option;
 			private_cfg.dos_option = NULL;
 		}
@@ -640,8 +643,8 @@ _Bool xroar_init(int argc, char **argv) {
 	// If any cart still configured, make it default for machine.
 	if (selected_cart_config) {
 		if (xroar_machine_config->default_cart)
-			g_free(xroar_machine_config->default_cart);
-		xroar_machine_config->default_cart = g_strdup(selected_cart_config->name);
+			free(xroar_machine_config->default_cart);
+		xroar_machine_config->default_cart = xstrdup(selected_cart_config->name);
 	}
 
 	/* Initial palette */
@@ -745,7 +748,7 @@ _Bool xroar_init(int argc, char **argv) {
 			xroar_load_file_by_type(load_file, autorun);
 			break;
 		}
-		private_cfg.load_list = g_slist_remove(private_cfg.load_list, private_cfg.load_list->data);
+		private_cfg.load_list = slist_remove(private_cfg.load_list, private_cfg.load_list->data);
 	}
 	load_disk_to_drive = 0;
 
@@ -788,7 +791,7 @@ _Bool xroar_init(int argc, char **argv) {
 
 	while (private_cfg.type_list) {
 		keyboard_queue_basic(private_cfg.type_list->data);
-		private_cfg.type_list = g_slist_remove(private_cfg.type_list, private_cfg.type_list->data);
+		private_cfg.type_list = slist_remove(private_cfg.type_list, private_cfg.type_list->data);
 	}
 	if (private_cfg.lp_file) {
 		printer_open_file(private_cfg.lp_file);
@@ -927,7 +930,7 @@ int xroar_filetype_by_ext(const char *filename) {
 		return FILETYPE_UNKNOWN;
 	ext++;
 	for (i = 0; filetypes[i].ext; i++) {
-		if (!g_ascii_strncasecmp(ext, filetypes[i].ext, strlen(filetypes[i].ext)))
+		if (!c_strncasecmp(ext, filetypes[i].ext, strlen(filetypes[i].ext)))
 			return filetypes[i].filetype;
 	}
 	return FILETYPE_UNKNOWN;
@@ -1073,7 +1076,7 @@ void xroar_new_disk(int drive) {
 			break;
 	}
 	new_disk->filetype = filetype;
-	new_disk->filename = g_strdup(filename);
+	new_disk->filename = xstrdup(filename);
 	new_disk->write_back = 1;
 	vdrive_insert_disk(drive, new_disk);
 	if (ui_module && ui_module->update_drive_disk) {
@@ -1350,8 +1353,8 @@ void xroar_set_cart(const char *cc_name) {
 		xroar_machine_config->cart_enabled = 0;
 	} else {
 		if (xroar_machine_config->default_cart != cc_name) {
-			g_free(xroar_machine_config->default_cart);
-			xroar_machine_config->default_cart = g_strdup(cc_name);
+			free(xroar_machine_config->default_cart);
+			xroar_machine_config->default_cart = xstrdup(cc_name);
 		}
 		xroar_machine_config->cart_enabled = 1;
 		machine_insert_cart(cart_new_named(cc_name));
@@ -1534,8 +1537,8 @@ static void set_machine(const char *name) {
 		}
 		if (private_cfg.machine_cart) {
 			if (xroar_machine_config->default_cart)
-				g_free(xroar_machine_config->default_cart);
-			xroar_machine_config->default_cart = g_strdup(private_cfg.machine_cart);
+				free(xroar_machine_config->default_cart);
+			xroar_machine_config->default_cart = xstrdup(private_cfg.machine_cart);
 			private_cfg.machine_cart = NULL;
 		}
 		if (private_cfg.nodos != -1) {
@@ -1548,7 +1551,7 @@ static void set_machine(const char *name) {
 		xroar_machine_config = machine_config_by_name(name);
 		if (!xroar_machine_config) {
 			xroar_machine_config = machine_config_new();
-			xroar_machine_config->name = g_strdup(name);
+			xroar_machine_config->name = xstrdup(name);
 		}
 	}
 }
@@ -1607,7 +1610,7 @@ static void set_cart(const char *name) {
 		selected_cart_config = cart_config_by_name(name);
 		if (!selected_cart_config) {
 			selected_cart_config = cart_config_new();
-			selected_cart_config->name = g_strdup(name);
+			selected_cart_config->name = xstrdup(name);
 		}
 	}
 }
@@ -1623,7 +1626,7 @@ static void set_joystick(const char *name) {
 		for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
 			if (private_cfg.joy_axis[i]) {
 				if (cur_joy_config->axis_specs[i])
-					g_free(cur_joy_config->axis_specs[i]);
+					free(cur_joy_config->axis_specs[i]);
 				cur_joy_config->axis_specs[i] = private_cfg.joy_axis[i];
 				private_cfg.joy_axis[i] = NULL;
 			}
@@ -1631,7 +1634,7 @@ static void set_joystick(const char *name) {
 		for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
 			if (private_cfg.joy_button[i]) {
 				if (cur_joy_config->button_specs[i])
-					g_free(cur_joy_config->button_specs[i]);
+					free(cur_joy_config->button_specs[i]);
 				cur_joy_config->button_specs[i] = private_cfg.joy_button[i];
 				private_cfg.joy_button[i] = NULL;
 			}
@@ -1652,13 +1655,13 @@ static void set_joystick(const char *name) {
 		cur_joy_config = joystick_config_by_name(name);
 		if (!cur_joy_config) {
 			cur_joy_config = joystick_config_new();
-			cur_joy_config->name = g_strdup(name);
+			cur_joy_config->name = xstrdup(name);
 		}
 	}
 }
 
 static void set_joystick_axis(const char *spec) {
-	char *spec_copy = g_strdup(spec);
+	char *spec_copy = xstrdup(spec);
 	char *cspec = spec_copy;
 	unsigned axis = 0;
 	char *tmp = strsep(&cspec, "=");
@@ -1676,12 +1679,12 @@ static void set_joystick_axis(const char *spec) {
 		}
 		tmp = cspec;
 	}
-	private_cfg.joy_axis[axis] = g_strdup(tmp);
-	g_free(spec_copy);
+	private_cfg.joy_axis[axis] = xstrdup(tmp);
+	free(spec_copy);
 }
 
 static void set_joystick_button(const char *spec) {
-	char *spec_copy = g_strdup(spec);
+	char *spec_copy = xstrdup(spec);
 	char *cspec = spec_copy;
 	unsigned button = 0;
 	char *tmp = strsep(&cspec, "=");
@@ -1693,16 +1696,16 @@ static void set_joystick_button(const char *spec) {
 		}
 		tmp = cspec;
 	}
-	private_cfg.joy_button[button] = g_strdup(tmp);
-	g_free(spec_copy);
+	private_cfg.joy_button[button] = xstrdup(tmp);
+	free(spec_copy);
 }
 
 static void type_command(char *string) {
-	private_cfg.type_list = g_slist_append(private_cfg.type_list, string);
+	private_cfg.type_list = slist_append(private_cfg.type_list, string);
 }
 
 static void add_load(char *string) {
-	private_cfg.load_list = g_slist_append(private_cfg.load_list, string);
+	private_cfg.load_list = slist_append(private_cfg.load_list, string);
 }
 
 /* Enumeration lists used by configuration directives */
@@ -2131,7 +2134,7 @@ static void config_print_all(void) {
 	putchar('\n');
 
 	puts("# Files");
-	for (GSList *l = private_cfg.load_list; l; l = l->next) {
+	for (struct slist *l = private_cfg.load_list; l; l = l->next) {
 		const char *s = l->data;
 		printf("load %s\n", s);
 	}
@@ -2215,7 +2218,7 @@ static void config_print_all(void) {
 	puts("# Keyboard");
 	if (xroar_cfg.keymap) printf("keymap %s\n", xroar_cfg.keymap);
 	if (xroar_cfg.kbd_translate) puts("kbd-translate");
-	for (GSList *l = private_cfg.type_list; l; l = l->next) {
+	for (struct slist *l = private_cfg.type_list; l; l = l->next) {
 		const char *s = l->data;
 		printf("type %s\n", s);
 	}

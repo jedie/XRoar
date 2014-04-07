@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "breakpoint.h"
 #include "delegate.h"
@@ -72,8 +72,8 @@ void printer_reset(void) {
 
 void printer_open_file(const char *filename) {
 	printer_close();
-	if (stream_dest) g_free(stream_dest);
-	stream_dest = g_strdup(filename);
+	if (stream_dest) free(stream_dest);
+	stream_dest = xstrdup(filename);
 	is_pipe = 0;
 	busy = 0;
 	bp_add_list(coco_print_breakpoint);
@@ -81,8 +81,8 @@ void printer_open_file(const char *filename) {
 
 void printer_open_pipe(const char *command) {
 	printer_close();
-	if (stream_dest) g_free(stream_dest);
-	stream_dest = g_strdup(command);
+	if (stream_dest) free(stream_dest);
+	stream_dest = xstrdup(command);
 	is_pipe = 1;
 	busy = 0;
 	bp_add_list(coco_print_breakpoint);
@@ -91,7 +91,7 @@ void printer_open_pipe(const char *command) {
 void printer_close(void) {
 	/* flush stream, but destroy stream_dest so it won't be reopened */
 	printer_flush();
-	if (stream_dest) g_free(stream_dest);
+	if (stream_dest) free(stream_dest);
 	stream_dest = NULL;
 	is_pipe = 0;
 	busy = 1;

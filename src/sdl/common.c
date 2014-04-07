@@ -27,8 +27,8 @@
 
 #include <SDL.h>
 
-#include "pl_glib.h"
-#include "pl_string.h"
+#include "pl-string.h"
+#include "xalloc.h"
 
 #include "events.h"
 #include "joystick.h"
@@ -196,7 +196,7 @@ static struct joystick_axis *configure_axis(char *spec, unsigned jaxis) {
 		mouse_yoffset = off0 + 24.0;
 		mouse_ydiv = off1 - off0;
 	}
-	struct joystick_axis *axis = g_malloc(sizeof(*axis));
+	struct joystick_axis *axis = xmalloc(sizeof(*axis));
 	axis->read = (js_read_axis_func)read_axis;
 	axis->data = &mouse_axis[jaxis];
 	return axis;
@@ -208,7 +208,7 @@ static struct joystick_button *configure_button(char *spec, unsigned jbutton) {
 		jbutton = strtol(spec, NULL, 0) - 1;
 	if (jbutton >= 3)
 		return NULL;
-	struct joystick_button *button = g_malloc(sizeof(*button));
+	struct joystick_button *button = xmalloc(sizeof(*button));
 	button->read = (js_read_button_func)read_button;
 	button->data = &mouse_button[jbutton];
 	return button;

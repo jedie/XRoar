@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "becker.h"
 #include "cart.h"
@@ -79,7 +79,7 @@ static void rsdos_init(struct rsdos *r) {
 }
 
 struct cart *rsdos_new(struct cart_config *cc) {
-	struct rsdos *r = g_malloc(sizeof(*r));
+	struct rsdos *r = xmalloc(sizeof(*r));
 	r->cart.config = cc;
 	rsdos_init(r);
 	return (struct cart *)r;

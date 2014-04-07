@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "array.h"
 
 #include "dkbd.h"
 
@@ -87,7 +87,7 @@ static struct dkey_chord_mapping coco3_chord_mappings[] = {
 	{ DKBD_U_F2, { DSCAN_F2, 0 } },
 };
 
-#define CMAPPING(m) .num_chord_mappings = G_N_ELEMENTS(m), .chord_mappings = (m)
+#define CMAPPING(m) .num_chord_mappings = ARRAY_N_ELEMENTS(m), .chord_mappings = (m)
 
 static struct dkbd_layout_variant dkbd_layout_variants[] = {
 	{ .base_layout = dkbd_layout_dragon, CMAPPING(dragon_chord_mappings), },
@@ -102,7 +102,7 @@ static struct dkbd_layout_variant dkbd_layout_variants[] = {
  * for a normal Dragon.  CoCo map requires a small translation. */
 
 void dkbd_map_init(struct dkbd_map *map, enum dkbd_layout layout) {
-	assert(layout >= 0 && layout < G_N_ELEMENTS(dkbd_layout_variants));
+	assert(layout >= 0 && layout < ARRAY_N_ELEMENTS(dkbd_layout_variants));
 	struct dkbd_layout_variant *variant = &dkbd_layout_variants[layout];
 	map->layout = layout;
 
@@ -129,7 +129,7 @@ void dkbd_map_init(struct dkbd_map *map, enum dkbd_layout layout) {
 	/* Populate the unicode_to_dkey map */
 
 	// Clear table
-	for (int i = 0; i < G_N_ELEMENTS(map->unicode_to_dkey); i++) {
+	for (int i = 0; i < ARRAY_N_ELEMENTS(map->unicode_to_dkey); i++) {
 		map->unicode_to_dkey[i] = (struct dkey_chord){DSCAN_INVALID, 0};
 	}
 	// "1!" - "9)", ":*", ";+"

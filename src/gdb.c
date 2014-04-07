@@ -74,8 +74,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "pl_glib.h"
-#include "pl_string.h"
+#include "pl-string.h"
 
 #ifndef WINDOWS32
 

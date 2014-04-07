@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "delegate.h"
 #include "mc6809.h"
@@ -158,7 +158,7 @@ static uint8_t dummy_read_cycle(uint16_t a) { (void)a; return 0; }
 static void dummy_write_cycle(uint16_t a, uint8_t v) { (void)a; (void)v; }
 
 struct MC6809 *mc6809_new(void) {
-	struct MC6809 *cpu = g_malloc0(sizeof(*cpu));
+	struct MC6809 *cpu = xzalloc(sizeof(*cpu));
 	cpu->free = mc6809_free;
 	cpu->reset = mc6809_reset;
 	cpu->run = mc6809_run;
@@ -171,7 +171,7 @@ struct MC6809 *mc6809_new(void) {
 }
 
 static void mc6809_free(struct MC6809 *cpu) {
-	g_free(cpu);
+	free(cpu);
 }
 
 static void mc6809_reset(struct MC6809 *cpu) {

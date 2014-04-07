@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "cart.h"
 #include "logging.h"
@@ -51,7 +51,7 @@ static void orch90_init(struct orch90 *o) {
 }
 
 struct cart *orch90_new(struct cart_config *cc) {
-	struct orch90 *o = g_malloc(sizeof(*o));
+	struct orch90 *o = xmalloc(sizeof(*o));
 	o->cart.config = cc;
 	orch90_init(o);
 	return (struct cart *)o;

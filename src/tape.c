@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "breakpoint.h"
 #include "delegate.h"
@@ -198,7 +198,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 		}
 		if (type != 0 || block[1] < 15)
 			continue;
-		f = g_malloc(sizeof(*f));
+		f = xmalloc(sizeof(*f));
 		f->offset = start;
 		memcpy(f->name, &block[2], 8);
 		int i = 8;
@@ -223,12 +223,12 @@ void tape_seek_to_file(struct tape *t, struct tape_file *f) {
 /**************************************************************************/
 
 struct tape *tape_new(void) {
-	struct tape *new = g_malloc0(sizeof(*new));
+	struct tape *new = xzalloc(sizeof(*new));
 	return new;
 }
 
 void tape_free(struct tape *t) {
-	g_free(t);
+	free(t);
 }
 
 /**************************************************************************/
@@ -363,7 +363,7 @@ int tape_autorun(const char *filename) {
 		return -1;
 	}
 	int type = f->type;
-	g_free(f);
+	free(f);
 	switch (type) {
 		case 0:
 			keyboard_queue_basic("\003CLOAD\rRUN\r");

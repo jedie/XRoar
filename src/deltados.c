@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "cart.h"
 #include "deltados.h"
@@ -67,7 +67,7 @@ static void deltados_init(struct deltados *d) {
 }
 
 struct cart *deltados_new(struct cart_config *cc) {
-	struct deltados *d = g_malloc(sizeof(*d));
+	struct deltados *d = xmalloc(sizeof(*d));
 	d->cart.config = cc;
 	deltados_init(d);
 	return (struct cart *)d;

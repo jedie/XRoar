@@ -26,7 +26,7 @@
 #include <pulse/gccmacro.h>
 #include <pulse/simple.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "logging.h"
 #include "machine.h"
@@ -110,7 +110,7 @@ static _Bool init(void) {
 	}
 
 	fragment_nbytes = fragment_nframes * sample_nbytes * nchannels;
-	audio_buffer = g_malloc(fragment_nbytes);
+	audio_buffer = xmalloc(fragment_nbytes);
 	sound_init(audio_buffer, request_fmt, rate, nchannels, fragment_nframes);
 	LOG_DEBUG(1, "\t%dms (%d samples) buffer\n", (fragment_nframes * 1000) / rate, fragment_nframes);
 	return 1;
@@ -122,7 +122,7 @@ static void shutdown(void) {
 	int error;
 	pa_simple_flush(pa, &error);
 	pa_simple_free(pa);
-	g_free(audio_buffer);
+	free(audio_buffer);
 }
 
 static void *write_buffer(void *buffer) {

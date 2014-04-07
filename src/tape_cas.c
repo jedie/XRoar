@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#include "pl_glib.h"
+#include "xalloc.h"
 
 #include "fs.h"
 #include "machine.h"
@@ -109,7 +109,7 @@ static struct tape *do_tape_cas_open(const char *filename, const char *mode,
 
 	t = tape_new();
 	t->module = &tape_cas_module;
-	cas = g_malloc(sizeof(*cas));
+	cas = xmalloc(sizeof(*cas));
 	t->data = cas;
 	t->leader_count = 0;
 	/* initialise cas */
@@ -164,7 +164,7 @@ static void cas_close(struct tape *t) {
 	struct tape_cas *cas = t->data;
 	cas_motor_off(t);
 	fclose(cas->fd);
-	g_free(cas);
+	free(cas);
 	tape_free(t);
 }
 

@@ -30,7 +30,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
-#include "pl_string.h"
+#include "pl-string.h"
 
 #include "joystick.h"
 #include "keyboard.h"

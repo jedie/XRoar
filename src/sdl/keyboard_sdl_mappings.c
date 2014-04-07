@@ -425,7 +425,7 @@ static struct sym_dkey_mapping keymap_dvorak[] = {
 	{ SDLK_z, DSCAN_SLASH },
 };
 
-#define MAPPING(m) .num_mappings = G_N_ELEMENTS(m), .mappings = (m)
+#define MAPPING(m) .num_mappings = ARRAY_N_ELEMENTS(m), .mappings = (m)
 
 static struct keymap keymaps[] = {
 	{ .name = "uk", MAPPING(keymap_uk), .description = "UK" },
