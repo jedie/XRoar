@@ -1,16 +1,20 @@
-/* Taken from musl libc v0.8.10, © 2005-2012 Rich Felker. */
+/*
 
-/* This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- */
+Taken from musl libc v0.8.10
+Copyright 2005-2012 Rich Felker
+
+This is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation; either version 2.1 of the License, or (at your
+option) any later version.
+
+*/
 
 #include "config.h"
 
 #include <string.h>
 
-#include "pl_string.h"
+#include "pl-string.h"
 
 #ifdef NEED_STRSEP
 char *strsep(char **str, const char *sep) {

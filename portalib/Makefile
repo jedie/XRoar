@@ -29,7 +29,12 @@ portalib_CFLAGS = $(CFLAGS) $(CPPFLAGS) \
 	$(WARN)
 
 portalib_BASE_C = \
-	strsep.c
+	c-ctype.c \
+	c-strcasecmp.c \
+	c-strncasecmp.c \
+	slist.c \
+	strsep.c \
+	xmalloc.c
 portalib_BASE_C_O = $(portalib_BASE_C:.c=.o)
 #
 portalib_SOURCES_C += $(portalib_BASE_C)
@@ -38,18 +43,6 @@ portalib_C_O = $(portalib_BASE_C_O)
 
 ############################################################################
 # Options
-
-portalib_glib2_C = \
-	pl_glib/gmem.c \
-	pl_glib/gslist.c \
-	pl_glib/gstrfuncs.c
-portalib_glib2_C_O = $(portalib_glib2_C:.c=.o)
-#
-portalib_SOURCES_C += $(portalib_glib2_C)
-portalib_CLEAN_O += $(portalib_glib2_C_O)
-ifneq ($(opt_glib2),yes)
-	portalib_C_O += $(portalib_glib2_C_O)
-endif
 
 ############################################################################
 # Build
