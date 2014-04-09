@@ -18,6 +18,7 @@ unset _have_video_driver
 unset _have_audio_driver
 
 all_opt="
+endian_h
 endian
 strsep
 zlib
@@ -618,10 +619,41 @@ test -z "$TARGET_LDFLAGS" && TARGET_LDFLAGS="$LDFLAGS"
 
 ########
 
-# Test endianness if not specified and not cross-compiling.
+# Prefer endian.h if found.
 
-echocheck Endianness
-if test -z "$_endian" -a -z "$_cross"; then
+if test -z "$_endian_h" -a -z "$_endian"; then
+	echocheck endian.h
+	cat > $TMPC <<EOF
+#include <stdlib.h>
+#include <endian.h>
+#undef VALUE
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define VALUE (EXIT_SUCCESS)
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#define VALUE (EXIT_SUCCESS)
+#endif
+int main(int argc, char **argv) {
+	return VALUE;
+}
+EOF
+	_endian_h=no
+	target_cc_check "" "" && _endian_h=yes
+	rm -f $TMPC
+	echo "$_endian_h"
+else
+	_endian_h=no
+fi
+if test "$_endian_h" = "yes"; then
+	_endian_h_def="#define HAVE_ENDIAN_H"
+else
+	_endian_h_def="#undef HAVE_ENDIAN_H"
+fi
+
+# Test endianness if endian.h doesn't exist and not cross-compiling.  If cross
+# compiling, assume endianness based on arch.
+
+if test "$_endian_h" \!= "yes" -a -z "$_endian" -a -z "$_cross"; then
+	echocheck Endianness
 	# I only care about 16-bit values at the moment.  There's a whole host
 	# of potential wrongness for larger types...
 	cat > $TMPC <<EOF
@@ -642,19 +674,19 @@ EOF
 	fi
 	unset __keep_cc_output
 	rm -f $TMPC $TMPO $TMPX
+	if test -z "$_endian"; then
+		# Unfortunately, most architectures are wrong-endian
+		case "$__target_cc_machine" in
+		m68k-*) _endian=big; ;;
+		microblaze-*) _endian=big; ;;
+		powerpc-*) _endian=big; ;;
+		s390-*) _endian=big; ;;
+		sparc-*) _endian=big; ;;
+		*) _endian=little; ;;
+		esac
+	fi
+	echo "$_endian"
 fi
-if test -z "$_endian"; then
-	# Unfortunately, most architectures are wrong-endian
-	case "$__target_cc_machine" in
-	m68k-*) _endian=big; ;;
-	microblaze-*) _endian=big; ;;
-	powerpc-*) _endian=big; ;;
-	s390-*) _endian=big; ;;
-	sparc-*) _endian=big; ;;
-	*) _endian=little; ;;
-	esac
-fi
-echo "$_endian"
 if test "$_endian" = "big"; then
 	_endian_def="#define HAVE_BIG_ENDIAN"
 else
