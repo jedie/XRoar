@@ -87,6 +87,9 @@ struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
 	}
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = NULL;
+	disk->vdk_extra_length = 0;
+	disk->vdk_filename_length = 0;
+	disk->vdk_extra = NULL;
 	disk->write_back = xroar_cfg.disk_write_back;
 	disk->write_protect = 0;
 	disk->num_cylinders = ncyls;
@@ -110,6 +113,10 @@ void vdisk_destroy(struct vdisk *disk) {
 	if (disk->filename) {
 		free(disk->filename);
 		disk->filename = NULL;
+	}
+	if (disk->vdk_extra) {
+		free(disk->vdk_extra);
+		disk->vdk_extra_length = 0;
 	}
 	for (unsigned i = 0; i < disk->num_heads; i++) {
 		if (disk->side_data[i])
@@ -185,11 +192,11 @@ int vdisk_save(struct vdisk *disk, _Bool force) {
  * [11]         Compression flags (bits 0-2) and name length (bits 3-7)
 
  * PC-Dragon then reserves 31 bytes for a disk name, the number of significant
- * characaters in which are indicated in the name length bitfield of byte 11.
+ * characters in which are indicated in the name length bitfield of byte 11.
  *
  * The only flag used by XRoar is bit 0 which indicates write protect.
- * Compressed data in VDK disk images is not supported.  XRoar will not write a
- * disk name.
+ * Compressed data in VDK disk images is not supported.  XRoar will store extra
+ * header bytes and rewrite them verbatim.
  */
 
 static struct vdisk *vdisk_load_vdk(const char *filename) {
@@ -201,6 +208,7 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	unsigned nsectors = 18;
 	unsigned ssize_code = 1, ssize;
 	_Bool write_protect;
+	int vdk_filename_length;
 	uint8_t buf[1024];
 	FILE *fd;
 	struct stat statbuf;
@@ -220,17 +228,26 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 		fclose(fd);
 		return NULL;
 	}
+	if ((buf[11] & 7) != 0) {
+		LOG_WARN("Compressed VDK not supported: '%s'\n", filename);
+		fclose(fd);
+		return NULL;
+	}
 	header_size = (buf[2] | (buf[3]<<8)) - 12;
 	ncyls = buf[8];
 	nheads = buf[9];
 	write_protect = buf[10] & 1;
+	vdk_filename_length = buf[11] >> 3;
+	uint8_t *vdk_extra = NULL;
 	if (header_size > 0) {
-		if (header_size > sizeof(buf)) {
+		vdk_extra = malloc(header_size);
+		if (!vdk_extra) {
 			fclose(fd);
 			return NULL;
 		}
-		if (fread(buf, header_size, 1, fd) < 1) {
+		if (fread(vdk_extra, header_size, 1, fd) < 1) {
 			LOG_WARN("Failed to read VDK header in '%s'\n", filename);
+			free(vdk_extra);
 			fclose(fd);
 			return NULL;
 		}
@@ -244,6 +261,9 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	disk->filetype = FILETYPE_VDK;
 	disk->filename = xstrdup(filename);
 	disk->write_protect = write_protect;
+	disk->vdk_extra_length = header_size;
+	disk->vdk_filename_length = vdk_filename_length;
+	disk->vdk_extra = vdk_extra;
 
 	if (vdisk_format_disk(disk, 1, nsectors, 1, ssize_code) != 0) {
 		fclose(fd);
@@ -273,10 +293,9 @@ static int vdisk_save_vdk(struct vdisk *disk) {
 	if (!(fd = fopen(disk->filename, "wb")))
 		return -1;
 	LOG_DEBUG(1, "Writing VDK virtual disk: %uC %uH (%u-byte)\n", disk->num_cylinders, disk->num_heads, disk->track_length);
+	uint16_t header_length = 12;
 	buf[0] = 'd';   // magic
 	buf[1] = 'k';   // magic
-	buf[2] = 12;    // header size LSB
-	buf[3] = 0;     // header size MSB
 	buf[4] = 0x10;  // VDK version
 	buf[5] = 0x10;  // VDK backwards compatibility version
 	buf[6] = 'X';   // file source - 'X' for XRoar
@@ -284,8 +303,15 @@ static int vdisk_save_vdk(struct vdisk *disk) {
 	buf[8] = disk->num_cylinders;
 	buf[9] = disk->num_heads;
 	buf[10] = 0;    // flags
-	buf[11] = 0;    // name length & compression flag (we write neither)
+	buf[11] = disk->vdk_filename_length << 3;  // name length & compression flag
+	if (disk->vdk_extra_length > 0)
+		header_length += disk->vdk_extra_length;
+	buf[2] = header_length & 0xff;
+	buf[3] = header_length >> 8;
 	fwrite(buf, 12, 1, fd);
+	if (disk->vdk_extra_length > 0) {
+		fwrite(disk->vdk_extra, disk->vdk_extra_length, 1, fd);
+	}
 	for (unsigned cyl = 0; cyl < disk->num_cylinders; cyl++) {
 		for (unsigned head = 0; head < disk->num_heads; head++) {
 			for (unsigned sector = 0; sector < 18; sector++) {

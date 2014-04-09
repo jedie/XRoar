@@ -34,6 +34,10 @@ struct vdisk {
 	unsigned num_heads;
 	unsigned track_length;
 	uint8_t **side_data;
+	/* format specific data, kept only for use when rewriting: */
+	int vdk_extra_length;
+	int vdk_filename_length;
+	uint8_t *vdk_extra;
 };
 
 struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
