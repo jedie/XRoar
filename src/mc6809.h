@@ -6,9 +6,12 @@
 #ifndef XROAR_MC6809_H_
 #define XROAR_MC6809_H_
 
+#include "config.h"
+
 #include <stdint.h>
 
-#include "config.h"
+#include "pl-endian.h"
+
 #include "delegate.h"
 
 #define MC6809_INT_VEC_RESET (0xfffe)
@@ -86,7 +89,7 @@ struct MC6809 {
 	unsigned nmi_cycle, firq_cycle, irq_cycle;
 };
 
-#ifdef HAVE_BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
 # define MC6809_REG_HI (0)
 # define MC6809_REG_LO (1)
 #else
