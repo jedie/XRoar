@@ -142,6 +142,9 @@ static _Bool init(void) {
 	} else if (xroar_cfg.ao_buffer_nframes > 0) {
 		buffer_nframes = xroar_cfg.ao_buffer_nframes;
 	}
+	/* Pick a sensible default: */
+	if (nfragments == 0 && buffer_nframes == 0)
+		buffer_nframes = (rate * 20) / 1000;
 	if (buffer_nframes > 0) {
 		if ((err = snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_nframes)) < 0) {
 			LOG_ERROR("ALSA: snd_pcm_hw_params_set_buffer_size_near() failed\n");
