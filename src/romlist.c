@@ -18,12 +18,12 @@
 
 #include "config.h"
 
-#include <alloca.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "array.h"
+#include "pl-alloca.h"
 #include "slist.h"
 #include "xalloc.h"
 

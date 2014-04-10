@@ -18,7 +18,6 @@
 
 #include "config.h"
 
-#include <alloca.h>
 #include <assert.h>
 #include <ctype.h>
 #include <libgen.h>
@@ -26,6 +25,7 @@
 #include <string.h>
 
 #include "array.h"
+#include "pl-alloca.h"
 #include "slist.h"
 #include "xalloc.h"
 

@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#include <alloca.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +32,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "pl-alloca.h"
 #include "xalloc.h"
 
 #include "crc16.h"
