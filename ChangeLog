@@ -8,6 +8,8 @@ Development version, unreleased
   * New option -ao-format to select audio sample format.
   * Fix 6309 timing issue (CMPU, CMPS).
   * Fix issue with 6309 STBT instruction.
+  * Use endian.h where available.
+  * Preserve extra VDK header information in rewritten images.
 
 Version 0.31, Thu Nov 28 2013
 
