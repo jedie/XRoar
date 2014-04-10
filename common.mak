@@ -20,7 +20,7 @@ VERSION := snap-$(VERSION_PATCH)-$(VERSION_SUBPATCH)
 endif
 endif
 
-DISTNAME = xroar-$(VERSION)
+distdir = xroar-$(VERSION)
 
 .PHONY: profile-generate profile-use
 profile-generate: CFLAGS += -fprofile-generate -ftest-coverage

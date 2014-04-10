@@ -67,32 +67,32 @@ doc/xroar.txt:
 
 .PHONY: dist
 dist:
-	git archive --format=tar --output=../$(DISTNAME).tar --prefix=$(DISTNAME)/ HEAD
-	gzip -f9 ../$(DISTNAME).tar
+	git archive --format=tar --output=$(distdir).tar --prefix=$(distdir)/ HEAD
+	gzip -f9 $(distdir).tar
 
 .PHONY: dist-w64
 dist-w64: all doc/xroar.pdf
-	mkdir $(DISTNAME)-w64
-	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w64/
-	cp $(SRCROOT)/COPYING.LGPL-2.1 $(DISTNAME)-w64/COPYING.LGPL-2.1
-	$(TOOL_PREFIX)strip $(DISTNAME)-w64/xroar.exe
-	$(TOOL_PREFIX)strip $(DISTNAME)-w64/SDL.dll
-	$(TOOL_PREFIX)strip $(DISTNAME)-w64/libsndfile-1.dll
-	rm -f ../$(DISTNAME)-w64.zip
-	zip -r ../$(DISTNAME)-w64.zip $(DISTNAME)-w64
-	rm -rf $(DISTNAME)-w64/
+	mkdir $(distdir)-w64
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(distdir)-w64/
+	cp $(SRCROOT)/COPYING.LGPL-2.1 $(distdir)-w64/COPYING.LGPL-2.1
+	$(TOOL_PREFIX)strip $(distdir)-w64/xroar.exe
+	$(TOOL_PREFIX)strip $(distdir)-w64/SDL.dll
+	$(TOOL_PREFIX)strip $(distdir)-w64/libsndfile-1.dll
+	rm -f ../$(distdir)-w64.zip
+	zip -r ../$(distdir)-w64.zip $(distdir)-w64
+	rm -rf $(distdir)-w64/
 
 .PHONY: dist-w32
 dist-w32: all doc/xroar.pdf
-	mkdir $(DISTNAME)-w32
-	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(DISTNAME)-w32/
-	cp $(SRCROOT)/COPYING.LGPL-2.1 $(DISTNAME)-w32/COPYING.LGPL-2.1
-	$(TOOL_PREFIX)strip $(DISTNAME)-w32/xroar.exe
-	$(TOOL_PREFIX)strip $(DISTNAME)-w32/SDL.dll
-	$(TOOL_PREFIX)strip $(DISTNAME)-w32/libsndfile-1.dll
-	rm -f ../$(DISTNAME)-w32.zip
-	zip -r ../$(DISTNAME)-w32.zip $(DISTNAME)-w32
-	rm -rf $(DISTNAME)-w32/
+	mkdir $(distdir)-w32
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(distdir)-w32/
+	cp $(SRCROOT)/COPYING.LGPL-2.1 $(distdir)-w32/COPYING.LGPL-2.1
+	$(TOOL_PREFIX)strip $(distdir)-w32/xroar.exe
+	$(TOOL_PREFIX)strip $(distdir)-w32/SDL.dll
+	$(TOOL_PREFIX)strip $(distdir)-w32/libsndfile-1.dll
+	rm -f ../$(distdir)-w32.zip
+	zip -r ../$(distdir)-w32.zip $(distdir)-w32
+	rm -rf $(distdir)-w32/
 
 .PHONY: dist-macosx dist-macos
 dist-macosx dist-macos: all doc/xroar.pdf
@@ -118,11 +118,11 @@ dist-macosx dist-macos: all doc/xroar.pdf
 
 .PHONY: debuild
 debuild: dist
-	-cd ..; rm -rf $(DISTNAME)/ $(DISTNAME).orig/
-	cd ..; mv $(DISTNAME).tar.gz xroar_$(VERSION).orig.tar.gz
+	-cd ..; rm -rf $(distdir)/ $(distdir).orig/
+	cd ..; mv $(distdir).tar.gz xroar_$(VERSION).orig.tar.gz
 	cd ..; tar xfz xroar_$(VERSION).orig.tar.gz
-	rsync -axH debian --exclude='debian/.git/' --exclude='debian/_darcs/' ../$(DISTNAME)/
-	cd ../$(DISTNAME); debuild
+	rsync -axH debian --exclude='debian/.git/' --exclude='debian/_darcs/' ../$(distdir)/
+	cd ../$(distdir); debuild
 
 ############################################################################
 # Clean-up, etc.
