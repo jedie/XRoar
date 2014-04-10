@@ -20,6 +20,7 @@ unset _have_audio_driver
 all_opt="
 endian_h
 endian
+alloca
 strsep
 zlib
 glib2
@@ -692,6 +693,31 @@ if test "$_endian" = "big"; then
 else
 	_endian_def="#undef HAVE_BIG_ENDIAN"
 fi
+
+########
+
+for header in alloca.h stdlib.h malloc.h; do
+	def=HAVE_ALLOCA_`echo $header|tr a-z. A-Z_`
+	if test -z "$_alloca"; then
+		echocheck alloca in $header
+		cat > $TMPC <<EOF
+#include <$header>
+int main(int argc, char **argv) {
+	char *x = alloca(10);
+	return 0;
+}
+EOF
+		_alloca=no
+		target_cc_check "" "" && _alloca=yes
+		rm -f $TMPC
+		echo "$_alloca"
+		if test "$_alloca" = "yes"; then
+			_alloca_def="#define $def"
+		else
+			unset _alloca
+		fi
+	fi
+done
 
 ########
 

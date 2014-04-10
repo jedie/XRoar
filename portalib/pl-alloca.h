@@ -1,7 +1,7 @@
 /*
 
 Missing alloca.h header
-Copyright 2012-2014, Ciaran Anscomb
+Copyright 2014, Ciaran Anscomb
 
 This is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the
@@ -15,10 +15,12 @@ option) any later version.
 
 #include "config.h"
 
-#ifdef WINDOWS32
-#include <malloc.h>
-#else
+#if defined(HAVE_ALLOCA_ALLOCA_H)
 #include <alloca.h>
+#elif defined(HAVE_ALLOCA_STDLIB_H)
+#include <stdlib.h>
+#elif defined(HAVE_ALLOCA_MALLOC_H)
+#include <malloc.h>
 #endif
 
 #endif  /* PL_ALLOCA_H__dJ9CTN8z1Q61w */
