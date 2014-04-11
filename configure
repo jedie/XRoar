@@ -1252,11 +1252,13 @@ if test "$_pthreads" \!= "no"; then
 int main(int argc, char **argv) { pthread_create(NULL, NULL, NULL, NULL); return 0; }
 EOF
 	_pthreads=no
-	pthreads_cflags=""
-	pthreads_ldflags="-pthread"
-	target_cc_check "$pthreads_cflags" "$pthreads_ldflags" && _pthreads=yes
-	if test "$_pthreads" = "no"; then
+	if test "$_mingw" = "yes"; then
+		pthreads_cflags=""
 		pthreads_ldflags="-Wl,-Bstatic -lpthread -Wl,-Bdynamic"
+		target_cc_check "$pthreads_cflags" "$pthreads_ldflags" && _pthreads=yes
+	fi
+	if test "$_pthreads" = "no"; then
+		pthreads_ldflags="-pthread"
 		target_cc_check "$pthreads_cflags" "$pthreads_ldflags" && _pthreads=yes
 	fi
 	rm -f $TMPC
