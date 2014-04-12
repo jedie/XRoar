@@ -544,17 +544,12 @@ _Bool xroar_init(int argc, char **argv) {
 		sound_module_list = ui_module->sound_module_list;
 	if (ui_module->keyboard_module_list != NULL)
 		keyboard_module_list = ui_module->keyboard_module_list;
-	/*
-	if (ui_module->joystick_module_list != NULL)
-		joystick_module_list = ui_module->joystick_module_list;
-	*/
 	// Select file requester, video & sound modules
 	filereq_module = (FileReqModule *)module_select_by_arg((struct module **)filereq_module_list, private_cfg.filereq);
 	video_module = (VideoModule *)module_select_by_arg((struct module **)video_module_list, private_cfg.vo);
 	sound_module = (SoundModule *)module_select_by_arg((struct module **)sound_module_list, private_cfg.ao);
 	// Keyboard & joystick modules
 	keyboard_module = NULL;
-	joystick_module = NULL;
 
 	/* Check other command-line options */
 	if (xroar_cfg.frameskip < 0)
@@ -671,10 +666,6 @@ _Bool xroar_init(int argc, char **argv) {
 	keyboard_module = (KeyboardModule *)module_init_from_list((struct module **)keyboard_module_list, (struct module *)keyboard_module);
 	if (keyboard_module == NULL && keyboard_module_list != NULL) {
 		LOG_WARN("No keyboard module initialised.\n");
-	}
-	joystick_module = (JoystickModule *)module_init_from_list((struct module **)joystick_module_list, (struct module *)joystick_module);
-	if (joystick_module == NULL && joystick_module_list != NULL) {
-		LOG_WARN("No joystick module initialised.\n");
 	}
 	/* ... subsystems */
 	keyboard_init();
@@ -813,7 +804,6 @@ void xroar_shutdown(void) {
 	pthread_cond_destroy(&run_state_cv);
 #endif
 	machine_shutdown();
-	module_shutdown((struct module *)joystick_module);
 	module_shutdown((struct module *)keyboard_module);
 	module_shutdown((struct module *)sound_module);
 	module_shutdown((struct module *)video_module);

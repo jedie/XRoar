@@ -95,13 +95,13 @@ static struct joystick_interface *js_iflist[] = {
 	NULL
 };
 
-JoystickModule sdl_js_internal = {
+struct joystick_module sdl_js_internal = {
 	.common = { .name = "sdl", .description = "SDL joystick input",
 	            .shutdown = sdl_js_shutdown },
 	.interface_list = js_iflist,
 };
 
-JoystickModule *sdl_js_modlist[] = {
+struct joystick_module *sdl_js_modlist[] = {
 	&sdl_js_internal,
 	NULL
 };

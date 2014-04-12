@@ -33,6 +33,18 @@
 #include "machine.h"
 #include "module.h"
 
+extern struct joystick_module linux_js_mod;
+extern struct joystick_module sdl_js_mod_exported;
+static struct joystick_module *joystick_module_list[] = {
+#ifdef HAVE_LINUX_JOYSTICK
+	&linux_js_mod,
+#endif
+#ifdef HAVE_SDL
+	&sdl_js_mod_exported,
+#endif
+	NULL
+};
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 static struct slist *config_list = NULL;
@@ -126,7 +138,7 @@ void joystick_config_print_all(void) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-static struct joystick_interface *find_if_in_mod(JoystickModule *module, const char *if_name) {
+static struct joystick_interface *find_if_in_mod(struct joystick_module *module, const char *if_name) {
 	if (!module || !if_name)
 		return NULL;
 	for (unsigned i = 0; module->interface_list[i]; i++) {
@@ -136,7 +148,7 @@ static struct joystick_interface *find_if_in_mod(JoystickModule *module, const c
 	return NULL;
 }
 
-static struct joystick_interface *find_if_in_modlist(JoystickModule **list, const char *if_name) {
+static struct joystick_interface *find_if_in_modlist(struct joystick_module **list, const char *if_name) {
 	if (!list || !if_name)
 		return NULL;
 	for (unsigned i = 0; list[i]; i++) {
@@ -165,9 +177,9 @@ static void select_interface(char **spec) {
 		if_name = strsep(spec, ":");
 	}
 	if (mod_name) {
-		JoystickModule *m = (JoystickModule *)module_select_by_arg((struct module **)ui_module->joystick_module_list, mod_name);
+		struct joystick_module *m = (struct joystick_module *)module_select_by_arg((struct module **)ui_module->joystick_module_list, mod_name);
 		if (!m) {
-			m = (JoystickModule *)module_select_by_arg((struct module **)joystick_module_list, mod_name);
+			m = (struct joystick_module *)module_select_by_arg((struct module **)joystick_module_list, mod_name);
 		}
 		selected_interface = find_if_in_mod(m, if_name);
 	} else if (if_name) {

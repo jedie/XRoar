@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-struct joystick_interface;
+struct joystick_module;
 struct vdisk;
 
 struct module {
@@ -52,16 +52,11 @@ typedef struct {
 
 typedef struct {
 	struct module common;
-	struct joystick_interface **interface_list;
-} JoystickModule;
-
-typedef struct {
-	struct module common;
 	FileReqModule **filereq_module_list;
 	VideoModule **video_module_list;
 	SoundModule **sound_module_list;
 	KeyboardModule **keyboard_module_list;
-	JoystickModule **joystick_module_list;
+	struct joystick_module **joystick_module_list;
 	void (*run)(void);
 	void (*fullscreen_changed_cb)(_Bool fullscreen);
 	void (*cross_colour_changed_cb)(int cc);
@@ -90,8 +85,6 @@ extern SoundModule **sound_module_list;
 extern SoundModule *sound_module;
 extern KeyboardModule **keyboard_module_list;
 extern KeyboardModule *keyboard_module;
-extern JoystickModule **joystick_module_list;
-extern JoystickModule *joystick_module;
 
 void module_print_list(struct module **list);
 struct module *module_select(struct module **list, const char *name);

@@ -97,12 +97,12 @@ static struct joystick_interface *js_iflist[] = {
 	NULL
 };
 
-JoystickModule gtk2_js_internal = {
+struct joystick_module gtk2_js_internal = {
 	.common = { .name = "gtk2", .description = "GTK+ joystick" },
 	.interface_list = js_iflist,
 };
 
-static JoystickModule *gtk2_js_modlist[] = {
+static struct joystick_module *gtk2_js_modlist[] = {
 	&gtk2_js_internal,
 	NULL
 };

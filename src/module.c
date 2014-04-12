@@ -122,20 +122,6 @@ static VideoModule *default_video_module_list[] = {
 	NULL
 };
 
-/**** Default joystick module list ****/
-
-extern JoystickModule linux_js_mod;
-extern JoystickModule sdl_js_mod_exported;
-static JoystickModule *default_joystick_module_list[] = {
-#ifdef HAVE_LINUX_JOYSTICK
-	&linux_js_mod,
-#endif
-#ifdef HAVE_SDL
-	&sdl_js_mod_exported,
-#endif
-	NULL
-};
-
 UIModule **ui_module_list = default_ui_module_list;
 UIModule *ui_module = NULL;
 FileReqModule **filereq_module_list = default_filereq_module_list;
@@ -146,8 +132,6 @@ SoundModule **sound_module_list = default_sound_module_list;
 SoundModule *sound_module = NULL;
 KeyboardModule **keyboard_module_list = NULL;
 KeyboardModule *keyboard_module = NULL;
-JoystickModule **joystick_module_list = default_joystick_module_list;
-JoystickModule *joystick_module = NULL;
 
 void module_print_list(struct module **list) {
 	int i;

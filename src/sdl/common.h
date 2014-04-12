@@ -7,6 +7,7 @@
 #define XROAR_SDL_COMMON_H_
 
 #include "module.h"
+struct joystick_module;
 
 extern unsigned sdl_window_x, sdl_window_y;
 extern unsigned sdl_window_w, sdl_window_h;
@@ -19,11 +20,11 @@ extern KeyboardModule keyboard_sdl_module;
 
 extern struct joystick_interface sdl_js_if_physical;
 extern struct joystick_interface sdl_js_if_keyboard;
-extern JoystickModule sdl_js_internal;
+extern struct joystick_module sdl_js_internal;
 
 extern VideoModule *sdl_video_module_list[];
 extern KeyboardModule *sdl_keyboard_module_list[];
-extern JoystickModule *sdl_js_modlist[];
+extern struct joystick_module *sdl_js_modlist[];
 
 void sdl_run(void);
 void sdl_keypress(SDL_keysym *keysym);

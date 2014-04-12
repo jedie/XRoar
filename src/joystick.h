@@ -6,6 +6,8 @@
 #ifndef XROAR_JOYSTICK_H_
 #define XROAR_JOYSTICK_H_
 
+#include "module.h"
+
 // Each joystick module contains a list of interfaces, with standard names:
 //
 // physical - interface reads from a real joystick
@@ -16,6 +18,13 @@
 // does not override the default, it supplements it.  Interfaces are searched
 // for in both lists.  This allows both modules that can exist standalone and
 // modules that require a specific active UI to be available.
+
+struct joystick_interface;
+
+struct joystick_module {
+	struct module common;
+	struct joystick_interface **interface_list;
+};
 
 // Specs are of the form [[MODULE:]INTERFACE:]CONTROL-SPEC.
 
@@ -52,8 +61,6 @@ extern struct joystick_config *joystick_port_config[JOYSTICK_NUM_PORTS];
 // associated context data:
 typedef unsigned (*js_read_axis_func)(void *);
 typedef _Bool (*js_read_button_func)(void *);
-
-struct joystick_interface;
 
 struct joystick_axis {
 	js_read_axis_func read;
