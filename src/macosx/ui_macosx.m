@@ -518,7 +518,7 @@ static void setup_file_menu(void) {
 
 		submenu = [[NSMenu alloc] initWithTitle:title];
 
-		tmp = [NSString stringWithFormat:@"Input Disk%C", 0x2026];
+		tmp = [NSString stringWithFormat:@"Insert Disk%C", 0x2026];
 		item = [[NSMenuItem alloc] initWithTitle:tmp action:@selector(do_set_state:) keyEquivalent:key1];
 		[item setTag:(TAG_INSERT_DISK | drive)];
 		[submenu addItem:item];
