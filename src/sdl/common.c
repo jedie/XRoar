@@ -133,6 +133,11 @@ void sdl_run(void) {
 			case SDL_KEYUP:
 				sdl_keyrelease(&event.key.keysym);
 				break;
+#ifdef WINDOWS32
+			case SDL_SYSWMEVENT:
+				sdl_windows32_handle_syswmevent(event.syswm.msg);
+				break;
+#endif
 			default:
 				break;
 			}

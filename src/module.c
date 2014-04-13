@@ -29,8 +29,9 @@
 
 extern UIModule ui_gtk2_module;
 extern UIModule ui_macosx_module;
-extern UIModule ui_sdl_module;
 extern UIModule ui_null_module;
+extern UIModule ui_sdl_module;
+extern UIModule ui_windows32_module;
 static UIModule *default_ui_module_list[] = {
 #ifdef HAVE_GTK2
 #ifdef HAVE_GTKGL
@@ -41,6 +42,9 @@ static UIModule *default_ui_module_list[] = {
 #ifdef HAVE_COCOA
 	&ui_macosx_module,
 #else
+#ifdef WINDOWS32
+	&ui_windows32_module,
+#endif
 	&ui_sdl_module,
 #endif
 #endif

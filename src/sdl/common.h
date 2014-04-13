@@ -34,4 +34,7 @@ void sdl_js_physical_shutdown(void);
 void sdl_zoom_in(void);
 void sdl_zoom_out(void);
 
+void sdl_windows32_update_menu(_Bool fullscreen);
+void sdl_windows32_handle_syswmevent(void *data);
+
 #endif  /* XROAR_SDL_COMMON_H_ */

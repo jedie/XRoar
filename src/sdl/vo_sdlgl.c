@@ -92,6 +92,10 @@ static void resize(unsigned int w, unsigned int h) {
 static int set_fullscreen(_Bool fullscreen) {
 	unsigned int want_width, want_height;
 
+#ifdef WINDOWS32
+	sdl_windows32_update_menu(fullscreen);
+#endif
+
 	if (fullscreen) {
 		want_width = screen_width;
 		want_height = screen_height;

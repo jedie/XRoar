@@ -95,6 +95,9 @@ static void shutdown(void) {
 }
 
 static int set_fullscreen(_Bool fullscreen) {
+#ifdef WINDOWS32
+	sdl_windows32_update_menu(fullscreen);
+#endif
 	screen = SDL_SetVideoMode(320, 240, 8, SDL_HWSURFACE|(fullscreen?SDL_FULLSCREEN:0));
 	if (screen == NULL) {
 		LOG_ERROR("Failed to allocate SDL surface for display\n");

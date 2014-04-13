@@ -334,7 +334,8 @@ endif
 xroar_mingw_C = \
 	windows32/ao_windows32.c \
 	windows32/common_windows32.c \
-	windows32/filereq_windows32.c
+	windows32/filereq_windows32.c \
+	windows32/ui_windows32.c
 xroar_mingw_C_O = $(xroar_mingw_C:.c=.o)
 xroar_mingw_RC = windows32/xroar.rc
 xroar_mingw_RC_RES = $(xroar_mingw_RC:.rc=.res)
