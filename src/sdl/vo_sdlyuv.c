@@ -72,7 +72,7 @@ static Uint32 map_colour(int r, int g, int b);
 #include "vo_generic_ops.c"
 
 /* The packed modes supported by SDL: */
-static Uint32 try_overlay_format[] = {
+static const Uint32 try_overlay_format[] = {
 	SDL_YUY2_OVERLAY,
 	SDL_UYVY_OVERLAY,
 	SDL_YVYU_OVERLAY,
