@@ -10,6 +10,11 @@ Development version, unreleased
   * Fix issue with 6309 STBT instruction.
   * Use endian.h where available.
   * Preserve extra VDK header information in rewritten images.
+  * New Windows UI adding menus to the SDL window.
+  * Detect headerless JVC image geometry from OS-9 filesystem information.
+  * New option -no-disk-auto-os9 disables automatic geometry detection.
+  * Recognise ".os9" as extension for JVC images, ignores -no-disk-auto-os9.
+  * Deprecated option -disk-jvc-hack (now ignored in favour of above).
 
 Version 0.31, Thu Nov 28 2013
 
