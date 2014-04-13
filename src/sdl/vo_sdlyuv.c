@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include <SDL.h>
-#include <SDL_syswm.h>
 
 #include "logging.h"
 #include "mc6847.h"
@@ -31,10 +30,6 @@
 #include "xroar.h"
 
 #include "sdl/common.h"
-
-#ifdef WINDOWS32
-#include "windows32/common_windows32.h"
-#endif
 
 static _Bool init(void);
 static void shutdown(void);
@@ -89,21 +84,6 @@ static _Bool init(void) {
 	const SDL_VideoInfo *video_info;
 	int i;
 
-#ifdef WINDOWS32
-	if (!getenv("SDL_VIDEODRIVER"))
-		putenv("SDL_VIDEODRIVER=windib");
-#endif
-	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
-		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
-			LOG_ERROR("Failed to initialise SDL: %s\n", SDL_GetError());
-			return 0;
-		}
-	}
-	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
-		LOG_ERROR("Failed to initialise SDL video: %s\n", SDL_GetError());
-		return 0;
-	}
-
 	video_info = SDL_GetVideoInfo();
 	screen_width = video_info->current_w;
 	screen_height = video_info->current_h;
@@ -146,16 +126,7 @@ static _Bool init(void) {
 	video_module->window_y = VDG_TOP_BORDER_START + 1;
 	video_module->window_w = 320;
 	video_module->window_h = 240;
-#ifdef WINDOWS32
-	{
-		SDL_version sdlver;
-		SDL_SysWMinfo sdlinfo;
-		SDL_VERSION(&sdlver);
-		sdlinfo.version = sdlver;
-		SDL_GetWMInfo(&sdlinfo);
-		windows32_main_hwnd = sdlinfo.window;
-	}
-#endif
+
 	vsync();
 	return 1;
 }
@@ -164,7 +135,6 @@ static void shutdown(void) {
 	set_fullscreen(0);
 	SDL_FreeYUVOverlay(overlay);
 	/* Should not be freed by caller: SDL_FreeSurface(screen); */
-	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 static Uint32 map_colour(int r, int g, int b) {

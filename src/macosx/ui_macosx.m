@@ -938,6 +938,7 @@ int main(int argc, char **argv) {
 /* XRoar UI definition */
 
 static _Bool init(void);
+static void shutdown(void);
 static void cross_colour_changed_cb(int cc);
 static void machine_changed_cb(int machine_type);
 static void keymap_changed_cb(int map);
@@ -953,7 +954,7 @@ static void update_cartridge_menu(void);
 
 UIModule ui_macosx_module = {
 	.common = { .name = "macosx", .description = "Mac OS X SDL UI",
-	            .init = init },
+	            .init = init, .shutdown = shutdown },
 	.video_module_list = sdl_video_module_list,
 	.keyboard_module_list = sdl_keyboard_module_list,
 	.joystick_module_list = sdl_js_modlist,
@@ -970,9 +971,26 @@ UIModule ui_macosx_module = {
 };
 
 static _Bool init(void) {
+	if (!SDL_WasInit(SDL_INIT_NOPARACHUTE)) {
+		if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
+			LOG_ERROR("Failed to initialise SDL: %s\n", SDL_GetError());
+			return 0;
+		}
+	}
+
+	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
+		LOG_ERROR("Failed to initialise SDL video: %s\n", SDL_GetError());
+		return 0;
+	}
+
 	update_machine_menu();
 	update_cartridge_menu();
+
 	return 1;
+}
+
+static void shutdown(void) {
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 static void update_machine_menu(void) {
