@@ -148,6 +148,8 @@ Note when troubleshooting that the Windows packages are built using
 of printing to the console, useful information will end up in files called
 @file{stdout.txt} or @file{stderr.txt}.
 
+The Windows build provides menu-based access to certain features.
+
 
 @node Building from source
 @section Building from source
@@ -190,14 +192,14 @@ full-featured user interface.  It is only usable as such if you also have
 used to provide video output.  Otherwise, it can provide a file requester for
 use by other user interfaces.
 
-@myuref{http://www.libsdl.org/, SDL}, Simple Directmedia Layer, provides a more
-basic user experience, with most functionality only available through the
-keyboard shortcuts.  Under Mac OS X, a special case of the SDL UI is built that
-also provides some menus.  Unless you are building for Linux, SDL is required
-to use joysticks.
+@myuref{http://www.libsdl.org/, SDL}, Simple Directmedia Layer, provides a
+slightly more basic user experience.  Menus are added using native code under
+Mac OS X and Windows; any other target using SDL will support only keyboard
+shortcuts.  Unless you are building for Linux, SDL is required to use
+joysticks.
 
-Other supported audio APIs: OSS, ALSA, PulseAudio, CoreAudio, JACK, Sun audio
-(not tested in quite a while).
+Other supported audio APIs: OSS, ALSA, PulseAudio, CoreAudio.  Some other
+options are still in the code base, but have not been tested in a while.
 
 @myuref{http://www.mega-nerd.com/libsndfile/, libsndfile} is recommended to
 enable support for using audio files as cassette images.
@@ -596,14 +598,14 @@ Where available, these options can be changed on the fly in the GUI.
 If a disk interface cartridge is selected, XRoar supports virtual disks.  Three
 virtual disk formats are supported:
 
-@multitable @columnfractions .15 .80
+@multitable @columnfractions .20 .75
 @headitem Extension @tab Description
 @item @file{.dmk}
 @tab Disk image file in a format defined by David Keil.  They store a lot of
 information about the structure of a disk and support both single and double
 density data.  All disk images are manipulated internally in (near enough) this
 format.
-@item @file{.jvc}, @file{.dsk}
+@item @file{.jvc}, @file{.os9}, @file{.dsk}
 @tab Disk image file in a basic sector-by-sector format with optional
 header information.
 @item @file{.vdk}
@@ -627,10 +629,13 @@ Write back can be set to default to on with the @option{-disk-write-back}
 command line option.
 
 The JVC format specifies that the default number of sides in a headerless image
-is 1, but some disk images are distributed without headers that are 40 track,
-double-sided.  As these cannot be distinguished from 80 track single-sided
-disks, an option is provided to force the issue.  If you're having such
-problems, run with the @option{-disk-jvc-hack} option.
+is 1, but some disk images are distributed without headers that are
+double-sided.  These cannot normally be distinguished from a single-sided disk
+with double the number of tracks, but if an OS-9 filesystem is present, the
+information is contained within the first sector.  Because this information may
+be confused with other valid disk contents, the behaviour can be disabled with
+@option{-no-disk-auto-os9}.  Disk images with the extension @file{.os9} without
+headers always ignore this option, however.
 
 You can create a new blank disk in a virtual drive by pressing
 @kbd{Ctrl}+@kbd{Shift}+@var{[1-4]}.  You will be a prompted for a filename,
@@ -784,25 +789,18 @@ Only one video module is usable with this user interface: @samp{gtkgl}.
 
 @subsection SDL user interface
 
-Select with @option{-ui sdl}.
+Select with @option{-ui macosx} (Mac OS X menus), @option{-ui windows32}
+(Windows menus) or @option{-ui sdl} (no menus).
 
-A basic interface that provides no menus or control dialogues.  All actions are
-performed through keyboard shortcuts.  Provides three video output modules:
-@samp{sdlgl} (OpenGL, preferred), @samp{sdlyuv} (YUV, often accelerated under
-X11) and @samp{sdl}.  @option{-vo sdl} is the least capable, but most
-compatible; try this if you are having problems with OpenGL.
+A more limited interface, still including an amount of menu-based control under
+Mac OS X and Windows.  Other actions require the use of XRoar's keyboard
+shortcuts.  Provides three video output modules: @samp{sdlgl} (OpenGL,
+preferred), @samp{sdlyuv} (YUV, often accelerated under X11) and @samp{sdl}.
+@option{-vo sdl} is the least capable, but most compatible; try this if you are
+having problems with OpenGL.
 
-This is the only available user interface in the Windows binary distribution.
-
-@subsection Mac OS X user interface
-
-Select with @option{-ui macosx}.
-
-This is actually a special case of the SDL user interface.  A basic set of
-menus are created, and many operations are usable by pressing
-@kbd{Command}+@var{key} instead of @kbd{Ctrl}+@var{key}.
-
-This is the only available user interface in the Mac OS X binary distribution.
+Under Mac OS X, many operations are usable by pressing @kbd{Command}+@var{key}
+as well as the usual shortcut of @kbd{Ctrl}+@var{key}.
 
 
 @node Video output
