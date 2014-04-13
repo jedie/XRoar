@@ -40,7 +40,7 @@ static char *save_filename(const char **extensions);
 
 FileReqModule filereq_windows32_module = {
 	.common = { .name = "windows32",
-	            .description = "Windows32 file requester" },
+	            .description = "Windows file requester" },
 	.load_filename = load_filename,
 	.save_filename = save_filename
 };
