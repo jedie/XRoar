@@ -631,7 +631,7 @@ static void setup_view_menu(void) {
 	[view_menu addItem:item];
 	[item release];
 
-	view_menu_item = [[NSMenuItem alloc] initWithTitle:@"Machine" action:nil keyEquivalent:@""];
+	view_menu_item = [[NSMenuItem alloc] initWithTitle:@"View" action:nil keyEquivalent:@""];
 	[view_menu_item setSubmenu:view_menu];
 	[[NSApp mainMenu] addItem:view_menu_item];
 	[view_menu_item release];
