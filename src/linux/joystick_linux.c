@@ -66,7 +66,7 @@ static struct joystick_interface *js_iflist[] = {
 
 struct joystick_module linux_js_mod = {
 	.common = { .name = "linux", .description = "Linux joystick input" },
-	.interface_list = js_iflist,
+	.intf_list = js_iflist,
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -23,7 +23,7 @@ struct joystick_interface;
 
 struct joystick_module {
 	struct module common;
-	struct joystick_interface **interface_list;
+	struct joystick_interface **intf_list;
 };
 
 // Specs are of the form [[MODULE:]INTERFACE:]CONTROL-SPEC.
@@ -65,13 +65,13 @@ typedef _Bool (*js_read_button_func)(void *);
 struct joystick_axis {
 	js_read_axis_func read;
 	void *data;
-	struct joystick_interface *interface;
+	struct joystick_interface *intf;
 };
 
 struct joystick_button {
 	js_read_button_func read;
 	void *data;
-	struct joystick_interface *interface;
+	struct joystick_interface *intf;
 };
 
 struct joystick_interface {

@@ -98,7 +98,7 @@ static struct joystick_interface *js_iflist[] = {
 struct joystick_module sdl_js_internal = {
 	.common = { .name = "sdl", .description = "SDL joystick input",
 	            .shutdown = sdl_js_shutdown },
-	.interface_list = js_iflist,
+	.intf_list = js_iflist,
 };
 
 struct joystick_module *sdl_js_modlist[] = {

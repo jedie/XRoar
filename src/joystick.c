@@ -141,9 +141,9 @@ void joystick_config_print_all(void) {
 static struct joystick_interface *find_if_in_mod(struct joystick_module *module, const char *if_name) {
 	if (!module || !if_name)
 		return NULL;
-	for (unsigned i = 0; module->interface_list[i]; i++) {
-		if (0 == strcmp(module->interface_list[i]->name, if_name))
-			return module->interface_list[i];
+	for (unsigned i = 0; module->intf_list[i]; i++) {
+		if (0 == strcmp(module->intf_list[i]->name, if_name))
+			return module->intf_list[i];
 	}
 	return NULL;
 }
@@ -209,7 +209,7 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 		struct joystick_axis *axis = selected_interface->configure_axis(spec, i);
 		j->axes[i] = axis;
 		if (axis) {
-			axis->interface = selected_interface;
+			axis->intf = selected_interface;
 			valid_joystick = 1;
 		}
 		free(spec_copy);
@@ -225,7 +225,7 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 		struct joystick_button *button = selected_interface->configure_button(spec, i);
 		j->buttons[i] = button;
 		if (button) {
-			button->interface = selected_interface;
+			button->intf = selected_interface;
 			valid_joystick = 1;
 		}
 		free(spec_copy);
@@ -237,12 +237,12 @@ void joystick_map(struct joystick_config *jc, unsigned port) {
 	LOG_DEBUG(1, "Joystick port %u = %s [ ", port, jc->name);
 	for (unsigned i = 0; i < JOYSTICK_NUM_AXES; i++) {
 		if (j->axes[i])
-			LOG_DEBUG(1, "%u=%s:", i, j->axes[i]->interface->name);
+			LOG_DEBUG(1, "%u=%s:", i, j->axes[i]->intf->name);
 		LOG_DEBUG(1, ", ");
 	}
 	for (unsigned i = 0; i < JOYSTICK_NUM_BUTTONS; i++) {
 		if (j->buttons[i])
-			LOG_DEBUG(1, "%u=%s:", i, j->buttons[i]->interface->name);
+			LOG_DEBUG(1, "%u=%s:", i, j->buttons[i]->intf->name);
 		if ((i + 1) < JOYSTICK_NUM_BUTTONS)
 			LOG_DEBUG(1, ", ");
 	}
@@ -262,7 +262,7 @@ void joystick_unmap(unsigned port) {
 	for (unsigned a = 0; a < JOYSTICK_NUM_AXES; a++) {
 		struct joystick_axis *axis = j->axes[a];
 		if (axis) {
-			struct joystick_interface *interface = axis->interface;
+			struct joystick_interface *interface = axis->intf;
 			if (interface->unmap_axis) {
 				interface->unmap_axis(axis);
 			} else {
@@ -273,7 +273,7 @@ void joystick_unmap(unsigned port) {
 	for (unsigned b = 0; b < JOYSTICK_NUM_BUTTONS; b++) {
 		struct joystick_button *button = j->buttons[b];
 		if (button) {
-			struct joystick_interface *interface = button->interface;
+			struct joystick_interface *interface = button->intf;
 			if (interface->unmap_button) {
 				interface->unmap_button(button);
 			} else {
