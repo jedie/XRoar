@@ -128,6 +128,7 @@ static void tape_bit_out(struct tape *t, int bit) {
 		tape_sample_out(t, 0x00, TAPE_BIT0_LENGTH / 2);
 	}
 	rewrite_bit_count = (rewrite_bit_count + 1) & 7;
+	last_tape_output = 0;
 }
 
 static void tape_byte_out(struct tape *t, int byte) {
@@ -305,7 +306,6 @@ void tape_close_reading(void) {
 }
 
 int tape_open_writing(const char *filename) {
-	(void)filename;
 	tape_close_writing();
 	int type = xroar_filetype_by_ext(filename);
 	switch (type) {
@@ -411,11 +411,11 @@ void tape_update_motor(_Bool state) {
 
 /* Called whenever the DAC is written to. */
 void tape_update_output(uint8_t value) {
-	if (!motor || !tape_output || tape_rewrite)
-		return;
-	int length = event_current_tick - tape_output->last_write_cycle;
-	tape_output->module->sample_out(tape_output, value, length);
-	tape_output->last_write_cycle = event_current_tick;
+	if (motor && tape_output && !tape_rewrite) {
+		int length = event_current_tick - tape_output->last_write_cycle;
+		tape_output->module->sample_out(tape_output, last_tape_output, length);
+		tape_output->last_write_cycle = event_current_tick;
+	}
 	last_tape_output = value;
 }
 
@@ -732,7 +732,6 @@ static void fast_cbin(struct MC6809 *cpu) {
 /* Leader padding & tape rewriting */
 
 static void tape_desync(int leader) {
-	(void)leader;
 	if (tape_rewrite) {
 		/* complete last byte */
 		while (rewrite_bit_count)
