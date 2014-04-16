@@ -73,11 +73,9 @@ dist:
 .PHONY: dist-w64
 dist-w64: all doc/xroar.pdf
 	mkdir $(distdir)-w64
-	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(distdir)-w64/
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(distdir)-w64/
 	cp $(SRCROOT)/COPYING.LGPL-2.1 $(distdir)-w64/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(distdir)-w64/xroar.exe
-	$(TOOL_PREFIX)strip $(distdir)-w64/SDL.dll
-	$(TOOL_PREFIX)strip $(distdir)-w64/libsndfile-1.dll
 	rm -f ../$(distdir)-w64.zip
 	zip -r ../$(distdir)-w64.zip $(distdir)-w64
 	rm -rf $(distdir)-w64/
@@ -85,11 +83,9 @@ dist-w64: all doc/xroar.pdf
 .PHONY: dist-w32
 dist-w32: all doc/xroar.pdf
 	mkdir $(distdir)-w32
-	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(prefix)/bin/SDL.dll $(prefix)/bin/libsndfile-1.dll $(distdir)-w32/
+	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(distdir)-w32/
 	cp $(SRCROOT)/COPYING.LGPL-2.1 $(distdir)-w32/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(distdir)-w32/xroar.exe
-	$(TOOL_PREFIX)strip $(distdir)-w32/SDL.dll
-	$(TOOL_PREFIX)strip $(distdir)-w32/libsndfile-1.dll
 	rm -f ../$(distdir)-w32.zip
 	zip -r ../$(distdir)-w32.zip $(distdir)-w32
 	rm -rf $(distdir)-w32/
