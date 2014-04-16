@@ -74,7 +74,6 @@ dist:
 dist-w64: all doc/xroar.pdf
 	mkdir $(distdir)-w64
 	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(distdir)-w64/
-	cp $(SRCROOT)/COPYING.LGPL-2.1 $(distdir)-w64/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(distdir)-w64/xroar.exe
 	rm -f ../$(distdir)-w64.zip
 	zip -r ../$(distdir)-w64.zip $(distdir)-w64
@@ -84,7 +83,6 @@ dist-w64: all doc/xroar.pdf
 dist-w32: all doc/xroar.pdf
 	mkdir $(distdir)-w32
 	cp $(SRCROOT)/COPYING.GPL $(SRCROOT)/ChangeLog $(SRCROOT)/README doc/xroar.pdf src/xroar.exe $(distdir)-w32/
-	cp $(SRCROOT)/COPYING.LGPL-2.1 $(distdir)-w32/COPYING.LGPL-2.1
 	$(TOOL_PREFIX)strip $(distdir)-w32/xroar.exe
 	rm -f ../$(distdir)-w32.zip
 	zip -r ../$(distdir)-w32.zip $(distdir)-w32
