@@ -211,7 +211,7 @@ static void setup_file_menu(void) {
 	AppendMenu(file_menu, MF_SEPARATOR, 0, NULL);
 
 	submenu = CreatePopupMenu();
-	AppendMenu(file_menu, MF_STRING | MF_POPUP, (UINT)submenu, "Cassette");
+	AppendMenu(file_menu, MF_STRING | MF_POPUP, (uintptr_t)submenu, "Cassette");
 	AppendMenu(submenu, MF_STRING, TAG_SIMPLE_ACTION | TAG_TAPE_INPUT, "Input Tape...");
 	AppendMenu(submenu, MF_STRING, TAG_SIMPLE_ACTION | TAG_TAPE_OUTPUT, "Output Tape...");
 	AppendMenu(submenu, MF_SEPARATOR, 0, NULL);
@@ -228,7 +228,7 @@ static void setup_file_menu(void) {
 		char title[9];
 		snprintf(title, sizeof(title), "Drive &%c", '1' + drive);
 		submenu = CreatePopupMenu();
-		AppendMenu(file_menu, MF_STRING | MF_POPUP, (UINT)submenu, title);
+		AppendMenu(file_menu, MF_STRING | MF_POPUP, (uintptr_t)submenu, title);
 		AppendMenu(submenu, MF_STRING, TAG_INSERT_DISK | drive, "Insert Disk...");
 		AppendMenu(submenu, MF_STRING, TAG_NEW_DISK | drive, "New Disk...");
 		AppendMenu(submenu, MF_SEPARATOR, 0, NULL);
@@ -240,7 +240,7 @@ static void setup_file_menu(void) {
 	AppendMenu(file_menu, MF_STRING, TAG_SIMPLE_ACTION | TAG_FILE_SAVE_SNAPSHOT, "&Save Snapshot...");
 	AppendMenu(file_menu, MF_STRING, TAG_SIMPLE_ACTION | TAG_QUIT, "&Quit");
 
-	AppendMenu(top_menu, MF_STRING | MF_POPUP, (UINT)file_menu, "&File");
+	AppendMenu(top_menu, MF_STRING | MF_POPUP, (uintptr_t)file_menu, "&File");
 }
 
 static void setup_view_menu(void) {
@@ -250,7 +250,7 @@ static void setup_view_menu(void) {
 	view_menu = CreatePopupMenu();
 
 	submenu = CreatePopupMenu();
-	AppendMenu(view_menu, MF_STRING | MF_POPUP, (UINT)submenu, "Zoom");
+	AppendMenu(view_menu, MF_STRING | MF_POPUP, (uintptr_t)submenu, "Zoom");
 	AppendMenu(submenu, MF_STRING, TAG_SIMPLE_ACTION | TAG_ZOOM_IN, "Zoom In");
 	AppendMenu(submenu, MF_STRING, TAG_SIMPLE_ACTION | TAG_ZOOM_OUT, "Zoom Out");
 
@@ -260,12 +260,12 @@ static void setup_view_menu(void) {
 	AppendMenu(view_menu, MF_STRING, TAG_VDG_INVERSE, "Inverse Text");
 
 	submenu = CreatePopupMenu();
-	AppendMenu(view_menu, MF_STRING | MF_POPUP, (UINT)submenu, "Cross-colour");
+	AppendMenu(view_menu, MF_STRING | MF_POPUP, (uintptr_t)submenu, "Cross-colour");
 	for (int i = 0; xroar_cross_colour_list[i].name; i++) {
 		AppendMenu(submenu, MF_STRING, TAG_CROSS_COLOUR | xroar_cross_colour_list[i].value, xroar_cross_colour_list[i].description);
 	}
 
-	AppendMenu(top_menu, MF_STRING | MF_POPUP, (UINT)view_menu, "&View");
+	AppendMenu(top_menu, MF_STRING | MF_POPUP, (uintptr_t)view_menu, "&View");
 }
 
 static void setup_machine_menu(void) {
@@ -281,19 +281,19 @@ static void setup_machine_menu(void) {
 
 	AppendMenu(machine_menu, MF_SEPARATOR, 0, NULL);
 	submenu = CreatePopupMenu();
-	AppendMenu(machine_menu, MF_STRING | MF_POPUP, (UINT)submenu, "Keyboard Map");
+	AppendMenu(machine_menu, MF_STRING | MF_POPUP, (uintptr_t)submenu, "Keyboard Map");
 	AppendMenu(submenu, MF_STRING, TAG_KEYMAP | KEYMAP_DRAGON, "Dragon Layout");
 	AppendMenu(submenu, MF_STRING, TAG_KEYMAP | KEYMAP_DRAGON200E, "Dragon 200-E Layout");
 	AppendMenu(submenu, MF_STRING, TAG_KEYMAP | KEYMAP_COCO, "CoCo Layout");
 
 	AppendMenu(machine_menu, MF_SEPARATOR, 0, NULL);
 	submenu = CreatePopupMenu();
-	AppendMenu(machine_menu, MF_STRING | MF_POPUP, (UINT)submenu, "Right Joystick");
+	AppendMenu(machine_menu, MF_STRING | MF_POPUP, (uintptr_t)submenu, "Right Joystick");
 	for (int i = 0; i < NUM_JOYSTICK_NAMES; i++) {
 		AppendMenu(submenu, MF_STRING, TAG_JOY_RIGHT | i, joystick_names[i].description);
 	}
 	submenu = CreatePopupMenu();
-	AppendMenu(machine_menu, MF_STRING | MF_POPUP, (UINT)submenu, "Left Joystick");
+	AppendMenu(machine_menu, MF_STRING | MF_POPUP, (uintptr_t)submenu, "Left Joystick");
 	for (int i = 0; i < NUM_JOYSTICK_NAMES; i++) {
 		AppendMenu(submenu, MF_STRING, TAG_JOY_LEFT | i, joystick_names[i].description);
 	}
@@ -303,7 +303,7 @@ static void setup_machine_menu(void) {
 	AppendMenu(machine_menu, MF_STRING, TAG_SIMPLE_ACTION | TAG_RESET_SOFT, "Soft Reset");
 	AppendMenu(machine_menu, MF_STRING, TAG_SIMPLE_ACTION | TAG_RESET_HARD, "Hard Reset");
 
-	AppendMenu(top_menu, MF_STRING | MF_POPUP, (UINT)machine_menu, "&Machine");
+	AppendMenu(top_menu, MF_STRING | MF_POPUP, (uintptr_t)machine_menu, "&Machine");
 
 	machine_changed_cb(xroar_machine_config ? xroar_machine_config->index : 0);
 }
@@ -320,7 +320,7 @@ static void setup_cartridge_menu(void) {
 		AppendMenu(cartridge_menu, MF_STRING, TAG_CARTRIDGE | (cc->index + 1), cc->description);
 	}
 
-	AppendMenu(top_menu, MF_STRING | MF_POPUP, (UINT)cartridge_menu, "&Cartridge");
+	AppendMenu(top_menu, MF_STRING | MF_POPUP, (uintptr_t)cartridge_menu, "&Cartridge");
 
 	cart_changed_cb(xroar_cart ? xroar_cart->config->index : 0);
 }
@@ -333,7 +333,7 @@ static void setup_tool_menu(void) {
 	AppendMenu(tool_menu, MF_STRING, TAG_KBD_TRANSLATE, "Keyboard Translation");
 	AppendMenu(tool_menu, MF_STRING, TAG_FAST_SOUND, "Fast Sound");
 
-	AppendMenu(top_menu, MF_STRING | MF_POPUP, (UINT)tool_menu, "&Tool");
+	AppendMenu(top_menu, MF_STRING | MF_POPUP, (uintptr_t)tool_menu, "&Tool");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
