@@ -173,6 +173,8 @@ static _Bool init(void) {
 	SDL_GetWMInfo(&sdlinfo);
 	windows32_main_hwnd = sdlinfo.window;
 
+	SetFocus(windows32_main_hwnd);
+
 	top_menu = CreateMenu();
 	setup_file_menu();
 	setup_view_menu();
