@@ -57,11 +57,11 @@ struct WD279X {
 	uint8_t command_register;
 
 	/* External interface */
-	delegate_int set_dirc;
-	delegate_bool set_dden;
-	delegate_unsigned set_sso;
-	delegate_bool set_drq;
-	delegate_bool set_intrq;
+	DELEGATE_T1(void, int) set_dirc;
+	DELEGATE_T1(void, bool) set_dden;
+	DELEGATE_T1(void, unsigned) set_sso;
+	DELEGATE_T1(void, bool) set_drq;
+	DELEGATE_T1(void, bool) set_intrq;
 
 	/* WD279X internal state */
 	enum WD279X_state state;

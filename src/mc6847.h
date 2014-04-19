@@ -60,8 +60,8 @@ struct MC6847 *mc6847_new(_Bool t1);
 void mc6847_free(struct MC6847 *);
 
 void mc6847_set_fetch_bytes(struct MC6847 *, void (*)(int, uint8_t *));
-void mc6847_set_signal_hs(struct MC6847 *, delegate_bool);
-void mc6847_set_signal_fs(struct MC6847 *, delegate_bool);
+void mc6847_set_signal_hs(struct MC6847 *, DELEGATE_T1(void, bool));
+void mc6847_set_signal_fs(struct MC6847 *, DELEGATE_T1(void, bool));
 
 void mc6847_reset(struct MC6847 *);
 

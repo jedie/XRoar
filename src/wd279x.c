@@ -132,13 +132,13 @@ static void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	fdc->has_sso = (type == WD2795 || type == WD2797);
 	fdc->has_length_flag = (type == WD2795 || type == WD2797);
 	fdc->has_inverted_data = (type == WD2791 || type == WD2795);
-	fdc->set_dirc = DELEGATE_DEFAULT(int);
-	fdc->set_dden = DELEGATE_DEFAULT(bool);
-	fdc->set_sso = DELEGATE_DEFAULT(unsigned);
-	fdc->set_drq = DELEGATE_DEFAULT(bool);
-	fdc->set_intrq = DELEGATE_DEFAULT(bool);
+	fdc->set_dirc = DELEGATE_DEFAULT1(void, int);
+	fdc->set_dden = DELEGATE_DEFAULT1(void, bool);
+	fdc->set_sso = DELEGATE_DEFAULT1(void, unsigned);
+	fdc->set_drq = DELEGATE_DEFAULT1(void, bool);
+	fdc->set_intrq = DELEGATE_DEFAULT1(void, bool);
 	fdc->state = WD279X_state_accept_command;
-	event_init(&fdc->state_event, (delegate_null){state_machine, fdc});
+	event_init(&fdc->state_event, DELEGATE_AS0(void, state_machine, fdc));
 }
 
 WD279X *wd279x_new(enum WD279X_type type) {

@@ -40,9 +40,9 @@ struct cart {
 	void (*attach)(struct cart *c);
 	void (*detach)(struct cart *c);
 	uint8_t *rom_data;
-	delegate_bool signal_firq;
-	delegate_bool signal_nmi;
-	delegate_bool signal_halt;
+	DELEGATE_T1(void, bool) signal_firq;
+	DELEGATE_T1(void, bool) signal_nmi;
+	DELEGATE_T1(void, bool) signal_halt;
 	struct event *firq_event;
 };
 

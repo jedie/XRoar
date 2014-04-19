@@ -65,11 +65,11 @@ struct MC6809 {
 	/* Perform a byte write cycle */
 	void (*write_cycle)(uint16_t addr, uint8_t value);
 	/* Called just before instruction fetch if non-NULL */
-	delegate_null instruction_hook;
+	DELEGATE_T0(void) instruction_hook;
 	/* Called after instruction is executed */
-	delegate_null instruction_posthook;
+	DELEGATE_T0(void) instruction_posthook;
 	/* Called just before an interrupt vector is read */
-	delegate_int interrupt_hook;
+	DELEGATE_T1(void, int) interrupt_hook;
 
 	/* Internal state */
 

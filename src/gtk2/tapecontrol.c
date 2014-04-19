@@ -150,7 +150,7 @@ void gtk2_create_tc_window(void) {
 	gtk_builder_connect_signals(builder, NULL);
 	g_object_unref(builder);
 
-	event_init(&update_tape_counters_event, (delegate_null){update_tape_counters, NULL});
+	event_init(&update_tape_counters_event, DELEGATE_AS0(void, update_tape_counters, NULL));
 	update_tape_counters_event.at_tick = event_current_tick + OSCILLATOR_RATE / 2;
 	event_queue(&UI_EVENT_LIST, &update_tape_counters_event);
 }

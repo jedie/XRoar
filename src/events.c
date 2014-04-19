@@ -27,13 +27,13 @@
 
 event_ticks event_current_tick = 0;
 
-struct event *event_new(delegate_null delegate) {
+struct event *event_new(DELEGATE_T0(void) delegate) {
 	struct event *new = xmalloc(sizeof(*new));
 	event_init(new, delegate);
 	return new;
 }
 
-void event_init(struct event *event, delegate_null delegate) {
+void event_init(struct event *event, DELEGATE_T0(void) delegate) {
 	if (event == NULL) return;
 	event->at_tick = event_current_tick;
 	event->delegate = delegate;

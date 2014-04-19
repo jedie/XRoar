@@ -720,7 +720,7 @@ _Bool xroar_init(int argc, char **argv) {
 		// delay loading binary files by 2s
 		case FILETYPE_BIN:
 		case FILETYPE_HEX:
-			event_init(&load_file_event, (delegate_null){do_load_file, load_file});
+			event_init(&load_file_event, DELEGATE_AS0(void, do_load_file, load_file));
 			load_file_event.at_tick = event_current_tick + OSCILLATOR_RATE * 2;
 			event_queue(&UI_EVENT_LIST, &load_file_event);
 			autorun_loaded_file = autorun;
@@ -773,7 +773,7 @@ _Bool xroar_init(int argc, char **argv) {
 		if (t >= 0.0) {
 			timeout_seconds = (int)t;
 			timeout_cycles = OSCILLATOR_RATE * (t - timeout_seconds);
-			event_init(&timeout_event, (delegate_null){handle_timeout_event, NULL});
+			event_init(&timeout_event, DELEGATE_AS0(void, handle_timeout_event, NULL));
 			/* handler can set up the first call for us... */
 			timeout_seconds++;
 			handle_timeout_event(NULL);
@@ -1030,10 +1030,10 @@ void xroar_set_trace(int mode) {
 	if (xroar_cfg.trace_enabled) {
 		switch (xroar_machine_config->cpu) {
 		case CPU_MC6809: default:
-			cpu->interrupt_hook = (delegate_int){mc6809_trace_irq, NULL};
+			cpu->interrupt_hook = DELEGATE_AS1(void, int, mc6809_trace_irq, NULL);
 			break;
 		case CPU_HD6309:
-			cpu->interrupt_hook = (delegate_int){hd6309_trace_irq, NULL};
+			cpu->interrupt_hook = DELEGATE_AS1(void, int, hd6309_trace_irq, NULL);
 			break;
 		}
 	} else {

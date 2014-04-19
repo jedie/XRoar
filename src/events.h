@@ -20,14 +20,14 @@ extern event_ticks event_current_tick;
 
 struct event {
 	event_ticks at_tick;
-	delegate_null delegate;
+	DELEGATE_T0(void) delegate;
 	_Bool queued;
 	struct event **list;
 	struct event *next;
 };
 
-struct event *event_new(delegate_null delegate);
-void event_init(struct event *event, delegate_null delegate);
+struct event *event_new(DELEGATE_T0(void));
+void event_init(struct event *event, DELEGATE_T0(void));
 
 void event_free(struct event *event);
 void event_queue(struct event **list, struct event *event);

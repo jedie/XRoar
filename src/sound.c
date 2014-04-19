@@ -112,7 +112,7 @@ static float cart_level = 0.0;
 static float external_level[2] = { 0.0, 0.0 };
 
 // Feedback to the single-bit audio pin
-delegate_bool sound_sbs_feedback = { NULL, NULL };
+DELEGATE_T1(void, bool) sound_sbs_feedback = { NULL, NULL };
 
 void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels, unsigned nframes) {
 	uint16_t test = 0x0123;
@@ -185,7 +185,7 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 	ticks_per_buffer = ticks_per_frame * nframes;
 	last_cycle = event_current_tick;
 
-	event_init(&flush_event, (delegate_null){flush_frame, NULL});
+	event_init(&flush_event, DELEGATE_AS0(void, flush_frame, NULL));
 	flush_event.at_tick = event_current_tick + ticks_per_buffer;
 	event_queue(&MACHINE_EVENT_LIST, &flush_event);
 }

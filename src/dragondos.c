@@ -74,11 +74,11 @@ static void dragondos_init(struct dragondos *d) {
 	c->detach = dragondos_detach;
 	d->have_becker = (cc->becker_port && becker_open());
 	d->fdc = wd279x_new(WD2797);
-	d->fdc->set_dirc = (delegate_int){vdrive_set_dirc, NULL};
-	d->fdc->set_dden = (delegate_bool){vdrive_set_dden, NULL};
-	d->fdc->set_sso = (delegate_unsigned){vdrive_set_sso, NULL};
-	d->fdc->set_drq = (delegate_bool){set_drq, c};
-	d->fdc->set_intrq = (delegate_bool){set_intrq, c};
+	d->fdc->set_dirc = DELEGATE_AS1(void, int, vdrive_set_dirc, NULL);
+	d->fdc->set_dden = DELEGATE_AS1(void, bool, vdrive_set_dden, NULL);
+	d->fdc->set_sso = DELEGATE_AS1(void, unsigned, vdrive_set_sso, NULL);
+	d->fdc->set_drq = DELEGATE_AS1(void, bool, set_drq, c);
+	d->fdc->set_intrq = DELEGATE_AS1(void, bool, set_intrq, c);
 }
 
 struct cart *dragondos_new(struct cart_config *cc) {

@@ -569,11 +569,11 @@ void machine_configure(struct machine_config *mc) {
 
 	// Single-bit sound feedback
 #ifndef FAST_SOUND
-	sound_sbs_feedback = (delegate_bool){single_bit_feedback, NULL};
+	sound_sbs_feedback = DELEGATE_AS1(void, bool, single_bit_feedback, NULL);
 #endif
 
 	// Tape
-	tape_update_audio = (delegate_float){update_audio_from_tape, NULL};
+	tape_update_audio = DELEGATE_AS1(void, float, update_audio_from_tape, NULL);
 
 	// VDG
 	if (VDG0)
@@ -581,16 +581,16 @@ void machine_configure(struct machine_config *mc) {
 	VDG0 = mc6847_new(mc->vdg_type == VDG_6847T1);
 
 	if (IS_COCO && IS_PAL) {
-		mc6847_set_signal_hs(VDG0, (delegate_bool){vdg_hs_pal_coco, NULL});
+		mc6847_set_signal_hs(VDG0, DELEGATE_AS1(void, bool, vdg_hs_pal_coco, NULL));
 	} else {
-		mc6847_set_signal_hs(VDG0, (delegate_bool){vdg_hs, NULL});
+		mc6847_set_signal_hs(VDG0, DELEGATE_AS1(void, bool, vdg_hs, NULL));
 	}
-	mc6847_set_signal_fs(VDG0, (delegate_bool){vdg_fs, NULL});
+	mc6847_set_signal_fs(VDG0, DELEGATE_AS1(void, bool, vdg_fs, NULL));
 	mc6847_set_fetch_bytes(VDG0, vdg_fetch_handler);
 	mc6847_set_inverted_text(VDG0, inverted_text);
 
 	// Printer
-	printer_signal_ack = (delegate_bool){printer_ack, NULL};
+	printer_signal_ack = DELEGATE_AS1(void, bool, printer_ack, NULL);
 
 	/* Load appropriate ROMs */
 	memset(rom0, 0, sizeof(rom0));
@@ -833,7 +833,7 @@ int machine_run(int ncycles) {
 void machine_single_step(void) {
 	single_step = 1;
 	CPU0->running = 0;
-	CPU0->instruction_posthook = (delegate_null){machine_instruction_posthook, CPU0};
+	CPU0->instruction_posthook = DELEGATE_AS0(void, machine_instruction_posthook, CPU0);
 	do {
 		CPU0->run(CPU0);
 	} while (single_step);
@@ -854,7 +854,7 @@ void machine_signal(int sig) {
 
 void machine_set_trace(_Bool trace_on) {
 	if (trace_on || single_step)
-		CPU0->instruction_posthook = (delegate_null){machine_instruction_posthook, CPU0};
+		CPU0->instruction_posthook = DELEGATE_AS0(void, machine_instruction_posthook, CPU0);
 	else
 		CPU0->instruction_posthook.func = NULL;
 }
@@ -1241,9 +1241,9 @@ void machine_insert_cart(struct cart *c) {
 		assert(c->read != NULL);
 		assert(c->write != NULL);
 		machine_cart = c;
-		c->signal_firq = (delegate_bool){cart_firq, NULL};
-		c->signal_nmi = (delegate_bool){cart_nmi, NULL};
-		c->signal_halt = (delegate_bool){cart_halt, NULL};
+		c->signal_firq = DELEGATE_AS1(void, bool, cart_firq, NULL);
+		c->signal_nmi = DELEGATE_AS1(void, bool, cart_nmi, NULL);
+		c->signal_halt = DELEGATE_AS1(void, bool, cart_halt, NULL);
 	}
 }
 

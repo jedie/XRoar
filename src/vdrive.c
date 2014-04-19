@@ -75,8 +75,8 @@ void vdrive_init(void) {
 	}
 	vdrive_set_dden(NULL, 1);
 	vdrive_set_drive(0);
-	event_init(&index_pulse_event, (delegate_null){do_index_pulse, NULL});
-	event_init(&reset_index_pulse_event, (delegate_null){do_reset_index_pulse, NULL});
+	event_init(&index_pulse_event, DELEGATE_AS0(void, do_index_pulse, NULL));
+	event_init(&reset_index_pulse_event, DELEGATE_AS0(void, do_reset_index_pulse, NULL));
 }
 
 void vdrive_shutdown(void) {

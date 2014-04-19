@@ -87,7 +87,7 @@ void tape_reset(void);
 void tape_shutdown(void);
 
 /* Delegate for tape output updates */
-extern delegate_float tape_update_audio;
+extern DELEGATE_T1(void, float) tape_update_audio;
 
 int tape_open_reading(const char *filename);
 void tape_close_reading(void);

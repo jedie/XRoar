@@ -71,8 +71,8 @@ struct MC6847_private {
 	int frame;  // frameskip counter
 
 	/* Delegates to notify on signal edges */
-	delegate_bool signal_hs;
-	delegate_bool signal_fs;
+	DELEGATE_T1(void, bool) signal_hs;
+	DELEGATE_T1(void, bool) signal_fs;
 
 	/* External handler to fetch data for display.  First arg is number of bytes,
 	 * second a pointer to a buffer to receive them. */
@@ -414,11 +414,11 @@ struct MC6847 *mc6847_new(_Bool t1) {
 	vdg->is_t1 = t1;
 	vdg->vram_ptr = vdg->vram;
 	vdg->pixel = vdg->pixel_data + VDG_LEFT_BORDER_START;
-	vdg->signal_hs = DELEGATE_DEFAULT(bool);
-	vdg->signal_fs = DELEGATE_DEFAULT(bool);
+	vdg->signal_hs = DELEGATE_DEFAULT1(void, bool);
+	vdg->signal_fs = DELEGATE_DEFAULT1(void, bool);
 	vdg->fetch_bytes = dummy_fetch_bytes;
-	event_init(&vdg->hs_fall_event, (delegate_null){do_hs_fall, vdg});
-	event_init(&vdg->hs_rise_event, (delegate_null){do_hs_rise, vdg});
+	event_init(&vdg->hs_fall_event, DELEGATE_AS0(void, do_hs_fall, vdg));
+	event_init(&vdg->hs_rise_event, DELEGATE_AS0(void, do_hs_rise, vdg));
 	return (struct MC6847 *)vdg;
 }
 
@@ -434,12 +434,12 @@ void mc6847_set_fetch_bytes(struct MC6847 *vdgp, void (*d)(int, uint8_t *)) {
 	vdg->fetch_bytes = d;
 }
 
-void mc6847_set_signal_hs(struct MC6847 *vdgp, delegate_bool d) {
+void mc6847_set_signal_hs(struct MC6847 *vdgp, DELEGATE_T1(void, bool) d) {
 	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
 	vdg->signal_hs = d;
 }
 
-void mc6847_set_signal_fs(struct MC6847 *vdgp, delegate_bool d) {
+void mc6847_set_signal_fs(struct MC6847 *vdgp, DELEGATE_T1(void, bool) d) {
 	struct MC6847_private *vdg = (struct MC6847_private *)vdgp;
 	vdg->signal_fs = d;
 }

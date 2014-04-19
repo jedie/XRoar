@@ -42,7 +42,7 @@ static struct event ack_clear_event;
 static _Bool strobe_state = 1;
 static _Bool busy;
 
-delegate_bool printer_signal_ack = { NULL, NULL };
+DELEGATE_T1(void, bool) printer_signal_ack = { NULL, NULL };
 
 static void do_ack_clear(void *);
 static void open_stream(void);
@@ -57,7 +57,7 @@ void printer_init(void) {
 	stream = NULL;
 	stream_dest = NULL;
 	is_pipe = 0;
-	event_init(&ack_clear_event, (delegate_null){do_ack_clear, NULL});
+	event_init(&ack_clear_event, DELEGATE_AS0(void, do_ack_clear, NULL));
 	strobe_state = 1;
 	busy = 0;
 }

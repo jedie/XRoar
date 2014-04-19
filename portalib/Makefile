@@ -32,6 +32,7 @@ portalib_BASE_C = \
 	c-ctype.c \
 	c-strcasecmp.c \
 	c-strncasecmp.c \
+	delegate.c \
 	slist.c \
 	strsep.c \
 	xmalloc.c

@@ -59,7 +59,7 @@ void bp_add(struct breakpoint *bp) {
 	bp->address_end = bp->address;
 	bp_instruction_list = slist_prepend(bp_instruction_list, bp);
 	struct MC6809 *cpu = machine_get_cpu(0);
-	cpu->instruction_hook = (delegate_null){bp_instruction_hook, cpu};
+	cpu->instruction_hook = DELEGATE_AS0(void, bp_instruction_hook, cpu);
 }
 
 void bp_add_n(struct breakpoint *bp, int n) {
@@ -137,7 +137,7 @@ void bp_hbreak_add(unsigned addr, unsigned match_mask, unsigned match_cond) {
 	trap_add(&bp_instruction_list, addr, addr, match_mask, match_cond);
 	if (bp_instruction_list) {
 		struct MC6809 *cpu = machine_get_cpu(0);
-		cpu->instruction_hook = (delegate_null){bp_instruction_hook, cpu};
+		cpu->instruction_hook = DELEGATE_AS0(void, bp_instruction_hook, cpu);
 	}
 }
 

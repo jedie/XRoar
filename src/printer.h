@@ -11,7 +11,7 @@
 void printer_init(void);
 void printer_reset(void);
 
-extern delegate_bool printer_signal_ack;
+extern DELEGATE_T1(void, bool) printer_signal_ack;
 
 void printer_open_file(const char *filename);
 void printer_open_pipe(const char *command);

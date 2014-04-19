@@ -72,10 +72,10 @@ static void rsdos_init(struct rsdos *r) {
 	c->detach = rsdos_detach;
 	r->have_becker = (cc->becker_port && becker_open());
 	r->fdc = wd279x_new(WD2793);
-	r->fdc->set_dirc = (delegate_int){vdrive_set_dirc, NULL};
-	r->fdc->set_dden = (delegate_bool){vdrive_set_dden, NULL};
-	r->fdc->set_drq = (delegate_bool){set_drq, c};
-	r->fdc->set_intrq = (delegate_bool){set_intrq, c};
+	r->fdc->set_dirc = DELEGATE_AS1(void, int, vdrive_set_dirc, NULL);
+	r->fdc->set_dden = DELEGATE_AS1(void, bool, vdrive_set_dden, NULL);
+	r->fdc->set_drq = DELEGATE_AS1(void, bool, set_drq, c);
+	r->fdc->set_intrq = DELEGATE_AS1(void, bool, set_intrq, c);
 }
 
 struct cart *rsdos_new(struct cart_config *cc) {

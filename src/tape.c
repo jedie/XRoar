@@ -40,7 +40,7 @@
 
 /* Tape output delegate.  Called when the output from the tape unit (i.e., the
  * input to the machine) changes. */
-delegate_float tape_update_audio = { delegate_default_float, NULL };
+DELEGATE_T1(void, float) tape_update_audio;
 
 struct tape *tape_input = NULL;
 struct tape *tape_output = NULL;
@@ -235,9 +235,10 @@ void tape_free(struct tape *t) {
 /**************************************************************************/
 
 void tape_init(void) {
+	tape_update_audio = DELEGATE_DEFAULT1(void, float);
 	DELEGATE_CALL1(tape_update_audio, 0.5);
-	event_init(&waggle_event, (delegate_null){waggle_bit, NULL});
-	event_init(&flush_event, (delegate_null){flush_output, NULL});
+	event_init(&waggle_event, DELEGATE_AS0(void, waggle_bit, NULL));
+	event_init(&flush_event, DELEGATE_AS0(void, flush_output, NULL));
 }
 
 void tape_reset(void) {
