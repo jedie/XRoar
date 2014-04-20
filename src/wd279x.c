@@ -93,8 +93,8 @@
 
 static void state_machine(void *);
 
-static int stepping_rate[4] = { 6, 12, 20, 30 };
-static int sector_size[2][4] = {
+static int const stepping_rate[4] = { 6, 12, 20, 30 };
+static int const sector_size[2][4] = {
 	{ 256, 512, 1024, 128 },
 	{ 128, 256, 512, 1024 }
 };
@@ -903,7 +903,7 @@ static void state_machine(void *sptr) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Debugging
 
-static const char *debug_state_name[] = {
+static char const * const debug_state_name[] = {
 	"accept_command",
 	"type1_1",
 	"type1_2",
@@ -931,7 +931,7 @@ static const char *debug_state_name[] = {
 	"write_track_3",
 };
 
-static const char *debug_command[] = {
+static char const * const debug_command[] = {
 	"restore",
 	"seek",
 	"step",
