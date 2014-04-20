@@ -53,10 +53,10 @@ struct tape_cas {
 };
 
 static void cas_close(struct tape *t);
-static long cas_tell(struct tape *t);
+static long cas_tell(struct tape const *t);
 static int cas_seek(struct tape *t, long offset, int whence);
-static int cas_to_ms(struct tape *t, long pos);
-static long cas_ms_to(struct tape *t, int ms);
+static int cas_to_ms(struct tape const *t, long pos);
+static long cas_ms_to(struct tape const *t, int ms);
 static int cas_pulse_in(struct tape *t, int *pulse_width);
 static int cas_sample_out(struct tape *t, uint8_t sample, int length);
 static void cas_motor_off(struct tape *t);
@@ -227,7 +227,7 @@ static int read_byte(struct tape *t) {
 }
 
 /* measures in number of pulses */
-static long cas_tell(struct tape *t) {
+static long cas_tell(struct tape const *t) {
 	return t->offset;
 }
 
@@ -269,12 +269,12 @@ static int cas_seek(struct tape *t, long offset, int whence) {
 }
 
 /* approximate time based on av. pulse length */
-static int cas_to_ms(struct tape *t, long pos) {
+static int cas_to_ms(struct tape const *t, long pos) {
 	(void)t;
 	return (pos * 10) / 32;
 }
 
-static long cas_ms_to(struct tape *t, int ms) {
+static long cas_ms_to(struct tape const *t, int ms) {
 	(void)t;
 	return (ms * 32) / 10;
 }

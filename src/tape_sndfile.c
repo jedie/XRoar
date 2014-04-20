@@ -44,10 +44,10 @@ struct tape_sndfile {
 };
 
 static void sndfile_close(struct tape *t);
-static long sndfile_tell(struct tape *t);
+static long sndfile_tell(struct tape const *t);
 static int sndfile_seek(struct tape *t, long offset, int whence);
-static int sndfile_to_ms(struct tape *t, long pos);
-static long sndfile_ms_to(struct tape *t, int ms);
+static int sndfile_to_ms(struct tape const *t, long pos);
+static long sndfile_ms_to(struct tape const *t, int ms);
 static int sndfile_pulse_in(struct tape *t, int *pulse_width);
 static int sndfile_sample_out(struct tape *t, uint8_t sample, int length);
 static void sndfile_motor_off(struct tape *t);
@@ -112,7 +112,7 @@ static void sndfile_close(struct tape *t) {
 	tape_free(t);
 }
 
-static long sndfile_tell(struct tape *t) {
+static long sndfile_tell(struct tape const *t) {
 	return t->offset;
 }
 
@@ -127,13 +127,13 @@ static int sndfile_seek(struct tape *t, long offset, int whence) {
 	return 0;
 }
 
-static int sndfile_to_ms(struct tape *t, long pos) {
+static int sndfile_to_ms(struct tape const *t, long pos) {
 	struct tape_sndfile *sndfile = t->data;
 	float ms = (float)pos * 1000. / (float)sndfile->info.samplerate;
 	return (int)ms;
 }
 
-static long sndfile_ms_to(struct tape *t, int ms) {
+static long sndfile_ms_to(struct tape const *t, int ms) {
 	struct tape_sndfile *sndfile = t->data;
 	float pos = (float)ms * (float)sndfile->info.samplerate / 1000.;
 	return (long)pos;

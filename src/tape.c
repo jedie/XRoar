@@ -216,7 +216,7 @@ struct tape_file *tape_file_next(struct tape *t, int skip_bad) {
 	}
 }
 
-void tape_seek_to_file(struct tape *t, struct tape_file *f) {
+void tape_seek_to_file(struct tape *t, struct tape_file const *f) {
 	if (!t || !f) return;
 	tape_seek(t, f->offset, SEEK_SET);
 }

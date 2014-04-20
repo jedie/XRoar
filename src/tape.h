@@ -30,15 +30,14 @@ struct tape {
 };
 
 struct tape_module {
-	void (*close)(struct tape *t);
-	long (*size)(struct tape *t);
-	long (*tell)(struct tape *t);
-	int (*seek)(struct tape *t, long offset, int whence);
-	int (*to_ms)(struct tape *t, long pos);
-	long (*ms_to)(struct tape *t, int ms);
-	int (*pulse_in)(struct tape *t, int *pulse_width);
-	int (*sample_out)(struct tape *t, uint8_t sample, int length);
-	void (*motor_off)(struct tape *t);
+	void (* const close)(struct tape *t);
+	long (* const tell)(struct tape const *t);
+	int (* const seek)(struct tape *t, long offset, int whence);
+	int (* const to_ms)(struct tape const *t, long pos);
+	long (* const ms_to)(struct tape const *t, int ms);
+	int (* const pulse_in)(struct tape *t, int *pulse_width);
+	int (* const sample_out)(struct tape *t, uint8_t sample, int length);
+	void (* const motor_off)(struct tape *t);
 };
 
 extern struct tape *tape_input;
@@ -69,7 +68,7 @@ struct tape_file {
 /* find next tape file */
 struct tape_file *tape_file_next(struct tape *t, int skip_bad);
 /* seek to a tape file */
-void tape_seek_to_file(struct tape *t, struct tape_file *f);
+void tape_seek_to_file(struct tape *t, struct tape_file const *f);
 
 /* Module-specific open() calls */
 struct tape *tape_cas_open(const char *filename, const char *mode);
