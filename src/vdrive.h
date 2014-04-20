@@ -10,13 +10,15 @@
 
 #include <stdint.h>
 
+#include "delegate.h"
+
 struct vdisk;
 
 #define VDRIVE_MAX_DRIVES (4)
 
 extern _Bool vdrive_ready;
 extern _Bool vdrive_tr00;
-extern _Bool vdrive_index_pulse;
+DELEGATE_T1(void,bool) vdrive_index_pulse;
 extern _Bool vdrive_write_protect;
 extern void (*vdrive_update_drive_cyl_head)(unsigned drive, unsigned cyl, unsigned head);
 
@@ -45,7 +47,6 @@ void vdrive_write(uint8_t data);
 void vdrive_skip(void);
 uint8_t vdrive_read(void);
 void vdrive_write_idam(void);
-_Bool vdrive_new_index_pulse(void);  /* Has there been one? */
 unsigned vdrive_time_to_next_byte(void);
 unsigned vdrive_time_to_next_idam(void);
 uint8_t *vdrive_next_idam(void);

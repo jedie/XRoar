@@ -43,7 +43,8 @@ struct drive_data {
 
 _Bool vdrive_ready = 0;
 _Bool vdrive_tr00 = 1;
-_Bool vdrive_index_pulse = 0;
+static _Bool index_state = 0;
+DELEGATE_T1(void,bool) vdrive_index_pulse;
 _Bool vdrive_write_protect = 0;
 void (*vdrive_update_drive_cyl_head)(unsigned drive, unsigned cyl, unsigned head) = NULL;
 
@@ -58,6 +59,7 @@ static uint8_t *track_base = NULL;  // updated to point to base addr of cur trac
 static uint16_t *idamptr = NULL;  // likewise, but different data size
 static unsigned head_pos = 0;  // index into current track for read/write
 
+static void set_index_state(_Bool state);
 static void update_signals(void);
 
 static event_ticks last_update_cycle;
@@ -73,6 +75,7 @@ void vdrive_init(void) {
 		drives[i].disk_present = 0;
 		drives[i].current_cyl = 0;
 	}
+	vdrive_index_pulse = DELEGATE_DEFAULT1(void, bool);
 	vdrive_set_dden(NULL, 1);
 	vdrive_set_drive(0);
 	event_init(&index_pulse_event, DELEGATE_AS0(void, do_index_pulse, NULL));
@@ -169,6 +172,13 @@ void vdrive_set_sso(void *sptr, unsigned head) {
 	update_signals();
 }
 
+static void set_index_state(_Bool state) {
+	if (index_state == state)
+		return;
+	index_state = state;
+	DELEGATE_CALL1(vdrive_index_pulse, state);
+}
+
 static void update_signals(void) {
 	vdrive_ready = current_drive->disk_present;
 	vdrive_tr00 = (current_drive->current_cyl == 0);
@@ -246,7 +256,7 @@ void vdrive_write(uint8_t data) {
 		head_pos++;
 	}
 	if (head_pos >= current_drive->disk->track_length) {
-		vdrive_index_pulse = 1;
+		set_index_state(1);
 	}
 }
 
@@ -254,7 +264,7 @@ void vdrive_skip(void) {
 	if (!vdrive_ready) return;
 	head_pos += head_incr;
 	if (head_pos >= current_drive->disk->track_length) {
-		vdrive_index_pulse = 1;
+		set_index_state(1);
 	}
 }
 
@@ -266,7 +276,7 @@ uint8_t vdrive_read(void) {
 	}
 	head_pos += head_incr;
 	if (head_pos >= current_drive->disk->track_length) {
-		vdrive_index_pulse = 1;
+		set_index_state(1);
 	}
 	return ret;
 }
@@ -294,7 +304,7 @@ void vdrive_write_idam(void) {
 	}
 	head_pos += head_incr;
 	if (head_pos >= current_drive->disk->track_length) {
-		vdrive_index_pulse = 1;
+		set_index_state(1);
 	}
 }
 
@@ -316,7 +326,6 @@ unsigned vdrive_time_to_next_idam(void) {
 	if (!vdrive_ready) return OSCILLATOR_RATE / 5;
 	/* Update head_pos based on time elapsed since track start */
 	head_pos = 128 + ((event_current_tick - track_start_cycle) / BYTE_TIME);
-	(void)vdrive_new_index_pulse();
 	unsigned next_head_pos = current_drive->disk->track_length;
 	if (idamptr) {
 		for (unsigned i = 0; i < 64; i++) {
@@ -356,28 +365,20 @@ uint8_t *vdrive_next_idam(void) {
 		}
 	}
 	if (next_head_pos >= current_drive->disk->track_length) {
-		vdrive_index_pulse = 1;
+		set_index_state(1);
 		return NULL;
 	}
 	head_pos = next_head_pos;
 	return track_base + next_head_pos;
 }
 
-/* Returns 1 on active transition of index pulse */
-_Bool vdrive_new_index_pulse(void) {
-	static _Bool last_index_pulse = 0;
-	_Bool last = last_index_pulse;
-	last_index_pulse = vdrive_index_pulse;
-	return (!last && vdrive_index_pulse);
-}
-
 static void do_index_pulse(void *data) {
 	(void)data;
 	if (!vdrive_ready) {
-		vdrive_index_pulse = 0;
+		set_index_state(0);
 		return;
 	}
-	vdrive_index_pulse = 1;
+	set_index_state(1);
 	head_pos = 128;
 	last_update_cycle = index_pulse_event.at_tick;
 	track_start_cycle = index_pulse_event.at_tick;
@@ -389,7 +390,5 @@ static void do_index_pulse(void *data) {
 
 static void do_reset_index_pulse(void *data) {
 	(void)data;
-	vdrive_index_pulse = 0;
-	/* reset latch */
-	(void)vdrive_new_index_pulse();
+	set_index_state(0);
 }

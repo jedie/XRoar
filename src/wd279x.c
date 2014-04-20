@@ -169,6 +169,15 @@ void wd279x_reset(WD279X *fdc) {
 	SET_SIDE(0);
 }
 
+void wd279x_index_pulse(void *sptr, _Bool state) {
+	WD279X *fdc = sptr;
+	if (fdc->index_state == state)
+		return;
+	fdc->index_state = state;
+	if (state)
+		fdc->index_holes_count++;
+}
+
 void wd279x_set_dden(WD279X *fdc, _Bool dden) {
 	fdc->double_density = dden;
 	DELEGATE_CALL1(fdc->set_dden, dden);
@@ -189,7 +198,7 @@ uint8_t wd279x_read(WD279X *fdc, uint16_t A) {
 					fdc->status_register |= STATUS_TRACK_0;
 				else
 					fdc->status_register &= ~STATUS_TRACK_0;
-				if (vdrive_index_pulse)
+				if (fdc->index_state)
 					fdc->status_register |= STATUS_INDEX_PULSE;
 				else
 					fdc->status_register &= ~STATUS_INDEX_PULSE;
@@ -408,15 +417,12 @@ static void state_machine(void *sptr) {
 
 		case WD279X_state_verify_track_2:
 			idam = vdrive_next_idam();
-			if (vdrive_new_index_pulse()) {
-				fdc->index_holes_count++;
-				if (fdc->index_holes_count >= 5) {
-					LOG_DEBUG(3, "WD279X: index_holes_count >= 5: seek error\n");
-					fdc->status_register &= ~(STATUS_BUSY);
-					fdc->status_register |= STATUS_SEEK_ERROR;
-					SET_INTRQ;
-					return;
-				}
+			if (fdc->index_holes_count >= 5) {
+				LOG_DEBUG(3, "WD279X: index_holes_count >= 5: seek error\n");
+				fdc->status_register &= ~(STATUS_BUSY);
+				fdc->status_register |= STATUS_SEEK_ERROR;
+				SET_INTRQ;
+				return;
 			}
 			if (idam == NULL) {
 				LOG_DEBUG(3, "WD279X: null IDAM: -> WD279X_state_verify_track_2\n");
@@ -463,14 +469,11 @@ static void state_machine(void *sptr) {
 
 		case WD279X_state_type2_2:
 			idam = vdrive_next_idam();
-			if (vdrive_new_index_pulse()) {
-				fdc->index_holes_count++;
-				if (fdc->index_holes_count >= 5) {
-					fdc->status_register &= ~(STATUS_BUSY);
-					fdc->status_register |= STATUS_RNF;
-					SET_INTRQ;
-					return;
-				}
+			if (fdc->index_holes_count >= 5) {
+				fdc->status_register &= ~(STATUS_BUSY);
+				fdc->status_register |= STATUS_RNF;
+				SET_INTRQ;
+				return;
 			}
 			if (idam == NULL) {
 				NEXT_STATE(WD279X_state_type2_2, vdrive_time_to_next_idam());
@@ -703,14 +706,11 @@ static void state_machine(void *sptr) {
 
 		case WD279X_state_read_address_1:
 			idam = vdrive_next_idam();
-			if (vdrive_new_index_pulse()) {
-				fdc->index_holes_count++;
-				if (fdc->index_holes_count >= 6) {
-					fdc->status_register &= ~(STATUS_BUSY);
-					fdc->status_register |= STATUS_RNF;
-					SET_INTRQ;
-					return;
-				}
+			if (fdc->index_holes_count >= 6) {
+				fdc->status_register &= ~(STATUS_BUSY);
+				fdc->status_register |= STATUS_RNF;
+				SET_INTRQ;
+				return;
 			}
 			if (idam == NULL) {
 				NEXT_STATE(WD279X_state_read_address_1, vdrive_time_to_next_idam());
@@ -778,16 +778,18 @@ static void state_machine(void *sptr) {
 				SET_INTRQ;
 				return;
 			}
+			fdc->index_holes_count = 0;
 			NEXT_STATE(WD279X_state_write_track_2b, vdrive_time_to_next_idam());
 			return;
 
 
 		case WD279X_state_write_track_2b:
-			if (!vdrive_new_index_pulse()) {
+			if (fdc->index_holes_count == 0) {
 				LOG_DEBUG(3, "WD279X: Waiting for index pulse, head_pos=%04x\n", vdrive_head_pos());
 				NEXT_STATE(WD279X_state_write_track_2b, vdrive_time_to_next_idam());
 				return;
 			}
+			fdc->index_holes_count = 0;
 			LOG_DEBUG(3, "WD279X: Writing track from head_pos=%04x\n", vdrive_head_pos());
 			if (xroar_cfg.debug_fdc & XROAR_DEBUG_FDC_DATA)
 				log_open_hexdump(&log_wtrk_hex, "WD279X: write-track");
@@ -796,7 +798,7 @@ static void state_machine(void *sptr) {
 
 		case WD279X_state_write_track_3:
 			data = fdc->data_register;
-			if (vdrive_new_index_pulse()) {
+			if (fdc->index_holes_count > 0) {
 				if (xroar_cfg.debug_fdc & XROAR_DEBUG_FDC_DATA)
 					log_close(&log_wtrk_hex);
 				LOG_DEBUG(3, "WD279X: Finished writing track at head_pos=%04x\n", vdrive_head_pos());

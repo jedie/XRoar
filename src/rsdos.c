@@ -76,6 +76,7 @@ static void rsdos_init(struct rsdos *r) {
 	r->fdc->set_dden = DELEGATE_AS1(void, bool, vdrive_set_dden, NULL);
 	r->fdc->set_drq = DELEGATE_AS1(void, bool, set_drq, c);
 	r->fdc->set_intrq = DELEGATE_AS1(void, bool, set_intrq, c);
+	vdrive_index_pulse = DELEGATE_AS1(void, bool, wd279x_index_pulse, r->fdc);
 }
 
 struct cart *rsdos_new(struct cart_config *cc) {
