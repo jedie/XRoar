@@ -22,9 +22,9 @@ extern struct joystick_interface sdl_js_if_physical;
 extern struct joystick_interface sdl_js_if_keyboard;
 extern struct joystick_module sdl_js_internal;
 
-extern VideoModule *sdl_video_module_list[];
-extern KeyboardModule *sdl_keyboard_module_list[];
-extern struct joystick_module *sdl_js_modlist[];
+extern VideoModule * const sdl_video_module_list[];
+extern KeyboardModule * const sdl_keyboard_module_list[];
+extern struct joystick_module * const sdl_js_modlist[];
 
 void sdl_run(void);
 void sdl_keypress(SDL_keysym *keysym);

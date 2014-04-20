@@ -28,12 +28,12 @@ FileReqModule filereq_null_module = {
 	.load_filename = filereq_noop, .save_filename = filereq_noop
 };
 
-static FileReqModule *null_filereq_module_list[] = {
+static FileReqModule * const null_filereq_module_list[] = {
 	&filereq_null_module, NULL
 };
 
 extern VideoModule video_null_module;
-static VideoModule *null_video_module_list[] = {
+static VideoModule * const null_video_module_list[] = {
 	&video_null_module,
 	NULL
 };
@@ -42,7 +42,7 @@ KeyboardModule keyboard_null_module = {
 	.common = { .name = "null", .description = "No keyboard" },
 };
 
-static KeyboardModule *null_keyboard_module_list[] = {
+static KeyboardModule * const null_keyboard_module_list[] = {
 	&keyboard_null_module,
 	NULL
 };

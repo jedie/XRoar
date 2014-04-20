@@ -35,7 +35,7 @@
 
 extern struct joystick_module linux_js_mod;
 extern struct joystick_module sdl_js_mod_exported;
-static struct joystick_module *joystick_module_list[] = {
+static struct joystick_module * const joystick_module_list[] = {
 #ifdef HAVE_LINUX_JOYSTICK
 	&linux_js_mod,
 #endif
@@ -51,7 +51,7 @@ static struct slist *config_list = NULL;
 static unsigned num_configs = 0;
 
 // Current configuration, per-port:
-struct joystick_config *joystick_port_config[JOYSTICK_NUM_PORTS];
+struct joystick_config const *joystick_port_config[JOYSTICK_NUM_PORTS];
 
 static struct joystick_interface *selected_interface = NULL;
 
@@ -65,9 +65,9 @@ struct joystick {
 static struct joystick *joystick_port[JOYSTICK_NUM_PORTS];
 
 // Support the swap/cycle shortcuts:
-static struct joystick_config *virtual_joystick_config;
-static struct joystick *virtual_joystick = NULL;
-static struct joystick_config *cycled_config[JOYSTICK_NUM_PORTS];
+static struct joystick_config const *virtual_joystick_config;
+static struct joystick const *virtual_joystick = NULL;
+static struct joystick_config const *cycled_config[JOYSTICK_NUM_PORTS];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -148,7 +148,7 @@ static struct joystick_interface *find_if_in_mod(struct joystick_module *module,
 	return NULL;
 }
 
-static struct joystick_interface *find_if_in_modlist(struct joystick_module **list, const char *if_name) {
+static struct joystick_interface *find_if_in_modlist(struct joystick_module * const *list, const char *if_name) {
 	if (!list || !if_name)
 		return NULL;
 	for (unsigned i = 0; list[i]; i++) {
@@ -189,7 +189,7 @@ static void select_interface(char **spec) {
 	}
 }
 
-void joystick_map(struct joystick_config *jc, unsigned port) {
+void joystick_map(struct joystick_config const *jc, unsigned port) {
 	selected_interface = NULL;
 	if (port >= JOYSTICK_NUM_PORTS)
 		return;
@@ -284,7 +284,7 @@ void joystick_unmap(unsigned port) {
 	free(j);
 }
 
-void joystick_set_virtual(struct joystick_config *jc) {
+void joystick_set_virtual(struct joystick_config const *jc) {
 	int remap_virtual_to = -1;
 	if (virtual_joystick) {
 		if (joystick_port[0] == virtual_joystick) {
@@ -303,10 +303,10 @@ void joystick_set_virtual(struct joystick_config *jc) {
 
 // Swap the right & left joysticks
 void joystick_swap(void) {
-	struct joystick_config *tmp_jc = joystick_port_config[0];
+	struct joystick_config const *tmp_jc = joystick_port_config[0];
 	joystick_port_config[0] = joystick_port_config[1];
 	joystick_port_config[1] = tmp_jc;
-	struct joystick_config *tmp_cc = cycled_config[0];
+	struct joystick_config const *tmp_cc = cycled_config[0];
 	cycled_config[0] = cycled_config[1];
 	cycled_config[1] = tmp_cc;
 	struct joystick *tmp_j = joystick_port[0];

@@ -56,7 +56,7 @@ unsigned gtk2_window_w = 640, gtk2_window_h = 480;
 
 extern VideoModule video_gtkgl_module;
 extern VideoModule video_null_module;
-static VideoModule *gtk2_video_module_list[] = {
+static VideoModule * const gtk2_video_module_list[] = {
 #ifdef HAVE_GTKGL
 	&video_gtkgl_module,
 #endif
@@ -65,7 +65,7 @@ static VideoModule *gtk2_video_module_list[] = {
 };
 
 extern KeyboardModule keyboard_gtk2_module;
-static KeyboardModule *gtk2_keyboard_module_list[] = {
+static KeyboardModule * const gtk2_keyboard_module_list[] = {
 	&keyboard_gtk2_module,
 	NULL
 };

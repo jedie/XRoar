@@ -53,7 +53,7 @@ struct joystick_config {
 	char *button_specs[JOYSTICK_NUM_BUTTONS];
 };
 
-extern struct joystick_config *joystick_port_config[JOYSTICK_NUM_PORTS];
+extern struct joystick_config const *joystick_port_config[JOYSTICK_NUM_PORTS];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -76,10 +76,10 @@ struct joystick_button {
 
 struct joystick_interface {
 	const char *name;
-	struct joystick_axis *(*configure_axis)(char *spec, unsigned jaxis);
-	struct joystick_button *(*configure_button)(char *spec, unsigned jbutton);
-	void (*unmap_axis)(struct joystick_axis *);
-	void (*unmap_button)(struct joystick_button *);
+	struct joystick_axis *(* const configure_axis)(char *spec, unsigned jaxis);
+	struct joystick_button *(* const configure_button)(char *spec, unsigned jbutton);
+	void (* const unmap_axis)(struct joystick_axis *);
+	void (* const unmap_button)(struct joystick_button *);
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,9 +93,9 @@ void joystick_config_print_all(void);
 void joystick_init(void);
 void joystick_shutdown(void);
 
-void joystick_map(struct joystick_config *, unsigned port);
+void joystick_map(struct joystick_config const *, unsigned port);
 void joystick_unmap(unsigned port);
-void joystick_set_virtual(struct joystick_config *);
+void joystick_set_virtual(struct joystick_config const *);
 void joystick_swap(void);
 void joystick_cycle(void);
 

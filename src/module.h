@@ -14,15 +14,15 @@ struct vdisk;
 struct module {
 	const char *name;
 	const char *description;
-	_Bool (*init)(void);
+	_Bool (* const init)(void);
 	_Bool initialised;
-	void (*shutdown)(void);
+	void (* const shutdown)(void);
 };
 
 typedef struct {
 	struct module common;
-	char *(*load_filename)(const char **extensions);
-	char *(*save_filename)(const char **extensions);
+	char *(* const load_filename)(const char **extensions);
+	char *(* const save_filename)(const char **extensions);
 } FileReqModule;
 
 typedef struct {
@@ -30,60 +30,60 @@ typedef struct {
 	int scanline;
 	int window_x, window_y;
 	int window_w, window_h;
-	void (*update_palette)(void);
-	void (*resize)(unsigned int w, unsigned int h);
-	int (*set_fullscreen)(_Bool fullscreen);
+	void (* const update_palette)(void);
+	void (* const resize)(unsigned int w, unsigned int h);
+	int (* const set_fullscreen)(_Bool fullscreen);
 	_Bool is_fullscreen;
 	void (*render_scanline)(uint8_t *scanline_data);
-	void (*vsync)(void);
-	void (*refresh)(void);
-	void (*update_cross_colour_phase)(void);
+	void (* const vsync)(void);
+	void (* const refresh)(void);
+	void (* const update_cross_colour_phase)(void);
 } VideoModule;
 
 typedef struct {
 	struct module common;
-	void *(*write_buffer)(void *buffer);
+	void *(* const write_buffer)(void *buffer);
 } SoundModule;
 
 typedef struct {
 	struct module common;
-	void (*update_kbd_translate)(void);
+	void (* const update_kbd_translate)(void);
 } KeyboardModule;
 
 typedef struct {
 	struct module common;
-	FileReqModule **filereq_module_list;
-	VideoModule **video_module_list;
-	SoundModule **sound_module_list;
-	KeyboardModule **keyboard_module_list;
-	struct joystick_module **joystick_module_list;
-	void (*run)(void);
-	void (*fullscreen_changed_cb)(_Bool fullscreen);
-	void (*cross_colour_changed_cb)(int cc);
-	void (*vdg_inverse_cb)(_Bool inverse);
-	void (*machine_changed_cb)(int machine_type);
-	void (*cart_changed_cb)(int cart_index);
-	void (*keymap_changed_cb)(int map);
-	void (*joystick_changed_cb)(int port, const char *name);
-	void (*kbd_translate_changed_cb)(_Bool translate);
-	void (*fast_sound_changed_cb)(_Bool fast);
-	void (*input_tape_filename_cb)(const char *filename);
-	void (*output_tape_filename_cb)(const char *filename);
-	void (*update_tape_state)(int flags);  /* flag bits from tape.h */
-	void (*update_drive_disk)(int drive, struct vdisk *disk);
-	void (*update_drive_write_enable)(int drive, _Bool write_enable);
-	void (*update_drive_write_back)(int drive, _Bool write_back);
+	FileReqModule * const *filereq_module_list;
+	VideoModule * const *video_module_list;
+	SoundModule * const *sound_module_list;
+	KeyboardModule * const *keyboard_module_list;
+	struct joystick_module * const *joystick_module_list;
+	void (* const run)(void);
+	void (* const fullscreen_changed_cb)(_Bool fullscreen);
+	void (* const cross_colour_changed_cb)(int cc);
+	void (* const vdg_inverse_cb)(_Bool inverse);
+	void (* const machine_changed_cb)(int machine_type);
+	void (* const cart_changed_cb)(int cart_index);
+	void (* const keymap_changed_cb)(int map);
+	void (* const joystick_changed_cb)(int port, const char *name);
+	void (* const kbd_translate_changed_cb)(_Bool translate);
+	void (* const fast_sound_changed_cb)(_Bool fast);
+	void (* const input_tape_filename_cb)(const char *filename);
+	void (* const output_tape_filename_cb)(const char *filename);
+	void (* const update_tape_state)(int flags);  /* flag bits from tape.h */
+	void (* const update_drive_disk)(int drive, struct vdisk *disk);
+	void (* const update_drive_write_enable)(int drive, _Bool write_enable);
+	void (* const update_drive_write_back)(int drive, _Bool write_back);
 } UIModule;
 
-extern UIModule **ui_module_list;
+extern UIModule * const *ui_module_list;
 extern UIModule *ui_module;
-extern FileReqModule **filereq_module_list;
+extern FileReqModule * const *filereq_module_list;
 extern FileReqModule *filereq_module;
-extern VideoModule **video_module_list;
+extern VideoModule * const *video_module_list;
 extern VideoModule *video_module;
-extern SoundModule **sound_module_list;
+extern SoundModule * const *sound_module_list;
 extern SoundModule *sound_module;
-extern KeyboardModule **keyboard_module_list;
+extern KeyboardModule * const *keyboard_module_list;
 extern KeyboardModule *keyboard_module;
 
 void module_print_list(struct module **list);

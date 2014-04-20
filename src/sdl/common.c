@@ -43,7 +43,7 @@
 unsigned sdl_window_x = 0, sdl_window_y = 0;
 unsigned sdl_window_w = 320, sdl_window_h = 240;
 
-VideoModule *sdl_video_module_list[] = {
+VideoModule * const sdl_video_module_list[] = {
 #ifdef HAVE_SDLGL
 	&video_sdlgl_module,
 #endif
@@ -58,7 +58,7 @@ VideoModule *sdl_video_module_list[] = {
 	NULL
 };
 
-KeyboardModule *sdl_keyboard_module_list[] = {
+KeyboardModule * const sdl_keyboard_module_list[] = {
 	&keyboard_sdl_module,
 	NULL
 };
@@ -101,7 +101,7 @@ struct joystick_module sdl_js_internal = {
 	.intf_list = js_iflist,
 };
 
-struct joystick_module *sdl_js_modlist[] = {
+struct joystick_module * const sdl_js_modlist[] = {
 	&sdl_js_internal,
 	NULL
 };

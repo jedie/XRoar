@@ -32,7 +32,7 @@ extern UIModule ui_macosx_module;
 extern UIModule ui_null_module;
 extern UIModule ui_sdl_module;
 extern UIModule ui_windows32_module;
-static UIModule *default_ui_module_list[] = {
+static UIModule * const default_ui_module_list[] = {
 #ifdef HAVE_GTK2
 #ifdef HAVE_GTKGL
 	&ui_gtk2_module,
@@ -59,7 +59,7 @@ extern FileReqModule filereq_windows32_module;
 extern FileReqModule filereq_gtk2_module;
 extern FileReqModule filereq_cli_module;
 extern FileReqModule filereq_null_module;
-static FileReqModule *default_filereq_module_list[] = {
+static FileReqModule * const default_filereq_module_list[] = {
 #ifdef HAVE_COCOA
 	&filereq_cocoa_module,
 #endif
@@ -87,7 +87,7 @@ extern SoundModule sound_sdl_module;
 extern SoundModule sound_alsa_module;
 extern SoundModule sound_jack_module;
 extern SoundModule sound_null_module;
-static SoundModule *default_sound_module_list[] = {
+static SoundModule * const default_sound_module_list[] = {
 #ifdef HAVE_MACOSX_AUDIO
 	&sound_macosx_module,
 #endif
@@ -121,20 +121,20 @@ static SoundModule *default_sound_module_list[] = {
 };
 
 extern VideoModule video_null_module;
-static VideoModule *default_video_module_list[] = {
+static VideoModule * const default_video_module_list[] = {
 	&video_null_module,
 	NULL
 };
 
-UIModule **ui_module_list = default_ui_module_list;
+UIModule * const *ui_module_list = default_ui_module_list;
 UIModule *ui_module = NULL;
-FileReqModule **filereq_module_list = default_filereq_module_list;
+FileReqModule * const *filereq_module_list = default_filereq_module_list;
 FileReqModule *filereq_module = NULL;
-VideoModule **video_module_list = default_video_module_list;
+VideoModule * const *video_module_list = default_video_module_list;
 VideoModule *video_module = NULL;
-SoundModule **sound_module_list = default_sound_module_list;
+SoundModule * const *sound_module_list = default_sound_module_list;
 SoundModule *sound_module = NULL;
-KeyboardModule **keyboard_module_list = NULL;
+KeyboardModule * const *keyboard_module_list = NULL;
 KeyboardModule *keyboard_module = NULL;
 
 void module_print_list(struct module **list) {
