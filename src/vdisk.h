@@ -54,7 +54,7 @@ int vdisk_save(struct vdisk *disk, _Bool force);
  * currently configured values.  NULL return indicates error.
  */
 
-void *vdisk_track_base(struct vdisk *disk, unsigned cyl, unsigned head);
+void *vdisk_track_base(struct vdisk const *disk, unsigned cyl, unsigned head);
 void *vdisk_extend_disk(struct vdisk *disk, unsigned cyl, unsigned head);
 
 int vdisk_format_track(struct vdisk *disk, _Bool double_density,
@@ -64,7 +64,7 @@ int vdisk_format_disk(struct vdisk *disk, _Bool double_density,
 		      unsigned nsectors, unsigned first_sector, unsigned ssize_code);
 int vdisk_update_sector(struct vdisk *disk, unsigned cyl, unsigned head,
 			unsigned sector, unsigned sector_length, uint8_t *buf);
-int vdisk_fetch_sector(struct vdisk *disk, unsigned cyl, unsigned head,
+int vdisk_fetch_sector(struct vdisk const *disk, unsigned cyl, unsigned head,
 		       unsigned sector, unsigned sector_length, uint8_t *buf);
 
 #endif  /* XROAR_VDISK_H_ */

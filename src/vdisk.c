@@ -55,8 +55,8 @@ static int vdisk_save_dmk(struct vdisk *disk);
 
 static struct {
 	int filetype;
-	struct vdisk *(*load_func)(const char *);
-	int (*save_func)(struct vdisk *);
+	struct vdisk *(* const load_func)(const char *);
+	int (* const save_func)(struct vdisk *);
 } dispatch[] = {
 	{ FILETYPE_VDK, vdisk_load_vdk, vdisk_save_vdk },
 	{ FILETYPE_JVC, vdisk_load_jvc, vdisk_save_jvc },
@@ -623,7 +623,7 @@ static int vdisk_save_dmk(struct vdisk *disk) {
  * (void *) because track data is manipulated in 8-bit and 16-bit chunks.
  */
 
-void *vdisk_track_base(struct vdisk *disk, unsigned cyl, unsigned head) {
+void *vdisk_track_base(struct vdisk const *disk, unsigned cyl, unsigned head) {
 	if (disk == NULL || head >= disk->num_heads || cyl >= disk->num_cylinders) {
 		return NULL;
 	}
@@ -842,7 +842,7 @@ int vdisk_update_sector(struct vdisk *disk, unsigned cyl, unsigned head,
  * Similarly, locate a sector and copy out its data.
  */
 
-int vdisk_fetch_sector(struct vdisk *disk, unsigned cyl, unsigned head,
+int vdisk_fetch_sector(struct vdisk const *disk, unsigned cyl, unsigned head,
 		       unsigned sector, unsigned sector_length, uint8_t *buf) {
 	uint8_t *data;
 	uint16_t *idams;
