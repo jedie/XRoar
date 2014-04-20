@@ -101,7 +101,7 @@ static void initialise_ram(void);
 static int cycles;
 static uint8_t read_cycle(uint16_t A);
 static void write_cycle(uint16_t A, uint8_t D);
-static void vdg_fetch_handler(int nbytes, uint8_t *dest);
+static void vdg_fetch_handler(void *sptr, int nbytes, uint8_t *dest);
 
 static void machine_instruction_posthook(void *);
 static _Bool single_step = 0;
@@ -581,12 +581,12 @@ void machine_configure(struct machine_config *mc) {
 	VDG0 = mc6847_new(mc->vdg_type == VDG_6847T1);
 
 	if (IS_COCO && IS_PAL) {
-		mc6847_set_signal_hs(VDG0, DELEGATE_AS1(void, bool, vdg_hs_pal_coco, NULL));
+		VDG0->signal_hs = DELEGATE_AS1(void, bool, vdg_hs_pal_coco, NULL);
 	} else {
-		mc6847_set_signal_hs(VDG0, DELEGATE_AS1(void, bool, vdg_hs, NULL));
+		VDG0->signal_hs = DELEGATE_AS1(void, bool, vdg_hs, NULL);
 	}
-	mc6847_set_signal_fs(VDG0, DELEGATE_AS1(void, bool, vdg_fs, NULL));
-	mc6847_set_fetch_bytes(VDG0, vdg_fetch_handler);
+	VDG0->signal_fs = DELEGATE_AS1(void, bool, vdg_fs, NULL);
+	VDG0->fetch_bytes = DELEGATE_AS2(void, int, uint8p, vdg_fetch_handler, NULL);
 	mc6847_set_inverted_text(VDG0, inverted_text);
 
 	// Printer
@@ -1070,7 +1070,8 @@ static void write_cycle(uint16_t A, uint8_t D) {
 	bp_wp_write_hook(A);
 }
 
-static void vdg_fetch_handler(int nbytes, uint8_t *dest) {
+static void vdg_fetch_handler(void *sptr, int nbytes, uint8_t *dest) {
+	(void)sptr;
 	while (nbytes > 0) {
 		uint16_t V = 0;
 		_Bool valid;

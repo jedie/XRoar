@@ -54,14 +54,16 @@ enum vdg_colour {
 
 /* Nothing in this struct yet, might expose some things in future. */
 struct MC6847 {
+	/* Delegates to notify on signal edges */
+	DELEGATE_T1(void, bool) signal_hs;
+	DELEGATE_T1(void, bool) signal_fs;
+	/* External handler to fetch data for display.  First arg is number of bytes,
+	 * second a pointer to a buffer to receive them. */
+	DELEGATE_T2(void, int, uint8p) fetch_bytes;
 };
 
 struct MC6847 *mc6847_new(_Bool t1);
 void mc6847_free(struct MC6847 *);
-
-void mc6847_set_fetch_bytes(struct MC6847 *, void (*)(int, uint8_t *));
-void mc6847_set_signal_hs(struct MC6847 *, DELEGATE_T1(void, bool));
-void mc6847_set_signal_fs(struct MC6847 *, DELEGATE_T1(void, bool));
 
 void mc6847_reset(struct MC6847 *);
 
