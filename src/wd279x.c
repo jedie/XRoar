@@ -178,6 +178,13 @@ void wd279x_index_pulse(void *sptr, _Bool state) {
 		fdc->index_holes_count++;
 }
 
+void wd279x_ready(void *sptr, _Bool state) {
+	WD279X *fdc = sptr;
+	if (fdc->ready_state == state)
+		return;
+	fdc->ready_state = state;
+}
+
 void wd279x_set_dden(WD279X *fdc, _Bool dden) {
 	fdc->double_density = dden;
 	DELEGATE_CALL1(fdc->set_dden, dden);
@@ -189,7 +196,7 @@ uint8_t wd279x_read(WD279X *fdc, uint16_t A) {
 		default:
 		case 0:
 			RESET_INTRQ;
-			if (vdrive_ready)
+			if (fdc->ready_state)
 				fdc->status_register &= ~STATUS_NOT_READY;
 			else
 				fdc->status_register |= STATUS_NOT_READY;
@@ -324,7 +331,7 @@ static void state_machine(void *sptr) {
 				fdc->status_register |= STATUS_BUSY;
 				fdc->status_register &= ~(STATUS_LOST_DATA|STATUS_RNF|(1<<5)|(1<<6));
 				RESET_DRQ;
-				if (!vdrive_ready) {
+				if (!fdc->ready_state) {
 					fdc->status_register &= ~(STATUS_BUSY);
 					SET_INTRQ;
 					return;
@@ -350,7 +357,7 @@ static void state_machine(void *sptr) {
 				fdc->status_register &= ~(STATUS_LOST_DATA|(1<<4)|(1<<5));
 				if ((fdc->command_register & 0xf0) == 0xf0)
 					RESET_DRQ;
-				if (!vdrive_ready) {
+				if (!fdc->ready_state) {
 					fdc->status_register &= ~(STATUS_BUSY);
 					SET_INTRQ;
 					return;
