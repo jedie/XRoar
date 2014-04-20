@@ -36,7 +36,6 @@
 #define MAX_TRACKS (256)
 
 struct drive_data {
-	_Bool disk_present;
 	struct vdisk *disk;
 	unsigned current_cyl;
 };
@@ -72,7 +71,6 @@ static void do_reset_index_pulse(void *);
 void vdrive_init(void) {
 	for (unsigned i = 0; i < MAX_DRIVES; i++) {
 		drives[i].disk = NULL;
-		drives[i].disk_present = 0;
 		drives[i].current_cyl = 0;
 	}
 	vdrive_index_pulse = DELEGATE_DEFAULT1(void, bool);
@@ -84,7 +82,7 @@ void vdrive_init(void) {
 
 void vdrive_shutdown(void) {
 	for (unsigned i = 0; i < MAX_DRIVES; i++) {
-		if (drives[i].disk != NULL && drives[i].disk_present) {
+		if (drives[i].disk) {
 			vdrive_eject_disk(i);
 		}
 	}
@@ -92,31 +90,27 @@ void vdrive_shutdown(void) {
 
 void vdrive_insert_disk(unsigned drive, struct vdisk *disk) {
 	assert(drive < MAX_DRIVES);
-	if (drives[drive].disk_present) {
+	if (drives[drive].disk) {
 		vdrive_eject_disk(drive);
 	}
 	if (disk == NULL)
 		return;
 	drives[drive].disk = disk;
-	drives[drive].disk_present = 1;
 	update_signals();
 }
 
 void vdrive_eject_disk(unsigned drive) {
 	assert(drive < MAX_DRIVES);
-	if (!drives[drive].disk_present)
+	if (!drives[drive].disk)
 		return;
 	vdisk_save(drives[drive].disk, 0);
 	vdisk_destroy(drives[drive].disk);
 	drives[drive].disk = NULL;
-	drives[drive].disk_present = 0;
 	update_signals();
 }
 
 struct vdisk *vdrive_disk_in_drive(unsigned drive) {
 	assert(drive < MAX_DRIVES);
-	if (!drives[drive].disk_present)
-		return NULL;
 	return drives[drive].disk;
 }
 
@@ -180,7 +174,7 @@ static void set_index_state(_Bool state) {
 }
 
 static void update_signals(void) {
-	vdrive_ready = current_drive->disk_present;
+	vdrive_ready = (current_drive->disk != NULL);
 	vdrive_tr00 = (current_drive->current_cyl == 0);
 	if (vdrive_update_drive_cyl_head) {
 		vdrive_update_drive_cyl_head(cur_drive_number, current_drive->current_cyl, cur_head);
