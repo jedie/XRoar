@@ -174,8 +174,13 @@ void wd279x_index_pulse(void *sptr, _Bool state) {
 	if (fdc->index_state == state)
 		return;
 	fdc->index_state = state;
-	if (state)
+	if (state) {
 		fdc->index_holes_count++;
+		if (fdc->intrq_index_pulse) {
+			event_dequeue(&fdc->state_event);
+			SET_INTRQ;
+		}
+	}
 }
 
 void wd279x_ready(void *sptr, _Bool state) {
@@ -183,6 +188,14 @@ void wd279x_ready(void *sptr, _Bool state) {
 	if (fdc->ready_state == state)
 		return;
 	fdc->ready_state = state;
+	if (state && fdc->intrq_nready_to_ready) {
+		event_dequeue(&fdc->state_event);
+		SET_INTRQ;
+	}
+	if (!state && fdc->intrq_ready_to_nready) {
+		event_dequeue(&fdc->state_event);
+		SET_INTRQ;
+	}
 }
 
 void wd279x_set_dden(WD279X *fdc, _Bool dden) {
@@ -195,20 +208,18 @@ uint8_t wd279x_read(WD279X *fdc, uint16_t A) {
 	switch (A & 3) {
 		default:
 		case 0:
-			RESET_INTRQ;
+			if (!fdc->intrq_immediate)
+				RESET_INTRQ;
 			if (fdc->ready_state)
 				fdc->status_register &= ~STATUS_NOT_READY;
 			else
 				fdc->status_register |= STATUS_NOT_READY;
-			if ((fdc->command_register & 0xf0) == 0xd0 || (fdc->command_register & 0x80) == 0x00) {
+			if (fdc->status_type1) {
+				fdc->status_register &= ~(STATUS_TRACK_0|STATUS_INDEX_PULSE);
 				if (vdrive_tr00)
 					fdc->status_register |= STATUS_TRACK_0;
-				else
-					fdc->status_register &= ~STATUS_TRACK_0;
 				if (fdc->index_state)
 					fdc->status_register |= STATUS_INDEX_PULSE;
-				else
-					fdc->status_register &= ~STATUS_INDEX_PULSE;
 			}
 			D = fdc->status_register;
 			break;
@@ -234,24 +245,25 @@ void wd279x_write(WD279X *fdc, uint16_t A, uint8_t D) {
 	switch (A & 3) {
 		default:
 		case 0:
-			RESET_INTRQ;
 			fdc->command_register = D;
 			/* FORCE INTERRUPT */
-			if ((fdc->command_register & 0xf0) == 0xd0) {
+			if ((D & 0xf0) == 0xd0) {
 				if (xroar_cfg.debug_fdc & XROAR_DEBUG_FDC_STATE) {
 					debug_state(fdc);
 				}
-				if ((fdc->command_register & 0x0f) == 0) {
-					event_dequeue(&fdc->state_event);
-					fdc->status_register &= ~(STATUS_BUSY);
-					return;
+				fdc->intrq_nready_to_ready = D & 1;
+				fdc->intrq_ready_to_nready = D & 2;
+				fdc->intrq_index_pulse = D & 4;
+				/* XXX Data sheet wording implies that *only*
+				 * 0xd0 can clear this.  Needs testing... */
+				fdc->intrq_immediate = D & 8;
+				if (!(fdc->status_register & STATUS_BUSY)) {
+					fdc->status_type1 = 1;
 				}
-				if (fdc->command_register & 0x08) {
-					event_dequeue(&fdc->state_event);
-					fdc->status_register &= ~(STATUS_BUSY);
+				event_dequeue(&fdc->state_event);
+				fdc->status_register &= ~(STATUS_BUSY);
+				if (fdc->intrq_immediate)
 					SET_INTRQ;
-					return;
-				}
 				return;
 			}
 			/* Ignore any other command if busy */
@@ -259,6 +271,8 @@ void wd279x_write(WD279X *fdc, uint16_t A, uint8_t D) {
 				LOG_DEBUG(3, "WD279X: Command received while busy!\n");
 				return;
 			}
+			if (!fdc->intrq_immediate)
+				RESET_INTRQ;
 			fdc->state = WD279X_state_accept_command;
 			state_machine(fdc);
 			break;
@@ -299,6 +313,7 @@ static void state_machine(void *sptr) {
 		case WD279X_state_accept_command:
 			/* 0xxxxxxx = RESTORE / SEEK / STEP / STEP-IN / STEP-OUT */
 			if ((fdc->command_register & 0x80) == 0x00) {
+				fdc->status_type1 = 1;
 				fdc->status_register |= STATUS_BUSY;
 				fdc->status_register &= ~(STATUS_CRC_ERROR|STATUS_SEEK_ERROR);
 				RESET_DRQ;
@@ -328,6 +343,7 @@ static void state_machine(void *sptr) {
 
 			/* 10xxxxxx = READ/WRITE SECTOR */
 			if ((fdc->command_register & 0xc0) == 0x80) {
+				fdc->status_type1 = 0;
 				fdc->status_register |= STATUS_BUSY;
 				fdc->status_register &= ~(STATUS_LOST_DATA|STATUS_RNF|(1<<5)|(1<<6));
 				RESET_DRQ;
@@ -353,6 +369,7 @@ static void state_machine(void *sptr) {
 			if (((fdc->command_register & 0xf9) == 0xc0)
 					|| ((fdc->command_register & 0xf9) == 0xe0)
 					|| ((fdc->command_register & 0xf9) == 0xf0)) {
+				fdc->status_type1 = 0;
 				fdc->status_register |= STATUS_BUSY;
 				fdc->status_register &= ~(STATUS_LOST_DATA|(1<<4)|(1<<5));
 				if ((fdc->command_register & 0xf0) == 0xf0)

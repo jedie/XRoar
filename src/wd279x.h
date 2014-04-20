@@ -72,6 +72,14 @@ struct WD279X {
 	_Bool double_density;
 	_Bool ready_state;
 	_Bool index_state;
+	/* During & after type 1 commands, and sometimes after a forced
+	 * interrupt, status reads reflect tr00 & index status: */
+	_Bool status_type1;
+	/* Forced interrupts: */
+	_Bool intrq_nready_to_ready;
+	_Bool intrq_ready_to_nready;
+	_Bool intrq_index_pulse;
+	_Bool intrq_immediate;
 
 	_Bool is_step_cmd;
 	uint16_t crc;
