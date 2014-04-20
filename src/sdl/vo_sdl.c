@@ -35,7 +35,7 @@ static _Bool init(void);
 static void shutdown(void);
 static void alloc_colours(void);
 static void vsync(void);
-static void render_scanline(uint8_t *scanline_data);
+static void render_scanline(uint8_t const *scanline_data);
 static int set_fullscreen(_Bool fullscreen);
 static void update_cross_colour_phase(void);
 

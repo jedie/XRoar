@@ -23,7 +23,7 @@
 #include "module.h"
 
 static void no_op(void);
-static void no_op_render(uint8_t *);
+static void no_op_render(uint8_t const *);
 
 VideoModule video_null_module = {
 	.common = { .name = "null", .description = "No video" },
@@ -34,6 +34,6 @@ VideoModule video_null_module = {
 static void no_op(void) {
 }
 
-static void no_op_render(uint8_t *scanline_data) {
+static void no_op_render(uint8_t const *scanline_data) {
 	(void)scanline_data;
 }

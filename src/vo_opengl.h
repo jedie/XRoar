@@ -20,7 +20,7 @@ void vo_opengl_alloc_colours(void);
 void vo_opengl_refresh(void);
 void vo_opengl_vsync(void);
 void vo_opengl_set_window_size(unsigned w, unsigned h);
-void vo_opengl_render_scanline(uint8_t *scanline_data);
+void vo_opengl_render_scanline(uint8_t const *scanline_data);
 void vo_opengl_update_cross_colour_phase(void);
 
 #endif  /* XROAR_VO_OPENGL_H_ */

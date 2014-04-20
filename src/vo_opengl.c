@@ -213,7 +213,7 @@ void vo_opengl_vsync(void) {
 	video_module->scanline = 0;
 }
 
-void vo_opengl_render_scanline(uint8_t *scanline_data) {
+void vo_opengl_render_scanline(uint8_t const *scanline_data) {
 	render_scanline(scanline_data);
 }
 

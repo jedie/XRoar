@@ -127,7 +127,7 @@ static void alloc_colours(void) {
 }
 
 /* Render colour line using palette */
-static void render_scanline(uint8_t *scanline_data) {
+static void render_scanline(uint8_t const *scanline_data) {
 	if (video_module->scanline >= video_module->window_y &&
 	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
 		scanline_data += video_module->window_x;
@@ -143,7 +143,7 @@ static void render_scanline(uint8_t *scanline_data) {
 }
 
 /* Render artifacted colours - simple 4-colour lookup */
-static void render_ccr_simple(uint8_t *scanline_data) {
+static void render_ccr_simple(uint8_t const *scanline_data) {
 	if (video_module->scanline >= video_module->window_y &&
 	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
 		int phase = xroar_machine_config->cross_colour_phase - 1;
@@ -169,7 +169,7 @@ static void render_ccr_simple(uint8_t *scanline_data) {
 }
 
 /* Render artifacted colours - 5-bit lookup table */
-static void render_ccr_5bit(uint8_t *scanline_data) {
+static void render_ccr_5bit(uint8_t const *scanline_data) {
 	if (video_module->scanline >= video_module->window_y &&
 	    video_module->scanline < (video_module->window_y + video_module->window_h)) {
 		int phase = xroar_machine_config->cross_colour_phase - 1;

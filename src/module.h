@@ -34,7 +34,7 @@ typedef struct {
 	void (* const resize)(unsigned int w, unsigned int h);
 	int (* const set_fullscreen)(_Bool fullscreen);
 	_Bool is_fullscreen;
-	void (*render_scanline)(uint8_t *scanline_data);
+	void (*render_scanline)(uint8_t const *scanline_data);
 	void (* const vsync)(void);
 	void (* const refresh)(void);
 	void (* const update_cross_colour_phase)(void);
