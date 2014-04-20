@@ -61,5 +61,5 @@ static uint16_t op_add16(struct MC6809 *cpu, uint16_t a, uint16_t b);
 
 static uint16_t sex5(uint16_t v);
 static uint16_t sex8(uint8_t v);
-static _Bool branch_condition(struct MC6809 *cpu, unsigned op);
+static _Bool branch_condition(struct MC6809 const *cpu, unsigned op);
 

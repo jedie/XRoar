@@ -274,7 +274,7 @@ static uint16_t sex8(uint8_t v) {
 #define N_EOR_V ((REG_CC & CC_N)^((REG_CC & CC_V)<<2))
 
 /* Determine branch condition from op-code */
-static _Bool branch_condition(struct MC6809 *cpu, unsigned op) {
+static _Bool branch_condition(struct MC6809 const *cpu, unsigned op) {
 	_Bool cond;
 	switch (op & 0xf) {
 	default:
