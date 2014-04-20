@@ -40,7 +40,7 @@ enum {
 static struct {
 	const char *mnemonic;
 	int type;
-} instructions[3][256] = {
+} const instructions[3][256] = {
 
 	{
 		// 0x00 - 0x0F
@@ -881,11 +881,11 @@ enum {
 
 /* Sequences of expected bytes */
 
-static const int state_list_irq[] = { WANT_VALUE, WANT_NOTHING, WANT_PRINT };
-static const int state_list_inherent[] = { WANT_PRINT };
-static const int state_list_idx[] = { WANT_IDX_POSTBYTE };
-static const int state_list_imm8[] = { WANT_VALUE, WANT_PRINT };
-static const int state_list_imm16[] = { WANT_VALUE, WANT_VALUE, WANT_PRINT };
+static int const state_list_irq[] = { WANT_VALUE, WANT_NOTHING, WANT_PRINT };
+static int const state_list_inherent[] = { WANT_PRINT };
+static int const state_list_idx[] = { WANT_IDX_POSTBYTE };
+static int const state_list_imm8[] = { WANT_VALUE, WANT_PRINT };
+static int const state_list_imm16[] = { WANT_VALUE, WANT_VALUE, WANT_PRINT };
 
 /* Indexed addressing modes */
 
@@ -901,7 +901,7 @@ enum {
  * optional brackets in indirect modes.  8-bit offsets include an extra %s to
  * indicate sign.  5-bit offsets are printed in decimal. */
 
-static const char *idx_fmts[17] = {
+static char const * const idx_fmts[17] = {
 	"%s,%s+%s",
 	"%s,%s++%s",
 	"%s,-%s%s",
@@ -923,7 +923,7 @@ static const char *idx_fmts[17] = {
 
 /* Indexed mode may well fetch more data after initial postbyte */
 
-static const int *idx_state_lists[17] = {
+static int const * const idx_state_lists[17] = {
 	state_list_inherent,
 	state_list_inherent,
 	state_list_inherent,
@@ -946,16 +946,16 @@ static const int *idx_state_lists[17] = {
 /* Names */
 
 // Inter-register operation postbyte
-static const char *tfr_regs[16] = {
+static char const * const tfr_regs[16] = {
 	"D", "X", "Y", "U", "S", "PC", "*", "*",
 	"A", "B", "CC", "DP", "*", "*", "*", "*"
 };
 
 // Indexed addressing postbyte
-static const char *idx_regs[4] = { "X", "Y", "U", "S" };
+static char const * const idx_regs[4] = { "X", "Y", "U", "S" };
 
 // Interrupt vector names
-static const char *irq_names[8] = {
+static char const * const irq_names[8] = {
 	"[?]", "[SWI3]", "[SWI2]", "[FIRQ]",
 	"[IRQ]", "[SWI]", "[NMI]", "[RESET]"
 };
