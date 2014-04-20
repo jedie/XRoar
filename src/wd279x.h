@@ -92,7 +92,7 @@ struct WD279X {
 
 	_Bool has_sso;
 	_Bool has_length_flag;
-	_Bool has_inverted_data;
+	uint8_t invert_data;
 
 };
 

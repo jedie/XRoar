@@ -131,7 +131,7 @@ static void wd279x_init(WD279X *fdc, enum WD279X_type type) {
 	fdc->type = type;
 	fdc->has_sso = (type == WD2795 || type == WD2797);
 	fdc->has_length_flag = (type == WD2795 || type == WD2797);
-	fdc->has_inverted_data = (type == WD2791 || type == WD2795);
+	fdc->invert_data = (type == WD2791 || type == WD2795) ? 0xff : 0;
 	fdc->set_dirc = DELEGATE_DEFAULT1(void, int);
 	fdc->set_dden = DELEGATE_DEFAULT1(void, bool);
 	fdc->set_sso = DELEGATE_DEFAULT1(void, unsigned);
@@ -234,14 +234,11 @@ uint8_t wd279x_read(WD279X *fdc, uint16_t A) {
 			D = fdc->data_register;
 			break;
 	}
-	if (fdc->has_inverted_data)
-		return ~D;
-	return D;
+	return D ^ fdc->invert_data;
 }
 
 void wd279x_write(WD279X *fdc, uint16_t A, uint8_t D) {
-	if (fdc->has_inverted_data)
-		D = ~D;
+	D ^= fdc->invert_data;
 	switch (A & 3) {
 		default:
 		case 0:
