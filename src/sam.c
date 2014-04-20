@@ -29,18 +29,18 @@
 static _Bool odd_cycle;
 
 /* Constants for tracking VDG address counter */
-static int vdg_mod_xdivs[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
-static int vdg_mod_ydivs[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
-static int vdg_mod_adds[8] = { 16, 8, 16, 8, 16, 8, 16, 0 };
-static uint16_t vdg_mod_clears[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
+static int const vdg_mod_xdivs[8] = { 1, 3, 1, 2, 1, 1, 1, 1 };
+static int const vdg_mod_ydivs[8] = { 12, 1, 3, 1, 2, 1, 1, 1 };
+static int const vdg_mod_adds[8] = { 16, 8, 16, 8, 16, 8, 16, 0 };
+static uint16_t const vdg_mod_clears[8] = { ~30, ~14, ~30, ~14, ~30, ~14, ~30, ~0 };
 
 /* Constants for address multiplexer
  * SAM Data Sheet,
  *   Figure 6 - Signal routing for address multiplexer */
-static uint16_t ram_row_masks[4] = { 0x007f, 0x007f, 0x00ff, 0x00ff };
-static int ram_col_shifts[4] = { 2, 1, 0, 0 };
-static uint16_t ram_col_masks[4] = { 0x3f00, 0x7f00, 0xff00, 0xff00 };
-static uint16_t ram_ras1_bits[4] = { 0x1000, 0x4000, 0, 0 };
+static uint16_t const ram_row_masks[4] = { 0x007f, 0x007f, 0x00ff, 0x00ff };
+static int const ram_col_shifts[4] = { 2, 1, 0, 0 };
+static uint16_t const ram_col_masks[4] = { 0x3f00, 0x7f00, 0xff00, 0xff00 };
+static uint16_t const ram_ras1_bits[4] = { 0x1000, 0x4000, 0, 0 };
 
 /* VDG address counter */
 static uint16_t vdg_base;
