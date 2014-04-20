@@ -206,7 +206,7 @@ int write_snapshot(const char *filename) {
 	return 0;
 }
 
-static int old_arch_mapping[4] = {
+static const int old_arch_mapping[4] = {
 	MACHINE_DRAGON32,
 	MACHINE_DRAGON64,
 	MACHINE_TANO,
