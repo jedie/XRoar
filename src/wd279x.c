@@ -169,20 +169,6 @@ void wd279x_reset(WD279X *fdc) {
 	SET_SIDE(0);
 }
 
-void wd279x_index_pulse(void *sptr, _Bool state) {
-	WD279X *fdc = sptr;
-	if (fdc->index_state == state)
-		return;
-	fdc->index_state = state;
-	if (state) {
-		fdc->index_holes_count++;
-		if (fdc->intrq_index_pulse) {
-			event_dequeue(&fdc->state_event);
-			SET_INTRQ;
-		}
-	}
-}
-
 void wd279x_ready(void *sptr, _Bool state) {
 	WD279X *fdc = sptr;
 	if (fdc->ready_state == state)
@@ -205,9 +191,37 @@ void wd279x_tr00(void *sptr, _Bool state) {
 	fdc->tr00_state = state;
 }
 
+void wd279x_index_pulse(void *sptr, _Bool state) {
+	WD279X *fdc = sptr;
+	if (fdc->index_state == state)
+		return;
+	fdc->index_state = state;
+	if (state) {
+		fdc->index_holes_count++;
+		if (fdc->intrq_index_pulse) {
+			event_dequeue(&fdc->state_event);
+			SET_INTRQ;
+		}
+	}
+}
+
+void wd279x_write_protect(void *sptr, _Bool state) {
+	WD279X *fdc = sptr;
+	if (fdc->write_protect_state == state)
+		return;
+	fdc->write_protect_state = state;
+}
+
 void wd279x_set_dden(WD279X *fdc, _Bool dden) {
 	fdc->double_density = dden;
 	DELEGATE_CALL1(fdc->set_dden, dden);
+}
+
+void wd279x_update_connection(WD279X *fdc) {
+	DELEGATE_CALL1(fdc->set_dden, fdc->double_density);
+	if (fdc->has_sso)
+		DELEGATE_CALL1(fdc->set_sso, fdc->side);
+	DELEGATE_CALL1(fdc->set_dirc, fdc->direction); \
 }
 
 uint8_t wd279x_read(WD279X *fdc, uint16_t A) {
@@ -484,7 +498,7 @@ static void state_machine(void *sptr) {
 
 
 		case WD279X_state_type2_1:
-			if ((fdc->command_register & 0x20) && vdrive_write_protect) {
+			if ((fdc->command_register & 0x20) && fdc->write_protect_state) {
 				fdc->status_register &= ~(STATUS_BUSY);
 				fdc->status_register |= STATUS_WRITE_PROTECT;
 				SET_INTRQ;
@@ -785,7 +799,7 @@ static void state_machine(void *sptr) {
 
 
 		case WD279X_state_write_track_1:
-			if (vdrive_write_protect) {
+			if (fdc->write_protect_state) {
 				fdc->status_register &= ~(STATUS_BUSY);
 				fdc->status_register |= STATUS_WRITE_PROTECT;
 				SET_INTRQ;

@@ -19,11 +19,13 @@ struct vdisk;
 DELEGATE_T1(void,bool) vdrive_ready;
 DELEGATE_T1(void,bool) vdrive_tr00;
 DELEGATE_T1(void,bool) vdrive_index_pulse;
-extern _Bool vdrive_write_protect;
+DELEGATE_T1(void,bool) vdrive_write_protect;
 extern void (*vdrive_update_drive_cyl_head)(unsigned drive, unsigned cyl, unsigned head);
 
 void vdrive_init(void);
 void vdrive_shutdown(void);
+
+void vdrive_update_connection(void);
 
 void vdrive_insert_disk(unsigned drive, struct vdisk *disk);
 void vdrive_eject_disk(unsigned drive);

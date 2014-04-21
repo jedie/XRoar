@@ -46,7 +46,8 @@ DELEGATE_T1(void,bool) vdrive_tr00;
 static _Bool tr00_state = 1;
 DELEGATE_T1(void,bool) vdrive_index_pulse;
 static _Bool index_state = 0;
-_Bool vdrive_write_protect = 0;
+DELEGATE_T1(void,bool) vdrive_write_protect;
+static _Bool write_protect_state = 0;
 void (*vdrive_update_drive_cyl_head)(unsigned drive, unsigned cyl, unsigned head) = NULL;
 
 static struct drive_data drives[MAX_DRIVES];
@@ -63,6 +64,7 @@ static unsigned head_pos = 0;  // index into current track for read/write
 static void set_ready_state(_Bool state);
 static void set_tr00_state(_Bool state);
 static void set_index_state(_Bool state);
+static void set_write_protect_state(_Bool state);
 static void update_signals(void);
 
 static event_ticks last_update_cycle;
@@ -92,6 +94,13 @@ void vdrive_shutdown(void) {
 			vdrive_eject_disk(i);
 		}
 	}
+}
+
+void vdrive_update_connection(void) {
+	DELEGATE_CALL1(vdrive_ready, ready_state);
+	DELEGATE_CALL1(vdrive_tr00, tr00_state);
+	DELEGATE_CALL1(vdrive_index_pulse, index_state);
+	DELEGATE_CALL1(vdrive_write_protect, write_protect_state);
 }
 
 void vdrive_insert_disk(unsigned drive, struct vdisk *disk) {
@@ -193,6 +202,13 @@ static void set_index_state(_Bool state) {
 	DELEGATE_CALL1(vdrive_index_pulse, state);
 }
 
+static void set_write_protect_state(_Bool state) {
+	if (write_protect_state == state)
+		return;
+	write_protect_state = state;
+	DELEGATE_CALL1(vdrive_write_protect, state);
+}
+
 static void update_signals(void) {
 	set_ready_state(current_drive->disk != NULL);
 	set_tr00_state(current_drive->current_cyl == 0);
@@ -200,12 +216,12 @@ static void update_signals(void) {
 		vdrive_update_drive_cyl_head(cur_drive_number, current_drive->current_cyl, cur_head);
 	}
 	if (!ready_state) {
-		vdrive_write_protect = 0;
+		set_write_protect_state(0);
 		track_base = NULL;
 		idamptr = NULL;
 		return;
 	}
-	vdrive_write_protect = current_drive->disk->write_protect;
+	set_write_protect_state(current_drive->disk->write_protect);
 	if (cur_head < current_drive->disk->num_heads) {
 		idamptr = vdisk_track_base(current_drive->disk, current_drive->current_cyl, cur_head);
 	} else {

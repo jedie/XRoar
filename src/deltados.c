@@ -67,6 +67,9 @@ static void deltados_init(struct deltados *d) {
 	vdrive_ready = DELEGATE_AS1(void, bool, wd279x_ready, d->fdc);
 	vdrive_tr00 = DELEGATE_AS1(void, bool, wd279x_tr00, d->fdc);
 	vdrive_index_pulse = DELEGATE_AS1(void, bool, wd279x_index_pulse, d->fdc);
+	vdrive_write_protect = DELEGATE_AS1(void, bool, wd279x_write_protect, d->fdc);
+	wd279x_update_connection(d->fdc);
+	vdrive_update_connection();
 }
 
 struct cart *deltados_new(struct cart_config *cc) {

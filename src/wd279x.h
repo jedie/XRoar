@@ -73,6 +73,7 @@ struct WD279X {
 	_Bool ready_state;
 	_Bool tr00_state;
 	_Bool index_state;
+	_Bool write_protect_state;
 	/* During & after type 1 commands, and sometimes after a forced
 	 * interrupt, status reads reflect tr00 & index status: */
 	_Bool status_type1;
@@ -101,9 +102,13 @@ WD279X *wd279x_new(enum WD279X_type type);
 void wd279x_free(WD279X *fdc);
 void wd279x_reset(WD279X *fdc);
 
+/* Signal all connected delegates */
+void wd279x_update_connection(WD279X *fdc);
+
 void wd279x_ready(void *sptr, _Bool state);
 void wd279x_tr00(void *sptr, _Bool state);
 void wd279x_index_pulse(void *sptr, _Bool state);
+void wd279x_write_protect(void *sptr, _Bool state);
 void wd279x_set_dden(WD279X *fdc, _Bool dden);  /* 1 = Double density, 0 = Single */
 uint8_t wd279x_read(WD279X *fdc, uint16_t A);
 void wd279x_write(WD279X *fdc, uint16_t A, uint8_t D);

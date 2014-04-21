@@ -79,6 +79,9 @@ static void rsdos_init(struct rsdos *r) {
 	vdrive_ready = DELEGATE_AS1(void, bool, wd279x_ready, r->fdc);
 	vdrive_tr00 = DELEGATE_AS1(void, bool, wd279x_tr00, r->fdc);
 	vdrive_index_pulse = DELEGATE_AS1(void, bool, wd279x_index_pulse, r->fdc);
+	vdrive_write_protect = DELEGATE_AS1(void, bool, wd279x_write_protect, r->fdc);
+	wd279x_update_connection(r->fdc);
+	vdrive_update_connection();
 }
 
 struct cart *rsdos_new(struct cart_config *cc) {
