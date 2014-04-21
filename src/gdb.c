@@ -215,14 +215,21 @@ static void *handle_tcp_sock(void *data) {
 	(void)data;
 
 	for (;;) {
-		sockfd = accept(listenfd, info->ai_addr, &info->ai_addrlen);
+
+		/* Work around an oddness in Windows or MinGW where (struct
+		 * addrinfo).ai_addrlen is size_t instead of sockaddr_t, but
+		 * accept() takes an (int *).  Raises a warning when compiling
+		 * 64-bit. */
+		socklen_t ai_addrlen = info->ai_addrlen;
+		sockfd = accept(listenfd, info->ai_addr, &ai_addrlen);
+
 		if (sockfd < 0) {
 			LOG_WARN("gdb: accept() failed\n");
 			continue;
 		}
 		{
 			int flag = 1;
-			setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+			setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (void const *)&flag, sizeof(flag));
 		}
 		if (xroar_cfg.debug_gdb & XROAR_DEBUG_GDB_CONNECT) {
 			LOG_PRINT("gdb: connection accepted\n");
