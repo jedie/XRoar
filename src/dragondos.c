@@ -80,6 +80,7 @@ static void dragondos_init(struct dragondos *d) {
 	d->fdc->set_drq = DELEGATE_AS1(void, bool, set_drq, c);
 	d->fdc->set_intrq = DELEGATE_AS1(void, bool, set_intrq, c);
 	vdrive_ready = DELEGATE_AS1(void, bool, wd279x_ready, d->fdc);
+	vdrive_tr00 = DELEGATE_AS1(void, bool, wd279x_tr00, d->fdc);
 	vdrive_index_pulse = DELEGATE_AS1(void, bool, wd279x_index_pulse, d->fdc);
 }
 

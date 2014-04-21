@@ -77,6 +77,7 @@ static void rsdos_init(struct rsdos *r) {
 	r->fdc->set_drq = DELEGATE_AS1(void, bool, set_drq, c);
 	r->fdc->set_intrq = DELEGATE_AS1(void, bool, set_intrq, c);
 	vdrive_ready = DELEGATE_AS1(void, bool, wd279x_ready, r->fdc);
+	vdrive_tr00 = DELEGATE_AS1(void, bool, wd279x_tr00, r->fdc);
 	vdrive_index_pulse = DELEGATE_AS1(void, bool, wd279x_index_pulse, r->fdc);
 }
 

@@ -65,6 +65,7 @@ static void deltados_init(struct deltados *d) {
 	d->fdc->set_dirc = (DELEGATE_T1(void,int)){vdrive_set_dirc, NULL};
 	d->fdc->set_dden = (DELEGATE_T1(void,bool)){vdrive_set_dden, NULL};
 	vdrive_ready = DELEGATE_AS1(void, bool, wd279x_ready, d->fdc);
+	vdrive_tr00 = DELEGATE_AS1(void, bool, wd279x_tr00, d->fdc);
 	vdrive_index_pulse = DELEGATE_AS1(void, bool, wd279x_index_pulse, d->fdc);
 }
 

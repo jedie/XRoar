@@ -198,6 +198,13 @@ void wd279x_ready(void *sptr, _Bool state) {
 	}
 }
 
+void wd279x_tr00(void *sptr, _Bool state) {
+	WD279X *fdc = sptr;
+	if (fdc->tr00_state == state)
+		return;
+	fdc->tr00_state = state;
+}
+
 void wd279x_set_dden(WD279X *fdc, _Bool dden) {
 	fdc->double_density = dden;
 	DELEGATE_CALL1(fdc->set_dden, dden);
@@ -216,7 +223,7 @@ uint8_t wd279x_read(WD279X *fdc, uint16_t A) {
 				fdc->status_register |= STATUS_NOT_READY;
 			if (fdc->status_type1) {
 				fdc->status_register &= ~(STATUS_TRACK_0|STATUS_INDEX_PULSE);
-				if (vdrive_tr00)
+				if (fdc->tr00_state)
 					fdc->status_register |= STATUS_TRACK_0;
 				if (fdc->index_state)
 					fdc->status_register |= STATUS_INDEX_PULSE;
@@ -407,7 +414,7 @@ static void state_machine(void *sptr) {
 
 
 		case WD279X_state_type1_3:
-			if (vdrive_tr00 && fdc->direction == -1) {
+			if (fdc->tr00_state && fdc->direction == -1) {
 				LOG_DEBUG(3, "WD279X: TR00!\n");
 				fdc->track_register = 0;
 				// The WD279x flow chart implies this delay is
