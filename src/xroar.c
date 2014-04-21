@@ -403,10 +403,10 @@ static int autorun_loaded_file = 0;
 static struct event timeout_event;
 static void handle_timeout_event(void *);
 
-const char *xroar_disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
-const char *xroar_tape_exts[] = { "CAS", NULL };
-const char *xroar_snap_exts[] = { "SNA", NULL };
-const char *xroar_cart_exts[] = { "ROM", NULL };
+char const * const xroar_disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
+char const * const xroar_tape_exts[] = { "CAS", NULL };
+char const * const xroar_snap_exts[] = { "SNA", NULL };
+char const * const xroar_cart_exts[] = { "ROM", NULL };
 
 static struct {
 	const char *ext;
@@ -1181,14 +1181,14 @@ void xroar_set_fullscreen(_Bool notify, int action) {
 	}
 }
 
-void xroar_load_file(const char **exts) {
+void xroar_load_file(char const * const *exts) {
 	char *filename = filereq_module->load_filename(exts);
 	if (filename) {
 		xroar_load_file_by_type(filename, 0);
 	}
 }
 
-void xroar_run_file(const char **exts) {
+void xroar_run_file(char const * const *exts) {
 	char *filename = filereq_module->load_filename(exts);
 	if (filename) {
 		xroar_load_file_by_type(filename, 1);

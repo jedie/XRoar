@@ -25,7 +25,7 @@
 #include "logging.h"
 #include "module.h"
 
-static char *get_filename(const char **extensions);
+static char *get_filename(char const * const *extensions);
 
 FileReqModule filereq_cli_module = {
 	.common = { .name = "cli",
@@ -35,7 +35,7 @@ FileReqModule filereq_cli_module = {
 
 static char fnbuf[256];
 
-static char *get_filename(const char **extensions) {
+static char *get_filename(char const * const *extensions) {
 	char *in, *cr;
 	_Bool was_fullscreen;
 	(void)extensions;  /* unused */

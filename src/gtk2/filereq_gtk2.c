@@ -31,8 +31,8 @@
 #include "gtk2/ui_gtk2.h"
 
 static _Bool init(void);
-static char *load_filename(const char **extensions);
-static char *save_filename(const char **extensions);
+static char *load_filename(char const * const *extensions);
+static char *save_filename(char const * const *extensions);
 
 FileReqModule filereq_gtk2_module = {
 	.common = { .name = "gtk2", .description = "GTK+-2 file requester",
@@ -53,7 +53,7 @@ static GtkWidget *load_dialog = NULL;
 static GtkWidget *save_dialog = NULL;
 static gchar *filename = NULL;
 
-static char *load_filename(const char **extensions) {
+static char *load_filename(char const * const *extensions) {
 	(void)extensions;  /* unused */
 	if (filename) {
 		g_free(filename);
@@ -77,7 +77,7 @@ static char *load_filename(const char **extensions) {
 	return filename;
 }
 
-static char *save_filename(const char **extensions) {
+static char *save_filename(char const * const *extensions) {
 	(void)extensions;  /* unused */
 	if (filename) {
 		g_free(filename);

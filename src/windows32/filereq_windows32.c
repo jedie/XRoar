@@ -35,8 +35,8 @@
 
 #include "windows32/common_windows32.h"
 
-static char *load_filename(const char **extensions);
-static char *save_filename(const char **extensions);
+static char *load_filename(char const * const *extensions);
+static char *save_filename(char const * const *extensions);
 
 FileReqModule filereq_windows32_module = {
 	.common = { .name = "windows32",
@@ -47,7 +47,7 @@ FileReqModule filereq_windows32_module = {
 
 static char *filename = NULL;
 
-static char *load_filename(const char **extensions) {
+static char *load_filename(char const * const *extensions) {
 	OPENFILENAME ofn;
 	char fn_buf[260];
 	int was_fullscreen;
@@ -82,7 +82,7 @@ static char *load_filename(const char **extensions) {
 	return filename;
 }
 
-static char *save_filename(const char **extensions) {
+static char *save_filename(char const * const *extensions) {
 	OPENFILENAME ofn;
 	char fn_buf[260];
 	int was_fullscreen;

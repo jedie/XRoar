@@ -40,10 +40,10 @@ struct vdg_palette;
 #define FILETYPE_ROM (9)
 #define FILETYPE_ASC (10)
 
-extern const char *xroar_disk_exts[];
-extern const char *xroar_tape_exts[];
-extern const char *xroar_snap_exts[];
-extern const char *xroar_cart_exts[];
+extern char const * const xroar_disk_exts[];
+extern char const * const xroar_tape_exts[];
+extern char const * const xroar_snap_exts[];
+extern char const * const xroar_cart_exts[];
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -195,8 +195,8 @@ void xroar_set_cross_colour(_Bool notify, int action);
 void xroar_set_vdg_inverted_text(_Bool notify, int action);
 void xroar_quit(void);
 void xroar_set_fullscreen(_Bool notify, int action);
-void xroar_load_file(const char **exts);
-void xroar_run_file(const char **exts);
+void xroar_load_file(const char * const *exts);
+void xroar_run_file(const char * const *exts);
 void xroar_set_keymap(int map);
 void xroar_set_kbd_translate(_Bool notify, int kbd_translate);
 void xroar_set_joystick(_Bool notify, int port, const char *name);

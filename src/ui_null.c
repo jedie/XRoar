@@ -22,7 +22,7 @@
 
 #include "module.h"
 
-static char *filereq_noop(const char **extensions);
+static char *filereq_noop(char const * const *extensions);
 FileReqModule filereq_null_module = {
 	.common = { .name = "null", .description = "No file requester" },
 	.load_filename = filereq_noop, .save_filename = filereq_noop
@@ -56,7 +56,7 @@ UIModule ui_null_module = {
 
 /* */
 
-static char *filereq_noop(const char **extensions) {
+static char *filereq_noop(char const * const *extensions) {
 	(void)extensions;
 	return NULL;
 }

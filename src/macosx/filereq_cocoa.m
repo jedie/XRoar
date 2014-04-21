@@ -25,8 +25,8 @@
 
 #include "module.h"
 
-static char *load_filename(const char **extensions);
-static char *save_filename(const char **extensions);
+static char *load_filename(char const * const *extensions);
+static char *save_filename(char const * const *extensions);
 
 FileReqModule filereq_cocoa_module = {
 	.common = { .name = "cocoa", .description = "Cocoa file requester" },
@@ -39,7 +39,7 @@ static char *filename = NULL;
 
 /* Assuming filenames are UTF8 strings seems to do the job */
 
-static char *load_filename(const char **extensions) {
+static char *load_filename(char const * const *extensions) {
 	NSOpenPanel *dialog = [NSOpenPanel openPanel];
 	(void)extensions;
 	cocoa_super_all_keys = 1;
@@ -54,7 +54,7 @@ static char *load_filename(const char **extensions) {
 	return filename;
 }
 
-static char *save_filename(const char **extensions) {
+static char *save_filename(char const * const *extensions) {
 	NSSavePanel *dialog = [NSSavePanel savePanel];
 	(void)extensions;
 	cocoa_super_all_keys = 1;

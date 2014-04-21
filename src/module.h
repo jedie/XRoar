@@ -21,8 +21,8 @@ struct module {
 
 typedef struct {
 	struct module common;
-	char *(* const load_filename)(const char **extensions);
-	char *(* const save_filename)(const char **extensions);
+	char *(* const load_filename)(char const * const *extensions);
+	char *(* const save_filename)(char const * const *extensions);
 } FileReqModule;
 
 typedef struct {
