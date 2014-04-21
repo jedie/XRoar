@@ -41,7 +41,7 @@ struct romlist {
 /* List containing all defined rom lists */
 static struct slist *romlist_list = NULL;
 
-static const char *rom_extensions[] = {
+static char const * const rom_extensions[] = {
 	"", ".rom", ".ROM", ".dgn", ".DGN"
 };
 
