@@ -241,10 +241,13 @@ void cart_rom_init(struct cart *c) {
 		char *tmp = romlist_find(cc->rom);
 		if (tmp) {
 			int size = machine_load_rom(tmp, c->rom_data, 0x4000);
+			(void)size;  // avoid warnings if...
+#ifdef LOGGING
 			if (size > 0) {
 				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data, size);
 				LOG_DEBUG(1, "\tCRC = 0x%08x\n", crc);
 			}
+#endif
 			free(tmp);
 		}
 	}
@@ -252,10 +255,13 @@ void cart_rom_init(struct cart *c) {
 		char *tmp = romlist_find(cc->rom2);
 		if (tmp) {
 			int size = machine_load_rom(tmp, c->rom_data + 0x2000, 0x2000);
+			(void)size;  // avoid warnings if...
+#ifdef LOGGING
 			if (size > 0) {
 				uint32_t crc = crc32_block(CRC32_RESET, c->rom_data + 0x2000, size);
 				LOG_DEBUG(1, "\tCRC = 0x%08x\n", crc);
 			}
+#endif
 			free(tmp);
 		}
 	}

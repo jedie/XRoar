@@ -684,6 +684,7 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_combined = crc32_block(CRC32_RESET, rom0, 0x4000);
 		}
+		(void)forced;  // avoid warning if no logging
 		LOG_DEBUG(1, "\t32K mode BASIC CRC = 0x%08x%s\n", crc_combined, forced ? " (forced)" : "");
 	}
 	if (has_altbas) {
@@ -694,6 +695,7 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_altbas = crc32_block(CRC32_RESET, rom1, 0x4000);
 		}
+		(void)forced;  // avoid warning if no logging
 		LOG_DEBUG(1, "\t64K mode BASIC CRC = 0x%08x%s\n", crc_altbas, forced ? " (forced)" : "");
 	}
 	if (has_bas) {
@@ -704,6 +706,7 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_bas = crc32_block(CRC32_RESET, rom0 + 0x2000, 0x2000);
 		}
+		(void)forced;  // avoid warning if no logging
 		LOG_DEBUG(1, "\tBASIC CRC = 0x%08x%s\n", crc_bas, forced ? " (forced)" : "");
 	}
 	if (has_extbas) {
@@ -714,6 +717,7 @@ void machine_configure(struct machine_config *mc) {
 		} else {
 			crc_extbas = crc32_block(CRC32_RESET, rom0, 0x2000);
 		}
+		(void)forced;  // avoid warning if no logging
 		LOG_DEBUG(1, "\tExtended BASIC CRC = 0x%08x%s\n", crc_extbas, forced ? " (forced)" : "");
 	}
 	if (has_ext_charset) {

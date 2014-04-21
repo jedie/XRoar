@@ -146,6 +146,7 @@ void sound_init(void *buf, enum sound_fmt fmt, unsigned rate, unsigned nchannels
 		fmt_big_endian = !big_endian;
 	}
 
+	(void)fmt_big_endian;  // suppress unused warning
 	LOG_DEBUG(1, "\t");
 	switch (fmt) {
 	case SOUND_FMT_U8:

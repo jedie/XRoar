@@ -312,7 +312,6 @@ static void setup_machine_menu(void) {
 
 static void setup_cartridge_menu(void) {
 	HMENU cartridge_menu;
-	HMENU submenu;
 
 	cartridge_menu = CreatePopupMenu();
 	AppendMenu(cartridge_menu, MF_STRING, TAG_CARTRIDGE, "None");
@@ -329,7 +328,6 @@ static void setup_cartridge_menu(void) {
 
 static void setup_tool_menu(void) {
 	HMENU tool_menu;
-	HMENU submenu;
 
 	tool_menu = CreatePopupMenu();
 	AppendMenu(tool_menu, MF_STRING, TAG_KBD_TRANSLATE, "Keyboard Translation");
