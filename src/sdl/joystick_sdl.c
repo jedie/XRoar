@@ -96,7 +96,7 @@ static void sdl_js_physical_init(void) {
 	if (num_joysticks < 1) {
 		LOG_DEBUG(1, "\tNo joysticks found\n");
 	} else {
-		LOG_DEBUG(1, "\t%d joysticks found\n", num_joysticks);
+		LOG_DEBUG(1, "\t%u joysticks found\n", num_joysticks);
 	}
 	initialised = 1;
 }

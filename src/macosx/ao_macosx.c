@@ -170,7 +170,7 @@ static _Bool init(void) {
 	}
 
 	sound_init(fragment_buffer[0], sample_fmt, rate, nchannels, fragment_nframes);
-	LOG_DEBUG(1, "\t%u frags * %d frames/frag = %d frames buffer (%.1fms)\n", nfragments, fragment_nframes, buffer_nframes, (float)(buffer_nframes * 1000) / rate);
+	LOG_DEBUG(1, "\t%u frags * %u frames/frag = %u frames buffer (%.1fms)\n", nfragments, fragment_nframes, buffer_nframes, (float)(buffer_nframes * 1000) / rate);
 
 	return 1;
 failed:
