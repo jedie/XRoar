@@ -89,7 +89,7 @@ static _Bool is_fast_sound = 0;
 static struct {
 	const char *name;
 	const char *description;
-} joystick_names[] = {
+} const joystick_names[] = {
 	{ NULL, "None" },
 	{ "joy0", "Joystick 0" },
 	{ "joy1", "Joystick 1" },
