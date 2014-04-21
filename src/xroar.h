@@ -28,17 +28,20 @@ struct vdg_palette;
 #define XROAR_TOGGLE (-2)
 #define XROAR_CYCLE  (-3)
 
-#define FILETYPE_UNKNOWN (0)
-#define FILETYPE_VDK (1)
-#define FILETYPE_JVC (2)
-#define FILETYPE_DMK (3)
-#define FILETYPE_BIN (4)
-#define FILETYPE_HEX (5)
-#define FILETYPE_CAS (6)
-#define FILETYPE_WAV (7)
-#define FILETYPE_SNA (8)
-#define FILETYPE_ROM (9)
-#define FILETYPE_ASC (10)
+enum xroar_filetype {
+	FILETYPE_UNKNOWN,
+	FILETYPE_VDK,
+	FILETYPE_JVC,
+	FILETYPE_OS9,  // special type of JVC
+	FILETYPE_DMK,
+	FILETYPE_BIN,
+	FILETYPE_HEX,
+	FILETYPE_CAS,
+	FILETYPE_WAV,
+	FILETYPE_SNA,
+	FILETYPE_ROM,
+	FILETYPE_ASC,
+};
 
 extern char const * const xroar_disk_exts[];
 extern char const * const xroar_tape_exts[];
@@ -99,7 +102,7 @@ struct xroar_cfg {
 	char *becker_port;
 	// Disks
 	_Bool disk_write_back;
-	_Bool disk_jvc_hack;
+	_Bool disk_auto_os9;
 	// CRC lists
 	_Bool force_crc_match;
 	// GDB target

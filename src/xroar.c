@@ -76,6 +76,7 @@
 // Public
 
 struct xroar_cfg xroar_cfg = {
+	.disk_auto_os9 = 1,
 	.gl_filter = ANY_AUTO,
 	.ccr = CROSS_COLOUR_5BIT,
 };
@@ -403,7 +404,7 @@ static int autorun_loaded_file = 0;
 static struct event timeout_event;
 static void handle_timeout_event(void *);
 
-char const * const xroar_disk_exts[] = { "DMK", "JVC", "VDK", "DSK", NULL };
+char const * const xroar_disk_exts[] = { "DMK", "JVC", "OS9", "VDK", "DSK", NULL };
 char const * const xroar_tape_exts[] = { "CAS", NULL };
 char const * const xroar_snap_exts[] = { "SNA", NULL };
 char const * const xroar_cart_exts[] = { "ROM", NULL };
@@ -415,6 +416,7 @@ static struct {
 	{ "VDK", FILETYPE_VDK },
 	{ "JVC", FILETYPE_JVC },
 	{ "DSK", FILETYPE_JVC },
+	{ "OS9", FILETYPE_OS9 },
 	{ "DMK", FILETYPE_DMK },
 	{ "BIN", FILETYPE_BIN },
 	{ "HEX", FILETYPE_HEX },
@@ -596,6 +598,7 @@ _Bool xroar_init(int argc, char **argv) {
 		// disks - flag that DOS should *definitely* be attempted
 		case FILETYPE_VDK:
 		case FILETYPE_JVC:
+		case FILETYPE_OS9:
 		case FILETYPE_DMK:
 			// unless explicitly disabled
 			if (!xroar_machine_config->nodos)
@@ -728,6 +731,7 @@ _Bool xroar_init(int argc, char **argv) {
 		// load disks then advice drive number
 		case FILETYPE_VDK:
 		case FILETYPE_JVC:
+		case FILETYPE_OS9:
 		case FILETYPE_DMK:
 			xroar_load_file_by_type(load_file, autorun);
 			load_disk_to_drive++;
@@ -935,6 +939,7 @@ int xroar_load_file_by_type(const char *filename, int autorun) {
 	switch (filetype) {
 		case FILETYPE_VDK:
 		case FILETYPE_JVC:
+		case FILETYPE_OS9:
 		case FILETYPE_DMK:
 			xroar_insert_disk_file(load_disk_to_drive, filename);
 			if (autorun && vdrive_disk_in_drive(0)) {
@@ -1059,6 +1064,7 @@ void xroar_new_disk(int drive) {
 	switch (filetype) {
 		case FILETYPE_VDK:
 		case FILETYPE_JVC:
+		case FILETYPE_OS9:
 		case FILETYPE_DMK:
 			break;
 		default:
@@ -1775,6 +1781,8 @@ static struct xconfig_enum ao_format_list[] = {
 
 /* Configuration directives */
 
+static _Bool dummy_bool;
+
 static struct xconfig_option const xroar_options[] = {
 	/* Machines: */
 	{ XC_SET_STRING("default-machine", &private_cfg.default_machine) },
@@ -1839,7 +1847,9 @@ static struct xconfig_option const xroar_options[] = {
 
 	/* Disks: */
 	{ XC_SET_BOOL("disk-write-back", &xroar_cfg.disk_write_back) },
-	{ XC_SET_BOOL("disk-jvc-hack", &xroar_cfg.disk_jvc_hack) },
+	{ XC_SET_BOOL("disk-auto-os9", &xroar_cfg.disk_auto_os9) },
+	/* Backwards-compatibility: */
+	{ XC_SET_BOOL("disk-jvc-hack", &dummy_bool), .deprecated = 1 },
 
 	/* Firmware ROM images: */
 	{ XC_SET_STRING("rompath", &xroar_rom_path) },
@@ -1991,7 +2001,7 @@ static void helptext(void) {
 
 "\n Disks:\n"
 "  -disk-write-back      default to enabling write-back for disk images\n"
-"  -disk-jvc-hack        autodetect headerless double-sided JVC images\n"
+"  -no-disk-auto-os9     don't try to detect headerless OS-9 JVC disk images\n"
 
 "\n Firmware ROM images:\n"
 "  -rompath PATH         ROM search path (colon-separated list)\n"
@@ -2145,7 +2155,7 @@ static void config_print_all(void) {
 
 	puts("# Disks");
 	if (xroar_cfg.disk_write_back) puts("disk-write-back");
-	if (xroar_cfg.disk_jvc_hack) puts("disk-jvc-hack");
+	if (!xroar_cfg.disk_auto_os9) puts("no-disk-auto-os9");
 	puts("");
 
 	puts("# Firmware ROM images");

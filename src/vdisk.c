@@ -34,6 +34,7 @@
 
 #include "xalloc.h"
 
+#include "array.h"
 #include "crc16.h"
 #include "fs.h"
 #include "logging.h"
@@ -47,20 +48,21 @@
 
 static struct vdisk *vdisk_load_vdk(const char *filename);
 static struct vdisk *vdisk_load_jvc(const char *filename);
+static struct vdisk *vdisk_load_os9(const char *filename);
 static struct vdisk *vdisk_load_dmk(const char *filename);
 static int vdisk_save_vdk(struct vdisk *disk);
 static int vdisk_save_jvc(struct vdisk *disk);
 static int vdisk_save_dmk(struct vdisk *disk);
 
 static struct {
-	int filetype;
+	enum xroar_filetype filetype;
 	struct vdisk *(* const load_func)(const char *);
 	int (* const save_func)(struct vdisk *);
-} dispatch[] = {
+} const dispatch[] = {
 	{ FILETYPE_VDK, vdisk_load_vdk, vdisk_save_vdk },
 	{ FILETYPE_JVC, vdisk_load_jvc, vdisk_save_jvc },
+	{ FILETYPE_OS9, vdisk_load_os9, vdisk_save_jvc },
 	{ FILETYPE_DMK, vdisk_load_dmk, vdisk_save_dmk },
-	{ -1, NULL, NULL }
 };
 
 struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
@@ -86,9 +88,9 @@ struct vdisk *vdisk_blank_disk(unsigned ncyls, unsigned nheads,
 	}
 	disk->filetype = FILETYPE_DMK;
 	disk->filename = NULL;
-	disk->vdk_extra_length = 0;
-	disk->vdk_filename_length = 0;
-	disk->vdk_extra = NULL;
+	disk->fmt.vdk.extra_length = 0;
+	disk->fmt.vdk.filename_length = 0;
+	disk->fmt.vdk.extra = NULL;
 	disk->write_back = xroar_cfg.disk_write_back;
 	disk->write_protect = 0;
 	disk->num_cylinders = ncyls;
@@ -113,9 +115,9 @@ void vdisk_destroy(struct vdisk *disk) {
 		free(disk->filename);
 		disk->filename = NULL;
 	}
-	if (disk->vdk_extra) {
-		free(disk->vdk_extra);
-		disk->vdk_extra_length = 0;
+	if (disk->fmt.vdk.extra) {
+		free(disk->fmt.vdk.extra);
+		disk->fmt.vdk.extra_length = 0;
 	}
 	for (unsigned i = 0; i < disk->num_heads; i++) {
 		if (disk->side_data[i])
@@ -130,12 +132,13 @@ struct vdisk *vdisk_load(const char *filename) {
 	int i;
 	if (filename == NULL) return NULL;
 	filetype = xroar_filetype_by_ext(filename);
-	for (i = 0; dispatch[i].filetype >= 0 && dispatch[i].filetype != filetype; i++);
-	if (dispatch[i].load_func == NULL) {
-		LOG_WARN("No reader for virtual disk file type.\n");
-		return NULL;
+	for (i = 0; i < ARRAY_N_ELEMENTS(dispatch); i++) {
+		if (dispatch[i].filetype == filetype) {
+			return dispatch[i].load_func(filename);
+		}
 	}
-	return dispatch[i].load_func(filename);
+	LOG_WARN("No reader for virtual disk file type.\n");
+	return NULL;
 }
 
 int vdisk_save(struct vdisk *disk, _Bool force) {
@@ -257,9 +260,9 @@ static struct vdisk *vdisk_load_vdk(const char *filename) {
 	disk->filetype = FILETYPE_VDK;
 	disk->filename = xstrdup(filename);
 	disk->write_protect = write_protect;
-	disk->vdk_extra_length = header_size;
-	disk->vdk_filename_length = vdk_filename_length;
-	disk->vdk_extra = vdk_extra;
+	disk->fmt.vdk.extra_length = header_size;
+	disk->fmt.vdk.filename_length = vdk_filename_length;
+	disk->fmt.vdk.extra = vdk_extra;
 
 	if (vdisk_format_disk(disk, 1, nsectors, 1, ssize_code) != 0) {
 		fclose(fd);
@@ -299,14 +302,14 @@ static int vdisk_save_vdk(struct vdisk *disk) {
 	buf[8] = disk->num_cylinders;
 	buf[9] = disk->num_heads;
 	buf[10] = 0;    // flags
-	buf[11] = disk->vdk_filename_length << 3;  // name length & compression flag
-	if (disk->vdk_extra_length > 0)
-		header_length += disk->vdk_extra_length;
+	buf[11] = disk->fmt.vdk.filename_length << 3;  // name length & compression flag
+	if (disk->fmt.vdk.extra_length > 0)
+		header_length += disk->fmt.vdk.extra_length;
 	buf[2] = header_length & 0xff;
 	buf[3] = header_length >> 8;
 	fwrite(buf, 12, 1, fd);
-	if (disk->vdk_extra_length > 0) {
-		fwrite(disk->vdk_extra, disk->vdk_extra_length, 1, fd);
+	if (disk->fmt.vdk.extra_length > 0) {
+		fwrite(disk->fmt.vdk.extra, disk->fmt.vdk.extra_length, 1, fd);
 	}
 	for (unsigned cyl = 0; cyl < disk->num_cylinders; cyl++) {
 		for (unsigned head = 0; head < disk->num_heads; head++) {
@@ -358,74 +361,99 @@ static int vdisk_save_vdk(struct vdisk *disk) {
  * of the track as is available.
  *
  * Some images seen in the wild are double-sided without containing header
- * information.  If started with the "-disk-jvc-hack" option, XRoar will
- * identify any headerless disk that appears to be longer than 43 track
- * single-sided as double-sided instead.
+ * information.  If it looks like such an image contains an OS-9 filesystem,
+ * XRoar will try and extract geometry information from the first sector.  This
+ * can be disabled with the "-no-disk-auto-os9" option, but if the filename
+ * ends in ".os9", the check is performed regardless.
  */
 
-static const uint8_t jvc_defaults[] = { 18, 1, 1, 1, 0 };
+static uint8_t const jvc_defaults[] = { 18, 1, 1, 1, 0 };
 
-static struct vdisk *vdisk_load_jvc(const char *filename) {
-	struct vdisk *disk;
-	ssize_t file_size;
-	unsigned header_size;
-	unsigned ncyls;
-	unsigned nheads = 1;
+static struct vdisk *do_load_jvc(const char *filename, _Bool auto_os9) {
 	unsigned nsectors = 18;
-	unsigned ssize_code = 1, ssize;
+	unsigned nheads = 1;
+	unsigned ssize_code = 1;
 	unsigned first_sector = 1;
 	_Bool sector_attr_flag = 0;
+	_Bool headerless_os9 = 0;
+
 	uint8_t buf[1024];
 	FILE *fd;
 
 	struct stat statbuf;
 	if (stat(filename, &statbuf) != 0)
 		return NULL;
-	file_size = statbuf.st_size;
-	header_size = file_size % 128;
+	off_t file_size = statbuf.st_size;
+	unsigned header_size = file_size % 128;
 	file_size -= header_size;
 
 	if (!(fd = fopen(filename, "rb")))
 		return NULL;
 
-	memcpy(buf, jvc_defaults, sizeof(jvc_defaults));
-	if (xroar_cfg.disk_jvc_hack && file_size > 198144)
-		buf[1] = 2;
 	if (header_size > 0) {
 		if (fread(buf, header_size, 1, fd) < 1) {
 			LOG_WARN("Failed to read JVC header in '%s'\n", filename);
 			fclose(fd);
 			return NULL;
 		}
-	}
-	nsectors = buf[0];
-	nheads = buf[1];
-	ssize_code = buf[2] & 3;
-	first_sector = buf[3];
-	sector_attr_flag = buf[4];
+		nsectors = buf[0];
+		if (header_size >= 2)
+			nheads = buf[1];
+		if (header_size >= 3)
+			ssize_code = buf[2] & 3;
+		if (header_size >= 4)
+			first_sector = buf[3];
+		if (header_size >= 5)
+			sector_attr_flag = buf[4];
+	} else if (auto_os9) {
+		/* read first sector & check it makes sense */
+		if (fread(buf + 256, 256, 1, fd) < 1) {
+			LOG_WARN("Failed to read from JVC '%s'\n", filename);
+			fclose(fd);
+			return NULL;
+		}
+		unsigned dd_tot = (buf[0x100+0] << 16) | (buf[0x100+1] << 8) | buf[0x100+2];
+		off_t os9_file_size = dd_tot * 256;
+		unsigned dd_tks = buf[0x100+0x03];
+		uint8_t dd_fmt = buf[0x100+0x10];
+		unsigned dd_fmt_sides = (dd_fmt & 1) + 1;
+		unsigned dd_spt = (buf[0x100+0x11] << 8) | buf[0x100+0x12];
 
-	ssize = 128 << ssize_code;
+		if (os9_file_size >= file_size && dd_tks == dd_spt) {
+			nsectors = dd_tks;
+			nheads = dd_fmt_sides;
+			headerless_os9 = 1;
+		}
+		fseek(fd, 0, SEEK_SET);
+	}
+
+	unsigned ssize = 128 << ssize_code;
 	unsigned bytes_per_sector = ssize + sector_attr_flag;
 	unsigned bytes_per_cyl = nsectors * bytes_per_sector * nheads;
-	ncyls = file_size / bytes_per_cyl;
+	unsigned ncyls = file_size / bytes_per_cyl;
 	// if there is at least one more sector of data, allow an extra track
 	if ((file_size % bytes_per_cyl) >= bytes_per_sector) {
 		ncyls++;
 	}
 
-	disk = vdisk_blank_disk(ncyls, nheads, VDISK_LENGTH_5_25);
+	struct vdisk *disk = vdisk_blank_disk(ncyls, nheads, VDISK_LENGTH_5_25);
 	if (!disk) {
 		fclose(fd);
 		return NULL;
 	}
 	disk->filetype = FILETYPE_JVC;
 	disk->filename = xstrdup(filename);
+	disk->fmt.jvc.headerless_os9 = headerless_os9;
 	if (vdisk_format_disk(disk, 1, nsectors, first_sector, ssize_code) != 0) {
 		fclose(fd);
 		vdisk_destroy(disk);
 		return NULL;
 	}
-	LOG_DEBUG(1, "Loading JVC virtual disk: %uC %uH %uS (%u-byte)\n", ncyls, nheads, nsectors, ssize);
+	if (headerless_os9) {
+		LOG_DEBUG(1, "Loading headerless OS-9 virtual disk: %uC %uH %uS (%u-byte)\n", ncyls, nheads, nsectors, ssize);
+	} else {
+		LOG_DEBUG(1, "Loading JVC virtual disk: %uC %uH %uS (%u-byte)\n", ncyls, nheads, nsectors, ssize);
+	}
 	for (unsigned cyl = 0; cyl < ncyls; cyl++) {
 		for (unsigned head = 0; head < nheads; head++) {
 			for (unsigned sector = 0; sector < nsectors; sector++) {
@@ -445,6 +473,14 @@ static struct vdisk *vdisk_load_jvc(const char *filename) {
 	return disk;
 }
 
+static struct vdisk *vdisk_load_jvc(const char *filename) {
+	return do_load_jvc(filename, xroar_cfg.disk_auto_os9);
+}
+
+static struct vdisk *vdisk_load_os9(const char *filename) {
+	return do_load_jvc(filename, 1);
+}
+
 static int vdisk_save_jvc(struct vdisk *disk) {
 	unsigned nsectors = 18;
 	uint8_t buf[1024];
@@ -462,8 +498,9 @@ static int vdisk_save_jvc(struct vdisk *disk) {
 	buf[3] = 1;  // assumed first sector == 1
 	buf[4] = 0;
 
+	// don't write a header if OS-9 detection didn't find one
 	unsigned header_size = 0;
-	if (disk->num_heads != 1)
+	if (disk->num_heads != 1 && !disk->fmt.jvc.headerless_os9)
 		header_size = 2;
 
 	if (header_size > 0) {
