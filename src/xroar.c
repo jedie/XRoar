@@ -187,7 +187,7 @@ static int timeout_cycles;
 
 static struct joystick_config *cur_joy_config = NULL;
 
-static struct xconfig_option xroar_options[];
+static struct xconfig_option const xroar_options[];
 
 /**************************************************************************/
 /* Global flags */
@@ -1775,7 +1775,7 @@ static struct xconfig_enum ao_format_list[] = {
 
 /* Configuration directives */
 
-static struct xconfig_option xroar_options[] = {
+static struct xconfig_option const xroar_options[] = {
 	/* Machines: */
 	{ XC_SET_STRING("default-machine", &private_cfg.default_machine) },
 	{ XC_CALL_STRING("machine", &set_machine) },

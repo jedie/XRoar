@@ -29,7 +29,7 @@
 #include "logging.h"
 #include "xconfig.h"
 
-static struct xconfig_option *find_option(struct xconfig_option *options,
+static struct xconfig_option const *find_option(struct xconfig_option const *options,
 		const char *opt) {
 	int i;
 	for (i = 0; options[i].type != XCONFIG_END; i++) {
@@ -57,7 +57,7 @@ static int lookup_enum(const char *name, struct xconfig_enum *list) {
 	return -1;
 }
 
-static void set_option(struct xconfig_option *option, char *arg) {
+static void set_option(struct xconfig_option const *option, char *arg) {
 	switch (option->type) {
 		case XCONFIG_BOOL:
 			if (option->call)
@@ -128,7 +128,7 @@ static void set_option(struct xconfig_option *option, char *arg) {
 }
 
 /* returns 0 if it's a value option to unset */
-static int unset_option(struct xconfig_option *option) {
+static int unset_option(struct xconfig_option const *option) {
 	switch (option->type) {
 	case XCONFIG_BOOL:
 		if (option->call)
@@ -169,7 +169,7 @@ static int unset_option(struct xconfig_option *option) {
 }
 
 /* Simple parser: one directive per line, "option argument" */
-enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
+enum xconfig_result xconfig_parse_file(struct xconfig_option const *options,
 		const char *filename) {
 	char *line;
 	FILE *cfg;
@@ -187,8 +187,8 @@ enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
 	return ret;
 }
 
-enum xconfig_result xconfig_parse_line(struct xconfig_option *options, const char *line) {
-	struct xconfig_option *option;
+enum xconfig_result xconfig_parse_line(struct xconfig_option const *options, const char *line) {
+	struct xconfig_option const *option;
 	char *opt, *arg;
 	size_t line_len = strlen(line) + 1;
 	char *cline = alloca(line_len);
@@ -248,7 +248,7 @@ enum xconfig_result xconfig_parse_line(struct xconfig_option *options, const cha
 	return XCONFIG_OK;
 }
 
-enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
+enum xconfig_result xconfig_parse_cli(struct xconfig_option const *options,
 		int argc, char **argv, int *argn) {
 	int _argn = argn ? *argn : 1;
 	while (_argn < argc) {
@@ -261,7 +261,7 @@ enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
 		}
 		char *opt = argv[_argn]+1;
 		if (*opt == '-') opt++;
-		struct xconfig_option *option = find_option(options, opt);
+		struct xconfig_option const *option = find_option(options, opt);
 		if (option == NULL) {
 			if (0 == strncmp(opt, "no-", 3)) {
 				option = find_option(options, opt + 3);

@@ -81,13 +81,13 @@ struct xconfig_enum {
 extern char *xconfig_option;
 extern int xconfig_line_number;
 
-enum xconfig_result xconfig_parse_file(struct xconfig_option *options,
+enum xconfig_result xconfig_parse_file(struct xconfig_option const *options,
 		const char *filename);
 
-enum xconfig_result xconfig_parse_line(struct xconfig_option *options,
+enum xconfig_result xconfig_parse_line(struct xconfig_option const *options,
 		const char *line);
 
-enum xconfig_result xconfig_parse_cli(struct xconfig_option *options,
+enum xconfig_result xconfig_parse_cli(struct xconfig_option const *options,
 		int argc, char **argv, int *argn);
 
 #endif  /* XROAR_XCONFIG_H_ */
