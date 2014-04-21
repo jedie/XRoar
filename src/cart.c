@@ -165,7 +165,7 @@ void cart_config_complete(struct cart_config *cc) {
 	}
 }
 
-static const char *cart_type_string[] = {
+static char const * const cart_type_string[] = {
 	"rom",
 	"dragondos",
 	"rsdos",
