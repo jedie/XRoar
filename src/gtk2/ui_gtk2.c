@@ -301,7 +301,7 @@ static void set_keymap(GtkRadioAction *action, GtkRadioAction *current, gpointer
 	xroar_set_keymap(val);
 }
 
-static const char *joystick_name[] = {
+static char const * const joystick_name[] = {
 	NULL, "joy0", "joy1", "kjoy0", "mjoy0"
 };
 
@@ -447,7 +447,7 @@ static const gchar *ui =
 	  "</menubar>"
 	"</ui>";
 
-static GtkActionEntry ui_entries[] = {
+static GtkActionEntry const ui_entries[] = {
 	/* Top level */
 	{ .name = "FileMenuAction", .label = "_File" },
 	{ .name = "ViewMenuAction", .label = "_View" },
@@ -518,7 +518,7 @@ static GtkActionEntry ui_entries[] = {
 };
 static guint ui_n_entries = G_N_ELEMENTS(ui_entries);
 
-static GtkToggleActionEntry ui_toggles[] = {
+static GtkToggleActionEntry const ui_toggles[] = {
 	/* View */
 	{ .name = "InverseTextAction", .label = "_Inverse Text",
 	  .accelerator = "<shift><control>I",
@@ -541,19 +541,19 @@ static GtkToggleActionEntry ui_toggles[] = {
 };
 static guint ui_n_toggles = G_N_ELEMENTS(ui_toggles);
 
-static GtkRadioActionEntry cross_colour_radio_entries[] = {
+static GtkRadioActionEntry const cross_colour_radio_entries[] = {
 	{ .name = "cc-none", .label = "None", .value = CROSS_COLOUR_OFF },
 	{ .name = "cc-blue-red", .label = "Blue-red", .value = CROSS_COLOUR_KBRW },
 	{ .name = "cc-red-blue", .label = "Red-blue", .value = CROSS_COLOUR_KRBW },
 };
 
-static GtkRadioActionEntry keymap_radio_entries[] = {
+static GtkRadioActionEntry const keymap_radio_entries[] = {
 	{ .name = "keymap_dragon", .label = "Dragon Layout", .value = KEYMAP_DRAGON },
 	{ .name = "keymap_dragon200e", .label = "Dragon 200-E Layout", .value = KEYMAP_DRAGON200E },
 	{ .name = "keymap_coco", .label = "CoCo Layout", .value = KEYMAP_COCO },
 };
 
-static GtkRadioActionEntry joy_right_radio_entries[] = {
+static GtkRadioActionEntry const joy_right_radio_entries[] = {
 	{ .name = "joy_right_none", .label = "None", .value = 0 },
 	{ .name = "joy_right_joy0", .label = "Joystick 0", .value = 1 },
 	{ .name = "joy_right_joy1", .label = "Joystick 1", .value = 2 },
@@ -561,7 +561,7 @@ static GtkRadioActionEntry joy_right_radio_entries[] = {
 	{ .name = "joy_right_mjoy0", .label = "Mouse", .value = 4 },
 };
 
-static GtkRadioActionEntry joy_left_radio_entries[] = {
+static GtkRadioActionEntry const joy_left_radio_entries[] = {
 	{ .name = "joy_left_none", .label = "None", .value = 0 },
 	{ .name = "joy_left_joy0", .label = "Joystick 0", .value = 1 },
 	{ .name = "joy_left_joy1", .label = "Joystick 1", .value = 2 },
