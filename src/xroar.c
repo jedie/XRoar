@@ -204,7 +204,7 @@ struct vdg_palette *xroar_vdg_palette;
 
 /* Default configuration */
 
-static const char *default_config[] = {
+static char const * const default_config[] = {
 	// Dragon 32
 	"machine dragon32",
 	"machine-desc Dragon 32",
