@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl-alloca.h"
 #include "slist.h"
 #include "xalloc.h"
 
@@ -76,7 +75,7 @@ static struct crclist *find_crclist(const char *name) {
  * Overwrites any existing list with name LIST. */
 void crclist_assign(const char *astring) {
 	if (!astring) return;
-	char *tmp = alloca(strlen(astring) + 1);
+	char tmp[strlen(astring) + 1];
 	strcpy(tmp, astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;

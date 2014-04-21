@@ -32,7 +32,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "pl-alloca.h"
 #include "xalloc.h"
 
 #include "crc16.h"
@@ -140,7 +139,6 @@ struct vdisk *vdisk_load(const char *filename) {
 }
 
 int vdisk_save(struct vdisk *disk, _Bool force) {
-	char *backup_filename;
 	int i;
 	if (!disk)
 		return -1;
@@ -163,14 +161,12 @@ int vdisk_save(struct vdisk *disk, _Bool force) {
 		return -1;
 	}
 	int bf_len = strlen(disk->filename) + 5;
-	backup_filename = alloca(bf_len);
+	char backup_filename[bf_len];
 	// Rename old file to filename.bak if that .bak does not already exist
-	if (backup_filename != NULL) {
-		snprintf(backup_filename, bf_len, "%s.bak", disk->filename);
-		struct stat statbuf;
-		if (stat(backup_filename, &statbuf) != 0) {
-			rename(disk->filename, backup_filename);
-		}
+	snprintf(backup_filename, bf_len, "%s.bak", disk->filename);
+	struct stat statbuf;
+	if (stat(backup_filename, &statbuf) != 0) {
+		rename(disk->filename, backup_filename);
 	}
 	return dispatch[i].save_func(disk);
 }

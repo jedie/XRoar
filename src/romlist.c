@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "array.h"
-#include "pl-alloca.h"
 #include "slist.h"
 #include "xalloc.h"
 
@@ -81,7 +80,7 @@ static struct romlist *find_romlist(const char *name) {
  * Overwrites any existing list with name LIST. */
 void romlist_assign(const char *astring) {
 	if (!astring) return;
-	char *tmp = alloca(strlen(astring) + 1);
+	char tmp[strlen(astring) + 1];
 	strcpy(tmp, astring);
 	char *name = strtok(tmp, "=");
 	if (!name) return;
@@ -114,10 +113,9 @@ void romlist_assign(const char *astring) {
 
 /* Find a ROM within ROMPATH */
 static char *find_rom(const char *romname) {
-	char *filename;
 	char *path = NULL;
 	if (!romname) return NULL;
-	filename = alloca(strlen(romname) + 5);
+	char filename[strlen(romname) + 5];
 	for (unsigned i = 0; i < ARRAY_N_ELEMENTS(rom_extensions); i++) {
 		strcpy(filename, romname);
 		strcat(filename, rom_extensions[i]);

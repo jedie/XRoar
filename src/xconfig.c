@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pl-alloca.h"
 #include "xalloc.h"
 
 #include "logging.h"
@@ -191,7 +190,8 @@ enum xconfig_result xconfig_parse_line(struct xconfig_option const *options, con
 	struct xconfig_option const *option;
 	char *opt, *arg;
 	size_t line_len = strlen(line) + 1;
-	char *cline = alloca(line_len);
+	char cline_buf[line_len];
+	char *cline = cline_buf;
 	strncpy(cline, line, line_len);
 	cline[line_len-1] = 0;
 	while (isspace((int)*cline))

@@ -25,7 +25,6 @@
 #include <string.h>
 
 #include "array.h"
-#include "pl-alloca.h"
 #include "slist.h"
 #include "xalloc.h"
 
@@ -101,7 +100,7 @@ struct cart_config *cart_config_by_name(const char *name) {
 			free(rom_cart_config->description);
 		}
 		/* Make up a description from filename */
-		char *tmp_name = alloca(strlen(name) + 1);
+		char tmp_name[strlen(name) + 1];
 		strcpy(tmp_name, name);
 		char *bname = basename(tmp_name);
 		if (bname && *bname) {
