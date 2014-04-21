@@ -32,6 +32,7 @@
 #include "xalloc.h"
 
 #include "cart.h"
+#include "delegate.h"
 #include "deltados.h"
 #include "logging.h"
 #include "machine.h"

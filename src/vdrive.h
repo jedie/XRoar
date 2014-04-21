@@ -16,10 +16,10 @@ struct vdisk;
 
 #define VDRIVE_MAX_DRIVES (4)
 
-DELEGATE_T1(void,bool) vdrive_ready;
-DELEGATE_T1(void,bool) vdrive_tr00;
-DELEGATE_T1(void,bool) vdrive_index_pulse;
-DELEGATE_T1(void,bool) vdrive_write_protect;
+extern DELEGATE_T1(void,bool) vdrive_ready;
+extern DELEGATE_T1(void,bool) vdrive_tr00;
+extern DELEGATE_T1(void,bool) vdrive_index_pulse;
+extern DELEGATE_T1(void,bool) vdrive_write_protect;
 extern void (*vdrive_update_drive_cyl_head)(unsigned drive, unsigned cyl, unsigned head);
 
 void vdrive_init(void);
