@@ -247,23 +247,23 @@ void machine_config_complete(struct machine_config *mc) {
 	}
 }
 
-static const char *machine_arch_string[] = {
+static char const * const machine_arch_string[] = {
 	"dragon32",
 	"dragon64",
 	"coco",
 };
 
-static const char *machine_cpu_string[] = {
+static char const * const machine_cpu_string[] = {
 	"6809",
 	"6309",
 };
 
-static const char *machine_tv_type_string[] = {
+static char const * const machine_tv_type_string[] = {
 	"pal",
 	"ntsc",
 };
 
-static const char *machine_vdg_type_string[] = {
+static char const * const machine_vdg_type_string[] = {
 	"6847",
 	"6847t1",
 };
