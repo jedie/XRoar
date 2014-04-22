@@ -1,4 +1,4 @@
-Development version, unreleased
+Version 0.32, Tue Apr 22 2014
 
   * Fix keyboard handling - CoCo Tetris now playable again.
   * SDL, CoreAudio: allow -ao-fragments more than 1.
